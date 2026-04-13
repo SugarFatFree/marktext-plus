@@ -1,0 +1,113 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2.18.0
+        with:
+          channel: stable
+
+      - name: Install dependencies
+        working-directory: code
+        run: flutter pub get
+
+      - name: Build Windows
+        working-directory: code
+        run: flutter build windows --release
+
+      - name: Package Windows build
+        run: |
+          cd code/build/windows/x64/runner/Release
+          7z a -tzip "${{ github.workspace }}/marktext-plus-windows-x64.zip" .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: marktext-plus-windows-x64.zip
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2.18.0
+        with:
+          channel: stable
+
+      - name: Install dependencies
+        working-directory: code
+        run: flutter pub get
+
+      - name: Build macOS
+        working-directory: code
+        run: flutter build macos --release
+
+      - name: Package macOS build
+        run: |
+          cd code/build/macos/Build/Products/Release
+          zip -r "${{ github.workspace }}/marktext-plus-macos-x64.zip" "marktext_plus.app"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-build
+          path: marktext-plus-macos-x64.zip
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build libgtk-3-dev pkg-config liblzma-dev
+
+      - uses: subosito/flutter-action@v2.18.0
+        with:
+          channel: stable
+
+      - name: Install dependencies
+        working-directory: code
+        run: flutter pub get
+
+      - name: Build Linux
+        working-directory: code
+        run: flutter build linux --release
+
+      - name: Package Linux build
+        run: |
+          cd code/build/linux/x64/release/bundle
+          tar czf "${{ github.workspace }}/marktext-plus-linux-x64.tar.gz" .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-build
+          path: marktext-plus-linux-x64.tar.gz
+
+  release:
+    needs: [build-windows, build-macos, build-linux]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            marktext-plus-windows-x64.zip
+            marktext-plus-macos-x64.zip
+            marktext-plus-linux-x64.tar.gz
