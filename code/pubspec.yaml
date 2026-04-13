@@ -1,0 +1,29 @@
+name: marktext_plus
+description: A lightweight Markdown editor built with Flutter.
+version: 1.0.1+1
+publish_to: 'none'
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: any
+  flutter_riverpod: ^2.6.1
+  window_manager: ^0.4.3
+  file_picker: ^8.1.6
+  path_provider: ^2.1.5
+  url_launcher: ^6.3.1
+  printing: ^5.13.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  generate: true
+  uses-material-design: true

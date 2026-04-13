@@ -1,0 +1,276 @@
+// ignore: unused_import
+import 'package:intl/intl.dart' as intl;
+import 'app_localizations.dart';
+
+// ignore_for_file: type=lint
+
+/// The translations for English (`en`).
+class AppLocalizationsEn extends AppLocalizations {
+  AppLocalizationsEn([String locale = 'en']) : super(locale);
+
+  @override
+  String get appTitle => 'MarkText Plus';
+
+  @override
+  String get menuFile => 'File';
+
+  @override
+  String get menuEdit => 'Edit';
+
+  @override
+  String get menuView => 'View';
+
+  @override
+  String get menuFormat => 'Format';
+
+  @override
+  String get menuWindow => 'Window';
+
+  @override
+  String get menuHelp => 'Help';
+
+  @override
+  String get fileNew => 'New File';
+
+  @override
+  String get fileNewWindow => 'New Window';
+
+  @override
+  String get fileOpen => 'Open File';
+
+  @override
+  String get fileOpenFolder => 'Open Folder';
+
+  @override
+  String get fileSave => 'Save';
+
+  @override
+  String get fileSaveAs => 'Save As';
+
+  @override
+  String get fileExport => 'Export';
+
+  @override
+  String get fileExportHtml => 'HTML';
+
+  @override
+  String get fileExportPdf => 'PDF';
+
+  @override
+  String get fileSettings => 'Settings';
+
+  @override
+  String get fileQuit => 'Quit';
+
+  @override
+  String get editUndo => 'Undo';
+
+  @override
+  String get editRedo => 'Redo';
+
+  @override
+  String get editCut => 'Cut';
+
+  @override
+  String get editCopy => 'Copy';
+
+  @override
+  String get editPaste => 'Paste';
+
+  @override
+  String get editFind => 'Find';
+
+  @override
+  String get editReplace => 'Replace';
+
+  @override
+  String get editFindInFiles => 'Find in Files';
+
+  @override
+  String get viewEditMode => 'Edit Mode';
+
+  @override
+  String get viewSourceCode => 'Source Code';
+
+  @override
+  String get viewPreview => 'Preview';
+
+  @override
+  String get viewSplitView => 'Split View';
+
+  @override
+  String get viewShowSidebar => 'Show Sidebar';
+
+  @override
+  String get viewHideSidebar => 'Hide Sidebar';
+
+  @override
+  String get viewShowTabBar => 'Show Tab Bar';
+
+  @override
+  String get viewHideTabBar => 'Hide Tab Bar';
+
+  @override
+  String get viewFocusMode => 'Focus Mode';
+
+  @override
+  String get viewTypewriterMode => 'Typewriter Mode';
+
+  @override
+  String get viewZoomIn => 'Zoom In';
+
+  @override
+  String get viewZoomOut => 'Zoom Out';
+
+  @override
+  String get viewResetZoom => 'Reset Zoom';
+
+  @override
+  String get formatBold => 'Bold';
+
+  @override
+  String get formatItalic => 'Italic';
+
+  @override
+  String get formatStrikethrough => 'Strikethrough';
+
+  @override
+  String formatHeading(int level) {
+    return 'Heading $level';
+  }
+
+  @override
+  String get formatOrderedList => 'Ordered List';
+
+  @override
+  String get formatUnorderedList => 'Unordered List';
+
+  @override
+  String get formatTaskList => 'Task List';
+
+  @override
+  String get formatCodeBlock => 'Code Block';
+
+  @override
+  String get formatQuoteBlock => 'Quote Block';
+
+  @override
+  String get formatMathBlock => 'Math Block';
+
+  @override
+  String get formatTable => 'Table';
+
+  @override
+  String get formatLink => 'Link';
+
+  @override
+  String get formatImage => 'Image';
+
+  @override
+  String get formatHorizontalRule => 'Horizontal Rule';
+
+  @override
+  String get windowMinimize => 'Minimize';
+
+  @override
+  String get windowFullScreen => 'Toggle Full Screen';
+
+  @override
+  String get windowAlwaysOnTop => 'Always on Top';
+
+  @override
+  String get helpAbout => 'About MarkText Plus';
+
+  @override
+  String get helpCheckUpdates => 'Check for Updates';
+
+  @override
+  String get helpChangelog => 'Changelog';
+
+  @override
+  String get helpReportBug => 'Report Bug';
+
+  @override
+  String get helpRequestFeature => 'Request Feature';
+
+  @override
+  String get helpGitHub => 'GitHub Repository';
+
+  @override
+  String get settingsGeneral => 'General';
+
+  @override
+  String get settingsEditor => 'Editor';
+
+  @override
+  String get settingsMarkdown => 'Markdown';
+
+  @override
+  String get settingsTheme => 'Theme';
+
+  @override
+  String get settingsKeybindings => 'Keybindings';
+
+  @override
+  String get settingsLanguage => 'Language';
+
+  @override
+  String get settingsAutoSave => 'Auto Save';
+
+  @override
+  String get settingsAutoSaveDelay => 'Auto Save Delay (ms)';
+
+  @override
+  String get settingsFontSize => 'Font Size';
+
+  @override
+  String get settingsLineHeight => 'Line Height';
+
+  @override
+  String get settingsTabSize => 'Tab Size';
+
+  @override
+  String get settingsEnableHtml => 'Enable HTML';
+
+  @override
+  String get settingsResetDefaults => 'Reset to Defaults';
+
+  @override
+  String statusLine(int line, int col) {
+    return 'Ln $line, Col $col';
+  }
+
+  @override
+  String get statusEncoding => 'UTF-8';
+
+  @override
+  String get statusMarkdown => 'Markdown';
+
+  @override
+  String get unsavedChanges => 'Unsaved Changes';
+
+  @override
+  String get unsavedChangesMessage =>
+      'Do you want to save changes before closing?';
+
+  @override
+  String get save => 'Save';
+
+  @override
+  String get dontSave => 'Don\'t Save';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String get ok => 'OK';
+
+  @override
+  String get untitled => 'Untitled';
+
+  @override
+  String get openRecentFiles => 'Open Recent Files';
+
+  @override
+  String get noRecentFiles => 'No Recent Files';
+}
