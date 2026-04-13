@@ -105,8 +105,6 @@ class MarkdownRenderer extends ConsumerWidget {
     );
   }
 
-  // PLACEHOLDER_HEADING
-  // PLACEHOLDER_REST
 
   Widget _buildHeading(String text, int level, ThemeData theme) {
     final sizes = [28.0, 24.0, 20.0, 18.0, 16.0, 14.0];
