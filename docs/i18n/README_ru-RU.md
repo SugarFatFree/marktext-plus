@@ -80,7 +80,7 @@ flutter test
 
 ## Лицензия
 
-Этот проект лицензирован по лицензии MIT — подробности см. в файле [LICENSE](../../code/LICENSE).
+Этот проект лицензирован по лицензии MIT — подробности см. в файле [LICENSE](../../LICENSE).
 
 Основан на проекте [MarkText](https://github.com/marktext/marktext) от Luo Ran и участников.
 

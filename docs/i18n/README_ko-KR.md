@@ -80,7 +80,7 @@ flutter test
 
 ## 라이선스
 
-이 프로젝트는 MIT 라이선스에 따라 라이선스가 부여됩니다 - 자세한 내용은 [LICENSE](../../code/LICENSE) 파일을 참조하세요.
+이 프로젝트는 MIT 라이선스에 따라 라이선스가 부여됩니다 - 자세한 내용은 [LICENSE](../../LICENSE) 파일을 참조하세요.
 
 Luo Ran 및 기여자의 [MarkText](https://github.com/marktext/marktext)를 기반으로 합니다.
 

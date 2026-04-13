@@ -80,7 +80,7 @@ flutter test
 
 ## ライセンス
 
-このプロジェクトは MIT ライセンスの下でライセンスされています - 詳細は [LICENSE](../../code/LICENSE) ファイルを参照してください。
+このプロジェクトは MIT ライセンスの下でライセンスされています - 詳細は [LICENSE](../../LICENSE) ファイルを参照してください。
 
 Luo Ran と貢献者による [MarkText](https://github.com/marktext/marktext) に基づいています。
 

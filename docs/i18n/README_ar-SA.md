@@ -80,7 +80,7 @@ flutter test
 
 ## الترخيص
 
-هذا المشروع مرخص بموجب رخصة MIT — راجع ملف [LICENSE](../../code/LICENSE) للتفاصيل.
+هذا المشروع مرخص بموجب رخصة MIT — راجع ملف [LICENSE](../../LICENSE) للتفاصيل.
 
 مبني على مشروع [MarkText](https://github.com/marktext/marktext) بواسطة Luo Ran والمساهمين.
 

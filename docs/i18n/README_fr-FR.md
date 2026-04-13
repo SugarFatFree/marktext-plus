@@ -80,7 +80,7 @@ Les contributions sont les bienvenues ! N'hesitez pas a soumettre une Pull Reque
 
 ## Licence
 
-Ce projet est sous licence MIT - voir le fichier [LICENSE](../../code/LICENSE) pour plus de details.
+Ce projet est sous licence MIT - voir le fichier [LICENSE](../../LICENSE) pour plus de details.
 
 Basé sur [MarkText](https://github.com/marktext/marktext) par Luo Ran et les contributeurs.
 

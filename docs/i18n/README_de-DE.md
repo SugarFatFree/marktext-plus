@@ -80,7 +80,7 @@ Beitraege sind willkommen! Bitte reichen Sie gerne einen Pull Request ein.
 
 ## Lizenz
 
-Dieses Projekt ist unter der MIT-Lizenz lizenziert - siehe die [LICENSE](../../code/LICENSE) Datei fuer Details.
+Dieses Projekt ist unter der MIT-Lizenz lizenziert - siehe die [LICENSE](../../LICENSE) Datei fuer Details.
 
 Basierend auf [MarkText](https://github.com/marktext/marktext) von Luo Ran und Mitwirkenden.
 
