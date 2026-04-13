@@ -2,26 +2,26 @@
 
 # MarkText Plus
 
-Legkij krossplatformennyj redaktor Markdown, sozданный na Flutter, pererabotannyj iz originalnogo [MarkText](https://github.com/marktext/marktext).
+Легкий кроссплатформенный редактор Markdown, созданный на Flutter, переосмысленный на основе оригинального [MarkText](https://github.com/marktext/marktext).
 
-## Vozmozhnosti
+## Возможности
 
-- **Mnogoyazychnaya podderzhka**: 12 yazykov, vklyuchaya anglijskij, kitajskij, yaponskij, korejskij, nemeckij, francuzskij, italyanskij, russkij, ispanskij, portugalskij, arabskij i brazilskij portugalskij
-- **Legkij i bystryj**: Sobstvennyj parser i renderer Markdown dlya optimalnoj proizvoditelnosti
-- **Postoyannaya konfiguraciya**: Hranenie nastroek na osnove JSON s avtomaticheskim sohraneniem
-- **Dvuhpanelnoe redaktirovanie**: Rezhimy ishodnogo koda, predvaritelnogo prosmotra i razdelennogo vida
-- **Krossplatformennost**: Rabotaet na Windows, macOS i Linux
-- **Sovremennyj interfejs**: Chistyj interfejs s 5 vstroennymi temami
-- **Podsvetka sintaksisa**: Podsvetka sintaksisa Markdown v realnom vremeni v rezhime ishodnogo koda
+- **Многоязычная поддержка**: 12 языков, включая английский, китайский, японский, корейский, немецкий, французский, итальянский, русский, испанский, португальский, арабский и бразильский португальский
+- **Легкий и быстрый**: Собственный парсер и рендерер Markdown для оптимальной производительности
+- **Постоянная конфигурация**: Хранение настроек на основе JSON с автоматическим сохранением
+- **Двухпанельное редактирование**: Режимы исходного кода, предпросмотра и разделённого вида
+- **Кроссплатформенность**: Работает на Windows, macOS и Linux
+- **Современный интерфейс**: Чистый интерфейс с 5 встроенными темами
+- **Подсветка синтаксиса**: Подсветка синтаксиса Markdown в реальном времени в режиме исходного кода
 
-## Ustanovka
+## Установка
 
-### Predvaritelnye trebovaniya
+### Предварительные требования
 
-- Flutter 3.x ili vyshe
-- Dart 3.x ili vyshe
+- Flutter 3.x или выше
+- Dart 3.x или выше
 
-### Sborka iz ishodnogo koda
+### Сборка из исходного кода
 
 ```bash
 git clone https://github.com/yourusername/marktext-plus.git
@@ -30,20 +30,62 @@ flutter pub get
 flutter run
 ```
 
-## Razrabotka
+### Релизные сборки
 
-### Zapusk testov
+```bash
+# Windows
+flutter build windows
+
+# macOS
+flutter build macos
+
+# Linux
+flutter build linux
+```
+
+## Разработка
+
+### Структура проекта
+
+```
+code/
+├── lib/
+│   ├── main.dart              # Точка входа приложения
+│   ├── app.dart               # Конфигурация MaterialApp
+│   ├── core/                  # Основная конфигурация и темы
+│   ├── models/                # Модели данных
+│   ├── services/              # Сервисы бизнес-логики
+│   ├── providers/             # Управление состоянием Riverpod
+│   └── ui/                    # Компоненты UI
+└── test/                      # Модульные и виджет-тесты
+```
+
+### Архитектура
+
+Четырёхслойная архитектура:
+- **Слой UI**: Виджеты и экраны Flutter
+- **Слой состояния**: Провайдеры Riverpod для управления состоянием
+- **Слой сервисов**: Бизнес-логика и обработка данных
+- **Платформенный слой**: Файловый ввод-вывод и системная интеграция
+
+### Запуск тестов
 
 ```bash
 flutter test
 ```
 
-## Uchastie
+## Участие
 
-Vklady privetstvuyutsya! Ne stesnyajtes otpravlyat Pull Request.
+Вклады приветствуются! Не стесняйтесь отправлять Pull Request.
 
-## Licenziya
+## Лицензия
 
-Etot proekt licenzirovan po licenzii MIT - podrobnosti sm. v fajle [LICENSE](../../code/LICENSE).
+Этот проект лицензирован по лицензии MIT — подробности см. в файле [LICENSE](../../code/LICENSE).
 
-Osnovan na [MarkText](https://github.com/marktext/marktext) ot Luo Ran i uchastnikov.
+Основан на проекте [MarkText](https://github.com/marktext/marktext) от Luo Ran и участников.
+
+## Благодарности
+
+- Оригинальный проект MarkText и его участники
+- Команды Flutter и Dart
+- Все библиотеки с открытым исходным кодом, используемые в этом проекте

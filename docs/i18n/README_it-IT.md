@@ -2,17 +2,17 @@
 
 # MarkText Plus
 
-Un editor Markdown leggero e multipiattaforma costruito con Flutter, riprogettato dall'originale [MarkText](https://github.com/marktext/marktext).
+Un editor Markdown leggero e multipiattaforma costruito con Flutter, ripensato dall'originale [MarkText](https://github.com/marktext/marktext).
 
-## Funzionalita
+## Caratteristiche
 
 - **Supporto multilingue**: 12 lingue tra cui inglese, cinese, giapponese, coreano, tedesco, francese, italiano, russo, spagnolo, portoghese, arabo e portoghese brasiliano
-- **Leggero e veloce**: Parser e renderer Markdown sviluppati internamente per prestazioni ottimali
+- **Leggero e veloce**: Parser e renderer Markdown personalizzati per prestazioni ottimali
 - **Configurazione persistente**: Archiviazione delle impostazioni basata su JSON con salvataggio automatico
-- **Modifica a doppio pannello**: Modalita codice sorgente, anteprima e vista divisa
+- **Editing a doppio pannello**: Modalità codice sorgente, anteprima e vista divisa
 - **Multipiattaforma**: Funziona su Windows, macOS e Linux
 - **Interfaccia moderna**: Interfaccia pulita con 5 temi integrati
-- **Evidenziazione della sintassi**: Evidenziazione della sintassi Markdown in tempo reale in modalita sorgente
+- **Evidenziazione della sintassi**: Evidenziazione della sintassi Markdown in tempo reale in modalità sorgente
 
 ## Installazione
 
@@ -21,7 +21,7 @@ Un editor Markdown leggero e multipiattaforma costruito con Flutter, riprogettat
 - Flutter 3.x o superiore
 - Dart 3.x o superiore
 
-### Compilare dal sorgente
+### Compilazione dal codice sorgente
 
 ```bash
 git clone https://github.com/yourusername/marktext-plus.git
@@ -30,9 +30,45 @@ flutter pub get
 flutter run
 ```
 
+### Build di rilascio
+
+```bash
+# Windows
+flutter build windows
+
+# macOS
+flutter build macos
+
+# Linux
+flutter build linux
+```
+
 ## Sviluppo
 
-### Eseguire i test
+### Struttura del progetto
+
+```
+code/
+├── lib/
+│   ├── main.dart              # Punto di ingresso dell'applicazione
+│   ├── app.dart               # Configurazione MaterialApp
+│   ├── core/                  # Configurazione e temi principali
+│   ├── models/                # Modelli di dati
+│   ├── services/              # Servizi di logica aziendale
+│   ├── providers/             # Gestione dello stato Riverpod
+│   └── ui/                    # Componenti UI
+└── test/                      # Test unitari e widget
+```
+
+### Architettura
+
+Architettura a quattro livelli:
+- **Livello UI**: Widget e schermate Flutter
+- **Livello di stato**: Provider Riverpod per la gestione dello stato
+- **Livello di servizio**: Logica aziendale ed elaborazione dati
+- **Livello piattaforma**: I/O file e integrazione di sistema
+
+### Esecuzione dei test
 
 ```bash
 flutter test
@@ -40,10 +76,16 @@ flutter test
 
 ## Contribuire
 
-I contributi sono benvenuti! Non esitate a inviare una Pull Request.
+I contributi sono benvenuti! Sentiti libero di inviare una Pull Request.
 
 ## Licenza
 
-Questo progetto e concesso in licenza sotto la Licenza MIT - vedere il file [LICENSE](../../code/LICENSE) per i dettagli.
+Questo progetto è concesso in licenza con la Licenza MIT — vedi il file [LICENSE](../../code/LICENSE) per i dettagli.
 
-Basato su [MarkText](https://github.com/marktext/marktext) di Luo Ran e contributori.
+Basato sul progetto [MarkText](https://github.com/marktext/marktext) di Luo Ran e contributori.
+
+## Ringraziamenti
+
+- Il progetto MarkText originale e i suoi contributori
+- I team Flutter e Dart
+- Tutte le librerie open source utilizzate in questo progetto

@@ -30,9 +30,45 @@ flutter pub get
 flutter run
 ```
 
-## Developpement
+### Builds de publication
 
-### Executer les tests
+```bash
+# Windows
+flutter build windows
+
+# macOS
+flutter build macos
+
+# Linux
+flutter build linux
+```
+
+## Développement
+
+### Structure du projet
+
+```
+code/
+├── lib/
+│   ├── main.dart              # Point d'entrée de l'application
+│   ├── app.dart               # Configuration MaterialApp
+│   ├── core/                  # Configuration de base et thèmes
+│   ├── models/                # Modèles de données
+│   ├── services/              # Services de logique métier
+│   ├── providers/             # Gestion d'état Riverpod
+│   └── ui/                    # Composants UI
+└── test/                      # Tests unitaires et de widgets
+```
+
+### Architecture
+
+Architecture à quatre couches :
+- **Couche UI** : Widgets et écrans Flutter
+- **Couche État** : Providers Riverpod pour la gestion d'état
+- **Couche Service** : Logique métier et traitement des données
+- **Couche Plateforme** : E/S fichiers et intégration système
+
+### Exécuter les tests
 
 ```bash
 flutter test
@@ -46,4 +82,10 @@ Les contributions sont les bienvenues ! N'hesitez pas a soumettre une Pull Reque
 
 Ce projet est sous licence MIT - voir le fichier [LICENSE](../../code/LICENSE) pour plus de details.
 
-Base sur [MarkText](https://github.com/marktext/marktext) par Luo Ran et les contributeurs.
+Basé sur [MarkText](https://github.com/marktext/marktext) par Luo Ran et les contributeurs.
+
+## Remerciements
+
+- Le projet original MarkText et ses contributeurs
+- Les équipes Flutter et Dart
+- Toutes les bibliothèques open source utilisées dans ce projet

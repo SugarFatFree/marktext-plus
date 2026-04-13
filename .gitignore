@@ -4,11 +4,11 @@
 .dart_tool/
 .packages
 build/
+
 # If you're building an application, you may want to check-in your pubspec.lock
 pubspec.lock
 
 # Directory created by dartdoc
-# If you don't generate documentation locally you can remove this line.
 doc/api/
 
 # dotenv environment variables file
@@ -23,6 +23,34 @@ doc/api/
 *.js.deps
 *.js.map
 
+# Flutter
 .flutter-plugins
 .flutter-plugins-dependencies
-.idea
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+*.dmg
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Linux
+*.snap
+
+# Build outputs
+code/build/
+code/windows/flutter/ephemeral/
+code/linux/flutter/ephemeral/
+code/macos/Flutter/ephemeral/
+
+# Miscellaneous
+*.log
+.claude/
