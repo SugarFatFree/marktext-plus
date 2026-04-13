@@ -1,22 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:window_manager/window_manager.dart';
+import 'app.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await windowManager.ensureInitialized();
+
+  const windowOptions = WindowOptions(
+    size: Size(1200, 800),
+    minimumSize: Size(800, 600),
+    center: true,
+    title: 'MarkText Plus',
+  );
+  await windowManager.waitUntilReadyToShow(windowOptions);
+
   runApp(const ProviderScope(child: MarkTextPlusApp()));
-}
-
-class MarkTextPlusApp extends StatelessWidget {
-  const MarkTextPlusApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'MarkText Plus',
-      theme: ThemeData.light(),
-      home: const Scaffold(
-        body: Center(child: Text('MarkText Plus V1.0.1')),
-      ),
-    );
-  }
 }

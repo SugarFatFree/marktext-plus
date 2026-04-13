@@ -1,5 +1,5 @@
-/// Lightweight self-built Markdown parser supporting CommonMark + GFM subset.
-/// Uses regex-based line scanning for block-level and inline parsing.
+// Lightweight self-built Markdown parser supporting CommonMark + GFM subset.
+// Uses regex-based line scanning for block-level and inline parsing.
 
 // -- Enums --
 
