@@ -16,6 +16,7 @@ dependencies:
   window_manager: ^0.4.3
   file_picker: ^8.1.6
   path_provider: ^2.1.5
+  path: ^1.9.0
   url_launcher: ^6.3.1
   printing: ^5.13.5
 
