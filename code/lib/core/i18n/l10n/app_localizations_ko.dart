@@ -48,6 +48,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get fileSaveAs => '다른 이름으로 저장';
 
   @override
+  String get fileRecentFiles => 'Recent Files';
+
+  @override
+  String get fileNoRecentFiles => 'No Recent Files';
+
+  @override
   String get fileExport => '내보내기';
 
   @override
@@ -272,4 +278,69 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get noRecentFiles => '최근 파일 없음';
+
+  @override
+  String get sidebarFiles => '파일';
+
+  @override
+  String get sidebarSearch => '검색';
+
+  @override
+  String get sidebarToc => '목차';
+
+  @override
+  String get sidebarSettings => '설정';
+
+  @override
+  String get formatHeadingSubmenu => '제목';
+
+  @override
+  String get settingsBulletListMarker => '글머리 기호';
+
+  @override
+  String get settingsDarkMode => '다크 모드';
+
+  @override
+  String get confirmResetMessage => '모든 설정을 기본값으로 되돌리시겠습니까?';
+
+  @override
+  String get comingSoon => '곧 출시';
+
+  @override
+  String get noFiles => '파일 없음';
+
+  @override
+  String get noOpenFolder => '폴더를 열어 파일 탐색';
+
+  @override
+  String get searchPlaceholder => '파일에서 검색...';
+
+  @override
+  String get searchNoResults => '결과 없음';
+
+  @override
+  String searchResultCount(int count) {
+    return '$count개 결과';
+  }
+
+  @override
+  String get tocEmpty => '제목을 찾을 수 없습니다';
+
+  @override
+  String get editFindNext => 'Find Next';
+
+  @override
+  String get editFindPrevious => 'Find Previous';
+
+  @override
+  String get editReplaceAll => 'Replace All';
+
+  @override
+  String get editCaseSensitive => 'Case Sensitive';
+
+  @override
+  String get editWholeWord => 'Whole Word';
+
+  @override
+  String get editRegex => 'Regular Expression';
 }

@@ -4,10 +4,14 @@ import '../services/file_service.dart';
 
 class FileNotifier extends StateNotifier<List<FileNode>> {
   final FileService _fileService;
+  String? _currentDirectory;
 
   FileNotifier(this._fileService) : super([]);
 
+  String? get currentDirectory => _currentDirectory;
+
   Future<void> loadDirectory(String path) async {
+    _currentDirectory = path;
     state = await _fileService.buildFileTree(path);
   }
 

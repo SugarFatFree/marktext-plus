@@ -46,9 +46,47 @@ class SettingsNotifier extends StateNotifier<AppConfig> {
     await updateConfig((config) => config.copyWith(fontSize: size));
   }
 
+  Future<void> toggleFocusMode() async {
+    await updateConfig((config) => config.copyWith(
+      focusMode: !config.focusMode,
+    ));
+  }
+
+  Future<void> toggleTypewriterMode() async {
+    await updateConfig((config) => config.copyWith(
+      typewriterMode: !config.typewriterMode,
+    ));
+  }
+
   Future<void> resetDefaults() async {
     state = AppConfig();
     await _configService.save(state);
+  }
+
+  Future<void> addRecentFile(String path) async {
+    final files = List<String>.from(state.recentFiles);
+    files.remove(path);
+    files.insert(0, path);
+    if (files.length > 10) {
+      files.removeRange(10, files.length);
+    }
+    await updateConfig((config) => config.copyWith(recentFiles: files));
+  }
+
+  Future<void> saveWindowState({
+    required double width,
+    required double height,
+    required double x,
+    required double y,
+    required bool isMaximized,
+  }) async {
+    await updateConfig((config) => config.copyWith(
+      windowWidth: width,
+      windowHeight: height,
+      windowX: x,
+      windowY: y,
+      isMaximized: isMaximized,
+    ));
   }
 }
 

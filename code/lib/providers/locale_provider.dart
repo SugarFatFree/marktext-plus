@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class LocaleNotifier extends StateNotifier<Locale> {
-  LocaleNotifier(String savedLocale) : super(_parseLocale(savedLocale));
+  LocaleNotifier(super.initial);
 
   static const supportedLocales = [
     Locale('en', 'US'),
@@ -26,26 +26,34 @@ class LocaleNotifier extends StateNotifier<Locale> {
 
   bool get isRtl => state.languageCode == 'ar';
 
-  static Locale _parseLocale(String code) {
+  static Locale parseLocale(String code) {
+    if (code.isEmpty) return detectSystemLocale();
     final parts = code.split('_');
-    if (parts.length >= 2) {
-      return Locale(parts[0], parts[1]);
+    final lang = parts[0];
+    final country = parts.length >= 2 ? parts[1] : null;
+    // Match against supported locales
+    for (final supported in supportedLocales) {
+      if (supported.languageCode == lang) {
+        if (country != null && supported.countryCode == country) {
+          return supported;
+        }
+      }
+    }
+    // Fallback: match by language code only
+    for (final supported in supportedLocales) {
+      if (supported.languageCode == lang) {
+        return supported;
+      }
     }
     return const Locale('en', 'US');
   }
 
   static Locale detectSystemLocale() {
     final systemLocale = Platform.localeName;
-    final parsed = _parseLocale(systemLocale);
-    for (final supported in supportedLocales) {
-      if (supported.languageCode == parsed.languageCode) {
-        return supported;
-      }
-    }
-    return const Locale('en', 'US');
+    return parseLocale(systemLocale);
   }
 }
 
 final localeProvider = StateNotifierProvider<LocaleNotifier, Locale>((ref) {
-  return LocaleNotifier('en_US');
+  throw UnimplementedError('localeProvider must be overridden');
 });

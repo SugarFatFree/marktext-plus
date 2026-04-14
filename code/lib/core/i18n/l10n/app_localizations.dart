@@ -195,6 +195,18 @@ abstract class AppLocalizations {
   /// **'Save As'**
   String get fileSaveAs;
 
+  /// No description provided for @fileRecentFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent Files'**
+  String get fileRecentFiles;
+
+  /// No description provided for @fileNoRecentFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'No Recent Files'**
+  String get fileNoRecentFiles;
+
   /// No description provided for @fileExport.
   ///
   /// In en, this message translates to:
@@ -638,6 +650,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No Recent Files'**
   String get noRecentFiles;
+
+  /// No description provided for @sidebarFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Files'**
+  String get sidebarFiles;
+
+  /// No description provided for @sidebarSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get sidebarSearch;
+
+  /// No description provided for @sidebarToc.
+  ///
+  /// In en, this message translates to:
+  /// **'Table of Contents'**
+  String get sidebarToc;
+
+  /// No description provided for @sidebarSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get sidebarSettings;
+
+  /// No description provided for @formatHeadingSubmenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Heading'**
+  String get formatHeadingSubmenu;
+
+  /// No description provided for @settingsBulletListMarker.
+  ///
+  /// In en, this message translates to:
+  /// **'Bullet List Marker'**
+  String get settingsBulletListMarker;
+
+  /// No description provided for @settingsDarkMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark Mode'**
+  String get settingsDarkMode;
+
+  /// No description provided for @confirmResetMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to reset all settings to defaults?'**
+  String get confirmResetMessage;
+
+  /// No description provided for @comingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming soon'**
+  String get comingSoon;
+
+  /// No description provided for @noFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'No files'**
+  String get noFiles;
+
+  /// No description provided for @noOpenFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Open a folder to browse files'**
+  String get noOpenFolder;
+
+  /// No description provided for @searchPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Search in files...'**
+  String get searchPlaceholder;
+
+  /// No description provided for @searchNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No results found'**
+  String get searchNoResults;
+
+  /// No description provided for @searchResultCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} results found'**
+  String searchResultCount(int count);
+
+  /// No description provided for @tocEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No headings found'**
+  String get tocEmpty;
+
+  /// No description provided for @editFindNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Find Next'**
+  String get editFindNext;
+
+  /// No description provided for @editFindPrevious.
+  ///
+  /// In en, this message translates to:
+  /// **'Find Previous'**
+  String get editFindPrevious;
+
+  /// No description provided for @editReplaceAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace All'**
+  String get editReplaceAll;
+
+  /// No description provided for @editCaseSensitive.
+  ///
+  /// In en, this message translates to:
+  /// **'Case Sensitive'**
+  String get editCaseSensitive;
+
+  /// No description provided for @editWholeWord.
+  ///
+  /// In en, this message translates to:
+  /// **'Whole Word'**
+  String get editWholeWord;
+
+  /// No description provided for @editRegex.
+  ///
+  /// In en, this message translates to:
+  /// **'Regular Expression'**
+  String get editRegex;
 }
 
 class _AppLocalizationsDelegate

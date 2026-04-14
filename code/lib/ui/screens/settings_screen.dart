@@ -18,17 +18,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   _Category _selected = _Category.general;
 
   static const _localeMap = {
-    'en': 'English',
-    'zh': '简体中文',
-    'ja': '日本語',
-    'ko': '한국어',
-    'de': 'Deutsch',
-    'fr': 'Français',
-    'it': 'Italiano',
-    'ru': 'Русский',
-    'es': 'Español',
-    'pt': 'Português',
-    'ar': 'العربية',
+    'en_US': 'English',
+    'zh_CN': '简体中文',
+    'ja_JP': '日本語',
+    'ko_KR': '한국어',
+    'de_DE': 'Deutsch',
+    'fr_FR': 'Français',
+    'it_IT': 'Italiano',
+    'ru_RU': 'Русский',
+    'es_ES': 'Español',
+    'pt_PT': 'Português',
+    'ar_SA': 'العربية',
     'pt_BR': 'Português (Brasil)',
   };
 
@@ -97,7 +97,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             Text(l10n.settingsKeybindings,
                 style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 24),
-            const Text('Coming soon'),
+            Text(l10n.comingSoon),
           ],
         );
     }
@@ -120,16 +120,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         _row(
           l10n.settingsLanguage,
           DropdownButton<String>(
-            value: _localeMap.containsKey(localeKey) ? localeKey : 'en',
+            value: _localeMap.containsKey(localeKey) ? localeKey : 'en_US',
             items: _localeMap.entries
                 .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
                 .toList(),
             onChanged: (v) {
               if (v == null) return;
-              final parts = v.split('_');
-              final loc = parts.length >= 2
-                  ? Locale(parts[0], parts[1])
-                  : Locale(parts[0]);
+              final loc = LocaleNotifier.parseLocale(v);
               ref.read(localeProvider.notifier).setLocale(loc);
               ref.read(settingsProvider.notifier).setLocale(v);
             },
@@ -235,7 +232,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             style: Theme.of(context).textTheme.headlineSmall),
         const SizedBox(height: 24),
         _row(
-          'Bullet List Marker',
+          l10n.settingsBulletListMarker,
           DropdownButton<String>(
             value: config.bulletListMarker,
             items: const [
@@ -276,7 +273,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             style: Theme.of(context).textTheme.headlineSmall),
         const SizedBox(height: 24),
         _row(
-          'Dark Mode',
+          l10n.settingsDarkMode,
           Switch(
             value: config.darkMode,
             onChanged: (v) => ref
@@ -348,7 +345,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             context: context,
             builder: (ctx) => AlertDialog(
               title: Text(l10n.settingsResetDefaults),
-              content: const Text('Are you sure?'),
+              content: Text(l10n.confirmResetMessage),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx, false),

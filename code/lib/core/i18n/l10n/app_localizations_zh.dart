@@ -48,6 +48,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get fileSaveAs => '另存为';
 
   @override
+  String get fileRecentFiles => '最近文件';
+
+  @override
+  String get fileNoRecentFiles => '无最近文件';
+
+  @override
   String get fileExport => '导出';
 
   @override
@@ -272,4 +278,69 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get noRecentFiles => '没有最近的文件';
+
+  @override
+  String get sidebarFiles => '文件';
+
+  @override
+  String get sidebarSearch => '搜索';
+
+  @override
+  String get sidebarToc => '目录';
+
+  @override
+  String get sidebarSettings => '设置';
+
+  @override
+  String get formatHeadingSubmenu => '标题';
+
+  @override
+  String get settingsBulletListMarker => '无序列表标记';
+
+  @override
+  String get settingsDarkMode => '深色模式';
+
+  @override
+  String get confirmResetMessage => '确定要恢复所有设置为默认值吗？';
+
+  @override
+  String get comingSoon => '即将推出';
+
+  @override
+  String get noFiles => '没有文件';
+
+  @override
+  String get noOpenFolder => '打开文件夹以浏览文件';
+
+  @override
+  String get searchPlaceholder => '在文件中搜索...';
+
+  @override
+  String get searchNoResults => '未找到结果';
+
+  @override
+  String searchResultCount(int count) {
+    return '找到 $count 个结果';
+  }
+
+  @override
+  String get tocEmpty => '未找到标题';
+
+  @override
+  String get editFindNext => 'Find Next';
+
+  @override
+  String get editFindPrevious => 'Find Previous';
+
+  @override
+  String get editReplaceAll => 'Replace All';
+
+  @override
+  String get editCaseSensitive => 'Case Sensitive';
+
+  @override
+  String get editWholeWord => 'Whole Word';
+
+  @override
+  String get editRegex => 'Regular Expression';
 }

@@ -22,6 +22,7 @@ class TabInfo {
   });
 
   TabInfo copyWith({
+    String? filePath,
     String? fileName,
     String? content,
     bool? isModified,
@@ -31,7 +32,7 @@ class TabInfo {
   }) {
     return TabInfo(
       id: id,
-      filePath: filePath,
+      filePath: filePath ?? this.filePath,
       fileName: fileName ?? this.fileName,
       content: content ?? this.content,
       isModified: isModified ?? this.isModified,

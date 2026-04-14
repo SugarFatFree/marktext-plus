@@ -48,6 +48,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get fileSaveAs => '名前を付けて保存';
 
   @override
+  String get fileRecentFiles => 'Recent Files';
+
+  @override
+  String get fileNoRecentFiles => 'No Recent Files';
+
+  @override
   String get fileExport => 'エクスポート';
 
   @override
@@ -272,4 +278,69 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get noRecentFiles => '最近のファイルはありません';
+
+  @override
+  String get sidebarFiles => 'ファイル';
+
+  @override
+  String get sidebarSearch => '検索';
+
+  @override
+  String get sidebarToc => '目次';
+
+  @override
+  String get sidebarSettings => '設定';
+
+  @override
+  String get formatHeadingSubmenu => '見出し';
+
+  @override
+  String get settingsBulletListMarker => '箇条書きマーカー';
+
+  @override
+  String get settingsDarkMode => 'ダークモード';
+
+  @override
+  String get confirmResetMessage => 'すべての設定をデフォルトに戻しますか？';
+
+  @override
+  String get comingSoon => '近日公開';
+
+  @override
+  String get noFiles => 'ファイルなし';
+
+  @override
+  String get noOpenFolder => 'フォルダを開いてファイルを参照';
+
+  @override
+  String get searchPlaceholder => 'ファイル内を検索...';
+
+  @override
+  String get searchNoResults => '結果が見つかりません';
+
+  @override
+  String searchResultCount(int count) {
+    return '$count 件の結果';
+  }
+
+  @override
+  String get tocEmpty => '見出しが見つかりません';
+
+  @override
+  String get editFindNext => 'Find Next';
+
+  @override
+  String get editFindPrevious => 'Find Previous';
+
+  @override
+  String get editReplaceAll => 'Replace All';
+
+  @override
+  String get editCaseSensitive => 'Case Sensitive';
+
+  @override
+  String get editWholeWord => 'Whole Word';
+
+  @override
+  String get editRegex => 'Regular Expression';
 }

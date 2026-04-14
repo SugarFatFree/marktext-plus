@@ -1,99 +1,49 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_highlight/flutter_highlight.dart';
+import 'package:flutter_highlight/themes/github.dart';
+import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../services/markdown_parser.dart' as md;
 
 class MarkdownRenderer extends ConsumerWidget {
   final String markdown;
+  final void Function(int lineIndex, bool checked)? onTaskToggle;
 
   const MarkdownRenderer({
     super.key,
     required this.markdown,
+    this.onTaskToggle,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final lines = markdown.split('\n');
+    final parser = md.MarkdownParser();
+    final nodes = parser.parse(markdown);
     final widgets = <Widget>[];
 
-    int i = 0;
-    while (i < lines.length) {
-      final line = lines[i];
-
-      // Code block
-      if (line.startsWith('```')) {
-        final codeLines = <String>[];
-        i++;
-        while (i < lines.length && !lines[i].startsWith('```')) {
-          codeLines.add(lines[i]);
-          i++;
-        }
-        if (i < lines.length) i++; // skip closing ```
-        widgets.add(_buildCodeBlock(codeLines.join('\n'), theme));
-        continue;
+    for (final node in nodes) {
+      switch (node) {
+        case md.HeadingNode():
+          widgets.add(_buildHeading(node, theme));
+        case md.ParagraphNode():
+          widgets.add(_buildParagraph(node, theme));
+        case md.CodeBlockNode():
+          widgets.add(_buildCodeBlock(node, theme));
+        case md.ListNode():
+          widgets.add(_buildList(node, theme));
+        case md.BlockquoteNode():
+          widgets.add(_buildBlockquote(node, theme));
+        case md.HorizontalRuleNode():
+          widgets.add(const Divider(thickness: 1));
+        case md.TableNode():
+          widgets.add(_buildTable(node, theme));
+        case md.MathBlockNode():
+          widgets.add(_buildMathBlock(node, theme));
       }
-
-      // Heading
-      if (line.startsWith('#')) {
-        final match = RegExp(r'^(#{1,6})\s+(.*)$').firstMatch(line);
-        if (match != null) {
-          final level = match.group(1)!.length;
-          final text = match.group(2)!;
-          widgets.add(_buildHeading(text, level, theme));
-          i++;
-          continue;
-        }
-      }
-
-      // Horizontal rule
-      if (RegExp(r'^(-{3,}|\*{3,}|_{3,})$').hasMatch(line.trim())) {
-        widgets.add(const Divider(thickness: 1));
-        i++;
-        continue;
-      }
-
-      // Blockquote
-      if (line.startsWith('>')) {
-        final quoteLines = <String>[];
-        while (i < lines.length && lines[i].startsWith('>')) {
-          quoteLines.add(lines[i].replaceFirst(RegExp(r'^>\s?'), ''));
-          i++;
-        }
-        widgets.add(_buildBlockquote(quoteLines.join('\n'), theme));
-        continue;
-      }
-
-      // Unordered list
-      if (RegExp(r'^[-*+]\s').hasMatch(line)) {
-        final listItems = <String>[];
-        while (i < lines.length && RegExp(r'^[-*+]\s').hasMatch(lines[i])) {
-          listItems.add(lines[i].replaceFirst(RegExp(r'^[-*+]\s'), ''));
-          i++;
-        }
-        widgets.add(_buildUnorderedList(listItems, theme));
-        continue;
-      }
-
-      // Ordered list
-      if (RegExp(r'^\d+\.\s').hasMatch(line)) {
-        final listItems = <String>[];
-        while (i < lines.length && RegExp(r'^\d+\.\s').hasMatch(lines[i])) {
-          listItems.add(lines[i].replaceFirst(RegExp(r'^\d+\.\s'), ''));
-          i++;
-        }
-        widgets.add(_buildOrderedList(listItems, theme));
-        continue;
-      }
-
-      // Empty line
-      if (line.trim().isEmpty) {
-        widgets.add(const SizedBox(height: 8));
-        i++;
-        continue;
-      }
-
-      // Paragraph
-      widgets.add(_buildParagraph(line, theme));
-      i++;
     }
 
     return SingleChildScrollView(
@@ -105,181 +55,291 @@ class MarkdownRenderer extends ConsumerWidget {
     );
   }
 
+  Widget _buildHeading(md.HeadingNode node, ThemeData theme) {
+    final textStyle = switch (node.level) {
+      1 => theme.textTheme.displaySmall,
+      2 => theme.textTheme.headlineMedium,
+      3 => theme.textTheme.headlineSmall,
+      4 => theme.textTheme.titleLarge,
+      5 => theme.textTheme.titleMedium,
+      _ => theme.textTheme.titleSmall,
+    };
 
-  Widget _buildHeading(String text, int level, ThemeData theme) {
-    final sizes = [28.0, 24.0, 20.0, 18.0, 16.0, 14.0];
-    final size = level <= sizes.length ? sizes[level - 1] : 14.0;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: size,
-          fontWeight: FontWeight.bold,
-          color: theme.colorScheme.onSurface,
-        ),
+      child: Text.rich(
+        _buildInlineSpans(node.inlineSpans, theme, textStyle),
+        style: textStyle,
       ),
     );
   }
 
-  Widget _buildParagraph(String text, ThemeData theme) {
+  Widget _buildParagraph(md.ParagraphNode node, ThemeData theme) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
-      child: RichText(text: _buildInlineSpans(text, theme)),
+      child: Text.rich(
+        _buildInlineSpans(node.inlineSpans, theme, theme.textTheme.bodyMedium),
+      ),
     );
   }
 
-  Widget _buildCodeBlock(String code, ThemeData theme) {
+  Widget _buildCodeBlock(md.CodeBlockNode node, ThemeData theme) {
     return Container(
-      width: double.infinity,
       margin: const EdgeInsets.symmetric(vertical: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(4),
       ),
-      child: Text(
-        code,
-        style: TextStyle(
-          fontFamily: 'monospace',
-          fontSize: 13,
-          color: theme.colorScheme.onSurface,
-        ),
-      ),
+      child: node.language.isNotEmpty
+          ? HighlightView(
+              node.code,
+              language: node.language,
+              theme: githubTheme,
+              padding: EdgeInsets.zero,
+              textStyle: const TextStyle(fontFamily: 'monospace', fontSize: 14),
+            )
+          : Text(
+              node.code,
+              style: const TextStyle(fontFamily: 'monospace', fontSize: 14),
+            ),
     );
   }
 
-  Widget _buildBlockquote(String text, ThemeData theme) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      padding: const EdgeInsets.only(left: 12),
-      decoration: BoxDecoration(
-        border: Border(
-          left: BorderSide(
-            color: theme.colorScheme.primary.withValues(alpha: 0.5),
-            width: 3,
-          ),
-        ),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-          fontStyle: FontStyle.italic,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildUnorderedList(List<String> items, ThemeData theme) {
+  Widget _buildList(md.ListNode node, ThemeData theme) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: items.map((item) => Padding(
-          padding: const EdgeInsets.only(left: 16, bottom: 4),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('  \u2022  ', style: TextStyle(color: theme.colorScheme.onSurface)),
-              Expanded(child: RichText(text: _buildInlineSpans(item, theme))),
-            ],
-          ),
-        )).toList(),
+        children: [
+          for (var i = 0; i < node.items.length; i++)
+            _buildListItem(node.items[i], i, node.ordered, theme),
+        ],
       ),
     );
   }
 
-  Widget _buildOrderedList(List<String> items, ThemeData theme) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: List.generate(items.length, (index) => Padding(
-          padding: const EdgeInsets.only(left: 16, bottom: 4),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                width: 24,
-                child: Text('${index + 1}. ', style: TextStyle(color: theme.colorScheme.onSurface)),
+  Widget _buildListItem(md.ListItem item, int index, bool ordered, ThemeData theme) {
+    if (item.isTask) {
+      return Padding(
+        padding: const EdgeInsets.only(left: 16, bottom: 4),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Checkbox(
+              value: item.isChecked,
+              onChanged: onTaskToggle != null
+                  ? (value) => onTaskToggle!(index, value ?? false)
+                  : null,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text.rich(
+                _buildInlineSpans(item.inlineSpans, theme, theme.textTheme.bodyMedium),
               ),
-              Expanded(child: RichText(text: _buildInlineSpans(items[index], theme))),
-            ],
-          ),
-        )),
-      ),
-    );
-  }
-
-  TextSpan _buildInlineSpans(String text, ThemeData theme) {
-    final spans = <InlineSpan>[];
-    int pos = 0;
-    final defaultStyle = TextStyle(color: theme.colorScheme.onSurface, fontSize: 14);
-
-    final patterns = <_InlinePattern>[
-      _InlinePattern(RegExp(r'!\[([^\]]*)\]\(([^)]+)\)'), 'image'),
-      _InlinePattern(RegExp(r'\[([^\]]+)\]\(([^)]+)\)'), 'link'),
-      _InlinePattern(RegExp(r'\*\*(.+?)\*\*'), 'bold'),
-      _InlinePattern(RegExp(r'`(.+?)`'), 'code'),
-      _InlinePattern(RegExp(r'~~(.+?)~~'), 'strikethrough'),
-      _InlinePattern(RegExp(r'\*(.+?)\*'), 'italic'),
-    ];
-
-    while (pos < text.length) {
-      Match? earliest;
-      _InlinePattern? matched;
-
-      for (final p in patterns) {
-        final m = p.regex.firstMatch(text.substring(pos));
-        if (m != null && (earliest == null || m.start < earliest.start)) {
-          earliest = m;
-          matched = p;
-        }
-      }
-
-      if (earliest == null) {
-        spans.add(TextSpan(text: text.substring(pos), style: defaultStyle));
-        break;
-      }
-
-      if (earliest.start > 0) {
-        spans.add(TextSpan(text: text.substring(pos, pos + earliest.start), style: defaultStyle));
-      }
-
-      final content = earliest.group(1) ?? earliest.group(0)!;
-      switch (matched!.type) {
-        case 'bold':
-          spans.add(TextSpan(text: content, style: defaultStyle.copyWith(fontWeight: FontWeight.bold)));
-        case 'italic':
-          spans.add(TextSpan(text: content, style: defaultStyle.copyWith(fontStyle: FontStyle.italic)));
-        case 'code':
-          spans.add(TextSpan(
-            text: content,
-            style: defaultStyle.copyWith(fontFamily: 'monospace', backgroundColor: theme.colorScheme.surface),
-          ));
-        case 'link':
-          spans.add(TextSpan(
-            text: content,
-            style: defaultStyle.copyWith(color: theme.colorScheme.primary, decoration: TextDecoration.underline),
-          ));
-        case 'image':
-          spans.add(TextSpan(text: '[image: $content]', style: defaultStyle.copyWith(color: theme.colorScheme.primary)));
-        case 'strikethrough':
-          spans.add(TextSpan(text: content, style: defaultStyle.copyWith(decoration: TextDecoration.lineThrough)));
-        default:
-          spans.add(TextSpan(text: content, style: defaultStyle));
-      }
-
-      pos += earliest.start + earliest.group(0)!.length;
+            ),
+          ],
+        ),
+      );
     }
 
-    return TextSpan(children: spans);
+    return Padding(
+      padding: const EdgeInsets.only(left: 24, bottom: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            ordered ? '${index + 1}. ' : '• ',
+            style: theme.textTheme.bodyMedium,
+          ),
+          Expanded(
+            child: Text.rich(
+              _buildInlineSpans(item.inlineSpans, theme, theme.textTheme.bodyMedium),
+            ),
+          ),
+        ],
+      ),
+    );
   }
-}
 
-class _InlinePattern {
-  final RegExp regex;
-  final String type;
-  _InlinePattern(this.regex, this.type);
+  Widget _buildBlockquote(md.BlockquoteNode node, ThemeData theme) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border(
+          left: BorderSide(color: theme.colorScheme.primary, width: 4),
+        ),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+      ),
+      child: Text.rich(
+        _buildInlineSpans(node.inlineSpans, theme, theme.textTheme.bodyMedium),
+      ),
+    );
+  }
+
+  Widget _buildTable(md.TableNode node, ThemeData theme) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        border: Border.all(color: theme.dividerColor),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Table(
+        border: TableBorder.symmetric(
+          inside: BorderSide(color: theme.dividerColor),
+        ),
+        defaultColumnWidth: const IntrinsicColumnWidth(),
+        children: [
+          TableRow(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest,
+            ),
+            children: [
+              for (var i = 0; i < node.headers.length; i++)
+                Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Text(
+                    node.headers[i],
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: _getAlignment(node.alignments, i),
+                  ),
+                ),
+            ],
+          ),
+          for (final row in node.rows)
+            TableRow(
+              children: [
+                for (var i = 0; i < row.length; i++)
+                  Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Text(
+                      row[i],
+                      textAlign: _getAlignment(node.alignments, i),
+                    ),
+                  ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  TextAlign _getAlignment(List<String> alignments, int index) {
+    if (index >= alignments.length) return TextAlign.left;
+    return switch (alignments[index]) {
+      'center' => TextAlign.center,
+      'right' => TextAlign.right,
+      _ => TextAlign.left,
+    };
+  }
+
+  Widget _buildMathBlock(md.MathBlockNode node, ThemeData theme) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.all(12),
+      child: Center(
+        child: Math.tex(
+          node.expression,
+          textStyle: theme.textTheme.bodyLarge,
+        ),
+      ),
+    );
+  }
+
+  TextSpan _buildInlineSpans(
+    List<md.InlineSpan> spans,
+    ThemeData theme,
+    TextStyle? baseStyle,
+  ) {
+    final children = <InlineSpan>[];
+
+    for (final span in spans) {
+      switch (span.type) {
+        case md.InlineType.text:
+          children.add(TextSpan(text: span.text, style: baseStyle));
+        case md.InlineType.bold:
+          children.add(TextSpan(
+            text: span.text,
+            style: baseStyle?.copyWith(fontWeight: FontWeight.bold),
+          ));
+        case md.InlineType.italic:
+          children.add(TextSpan(
+            text: span.text,
+            style: baseStyle?.copyWith(fontStyle: FontStyle.italic),
+          ));
+        case md.InlineType.code:
+          children.add(TextSpan(
+            text: span.text,
+            style: baseStyle?.copyWith(
+              fontFamily: 'monospace',
+              backgroundColor: theme.colorScheme.surfaceContainerHighest,
+            ),
+          ));
+        case md.InlineType.link:
+          children.add(TextSpan(
+            text: span.text,
+            style: baseStyle?.copyWith(
+              color: theme.colorScheme.primary,
+              decoration: TextDecoration.underline,
+            ),
+          ));
+        case md.InlineType.image:
+          children.add(_buildImageSpan(span, theme));
+        case md.InlineType.strikethrough:
+          children.add(TextSpan(
+            text: span.text,
+            style: baseStyle?.copyWith(decoration: TextDecoration.lineThrough),
+          ));
+        case md.InlineType.mathInline:
+          children.add(WidgetSpan(
+            child: Math.tex(
+              span.text,
+              textStyle: baseStyle,
+            ),
+          ));
+      }
+    }
+
+    return TextSpan(children: children);
+  }
+
+  InlineSpan _buildImageSpan(md.InlineSpan span, ThemeData theme) {
+    final href = span.href;
+    if (href == null || href.isEmpty) {
+      return TextSpan(
+        text: '[${span.text}]',
+        style: TextStyle(color: theme.colorScheme.error),
+      );
+    }
+
+    Widget imageWidget;
+    if (href.startsWith('http://') || href.startsWith('https://')) {
+      imageWidget = Image.network(
+        href,
+        errorBuilder: (context, error, stackTrace) => Text(
+          '[${span.text}]',
+          style: TextStyle(color: theme.colorScheme.error),
+        ),
+      );
+    } else {
+      final file = File(href);
+      imageWidget = Image.file(
+        file,
+        errorBuilder: (context, error, stackTrace) => Text(
+          '[${span.text}]',
+          style: TextStyle(color: theme.colorScheme.error),
+        ),
+      );
+    }
+
+    return WidgetSpan(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: imageWidget,
+      ),
+    );
+  }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/i18n/l10n/app_localizations.dart';
 import '../../providers/editor_provider.dart';
 
 class StatusBar extends ConsumerWidget {
@@ -8,6 +9,7 @@ class StatusBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final editorState = ref.watch(editorProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return Container(
       height: 24,
@@ -24,17 +26,17 @@ class StatusBar extends ConsumerWidget {
       child: Row(
         children: [
           Text(
-            'Ln ${editorState.cursorLine + 1}, Col ${editorState.cursorCol + 1}',
+            l10n.statusLine(editorState.cursorLine + 1, editorState.cursorCol + 1),
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(width: 16),
           Text(
-            'UTF-8',
+            l10n.statusEncoding,
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(width: 16),
           Text(
-            'Markdown',
+            l10n.statusMarkdown,
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(width: 16),

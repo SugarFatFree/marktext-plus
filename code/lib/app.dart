@@ -7,6 +7,8 @@ import 'providers/settings_provider.dart';
 import 'providers/locale_provider.dart';
 import 'ui/screens/home_screen.dart';
 
+final navigatorKey = GlobalKey<NavigatorState>();
+
 class MarkTextPlusApp extends ConsumerWidget {
   const MarkTextPlusApp({super.key});
 
@@ -16,6 +18,7 @@ class MarkTextPlusApp extends ConsumerWidget {
     final locale = ref.watch(localeProvider);
 
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'MarkText Plus',
       theme: AppTheme.getTheme(config.themeName),
       darkTheme: AppTheme.getTheme('oneDark'),

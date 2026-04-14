@@ -1,0 +1,23 @@
+{
+  "sideBarVisible": true,
+  "tabBarVisible": true,
+  "editMode": "preview",
+  "splitRatio": 0.5,
+  "fontFamily": "monospace",
+  "fontSize": 16.0,
+  "lineHeight": 1.6,
+  "autoSave": true,
+  "autoSaveDelay": 5000,
+  "themeName": "materialDark",
+  "darkMode": false,
+  "locale": "",
+  "bulletListMarker": "-",
+  "tabSize": 4,
+  "enableHtml": false,
+  "windowWidth": 1200.0,
+  "windowHeight": 800.0,
+  "windowX": 0.0,
+  "windowY": 0.0,
+  "isMaximized": false,
+  "recentFiles": []
+}

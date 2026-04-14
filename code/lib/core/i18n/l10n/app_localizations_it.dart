@@ -48,6 +48,12 @@ class AppLocalizationsIt extends AppLocalizations {
   String get fileSaveAs => 'Salva con nome';
 
   @override
+  String get fileRecentFiles => 'Recent Files';
+
+  @override
+  String get fileNoRecentFiles => 'No Recent Files';
+
+  @override
   String get fileExport => 'Esporta';
 
   @override
@@ -272,4 +278,70 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get noRecentFiles => 'Nessun file recente';
+
+  @override
+  String get sidebarFiles => 'File';
+
+  @override
+  String get sidebarSearch => 'Cerca';
+
+  @override
+  String get sidebarToc => 'Indice';
+
+  @override
+  String get sidebarSettings => 'Impostazioni';
+
+  @override
+  String get formatHeadingSubmenu => 'Intestazione';
+
+  @override
+  String get settingsBulletListMarker => 'Marcatore elenco';
+
+  @override
+  String get settingsDarkMode => 'Modalità scura';
+
+  @override
+  String get confirmResetMessage =>
+      'Ripristinare tutte le impostazioni ai valori predefiniti?';
+
+  @override
+  String get comingSoon => 'Prossimamente';
+
+  @override
+  String get noFiles => 'Nessun file';
+
+  @override
+  String get noOpenFolder => 'Apri una cartella per sfogliare i file';
+
+  @override
+  String get searchPlaceholder => 'Cerca nei file...';
+
+  @override
+  String get searchNoResults => 'Nessun risultato';
+
+  @override
+  String searchResultCount(int count) {
+    return '$count risultati trovati';
+  }
+
+  @override
+  String get tocEmpty => 'Nessuna intestazione trovata';
+
+  @override
+  String get editFindNext => 'Find Next';
+
+  @override
+  String get editFindPrevious => 'Find Previous';
+
+  @override
+  String get editReplaceAll => 'Replace All';
+
+  @override
+  String get editCaseSensitive => 'Case Sensitive';
+
+  @override
+  String get editWholeWord => 'Whole Word';
+
+  @override
+  String get editRegex => 'Regular Expression';
 }

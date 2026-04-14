@@ -48,6 +48,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String get fileSaveAs => 'Guardar como';
 
   @override
+  String get fileRecentFiles => 'Recent Files';
+
+  @override
+  String get fileNoRecentFiles => 'No Recent Files';
+
+  @override
   String get fileExport => 'Exportar';
 
   @override
@@ -273,6 +279,72 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get noRecentFiles => 'Sem ficheiros recentes';
+
+  @override
+  String get sidebarFiles => 'Ficheiros';
+
+  @override
+  String get sidebarSearch => 'Pesquisar';
+
+  @override
+  String get sidebarToc => 'Índice';
+
+  @override
+  String get sidebarSettings => 'Definições';
+
+  @override
+  String get formatHeadingSubmenu => 'Título';
+
+  @override
+  String get settingsBulletListMarker => 'Marcador de lista';
+
+  @override
+  String get settingsDarkMode => 'Modo escuro';
+
+  @override
+  String get confirmResetMessage =>
+      'Tem a certeza de que pretende repor todas as definições?';
+
+  @override
+  String get comingSoon => 'Em breve';
+
+  @override
+  String get noFiles => 'Sem ficheiros';
+
+  @override
+  String get noOpenFolder => 'Abra uma pasta para explorar ficheiros';
+
+  @override
+  String get searchPlaceholder => 'Pesquisar em ficheiros...';
+
+  @override
+  String get searchNoResults => 'Sem resultados';
+
+  @override
+  String searchResultCount(int count) {
+    return '$count resultados encontrados';
+  }
+
+  @override
+  String get tocEmpty => 'Nenhum título encontrado';
+
+  @override
+  String get editFindNext => 'Find Next';
+
+  @override
+  String get editFindPrevious => 'Find Previous';
+
+  @override
+  String get editReplaceAll => 'Replace All';
+
+  @override
+  String get editCaseSensitive => 'Case Sensitive';
+
+  @override
+  String get editWholeWord => 'Whole Word';
+
+  @override
+  String get editRegex => 'Regular Expression';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -317,6 +389,12 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get fileSaveAs => 'Salvar como';
+
+  @override
+  String get fileRecentFiles => 'Recent Files';
+
+  @override
+  String get fileNoRecentFiles => 'No Recent Files';
 
   @override
   String get fileExport => 'Exportar';
@@ -544,4 +622,52 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get noRecentFiles => 'Nenhum arquivo recente';
+
+  @override
+  String get sidebarFiles => 'Arquivos';
+
+  @override
+  String get sidebarSearch => 'Pesquisar';
+
+  @override
+  String get sidebarToc => 'Índice';
+
+  @override
+  String get sidebarSettings => 'Configurações';
+
+  @override
+  String get formatHeadingSubmenu => 'Título';
+
+  @override
+  String get settingsBulletListMarker => 'Marcador de lista';
+
+  @override
+  String get settingsDarkMode => 'Modo escuro';
+
+  @override
+  String get confirmResetMessage =>
+      'Tem certeza de que deseja redefinir todas as configurações?';
+
+  @override
+  String get comingSoon => 'Em breve';
+
+  @override
+  String get noFiles => 'Sem arquivos';
+
+  @override
+  String get noOpenFolder => 'Abra uma pasta para explorar arquivos';
+
+  @override
+  String get searchPlaceholder => 'Pesquisar em arquivos...';
+
+  @override
+  String get searchNoResults => 'Sem resultados';
+
+  @override
+  String searchResultCount(int count) {
+    return '$count resultados encontrados';
+  }
+
+  @override
+  String get tocEmpty => 'Nenhum título encontrado';
 }

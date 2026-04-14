@@ -12,6 +12,7 @@ enum NodeType {
   blockquote,
   horizontalRule,
   table,
+  mathBlock,
 }
 
 enum InlineType {
@@ -22,6 +23,7 @@ enum InlineType {
   link,
   image,
   strikethrough,
+  mathInline,
 }
 
 // -- Inline Span --
@@ -90,9 +92,15 @@ class CodeBlockNode extends MarkdownNode {
 class ListItem {
   final String content;
   final List<InlineSpan> inlineSpans;
-  final bool? checked; // for task lists
+  final bool isTask;
+  final bool isChecked;
 
-  ListItem({required this.content, required this.inlineSpans, this.checked});
+  ListItem({
+    required this.content,
+    required this.inlineSpans,
+    this.isTask = false,
+    this.isChecked = false,
+  });
 }
 
 class ListNode extends MarkdownNode {
@@ -142,6 +150,17 @@ class TableNode extends MarkdownNode {
   String get rawContent =>
       [headers.join(' | '), ...rows.map((r) => r.join(' | '))].join('\n');
 }
+
+class MathBlockNode extends MarkdownNode {
+  final String expression;
+
+  MathBlockNode({required this.expression});
+
+  @override
+  NodeType get type => NodeType.mathBlock;
+  @override
+  String get rawContent => expression;
+}
 // -- Parser --
 
 class MarkdownParser {
@@ -149,6 +168,8 @@ class MarkdownParser {
   static final _hrRe = RegExp(r'^(\*{3,}|-{3,}|_{3,})\s*$');
   static final _codeFenceRe = RegExp(r'^```(\w*)');
   static final _codeFenceEndRe = RegExp(r'^```\s*$');
+  static final _mathBlockRe = RegExp(r'^\$\$\s*$');
+  static final _taskRe = RegExp(r'^\[( |x)\]\s+(.+)$');
   static final _blockquoteRe = RegExp(r'^>\s?(.*)$');
   static final _ulRe = RegExp(r'^[\s]*[-*+]\s+(.+)$');
   static final _olRe = RegExp(r'^[\s]*\d+\.\s+(.+)$');
@@ -167,6 +188,19 @@ class MarkdownParser {
       // Blank line — skip
       if (line.trim().isEmpty) {
         i++;
+        continue;
+      }
+
+      // Math block ($$...$$)
+      if (_mathBlockRe.hasMatch(line)) {
+        final mathLines = <String>[];
+        i++;
+        while (i < lines.length && !_mathBlockRe.hasMatch(lines[i])) {
+          mathLines.add(lines[i]);
+          i++;
+        }
+        if (i < lines.length) i++; // skip closing $$
+        nodes.add(MathBlockNode(expression: mathLines.join('\n')));
         continue;
       }
 
@@ -252,10 +286,24 @@ class MarkdownParser {
         while (i < lines.length && _ulRe.hasMatch(lines[i])) {
           final m = _ulRe.firstMatch(lines[i])!;
           final content = m.group(1)!;
-          items.add(ListItem(
-            content: content,
-            inlineSpans: parseInline(content),
-          ));
+
+          // Check for task list syntax: [ ] or [x]
+          final taskMatch = _taskRe.firstMatch(content);
+          if (taskMatch != null) {
+            final isChecked = taskMatch.group(1) == 'x';
+            final taskContent = taskMatch.group(2)!;
+            items.add(ListItem(
+              content: taskContent,
+              inlineSpans: parseInline(taskContent),
+              isTask: true,
+              isChecked: isChecked,
+            ));
+          } else {
+            items.add(ListItem(
+              content: content,
+              inlineSpans: parseInline(content),
+            ));
+          }
           i++;
         }
         nodes.add(ListNode(ordered: false, items: items));
@@ -310,6 +358,7 @@ class MarkdownParser {
       r'!\[([^\]]*)\]\(([^)]+)\)'  // image
       r'|\[([^\]]*)\]\(([^)]+)\)'  // link
       r'|`([^`]+)`'                // inline code
+      r'|\$([^$]+)\$'              // inline math
       r'|\*\*(.+?)\*\*'            // bold **
       r'|__(.+?)__'                // bold __
       r'|~~(.+?)~~'                // strikethrough
@@ -354,23 +403,26 @@ class MarkdownParser {
         // Inline code
         spans.add(InlineSpan(type: InlineType.code, text: match.group(5)!));
       } else if (match.group(6) != null) {
-        // Bold **
-        spans.add(InlineSpan(type: InlineType.bold, text: match.group(6)!));
+        // Inline math
+        spans.add(InlineSpan(type: InlineType.mathInline, text: match.group(6)!));
       } else if (match.group(7) != null) {
-        // Bold __
+        // Bold **
         spans.add(InlineSpan(type: InlineType.bold, text: match.group(7)!));
       } else if (match.group(8) != null) {
+        // Bold __
+        spans.add(InlineSpan(type: InlineType.bold, text: match.group(8)!));
+      } else if (match.group(9) != null) {
         // Strikethrough
         spans.add(InlineSpan(
           type: InlineType.strikethrough,
-          text: match.group(8)!,
+          text: match.group(9)!,
         ));
-      } else if (match.group(9) != null) {
-        // Italic *
-        spans.add(InlineSpan(type: InlineType.italic, text: match.group(9)!));
       } else if (match.group(10) != null) {
-        // Italic _
+        // Italic *
         spans.add(InlineSpan(type: InlineType.italic, text: match.group(10)!));
+      } else if (match.group(11) != null) {
+        // Italic _
+        spans.add(InlineSpan(type: InlineType.italic, text: match.group(11)!));
       }
 
       lastEnd = match.end;

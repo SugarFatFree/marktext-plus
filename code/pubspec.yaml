@@ -18,7 +18,9 @@ dependencies:
   path_provider: ^2.1.5
   path: ^1.9.0
   url_launcher: ^6.3.1
-  printing: ^5.13.5
+  flutter_math_fork: ^0.7.2
+  flutter_highlight: ^0.7.0
+  pdf: ^3.11.1
 
 dev_dependencies:
   flutter_test:

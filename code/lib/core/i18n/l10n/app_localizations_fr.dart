@@ -48,6 +48,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get fileSaveAs => 'Enregistrer sous';
 
   @override
+  String get fileRecentFiles => 'Recent Files';
+
+  @override
+  String get fileNoRecentFiles => 'No Recent Files';
+
+  @override
   String get fileExport => 'Exporter';
 
   @override
@@ -273,4 +279,70 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get noRecentFiles => 'Aucun fichier récent';
+
+  @override
+  String get sidebarFiles => 'Fichiers';
+
+  @override
+  String get sidebarSearch => 'Recherche';
+
+  @override
+  String get sidebarToc => 'Table des matières';
+
+  @override
+  String get sidebarSettings => 'Paramètres';
+
+  @override
+  String get formatHeadingSubmenu => 'Titre';
+
+  @override
+  String get settingsBulletListMarker => 'Marqueur de liste';
+
+  @override
+  String get settingsDarkMode => 'Mode sombre';
+
+  @override
+  String get confirmResetMessage =>
+      'Voulez-vous vraiment réinitialiser tous les paramètres ?';
+
+  @override
+  String get comingSoon => 'Bientôt disponible';
+
+  @override
+  String get noFiles => 'Aucun fichier';
+
+  @override
+  String get noOpenFolder => 'Ouvrir un dossier pour parcourir les fichiers';
+
+  @override
+  String get searchPlaceholder => 'Rechercher dans les fichiers...';
+
+  @override
+  String get searchNoResults => 'Aucun résultat';
+
+  @override
+  String searchResultCount(int count) {
+    return '$count résultats trouvés';
+  }
+
+  @override
+  String get tocEmpty => 'Aucun titre trouvé';
+
+  @override
+  String get editFindNext => 'Find Next';
+
+  @override
+  String get editFindPrevious => 'Find Previous';
+
+  @override
+  String get editReplaceAll => 'Replace All';
+
+  @override
+  String get editCaseSensitive => 'Case Sensitive';
+
+  @override
+  String get editWholeWord => 'Whole Word';
+
+  @override
+  String get editRegex => 'Regular Expression';
 }

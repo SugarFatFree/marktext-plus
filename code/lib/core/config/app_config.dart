@@ -22,6 +22,8 @@ class AppConfig {
   double windowY;
   bool isMaximized;
   List<String> recentFiles;
+  bool focusMode;
+  bool typewriterMode;
 
   AppConfig({
     this.sideBarVisible = true,
@@ -35,7 +37,7 @@ class AppConfig {
     this.autoSaveDelay = 5000,
     this.themeName = 'cadmiumLight',
     this.darkMode = false,
-    this.locale = 'en_US',
+    this.locale = '',
     this.bulletListMarker = '-',
     this.tabSize = 4,
     this.enableHtml = false,
@@ -45,6 +47,8 @@ class AppConfig {
     this.windowY = 0,
     this.isMaximized = false,
     this.recentFiles = const [],
+    this.focusMode = false,
+    this.typewriterMode = false,
   });
 
   Map<String, dynamic> toJson() => {
@@ -69,6 +73,8 @@ class AppConfig {
     'windowY': windowY,
     'isMaximized': isMaximized,
     'recentFiles': recentFiles,
+    'focusMode': focusMode,
+    'typewriterMode': typewriterMode,
   };
 
   factory AppConfig.fromJson(Map<String, dynamic> json) {
@@ -84,7 +90,7 @@ class AppConfig {
       autoSaveDelay: json['autoSaveDelay'] as int? ?? 5000,
       themeName: json['themeName'] as String? ?? 'cadmiumLight',
       darkMode: json['darkMode'] as bool? ?? false,
-      locale: json['locale'] as String? ?? 'en_US',
+      locale: json['locale'] as String? ?? '',
       bulletListMarker: json['bulletListMarker'] as String? ?? '-',
       tabSize: json['tabSize'] as int? ?? 4,
       enableHtml: json['enableHtml'] as bool? ?? false,
@@ -96,6 +102,8 @@ class AppConfig {
       recentFiles: (json['recentFiles'] as List<dynamic>?)
           ?.map((e) => e as String)
           .toList() ?? [],
+      focusMode: json['focusMode'] as bool? ?? false,
+      typewriterMode: json['typewriterMode'] as bool? ?? false,
     );
   }
 
@@ -132,6 +140,8 @@ class AppConfig {
     double? windowY,
     bool? isMaximized,
     List<String>? recentFiles,
+    bool? focusMode,
+    bool? typewriterMode,
   }) {
     return AppConfig(
       sideBarVisible: sideBarVisible ?? this.sideBarVisible,
@@ -155,6 +165,8 @@ class AppConfig {
       windowY: windowY ?? this.windowY,
       isMaximized: isMaximized ?? this.isMaximized,
       recentFiles: recentFiles ?? this.recentFiles,
+      focusMode: focusMode ?? this.focusMode,
+      typewriterMode: typewriterMode ?? this.typewriterMode,
     );
   }
 }

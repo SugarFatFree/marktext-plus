@@ -48,6 +48,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get fileSaveAs => 'Сохранить как';
 
   @override
+  String get fileRecentFiles => 'Recent Files';
+
+  @override
+  String get fileNoRecentFiles => 'No Recent Files';
+
+  @override
   String get fileExport => 'Экспорт';
 
   @override
@@ -272,4 +278,70 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get noRecentFiles => 'Нет недавних файлов';
+
+  @override
+  String get sidebarFiles => 'Файлы';
+
+  @override
+  String get sidebarSearch => 'Поиск';
+
+  @override
+  String get sidebarToc => 'Содержание';
+
+  @override
+  String get sidebarSettings => 'Настройки';
+
+  @override
+  String get formatHeadingSubmenu => 'Заголовок';
+
+  @override
+  String get settingsBulletListMarker => 'Маркер списка';
+
+  @override
+  String get settingsDarkMode => 'Тёмный режим';
+
+  @override
+  String get confirmResetMessage =>
+      'Вы уверены, что хотите сбросить все настройки?';
+
+  @override
+  String get comingSoon => 'Скоро';
+
+  @override
+  String get noFiles => 'Нет файлов';
+
+  @override
+  String get noOpenFolder => 'Откройте папку для просмотра файлов';
+
+  @override
+  String get searchPlaceholder => 'Поиск в файлах...';
+
+  @override
+  String get searchNoResults => 'Результатов не найдено';
+
+  @override
+  String searchResultCount(int count) {
+    return 'Найдено результатов: $count';
+  }
+
+  @override
+  String get tocEmpty => 'Заголовки не найдены';
+
+  @override
+  String get editFindNext => 'Find Next';
+
+  @override
+  String get editFindPrevious => 'Find Previous';
+
+  @override
+  String get editReplaceAll => 'Replace All';
+
+  @override
+  String get editCaseSensitive => 'Case Sensitive';
+
+  @override
+  String get editWholeWord => 'Whole Word';
+
+  @override
+  String get editRegex => 'Regular Expression';
 }

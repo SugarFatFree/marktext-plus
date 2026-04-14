@@ -1,5 +1,8 @@
+import 'dart:async';
+import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/tab_info.dart';
+import 'settings_provider.dart';
 
 class TabState {
   final List<TabInfo> tabs;
@@ -22,7 +25,16 @@ class TabState {
 }
 
 class TabNotifier extends StateNotifier<TabState> {
-  TabNotifier() : super(const TabState());
+  final Ref _ref;
+  Timer? _autoSaveTimer;
+
+  TabNotifier(this._ref) : super(const TabState());
+
+  @override
+  void dispose() {
+    _autoSaveTimer?.cancel();
+    super.dispose();
+  }
 
   void addTab(TabInfo tab) {
     state = state.copyWith(
@@ -52,6 +64,28 @@ class TabNotifier extends StateNotifier<TabState> {
       return tab;
     }).toList();
     state = state.copyWith(tabs: tabs);
+    _scheduleAutoSave(id);
+  }
+
+  void _scheduleAutoSave(String tabId) {
+    _autoSaveTimer?.cancel();
+    final config = _ref.read(settingsProvider);
+    if (!config.autoSave) return;
+
+    _autoSaveTimer = Timer(Duration(milliseconds: config.autoSaveDelay), () {
+      _performAutoSave(tabId);
+    });
+  }
+
+  Future<void> _performAutoSave(String tabId) async {
+    final tab = state.tabs.where((t) => t.id == tabId).firstOrNull;
+    if (tab == null || tab.filePath == null || !tab.isModified) return;
+    try {
+      await File(tab.filePath!).writeAsString(tab.content);
+      markSaved(tabId);
+    } catch (_) {
+      // Auto-save failed silently
+    }
   }
 
   void markSaved(String id) {
@@ -66,7 +100,7 @@ class TabNotifier extends StateNotifier<TabState> {
 }
 
 final tabProvider = StateNotifierProvider<TabNotifier, TabState>((ref) {
-  return TabNotifier();
+  return TabNotifier(ref);
 });
 
 final activeTabProvider = Provider<TabInfo?>((ref) {

@@ -48,6 +48,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get fileSaveAs => 'حفظ باسم';
 
   @override
+  String get fileRecentFiles => 'Recent Files';
+
+  @override
+  String get fileNoRecentFiles => 'No Recent Files';
+
+  @override
   String get fileExport => 'تصدير';
 
   @override
@@ -272,4 +278,70 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get noRecentFiles => 'لا توجد ملفات حديثة';
+
+  @override
+  String get sidebarFiles => 'الملفات';
+
+  @override
+  String get sidebarSearch => 'بحث';
+
+  @override
+  String get sidebarToc => 'جدول المحتويات';
+
+  @override
+  String get sidebarSettings => 'الإعدادات';
+
+  @override
+  String get formatHeadingSubmenu => 'عنوان';
+
+  @override
+  String get settingsBulletListMarker => 'علامة القائمة';
+
+  @override
+  String get settingsDarkMode => 'الوضع الداكن';
+
+  @override
+  String get confirmResetMessage =>
+      'هل أنت متأكد من إعادة تعيين جميع الإعدادات؟';
+
+  @override
+  String get comingSoon => 'قريباً';
+
+  @override
+  String get noFiles => 'لا توجد ملفات';
+
+  @override
+  String get noOpenFolder => 'افتح مجلداً لتصفح الملفات';
+
+  @override
+  String get searchPlaceholder => 'البحث في الملفات...';
+
+  @override
+  String get searchNoResults => 'لم يتم العثور على نتائج';
+
+  @override
+  String searchResultCount(int count) {
+    return 'تم العثور على $count نتيجة';
+  }
+
+  @override
+  String get tocEmpty => 'لم يتم العثور على عناوين';
+
+  @override
+  String get editFindNext => 'Find Next';
+
+  @override
+  String get editFindPrevious => 'Find Previous';
+
+  @override
+  String get editReplaceAll => 'Replace All';
+
+  @override
+  String get editCaseSensitive => 'Case Sensitive';
+
+  @override
+  String get editWholeWord => 'Whole Word';
+
+  @override
+  String get editRegex => 'Regular Expression';
 }
