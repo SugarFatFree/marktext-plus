@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/editor_provider.dart';
 import '../../providers/settings_provider.dart';
+import 'highlighting_controller.dart';
 
 class SourceEditor extends ConsumerStatefulWidget {
   final String initialContent;
@@ -19,19 +21,37 @@ class SourceEditor extends ConsumerStatefulWidget {
 }
 
 class _SourceEditorState extends ConsumerState<SourceEditor> {
-  late TextEditingController _controller;
+  late HighlightingController _controller;
   late ScrollController _editorScrollController;
   late ScrollController _gutterScrollController;
   Timer? _debounce;
   bool _isSyncingScroll = false;
   bool _isInitialized = false;
 
+  static const _autoPairs = <String, String>{
+    '(': ')',
+    '[': ']',
+    '{': '}',
+    '"': '"',
+    "'": "'",
+    '`': '`',
+    '*': '*',
+    '~': '~',
+  };
+
   TextEditingController get controller => _controller;
 
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController(text: widget.initialContent);
+    _controller = HighlightingController(
+      text: widget.initialContent,
+      headingColor: Colors.orange,
+      boldColor: Colors.blue,
+      codeColor: Colors.green,
+      linkColor: Colors.cyan,
+      defaultColor: Colors.white,
+    );
     _editorScrollController = ScrollController();
     _gutterScrollController = ScrollController();
     _controller.addListener(_onTextChanged);
@@ -43,6 +63,24 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
       ref.read(editorProvider.notifier).setController(_controller);
       ref.read(editorProvider.notifier).pushHistory(widget.initialContent);
       _isInitialized = true;
+
+      // Listen for TOC scroll-to-line requests
+      ref.listenManual(editorProvider.select((s) => s.targetScrollLine), (prev, next) {
+        if (next != null && _editorScrollController.hasClients) {
+          final config = ref.read(settingsProvider);
+          final lineHeight = config.fontSize * config.lineHeight;
+          final offset = ((next - 1) * lineHeight).clamp(
+            0.0,
+            _editorScrollController.position.maxScrollExtent,
+          );
+          _editorScrollController.animateTo(
+            offset,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+          ref.read(editorProvider.notifier).clearScrollTarget();
+        }
+      });
     });
   }
 
@@ -119,6 +157,76 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
       _gutterScrollController.jumpTo(_editorScrollController.offset);
     }
     _isSyncingScroll = false;
+  }
+
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+    final selection = _controller.selection;
+    if (!selection.isValid) return KeyEventResult.ignored;
+    final text = _controller.text;
+
+    // Handle backspace: delete empty pairs
+    if (event.logicalKey == LogicalKeyboardKey.backspace) {
+      if (!selection.isCollapsed) return KeyEventResult.ignored;
+      final offset = selection.baseOffset;
+      if (offset <= 0 || offset >= text.length) return KeyEventResult.ignored;
+
+      final before = text[offset - 1];
+      final after = text[offset];
+      // Check if cursor is between a matching pair
+      if (_autoPairs[before] == after) {
+        _controller.value = TextEditingValue(
+          text: text.substring(0, offset - 1) + text.substring(offset + 1),
+          selection: TextSelection.collapsed(offset: offset - 1),
+        );
+        return KeyEventResult.handled;
+      }
+      return KeyEventResult.ignored;
+    }
+
+    // Get the character for the key event
+    final char = event.character;
+    if (char == null || char.isEmpty) return KeyEventResult.ignored;
+
+    // Check if it's an opening/self-closing pair character
+    final closing = _autoPairs[char];
+    if (closing == null) return KeyEventResult.ignored;
+
+    // For symmetric pairs (", ', `, *, ~), skip if the char after cursor is
+    // the same character and selection is collapsed — just move cursor forward
+    if (char == closing && selection.isCollapsed) {
+      final offset = selection.baseOffset;
+      if (offset < text.length && text[offset] == char) {
+        _controller.value = TextEditingValue(
+          text: text,
+          selection: TextSelection.collapsed(offset: offset + 1),
+        );
+        return KeyEventResult.handled;
+      }
+    }
+
+    if (selection.isCollapsed) {
+      // Insert pair and place cursor in the middle
+      final offset = selection.baseOffset;
+      _controller.value = TextEditingValue(
+        text: text.substring(0, offset) + char + closing + text.substring(offset),
+        selection: TextSelection.collapsed(offset: offset + char.length),
+      );
+    } else {
+      // Wrap selection
+      final start = selection.start;
+      final end = selection.end;
+      final selected = text.substring(start, end);
+      _controller.value = TextEditingValue(
+        text: text.substring(0, start) + char + selected + closing + text.substring(end),
+        selection: TextSelection(
+          baseOffset: start + char.length,
+          extentOffset: start + char.length + selected.length,
+        ),
+      );
+    }
+    return KeyEventResult.handled;
   }
 
   int _getLineCount() {
@@ -208,6 +316,69 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
         }
       case FormatAction.horizontalRule:
         _insertAtCursor('\n---\n');
+      case FormatAction.underline:
+        _wrapSelection('++', '++');
+      case FormatAction.superscript:
+        _wrapSelection('^', '^');
+      case FormatAction.subscript:
+        _wrapSelection('~', '~');
+      case FormatAction.highlight:
+        _wrapSelection('==', '==');
+      case FormatAction.inlineCode:
+        _wrapSelection('`', '`');
+      case FormatAction.inlineMath:
+        _wrapSelection('\$', '\$');
+      case FormatAction.clearFormatting:
+        if (!selection.isCollapsed) {
+          final selected = text.substring(selection.start, selection.end);
+          final cleaned = selected
+              .replaceAll(RegExp(r'\*{1,3}|~~|`|==|\+\+|\^|~|\$'), '')
+              .replaceAll(RegExp(r'^#{1,6}\s+', multiLine: true), '');
+          _controller.value = TextEditingValue(
+            text: text.substring(0, selection.start) + cleaned + text.substring(selection.end),
+            selection: TextSelection(
+              baseOffset: selection.start,
+              extentOffset: selection.start + cleaned.length,
+            ),
+          );
+        }
+      case FormatAction.copyAsMarkdown:
+        if (!selection.isCollapsed) {
+          final selected = text.substring(selection.start, selection.end);
+          Clipboard.setData(ClipboardData(text: selected));
+        }
+      case FormatAction.copyAsHtml:
+        if (!selection.isCollapsed) {
+          final selected = text.substring(selection.start, selection.end);
+          var html = selected;
+          html = html.replaceAllMapped(RegExp(r'\*\*(.+?)\*\*'), (m) => '<strong>${m[1]}</strong>');
+          html = html.replaceAllMapped(RegExp(r'\*(.+?)\*'), (m) => '<em>${m[1]}</em>');
+          html = html.replaceAllMapped(RegExp(r'~~(.+?)~~'), (m) => '<del>${m[1]}</del>');
+          html = html.replaceAllMapped(RegExp(r'`(.+?)`'), (m) => '<code>${m[1]}</code>');
+          html = html.replaceAllMapped(RegExp(r'^#{6}\s+(.+)$', multiLine: true), (m) => '<h6>${m[1]}</h6>');
+          html = html.replaceAllMapped(RegExp(r'^#{5}\s+(.+)$', multiLine: true), (m) => '<h5>${m[1]}</h5>');
+          html = html.replaceAllMapped(RegExp(r'^#{4}\s+(.+)$', multiLine: true), (m) => '<h4>${m[1]}</h4>');
+          html = html.replaceAllMapped(RegExp(r'^#{3}\s+(.+)$', multiLine: true), (m) => '<h3>${m[1]}</h3>');
+          html = html.replaceAllMapped(RegExp(r'^#{2}\s+(.+)$', multiLine: true), (m) => '<h2>${m[1]}</h2>');
+          html = html.replaceAllMapped(RegExp(r'^#\s+(.+)$', multiLine: true), (m) => '<h1>${m[1]}</h1>');
+          Clipboard.setData(ClipboardData(text: html));
+        }
+      case FormatAction.selectAll:
+        _controller.selection = TextSelection(
+          baseOffset: 0,
+          extentOffset: text.length,
+        );
+      case FormatAction.duplicateLine:
+        final offset = selection.baseOffset.clamp(0, text.length);
+        int lineStart = text.lastIndexOf('\n', offset > 0 ? offset - 1 : 0);
+        lineStart = lineStart == -1 ? 0 : lineStart + 1;
+        int lineEnd = text.indexOf('\n', offset);
+        lineEnd = lineEnd == -1 ? text.length : lineEnd;
+        final currentLine = text.substring(lineStart, lineEnd);
+        _controller.value = TextEditingValue(
+          text: '${text.substring(0, lineEnd)}\n$currentLine${text.substring(lineEnd)}',
+          selection: TextSelection.collapsed(offset: lineEnd + 1 + currentLine.length),
+        );
     }
 
     setState(() {});
@@ -315,6 +486,14 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
       height: config.lineHeight,
     );
 
+    // Update highlighter colors from current theme
+    final isDark = theme.brightness == Brightness.dark;
+    _controller.headingColor = isDark ? const Color(0xFFE5C07B) : const Color(0xFFC18401);
+    _controller.boldColor = isDark ? const Color(0xFF61AFEF) : const Color(0xFF4078F2);
+    _controller.codeColor = isDark ? const Color(0xFF98C379) : const Color(0xFF50A14F);
+    _controller.linkColor = isDark ? const Color(0xFF56B6C2) : const Color(0xFF0184BC);
+    _controller.defaultColor = theme.colorScheme.onSurface;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -334,19 +513,22 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
           ),
         ),
         Expanded(
-          child: TextField(
-            controller: _controller,
-            scrollController: _editorScrollController,
-            maxLines: null,
-            expands: true,
-            style: editorStyle,
-            decoration: const InputDecoration(
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.all(8),
+          child: Focus(
+            onKeyEvent: _handleKeyEvent,
+            child: TextField(
+              controller: _controller,
+              scrollController: _editorScrollController,
+              maxLines: null,
+              expands: true,
+              style: editorStyle,
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.all(8),
+              ),
+              onChanged: (value) {
+                setState(() {});
+              },
             ),
-            onChanged: (value) {
-              setState(() {});
-            },
           ),
         ),
       ],

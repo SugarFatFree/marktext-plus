@@ -24,6 +24,9 @@ class AppConfig {
   List<String> recentFiles;
   bool focusMode;
   bool typewriterMode;
+  String codeFontFamily;
+  int editorMaxWidth;
+  String textDirection;
 
   AppConfig({
     this.sideBarVisible = true,
@@ -49,6 +52,9 @@ class AppConfig {
     this.recentFiles = const [],
     this.focusMode = false,
     this.typewriterMode = false,
+    this.codeFontFamily = 'Courier New',
+    this.editorMaxWidth = 800,
+    this.textDirection = 'ltr',
   });
 
   Map<String, dynamic> toJson() => {
@@ -75,6 +81,9 @@ class AppConfig {
     'recentFiles': recentFiles,
     'focusMode': focusMode,
     'typewriterMode': typewriterMode,
+    'codeFontFamily': codeFontFamily,
+    'editorMaxWidth': editorMaxWidth,
+    'textDirection': textDirection,
   };
 
   factory AppConfig.fromJson(Map<String, dynamic> json) {
@@ -104,6 +113,9 @@ class AppConfig {
           .toList() ?? [],
       focusMode: json['focusMode'] as bool? ?? false,
       typewriterMode: json['typewriterMode'] as bool? ?? false,
+      codeFontFamily: json['codeFontFamily'] as String? ?? 'Courier New',
+      editorMaxWidth: json['editorMaxWidth'] as int? ?? 800,
+      textDirection: json['textDirection'] as String? ?? 'ltr',
     );
   }
 
@@ -142,6 +154,9 @@ class AppConfig {
     List<String>? recentFiles,
     bool? focusMode,
     bool? typewriterMode,
+    String? codeFontFamily,
+    int? editorMaxWidth,
+    String? textDirection,
   }) {
     return AppConfig(
       sideBarVisible: sideBarVisible ?? this.sideBarVisible,
@@ -167,6 +182,9 @@ class AppConfig {
       recentFiles: recentFiles ?? this.recentFiles,
       focusMode: focusMode ?? this.focusMode,
       typewriterMode: typewriterMode ?? this.typewriterMode,
+      codeFontFamily: codeFontFamily ?? this.codeFontFamily,
+      editorMaxWidth: editorMaxWidth ?? this.editorMaxWidth,
+      textDirection: textDirection ?? this.textDirection,
     );
   }
 }

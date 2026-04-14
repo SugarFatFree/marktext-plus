@@ -43,6 +43,12 @@ class MarkdownRenderer extends ConsumerWidget {
           widgets.add(_buildTable(node, theme));
         case md.MathBlockNode():
           widgets.add(_buildMathBlock(node, theme));
+        case md.FrontMatterNode():
+          widgets.add(_buildFrontMatter(node, theme));
+        case md.FootnoteDefinitionNode():
+          widgets.add(_buildFootnoteDefinition(node, theme));
+        case md.HtmlBlockNode():
+          widgets.add(_buildHtmlBlock(node, theme));
       }
     }
 
@@ -249,6 +255,58 @@ class MarkdownRenderer extends ConsumerWidget {
     );
   }
 
+  Widget _buildFrontMatter(md.FrontMatterNode node, ThemeData theme) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: theme.dividerColor),
+      ),
+      child: Text(
+        node.content,
+        style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
+      ),
+    );
+  }
+
+  Widget _buildFootnoteDefinition(md.FootnoteDefinitionNode node, ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '[${node.id}]: ',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.primary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Expanded(
+            child: Text(node.content, style: theme.textTheme.bodySmall),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHtmlBlock(md.HtmlBlockNode node, ThemeData theme) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        node.html,
+        style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
+      ),
+    );
+  }
+
   TextSpan _buildInlineSpans(
     List<md.InlineSpan> spans,
     ThemeData theme,
@@ -298,6 +356,51 @@ class MarkdownRenderer extends ConsumerWidget {
             child: Math.tex(
               span.text,
               textStyle: baseStyle,
+            ),
+          ));
+        case md.InlineType.highlight:
+          children.add(TextSpan(
+            text: span.text,
+            style: baseStyle?.copyWith(
+              backgroundColor: Colors.yellow.withValues(alpha: 0.4),
+            ),
+          ));
+        case md.InlineType.superscript:
+          children.add(WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: Transform.translate(
+              offset: const Offset(0, -4),
+              child: Text(
+                span.text,
+                style: baseStyle?.copyWith(fontSize: (baseStyle.fontSize ?? 14) * 0.75),
+              ),
+            ),
+          ));
+        case md.InlineType.subscript:
+          children.add(WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: Transform.translate(
+              offset: const Offset(0, 4),
+              child: Text(
+                span.text,
+                style: baseStyle?.copyWith(fontSize: (baseStyle.fontSize ?? 14) * 0.75),
+              ),
+            ),
+          ));
+        case md.InlineType.underline:
+          children.add(TextSpan(
+            text: span.text,
+            style: baseStyle?.copyWith(decoration: TextDecoration.underline),
+          ));
+        case md.InlineType.footnoteRef:
+          children.add(WidgetSpan(
+            alignment: PlaceholderAlignment.top,
+            child: Text(
+              '[${span.text}]',
+              style: baseStyle?.copyWith(
+                color: theme.colorScheme.primary,
+                fontSize: (baseStyle.fontSize ?? 14) * 0.75,
+              ),
             ),
           ));
       }

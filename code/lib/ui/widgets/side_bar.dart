@@ -6,6 +6,7 @@ import '../../app.dart';
 import '../../core/i18n/l10n/app_localizations.dart';
 import '../../models/file_node.dart';
 import '../../models/tab_info.dart';
+import '../../providers/editor_provider.dart';
 import '../../providers/file_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/tab_provider.dart';
@@ -138,44 +139,49 @@ class _SideBarState extends ConsumerState<SideBar> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        InkWell(
-          onTap: () {
-            if (node.isDirectory) {
-              ref.read(fileProvider.notifier).toggleExpand(node.path);
-            } else {
-              _openFileInTab(node.path);
-            }
+        GestureDetector(
+          onSecondaryTapUp: (details) {
+            _showFileContextMenu(context, details.globalPosition, node);
           },
-          child: Padding(
-            padding: EdgeInsets.only(left: depth * 16.0 + 8, right: 8),
-            child: SizedBox(
-              height: 28,
-              child: Row(
-                children: [
-                  if (node.isDirectory)
+          child: InkWell(
+            onTap: () {
+              if (node.isDirectory) {
+                ref.read(fileProvider.notifier).toggleExpand(node.path);
+              } else {
+                _openFileInTab(node.path);
+              }
+            },
+            child: Padding(
+              padding: EdgeInsets.only(left: depth * 16.0 + 8, right: 8),
+              child: SizedBox(
+                height: 28,
+                child: Row(
+                  children: [
+                    if (node.isDirectory)
+                      Icon(
+                        node.isExpanded
+                            ? Icons.keyboard_arrow_down
+                            : Icons.keyboard_arrow_right,
+                        size: 16,
+                      ),
+                    if (!node.isDirectory) const SizedBox(width: 16),
                     Icon(
-                      node.isExpanded
-                          ? Icons.keyboard_arrow_down
-                          : Icons.keyboard_arrow_right,
+                      node.isDirectory ? Icons.folder : Icons.insert_drive_file,
                       size: 16,
+                      color: node.isDirectory
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
-                  if (!node.isDirectory) const SizedBox(width: 16),
-                  Icon(
-                    node.isDirectory ? Icons.folder : Icons.insert_drive_file,
-                    size: 16,
-                    color: node.isDirectory
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-                  ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      node.name,
-                      style: Theme.of(context).textTheme.bodySmall,
-                      overflow: TextOverflow.ellipsis,
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        node.name,
+                        style: Theme.of(context).textTheme.bodySmall,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -183,6 +189,83 @@ class _SideBarState extends ConsumerState<SideBar> {
         if (node.isDirectory && node.isExpanded)
           ...node.children.map((child) => _buildFileNode(child, depth + 1)),
       ],
+    );
+  }
+
+  void _showFileContextMenu(BuildContext context, Offset position, FileNode node) async {
+    final parentDir = node.isDirectory ? node.path : p.dirname(node.path);
+    final result = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(position.dx, position.dy, position.dx, position.dy),
+      items: [
+        const PopupMenuItem(value: 'new_file', child: Text('New File')),
+        const PopupMenuItem(value: 'new_folder', child: Text('New Folder')),
+        const PopupMenuDivider(),
+        const PopupMenuItem(value: 'rename', child: Text('Rename')),
+        const PopupMenuItem(value: 'delete', child: Text('Delete')),
+      ],
+    );
+    if (result == null || !mounted) return;
+    switch (result) {
+      case 'new_file':
+        if (!mounted) return;
+        final name = await _showInputDialog(this.context, 'New File', 'File name');
+        if (name != null && name.isNotEmpty) {
+          await ref.read(fileProvider.notifier).createNode(p.join(parentDir, name));
+        }
+      case 'new_folder':
+        if (!mounted) return;
+        final name = await _showInputDialog(this.context, 'New Folder', 'Folder name');
+        if (name != null && name.isNotEmpty) {
+          await ref.read(fileProvider.notifier).createNode(p.join(parentDir, name), isDirectory: true);
+        }
+      case 'rename':
+        if (!mounted) return;
+        final newName = await _showInputDialog(this.context, 'Rename', 'New name', initialValue: node.name);
+        if (newName != null && newName.isNotEmpty && newName != node.name) {
+          final newPath = p.join(p.dirname(node.path), newName);
+          await ref.read(fileProvider.notifier).renameNode(node.path, newPath);
+        }
+      case 'delete':
+        if (!mounted) return;
+        final confirmed = await _showConfirmDialog(this.context, 'Delete "${node.name}"?');
+        if (confirmed == true) {
+          await ref.read(fileProvider.notifier).deleteNode(node.path);
+        }
+    }
+  }
+
+  Future<String?> _showInputDialog(BuildContext context, String title, String hint, {String? initialValue}) {
+    final controller = TextEditingController(text: initialValue);
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: InputDecoration(hintText: hint),
+          onSubmitted: (value) => Navigator.of(ctx).pop(value),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(controller.text), child: const Text('OK')),
+        ],
+      ),
+    );
+  }
+
+  Future<bool?> _showConfirmDialog(BuildContext context, String message) {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Confirm'),
+        content: Text(message),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Delete')),
+        ],
+      ),
     );
   }
 
@@ -388,7 +471,7 @@ class _SideBarState extends ConsumerState<SideBar> {
         final heading = headings[index];
         return InkWell(
           onTap: () {
-            // Future: scroll editor to this line
+            ref.read(editorProvider.notifier).scrollToLine(heading.lineNumber);
           },
           child: Padding(
             padding: EdgeInsets.only(

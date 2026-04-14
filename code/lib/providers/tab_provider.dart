@@ -97,6 +97,24 @@ class TabNotifier extends StateNotifier<TabState> {
     }).toList();
     state = state.copyWith(tabs: tabs);
   }
+
+  void updateTabPath(String id, String newPath, String newName) {
+    final tabs = state.tabs.map((tab) {
+      if (tab.id == id) {
+        return tab.copyWith(filePath: newPath, fileName: newName);
+      }
+      return tab;
+    }).toList();
+    state = state.copyWith(tabs: tabs);
+  }
+
+  void reorderTabs(int oldIndex, int newIndex) {
+    if (oldIndex < newIndex) newIndex--;
+    final tabs = List<TabInfo>.from(state.tabs);
+    final tab = tabs.removeAt(oldIndex);
+    tabs.insert(newIndex, tab);
+    state = state.copyWith(tabs: tabs);
+  }
 }
 
 final tabProvider = StateNotifierProvider<TabNotifier, TabState>((ref) {

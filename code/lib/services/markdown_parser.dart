@@ -13,6 +13,9 @@ enum NodeType {
   horizontalRule,
   table,
   mathBlock,
+  frontMatter,
+  footnoteDefinition,
+  htmlBlock,
 }
 
 enum InlineType {
@@ -24,6 +27,11 @@ enum InlineType {
   image,
   strikethrough,
   mathInline,
+  highlight,
+  superscript,
+  subscript,
+  underline,
+  footnoteRef,
 }
 
 // -- Inline Span --
@@ -161,6 +169,40 @@ class MathBlockNode extends MarkdownNode {
   @override
   String get rawContent => expression;
 }
+
+class FrontMatterNode extends MarkdownNode {
+  final String content;
+
+  FrontMatterNode({required this.content});
+
+  @override
+  NodeType get type => NodeType.frontMatter;
+  @override
+  String get rawContent => content;
+}
+
+class FootnoteDefinitionNode extends MarkdownNode {
+  final String id;
+  final String content;
+
+  FootnoteDefinitionNode({required this.id, required this.content});
+
+  @override
+  NodeType get type => NodeType.footnoteDefinition;
+  @override
+  String get rawContent => '[$id]: $content';
+}
+
+class HtmlBlockNode extends MarkdownNode {
+  final String html;
+
+  HtmlBlockNode({required this.html});
+
+  @override
+  NodeType get type => NodeType.htmlBlock;
+  @override
+  String get rawContent => html;
+}
 // -- Parser --
 
 class MarkdownParser {
@@ -175,6 +217,9 @@ class MarkdownParser {
   static final _olRe = RegExp(r'^[\s]*\d+\.\s+(.+)$');
   static final _tableRowRe = RegExp(r'^\|(.+)\|$');
   static final _tableSepRe = RegExp(r'^\|[\s:|-]+\|$');
+  static final _frontMatterRe = RegExp(r'^---\s*$');
+  static final _footnoteDefRe = RegExp(r'^\[\^([^\]]+)\]:\s*(.+)$');
+  static final _htmlBlockStartRe = RegExp(r'^<(\w+)');
 
   /// Parse markdown text into a list of block-level nodes.
   List<MarkdownNode> parse(String markdown) {
@@ -182,12 +227,54 @@ class MarkdownParser {
     final nodes = <MarkdownNode>[];
     var i = 0;
 
+    // Front matter detection (must be at start of file)
+    if (i < lines.length && _frontMatterRe.hasMatch(lines[i])) {
+      final fmLines = <String>[];
+      i++; // skip opening ---
+      while (i < lines.length && !_frontMatterRe.hasMatch(lines[i])) {
+        fmLines.add(lines[i]);
+        i++;
+      }
+      if (i < lines.length) i++; // skip closing ---
+      nodes.add(FrontMatterNode(content: fmLines.join('\n')));
+    }
+
     while (i < lines.length) {
       final line = lines[i];
 
       // Blank line — skip
       if (line.trim().isEmpty) {
         i++;
+        continue;
+      }
+
+      // Footnote definition
+      final footnoteMatch = _footnoteDefRe.firstMatch(line);
+      if (footnoteMatch != null) {
+        nodes.add(FootnoteDefinitionNode(
+          id: footnoteMatch.group(1)!,
+          content: footnoteMatch.group(2)!,
+        ));
+        i++;
+        continue;
+      }
+
+      // HTML block
+      final htmlMatch = _htmlBlockStartRe.firstMatch(line);
+      if (htmlMatch != null) {
+        final tag = htmlMatch.group(1)!;
+        final htmlLines = <String>[line];
+        final closeTag = '</$tag>';
+        i++;
+        while (i < lines.length && !lines[i].contains(closeTag)) {
+          htmlLines.add(lines[i]);
+          i++;
+        }
+        if (i < lines.length) {
+          htmlLines.add(lines[i]);
+          i++;
+        }
+        nodes.add(HtmlBlockNode(html: htmlLines.join('\n')));
         continue;
       }
 
@@ -357,11 +444,16 @@ class MarkdownParser {
     final re = RegExp(
       r'!\[([^\]]*)\]\(([^)]+)\)'  // image
       r'|\[([^\]]*)\]\(([^)]+)\)'  // link
+      r'|\[\^([^\]]+)\]'           // footnote ref
       r'|`([^`]+)`'                // inline code
       r'|\$([^$]+)\$'              // inline math
+      r'|==(.+?)=='                // highlight
+      r'|\+\+(.+?)\+\+'            // underline
       r'|\*\*(.+?)\*\*'            // bold **
       r'|__(.+?)__'                // bold __
       r'|~~(.+?)~~'                // strikethrough
+      r'|\^(.+?)\^'                // superscript
+      r'|(?<!~)~([^~]+?)~(?!~)'    // subscript (single ~, not ~~)
       r'|\*(.+?)\*'                // italic *
       r'|_(.+?)_'                  // italic _
     );
@@ -400,29 +492,47 @@ class MarkdownParser {
           href: match.group(4),
         ));
       } else if (match.group(5) != null) {
-        // Inline code
-        spans.add(InlineSpan(type: InlineType.code, text: match.group(5)!));
+        // Footnote ref
+        spans.add(InlineSpan(
+          type: InlineType.footnoteRef,
+          text: match.group(5)!,
+        ));
       } else if (match.group(6) != null) {
-        // Inline math
-        spans.add(InlineSpan(type: InlineType.mathInline, text: match.group(6)!));
+        // Inline code
+        spans.add(InlineSpan(type: InlineType.code, text: match.group(6)!));
       } else if (match.group(7) != null) {
-        // Bold **
-        spans.add(InlineSpan(type: InlineType.bold, text: match.group(7)!));
+        // Inline math
+        spans.add(InlineSpan(type: InlineType.mathInline, text: match.group(7)!));
       } else if (match.group(8) != null) {
-        // Bold __
-        spans.add(InlineSpan(type: InlineType.bold, text: match.group(8)!));
+        // Highlight
+        spans.add(InlineSpan(type: InlineType.highlight, text: match.group(8)!));
       } else if (match.group(9) != null) {
+        // Underline
+        spans.add(InlineSpan(type: InlineType.underline, text: match.group(9)!));
+      } else if (match.group(10) != null) {
+        // Bold **
+        spans.add(InlineSpan(type: InlineType.bold, text: match.group(10)!));
+      } else if (match.group(11) != null) {
+        // Bold __
+        spans.add(InlineSpan(type: InlineType.bold, text: match.group(11)!));
+      } else if (match.group(12) != null) {
         // Strikethrough
         spans.add(InlineSpan(
           type: InlineType.strikethrough,
-          text: match.group(9)!,
+          text: match.group(12)!,
         ));
-      } else if (match.group(10) != null) {
+      } else if (match.group(13) != null) {
+        // Superscript
+        spans.add(InlineSpan(type: InlineType.superscript, text: match.group(13)!));
+      } else if (match.group(14) != null) {
+        // Subscript
+        spans.add(InlineSpan(type: InlineType.subscript, text: match.group(14)!));
+      } else if (match.group(15) != null) {
         // Italic *
-        spans.add(InlineSpan(type: InlineType.italic, text: match.group(10)!));
-      } else if (match.group(11) != null) {
+        spans.add(InlineSpan(type: InlineType.italic, text: match.group(15)!));
+      } else if (match.group(16) != null) {
         // Italic _
-        spans.add(InlineSpan(type: InlineType.italic, text: match.group(11)!));
+        spans.add(InlineSpan(type: InlineType.italic, text: match.group(16)!));
       }
 
       lastEnd = match.end;

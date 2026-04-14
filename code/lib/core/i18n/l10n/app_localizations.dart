@@ -776,6 +776,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Regular Expression'**
   String get editRegex;
+
+  /// No description provided for @editCopyAsMarkdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy as Markdown'**
+  String get editCopyAsMarkdown;
+
+  /// No description provided for @editCopyAsHtml.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy as HTML'**
+  String get editCopyAsHtml;
+
+  /// No description provided for @editSelectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Select All'**
+  String get editSelectAll;
+
+  /// No description provided for @editDuplicateLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicate Line'**
+  String get editDuplicateLine;
+
+  /// No description provided for @formatUnderline.
+  ///
+  /// In en, this message translates to:
+  /// **'Underline'**
+  String get formatUnderline;
+
+  /// No description provided for @formatSuperscript.
+  ///
+  /// In en, this message translates to:
+  /// **'Superscript'**
+  String get formatSuperscript;
+
+  /// No description provided for @formatSubscript.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscript'**
+  String get formatSubscript;
+
+  /// No description provided for @formatHighlight.
+  ///
+  /// In en, this message translates to:
+  /// **'Highlight'**
+  String get formatHighlight;
+
+  /// No description provided for @formatInlineCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Inline Code'**
+  String get formatInlineCode;
+
+  /// No description provided for @formatInlineMath.
+  ///
+  /// In en, this message translates to:
+  /// **'Inline Math'**
+  String get formatInlineMath;
+
+  /// No description provided for @formatClearFormatting.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear Formatting'**
+  String get formatClearFormatting;
+
+  /// No description provided for @settingsCodeFontFamily.
+  ///
+  /// In en, this message translates to:
+  /// **'Code Font Family'**
+  String get settingsCodeFontFamily;
+
+  /// No description provided for @settingsEditorMaxWidth.
+  ///
+  /// In en, this message translates to:
+  /// **'Editor Max Width'**
+  String get settingsEditorMaxWidth;
+
+  /// No description provided for @settingsTextDirection.
+  ///
+  /// In en, this message translates to:
+  /// **'Text Direction'**
+  String get settingsTextDirection;
+
+  /// No description provided for @keybindingsEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Keybinding'**
+  String get keybindingsEdit;
+
+  /// No description provided for @keybindingsPressKeys.
+  ///
+  /// In en, this message translates to:
+  /// **'Press key combination...'**
+  String get keybindingsPressKeys;
+
+  /// No description provided for @keybindingsReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset to Default'**
+  String get keybindingsReset;
 }
 
 class _AppLocalizationsDelegate

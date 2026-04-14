@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/i18n/l10n/app_localizations.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/locale_provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../../services/keybinding_service.dart';
 
 enum _Category { general, editor, markdown, theme, keybindings }
 
@@ -91,15 +93,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       case _Category.theme:
         return _themeSection(l10n);
       case _Category.keybindings:
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(l10n.settingsKeybindings,
-                style: Theme.of(context).textTheme.headlineSmall),
-            const SizedBox(height: 24),
-            Text(l10n.comingSoon),
-          ],
-        );
+        return _keybindingsSection(l10n);
     }
   }
 
@@ -217,6 +211,50 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             },
           ),
         ),
+        _row(
+          l10n.settingsCodeFontFamily,
+          SizedBox(
+            width: 200,
+            child: TextField(
+              controller: TextEditingController(text: config.codeFontFamily),
+              onSubmitted: (v) {
+                ref.read(settingsProvider.notifier)
+                    .updateConfig((c) => c.copyWith(codeFontFamily: v.isEmpty ? 'Courier New' : v));
+              },
+            ),
+          ),
+        ),
+        _row(
+          l10n.settingsEditorMaxWidth,
+          SizedBox(
+            width: 120,
+            child: TextField(
+              controller: TextEditingController(text: config.editorMaxWidth.toString()),
+              keyboardType: TextInputType.number,
+              onSubmitted: (v) {
+                final w = int.tryParse(v) ?? 800;
+                ref.read(settingsProvider.notifier)
+                    .updateConfig((c) => c.copyWith(editorMaxWidth: w));
+              },
+            ),
+          ),
+        ),
+        _row(
+          l10n.settingsTextDirection,
+          DropdownButton<String>(
+            value: config.textDirection,
+            items: const [
+              DropdownMenuItem(value: 'ltr', child: Text('LTR')),
+              DropdownMenuItem(value: 'rtl', child: Text('RTL')),
+            ],
+            onChanged: (v) {
+              if (v != null) {
+                ref.read(settingsProvider.notifier)
+                    .updateConfig((c) => c.copyWith(textDirection: v));
+              }
+            },
+          ),
+        ),
       ],
     );
   }
@@ -320,6 +358,124 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           }).toList(),
         ),
       ],
+    );
+  }
+
+  // -- Keybindings --
+  Widget _keybindingsSection(AppLocalizations l10n) {
+    final service = KeybindingService();
+    final bindings = service.keybindings;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(l10n.settingsKeybindings,
+            style: Theme.of(context).textTheme.headlineSmall),
+        const SizedBox(height: 24),
+        ...bindings.entries.map((entry) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(entry.key, style: const TextStyle(fontSize: 16)),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(entry.value, style: const TextStyle(fontFamily: 'monospace')),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.edit, size: 18),
+                    tooltip: l10n.keybindingsEdit,
+                    onPressed: () => _showKeybindingDialog(entry.key, entry.value, l10n),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        )),
+        const SizedBox(height: 16),
+        Center(
+          child: TextButton.icon(
+            onPressed: () {
+              service.resetToDefaults();
+              setState(() {});
+            },
+            icon: const Icon(Icons.restore),
+            label: Text(l10n.keybindingsReset),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showKeybindingDialog(String action, String currentKeys, AppLocalizations l10n) {
+    String captured = '';
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Text('${l10n.keybindingsEdit}: $action'),
+          content: KeyboardListener(
+            focusNode: FocusNode()..requestFocus(),
+            onKeyEvent: (event) {
+              if (event is KeyDownEvent) {
+                final parts = <String>[];
+                if (HardwareKeyboard.instance.isControlPressed) parts.add('Ctrl');
+                if (HardwareKeyboard.instance.isShiftPressed) parts.add('Shift');
+                if (HardwareKeyboard.instance.isAltPressed) parts.add('Alt');
+                if (HardwareKeyboard.instance.isMetaPressed) parts.add('Meta');
+                final key = event.logicalKey.keyLabel;
+                if (!['Control Left', 'Control Right', 'Shift Left', 'Shift Right',
+                      'Alt Left', 'Alt Right', 'Meta Left', 'Meta Right'].contains(key)) {
+                  parts.add(key);
+                }
+                if (parts.isNotEmpty) {
+                  setDialogState(() => captured = parts.join('+'));
+                }
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                border: Border.all(color: Theme.of(context).dividerColor),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Center(
+                child: Text(
+                  captured.isEmpty ? l10n.keybindingsPressKeys : captured,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontFamily: 'monospace',
+                    color: captured.isEmpty
+                        ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)
+                        : null,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(l10n.cancel),
+            ),
+            TextButton(
+              onPressed: captured.isEmpty ? null : () {
+                KeybindingService().setKeybinding(action, captured);
+                Navigator.pop(ctx);
+                setState(() {});
+              },
+              child: Text(l10n.ok),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

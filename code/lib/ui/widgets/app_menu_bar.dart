@@ -93,6 +93,35 @@ class AppMenuBar extends ConsumerWidget {
     ref.read(tabProvider.notifier).markSaved(activeTab.id);
   }
 
+  void _renameFile(WidgetRef ref) async {
+    final activeTab = ref.read(activeTabProvider);
+    if (activeTab == null || activeTab.filePath == null) return;
+    final oldPath = activeTab.filePath!;
+    final ctx = navigatorKey.currentContext;
+    if (ctx == null) return;
+    final controller = TextEditingController(text: p.basename(oldPath));
+    final newName = await showDialog<String>(
+      context: ctx,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('Rename'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: 'New name'),
+          onSubmitted: (value) => Navigator.of(dialogCtx).pop(value),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(dialogCtx).pop(), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.of(dialogCtx).pop(controller.text), child: const Text('OK')),
+        ],
+      ),
+    );
+    if (newName == null || newName.isEmpty || newName == p.basename(oldPath)) return;
+    final newPath = p.join(p.dirname(oldPath), newName);
+    await File(oldPath).rename(newPath);
+    ref.read(tabProvider.notifier).updateTabPath(activeTab.id, newPath, newName);
+  }
+
   Widget _buildFileMenu(AppLocalizations l10n, WidgetRef ref) {
     return SubmenuButton(
       menuChildren: [
@@ -138,6 +167,11 @@ class AppMenuBar extends ConsumerWidget {
           leadingIcon: const Icon(Icons.save_as),
           child: Text(l10n.fileSaveAs),
           onPressed: () => _saveFileAs(ref),
+        ),
+        MenuItemButton(
+          leadingIcon: const Icon(Icons.drive_file_rename_outline),
+          child: const Text('Rename'),
+          onPressed: () => _renameFile(ref),
         ),
         const Divider(height: 1),
         SubmenuButton(
@@ -251,6 +285,38 @@ class AppMenuBar extends ConsumerWidget {
               selection: TextSelection.collapsed(offset: offset + paste.length),
             );
           },
+        ),
+        const Divider(height: 1),
+        MenuItemButton(
+          leadingIcon: const Icon(Icons.copy),
+          child: Text(l10n.editCopyAsMarkdown),
+          onPressed: () => ref.read(editorProvider.notifier).applyFormat(FormatAction.copyAsMarkdown),
+        ),
+        MenuItemButton(
+          leadingIcon: const Icon(Icons.code),
+          child: Text(l10n.editCopyAsHtml),
+          onPressed: () => ref.read(editorProvider.notifier).applyFormat(FormatAction.copyAsHtml),
+        ),
+        const Divider(height: 1),
+        MenuItemButton(
+          leadingIcon: const Icon(Icons.select_all),
+          shortcut: SingleActivator(
+            LogicalKeyboardKey.keyA,
+            control: !PlatformUtils.isMacOS,
+            meta: PlatformUtils.isMacOS,
+          ),
+          child: Text(l10n.editSelectAll),
+          onPressed: () => ref.read(editorProvider.notifier).applyFormat(FormatAction.selectAll),
+        ),
+        MenuItemButton(
+          leadingIcon: const Icon(Icons.content_copy),
+          shortcut: SingleActivator(
+            LogicalKeyboardKey.keyD,
+            control: !PlatformUtils.isMacOS,
+            meta: PlatformUtils.isMacOS,
+          ),
+          child: Text(l10n.editDuplicateLine),
+          onPressed: () => ref.read(editorProvider.notifier).applyFormat(FormatAction.duplicateLine),
         ),
         const Divider(height: 1),
         MenuItemButton(
@@ -431,6 +497,37 @@ class AppMenuBar extends ConsumerWidget {
         MenuItemButton(
           child: Text(l10n.formatHorizontalRule),
           onPressed: () => fmt(FormatAction.horizontalRule),
+        ),
+        const Divider(height: 1),
+        MenuItemButton(
+          child: Text(l10n.formatUnderline),
+          onPressed: () => fmt(FormatAction.underline),
+        ),
+        MenuItemButton(
+          child: Text(l10n.formatSuperscript),
+          onPressed: () => fmt(FormatAction.superscript),
+        ),
+        MenuItemButton(
+          child: Text(l10n.formatSubscript),
+          onPressed: () => fmt(FormatAction.subscript),
+        ),
+        MenuItemButton(
+          child: Text(l10n.formatHighlight),
+          onPressed: () => fmt(FormatAction.highlight),
+        ),
+        const Divider(height: 1),
+        MenuItemButton(
+          child: Text(l10n.formatInlineCode),
+          onPressed: () => fmt(FormatAction.inlineCode),
+        ),
+        MenuItemButton(
+          child: Text(l10n.formatInlineMath),
+          onPressed: () => fmt(FormatAction.inlineMath),
+        ),
+        const Divider(height: 1),
+        MenuItemButton(
+          child: Text(l10n.formatClearFormatting),
+          onPressed: () => fmt(FormatAction.clearFormatting),
         ),
       ],
       child: Text(l10n.menuFormat),

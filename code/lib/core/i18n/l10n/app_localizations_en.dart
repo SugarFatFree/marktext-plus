@@ -345,4 +345,55 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get editRegex => 'Regular Expression';
+
+  @override
+  String get editCopyAsMarkdown => 'Copy as Markdown';
+
+  @override
+  String get editCopyAsHtml => 'Copy as HTML';
+
+  @override
+  String get editSelectAll => 'Select All';
+
+  @override
+  String get editDuplicateLine => 'Duplicate Line';
+
+  @override
+  String get formatUnderline => 'Underline';
+
+  @override
+  String get formatSuperscript => 'Superscript';
+
+  @override
+  String get formatSubscript => 'Subscript';
+
+  @override
+  String get formatHighlight => 'Highlight';
+
+  @override
+  String get formatInlineCode => 'Inline Code';
+
+  @override
+  String get formatInlineMath => 'Inline Math';
+
+  @override
+  String get formatClearFormatting => 'Clear Formatting';
+
+  @override
+  String get settingsCodeFontFamily => 'Code Font Family';
+
+  @override
+  String get settingsEditorMaxWidth => 'Editor Max Width';
+
+  @override
+  String get settingsTextDirection => 'Text Direction';
+
+  @override
+  String get keybindingsEdit => 'Edit Keybinding';
+
+  @override
+  String get keybindingsPressKeys => 'Press key combination...';
+
+  @override
+  String get keybindingsReset => 'Reset to Default';
 }

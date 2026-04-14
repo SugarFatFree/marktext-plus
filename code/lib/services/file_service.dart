@@ -45,4 +45,29 @@ class FileService {
     }
     return nodes;
   }
+
+  Future<void> renameFile(String oldPath, String newPath) async {
+    await File(oldPath).rename(newPath);
+  }
+
+  Future<void> moveFile(String oldPath, String newPath) async {
+    await File(oldPath).rename(newPath);
+  }
+
+  Future<void> createFile(String path, String content) async {
+    await File(path).writeAsString(content);
+  }
+
+  Future<void> createDirectory(String path) async {
+    await Directory(path).create(recursive: true);
+  }
+
+  Future<void> deleteEntity(String path) async {
+    final type = await FileSystemEntity.type(path);
+    if (type == FileSystemEntityType.directory) {
+      await Directory(path).delete(recursive: true);
+    } else if (type == FileSystemEntityType.file) {
+      await File(path).delete();
+    }
+  }
 }

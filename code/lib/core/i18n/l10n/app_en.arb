@@ -112,5 +112,22 @@
   "editReplaceAll": "Replace All",
   "editCaseSensitive": "Case Sensitive",
   "editWholeWord": "Whole Word",
-  "editRegex": "Regular Expression"
+  "editRegex": "Regular Expression",
+  "editCopyAsMarkdown": "Copy as Markdown",
+  "editCopyAsHtml": "Copy as HTML",
+  "editSelectAll": "Select All",
+  "editDuplicateLine": "Duplicate Line",
+  "formatUnderline": "Underline",
+  "formatSuperscript": "Superscript",
+  "formatSubscript": "Subscript",
+  "formatHighlight": "Highlight",
+  "formatInlineCode": "Inline Code",
+  "formatInlineMath": "Inline Math",
+  "formatClearFormatting": "Clear Formatting",
+  "settingsCodeFontFamily": "Code Font Family",
+  "settingsEditorMaxWidth": "Editor Max Width",
+  "settingsTextDirection": "Text Direction",
+  "keybindingsEdit": "Edit Keybinding",
+  "keybindingsPressKeys": "Press key combination...",
+  "keybindingsReset": "Reset to Default"
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/i18n/l10n/app_localizations.dart';
 import '../../providers/editor_provider.dart';
+import '../../providers/word_count_provider.dart';
 
 class StatusBar extends ConsumerWidget {
   const StatusBar({super.key});
@@ -9,6 +10,7 @@ class StatusBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final editorState = ref.watch(editorProvider);
+    final wordCount = ref.watch(wordCountProvider);
     final l10n = AppLocalizations.of(context)!;
 
     return Container(
@@ -42,6 +44,21 @@ class StatusBar extends ConsumerWidget {
           const SizedBox(width: 16),
           Text(
             'LF',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const Spacer(),
+          Text(
+            'Words: ${wordCount.words}',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(width: 12),
+          Text(
+            'Chars: ${wordCount.characters}',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(width: 12),
+          Text(
+            'Paragraphs: ${wordCount.paragraphs}',
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ],

@@ -1,9 +1,13 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/file_node.dart';
 import '../services/file_service.dart';
+import '../services/file_watcher_service.dart';
 
 class FileNotifier extends StateNotifier<List<FileNode>> {
   final FileService _fileService;
+  final FileWatcherService _watcherService = FileWatcherService();
+  StreamSubscription? _watcherSubscription;
   String? _currentDirectory;
 
   FileNotifier(this._fileService) : super([]);
@@ -13,6 +17,38 @@ class FileNotifier extends StateNotifier<List<FileNode>> {
   Future<void> loadDirectory(String path) async {
     _currentDirectory = path;
     state = await _fileService.buildFileTree(path);
+    _watcherSubscription?.cancel();
+    _watcherService.watch(path);
+    _watcherSubscription = _watcherService.events.listen((_) async {
+      if (_currentDirectory != null) {
+        state = await _fileService.buildFileTree(_currentDirectory!);
+      }
+    });
+  }
+
+  Future<void> renameNode(String oldPath, String newPath) async {
+    await _fileService.renameFile(oldPath, newPath);
+    await _refreshTree();
+  }
+
+  Future<void> deleteNode(String path) async {
+    await _fileService.deleteEntity(path);
+    await _refreshTree();
+  }
+
+  Future<void> createNode(String path, {bool isDirectory = false, String content = ''}) async {
+    if (isDirectory) {
+      await _fileService.createDirectory(path);
+    } else {
+      await _fileService.createFile(path, content);
+    }
+    await _refreshTree();
+  }
+
+  Future<void> _refreshTree() async {
+    if (_currentDirectory != null) {
+      state = await _fileService.buildFileTree(_currentDirectory!);
+    }
   }
 
   void toggleExpand(String path) {
@@ -44,5 +80,10 @@ class FileNotifier extends StateNotifier<List<FileNode>> {
 }
 
 final fileProvider = StateNotifierProvider<FileNotifier, List<FileNode>>((ref) {
-  return FileNotifier(FileService());
+  final notifier = FileNotifier(FileService());
+  ref.onDispose(() {
+    notifier._watcherSubscription?.cancel();
+    notifier._watcherService.dispose();
+  });
+  return notifier;
 });

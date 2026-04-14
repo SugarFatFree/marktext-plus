@@ -26,17 +26,25 @@ class EditorTabBar extends ConsumerWidget {
       child: Row(
         children: [
           Expanded(
-            child: ListView.builder(
+            child: ReorderableListView.builder(
               scrollDirection: Axis.horizontal,
+              buildDefaultDragHandles: false,
               itemCount: tabs.length,
+              onReorder: (oldIndex, newIndex) {
+                ref.read(tabProvider.notifier).reorderTabs(oldIndex, newIndex);
+              },
               itemBuilder: (context, index) {
                 final tab = tabs[index];
                 final isActive = tab.id == activeTabId;
-                return _TabItem(
-                  tab: tab,
-                  isActive: isActive,
-                  onTap: () => ref.read(tabProvider.notifier).setActiveTab(tab.id),
-                  onClose: () => ref.read(tabProvider.notifier).removeTab(tab.id),
+                return ReorderableDragStartListener(
+                  key: ValueKey(tab.id),
+                  index: index,
+                  child: _TabItem(
+                    tab: tab,
+                    isActive: isActive,
+                    onTap: () => ref.read(tabProvider.notifier).setActiveTab(tab.id),
+                    onClose: () => ref.read(tabProvider.notifier).removeTab(tab.id),
+                  ),
                 );
               },
             ),

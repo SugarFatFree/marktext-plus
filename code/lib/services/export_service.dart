@@ -117,6 +117,18 @@ class ExportService {
       case NodeType.mathBlock:
         final math = node as MathBlockNode;
         return '<pre class="math-block">\\[${_escapeHtml(math.expression)}\\]</pre>';
+
+      case NodeType.frontMatter:
+        final fm = node as FrontMatterNode;
+        return '<pre class="front-matter">${_escapeHtml(fm.content)}</pre>';
+
+      case NodeType.footnoteDefinition:
+        final fn = node as FootnoteDefinitionNode;
+        return '<div class="footnote" id="fn-${_escapeHtml(fn.id)}"><sup>${_escapeHtml(fn.id)}</sup> ${_escapeHtml(fn.content)}</div>';
+
+      case NodeType.htmlBlock:
+        final html = node as HtmlBlockNode;
+        return html.html;
     }
   }
 
@@ -145,6 +157,16 @@ class ExportService {
           return '<del>$text</del>';
         case InlineType.mathInline:
           return '<span class="math-inline">\\($text\\)</span>';
+        case InlineType.highlight:
+          return '<mark>$text</mark>';
+        case InlineType.superscript:
+          return '<sup>$text</sup>';
+        case InlineType.subscript:
+          return '<sub>$text</sub>';
+        case InlineType.underline:
+          return '<u>$text</u>';
+        case InlineType.footnoteRef:
+          return '<sup><a href="#fn-$text">[$text]</a></sup>';
       }
     }).join();
   }
@@ -264,6 +286,46 @@ class ExportService {
               border: pw.Border.all(color: PdfColors.grey300),
             ),
             child: pw.Text(math.expression, style: const pw.TextStyle(fontSize: 12)),
+          ),
+        ];
+
+      case NodeType.frontMatter:
+        final fm = node as FrontMatterNode;
+        return [
+          pw.Container(
+            padding: const pw.EdgeInsets.all(10),
+            margin: const pw.EdgeInsets.only(bottom: 10),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.grey200,
+              borderRadius: pw.BorderRadius.circular(4),
+            ),
+            child: pw.Text(fm.content, style: pw.TextStyle(fontSize: 10, font: pw.Font.courier())),
+          ),
+        ];
+
+      case NodeType.footnoteDefinition:
+        final fn = node as FootnoteDefinitionNode;
+        return [
+          pw.Padding(
+            padding: const pw.EdgeInsets.only(bottom: 4),
+            child: pw.Text(
+              '[${fn.id}]: ${fn.content}',
+              style: const pw.TextStyle(fontSize: 10),
+            ),
+          ),
+        ];
+
+      case NodeType.htmlBlock:
+        final html = node as HtmlBlockNode;
+        return [
+          pw.Container(
+            padding: const pw.EdgeInsets.all(10),
+            margin: const pw.EdgeInsets.only(bottom: 10),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.grey300,
+              borderRadius: pw.BorderRadius.circular(4),
+            ),
+            child: pw.Text(html.html, style: pw.TextStyle(fontSize: 10, font: pw.Font.courier())),
           ),
         ];
     }

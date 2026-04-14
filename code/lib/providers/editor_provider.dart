@@ -21,6 +21,17 @@ enum FormatAction {
   link,
   image,
   horizontalRule,
+  underline,
+  superscript,
+  subscript,
+  highlight,
+  inlineCode,
+  inlineMath,
+  clearFormatting,
+  copyAsMarkdown,
+  copyAsHtml,
+  selectAll,
+  duplicateLine,
 }
 
 class EditorState {
@@ -32,6 +43,7 @@ class EditorState {
   final bool canUndo;
   final bool canRedo;
   final bool showFindReplace;
+  final int? targetScrollLine;
 
   const EditorState({
     this.cursorLine = 0,
@@ -42,6 +54,7 @@ class EditorState {
     this.canUndo = false,
     this.canRedo = false,
     this.showFindReplace = false,
+    this.targetScrollLine,
   });
 
   EditorState copyWith({
@@ -54,6 +67,8 @@ class EditorState {
     bool? canUndo,
     bool? canRedo,
     bool? showFindReplace,
+    int? targetScrollLine,
+    bool clearTargetScrollLine = false,
   }) {
     return EditorState(
       cursorLine: cursorLine ?? this.cursorLine,
@@ -64,6 +79,7 @@ class EditorState {
       canUndo: canUndo ?? this.canUndo,
       canRedo: canRedo ?? this.canRedo,
       showFindReplace: showFindReplace ?? this.showFindReplace,
+      targetScrollLine: clearTargetScrollLine ? null : (targetScrollLine ?? this.targetScrollLine),
     );
   }
 }
@@ -154,6 +170,14 @@ class EditorNotifier extends StateNotifier<EditorState> {
 
   void hideFindReplace() {
     state = state.copyWith(showFindReplace: false);
+  }
+
+  void scrollToLine(int line) {
+    state = state.copyWith(targetScrollLine: line);
+  }
+
+  void clearScrollTarget() {
+    state = state.copyWith(clearTargetScrollLine: true);
   }
 }
 
