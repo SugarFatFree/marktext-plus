@@ -2,53 +2,30 @@
 
 All notable changes to MarkText Plus will be documented in this file.
 
-## [v1.0.1] - 2026-04-15
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-### Features
+## [v1.0.2] - 2026-04-15
 
-- Custom Markdown editor with syntax highlighting (headings, bold, code, links, strikethrough, italic)
-- Three edit modes: Source, Preview, Split (draggable divider with 300ms debounce sync)
-- Markdown renderer with full AST-based widget tree (headings, paragraphs, code blocks, tables, math blocks, blockquotes, lists, task lists, images, horizontal rules, front matter, footnotes, HTML blocks)
-- Mermaid diagram rendering support (flowchart, sequence, gantt, class, state, ER, journey, gitgraph, pie, mindmap)
-- Sidebar with file tree, full-text search, and table of contents panel
-- Multi-tab editing with drag-to-reorder and modified indicator
-- Command palette (Ctrl+P) with format, file, and view commands
-- Find & Replace bar with regex and case-sensitive options
-- Keyboard shortcuts for all format actions (bold, italic, headings, lists, code, etc.)
-- Export to HTML and PDF
-- Drag-and-drop file opening (markdown files) and image insertion
-- Clipboard image paste support (auto-save to project directory)
-- Auto-bracket pairing for `()`, `[]`, `{}`, `""`, `''`, `` ` ` ``, `**`, `~~`
-- 12 language localizations (English, Chinese, Japanese, Korean, German, French, Italian, Russian, Spanish, Portuguese, Arabic, Brazilian Portuguese)
-- RTL support for Arabic
-- 5 built-in themes: Cadmium Light, One Dark, Material Dark, Graphite Light, Ulysses Light
-- Dark mode toggle
-- Focus mode and Typewriter mode
-- Configurable font size, line height, tab size, code font family, editor max width, text direction
-- Auto-save with configurable delay
-- Recent files list
-- Customizable keybindings with persistent JSON storage
-- File tree context menu (new file, new folder, rename, delete)
-- Status bar with cursor position, encoding, file type, line ending, word/character/paragraph count
+### Fixed
+- Fixed StateProvider.overrideWithValue method not existing, causing build failures on Linux ARM64 and macOS
+- Fixed Windows file association — .md files now appear in "Open with" context menu
+- Fixed startup file handling — files selected via "Open with" now load correctly instead of showing blank window
+- Fixed CI/CD ARM64 Linux builds by using manual Flutter installation
+- Fixed CI/CD macOS builds by removing unsupported x64 architecture
+- Fixed GITHUB_PATH environment variable not taking effect in same workflow step
 
-### Bug Fixes
+### Added
+- Windows Registry entries for .md, .markdown, and .txt file associations via Inno Setup
+- Command-line argument parsing for startup files
+- Startup file processing on app launch
 
-- BUG-001: Fixed missing system window title bar on Windows caused by `window_manager` intercepting `WM_NCCALCSIZE` — removed `window_manager` entirely
-- BUG-002: Fixed theme switching not taking effect when dark mode is enabled — auto-disable dark mode on theme change
-- BUG-003: Fixed scroll jank and line numbers disappearing past 100 lines — added `itemExtent` and dynamic gutter width
-- BUG-004: Fixed missing keyboard shortcuts in Format and View menus
-- BUG-005: Fixed theme transition animation frame drops — disabled `themeAnimationDuration`
-- BUG-006: Fixed line number gutter bounce on large scrolls — clamped scroll offset with `ClampingScrollPhysics`
-- BUG-007: Fixed markdown link syntax disappearing in source view — show full `[text](url)` with syntax highlighting
-- BUG-008: Fixed links not clickable in preview — added tap handler with local `.md` file support
+## [v1.0.1] - 2026-04-14
 
-### UI Improvements
-
-- Material 3 enabled across all themes
-- Menu bar left-aligned with subtle shadow
-- Sidebar icon buttons with hover animation (150ms)
-- Sidebar content area with fade transition (200ms)
-- Tab bar with hover effects and animated close button
-- Status bar with vertical dividers and top shadow
-- Sidebar show/hide with slide animation (200ms)
-- Tab bar show/hide with animated size transition
+### Added
+- Initial release with cross-platform CI/CD workflow
+- GitHub Actions workflow for Windows, macOS, and Linux builds
+- Multi-architecture support (x64, ARM64)
+- DEB and RPM package generation for Linux
+- Inno Setup installer for Windows
+- DMG packaging for macOS
