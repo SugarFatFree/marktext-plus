@@ -1,0 +1,41 @@
+name: ✨ Feature Request (English)
+description: Suggest a new feature or improvement
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a feature!
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Description
+      description: What problem are you facing? What need does this feature address?
+      placeholder: e.g. I always need to..., but it's currently inconvenient
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: How would you like to solve this problem?
+      placeholder: Describe the feature or improvement you'd like
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Have you considered any alternative solutions?
+      placeholder: Describe other approaches you've thought about
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other information that helps understand this feature request
+      placeholder: You can add screenshots, examples, reference links, etc.
