@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import '../../app.dart';
 import '../../core/i18n/l10n/app_localizations.dart';
@@ -23,6 +24,7 @@ class SideBar extends ConsumerStatefulWidget {
 
 class _SideBarState extends ConsumerState<SideBar> {
   SideBarTab _selectedTab = SideBarTab.files;
+  SideBarTab? _hoveredTab;
   final TextEditingController _searchController = TextEditingController();
   List<_SearchResult> _searchResults = [];
   bool _isSearching = false;
@@ -91,32 +93,73 @@ class _SideBarState extends ConsumerState<SideBar> {
 
   Widget _buildIconButton(IconData icon, SideBarTab tab, String tooltip) {
     final isSelected = _selectedTab == tab;
-    return IconButton(
-      icon: Icon(icon),
-      color: isSelected
-          ? Theme.of(context).colorScheme.primary
-          : Theme.of(context).colorScheme.onSurface,
-      onPressed: () => setState(() => _selectedTab = tab),
-      tooltip: tooltip,
+    final isHovered = _hoveredTab == tab;
+    return Tooltip(
+      message: tooltip,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hoveredTab = tab),
+        onExit: (_) => setState(() => _hoveredTab = null),
+        child: GestureDetector(
+          onTap: () => setState(() => _selectedTab = tab),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            curve: Curves.easeInOut,
+            margin: const EdgeInsets.symmetric(vertical: 2, horizontal: 6),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.15)
+                  : isHovered
+                      ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06)
+                      : Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              icon,
+              size: 22,
+              color: isSelected
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+        ),
+      ),
     );
   }
 
   Widget _buildContentArea(AppLocalizations l10n) {
-    switch (_selectedTab) {
-      case SideBarTab.files:
-        return _buildFileTree(l10n);
-      case SideBarTab.search:
-        return _buildSearchPanel(l10n);
-      case SideBarTab.toc:
-        return _buildTocPanel(l10n);
-    }
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 200),
+      switchInCurve: Curves.easeInOut,
+      switchOutCurve: Curves.easeInOut,
+      transitionBuilder: (child, animation) {
+        return FadeTransition(opacity: animation, child: child);
+      },
+      child: KeyedSubtree(
+        key: ValueKey(_selectedTab),
+        child: switch (_selectedTab) {
+          SideBarTab.files => _buildFileTree(l10n),
+          SideBarTab.search => _buildSearchPanel(l10n),
+          SideBarTab.toc => _buildTocPanel(l10n),
+        },
+      ),
+    );
   }
 
   // -- Files Panel --
 
   Widget _buildFileTree(AppLocalizations l10n) {
     final fileNodes = ref.watch(fileProvider);
-    if (fileNodes.isEmpty) {
+    if (fileNodes.isNotEmpty) {
+      return ListView(
+        children: fileNodes.map((node) => _buildFileNode(node, 0)).toList(),
+      );
+    }
+
+    // No folder opened – show opened files list
+    final tabState = ref.watch(tabProvider);
+    if (tabState.openedFiles.isEmpty) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -130,8 +173,60 @@ class _SideBarState extends ConsumerState<SideBar> {
         ),
       );
     }
+
     return ListView(
-      children: fileNodes.map((node) => _buildFileNode(node, 0)).toList(),
+      children: tabState.openedFiles.map((file) {
+        final isActive = tabState.tabs.any((t) => t.filePath == file.filePath && t.id == tabState.activeTabId);
+        return GestureDetector(
+          onSecondaryTapUp: (details) {
+            _showOpenedFileContextMenu(context, details.globalPosition, file);
+          },
+          child: InkWell(
+            onTap: () => _openFileInTab(file.filePath),
+            hoverColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+            child: Padding(
+              padding: const EdgeInsets.only(left: 8, right: 8),
+              child: SizedBox(
+                height: 28,
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.insert_drive_file,
+                      size: 16,
+                      color: isActive
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        file.fileName,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+                          color: isActive
+                              ? Theme.of(context).colorScheme.primary
+                              : null,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 14),
+                      iconSize: 14,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+                      onPressed: () {
+                        ref.read(tabProvider.notifier).removeOpenedFile(file.filePath);
+                      },
+                      tooltip: l10n.closeFile,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -267,6 +362,44 @@ class _SideBarState extends ConsumerState<SideBar> {
         ],
       ),
     );
+  }
+
+  void _showOpenedFileContextMenu(BuildContext context, Offset position, OpenedFileEntry file) async {
+    final l10n = AppLocalizations.of(context)!;
+    final result = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(position.dx, position.dy, position.dx, position.dy),
+      items: [
+        PopupMenuItem(value: 'copy_name', child: Text(l10n.copyFileName)),
+        PopupMenuItem(value: 'copy_path', child: Text(l10n.copyFilePath)),
+        const PopupMenuDivider(),
+        PopupMenuItem(value: 'close', child: Text(l10n.closeFile)),
+        PopupMenuItem(value: 'delete', child: Text(l10n.deleteFile)),
+      ],
+    );
+    if (result == null || !mounted) return;
+    switch (result) {
+      case 'copy_name':
+        await Clipboard.setData(ClipboardData(text: file.fileName));
+      case 'copy_path':
+        await Clipboard.setData(ClipboardData(text: file.filePath));
+      case 'close':
+        ref.read(tabProvider.notifier).removeOpenedFile(file.filePath);
+      case 'delete':
+        if (!mounted) return;
+        final confirmed = await _showConfirmDialog(
+          this.context,
+          l10n.confirmDeleteFile(file.fileName),
+        );
+        if (confirmed == true) {
+          try {
+            await File(file.filePath).delete();
+            ref.read(tabProvider.notifier).removeOpenedFile(file.filePath);
+          } catch (_) {
+            // Ignore delete errors
+          }
+        }
+    }
   }
 
   void _openFileInTab(String filePath) async {
@@ -473,12 +606,15 @@ class _SideBarState extends ConsumerState<SideBar> {
           onTap: () {
             ref.read(editorProvider.notifier).scrollToLine(heading.lineNumber);
           },
+          hoverColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(4),
+          mouseCursor: SystemMouseCursors.click,
           child: Padding(
             padding: EdgeInsets.only(
               left: (heading.level - 1) * 16.0 + 8,
               right: 8,
-              top: 4,
-              bottom: 4,
+              top: 6,
+              bottom: 6,
             ),
             child: Text(
               heading.text,

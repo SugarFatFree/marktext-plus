@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:url_launcher/url_launcher.dart';
-import 'package:window_manager/window_manager.dart';
 import '../../app.dart';
 import '../../core/config/app_config.dart';
 import '../../core/i18n/l10n/app_localizations.dart';
@@ -15,24 +14,104 @@ import '../../providers/file_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/tab_provider.dart';
 import '../../services/export_service.dart';
+import '../../services/keybinding_service.dart';
 import '../../utils/platform_utils.dart';
 import '../screens/settings_screen.dart';
 
 class AppMenuBar extends ConsumerWidget {
   const AppMenuBar({super.key});
 
+  static SingleActivator? _parseShortcut(String keys) {
+    final parts = keys.split('+');
+    if (parts.isEmpty) return null;
+    bool ctrl = false, shift = false, alt = false, meta = false;
+    String? keyLabel;
+    for (final part in parts) {
+      switch (part.trim()) {
+        case 'Ctrl':
+          if (PlatformUtils.isMacOS) { meta = true; } else { ctrl = true; }
+        case 'Shift':
+          shift = true;
+        case 'Alt':
+          alt = true;
+        case 'Meta':
+          meta = true;
+        default:
+          keyLabel = part.trim();
+      }
+    }
+    if (keyLabel == null) return null;
+    final logicalKey = _labelToKey(keyLabel);
+    if (logicalKey == null) return null;
+    return SingleActivator(logicalKey, control: ctrl, shift: shift, alt: alt, meta: meta);
+  }
+
+  static LogicalKeyboardKey? _labelToKey(String label) {
+    return switch (label) {
+      'A' => LogicalKeyboardKey.keyA,
+      'B' => LogicalKeyboardKey.keyB,
+      'C' => LogicalKeyboardKey.keyC,
+      'D' => LogicalKeyboardKey.keyD,
+      'E' => LogicalKeyboardKey.keyE,
+      'F' => LogicalKeyboardKey.keyF,
+      'G' => LogicalKeyboardKey.keyG,
+      'H' => LogicalKeyboardKey.keyH,
+      'I' => LogicalKeyboardKey.keyI,
+      'J' => LogicalKeyboardKey.keyJ,
+      'K' => LogicalKeyboardKey.keyK,
+      'L' => LogicalKeyboardKey.keyL,
+      'M' => LogicalKeyboardKey.keyM,
+      'N' => LogicalKeyboardKey.keyN,
+      'O' => LogicalKeyboardKey.keyO,
+      'P' => LogicalKeyboardKey.keyP,
+      'Q' => LogicalKeyboardKey.keyQ,
+      'R' => LogicalKeyboardKey.keyR,
+      'S' => LogicalKeyboardKey.keyS,
+      'T' => LogicalKeyboardKey.keyT,
+      'U' => LogicalKeyboardKey.keyU,
+      'V' => LogicalKeyboardKey.keyV,
+      'W' => LogicalKeyboardKey.keyW,
+      'X' => LogicalKeyboardKey.keyX,
+      'Y' => LogicalKeyboardKey.keyY,
+      'Z' => LogicalKeyboardKey.keyZ,
+      '1' => LogicalKeyboardKey.digit1,
+      '2' => LogicalKeyboardKey.digit2,
+      '3' => LogicalKeyboardKey.digit3,
+      '4' => LogicalKeyboardKey.digit4,
+      '5' => LogicalKeyboardKey.digit5,
+      '6' => LogicalKeyboardKey.digit6,
+      '`' => LogicalKeyboardKey.backquote,
+      _ => null,
+    };
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    return MenuBar(
-      children: [
-        _buildFileMenu(l10n, ref),
-        _buildEditMenu(l10n, ref),
-        _buildViewMenu(l10n, ref),
-        _buildFormatMenu(l10n, ref),
-        _buildWindowMenu(l10n, ref),
-        _buildHelpMenu(l10n, ref),
-      ],
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 2,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: MenuBar(
+          children: [
+            _buildFileMenu(l10n, ref),
+            _buildEditMenu(l10n, ref),
+            _buildViewMenu(l10n, ref),
+            _buildFormatMenu(l10n, ref),
+            _buildWindowMenu(l10n, ref),
+            _buildHelpMenu(l10n, ref),
+          ],
+        ),
+      ),
     );
   }
 
@@ -204,7 +283,7 @@ class AppMenuBar extends ConsumerWidget {
           onPressed: () => exit(0),
         ),
       ],
-      child: Text(l10n.menuFile),
+      child: Text(l10n.menuFile, style: const TextStyle(fontWeight: FontWeight.bold)),
     );
   }
 
@@ -340,29 +419,42 @@ class AppMenuBar extends ConsumerWidget {
           onPressed: () => ref.read(editorProvider.notifier).toggleFindReplace(),
         ),
       ],
-      child: Text(l10n.menuEdit),
+      child: Text(l10n.menuEdit, style: const TextStyle(fontWeight: FontWeight.bold)),
     );
   }
 
   Widget _buildViewMenu(AppLocalizations l10n, WidgetRef ref) {
     final config = ref.watch(settingsProvider);
+    final isMac = PlatformUtils.isMacOS;
     return SubmenuButton(
       menuChildren: [
         SubmenuButton(
           menuChildren: [
             MenuItemButton(
+              shortcut: SingleActivator(
+                LogicalKeyboardKey.digit1,
+                control: !isMac, meta: isMac, alt: true,
+              ),
               child: Text(l10n.viewSourceCode),
               onPressed: () {
                 ref.read(settingsProvider.notifier).setEditMode(EditMode.source);
               },
             ),
             MenuItemButton(
+              shortcut: SingleActivator(
+                LogicalKeyboardKey.digit2,
+                control: !isMac, meta: isMac, alt: true,
+              ),
               child: Text(l10n.viewPreview),
               onPressed: () {
                 ref.read(settingsProvider.notifier).setEditMode(EditMode.preview);
               },
             ),
             MenuItemButton(
+              shortcut: SingleActivator(
+                LogicalKeyboardKey.digit3,
+                control: !isMac, meta: isMac, alt: true,
+              ),
               child: Text(l10n.viewSplitView),
               onPressed: () {
                 ref.read(settingsProvider.notifier).setEditMode(EditMode.split);
@@ -373,12 +465,20 @@ class AppMenuBar extends ConsumerWidget {
         ),
         const Divider(height: 1),
         MenuItemButton(
+          shortcut: SingleActivator(
+            LogicalKeyboardKey.keyB,
+            control: !isMac, meta: isMac, shift: true,
+          ),
           child: Text(config.sideBarVisible ? l10n.viewHideSidebar : l10n.viewShowSidebar),
           onPressed: () {
             ref.read(settingsProvider.notifier).toggleSideBar();
           },
         ),
         MenuItemButton(
+          shortcut: SingleActivator(
+            LogicalKeyboardKey.keyT,
+            control: !isMac, meta: isMac, alt: true,
+          ),
           child: Text(config.tabBarVisible ? l10n.viewHideTabBar : l10n.viewShowTabBar),
           onPressed: () {
             ref.read(settingsProvider.notifier).toggleTabBar();
@@ -386,19 +486,31 @@ class AppMenuBar extends ConsumerWidget {
         ),
         const Divider(height: 1),
         MenuItemButton(
-          child: Text(config.focusMode ? '${l10n.viewFocusMode} ✓' : l10n.viewFocusMode),
+          shortcut: SingleActivator(
+            LogicalKeyboardKey.keyF,
+            control: !isMac, meta: isMac, shift: true,
+          ),
+          child: Text(config.focusMode ? '${l10n.viewFocusMode} \u2713' : l10n.viewFocusMode),
           onPressed: () {
             ref.read(settingsProvider.notifier).toggleFocusMode();
           },
         ),
         MenuItemButton(
-          child: Text(config.typewriterMode ? '${l10n.viewTypewriterMode} ✓' : l10n.viewTypewriterMode),
+          shortcut: SingleActivator(
+            LogicalKeyboardKey.keyW,
+            control: !isMac, meta: isMac, shift: true,
+          ),
+          child: Text(config.typewriterMode ? '${l10n.viewTypewriterMode} \u2713' : l10n.viewTypewriterMode),
           onPressed: () {
             ref.read(settingsProvider.notifier).toggleTypewriterMode();
           },
         ),
         const Divider(height: 1),
         MenuItemButton(
+          shortcut: SingleActivator(
+            LogicalKeyboardKey.equal,
+            control: !isMac, meta: isMac,
+          ),
           child: Text(l10n.viewZoomIn),
           onPressed: () {
             final newSize = (config.fontSize + 2).clamp(12.0, 32.0);
@@ -406,6 +518,10 @@ class AppMenuBar extends ConsumerWidget {
           },
         ),
         MenuItemButton(
+          shortcut: SingleActivator(
+            LogicalKeyboardKey.minus,
+            control: !isMac, meta: isMac,
+          ),
           child: Text(l10n.viewZoomOut),
           onPressed: () {
             final newSize = (config.fontSize - 2).clamp(12.0, 32.0);
@@ -413,33 +529,42 @@ class AppMenuBar extends ConsumerWidget {
           },
         ),
         MenuItemButton(
+          shortcut: SingleActivator(
+            LogicalKeyboardKey.digit0,
+            control: !isMac, meta: isMac,
+          ),
           child: Text(l10n.viewResetZoom),
           onPressed: () {
             ref.read(settingsProvider.notifier).setFontSize(16.0);
           },
         ),
       ],
-      child: Text(l10n.menuView),
+      child: Text(l10n.menuView, style: const TextStyle(fontWeight: FontWeight.bold)),
     );
   }
 
   Widget _buildFormatMenu(AppLocalizations l10n, WidgetRef ref) {
     void fmt(FormatAction action) => ref.read(editorProvider.notifier).applyFormat(action);
+    final kb = KeybindingService();
     final headingActions = [
       FormatAction.heading1, FormatAction.heading2, FormatAction.heading3,
       FormatAction.heading4, FormatAction.heading5, FormatAction.heading6,
     ];
+    final headingKeys = ['heading1', 'heading2', 'heading3', 'heading4', 'heading5', 'heading6'];
     return SubmenuButton(
       menuChildren: [
         MenuItemButton(
+          shortcut: _parseShortcut(kb.getKeybinding('bold')),
           child: Text(l10n.formatBold),
           onPressed: () => fmt(FormatAction.bold),
         ),
         MenuItemButton(
+          shortcut: _parseShortcut(kb.getKeybinding('italic')),
           child: Text(l10n.formatItalic),
           onPressed: () => fmt(FormatAction.italic),
         ),
         MenuItemButton(
+          shortcut: _parseShortcut(kb.getKeybinding('strikethrough')),
           child: Text(l10n.formatStrikethrough),
           onPressed: () => fmt(FormatAction.strikethrough),
         ),
@@ -448,6 +573,7 @@ class AppMenuBar extends ConsumerWidget {
           menuChildren: List.generate(
             6,
             (i) => MenuItemButton(
+              shortcut: _parseShortcut(kb.getKeybinding(headingKeys[i])),
               child: Text(l10n.formatHeading(i + 1)),
               onPressed: () => fmt(headingActions[i]),
             ),
@@ -456,23 +582,28 @@ class AppMenuBar extends ConsumerWidget {
         ),
         const Divider(height: 1),
         MenuItemButton(
+          shortcut: _parseShortcut(kb.getKeybinding('orderedList')),
           child: Text(l10n.formatOrderedList),
           onPressed: () => fmt(FormatAction.orderedList),
         ),
         MenuItemButton(
+          shortcut: _parseShortcut(kb.getKeybinding('unorderedList')),
           child: Text(l10n.formatUnorderedList),
           onPressed: () => fmt(FormatAction.unorderedList),
         ),
         MenuItemButton(
+          shortcut: _parseShortcut(kb.getKeybinding('taskList')),
           child: Text(l10n.formatTaskList),
           onPressed: () => fmt(FormatAction.taskList),
         ),
         const Divider(height: 1),
         MenuItemButton(
+          shortcut: _parseShortcut(kb.getKeybinding('codeBlock')),
           child: Text(l10n.formatCodeBlock),
           onPressed: () => fmt(FormatAction.codeBlock),
         ),
         MenuItemButton(
+          shortcut: _parseShortcut(kb.getKeybinding('quoteBlock')),
           child: Text(l10n.formatQuoteBlock),
           onPressed: () => fmt(FormatAction.quoteBlock),
         ),
@@ -482,14 +613,17 @@ class AppMenuBar extends ConsumerWidget {
         ),
         const Divider(height: 1),
         MenuItemButton(
+          shortcut: _parseShortcut(kb.getKeybinding('table')),
           child: Text(l10n.formatTable),
           onPressed: () => fmt(FormatAction.table),
         ),
         MenuItemButton(
+          shortcut: _parseShortcut(kb.getKeybinding('link')),
           child: Text(l10n.formatLink),
           onPressed: () => fmt(FormatAction.link),
         ),
         MenuItemButton(
+          shortcut: _parseShortcut(kb.getKeybinding('image')),
           child: Text(l10n.formatImage),
           onPressed: () => fmt(FormatAction.image),
         ),
@@ -500,6 +634,7 @@ class AppMenuBar extends ConsumerWidget {
         ),
         const Divider(height: 1),
         MenuItemButton(
+          shortcut: _parseShortcut(kb.getKeybinding('underline')),
           child: Text(l10n.formatUnderline),
           onPressed: () => fmt(FormatAction.underline),
         ),
@@ -512,11 +647,13 @@ class AppMenuBar extends ConsumerWidget {
           onPressed: () => fmt(FormatAction.subscript),
         ),
         MenuItemButton(
+          shortcut: _parseShortcut(kb.getKeybinding('highlight')),
           child: Text(l10n.formatHighlight),
           onPressed: () => fmt(FormatAction.highlight),
         ),
         const Divider(height: 1),
         MenuItemButton(
+          shortcut: _parseShortcut(kb.getKeybinding('inlineCode')),
           child: Text(l10n.formatInlineCode),
           onPressed: () => fmt(FormatAction.inlineCode),
         ),
@@ -530,7 +667,7 @@ class AppMenuBar extends ConsumerWidget {
           onPressed: () => fmt(FormatAction.clearFormatting),
         ),
       ],
-      child: Text(l10n.menuFormat),
+      child: Text(l10n.menuFormat, style: const TextStyle(fontWeight: FontWeight.bold)),
     );
   }
 
@@ -539,24 +676,22 @@ class AppMenuBar extends ConsumerWidget {
       menuChildren: [
         MenuItemButton(
           child: Text(l10n.windowMinimize),
-          onPressed: () => windowManager.minimize(),
+          onPressed: () => SystemChannels.platform.invokeMethod('SystemNavigator.pop'),
         ),
         MenuItemButton(
           child: Text(l10n.windowFullScreen),
-          onPressed: () async {
-            final isFullScreen = await windowManager.isFullScreen();
-            await windowManager.setFullScreen(!isFullScreen);
+          onPressed: () {
+            // Full screen toggle not available without window_manager
           },
         ),
         MenuItemButton(
           child: Text(l10n.windowAlwaysOnTop),
-          onPressed: () async {
-            final isOnTop = await windowManager.isAlwaysOnTop();
-            await windowManager.setAlwaysOnTop(!isOnTop);
+          onPressed: () {
+            // Always on top not available without window_manager
           },
         ),
       ],
-      child: Text(l10n.menuWindow),
+      child: Text(l10n.menuWindow, style: const TextStyle(fontWeight: FontWeight.bold)),
     );
   }
 
@@ -598,7 +733,7 @@ class AppMenuBar extends ConsumerWidget {
           onPressed: () => _launchUrl('https://github.com/user/marktext-plus'),
         ),
       ],
-      child: Text(l10n.menuHelp),
+      child: Text(l10n.menuHelp, style: const TextStyle(fontWeight: FontWeight.bold)),
     );
   }
 

@@ -213,13 +213,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               Expanded(
                 child: Row(
                   children: [
-                    if (config.sideBarVisible && !config.focusMode)
-                      const SideBar(),
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeInOut,
+                      width: config.sideBarVisible && !config.focusMode ? 280 : 0,
+                      clipBehavior: Clip.hardEdge,
+                      decoration: const BoxDecoration(),
+                      child: config.sideBarVisible && !config.focusMode
+                          ? const SideBar()
+                          : null,
+                    ),
                     Expanded(
                       child: Column(
                         children: [
-                          if (config.tabBarVisible && !config.focusMode)
-                            const EditorTabBar(),
+                          AnimatedSize(
+                            duration: const Duration(milliseconds: 200),
+                            curve: Curves.easeInOut,
+                            alignment: Alignment.topCenter,
+                            child: config.tabBarVisible && !config.focusMode
+                                ? const EditorTabBar()
+                                : const SizedBox.shrink(),
+                          ),
                           if (editorState.showFindReplace)
                             Builder(
                               builder: (context) {
@@ -251,24 +265,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Widget _buildEditorArea(EditMode editMode) {
     final activeTab = ref.watch(activeTabProvider);
-    final content = activeTab?.content ?? '';
+    if (activeTab == null) {
+      return const Center(child: Text(''));
+    }
+    final content = activeTab.content;
 
     void onContentChanged(String newContent) {
-      if (activeTab != null) {
-        ref.read(tabProvider.notifier).updateContent(activeTab.id, newContent);
-      }
+      ref.read(tabProvider.notifier).updateContent(activeTab.id, newContent);
     }
 
+    // Use ValueKey so the editor rebuilds when switching tabs
     switch (editMode) {
       case EditMode.source:
         return SourceEditor(
+          key: ValueKey(activeTab.id),
           initialContent: content,
           onChanged: onContentChanged,
         );
       case EditMode.preview:
-        return MarkdownRenderer(markdown: content);
+        return MarkdownRenderer(
+          key: ValueKey(activeTab.id),
+          markdown: content,
+        );
       case EditMode.split:
         return SplitEditor(
+          key: ValueKey(activeTab.id),
           initialContent: content,
           onChanged: onContentChanged,
         );

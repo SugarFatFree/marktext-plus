@@ -328,71 +328,202 @@ class AppLocalizationsRu extends AppLocalizations {
   String get tocEmpty => 'Заголовки не найдены';
 
   @override
-  String get editFindNext => 'Find Next';
+  String get editFindNext => 'Найти далее';
 
   @override
-  String get editFindPrevious => 'Find Previous';
+  String get editFindPrevious => 'Найти предыдущее';
 
   @override
-  String get editReplaceAll => 'Replace All';
+  String get editReplaceAll => 'Заменить все';
 
   @override
-  String get editCaseSensitive => 'Case Sensitive';
+  String get editCaseSensitive => 'С учётом регистра';
 
   @override
-  String get editWholeWord => 'Whole Word';
+  String get editWholeWord => 'Слово целиком';
 
   @override
-  String get editRegex => 'Regular Expression';
+  String get editRegex => 'Регулярное выражение';
 
   @override
-  String get editCopyAsMarkdown => 'Copy as Markdown';
+  String get editCopyAsMarkdown => 'Копировать как Markdown';
 
   @override
-  String get editCopyAsHtml => 'Copy as HTML';
+  String get editCopyAsHtml => 'Копировать как HTML';
 
   @override
-  String get editSelectAll => 'Select All';
+  String get editSelectAll => 'Выделить всё';
 
   @override
-  String get editDuplicateLine => 'Duplicate Line';
+  String get editDuplicateLine => 'Дублировать строку';
 
   @override
-  String get formatUnderline => 'Underline';
+  String get formatUnderline => 'Подчёркнутый';
 
   @override
-  String get formatSuperscript => 'Superscript';
+  String get formatSuperscript => 'Надстрочный';
 
   @override
-  String get formatSubscript => 'Subscript';
+  String get formatSubscript => 'Подстрочный';
 
   @override
-  String get formatHighlight => 'Highlight';
+  String get formatHighlight => 'Выделение';
 
   @override
-  String get formatInlineCode => 'Inline Code';
+  String get formatInlineCode => 'Встроенный код';
 
   @override
-  String get formatInlineMath => 'Inline Math';
+  String get formatInlineMath => 'Встроенная формула';
 
   @override
-  String get formatClearFormatting => 'Clear Formatting';
+  String get formatClearFormatting => 'Очистить форматирование';
 
   @override
-  String get settingsCodeFontFamily => 'Code Font Family';
+  String get settingsCodeFontFamily => 'Шрифт кода';
 
   @override
-  String get settingsEditorMaxWidth => 'Editor Max Width';
+  String get settingsEditorMaxWidth => 'Максимальная ширина редактора';
 
   @override
-  String get settingsTextDirection => 'Text Direction';
+  String get settingsTextDirection => 'Направление текста';
 
   @override
-  String get keybindingsEdit => 'Edit Keybinding';
+  String get keybindingsEdit => 'Изменить сочетание';
 
   @override
-  String get keybindingsPressKeys => 'Press key combination...';
+  String get keybindingsPressKeys => 'Нажмите сочетание клавиш...';
 
   @override
-  String get keybindingsReset => 'Reset to Default';
+  String get keybindingsReset => 'Сбросить по умолчанию';
+
+  @override
+  String get statusWords => 'Слова';
+
+  @override
+  String get statusChars => 'Символы';
+
+  @override
+  String get statusParagraphs => 'Абзацы';
+
+  @override
+  String get themeCadmiumLight => 'Кадмий светлый';
+
+  @override
+  String get themeOneDark => 'One Dark';
+
+  @override
+  String get themeMaterialDark => 'Material тёмный';
+
+  @override
+  String get themeGraphiteLight => 'Графит светлый';
+
+  @override
+  String get themeUlyssesLight => 'Ulysses светлый';
+
+  @override
+  String get keybindingBold => 'Жирный';
+
+  @override
+  String get keybindingItalic => 'Курсив';
+
+  @override
+  String get keybindingUnderline => 'Подчёркнутый';
+
+  @override
+  String get keybindingStrikethrough => 'Зачёркнутый';
+
+  @override
+  String get keybindingHeading1 => 'Заголовок 1';
+
+  @override
+  String get keybindingHeading2 => 'Заголовок 2';
+
+  @override
+  String get keybindingHeading3 => 'Заголовок 3';
+
+  @override
+  String get keybindingHeading4 => 'Заголовок 4';
+
+  @override
+  String get keybindingHeading5 => 'Заголовок 5';
+
+  @override
+  String get keybindingHeading6 => 'Заголовок 6';
+
+  @override
+  String get keybindingOrderedList => 'Нумерованный список';
+
+  @override
+  String get keybindingUnorderedList => 'Маркированный список';
+
+  @override
+  String get keybindingTaskList => 'Список задач';
+
+  @override
+  String get keybindingCodeBlock => 'Блок кода';
+
+  @override
+  String get keybindingQuoteBlock => 'Блок цитаты';
+
+  @override
+  String get keybindingTable => 'Таблица';
+
+  @override
+  String get keybindingLink => 'Ссылка';
+
+  @override
+  String get keybindingImage => 'Изображение';
+
+  @override
+  String get keybindingInlineCode => 'Встроенный код';
+
+  @override
+  String get keybindingInlineMath => 'Встроенная формула';
+
+  @override
+  String get keybindingMathBlock => 'Математический блок';
+
+  @override
+  String get keybindingFind => 'Найти';
+
+  @override
+  String get keybindingReplace => 'Заменить';
+
+  @override
+  String get keybindingSave => 'Сохранить';
+
+  @override
+  String get keybindingOpen => 'Открыть';
+
+  @override
+  String get keybindingUndo => 'Отменить';
+
+  @override
+  String get keybindingRedo => 'Повторить';
+
+  @override
+  String get keybindingSelectAll => 'Выделить всё';
+
+  @override
+  String get keybindingDuplicateLine => 'Дублировать строку';
+
+  @override
+  String get keybindingHighlight => 'Выделение';
+
+  @override
+  String get closeFile => 'Закрыть файл';
+
+  @override
+  String get copyFileName => 'Копировать имя файла';
+
+  @override
+  String get copyFilePath => 'Копировать путь к файлу';
+
+  @override
+  String get deleteFile => 'Удалить файл';
+
+  @override
+  String confirmDeleteFile(String fileName) {
+    return 'Вы уверены, что хотите удалить \"$fileName\"?';
+  }
 }

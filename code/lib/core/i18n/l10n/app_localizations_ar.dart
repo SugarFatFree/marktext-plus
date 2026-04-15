@@ -328,71 +328,202 @@ class AppLocalizationsAr extends AppLocalizations {
   String get tocEmpty => 'لم يتم العثور على عناوين';
 
   @override
-  String get editFindNext => 'Find Next';
+  String get editFindNext => 'البحث عن التالي';
 
   @override
-  String get editFindPrevious => 'Find Previous';
+  String get editFindPrevious => 'البحث عن السابق';
 
   @override
-  String get editReplaceAll => 'Replace All';
+  String get editReplaceAll => 'استبدال الكل';
 
   @override
-  String get editCaseSensitive => 'Case Sensitive';
+  String get editCaseSensitive => 'مطابقة حالة الأحرف';
 
   @override
-  String get editWholeWord => 'Whole Word';
+  String get editWholeWord => 'كلمة كاملة';
 
   @override
-  String get editRegex => 'Regular Expression';
+  String get editRegex => 'تعبير نمطي';
 
   @override
-  String get editCopyAsMarkdown => 'Copy as Markdown';
+  String get editCopyAsMarkdown => 'نسخ كـ Markdown';
 
   @override
-  String get editCopyAsHtml => 'Copy as HTML';
+  String get editCopyAsHtml => 'نسخ كـ HTML';
 
   @override
-  String get editSelectAll => 'Select All';
+  String get editSelectAll => 'تحديد الكل';
 
   @override
-  String get editDuplicateLine => 'Duplicate Line';
+  String get editDuplicateLine => 'تكرار السطر';
 
   @override
-  String get formatUnderline => 'Underline';
+  String get formatUnderline => 'تسطير';
 
   @override
-  String get formatSuperscript => 'Superscript';
+  String get formatSuperscript => 'نص مرتفع';
 
   @override
-  String get formatSubscript => 'Subscript';
+  String get formatSubscript => 'نص منخفض';
 
   @override
-  String get formatHighlight => 'Highlight';
+  String get formatHighlight => 'تمييز';
 
   @override
-  String get formatInlineCode => 'Inline Code';
+  String get formatInlineCode => 'كود مضمّن';
 
   @override
-  String get formatInlineMath => 'Inline Math';
+  String get formatInlineMath => 'صيغة مضمّنة';
 
   @override
-  String get formatClearFormatting => 'Clear Formatting';
+  String get formatClearFormatting => 'مسح التنسيق';
 
   @override
-  String get settingsCodeFontFamily => 'Code Font Family';
+  String get settingsCodeFontFamily => 'خط الكود';
 
   @override
-  String get settingsEditorMaxWidth => 'Editor Max Width';
+  String get settingsEditorMaxWidth => 'أقصى عرض للمحرر';
 
   @override
-  String get settingsTextDirection => 'Text Direction';
+  String get settingsTextDirection => 'اتجاه النص';
 
   @override
-  String get keybindingsEdit => 'Edit Keybinding';
+  String get keybindingsEdit => 'تحرير الاختصار';
 
   @override
-  String get keybindingsPressKeys => 'Press key combination...';
+  String get keybindingsPressKeys => 'اضغط مجموعة المفاتيح...';
 
   @override
-  String get keybindingsReset => 'Reset to Default';
+  String get keybindingsReset => 'إعادة تعيين الافتراضي';
+
+  @override
+  String get statusWords => 'كلمات';
+
+  @override
+  String get statusChars => 'أحرف';
+
+  @override
+  String get statusParagraphs => 'فقرات';
+
+  @override
+  String get themeCadmiumLight => 'كادميوم فاتح';
+
+  @override
+  String get themeOneDark => 'One Dark';
+
+  @override
+  String get themeMaterialDark => 'Material داكن';
+
+  @override
+  String get themeGraphiteLight => 'جرافيت فاتح';
+
+  @override
+  String get themeUlyssesLight => 'Ulysses فاتح';
+
+  @override
+  String get keybindingBold => 'غامق';
+
+  @override
+  String get keybindingItalic => 'مائل';
+
+  @override
+  String get keybindingUnderline => 'تسطير';
+
+  @override
+  String get keybindingStrikethrough => 'يتوسطه خط';
+
+  @override
+  String get keybindingHeading1 => 'عنوان 1';
+
+  @override
+  String get keybindingHeading2 => 'عنوان 2';
+
+  @override
+  String get keybindingHeading3 => 'عنوان 3';
+
+  @override
+  String get keybindingHeading4 => 'عنوان 4';
+
+  @override
+  String get keybindingHeading5 => 'عنوان 5';
+
+  @override
+  String get keybindingHeading6 => 'عنوان 6';
+
+  @override
+  String get keybindingOrderedList => 'قائمة مرقمة';
+
+  @override
+  String get keybindingUnorderedList => 'قائمة نقطية';
+
+  @override
+  String get keybindingTaskList => 'قائمة مهام';
+
+  @override
+  String get keybindingCodeBlock => 'كتلة برمجية';
+
+  @override
+  String get keybindingQuoteBlock => 'كتلة اقتباس';
+
+  @override
+  String get keybindingTable => 'جدول';
+
+  @override
+  String get keybindingLink => 'رابط';
+
+  @override
+  String get keybindingImage => 'صورة';
+
+  @override
+  String get keybindingInlineCode => 'كود مضمّن';
+
+  @override
+  String get keybindingInlineMath => 'صيغة مضمّنة';
+
+  @override
+  String get keybindingMathBlock => 'كتلة رياضية';
+
+  @override
+  String get keybindingFind => 'بحث';
+
+  @override
+  String get keybindingReplace => 'استبدال';
+
+  @override
+  String get keybindingSave => 'حفظ';
+
+  @override
+  String get keybindingOpen => 'فتح';
+
+  @override
+  String get keybindingUndo => 'تراجع';
+
+  @override
+  String get keybindingRedo => 'إعادة';
+
+  @override
+  String get keybindingSelectAll => 'تحديد الكل';
+
+  @override
+  String get keybindingDuplicateLine => 'تكرار السطر';
+
+  @override
+  String get keybindingHighlight => 'تمييز';
+
+  @override
+  String get closeFile => 'إغلاق الملف';
+
+  @override
+  String get copyFileName => 'نسخ اسم الملف';
+
+  @override
+  String get copyFilePath => 'نسخ مسار الملف';
+
+  @override
+  String get deleteFile => 'حذف الملف';
+
+  @override
+  String confirmDeleteFile(String fileName) {
+    return 'هل أنت متأكد من حذف \"$fileName\"؟';
+  }
 }

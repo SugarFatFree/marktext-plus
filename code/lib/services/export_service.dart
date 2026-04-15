@@ -21,6 +21,8 @@ class ExportService {
     buffer.writeln('  <style>');
     buffer.writeln(_getGitHubStyleCss());
     buffer.writeln('  </style>');
+    buffer.writeln('  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>');
+    buffer.writeln('  <script>mermaid.initialize({startOnLoad: true, securityLevel: "strict"});</script>');
     buffer.writeln('</head>');
     buffer.writeln('<body>');
     buffer.writeln('  <div class="markdown-body">');
@@ -75,9 +77,15 @@ class ExportService {
 
       case NodeType.codeBlock:
         final code = node as CodeBlockNode;
-        final lang = code.language.isNotEmpty ? ' class="language-${code.language}"' : '';
+        final lang = code.language.toLowerCase();
+        // Mermaid diagram languages: use <pre class="mermaid"> for CDN rendering
+        const diagramLangs = {'mermaid', 'flowchart', 'sequence', 'gantt', 'classdiagram', 'statediagram', 'erdiagram', 'journey', 'gitgraph', 'pie', 'mindmap'};
+        if (diagramLangs.contains(lang)) {
+          return '<pre class="mermaid">${_escapeHtml(code.code)}</pre>';
+        }
+        final langClass = code.language.isNotEmpty ? ' class="language-${code.language}"' : '';
         final escaped = _escapeHtml(code.code);
-        return '<pre><code$lang>$escaped</code></pre>';
+        return '<pre><code$langClass>$escaped</code></pre>';
 
       case NodeType.orderedList:
       case NodeType.unorderedList:
@@ -104,9 +112,11 @@ class ExportService {
           buffer.write('  <th>${_escapeHtml(header)}</th>\n');
         }
         buffer.write('</tr>\n</thead>\n<tbody>\n');
+        final colCount = table.headers.length;
         for (final row in table.rows) {
           buffer.write('<tr>\n');
-          for (final cell in row) {
+          for (var i = 0; i < colCount; i++) {
+            final cell = i < row.length ? row[i] : '';
             buffer.write('  <td>${_escapeHtml(cell)}</td>\n');
           }
           buffer.write('</tr>\n');

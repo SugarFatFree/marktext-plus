@@ -8,6 +8,9 @@ on:
 permissions:
   contents: write
 
+env:
+  FLUTTER_VERSION: stable
+
 jobs:
   build-windows:
     runs-on: windows-latest
@@ -16,7 +19,7 @@ jobs:
 
       - uses: subosito/flutter-action@v2.18.0
         with:
-          channel: stable
+          channel: ${{ env.FLUTTER_VERSION }}
 
       - name: Install dependencies
         working-directory: code
@@ -26,24 +29,71 @@ jobs:
         working-directory: code
         run: flutter build windows --release
 
-      - name: Package Windows build
+      - name: Package zip
         run: |
           cd code/build/windows/x64/runner/Release
-          7z a -tzip "${{ github.workspace }}/marktext-plus-windows-x64.zip" .
+          7z a -tzip "${{ github.workspace }}/marktext-plus-${{ github.ref_name }}-windows-x64.zip" .
+
+      - name: Create Inno Setup script
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart("v")
+          $iss = @"
+          [Setup]
+          AppName=MarkText Plus
+          AppVersion=$version
+          AppPublisher=MarkText Plus
+          DefaultDirName={autopf}\MarkText Plus
+          DefaultGroupName=MarkText Plus
+          OutputDir=${{ github.workspace }}
+          OutputBaseFilename=marktext-plus-${{ github.ref_name }}-windows-x64-setup
+          Compression=lzma2
+          SolidCompression=yes
+          SetupIconFile=${{ github.workspace }}\code\windows\runner\resources\app_icon.ico
+          UninstallDisplayIcon={app}\marktext_plus.exe
+          ArchitecturesInstallIn64BitMode=x64compatible
+          WizardStyle=modern
+
+          [Files]
+          Source: "${{ github.workspace }}\code\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: recursesubdirs
+
+          [Icons]
+          Name: "{group}\MarkText Plus"; Filename: "{app}\marktext_plus.exe"
+          Name: "{autodesktop}\MarkText Plus"; Filename: "{app}\marktext_plus.exe"; Tasks: desktopicon
+
+          [Tasks]
+          Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional icons:"
+
+          [Run]
+          Filename: "{app}\marktext_plus.exe"; Description: "Launch MarkText Plus"; Flags: nowait postinstall skipifsilent
+          "@
+          $iss | Out-File -FilePath "setup.iss" -Encoding UTF8
+
+      - name: Build installer
+        run: iscc setup.iss
 
       - uses: actions/upload-artifact@v4
         with:
-          name: windows-build
-          path: marktext-plus-windows-x64.zip
+          name: windows-x64-build
+          path: |
+            marktext-plus-${{ github.ref_name }}-windows-x64.zip
+            marktext-plus-${{ github.ref_name }}-windows-x64-setup.exe
 
   build-macos:
-    runs-on: macos-latest
+    strategy:
+      matrix:
+        include:
+          - runner: macos-13
+            arch: x64
+          - runner: macos-latest
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: subosito/flutter-action@v2.18.0
         with:
-          channel: stable
+          channel: ${{ env.FLUTTER_VERSION }}
 
       - name: Install dependencies
         working-directory: code
@@ -53,29 +103,63 @@ jobs:
         working-directory: code
         run: flutter build macos --release
 
-      - name: Package macOS build
+      - name: Package zip
         run: |
           cd code/build/macos/Build/Products/Release
-          zip -r "${{ github.workspace }}/marktext-plus-macos-x64.zip" "marktext_plus.app"
+          zip -r "${{ github.workspace }}/marktext-plus-${{ github.ref_name }}-macos-${{ matrix.arch }}.zip" "marktext_plus.app"
+
+      - name: Install create-dmg
+        run: brew install create-dmg
+
+      - name: Create DMG
+        run: |
+          create-dmg \
+            --volname "MarkText Plus" \
+            --volicon "code/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_512.png" \
+            --window-pos 200 120 \
+            --window-size 600 400 \
+            --icon-size 100 \
+            --icon "marktext_plus.app" 150 185 \
+            --hide-extension "marktext_plus.app" \
+            --app-drop-link 450 185 \
+            "marktext-plus-${{ github.ref_name }}-macos-${{ matrix.arch }}.dmg" \
+            "code/build/macos/Build/Products/Release/marktext_plus.app" \
+          || true
+          # create-dmg returns non-zero even on success when no code signing identity is found
 
       - uses: actions/upload-artifact@v4
         with:
-          name: macos-build
-          path: marktext-plus-macos-x64.zip
+          name: macos-${{ matrix.arch }}-build
+          path: |
+            marktext-plus-${{ github.ref_name }}-macos-${{ matrix.arch }}.zip
+            marktext-plus-${{ github.ref_name }}-macos-${{ matrix.arch }}.dmg
 
   build-linux:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            arch: x64
+            deb_arch: amd64
+            rpm_arch: x86_64
+            flutter_build_dir: x64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+            deb_arch: arm64
+            rpm_arch: aarch64
+            flutter_build_dir: arm64
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Install Linux dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build libgtk-3-dev pkg-config liblzma-dev
+          sudo apt-get install -y clang cmake ninja-build libgtk-3-dev pkg-config liblzma-dev rpm
 
       - uses: subosito/flutter-action@v2.18.0
         with:
-          channel: stable
+          channel: ${{ env.FLUTTER_VERSION }}
 
       - name: Install dependencies
         working-directory: code
@@ -85,29 +169,154 @@ jobs:
         working-directory: code
         run: flutter build linux --release
 
-      - name: Package Linux build
+      - name: Package tar.gz
         run: |
-          cd code/build/linux/x64/release/bundle
-          tar czf "${{ github.workspace }}/marktext-plus-linux-x64.tar.gz" .
+          cd code/build/linux/${{ matrix.flutter_build_dir }}/release/bundle
+          tar czf "${{ github.workspace }}/marktext-plus-${{ github.ref_name }}-linux-${{ matrix.arch }}.tar.gz" .
+
+      - name: Build deb package
+        run: |
+          VERSION=$(echo "${{ github.ref_name }}" | sed 's/^v//')
+          PKG_DIR="${{ github.workspace }}/deb-pkg"
+
+          mkdir -p "$PKG_DIR/DEBIAN"
+          mkdir -p "$PKG_DIR/usr/lib/marktext-plus"
+          mkdir -p "$PKG_DIR/usr/bin"
+          mkdir -p "$PKG_DIR/usr/share/applications"
+          mkdir -p "$PKG_DIR/usr/share/icons/hicolor/512x512/apps"
+
+          cp -r code/build/linux/${{ matrix.flutter_build_dir }}/release/bundle/* "$PKG_DIR/usr/lib/marktext-plus/"
+          ln -sf /usr/lib/marktext-plus/marktext_plus "$PKG_DIR/usr/bin/marktext-plus"
+          cp code/linux/resources/app_icon_512.png "$PKG_DIR/usr/share/icons/hicolor/512x512/apps/marktext-plus.png"
+
+          cat > "$PKG_DIR/usr/share/applications/marktext-plus.desktop" << 'DESKTOP'
+          [Desktop Entry]
+          Type=Application
+          Name=MarkText Plus
+          Comment=A lightweight Markdown editor
+          Exec=marktext-plus %F
+          Icon=marktext-plus
+          Terminal=false
+          Categories=Utility;TextEditor;
+          MimeType=text/markdown;text/x-markdown;text/plain;
+          DESKTOP
+
+          cat > "$PKG_DIR/DEBIAN/control" << CTRL
+          Package: marktext-plus
+          Version: ${VERSION}
+          Section: editors
+          Priority: optional
+          Architecture: ${{ matrix.deb_arch }}
+          Depends: libgtk-3-0
+          Maintainer: MarkText Plus <noreply@github.com>
+          Description: A lightweight Markdown editor built with Flutter
+           MarkText Plus is a cross-platform Markdown editor with syntax highlighting,
+           live preview, split view, and multiple themes.
+          CTRL
+
+          dpkg-deb --build "$PKG_DIR" "${{ github.workspace }}/marktext-plus-${{ github.ref_name }}-linux-${{ matrix.deb_arch }}.deb"
+
+      - name: Build RPM package
+        run: |
+          VERSION=$(echo "${{ github.ref_name }}" | sed 's/^v//')
+          RPM_ROOT="${{ github.workspace }}/rpmbuild"
+
+          mkdir -p "$RPM_ROOT"/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+          mkdir -p "$RPM_ROOT/BUILDROOT/marktext-plus-${VERSION}-1.${{ matrix.rpm_arch }}/usr/lib/marktext-plus"
+          mkdir -p "$RPM_ROOT/BUILDROOT/marktext-plus-${VERSION}-1.${{ matrix.rpm_arch }}/usr/bin"
+          mkdir -p "$RPM_ROOT/BUILDROOT/marktext-plus-${VERSION}-1.${{ matrix.rpm_arch }}/usr/share/applications"
+          mkdir -p "$RPM_ROOT/BUILDROOT/marktext-plus-${VERSION}-1.${{ matrix.rpm_arch }}/usr/share/icons/hicolor/512x512/apps"
+
+          cp -r code/build/linux/${{ matrix.flutter_build_dir }}/release/bundle/* \
+            "$RPM_ROOT/BUILDROOT/marktext-plus-${VERSION}-1.${{ matrix.rpm_arch }}/usr/lib/marktext-plus/"
+          ln -sf /usr/lib/marktext-plus/marktext_plus \
+            "$RPM_ROOT/BUILDROOT/marktext-plus-${VERSION}-1.${{ matrix.rpm_arch }}/usr/bin/marktext-plus"
+          cp code/linux/resources/app_icon_512.png \
+            "$RPM_ROOT/BUILDROOT/marktext-plus-${VERSION}-1.${{ matrix.rpm_arch }}/usr/share/icons/hicolor/512x512/apps/marktext-plus.png"
+
+          cat > "$RPM_ROOT/BUILDROOT/marktext-plus-${VERSION}-1.${{ matrix.rpm_arch }}/usr/share/applications/marktext-plus.desktop" << 'DESKTOP'
+          [Desktop Entry]
+          Type=Application
+          Name=MarkText Plus
+          Comment=A lightweight Markdown editor
+          Exec=marktext-plus %F
+          Icon=marktext-plus
+          Terminal=false
+          Categories=Utility;TextEditor;
+          MimeType=text/markdown;text/x-markdown;text/plain;
+          DESKTOP
+
+          cat > "$RPM_ROOT/SPECS/marktext-plus.spec" << SPEC
+          Name:           marktext-plus
+          Version:        ${VERSION}
+          Release:        1
+          Summary:        A lightweight Markdown editor built with Flutter
+          License:        MIT
+          URL:            https://github.com/user/marktext-plus
+
+          %description
+          MarkText Plus is a cross-platform Markdown editor with syntax highlighting,
+          live preview, split view, and multiple themes.
+
+          %files
+          /usr/lib/marktext-plus
+          /usr/bin/marktext-plus
+          /usr/share/applications/marktext-plus.desktop
+          /usr/share/icons/hicolor/512x512/apps/marktext-plus.png
+
+          %post
+          update-desktop-database &>/dev/null || :
+          gtk-update-icon-cache /usr/share/icons/hicolor &>/dev/null || :
+          SPEC
+
+          rpmbuild --define "_topdir $RPM_ROOT" -bb "$RPM_ROOT/SPECS/marktext-plus.spec"
+
+          cp "$RPM_ROOT/RPMS/${{ matrix.rpm_arch }}/marktext-plus-${VERSION}-1.${{ matrix.rpm_arch }}.rpm" \
+            "${{ github.workspace }}/marktext-plus-${{ github.ref_name }}-linux-${{ matrix.rpm_arch }}.rpm"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: linux-build
-          path: marktext-plus-linux-x64.tar.gz
+          name: linux-${{ matrix.arch }}-build
+          path: |
+            marktext-plus-${{ github.ref_name }}-linux-${{ matrix.arch }}.tar.gz
+            marktext-plus-${{ github.ref_name }}-linux-${{ matrix.deb_arch }}.deb
+            marktext-plus-${{ github.ref_name }}-linux-${{ matrix.rpm_arch }}.rpm
 
   release:
     needs: [build-windows, build-macos, build-linux]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
       - uses: actions/download-artifact@v4
         with:
           merge-multiple: true
 
+      - name: Extract release notes from CHANGELOG
+        id: changelog
+        run: |
+          # Extract the section for the current tag
+          TAG="${{ github.ref_name }}"
+          NOTES=$(awk "/^## \\[${TAG}\\]/{found=1; next} /^## \\[/{if(found) exit} found{print}" CHANGELOG.md)
+          if [ -z "$NOTES" ]; then
+            NOTES="Release ${TAG}"
+          fi
+          echo "$NOTES" > release_notes.md
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          generate_release_notes: true
+          body_path: release_notes.md
           files: |
-            marktext-plus-windows-x64.zip
-            marktext-plus-macos-x64.zip
-            marktext-plus-linux-x64.tar.gz
+            marktext-plus-${{ github.ref_name }}-windows-x64.zip
+            marktext-plus-${{ github.ref_name }}-windows-x64-setup.exe
+            marktext-plus-${{ github.ref_name }}-macos-x64.zip
+            marktext-plus-${{ github.ref_name }}-macos-x64.dmg
+            marktext-plus-${{ github.ref_name }}-macos-arm64.zip
+            marktext-plus-${{ github.ref_name }}-macos-arm64.dmg
+            marktext-plus-${{ github.ref_name }}-linux-x64.tar.gz
+            marktext-plus-${{ github.ref_name }}-linux-amd64.deb
+            marktext-plus-${{ github.ref_name }}-linux-x86_64.rpm
+            marktext-plus-${{ github.ref_name }}-linux-arm64.tar.gz
+            marktext-plus-${{ github.ref_name }}-linux-arm64.deb
+            marktext-plus-${{ github.ref_name }}-linux-aarch64.rpm

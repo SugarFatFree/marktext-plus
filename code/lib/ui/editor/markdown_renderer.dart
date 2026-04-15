@@ -1,14 +1,22 @@
 import 'dart:io';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_highlight/flutter_highlight.dart';
 import 'package:flutter_highlight/themes/github.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as p;
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../models/tab_info.dart';
+import '../../providers/editor_provider.dart';
+import '../../providers/settings_provider.dart';
+import '../../providers/tab_provider.dart';
 import '../../services/markdown_parser.dart' as md;
+import '../widgets/diagram_widget.dart';
 
-class MarkdownRenderer extends ConsumerWidget {
+class MarkdownRenderer extends ConsumerStatefulWidget {
   final String markdown;
   final void Function(int lineIndex, bool checked)? onTaskToggle;
 
@@ -19,16 +27,103 @@ class MarkdownRenderer extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MarkdownRenderer> createState() => _MarkdownRendererState();
+}
+
+class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
+  final _headingKeys = <int, GlobalKey>{};
+
+  /// Parse raw markdown to find heading line numbers (1-based),
+  /// matching the same logic used by the TOC panel.
+  List<int> _findHeadingLines(String markdown) {
+    final lines = markdown.split('\n');
+    final result = <int>[];
+    for (int i = 0; i < lines.length; i++) {
+      if (RegExp(r'^#{1,6}\s+.+$').hasMatch(lines[i])) {
+        result.add(i + 1);
+      }
+    }
+    return result;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.listenManual(
+        editorProvider.select((s) => s.targetScrollLine),
+        (prev, next) {
+          if (next != null) {
+            final key = _headingKeys[next];
+            if (key?.currentContext != null) {
+              Scrollable.ensureVisible(
+                key!.currentContext!,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+              );
+            }
+            ref.read(editorProvider.notifier).clearScrollTarget();
+          }
+        },
+      );
+    });
+  }
+
+  void _handleLinkTap(String? href) {
+    if (href == null || href.isEmpty) return;
+
+    // External URL
+    if (href.startsWith('http://') || href.startsWith('https://')) {
+      launchUrl(Uri.parse(href));
+      return;
+    }
+
+    // Local markdown file
+    final ext = p.extension(href).toLowerCase();
+    if (ext == '.md' || ext == '.markdown' || ext == '.txt') {
+      // Resolve relative path against current file
+      final activeTab = ref.read(activeTabProvider);
+      String resolvedPath = href;
+      if (activeTab?.filePath != null && !p.isAbsolute(href)) {
+        resolvedPath = p.normalize(p.join(p.dirname(activeTab!.filePath!), href));
+      }
+      final file = File(resolvedPath);
+      if (file.existsSync()) {
+        final content = file.readAsStringSync();
+        final tab = TabInfo(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          filePath: resolvedPath,
+          fileName: p.basename(resolvedPath),
+          content: content,
+        );
+        ref.read(tabProvider.notifier).addTab(tab);
+        ref.read(settingsProvider.notifier).addRecentFile(resolvedPath);
+      }
+      return;
+    }
+
+    // Other local links - try to launch
+    launchUrl(Uri.parse(href));
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final parser = md.MarkdownParser();
-    final nodes = parser.parse(markdown);
+    final nodes = parser.parse(widget.markdown);
+    final headingLines = _findHeadingLines(widget.markdown);
     final widgets = <Widget>[];
 
+    int headingIndex = 0;
     for (final node in nodes) {
       switch (node) {
         case md.HeadingNode():
-          widgets.add(_buildHeading(node, theme));
+          final lineNum = headingIndex < headingLines.length
+              ? headingLines[headingIndex]
+              : -1;
+          headingIndex++;
+          _headingKeys.putIfAbsent(lineNum, () => GlobalKey());
+          widgets.add(_buildHeading(node, theme, key: _headingKeys[lineNum]));
         case md.ParagraphNode():
           widgets.add(_buildParagraph(node, theme));
         case md.CodeBlockNode():
@@ -61,7 +156,7 @@ class MarkdownRenderer extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeading(md.HeadingNode node, ThemeData theme) {
+  Widget _buildHeading(md.HeadingNode node, ThemeData theme, {Key? key}) {
     final textStyle = switch (node.level) {
       1 => theme.textTheme.displaySmall,
       2 => theme.textTheme.headlineMedium,
@@ -72,6 +167,7 @@ class MarkdownRenderer extends ConsumerWidget {
     };
 
     return Padding(
+      key: key,
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Text.rich(
         _buildInlineSpans(node.inlineSpans, theme, textStyle),
@@ -89,7 +185,31 @@ class MarkdownRenderer extends ConsumerWidget {
     );
   }
 
+  /// Languages recognized as Mermaid diagram types.
+  static const _diagramLanguages = {
+    'mermaid',
+    'flowchart',
+    'sequence',
+    'gantt',
+    'classdiagram',
+    'statediagram',
+    'erdiagram',
+    'journey',
+    'gitgraph',
+    'pie',
+    'mindmap',
+  };
+
   Widget _buildCodeBlock(md.CodeBlockNode node, ThemeData theme) {
+    final lang = node.language.toLowerCase();
+    if (_diagramLanguages.contains(lang)) {
+      return DiagramWidget(
+        code: node.code,
+        type: node.language,
+        isDarkMode: theme.brightness == Brightness.dark,
+      );
+    }
+
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
       padding: const EdgeInsets.all(12),
@@ -134,8 +254,8 @@ class MarkdownRenderer extends ConsumerWidget {
           children: [
             Checkbox(
               value: item.isChecked,
-              onChanged: onTaskToggle != null
-                  ? (value) => onTaskToggle!(index, value ?? false)
+              onChanged: widget.onTaskToggle != null
+                  ? (value) => widget.onTaskToggle!(index, value ?? false)
                   : null,
             ),
             const SizedBox(width: 8),
@@ -185,6 +305,7 @@ class MarkdownRenderer extends ConsumerWidget {
   }
 
   Widget _buildTable(md.TableNode node, ThemeData theme) {
+    final colCount = node.headers.length;
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
@@ -218,11 +339,11 @@ class MarkdownRenderer extends ConsumerWidget {
           for (final row in node.rows)
             TableRow(
               children: [
-                for (var i = 0; i < row.length; i++)
+                for (var i = 0; i < colCount; i++)
                   Padding(
                     padding: const EdgeInsets.all(8),
                     child: Text(
-                      row[i],
+                      i < row.length ? row[i] : '',
                       textAlign: _getAlignment(node.alignments, i),
                     ),
                   ),
@@ -343,6 +464,8 @@ class MarkdownRenderer extends ConsumerWidget {
               color: theme.colorScheme.primary,
               decoration: TextDecoration.underline,
             ),
+            recognizer: TapGestureRecognizer()
+              ..onTap = () => _handleLinkTap(span.href),
           ));
         case md.InlineType.image:
           children.add(_buildImageSpan(span, theme));

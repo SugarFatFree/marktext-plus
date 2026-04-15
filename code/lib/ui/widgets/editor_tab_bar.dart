@@ -65,7 +65,7 @@ class EditorTabBar extends ConsumerWidget {
   }
 }
 
-class _TabItem extends StatelessWidget {
+class _TabItem extends StatefulWidget {
   final TabInfo tab;
   final bool isActive;
   final VoidCallback onTap;
@@ -79,51 +79,84 @@ class _TabItem extends StatelessWidget {
   });
 
   @override
+  State<_TabItem> createState() => _TabItemState();
+}
+
+class _TabItemState extends State<_TabItem> {
+  bool _isHovered = false;
+  bool _isCloseHovered = false;
+
+  @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: isActive
-              ? Theme.of(context).colorScheme.surfaceContainerHighest
-              : Colors.transparent,
-          border: Border(
-            right: BorderSide(
-              color: Theme.of(context).dividerColor,
-              width: 1,
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          curve: Curves.easeInOut,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: widget.isActive
+                ? Theme.of(context).colorScheme.surfaceContainerHighest
+                : _isHovered
+                    ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.04)
+                    : Colors.transparent,
+            border: Border(
+              right: BorderSide(
+                color: Theme.of(context).dividerColor,
+                width: 1,
+              ),
             ),
           ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (tab.isModified)
-              Container(
-                width: 6,
-                height: 6,
-                margin: const EdgeInsets.only(right: 6),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary,
-                  shape: BoxShape.circle,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (widget.tab.isModified)
+                Container(
+                  width: 6,
+                  height: 6,
+                  margin: const EdgeInsets.only(right: 6),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 150),
+                style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                  fontWeight: widget.isActive ? FontWeight.w600 : FontWeight.normal,
+                ),
+                child: Text(widget.tab.fileName),
+              ),
+              const SizedBox(width: 8),
+              MouseRegion(
+                onEnter: (_) => setState(() => _isCloseHovered = true),
+                onExit: (_) => setState(() => _isCloseHovered = false),
+                child: GestureDetector(
+                  onTap: widget.onClose,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: _isCloseHovered
+                          ? Theme.of(context).colorScheme.error.withValues(alpha: 0.1)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Icon(
+                      Icons.close,
+                      size: 16,
+                      color: _isCloseHovered
+                          ? Theme.of(context).colorScheme.error
+                          : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
+                  ),
                 ),
               ),
-            Text(
-              tab.fileName,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-                  ),
-            ),
-            const SizedBox(width: 8),
-            InkWell(
-              onTap: onClose,
-              child: Icon(
-                Icons.close,
-                size: 16,
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

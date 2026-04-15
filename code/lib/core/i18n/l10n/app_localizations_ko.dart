@@ -327,71 +327,202 @@ class AppLocalizationsKo extends AppLocalizations {
   String get tocEmpty => '제목을 찾을 수 없습니다';
 
   @override
-  String get editFindNext => 'Find Next';
+  String get editFindNext => '다음 찾기';
 
   @override
-  String get editFindPrevious => 'Find Previous';
+  String get editFindPrevious => '이전 찾기';
 
   @override
-  String get editReplaceAll => 'Replace All';
+  String get editReplaceAll => '모두 바꾸기';
 
   @override
-  String get editCaseSensitive => 'Case Sensitive';
+  String get editCaseSensitive => '대소문자 구분';
 
   @override
-  String get editWholeWord => 'Whole Word';
+  String get editWholeWord => '단어 단위';
 
   @override
-  String get editRegex => 'Regular Expression';
+  String get editRegex => '정규식';
 
   @override
-  String get editCopyAsMarkdown => 'Copy as Markdown';
+  String get editCopyAsMarkdown => 'Markdown으로 복사';
 
   @override
-  String get editCopyAsHtml => 'Copy as HTML';
+  String get editCopyAsHtml => 'HTML로 복사';
 
   @override
-  String get editSelectAll => 'Select All';
+  String get editSelectAll => '모두 선택';
 
   @override
-  String get editDuplicateLine => 'Duplicate Line';
+  String get editDuplicateLine => '줄 복제';
 
   @override
-  String get formatUnderline => 'Underline';
+  String get formatUnderline => '밑줄';
 
   @override
-  String get formatSuperscript => 'Superscript';
+  String get formatSuperscript => '위 첨자';
 
   @override
-  String get formatSubscript => 'Subscript';
+  String get formatSubscript => '아래 첨자';
 
   @override
-  String get formatHighlight => 'Highlight';
+  String get formatHighlight => '강조';
 
   @override
-  String get formatInlineCode => 'Inline Code';
+  String get formatInlineCode => '인라인 코드';
 
   @override
-  String get formatInlineMath => 'Inline Math';
+  String get formatInlineMath => '인라인 수식';
 
   @override
-  String get formatClearFormatting => 'Clear Formatting';
+  String get formatClearFormatting => '서식 지우기';
 
   @override
-  String get settingsCodeFontFamily => 'Code Font Family';
+  String get settingsCodeFontFamily => '코드 글꼴';
 
   @override
-  String get settingsEditorMaxWidth => 'Editor Max Width';
+  String get settingsEditorMaxWidth => '편집기 최대 너비';
 
   @override
-  String get settingsTextDirection => 'Text Direction';
+  String get settingsTextDirection => '텍스트 방향';
 
   @override
-  String get keybindingsEdit => 'Edit Keybinding';
+  String get keybindingsEdit => '키 바인딩 편집';
 
   @override
-  String get keybindingsPressKeys => 'Press key combination...';
+  String get keybindingsPressKeys => '키 조합을 누르세요...';
 
   @override
-  String get keybindingsReset => 'Reset to Default';
+  String get keybindingsReset => '기본값으로 재설정';
+
+  @override
+  String get statusWords => '단어';
+
+  @override
+  String get statusChars => '문자';
+
+  @override
+  String get statusParagraphs => '단락';
+
+  @override
+  String get themeCadmiumLight => '카드뮴 라이트';
+
+  @override
+  String get themeOneDark => 'One Dark';
+
+  @override
+  String get themeMaterialDark => 'Material 다크';
+
+  @override
+  String get themeGraphiteLight => '그래파이트 라이트';
+
+  @override
+  String get themeUlyssesLight => 'Ulysses 라이트';
+
+  @override
+  String get keybindingBold => '굵게';
+
+  @override
+  String get keybindingItalic => '기울임꼴';
+
+  @override
+  String get keybindingUnderline => '밑줄';
+
+  @override
+  String get keybindingStrikethrough => '취소선';
+
+  @override
+  String get keybindingHeading1 => '제목 1';
+
+  @override
+  String get keybindingHeading2 => '제목 2';
+
+  @override
+  String get keybindingHeading3 => '제목 3';
+
+  @override
+  String get keybindingHeading4 => '제목 4';
+
+  @override
+  String get keybindingHeading5 => '제목 5';
+
+  @override
+  String get keybindingHeading6 => '제목 6';
+
+  @override
+  String get keybindingOrderedList => '순서 있는 목록';
+
+  @override
+  String get keybindingUnorderedList => '순서 없는 목록';
+
+  @override
+  String get keybindingTaskList => '작업 목록';
+
+  @override
+  String get keybindingCodeBlock => '코드 블록';
+
+  @override
+  String get keybindingQuoteBlock => '인용 블록';
+
+  @override
+  String get keybindingTable => '표';
+
+  @override
+  String get keybindingLink => '링크';
+
+  @override
+  String get keybindingImage => '이미지';
+
+  @override
+  String get keybindingInlineCode => '인라인 코드';
+
+  @override
+  String get keybindingInlineMath => '인라인 수식';
+
+  @override
+  String get keybindingMathBlock => '수식 블록';
+
+  @override
+  String get keybindingFind => '찾기';
+
+  @override
+  String get keybindingReplace => '바꾸기';
+
+  @override
+  String get keybindingSave => '저장';
+
+  @override
+  String get keybindingOpen => '열기';
+
+  @override
+  String get keybindingUndo => '실행 취소';
+
+  @override
+  String get keybindingRedo => '다시 실행';
+
+  @override
+  String get keybindingSelectAll => '모두 선택';
+
+  @override
+  String get keybindingDuplicateLine => '줄 복제';
+
+  @override
+  String get keybindingHighlight => '강조';
+
+  @override
+  String get closeFile => '파일 닫기';
+
+  @override
+  String get copyFileName => '파일 이름 복사';
+
+  @override
+  String get copyFilePath => '파일 경로 복사';
+
+  @override
+  String get deleteFile => '파일 삭제';
+
+  @override
+  String confirmDeleteFile(String fileName) {
+    return '\"$fileName\"을(를) 삭제하시겠습니까?';
+  }
 }

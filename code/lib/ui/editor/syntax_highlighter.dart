@@ -56,8 +56,8 @@ class MarkdownSyntaxHighlighter {
     final patterns = [
       _Pattern(RegExp(r'\*\*(.+?)\*\*'), boldColor, FontWeight.bold),
       _Pattern(RegExp(r'`(.+?)`'), codeColor, FontWeight.normal, 'monospace'),
-      _Pattern(RegExp(r'\[([^\]]+)\]\(([^)]+)\)'), linkColor, FontWeight.normal),
-      _Pattern(RegExp(r'!\[([^\]]*)\]\(([^)]+)\)'), linkColor, FontWeight.normal),
+      _Pattern(RegExp(r'!\[([^\]]*)\]\(([^)]+)\)'), linkColor, FontWeight.normal, null, null, null, true),
+      _Pattern(RegExp(r'\[([^\]]+)\]\(([^)]+)\)'), linkColor, FontWeight.normal, null, null, null, true),
       _Pattern(RegExp(r'~~(.+?)~~'), defaultColor, FontWeight.normal, null, TextDecoration.lineThrough),
       _Pattern(RegExp(r'\*(.+?)\*'), defaultColor, FontWeight.normal, null, null, FontStyle.italic),
     ];
@@ -88,11 +88,13 @@ class MarkdownSyntaxHighlighter {
         ));
       }
 
-      final matchText = earliestMatch.group(1) ?? earliestMatch.group(0)!;
+      final matchText = matchedPattern!.useFullMatch
+          ? earliestMatch.group(0)!
+          : (earliestMatch.group(1) ?? earliestMatch.group(0)!);
       spans.add(TextSpan(
         text: matchText,
         style: TextStyle(
-          color: matchedPattern!.color,
+          color: matchedPattern.color,
           fontWeight: matchedPattern.fontWeight,
           fontFamily: matchedPattern.fontFamily,
           decoration: matchedPattern.decoration,
@@ -114,6 +116,7 @@ class _Pattern {
   final String? fontFamily;
   final TextDecoration? decoration;
   final FontStyle? fontStyle;
+  final bool useFullMatch;
 
   _Pattern(
     this.regex,
@@ -122,5 +125,6 @@ class _Pattern {
     this.fontFamily,
     this.decoration,
     this.fontStyle,
+    this.useFullMatch = false,
   ]);
 }

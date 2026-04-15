@@ -27,6 +27,8 @@ class AppConfig {
   String codeFontFamily;
   int editorMaxWidth;
   String textDirection;
+  String imageStorageMode;
+  String imageFolder;
 
   AppConfig({
     this.sideBarVisible = true,
@@ -55,6 +57,8 @@ class AppConfig {
     this.codeFontFamily = 'Courier New',
     this.editorMaxWidth = 800,
     this.textDirection = 'ltr',
+    this.imageStorageMode = 'copy',
+    this.imageFolder = 'assets/images',
   });
 
   Map<String, dynamic> toJson() => {
@@ -84,6 +88,8 @@ class AppConfig {
     'codeFontFamily': codeFontFamily,
     'editorMaxWidth': editorMaxWidth,
     'textDirection': textDirection,
+    'imageStorageMode': imageStorageMode,
+    'imageFolder': imageFolder,
   };
 
   factory AppConfig.fromJson(Map<String, dynamic> json) {
@@ -116,6 +122,8 @@ class AppConfig {
       codeFontFamily: json['codeFontFamily'] as String? ?? 'Courier New',
       editorMaxWidth: json['editorMaxWidth'] as int? ?? 800,
       textDirection: json['textDirection'] as String? ?? 'ltr',
+      imageStorageMode: json['imageStorageMode'] as String? ?? 'copy',
+      imageFolder: json['imageFolder'] as String? ?? 'assets/images',
     );
   }
 
@@ -157,6 +165,8 @@ class AppConfig {
     String? codeFontFamily,
     int? editorMaxWidth,
     String? textDirection,
+    String? imageStorageMode,
+    String? imageFolder,
   }) {
     return AppConfig(
       sideBarVisible: sideBarVisible ?? this.sideBarVisible,
@@ -185,6 +195,8 @@ class AppConfig {
       codeFontFamily: codeFontFamily ?? this.codeFontFamily,
       editorMaxWidth: editorMaxWidth ?? this.editorMaxWidth,
       textDirection: textDirection ?? this.textDirection,
+      imageStorageMode: imageStorageMode ?? this.imageStorageMode,
+      imageFolder: imageFolder ?? this.imageFolder,
     );
   }
 }

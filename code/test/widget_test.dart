@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:marktext_plus/app.dart';
 import 'package:marktext_plus/core/config/config_service.dart';
 import 'package:marktext_plus/providers/settings_provider.dart';
+import 'package:marktext_plus/providers/locale_provider.dart';
 
 void main() {
   testWidgets('App renders correctly', (WidgetTester tester) async {
@@ -12,6 +13,7 @@ void main() {
       ProviderScope(
         overrides: [
           settingsProvider.overrideWith((ref) => SettingsNotifier(configService)),
+          localeProvider.overrideWith((ref) => LocaleNotifier(const Locale('en', 'US'))),
         ],
         child: const MarkTextPlusApp(),
       ),

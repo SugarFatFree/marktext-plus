@@ -57,6 +57,7 @@ class AppTheme {
     required Color surface,
   }) {
     return ThemeData(
+      useMaterial3: true,
       brightness: brightness,
       scaffoldBackgroundColor: background,
       colorScheme: ColorScheme(
@@ -73,6 +74,14 @@ class AppTheme {
       textTheme: TextTheme(
         bodyMedium: TextStyle(color: foreground),
         bodyLarge: TextStyle(color: foreground),
+      ),
+      // Ensure menu items use normal weight by default (not Material3 w500)
+      menuButtonTheme: MenuButtonThemeData(
+        style: ButtonStyle(
+          textStyle: WidgetStatePropertyAll(
+            TextStyle(fontSize: 14, fontWeight: FontWeight.normal, color: foreground),
+          ),
+        ),
       ),
       dividerColor: foreground.withValues(alpha: 0.12),
       iconTheme: IconThemeData(color: foreground.withValues(alpha: 0.7)),

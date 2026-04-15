@@ -878,6 +878,264 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reset to Default'**
   String get keybindingsReset;
+
+  /// No description provided for @statusWords.
+  ///
+  /// In en, this message translates to:
+  /// **'Words'**
+  String get statusWords;
+
+  /// No description provided for @statusChars.
+  ///
+  /// In en, this message translates to:
+  /// **'Chars'**
+  String get statusChars;
+
+  /// No description provided for @statusParagraphs.
+  ///
+  /// In en, this message translates to:
+  /// **'Paragraphs'**
+  String get statusParagraphs;
+
+  /// No description provided for @themeCadmiumLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Cadmium Light'**
+  String get themeCadmiumLight;
+
+  /// No description provided for @themeOneDark.
+  ///
+  /// In en, this message translates to:
+  /// **'One Dark'**
+  String get themeOneDark;
+
+  /// No description provided for @themeMaterialDark.
+  ///
+  /// In en, this message translates to:
+  /// **'Material Dark'**
+  String get themeMaterialDark;
+
+  /// No description provided for @themeGraphiteLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Graphite Light'**
+  String get themeGraphiteLight;
+
+  /// No description provided for @themeUlyssesLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Ulysses Light'**
+  String get themeUlyssesLight;
+
+  /// No description provided for @keybindingBold.
+  ///
+  /// In en, this message translates to:
+  /// **'Bold'**
+  String get keybindingBold;
+
+  /// No description provided for @keybindingItalic.
+  ///
+  /// In en, this message translates to:
+  /// **'Italic'**
+  String get keybindingItalic;
+
+  /// No description provided for @keybindingUnderline.
+  ///
+  /// In en, this message translates to:
+  /// **'Underline'**
+  String get keybindingUnderline;
+
+  /// No description provided for @keybindingStrikethrough.
+  ///
+  /// In en, this message translates to:
+  /// **'Strikethrough'**
+  String get keybindingStrikethrough;
+
+  /// No description provided for @keybindingHeading1.
+  ///
+  /// In en, this message translates to:
+  /// **'Heading 1'**
+  String get keybindingHeading1;
+
+  /// No description provided for @keybindingHeading2.
+  ///
+  /// In en, this message translates to:
+  /// **'Heading 2'**
+  String get keybindingHeading2;
+
+  /// No description provided for @keybindingHeading3.
+  ///
+  /// In en, this message translates to:
+  /// **'Heading 3'**
+  String get keybindingHeading3;
+
+  /// No description provided for @keybindingHeading4.
+  ///
+  /// In en, this message translates to:
+  /// **'Heading 4'**
+  String get keybindingHeading4;
+
+  /// No description provided for @keybindingHeading5.
+  ///
+  /// In en, this message translates to:
+  /// **'Heading 5'**
+  String get keybindingHeading5;
+
+  /// No description provided for @keybindingHeading6.
+  ///
+  /// In en, this message translates to:
+  /// **'Heading 6'**
+  String get keybindingHeading6;
+
+  /// No description provided for @keybindingOrderedList.
+  ///
+  /// In en, this message translates to:
+  /// **'Ordered List'**
+  String get keybindingOrderedList;
+
+  /// No description provided for @keybindingUnorderedList.
+  ///
+  /// In en, this message translates to:
+  /// **'Unordered List'**
+  String get keybindingUnorderedList;
+
+  /// No description provided for @keybindingTaskList.
+  ///
+  /// In en, this message translates to:
+  /// **'Task List'**
+  String get keybindingTaskList;
+
+  /// No description provided for @keybindingCodeBlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Code Block'**
+  String get keybindingCodeBlock;
+
+  /// No description provided for @keybindingQuoteBlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Quote Block'**
+  String get keybindingQuoteBlock;
+
+  /// No description provided for @keybindingTable.
+  ///
+  /// In en, this message translates to:
+  /// **'Table'**
+  String get keybindingTable;
+
+  /// No description provided for @keybindingLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Link'**
+  String get keybindingLink;
+
+  /// No description provided for @keybindingImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Image'**
+  String get keybindingImage;
+
+  /// No description provided for @keybindingInlineCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Inline Code'**
+  String get keybindingInlineCode;
+
+  /// No description provided for @keybindingInlineMath.
+  ///
+  /// In en, this message translates to:
+  /// **'Inline Math'**
+  String get keybindingInlineMath;
+
+  /// No description provided for @keybindingMathBlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Math Block'**
+  String get keybindingMathBlock;
+
+  /// No description provided for @keybindingFind.
+  ///
+  /// In en, this message translates to:
+  /// **'Find'**
+  String get keybindingFind;
+
+  /// No description provided for @keybindingReplace.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace'**
+  String get keybindingReplace;
+
+  /// No description provided for @keybindingSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get keybindingSave;
+
+  /// No description provided for @keybindingOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get keybindingOpen;
+
+  /// No description provided for @keybindingUndo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get keybindingUndo;
+
+  /// No description provided for @keybindingRedo.
+  ///
+  /// In en, this message translates to:
+  /// **'Redo'**
+  String get keybindingRedo;
+
+  /// No description provided for @keybindingSelectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Select All'**
+  String get keybindingSelectAll;
+
+  /// No description provided for @keybindingDuplicateLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicate Line'**
+  String get keybindingDuplicateLine;
+
+  /// No description provided for @keybindingHighlight.
+  ///
+  /// In en, this message translates to:
+  /// **'Highlight'**
+  String get keybindingHighlight;
+
+  /// No description provided for @closeFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Close File'**
+  String get closeFile;
+
+  /// No description provided for @copyFileName.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy File Name'**
+  String get copyFileName;
+
+  /// No description provided for @copyFilePath.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy File Path'**
+  String get copyFilePath;
+
+  /// No description provided for @deleteFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete File'**
+  String get deleteFile;
+
+  /// No description provided for @confirmDeleteFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete \"{fileName}\"?'**
+  String confirmDeleteFile(String fileName);
 }
 
 class _AppLocalizationsDelegate

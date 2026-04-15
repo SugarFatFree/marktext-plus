@@ -327,71 +327,202 @@ class AppLocalizationsJa extends AppLocalizations {
   String get tocEmpty => '見出しが見つかりません';
 
   @override
-  String get editFindNext => 'Find Next';
+  String get editFindNext => '次を検索';
 
   @override
-  String get editFindPrevious => 'Find Previous';
+  String get editFindPrevious => '前を検索';
 
   @override
-  String get editReplaceAll => 'Replace All';
+  String get editReplaceAll => 'すべて置換';
 
   @override
-  String get editCaseSensitive => 'Case Sensitive';
+  String get editCaseSensitive => '大文字と小文字を区別';
 
   @override
-  String get editWholeWord => 'Whole Word';
+  String get editWholeWord => '単語全体';
 
   @override
-  String get editRegex => 'Regular Expression';
+  String get editRegex => '正規表現';
 
   @override
-  String get editCopyAsMarkdown => 'Copy as Markdown';
+  String get editCopyAsMarkdown => 'Markdownとしてコピー';
 
   @override
-  String get editCopyAsHtml => 'Copy as HTML';
+  String get editCopyAsHtml => 'HTMLとしてコピー';
 
   @override
-  String get editSelectAll => 'Select All';
+  String get editSelectAll => 'すべて選択';
 
   @override
-  String get editDuplicateLine => 'Duplicate Line';
+  String get editDuplicateLine => '行を複製';
 
   @override
-  String get formatUnderline => 'Underline';
+  String get formatUnderline => '下線';
 
   @override
-  String get formatSuperscript => 'Superscript';
+  String get formatSuperscript => '上付き文字';
 
   @override
-  String get formatSubscript => 'Subscript';
+  String get formatSubscript => '下付き文字';
 
   @override
-  String get formatHighlight => 'Highlight';
+  String get formatHighlight => 'ハイライト';
 
   @override
-  String get formatInlineCode => 'Inline Code';
+  String get formatInlineCode => 'インラインコード';
 
   @override
-  String get formatInlineMath => 'Inline Math';
+  String get formatInlineMath => 'インライン数式';
 
   @override
-  String get formatClearFormatting => 'Clear Formatting';
+  String get formatClearFormatting => '書式をクリア';
 
   @override
-  String get settingsCodeFontFamily => 'Code Font Family';
+  String get settingsCodeFontFamily => 'コードフォント';
 
   @override
-  String get settingsEditorMaxWidth => 'Editor Max Width';
+  String get settingsEditorMaxWidth => 'エディタの最大幅';
 
   @override
-  String get settingsTextDirection => 'Text Direction';
+  String get settingsTextDirection => 'テキスト方向';
 
   @override
-  String get keybindingsEdit => 'Edit Keybinding';
+  String get keybindingsEdit => 'キーバインドを編集';
 
   @override
-  String get keybindingsPressKeys => 'Press key combination...';
+  String get keybindingsPressKeys => 'キーの組み合わせを押してください...';
 
   @override
-  String get keybindingsReset => 'Reset to Default';
+  String get keybindingsReset => 'デフォルトに戻す';
+
+  @override
+  String get statusWords => '単語';
+
+  @override
+  String get statusChars => '文字';
+
+  @override
+  String get statusParagraphs => '段落';
+
+  @override
+  String get themeCadmiumLight => 'カドミウムライト';
+
+  @override
+  String get themeOneDark => 'One Dark';
+
+  @override
+  String get themeMaterialDark => 'Material ダーク';
+
+  @override
+  String get themeGraphiteLight => 'グラファイトライト';
+
+  @override
+  String get themeUlyssesLight => 'Ulysses ライト';
+
+  @override
+  String get keybindingBold => '太字';
+
+  @override
+  String get keybindingItalic => '斜体';
+
+  @override
+  String get keybindingUnderline => '下線';
+
+  @override
+  String get keybindingStrikethrough => '取り消し線';
+
+  @override
+  String get keybindingHeading1 => '見出し 1';
+
+  @override
+  String get keybindingHeading2 => '見出し 2';
+
+  @override
+  String get keybindingHeading3 => '見出し 3';
+
+  @override
+  String get keybindingHeading4 => '見出し 4';
+
+  @override
+  String get keybindingHeading5 => '見出し 5';
+
+  @override
+  String get keybindingHeading6 => '見出し 6';
+
+  @override
+  String get keybindingOrderedList => '番号付きリスト';
+
+  @override
+  String get keybindingUnorderedList => '箇条書きリスト';
+
+  @override
+  String get keybindingTaskList => 'タスクリスト';
+
+  @override
+  String get keybindingCodeBlock => 'コードブロック';
+
+  @override
+  String get keybindingQuoteBlock => '引用ブロック';
+
+  @override
+  String get keybindingTable => 'テーブル';
+
+  @override
+  String get keybindingLink => 'リンク';
+
+  @override
+  String get keybindingImage => '画像';
+
+  @override
+  String get keybindingInlineCode => 'インラインコード';
+
+  @override
+  String get keybindingInlineMath => 'インライン数式';
+
+  @override
+  String get keybindingMathBlock => '数式ブロック';
+
+  @override
+  String get keybindingFind => '検索';
+
+  @override
+  String get keybindingReplace => '置換';
+
+  @override
+  String get keybindingSave => '保存';
+
+  @override
+  String get keybindingOpen => '開く';
+
+  @override
+  String get keybindingUndo => '元に戻す';
+
+  @override
+  String get keybindingRedo => 'やり直し';
+
+  @override
+  String get keybindingSelectAll => 'すべて選択';
+
+  @override
+  String get keybindingDuplicateLine => '行を複製';
+
+  @override
+  String get keybindingHighlight => 'ハイライト';
+
+  @override
+  String get closeFile => 'ファイルを閉じる';
+
+  @override
+  String get copyFileName => 'ファイル名をコピー';
+
+  @override
+  String get copyFilePath => 'ファイルパスをコピー';
+
+  @override
+  String get deleteFile => 'ファイルを削除';
+
+  @override
+  String confirmDeleteFile(String fileName) {
+    return '\"$fileName\" を削除してもよろしいですか？';
+  }
 }

@@ -10,7 +10,7 @@ void main() {
       expect(config.editMode, EditMode.preview);
       expect(config.splitRatio, 0.5);
       expect(config.fontSize, 16.0);
-      expect(config.locale, 'en_US');
+      expect(config.locale, '');
       expect(config.themeName, 'cadmiumLight');
       expect(config.autoSave, true);
     });

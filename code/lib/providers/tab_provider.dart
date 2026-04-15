@@ -4,22 +4,36 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/tab_info.dart';
 import 'settings_provider.dart';
 
+/// Lightweight record of a file shown in the sidebar (no-folder mode).
+class OpenedFileEntry {
+  final String filePath;
+  final String fileName;
+
+  const OpenedFileEntry({required this.filePath, required this.fileName});
+}
+
 class TabState {
   final List<TabInfo> tabs;
   final String? activeTabId;
+  /// Files shown in the sidebar when no folder is opened.
+  /// Independent from [tabs] – closing a tab does NOT remove the entry here.
+  final List<OpenedFileEntry> openedFiles;
 
   const TabState({
     this.tabs = const [],
     this.activeTabId,
+    this.openedFiles = const [],
   });
 
   TabState copyWith({
     List<TabInfo>? tabs,
     String? activeTabId,
+    List<OpenedFileEntry>? openedFiles,
   }) {
     return TabState(
       tabs: tabs ?? this.tabs,
       activeTabId: activeTabId ?? this.activeTabId,
+      openedFiles: openedFiles ?? this.openedFiles,
     );
   }
 }
@@ -37,9 +51,25 @@ class TabNotifier extends StateNotifier<TabState> {
   }
 
   void addTab(TabInfo tab) {
+    // Also register in openedFiles if it has a real file path
+    var openedFiles = state.openedFiles;
+    if (tab.filePath != null &&
+        !openedFiles.any((f) => f.filePath == tab.filePath)) {
+      openedFiles = [
+        ...openedFiles,
+        OpenedFileEntry(filePath: tab.filePath!, fileName: tab.fileName),
+      ];
+    }
+    // Avoid duplicate tabs for the same file
+    final existing = state.tabs.where((t) => t.filePath != null && t.filePath == tab.filePath).firstOrNull;
+    if (existing != null) {
+      state = state.copyWith(activeTabId: existing.id, openedFiles: openedFiles);
+      return;
+    }
     state = state.copyWith(
       tabs: [...state.tabs, tab],
       activeTabId: tab.id,
+      openedFiles: openedFiles,
     );
   }
 
@@ -50,6 +80,23 @@ class TabNotifier extends StateNotifier<TabState> {
       newActiveId = tabs.isNotEmpty ? tabs.last.id : null;
     }
     state = state.copyWith(tabs: tabs, activeTabId: newActiveId);
+  }
+
+  /// Remove a file from the sidebar opened-files list.
+  /// Also closes the corresponding tab if one is open.
+  void removeOpenedFile(String filePath) {
+    final openedFiles = state.openedFiles.where((f) => f.filePath != filePath).toList();
+    // Also close the tab for this file
+    final tab = state.tabs.where((t) => t.filePath == filePath).firstOrNull;
+    var tabs = state.tabs;
+    var activeId = state.activeTabId;
+    if (tab != null) {
+      tabs = tabs.where((t) => t.id != tab.id).toList();
+      if (activeId == tab.id) {
+        activeId = tabs.isNotEmpty ? tabs.last.id : null;
+      }
+    }
+    state = state.copyWith(tabs: tabs, activeTabId: activeId, openedFiles: openedFiles);
   }
 
   void setActiveTab(String id) {

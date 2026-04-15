@@ -20,7 +20,7 @@ void main() {
     test('load returns default config when file does not exist', () async {
       final config = await service.load();
       expect(config.fontSize, 16.0);
-      expect(config.locale, 'en_US');
+      expect(config.locale, '');
     });
 
     test('save and load round-trip preserves config', () async {

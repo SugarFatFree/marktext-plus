@@ -24,6 +24,13 @@ class StatusBar extends ConsumerWidget {
             width: 1,
           ),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 2,
+            offset: const Offset(0, -1),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -31,38 +38,47 @@ class StatusBar extends ConsumerWidget {
             l10n.statusLine(editorState.cursorLine + 1, editorState.cursorCol + 1),
             style: Theme.of(context).textTheme.bodySmall,
           ),
-          const SizedBox(width: 16),
+          _divider(context),
           Text(
             l10n.statusEncoding,
             style: Theme.of(context).textTheme.bodySmall,
           ),
-          const SizedBox(width: 16),
+          _divider(context),
           Text(
             l10n.statusMarkdown,
             style: Theme.of(context).textTheme.bodySmall,
           ),
-          const SizedBox(width: 16),
+          _divider(context),
           Text(
             'LF',
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const Spacer(),
           Text(
-            'Words: ${wordCount.words}',
+            '${l10n.statusWords}: ${wordCount.words}',
             style: Theme.of(context).textTheme.bodySmall,
           ),
-          const SizedBox(width: 12),
+          _divider(context),
           Text(
-            'Chars: ${wordCount.characters}',
+            '${l10n.statusChars}: ${wordCount.characters}',
             style: Theme.of(context).textTheme.bodySmall,
           ),
-          const SizedBox(width: 12),
+          _divider(context),
           Text(
-            'Paragraphs: ${wordCount.paragraphs}',
+            '${l10n.statusParagraphs}: ${wordCount.paragraphs}',
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
       ),
+    );
+  }
+
+  Widget _divider(BuildContext context) {
+    return Container(
+      width: 1,
+      height: 12,
+      margin: const EdgeInsets.symmetric(horizontal: 8),
+      color: Theme.of(context).dividerColor,
     );
   }
 }

@@ -2,8 +2,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:desktop_drop/desktop_drop.dart';
 import '../../providers/editor_provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../providers/tab_provider.dart';
+import '../../services/image_service.dart';
 import 'highlighting_controller.dart';
 
 class SourceEditor extends ConsumerStatefulWidget {
@@ -153,8 +156,13 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
   void _onEditorScroll() {
     if (_isSyncingScroll) return;
     _isSyncingScroll = true;
-    if (_gutterScrollController.hasClients) {
-      _gutterScrollController.jumpTo(_editorScrollController.offset);
+    if (_gutterScrollController.hasClients &&
+        _gutterScrollController.position.hasContentDimensions) {
+      final offset = _editorScrollController.offset.clamp(
+        _gutterScrollController.position.minScrollExtent,
+        _gutterScrollController.position.maxScrollExtent,
+      );
+      _gutterScrollController.jumpTo(offset);
     }
     _isSyncingScroll = false;
   }
@@ -165,6 +173,17 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     final selection = _controller.selection;
     if (!selection.isValid) return KeyEventResult.ignored;
     final text = _controller.text;
+
+    // Handle Ctrl+V / Cmd+V: try to paste image from clipboard
+    if (event.logicalKey == LogicalKeyboardKey.keyV &&
+        (HardwareKeyboard.instance.isControlPressed ||
+            HardwareKeyboard.instance.isMetaPressed)) {
+      _handleImagePaste();
+      // We always return ignored here so the TextField can handle
+      // text paste as normal. If it was an image, _handleImagePaste
+      // will insert the markdown asynchronously.
+      return KeyEventResult.ignored;
+    }
 
     // Handle backspace: delete empty pairs
     if (event.logicalKey == LogicalKeyboardKey.backspace) {
@@ -227,6 +246,34 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
       );
     }
     return KeyEventResult.handled;
+  }
+
+  Future<void> _handleImagePaste() async {
+    final activeTab = ref.read(activeTabProvider);
+    final imagePath = await ImageService.pasteImageFromClipboard(activeTab?.filePath);
+    if (imagePath != null && mounted) {
+      _insertAtCursor('![image]($imagePath)');
+    }
+  }
+
+  Future<void> _handleImageDrop(DropDoneDetails details) async {
+    final activeTab = ref.read(activeTabProvider);
+    for (final file in details.files) {
+      if (ImageService.isImageFile(file.path)) {
+        String relativePath;
+        if (activeTab?.filePath != null) {
+          relativePath = await ImageService.copyImageToProject(
+            file.path,
+            activeTab!.filePath!,
+          );
+        } else {
+          relativePath = file.path;
+        }
+        if (mounted) {
+          _insertAtCursor('![image]($relativePath)');
+        }
+      }
+    }
   }
 
   int _getLineCount() {
@@ -494,17 +541,26 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     _controller.linkColor = isDark ? const Color(0xFF56B6C2) : const Color(0xFF0184BC);
     _controller.defaultColor = theme.colorScheme.onSurface;
 
+    // Dynamic gutter width based on digit count
+    final gutterWidth = lineCount >= 10000 ? 66.0
+        : lineCount >= 1000 ? 58.0
+        : 50.0;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: 50,
+          width: gutterWidth,
           child: ScrollConfiguration(
-            behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+            behavior: ScrollConfiguration.of(context).copyWith(
+              scrollbars: false,
+              physics: const ClampingScrollPhysics(),
+            ),
             child: ListView.builder(
               controller: _gutterScrollController,
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               itemCount: lineCount,
+              itemExtent: config.fontSize * config.lineHeight,
               itemBuilder: (context, index) => Align(
                 alignment: Alignment.centerRight,
                 child: Text('${index + 1}', style: gutterStyle),
@@ -515,19 +571,22 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
         Expanded(
           child: Focus(
             onKeyEvent: _handleKeyEvent,
-            child: TextField(
-              controller: _controller,
-              scrollController: _editorScrollController,
-              maxLines: null,
-              expands: true,
-              style: editorStyle,
-              decoration: const InputDecoration(
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.all(8),
+            child: DropTarget(
+              onDragDone: _handleImageDrop,
+              child: TextField(
+                controller: _controller,
+                scrollController: _editorScrollController,
+                maxLines: null,
+                expands: true,
+                style: editorStyle,
+                decoration: const InputDecoration(
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.all(8),
+                ),
+                onChanged: (value) {
+                  setState(() {});
+                },
               ),
-              onChanged: (value) {
-                setState(() {});
-              },
             ),
           ),
         ),

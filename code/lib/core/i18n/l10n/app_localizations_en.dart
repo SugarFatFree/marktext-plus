@@ -396,4 +396,135 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get keybindingsReset => 'Reset to Default';
+
+  @override
+  String get statusWords => 'Words';
+
+  @override
+  String get statusChars => 'Chars';
+
+  @override
+  String get statusParagraphs => 'Paragraphs';
+
+  @override
+  String get themeCadmiumLight => 'Cadmium Light';
+
+  @override
+  String get themeOneDark => 'One Dark';
+
+  @override
+  String get themeMaterialDark => 'Material Dark';
+
+  @override
+  String get themeGraphiteLight => 'Graphite Light';
+
+  @override
+  String get themeUlyssesLight => 'Ulysses Light';
+
+  @override
+  String get keybindingBold => 'Bold';
+
+  @override
+  String get keybindingItalic => 'Italic';
+
+  @override
+  String get keybindingUnderline => 'Underline';
+
+  @override
+  String get keybindingStrikethrough => 'Strikethrough';
+
+  @override
+  String get keybindingHeading1 => 'Heading 1';
+
+  @override
+  String get keybindingHeading2 => 'Heading 2';
+
+  @override
+  String get keybindingHeading3 => 'Heading 3';
+
+  @override
+  String get keybindingHeading4 => 'Heading 4';
+
+  @override
+  String get keybindingHeading5 => 'Heading 5';
+
+  @override
+  String get keybindingHeading6 => 'Heading 6';
+
+  @override
+  String get keybindingOrderedList => 'Ordered List';
+
+  @override
+  String get keybindingUnorderedList => 'Unordered List';
+
+  @override
+  String get keybindingTaskList => 'Task List';
+
+  @override
+  String get keybindingCodeBlock => 'Code Block';
+
+  @override
+  String get keybindingQuoteBlock => 'Quote Block';
+
+  @override
+  String get keybindingTable => 'Table';
+
+  @override
+  String get keybindingLink => 'Link';
+
+  @override
+  String get keybindingImage => 'Image';
+
+  @override
+  String get keybindingInlineCode => 'Inline Code';
+
+  @override
+  String get keybindingInlineMath => 'Inline Math';
+
+  @override
+  String get keybindingMathBlock => 'Math Block';
+
+  @override
+  String get keybindingFind => 'Find';
+
+  @override
+  String get keybindingReplace => 'Replace';
+
+  @override
+  String get keybindingSave => 'Save';
+
+  @override
+  String get keybindingOpen => 'Open';
+
+  @override
+  String get keybindingUndo => 'Undo';
+
+  @override
+  String get keybindingRedo => 'Redo';
+
+  @override
+  String get keybindingSelectAll => 'Select All';
+
+  @override
+  String get keybindingDuplicateLine => 'Duplicate Line';
+
+  @override
+  String get keybindingHighlight => 'Highlight';
+
+  @override
+  String get closeFile => 'Close File';
+
+  @override
+  String get copyFileName => 'Copy File Name';
+
+  @override
+  String get copyFilePath => 'Copy File Path';
+
+  @override
+  String get deleteFile => 'Delete File';
+
+  @override
+  String confirmDeleteFile(String fileName) {
+    return 'Are you sure you want to delete \"$fileName\"?';
+  }
 }

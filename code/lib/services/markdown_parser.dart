@@ -227,16 +227,25 @@ class MarkdownParser {
     final nodes = <MarkdownNode>[];
     var i = 0;
 
-    // Front matter detection (must be at start of file)
+    // Front matter detection (must be at start of file, with closing ---)
     if (i < lines.length && _frontMatterRe.hasMatch(lines[i])) {
-      final fmLines = <String>[];
-      i++; // skip opening ---
-      while (i < lines.length && !_frontMatterRe.hasMatch(lines[i])) {
-        fmLines.add(lines[i]);
-        i++;
+      // Look ahead for closing ---
+      var j = i + 1;
+      while (j < lines.length && !_frontMatterRe.hasMatch(lines[j])) {
+        j++;
       }
-      if (i < lines.length) i++; // skip closing ---
-      nodes.add(FrontMatterNode(content: fmLines.join('\n')));
+      if (j < lines.length) {
+        // Found closing --- → parse as front matter
+        final fmLines = <String>[];
+        i++; // skip opening ---
+        while (i < j) {
+          fmLines.add(lines[i]);
+          i++;
+        }
+        i++; // skip closing ---
+        nodes.add(FrontMatterNode(content: fmLines.join('\n')));
+      }
+      // else: no closing --- found, fall through to normal parsing
     }
 
     while (i < lines.length) {

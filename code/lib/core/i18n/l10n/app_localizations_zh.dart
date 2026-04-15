@@ -327,71 +327,202 @@ class AppLocalizationsZh extends AppLocalizations {
   String get tocEmpty => '未找到标题';
 
   @override
-  String get editFindNext => 'Find Next';
+  String get editFindNext => '查找下一个';
 
   @override
-  String get editFindPrevious => 'Find Previous';
+  String get editFindPrevious => '查找上一个';
 
   @override
-  String get editReplaceAll => 'Replace All';
+  String get editReplaceAll => '全部替换';
 
   @override
-  String get editCaseSensitive => 'Case Sensitive';
+  String get editCaseSensitive => '区分大小写';
 
   @override
-  String get editWholeWord => 'Whole Word';
+  String get editWholeWord => '全字匹配';
 
   @override
-  String get editRegex => 'Regular Expression';
+  String get editRegex => '正则表达式';
 
   @override
-  String get editCopyAsMarkdown => 'Copy as Markdown';
+  String get editCopyAsMarkdown => '复制为 Markdown';
 
   @override
-  String get editCopyAsHtml => 'Copy as HTML';
+  String get editCopyAsHtml => '复制为 HTML';
 
   @override
-  String get editSelectAll => 'Select All';
+  String get editSelectAll => '全选';
 
   @override
-  String get editDuplicateLine => 'Duplicate Line';
+  String get editDuplicateLine => '复制行';
 
   @override
-  String get formatUnderline => 'Underline';
+  String get formatUnderline => '下划线';
 
   @override
-  String get formatSuperscript => 'Superscript';
+  String get formatSuperscript => '上标';
 
   @override
-  String get formatSubscript => 'Subscript';
+  String get formatSubscript => '下标';
 
   @override
-  String get formatHighlight => 'Highlight';
+  String get formatHighlight => '高亮';
 
   @override
-  String get formatInlineCode => 'Inline Code';
+  String get formatInlineCode => '行内代码';
 
   @override
-  String get formatInlineMath => 'Inline Math';
+  String get formatInlineMath => '行内公式';
 
   @override
-  String get formatClearFormatting => 'Clear Formatting';
+  String get formatClearFormatting => '清除格式';
 
   @override
-  String get settingsCodeFontFamily => 'Code Font Family';
+  String get settingsCodeFontFamily => '代码字体';
 
   @override
-  String get settingsEditorMaxWidth => 'Editor Max Width';
+  String get settingsEditorMaxWidth => '编辑器最大宽度';
 
   @override
-  String get settingsTextDirection => 'Text Direction';
+  String get settingsTextDirection => '文本方向';
 
   @override
-  String get keybindingsEdit => 'Edit Keybinding';
+  String get keybindingsEdit => '编辑快捷键';
 
   @override
-  String get keybindingsPressKeys => 'Press key combination...';
+  String get keybindingsPressKeys => '按下组合键...';
 
   @override
-  String get keybindingsReset => 'Reset to Default';
+  String get keybindingsReset => '恢复默认';
+
+  @override
+  String get statusWords => '单词';
+
+  @override
+  String get statusChars => '字符';
+
+  @override
+  String get statusParagraphs => '段落';
+
+  @override
+  String get themeCadmiumLight => '镉黄浅色';
+
+  @override
+  String get themeOneDark => 'One Dark';
+
+  @override
+  String get themeMaterialDark => 'Material 深色';
+
+  @override
+  String get themeGraphiteLight => '石墨浅色';
+
+  @override
+  String get themeUlyssesLight => 'Ulysses 浅色';
+
+  @override
+  String get keybindingBold => '粗体';
+
+  @override
+  String get keybindingItalic => '斜体';
+
+  @override
+  String get keybindingUnderline => '下划线';
+
+  @override
+  String get keybindingStrikethrough => '删除线';
+
+  @override
+  String get keybindingHeading1 => '一级标题';
+
+  @override
+  String get keybindingHeading2 => '二级标题';
+
+  @override
+  String get keybindingHeading3 => '三级标题';
+
+  @override
+  String get keybindingHeading4 => '四级标题';
+
+  @override
+  String get keybindingHeading5 => '五级标题';
+
+  @override
+  String get keybindingHeading6 => '六级标题';
+
+  @override
+  String get keybindingOrderedList => '有序列表';
+
+  @override
+  String get keybindingUnorderedList => '无序列表';
+
+  @override
+  String get keybindingTaskList => '任务列表';
+
+  @override
+  String get keybindingCodeBlock => '代码块';
+
+  @override
+  String get keybindingQuoteBlock => '引用块';
+
+  @override
+  String get keybindingTable => '表格';
+
+  @override
+  String get keybindingLink => '链接';
+
+  @override
+  String get keybindingImage => '图片';
+
+  @override
+  String get keybindingInlineCode => '行内代码';
+
+  @override
+  String get keybindingInlineMath => '行内公式';
+
+  @override
+  String get keybindingMathBlock => '数学公式块';
+
+  @override
+  String get keybindingFind => '查找';
+
+  @override
+  String get keybindingReplace => '替换';
+
+  @override
+  String get keybindingSave => '保存';
+
+  @override
+  String get keybindingOpen => '打开';
+
+  @override
+  String get keybindingUndo => '撤销';
+
+  @override
+  String get keybindingRedo => '重做';
+
+  @override
+  String get keybindingSelectAll => '全选';
+
+  @override
+  String get keybindingDuplicateLine => '复制行';
+
+  @override
+  String get keybindingHighlight => '高亮';
+
+  @override
+  String get closeFile => '关闭文件';
+
+  @override
+  String get copyFileName => '复制文件名';
+
+  @override
+  String get copyFilePath => '复制文件路径';
+
+  @override
+  String get deleteFile => '删除文件';
+
+  @override
+  String confirmDeleteFile(String fileName) {
+    return '确定要删除 \"$fileName\" 吗？';
+  }
 }

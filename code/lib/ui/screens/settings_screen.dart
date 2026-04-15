@@ -301,6 +301,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   // -- Theme --
+  String _translateThemeName(String name, AppLocalizations l10n) {
+    return switch (name) {
+      'cadmiumLight' => l10n.themeCadmiumLight,
+      'oneDark' => l10n.themeOneDark,
+      'materialDark' => l10n.themeMaterialDark,
+      'graphiteLight' => l10n.themeGraphiteLight,
+      'ulyssesLight' => l10n.themeUlyssesLight,
+      _ => name,
+    };
+  }
+
   Widget _themeSection(AppLocalizations l10n) {
     final config = ref.watch(settingsProvider);
 
@@ -349,7 +360,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text(name,
+                    Text(_translateThemeName(name, l10n),
                         style: TextStyle(color: theme.colorScheme.onSurface)),
                   ],
                 ),
@@ -362,6 +373,42 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   // -- Keybindings --
+  String _translateKeybindingAction(String action, AppLocalizations l10n) {
+    return switch (action) {
+      'bold' => l10n.keybindingBold,
+      'italic' => l10n.keybindingItalic,
+      'underline' => l10n.keybindingUnderline,
+      'strikethrough' => l10n.keybindingStrikethrough,
+      'heading1' => l10n.keybindingHeading1,
+      'heading2' => l10n.keybindingHeading2,
+      'heading3' => l10n.keybindingHeading3,
+      'heading4' => l10n.keybindingHeading4,
+      'heading5' => l10n.keybindingHeading5,
+      'heading6' => l10n.keybindingHeading6,
+      'orderedList' => l10n.keybindingOrderedList,
+      'unorderedList' => l10n.keybindingUnorderedList,
+      'taskList' => l10n.keybindingTaskList,
+      'codeBlock' => l10n.keybindingCodeBlock,
+      'quoteBlock' => l10n.keybindingQuoteBlock,
+      'table' => l10n.keybindingTable,
+      'link' => l10n.keybindingLink,
+      'image' => l10n.keybindingImage,
+      'inlineCode' => l10n.keybindingInlineCode,
+      'inlineMath' => l10n.keybindingInlineMath,
+      'mathBlock' => l10n.keybindingMathBlock,
+      'find' => l10n.keybindingFind,
+      'replace' => l10n.keybindingReplace,
+      'save' => l10n.keybindingSave,
+      'open' => l10n.keybindingOpen,
+      'undo' => l10n.keybindingUndo,
+      'redo' => l10n.keybindingRedo,
+      'selectAll' => l10n.keybindingSelectAll,
+      'duplicateLine' => l10n.keybindingDuplicateLine,
+      'highlight' => l10n.keybindingHighlight,
+      _ => action,
+    };
+  }
+
   Widget _keybindingsSection(AppLocalizations l10n) {
     final service = KeybindingService();
     final bindings = service.keybindings;
@@ -377,7 +424,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(entry.key, style: const TextStyle(fontSize: 16)),
+              Text(_translateKeybindingAction(entry.key, l10n), style: const TextStyle(fontSize: 16)),
               Row(
                 children: [
                   Container(
@@ -420,7 +467,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: Text('${l10n.keybindingsEdit}: $action'),
+          title: Text('${l10n.keybindingsEdit}: ${_translateKeybindingAction(action, l10n)}'),
           content: KeyboardListener(
             focusNode: FocusNode()..requestFocus(),
             onKeyEvent: (event) {

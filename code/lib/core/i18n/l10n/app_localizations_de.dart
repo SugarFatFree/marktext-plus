@@ -329,71 +329,202 @@ class AppLocalizationsDe extends AppLocalizations {
   String get tocEmpty => 'Keine Überschriften gefunden';
 
   @override
-  String get editFindNext => 'Find Next';
+  String get editFindNext => 'Weitersuchen';
 
   @override
-  String get editFindPrevious => 'Find Previous';
+  String get editFindPrevious => 'Vorheriges suchen';
 
   @override
-  String get editReplaceAll => 'Replace All';
+  String get editReplaceAll => 'Alle ersetzen';
 
   @override
-  String get editCaseSensitive => 'Case Sensitive';
+  String get editCaseSensitive => 'Groß-/Kleinschreibung';
 
   @override
-  String get editWholeWord => 'Whole Word';
+  String get editWholeWord => 'Ganzes Wort';
 
   @override
-  String get editRegex => 'Regular Expression';
+  String get editRegex => 'Regulärer Ausdruck';
 
   @override
-  String get editCopyAsMarkdown => 'Copy as Markdown';
+  String get editCopyAsMarkdown => 'Als Markdown kopieren';
 
   @override
-  String get editCopyAsHtml => 'Copy as HTML';
+  String get editCopyAsHtml => 'Als HTML kopieren';
 
   @override
-  String get editSelectAll => 'Select All';
+  String get editSelectAll => 'Alles auswählen';
 
   @override
-  String get editDuplicateLine => 'Duplicate Line';
+  String get editDuplicateLine => 'Zeile duplizieren';
 
   @override
-  String get formatUnderline => 'Underline';
+  String get formatUnderline => 'Unterstrichen';
 
   @override
-  String get formatSuperscript => 'Superscript';
+  String get formatSuperscript => 'Hochgestellt';
 
   @override
-  String get formatSubscript => 'Subscript';
+  String get formatSubscript => 'Tiefgestellt';
 
   @override
-  String get formatHighlight => 'Highlight';
+  String get formatHighlight => 'Hervorheben';
 
   @override
-  String get formatInlineCode => 'Inline Code';
+  String get formatInlineCode => 'Inline-Code';
 
   @override
-  String get formatInlineMath => 'Inline Math';
+  String get formatInlineMath => 'Inline-Formel';
 
   @override
-  String get formatClearFormatting => 'Clear Formatting';
+  String get formatClearFormatting => 'Formatierung löschen';
 
   @override
-  String get settingsCodeFontFamily => 'Code Font Family';
+  String get settingsCodeFontFamily => 'Code-Schriftart';
 
   @override
-  String get settingsEditorMaxWidth => 'Editor Max Width';
+  String get settingsEditorMaxWidth => 'Maximale Editorbreite';
 
   @override
-  String get settingsTextDirection => 'Text Direction';
+  String get settingsTextDirection => 'Textrichtung';
 
   @override
-  String get keybindingsEdit => 'Edit Keybinding';
+  String get keybindingsEdit => 'Tastenkürzel bearbeiten';
 
   @override
-  String get keybindingsPressKeys => 'Press key combination...';
+  String get keybindingsPressKeys => 'Tastenkombination drücken...';
 
   @override
-  String get keybindingsReset => 'Reset to Default';
+  String get keybindingsReset => 'Auf Standard zurücksetzen';
+
+  @override
+  String get statusWords => 'Wörter';
+
+  @override
+  String get statusChars => 'Zeichen';
+
+  @override
+  String get statusParagraphs => 'Absätze';
+
+  @override
+  String get themeCadmiumLight => 'Cadmium Hell';
+
+  @override
+  String get themeOneDark => 'One Dark';
+
+  @override
+  String get themeMaterialDark => 'Material Dunkel';
+
+  @override
+  String get themeGraphiteLight => 'Graphit Hell';
+
+  @override
+  String get themeUlyssesLight => 'Ulysses Hell';
+
+  @override
+  String get keybindingBold => 'Fett';
+
+  @override
+  String get keybindingItalic => 'Kursiv';
+
+  @override
+  String get keybindingUnderline => 'Unterstrichen';
+
+  @override
+  String get keybindingStrikethrough => 'Durchgestrichen';
+
+  @override
+  String get keybindingHeading1 => 'Überschrift 1';
+
+  @override
+  String get keybindingHeading2 => 'Überschrift 2';
+
+  @override
+  String get keybindingHeading3 => 'Überschrift 3';
+
+  @override
+  String get keybindingHeading4 => 'Überschrift 4';
+
+  @override
+  String get keybindingHeading5 => 'Überschrift 5';
+
+  @override
+  String get keybindingHeading6 => 'Überschrift 6';
+
+  @override
+  String get keybindingOrderedList => 'Nummerierte Liste';
+
+  @override
+  String get keybindingUnorderedList => 'Aufzählungsliste';
+
+  @override
+  String get keybindingTaskList => 'Aufgabenliste';
+
+  @override
+  String get keybindingCodeBlock => 'Codeblock';
+
+  @override
+  String get keybindingQuoteBlock => 'Zitatblock';
+
+  @override
+  String get keybindingTable => 'Tabelle';
+
+  @override
+  String get keybindingLink => 'Link';
+
+  @override
+  String get keybindingImage => 'Bild';
+
+  @override
+  String get keybindingInlineCode => 'Inline-Code';
+
+  @override
+  String get keybindingInlineMath => 'Inline-Formel';
+
+  @override
+  String get keybindingMathBlock => 'Mathematikblock';
+
+  @override
+  String get keybindingFind => 'Suchen';
+
+  @override
+  String get keybindingReplace => 'Ersetzen';
+
+  @override
+  String get keybindingSave => 'Speichern';
+
+  @override
+  String get keybindingOpen => 'Öffnen';
+
+  @override
+  String get keybindingUndo => 'Rückgängig';
+
+  @override
+  String get keybindingRedo => 'Wiederholen';
+
+  @override
+  String get keybindingSelectAll => 'Alles auswählen';
+
+  @override
+  String get keybindingDuplicateLine => 'Zeile duplizieren';
+
+  @override
+  String get keybindingHighlight => 'Hervorheben';
+
+  @override
+  String get closeFile => 'Datei schließen';
+
+  @override
+  String get copyFileName => 'Dateinamen kopieren';
+
+  @override
+  String get copyFilePath => 'Dateipfad kopieren';
+
+  @override
+  String get deleteFile => 'Datei löschen';
+
+  @override
+  String confirmDeleteFile(String fileName) {
+    return 'Sind Sie sicher, dass Sie \"$fileName\" löschen möchten?';
+  }
 }

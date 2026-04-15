@@ -23,6 +23,7 @@ class MarkTextPlusApp extends ConsumerWidget {
       theme: AppTheme.getTheme(config.themeName),
       darkTheme: AppTheme.getTheme('oneDark'),
       themeMode: config.darkMode ? ThemeMode.dark : ThemeMode.light,
+      themeAnimationDuration: Duration.zero,
       locale: locale,
       localizationsDelegates: const [
         AppLocalizations.delegate,
