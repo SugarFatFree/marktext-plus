@@ -28,7 +28,7 @@ void main(List<String> args) async {
     overrides: [
       settingsProvider.overrideWith((ref) => SettingsNotifier(configService)),
       localeProvider.overrideWith((ref) => LocaleNotifier(initialLocale)),
-      startupFilesProvider.overrideWithValue(startupFiles),
+      startupFilesProvider.overrideWith((ref) => startupFiles),
     ],
   );
 
