@@ -7,9 +7,17 @@ import 'app.dart';
 import 'core/config/config_service.dart';
 import 'providers/locale_provider.dart';
 import 'providers/settings_provider.dart';
+import 'providers/tab_provider.dart';
 
-void main() async {
+void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Filter startup file arguments
+  final allowedExtensions = {'.md', '.markdown', '.txt'};
+  final startupFiles = args.where((arg) {
+    final ext = p.extension(arg).toLowerCase();
+    return allowedExtensions.contains(ext) && File(arg).existsSync();
+  }).toList();
 
   final configDir = p.join(Platform.environment['HOME'] ?? '.', '.marktext-plus');
   final configService = ConfigService(configDir: configDir);
@@ -20,6 +28,7 @@ void main() async {
     overrides: [
       settingsProvider.overrideWith((ref) => SettingsNotifier(configService)),
       localeProvider.overrideWith((ref) => LocaleNotifier(initialLocale)),
+      startupFilesProvider.overrideWithValue(startupFiles),
     ],
   );
 

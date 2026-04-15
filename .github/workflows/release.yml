@@ -53,6 +53,15 @@ jobs:
           UninstallDisplayIcon={app}\marktext_plus.exe
           ArchitecturesInstallIn64BitMode=x64compatible
           WizardStyle=modern
+          ChangesAssociations=yes
+
+          [Registry]
+          Root: HKA; Subkey: "Software\Classes\MarkTextPlus.md"; ValueType: string; ValueName: ""; ValueData: "MarkText Plus Markdown File"; Flags: uninsdeletekey
+          Root: HKA; Subkey: "Software\Classes\MarkTextPlus.md\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\marktext_plus.exe,0"
+          Root: HKA; Subkey: "Software\Classes\MarkTextPlus.md\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\marktext_plus.exe"" ""%1"""
+          Root: HKA; Subkey: "Software\Classes\.md\OpenWithProgids"; ValueType: string; ValueName: "MarkTextPlus.md"; ValueData: ""; Flags: uninsdeletevalue
+          Root: HKA; Subkey: "Software\Classes\.markdown\OpenWithProgids"; ValueType: string; ValueName: "MarkTextPlus.md"; ValueData: ""; Flags: uninsdeletevalue
+          Root: HKA; Subkey: "Software\Classes\.txt\OpenWithProgids"; ValueType: string; ValueName: "MarkTextPlus.md"; ValueData: ""; Flags: uninsdeletevalue
 
           [Files]
           Source: "${{ github.workspace }}\code\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: recursesubdirs

@@ -173,3 +173,6 @@ final activeTabProvider = Provider<TabInfo?>((ref) {
   if (tabState.activeTabId == null) return null;
   return tabState.tabs.where((t) => t.id == tabState.activeTabId).firstOrNull;
 });
+
+/// File paths passed as command-line arguments at startup.
+final startupFilesProvider = StateProvider<List<String>>((ref) => []);

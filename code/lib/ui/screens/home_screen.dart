@@ -30,6 +30,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _commandsRegistered = false;
+  bool _startupFilesProcessed = false;
 
   void _registerCommands() {
     if (_commandsRegistered) return;
@@ -149,6 +150,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     ref.read(tabProvider.notifier).markSaved(activeTab.id);
   }
 
+  void _openStartupFiles() {
+    if (_startupFilesProcessed) return;
+    _startupFilesProcessed = true;
+
+    final files = ref.read(startupFilesProvider);
+    for (final path in files) {
+      try {
+        final content = File(path).readAsStringSync();
+        final tab = TabInfo(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          filePath: path,
+          fileName: p.basename(path),
+          content: content,
+        );
+        ref.read(tabProvider.notifier).addTab(tab);
+        ref.read(settingsProvider.notifier).addRecentFile(path);
+      } catch (_) {}
+    }
+  }
+
   void _handleDrop(DropDoneDetails details) async {
     final allowedExtensions = {'.md', '.markdown', '.txt'};
     for (final file in details.files) {
@@ -177,6 +198,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final editorState = ref.watch(editorProvider);
 
     _registerCommands();
+    _openStartupFiles();
 
     return Focus(
       autofocus: true,
