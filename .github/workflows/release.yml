@@ -161,7 +161,10 @@ jobs:
         run: |
           git clone https://github.com/flutter/flutter.git -b stable --depth 1
           echo "$GITHUB_WORKSPACE/flutter/bin" >> $GITHUB_PATH
-          flutter doctor -v
+
+      - name: Flutter doctor (arm64)
+        if: matrix.arch == 'arm64'
+        run: flutter doctor -v
 
       - name: Install dependencies
         working-directory: code
