@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/i18n/l10n/app_localizations.dart';
-import '../../core/theme/app_theme.dart';
 import '../../providers/editor_provider.dart';
-import '../../providers/settings_provider.dart';
 import '../../providers/word_count_provider.dart';
 
 class StatusBar extends ConsumerWidget {
@@ -14,65 +12,73 @@ class StatusBar extends ConsumerWidget {
     final editorState = ref.watch(editorProvider);
     final wordCount = ref.watch(wordCountProvider);
     final l10n = AppLocalizations.of(context)!;
-    final config = ref.watch(settingsProvider);
-    final tokens = AppTheme.getTokens(config.themeName);
 
     return Container(
       height: 24,
       padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
-        color: tokens.colorSurface,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         border: Border(
-          top: BorderSide(color: tokens.colorBorder, width: 1),
+          top: BorderSide(
+            color: Theme.of(context).dividerColor,
+            width: 1,
+          ),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 2,
+            offset: const Offset(0, -1),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Text(
             l10n.statusLine(editorState.cursorLine + 1, editorState.cursorCol + 1),
-            style: TextStyle(fontSize: 12, color: tokens.colorTextMuted),
+            style: Theme.of(context).textTheme.bodySmall,
           ),
-          _divider(tokens),
+          _divider(context),
           Text(
             l10n.statusEncoding,
-            style: TextStyle(fontSize: 12, color: tokens.colorTextMuted),
+            style: Theme.of(context).textTheme.bodySmall,
           ),
-          _divider(tokens),
+          _divider(context),
           Text(
             l10n.statusMarkdown,
-            style: TextStyle(fontSize: 12, color: tokens.colorTextMuted),
+            style: Theme.of(context).textTheme.bodySmall,
           ),
-          _divider(tokens),
+          _divider(context),
           Text(
             'LF',
-            style: TextStyle(fontSize: 12, color: tokens.colorTextMuted),
+            style: Theme.of(context).textTheme.bodySmall,
           ),
           const Spacer(),
           Text(
             '${l10n.statusWords}: ${wordCount.words}',
-            style: TextStyle(fontSize: 12, color: tokens.colorTextMuted),
+            style: Theme.of(context).textTheme.bodySmall,
           ),
-          _divider(tokens),
+          _divider(context),
           Text(
             '${l10n.statusChars}: ${wordCount.characters}',
-            style: TextStyle(fontSize: 12, color: tokens.colorTextMuted),
+            style: Theme.of(context).textTheme.bodySmall,
           ),
-          _divider(tokens),
+          _divider(context),
           Text(
             '${l10n.statusParagraphs}: ${wordCount.paragraphs}',
-            style: TextStyle(fontSize: 12, color: tokens.colorTextMuted),
+            style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
       ),
     );
   }
 
-  Widget _divider(AppThemeTokens tokens) {
+  Widget _divider(BuildContext context) {
     return Container(
       width: 1,
       height: 12,
       margin: const EdgeInsets.symmetric(horizontal: 8),
-      color: tokens.colorBorder,
+      color: Theme.of(context).dividerColor,
     );
   }
 }

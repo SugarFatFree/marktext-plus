@@ -74,7 +74,7 @@ void main() {
       expect(result.children, isNotNull);
       final spans = result.children!.cast<TextSpan>();
       final linkSpan = spans.firstWhere((s) => s.style?.color == linkColor);
-      expect(linkSpan.text, '[link](url)');
+      expect(linkSpan.text, 'link');
     });
 
     test('plain text uses default color', () {

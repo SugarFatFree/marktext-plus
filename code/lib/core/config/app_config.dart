@@ -1,5 +1,3 @@
-import '../theme/app_theme.dart';
-
 enum EditMode { source, preview, split }
 
 class AppConfig {
@@ -42,7 +40,7 @@ class AppConfig {
     this.lineHeight = 1.6,
     this.autoSave = true,
     this.autoSaveDelay = 5000,
-    this.themeName = 'snow',
+    this.themeName = 'cadmiumLight',
     this.darkMode = false,
     this.locale = '',
     this.bulletListMarker = '-',
@@ -105,7 +103,7 @@ class AppConfig {
       lineHeight: _parseDouble(json['lineHeight'], 1.6),
       autoSave: json['autoSave'] as bool? ?? true,
       autoSaveDelay: json['autoSaveDelay'] as int? ?? 5000,
-      themeName: AppTheme.migrateName(json['themeName'] as String? ?? 'snow'),
+      themeName: json['themeName'] as String? ?? 'cadmiumLight',
       darkMode: json['darkMode'] as bool? ?? false,
       locale: json['locale'] as String? ?? '',
       bulletListMarker: json['bulletListMarker'] as String? ?? '-',
