@@ -21,7 +21,7 @@ class MarkTextPlusApp extends ConsumerWidget {
       navigatorKey: navigatorKey,
       title: 'MarkText Plus',
       theme: AppTheme.getTheme(config.themeName),
-      darkTheme: AppTheme.getTheme('oneDark'),
+      darkTheme: AppTheme.getTheme('dusk'),
       themeMode: config.darkMode ? ThemeMode.dark : ThemeMode.light,
       themeAnimationDuration: Duration.zero,
       locale: locale,

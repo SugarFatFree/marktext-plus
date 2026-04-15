@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import '../../app.dart';
 import '../../core/i18n/l10n/app_localizations.dart';
+import '../../core/theme/app_theme.dart';
 import '../../models/file_node.dart';
 import '../../models/tab_info.dart';
 import '../../providers/editor_provider.dart';
@@ -38,47 +39,49 @@ class _SideBarState extends ConsumerState<SideBar> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final config = ref.watch(settingsProvider);
+    final tokens = AppTheme.getTokens(config.themeName);
     return Container(
       width: 280,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: tokens.colorSurface,
         border: Border(
           right: BorderSide(
-            color: Theme.of(context).dividerColor,
+            color: tokens.colorBorder,
             width: 1,
           ),
         ),
       ),
       child: Row(
         children: [
-          _buildIconColumn(l10n),
+          _buildIconColumn(l10n, tokens),
           Expanded(child: _buildContentArea(l10n)),
         ],
       ),
     );
   }
 
-  Widget _buildIconColumn(AppLocalizations l10n) {
+  Widget _buildIconColumn(AppLocalizations l10n, AppThemeTokens tokens) {
     return Container(
-      width: 48,
+      width: 40,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        color: tokens.colorSurface,
         border: Border(
           right: BorderSide(
-            color: Theme.of(context).dividerColor,
+            color: tokens.colorBorder,
             width: 1,
           ),
         ),
       ),
       child: Column(
         children: [
-          _buildIconButton(Icons.folder_outlined, SideBarTab.files, l10n.sidebarFiles),
-          _buildIconButton(Icons.search, SideBarTab.search, l10n.sidebarSearch),
-          _buildIconButton(Icons.list, SideBarTab.toc, l10n.sidebarToc),
+          _buildIconButton(Icons.folder_outlined, SideBarTab.files, l10n.sidebarFiles, tokens),
+          _buildIconButton(Icons.search, SideBarTab.search, l10n.sidebarSearch, tokens),
+          _buildIconButton(Icons.list, SideBarTab.toc, l10n.sidebarToc, tokens),
           const Spacer(),
           IconButton(
-            icon: const Icon(Icons.settings),
-            color: Theme.of(context).colorScheme.onSurface,
+            icon: Icon(Icons.settings, size: 18),
+            color: tokens.colorTextMuted,
             onPressed: () {
               navigatorKey.currentState?.push(
                 MaterialPageRoute(builder: (_) => const SettingsScreen()),
@@ -91,7 +94,7 @@ class _SideBarState extends ConsumerState<SideBar> {
     );
   }
 
-  Widget _buildIconButton(IconData icon, SideBarTab tab, String tooltip) {
+  Widget _buildIconButton(IconData icon, SideBarTab tab, String tooltip, AppThemeTokens tokens) {
     final isSelected = _selectedTab == tab;
     final isHovered = _hoveredTab == tab;
     return Tooltip(
@@ -102,26 +105,42 @@ class _SideBarState extends ConsumerState<SideBar> {
         onExit: (_) => setState(() => _hoveredTab = null),
         child: GestureDetector(
           onTap: () => setState(() => _selectedTab = tab),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            curve: Curves.easeInOut,
-            margin: const EdgeInsets.symmetric(vertical: 2, horizontal: 6),
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.15)
-                  : isHovered
-                      ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06)
+          child: Stack(
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                curve: Curves.easeInOut,
+                margin: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isHovered && !isSelected
+                      ? tokens.colorSurfaceHover
                       : Colors.transparent,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              icon,
-              size: 22,
-              color: isSelected
-                  ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.onSurface,
-            ),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(
+                  icon,
+                  size: 18,
+                  color: isSelected ? tokens.colorAccent : tokens.colorTextMuted,
+                ),
+              ),
+              if (isSelected)
+                Positioned(
+                  left: 0,
+                  top: 6,
+                  bottom: 6,
+                  child: Container(
+                    width: 2,
+                    decoration: BoxDecoration(
+                      color: tokens.colorAccent,
+                      borderRadius: const BorderRadius.only(
+                        topRight: Radius.circular(2),
+                        bottomRight: Radius.circular(2),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ),

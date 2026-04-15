@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/theme/app_theme.dart';
 import '../../models/tab_info.dart';
 import '../../providers/editor_provider.dart';
 import '../../providers/settings_provider.dart';
@@ -109,6 +110,8 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final config = ref.watch(settingsProvider);
+    final tokens = AppTheme.getTokens(config.themeName);
     final parser = md.MarkdownParser();
     final nodes = parser.parse(widget.markdown);
     final headingLines = _findHeadingLines(widget.markdown);
@@ -123,17 +126,17 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
               : -1;
           headingIndex++;
           _headingKeys.putIfAbsent(lineNum, () => GlobalKey());
-          widgets.add(_buildHeading(node, theme, key: _headingKeys[lineNum]));
+          widgets.add(_buildHeading(node, theme, tokens, key: _headingKeys[lineNum]));
         case md.ParagraphNode():
           widgets.add(_buildParagraph(node, theme));
         case md.CodeBlockNode():
-          widgets.add(_buildCodeBlock(node, theme));
+          widgets.add(_buildCodeBlock(node, theme, tokens));
         case md.ListNode():
           widgets.add(_buildList(node, theme));
         case md.BlockquoteNode():
-          widgets.add(_buildBlockquote(node, theme));
+          widgets.add(_buildBlockquote(node, theme, tokens));
         case md.HorizontalRuleNode():
-          widgets.add(const Divider(thickness: 1));
+          widgets.add(Divider(thickness: 1, color: tokens.colorBorder));
         case md.TableNode():
           widgets.add(_buildTable(node, theme));
         case md.MathBlockNode():
@@ -148,39 +151,55 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     }
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: widgets,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 720),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: widgets,
+            ),
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildHeading(md.HeadingNode node, ThemeData theme, {Key? key}) {
-    final textStyle = switch (node.level) {
-      1 => theme.textTheme.displaySmall,
-      2 => theme.textTheme.headlineMedium,
-      3 => theme.textTheme.headlineSmall,
-      4 => theme.textTheme.titleLarge,
-      5 => theme.textTheme.titleMedium,
-      _ => theme.textTheme.titleSmall,
+  Widget _buildHeading(md.HeadingNode node, ThemeData theme, AppThemeTokens tokens, {Key? key}) {
+    final style = switch (node.level) {
+      1 => TextStyle(fontSize: 32, fontWeight: FontWeight.w700, color: tokens.colorText),
+      2 => TextStyle(fontSize: 26, fontWeight: FontWeight.w600, color: tokens.colorText),
+      3 => TextStyle(fontSize: 21, fontWeight: FontWeight.w600, color: tokens.colorText),
+      _ => TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: tokens.colorTextMuted),
     };
 
     return Padding(
       key: key,
       padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Text.rich(
-        _buildInlineSpans(node.inlineSpans, theme, textStyle),
-        style: textStyle,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text.rich(
+            _buildInlineSpans(node.inlineSpans, theme, style),
+            style: style,
+          ),
+          if (node.level == 1)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Divider(height: 1, thickness: 1, color: tokens.colorBorder),
+            ),
+        ],
       ),
     );
   }
 
   Widget _buildParagraph(md.ParagraphNode node, ThemeData theme) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       child: Text.rich(
-        _buildInlineSpans(node.inlineSpans, theme, theme.textTheme.bodyMedium),
+        _buildInlineSpans(node.inlineSpans, theme,
+            theme.textTheme.bodyMedium?.copyWith(fontSize: 17, height: 1.7)),
       ),
     );
   }
@@ -200,7 +219,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     'mindmap',
   };
 
-  Widget _buildCodeBlock(md.CodeBlockNode node, ThemeData theme) {
+  Widget _buildCodeBlock(md.CodeBlockNode node, ThemeData theme, AppThemeTokens tokens) {
     final lang = node.language.toLowerCase();
     if (_diagramLanguages.contains(lang)) {
       return DiagramWidget(
@@ -214,8 +233,8 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       margin: const EdgeInsets.symmetric(vertical: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(4),
+        color: tokens.colorSurface,
+        borderRadius: BorderRadius.circular(8),
       ),
       child: node.language.isNotEmpty
           ? HighlightView(
@@ -288,15 +307,15 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     );
   }
 
-  Widget _buildBlockquote(md.BlockquoteNode node, ThemeData theme) {
+  Widget _buildBlockquote(md.BlockquoteNode node, ThemeData theme, AppThemeTokens tokens) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         border: Border(
-          left: BorderSide(color: theme.colorScheme.primary, width: 4),
+          left: BorderSide(color: tokens.colorAccent, width: 4),
         ),
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+        color: tokens.colorAccentMuted.withValues(alpha: 0.04),
       ),
       child: Text.rich(
         _buildInlineSpans(node.inlineSpans, theme, theme.textTheme.bodyMedium),

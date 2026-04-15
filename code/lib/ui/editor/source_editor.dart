@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:desktop_drop/desktop_drop.dart';
+import '../../core/theme/app_theme.dart';
 import '../../providers/editor_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/tab_provider.dart';
@@ -507,9 +508,9 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final lineCount = _getLineCount();
     final config = ref.watch(settingsProvider);
+    final tokens = AppTheme.getTokens(config.themeName);
 
     // Listen for pending format actions
     final editorState = ref.watch(editorProvider);
@@ -526,31 +527,31 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
       height: config.lineHeight,
     );
 
-    final gutterStyle = TextStyle(
-      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-      fontFamily: config.fontFamily,
-      fontSize: config.fontSize,
-      height: config.lineHeight,
-    );
+    // Update highlighter colors from theme tokens
+    _controller.headingColor = tokens.syntaxHeading;
+    _controller.boldColor = tokens.syntaxBold;
+    _controller.codeColor = tokens.syntaxCode;
+    _controller.linkColor = tokens.syntaxLink;
+    _controller.defaultColor = tokens.colorText;
 
-    // Update highlighter colors from current theme
-    final isDark = theme.brightness == Brightness.dark;
-    _controller.headingColor = isDark ? const Color(0xFFE5C07B) : const Color(0xFFC18401);
-    _controller.boldColor = isDark ? const Color(0xFF61AFEF) : const Color(0xFF4078F2);
-    _controller.codeColor = isDark ? const Color(0xFF98C379) : const Color(0xFF50A14F);
-    _controller.linkColor = isDark ? const Color(0xFF56B6C2) : const Color(0xFF0184BC);
-    _controller.defaultColor = theme.colorScheme.onSurface;
+    // Dynamic gutter width
+    final digits = lineCount < 10 ? 1 : (lineCount < 100 ? 2 : (lineCount < 1000 ? 3 : 4));
+    final gutterWidth = (digits * 10.0 + 16).clamp(40.0, 70.0);
 
-    // Dynamic gutter width based on digit count
-    final gutterWidth = lineCount >= 10000 ? 66.0
-        : lineCount >= 1000 ? 58.0
-        : 50.0;
+    // Current line for highlighting
+    final currentLine = editorState.cursorLine;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
+        Container(
           width: gutterWidth,
+          decoration: BoxDecoration(
+            color: tokens.colorSurface,
+            border: Border(
+              right: BorderSide(color: tokens.colorBorder, width: 1),
+            ),
+          ),
           child: ScrollConfiguration(
             behavior: ScrollConfiguration.of(context).copyWith(
               scrollbars: false,
@@ -563,7 +564,15 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
               itemExtent: config.fontSize * config.lineHeight,
               itemBuilder: (context, index) => Align(
                 alignment: Alignment.centerRight,
-                child: Text('${index + 1}', style: gutterStyle),
+                child: Text(
+                  '${index + 1}',
+                  style: TextStyle(
+                    color: index == currentLine ? tokens.colorText : tokens.colorTextMuted,
+                    fontFamily: config.fontFamily,
+                    fontSize: config.fontSize,
+                    height: config.lineHeight,
+                  ),
+                ),
               ),
             ),
           ),
