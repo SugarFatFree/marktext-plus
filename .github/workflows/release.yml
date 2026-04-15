@@ -80,14 +80,7 @@ jobs:
             marktext-plus-${{ github.ref_name }}-windows-x64-setup.exe
 
   build-macos:
-    strategy:
-      matrix:
-        include:
-          - runner: macos-13
-            arch: x64
-          - runner: macos-latest
-            arch: arm64
-    runs-on: ${{ matrix.runner }}
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -106,7 +99,7 @@ jobs:
       - name: Package zip
         run: |
           cd code/build/macos/Build/Products/Release
-          zip -r "${{ github.workspace }}/marktext-plus-${{ github.ref_name }}-macos-${{ matrix.arch }}.zip" "marktext_plus.app"
+          zip -r "${{ github.workspace }}/marktext-plus-${{ github.ref_name }}-macos-arm64.zip" "marktext_plus.app"
 
       - name: Install create-dmg
         run: brew install create-dmg
@@ -122,17 +115,17 @@ jobs:
             --icon "marktext_plus.app" 150 185 \
             --hide-extension "marktext_plus.app" \
             --app-drop-link 450 185 \
-            "marktext-plus-${{ github.ref_name }}-macos-${{ matrix.arch }}.dmg" \
+            "marktext-plus-${{ github.ref_name }}-macos-arm64.dmg" \
             "code/build/macos/Build/Products/Release/marktext_plus.app" \
           || true
           # create-dmg returns non-zero even on success when no code signing identity is found
 
       - uses: actions/upload-artifact@v4
         with:
-          name: macos-${{ matrix.arch }}-build
+          name: macos-arm64-build
           path: |
-            marktext-plus-${{ github.ref_name }}-macos-${{ matrix.arch }}.zip
-            marktext-plus-${{ github.ref_name }}-macos-${{ matrix.arch }}.dmg
+            marktext-plus-${{ github.ref_name }}-macos-arm64.zip
+            marktext-plus-${{ github.ref_name }}-macos-arm64.dmg
 
   build-linux:
     strategy:
