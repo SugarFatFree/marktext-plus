@@ -12,6 +12,7 @@
 | BUG-006 | 2026-04-15 | 行号区域滚动弹跳 | P1-严重 | 高 | 中等 | 已修复 |
 | BUG-007 | 2026-04-15 | 源码视图中链接语法消失 | P1-严重 | 高 | 中等 | 已修复 |
 | BUG-008 | 2026-04-15 | 预览视图中链接不可点击 | P2-一般 | 中 | 中等 | 已修复 |
+| BUG-009 | 2026-04-15 | Windows 右键打开方式无本应用 + 启动参数未处理 | P1-严重 | 高 | 中等 | 已修复 |
 
 ## 详细记录
 
@@ -126,3 +127,17 @@
 | 根因 | 链接 `TextSpan` 未设置 `recognizer`，无点击事件处理 |
 | 修复方案 | 添加 `TapGestureRecognizer`；外部 URL 用 `url_launcher` 打开；本地 `.md/.markdown/.txt` 文件解析相对路径后在应用内新标签页打开 |
 | 涉及文件 | `ui/editor/markdown_renderer.dart` |
+
+### BUG-009 — Windows 右键打开方式无本应用 + 启动参数未处理
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-04-15 |
+| 修复日期 | 2026-04-15 |
+| 紧急程度 | P1-严重 |
+| 优先级 | 高 |
+| 难易度 | 中等 |
+| 现象 | 1) Windows 右键 .md 文件的"打开方式"中无 MarkText Plus 选项；2) 手动选择本应用后启动显示空白，未打开所选文件 |
+| 根因 | Inno Setup 脚本缺少 `[Registry]` 段，未注册 .md 文件关联；Dart 端 `main()` 忽略了 Windows runner 传递的命令行参数 |
+| 修复方案 | 1) Inno Setup 添加 `ChangesAssociations=yes` 和 `[Registry]` 段注册 ProgID `MarkTextPlus.md`，关联 `.md/.markdown/.txt` 扩展名；2) `main.dart` 解析命令行参数筛选合法文件路径，通过 `startupFilesProvider` 传递；3) `home_screen.dart` 启动时读取文件内容并创建标签页 |
+| 涉及文件 | `main.dart`, `providers/tab_provider.dart`, `ui/screens/home_screen.dart`, `.github/workflows/release.yml` |
