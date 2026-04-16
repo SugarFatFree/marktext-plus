@@ -525,4 +525,137 @@ class AppLocalizationsKo extends AppLocalizations {
   String confirmDeleteFile(String fileName) {
     return '\"$fileName\"을(를) 삭제하시겠습니까?';
   }
+
+  @override
+  String get newFolder => '새 폴더';
+
+  @override
+  String get rename => '이름 변경';
+
+  @override
+  String get delete => '삭제';
+
+  @override
+  String get confirm => '확인';
+
+  @override
+  String get fileNameHint => '파일 이름';
+
+  @override
+  String get folderNameHint => '폴더 이름';
+
+  @override
+  String get newNameHint => '새 이름';
+
+  @override
+  String get closeOtherTabs => '다른 탭 닫기';
+
+  @override
+  String get closeTabsToRight => '오른쪽 탭 닫기';
+
+  @override
+  String get closeAllTabs => '모든 탭 닫기';
+
+  @override
+  String get revealInExplorer => '파일 탐색기에서 표시';
+
+  @override
+  String get formatTextSubmenu => '텍스트';
+
+  @override
+  String get formatBlocksSubmenu => '블록';
+
+  @override
+  String get formatCodeSubmenu => '코드';
+
+  @override
+  String get formatInsertSubmenu => '삽입';
+
+  @override
+  String get fileRename => '이름 바꾸기';
+
+  @override
+  String get newTab => '새 탭';
+
+  @override
+  String get newNameHintDialog => '새 이름';
+
+  @override
+  String get commandPaletteHint => '명령어 입력...';
+
+  @override
+  String get commandPaletteNoResults => '일치하는 명령어 없음';
+
+  @override
+  String get statusLineFeed => 'LF';
+
+  @override
+  String get settingsTextDirectionLtr => '왼쪽에서 오른쪽';
+
+  @override
+  String get settingsTextDirectionRtl => '오른쪽에서 왼쪽';
+
+  @override
+  String commandFormatLabel(String action) {
+    return '서식: $action';
+  }
+
+  @override
+  String commandFormatDesc(String action) {
+    return '$action 서식 적용';
+  }
+
+  @override
+  String get commandNewFile => '새 파일';
+
+  @override
+  String get commandNewFileDesc => '새 제목 없는 파일 만들기';
+
+  @override
+  String get commandSave => '저장';
+
+  @override
+  String get commandSaveDesc => '현재 파일 저장';
+
+  @override
+  String get commandSourceMode => '소스 모드';
+
+  @override
+  String get commandSourceModeDesc => '소스 코드 편집 모드로 전환';
+
+  @override
+  String get commandPreviewMode => '미리보기 모드';
+
+  @override
+  String get commandPreviewModeDesc => '미리보기 모드로 전환';
+
+  @override
+  String get commandSplitMode => '분할 모드';
+
+  @override
+  String get commandSplitModeDesc => '분할 편집 모드로 전환';
+
+  @override
+  String get commandToggleFocusMode => '집중 모드 전환';
+
+  @override
+  String get commandToggleFocusModeDesc => '방해 없는 집중 모드 전환';
+
+  @override
+  String get commandToggleTypewriterMode => '타자기 모드 전환';
+
+  @override
+  String get commandToggleTypewriterModeDesc => '타자기 스크롤 모드 전환';
+
+  @override
+  String get commandToggleSidebar => '사이드바 전환';
+
+  @override
+  String get commandToggleSidebarDesc => '사이드바 표시/숨기기';
+
+  @override
+  String get commandToggleTabBar => '탭 바 전환';
+
+  @override
+  String get commandToggleTabBarDesc => '탭 바 표시/숨기기';
 }

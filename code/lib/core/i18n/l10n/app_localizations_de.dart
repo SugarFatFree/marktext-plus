@@ -527,4 +527,140 @@ class AppLocalizationsDe extends AppLocalizations {
   String confirmDeleteFile(String fileName) {
     return 'Sind Sie sicher, dass Sie \"$fileName\" löschen möchten?';
   }
+
+  @override
+  String get newFolder => 'Neuer Ordner';
+
+  @override
+  String get rename => 'Umbenennen';
+
+  @override
+  String get delete => 'Löschen';
+
+  @override
+  String get confirm => 'Bestätigen';
+
+  @override
+  String get fileNameHint => 'Dateiname';
+
+  @override
+  String get folderNameHint => 'Ordnername';
+
+  @override
+  String get newNameHint => 'Neuer Name';
+
+  @override
+  String get closeOtherTabs => 'Andere Tabs schließen';
+
+  @override
+  String get closeTabsToRight => 'Tabs rechts schließen';
+
+  @override
+  String get closeAllTabs => 'Alle Tabs schließen';
+
+  @override
+  String get revealInExplorer => 'Im Datei-Explorer anzeigen';
+
+  @override
+  String get formatTextSubmenu => 'Text';
+
+  @override
+  String get formatBlocksSubmenu => 'Blöcke';
+
+  @override
+  String get formatCodeSubmenu => 'Code';
+
+  @override
+  String get formatInsertSubmenu => 'Einfügen';
+
+  @override
+  String get fileRename => 'Umbenennen';
+
+  @override
+  String get newTab => 'Neuer Tab';
+
+  @override
+  String get newNameHintDialog => 'Neuer Name';
+
+  @override
+  String get commandPaletteHint => 'Befehl eingeben...';
+
+  @override
+  String get commandPaletteNoResults => 'Keine passenden Befehle';
+
+  @override
+  String get statusLineFeed => 'LF';
+
+  @override
+  String get settingsTextDirectionLtr => 'Links nach rechts';
+
+  @override
+  String get settingsTextDirectionRtl => 'Rechts nach links';
+
+  @override
+  String commandFormatLabel(String action) {
+    return 'Format: $action';
+  }
+
+  @override
+  String commandFormatDesc(String action) {
+    return '$action-Formatierung anwenden';
+  }
+
+  @override
+  String get commandNewFile => 'Neue Datei';
+
+  @override
+  String get commandNewFileDesc => 'Neue unbenannte Datei erstellen';
+
+  @override
+  String get commandSave => 'Speichern';
+
+  @override
+  String get commandSaveDesc => 'Aktuelle Datei speichern';
+
+  @override
+  String get commandSourceMode => 'Quellcode-Modus';
+
+  @override
+  String get commandSourceModeDesc =>
+      'Zum Quellcode-Bearbeitungsmodus wechseln';
+
+  @override
+  String get commandPreviewMode => 'Vorschau-Modus';
+
+  @override
+  String get commandPreviewModeDesc => 'Zum Vorschau-Modus wechseln';
+
+  @override
+  String get commandSplitMode => 'Geteilter Modus';
+
+  @override
+  String get commandSplitModeDesc => 'Zum geteilten Bearbeitungsmodus wechseln';
+
+  @override
+  String get commandToggleFocusMode => 'Fokusmodus umschalten';
+
+  @override
+  String get commandToggleFocusModeDesc =>
+      'Ablenkungsfreien Fokusmodus umschalten';
+
+  @override
+  String get commandToggleTypewriterMode => 'Schreibmaschinenmodus umschalten';
+
+  @override
+  String get commandToggleTypewriterModeDesc =>
+      'Schreibmaschinen-Scrollmodus umschalten';
+
+  @override
+  String get commandToggleSidebar => 'Seitenleiste umschalten';
+
+  @override
+  String get commandToggleSidebarDesc => 'Seitenleiste ein-/ausblenden';
+
+  @override
+  String get commandToggleTabBar => 'Tab-Leiste umschalten';
+
+  @override
+  String get commandToggleTabBarDesc => 'Tab-Leiste ein-/ausblenden';
 }

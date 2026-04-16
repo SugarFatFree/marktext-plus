@@ -5,7 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:path/path.dart' as p;
 import '../../core/config/app_config.dart';
+import '../../core/i18n/l10n/app_localizations.dart';
 import '../../providers/editor_provider.dart';
+import '../../providers/file_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/tab_provider.dart';
 import '../../models/tab_info.dart';
@@ -29,44 +31,40 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  bool _commandsRegistered = false;
   bool _startupFilesProcessed = false;
 
-  void _registerCommands() {
-    if (_commandsRegistered) return;
-    _commandsRegistered = true;
-
+  void _registerCommands(AppLocalizations l10n) {
     final registry = CommandRegistry.instance;
     registry.clear();
 
     // Format actions
     final formatLabels = {
-      FormatAction.bold: 'Bold',
-      FormatAction.italic: 'Italic',
-      FormatAction.strikethrough: 'Strikethrough',
-      FormatAction.heading1: 'Heading 1',
-      FormatAction.heading2: 'Heading 2',
-      FormatAction.heading3: 'Heading 3',
-      FormatAction.heading4: 'Heading 4',
-      FormatAction.heading5: 'Heading 5',
-      FormatAction.heading6: 'Heading 6',
-      FormatAction.orderedList: 'Ordered List',
-      FormatAction.unorderedList: 'Unordered List',
-      FormatAction.taskList: 'Task List',
-      FormatAction.codeBlock: 'Code Block',
-      FormatAction.quoteBlock: 'Quote Block',
-      FormatAction.mathBlock: 'Math Block',
-      FormatAction.table: 'Table',
-      FormatAction.link: 'Link',
-      FormatAction.image: 'Image',
-      FormatAction.horizontalRule: 'Horizontal Rule',
+      FormatAction.bold: l10n.formatBold,
+      FormatAction.italic: l10n.formatItalic,
+      FormatAction.strikethrough: l10n.formatStrikethrough,
+      FormatAction.heading1: l10n.formatHeading(1),
+      FormatAction.heading2: l10n.formatHeading(2),
+      FormatAction.heading3: l10n.formatHeading(3),
+      FormatAction.heading4: l10n.formatHeading(4),
+      FormatAction.heading5: l10n.formatHeading(5),
+      FormatAction.heading6: l10n.formatHeading(6),
+      FormatAction.orderedList: l10n.formatOrderedList,
+      FormatAction.unorderedList: l10n.formatUnorderedList,
+      FormatAction.taskList: l10n.formatTaskList,
+      FormatAction.codeBlock: l10n.formatCodeBlock,
+      FormatAction.quoteBlock: l10n.formatQuoteBlock,
+      FormatAction.mathBlock: l10n.formatMathBlock,
+      FormatAction.table: l10n.formatTable,
+      FormatAction.link: l10n.formatLink,
+      FormatAction.image: l10n.formatImage,
+      FormatAction.horizontalRule: l10n.formatHorizontalRule,
     };
 
     for (final entry in formatLabels.entries) {
       registry.register(Command(
         id: 'format.${entry.key.name}',
-        label: 'Format: ${entry.value}',
-        description: 'Apply ${entry.value} formatting',
+        label: l10n.commandFormatLabel(entry.value),
+        description: l10n.commandFormatDesc(entry.value),
         execute: () => ref.read(editorProvider.notifier).applyFormat(entry.key),
       ));
     }
@@ -75,8 +73,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     registry.registerAll([
       Command(
         id: 'file.new',
-        label: 'New File',
-        description: 'Create a new untitled file',
+        label: l10n.commandNewFile,
+        description: l10n.commandNewFileDesc,
         execute: () {
           final tab = TabInfo(
             id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -86,8 +84,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
       Command(
         id: 'file.save',
-        label: 'Save',
-        description: 'Save the current file',
+        label: l10n.commandSave,
+        description: l10n.commandSaveDesc,
         execute: () => _saveCurrentFile(),
       ),
     ]);
@@ -96,48 +94,48 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     registry.registerAll([
       Command(
         id: 'view.source',
-        label: 'Source Mode',
-        description: 'Switch to source code editing mode',
+        label: l10n.commandSourceMode,
+        description: l10n.commandSourceModeDesc,
         execute: () =>
             ref.read(settingsProvider.notifier).setEditMode(EditMode.source),
       ),
       Command(
         id: 'view.preview',
-        label: 'Preview Mode',
-        description: 'Switch to preview mode',
+        label: l10n.commandPreviewMode,
+        description: l10n.commandPreviewModeDesc,
         execute: () =>
             ref.read(settingsProvider.notifier).setEditMode(EditMode.preview),
       ),
       Command(
         id: 'view.split',
-        label: 'Split Mode',
-        description: 'Switch to split editing mode',
+        label: l10n.commandSplitMode,
+        description: l10n.commandSplitModeDesc,
         execute: () =>
             ref.read(settingsProvider.notifier).setEditMode(EditMode.split),
       ),
       Command(
         id: 'view.focusMode',
-        label: 'Toggle Focus Mode',
-        description: 'Toggle distraction-free focus mode',
+        label: l10n.commandToggleFocusMode,
+        description: l10n.commandToggleFocusModeDesc,
         execute: () => ref.read(settingsProvider.notifier).toggleFocusMode(),
       ),
       Command(
         id: 'view.typewriterMode',
-        label: 'Toggle Typewriter Mode',
-        description: 'Toggle typewriter scrolling mode',
+        label: l10n.commandToggleTypewriterMode,
+        description: l10n.commandToggleTypewriterModeDesc,
         execute: () =>
             ref.read(settingsProvider.notifier).toggleTypewriterMode(),
       ),
       Command(
         id: 'view.sidebar',
-        label: 'Toggle Sidebar',
-        description: 'Show or hide the sidebar',
+        label: l10n.commandToggleSidebar,
+        description: l10n.commandToggleSidebarDesc,
         execute: () => ref.read(settingsProvider.notifier).toggleSideBar(),
       ),
       Command(
         id: 'view.tabbar',
-        label: 'Toggle Tab Bar',
-        description: 'Show or hide the tab bar',
+        label: l10n.commandToggleTabBar,
+        description: l10n.commandToggleTabBarDesc,
         execute: () => ref.read(settingsProvider.notifier).toggleTabBar(),
       ),
     ]);
@@ -172,11 +170,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   void _handleDrop(DropDoneDetails details) async {
     final allowedExtensions = {'.md', '.markdown', '.txt'};
+
     for (final file in details.files) {
       final path = file.path;
+
+      // Check if it's a directory
+      final entity = FileSystemEntity.typeSync(path);
+      if (entity == FileSystemEntityType.directory) {
+        // Open the folder in the file tree
+        await ref.read(fileProvider.notifier).loadDirectory(path);
+        continue;
+      }
+
+      // Handle files
       final ext = p.extension(path).toLowerCase();
       if (!allowedExtensions.contains(ext)) continue;
+
       try {
+        // Open the file from its original location (don't copy)
         final content = await File(path).readAsString();
         final tab = TabInfo(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -196,8 +207,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final config = ref.watch(settingsProvider);
     final editorState = ref.watch(editorProvider);
+    final l10n = AppLocalizations.of(context)!;
 
-    _registerCommands();
+    _registerCommands(l10n);
     _openStartupFiles();
 
     return Focus(

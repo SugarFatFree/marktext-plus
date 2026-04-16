@@ -1136,6 +1136,264 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Are you sure you want to delete \"{fileName}\"?'**
   String confirmDeleteFile(String fileName);
+
+  /// No description provided for @newFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'New Folder'**
+  String get newFolder;
+
+  /// No description provided for @rename.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get rename;
+
+  /// No description provided for @delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
+
+  /// No description provided for @confirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm'**
+  String get confirm;
+
+  /// No description provided for @fileNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'File name'**
+  String get fileNameHint;
+
+  /// No description provided for @folderNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder name'**
+  String get folderNameHint;
+
+  /// No description provided for @newNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'New name'**
+  String get newNameHint;
+
+  /// No description provided for @closeOtherTabs.
+  ///
+  /// In en, this message translates to:
+  /// **'Close Other Tabs'**
+  String get closeOtherTabs;
+
+  /// No description provided for @closeTabsToRight.
+  ///
+  /// In en, this message translates to:
+  /// **'Close Tabs to the Right'**
+  String get closeTabsToRight;
+
+  /// No description provided for @closeAllTabs.
+  ///
+  /// In en, this message translates to:
+  /// **'Close All Tabs'**
+  String get closeAllTabs;
+
+  /// No description provided for @revealInExplorer.
+  ///
+  /// In en, this message translates to:
+  /// **'Reveal in File Explorer'**
+  String get revealInExplorer;
+
+  /// No description provided for @formatTextSubmenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Text'**
+  String get formatTextSubmenu;
+
+  /// No description provided for @formatBlocksSubmenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Blocks'**
+  String get formatBlocksSubmenu;
+
+  /// No description provided for @formatCodeSubmenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Code'**
+  String get formatCodeSubmenu;
+
+  /// No description provided for @formatInsertSubmenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Insert'**
+  String get formatInsertSubmenu;
+
+  /// No description provided for @fileRename.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get fileRename;
+
+  /// No description provided for @newTab.
+  ///
+  /// In en, this message translates to:
+  /// **'New Tab'**
+  String get newTab;
+
+  /// No description provided for @newNameHintDialog.
+  ///
+  /// In en, this message translates to:
+  /// **'New name'**
+  String get newNameHintDialog;
+
+  /// No description provided for @commandPaletteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Type a command...'**
+  String get commandPaletteHint;
+
+  /// No description provided for @commandPaletteNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching commands'**
+  String get commandPaletteNoResults;
+
+  /// No description provided for @statusLineFeed.
+  ///
+  /// In en, this message translates to:
+  /// **'LF'**
+  String get statusLineFeed;
+
+  /// No description provided for @settingsTextDirectionLtr.
+  ///
+  /// In en, this message translates to:
+  /// **'LTR'**
+  String get settingsTextDirectionLtr;
+
+  /// No description provided for @settingsTextDirectionRtl.
+  ///
+  /// In en, this message translates to:
+  /// **'RTL'**
+  String get settingsTextDirectionRtl;
+
+  /// No description provided for @commandFormatLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Format: {action}'**
+  String commandFormatLabel(String action);
+
+  /// No description provided for @commandFormatDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply {action} formatting'**
+  String commandFormatDesc(String action);
+
+  /// No description provided for @commandNewFile.
+  ///
+  /// In en, this message translates to:
+  /// **'New File'**
+  String get commandNewFile;
+
+  /// No description provided for @commandNewFileDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a new untitled file'**
+  String get commandNewFileDesc;
+
+  /// No description provided for @commandSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get commandSave;
+
+  /// No description provided for @commandSaveDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Save the current file'**
+  String get commandSaveDesc;
+
+  /// No description provided for @commandSourceMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Source Mode'**
+  String get commandSourceMode;
+
+  /// No description provided for @commandSourceModeDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to source code editing mode'**
+  String get commandSourceModeDesc;
+
+  /// No description provided for @commandPreviewMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview Mode'**
+  String get commandPreviewMode;
+
+  /// No description provided for @commandPreviewModeDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to preview mode'**
+  String get commandPreviewModeDesc;
+
+  /// No description provided for @commandSplitMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Split Mode'**
+  String get commandSplitMode;
+
+  /// No description provided for @commandSplitModeDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to split editing mode'**
+  String get commandSplitModeDesc;
+
+  /// No description provided for @commandToggleFocusMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Toggle Focus Mode'**
+  String get commandToggleFocusMode;
+
+  /// No description provided for @commandToggleFocusModeDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Toggle distraction-free focus mode'**
+  String get commandToggleFocusModeDesc;
+
+  /// No description provided for @commandToggleTypewriterMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Toggle Typewriter Mode'**
+  String get commandToggleTypewriterMode;
+
+  /// No description provided for @commandToggleTypewriterModeDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Toggle typewriter scrolling mode'**
+  String get commandToggleTypewriterModeDesc;
+
+  /// No description provided for @commandToggleSidebar.
+  ///
+  /// In en, this message translates to:
+  /// **'Toggle Sidebar'**
+  String get commandToggleSidebar;
+
+  /// No description provided for @commandToggleSidebarDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Show or hide the sidebar'**
+  String get commandToggleSidebarDesc;
+
+  /// No description provided for @commandToggleTabBar.
+  ///
+  /// In en, this message translates to:
+  /// **'Toggle Tab Bar'**
+  String get commandToggleTabBar;
+
+  /// No description provided for @commandToggleTabBarDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Show or hide the tab bar'**
+  String get commandToggleTabBarDesc;
 }
 
 class _AppLocalizationsDelegate

@@ -5,47 +5,53 @@ import 'package:marktext_plus/core/theme/app_theme.dart';
 void main() {
   group('AppTheme', () {
     test('has 5 built-in themes', () {
-      expect(AppTheme.themes.length, 5);
+      expect(AppTheme.themeNames.length, 5);
     });
 
-    test('cadmiumLight is a light theme', () {
-      final theme = AppTheme.getTheme('cadmiumLight');
+    test('redGraphite is a light theme', () {
+      final theme = AppTheme.getTheme('redGraphite');
       expect(theme.brightness, Brightness.light);
     });
 
-    test('oneDark is a dark theme', () {
-      final theme = AppTheme.getTheme('oneDark');
+    test('shibuya is a light theme', () {
+      final theme = AppTheme.getTheme('shibuya');
+      expect(theme.brightness, Brightness.light);
+    });
+
+    test('darkGraphite is a dark theme', () {
+      final theme = AppTheme.getTheme('darkGraphite');
       expect(theme.brightness, Brightness.dark);
     });
 
-    test('materialDark is a dark theme', () {
-      final theme = AppTheme.getTheme('materialDark');
+    test('dieciOLED is a dark theme', () {
+      final theme = AppTheme.getTheme('dieciOLED');
       expect(theme.brightness, Brightness.dark);
     });
 
-    test('graphiteLight is a light theme', () {
-      final theme = AppTheme.getTheme('graphiteLight');
-      expect(theme.brightness, Brightness.light);
+    test('nord is a dark theme', () {
+      final theme = AppTheme.getTheme('nord');
+      expect(theme.brightness, Brightness.dark);
     });
 
-    test('ulyssesLight is a light theme', () {
-      final theme = AppTheme.getTheme('ulyssesLight');
-      expect(theme.brightness, Brightness.light);
-    });
-
-    test('unknown theme name returns cadmiumLight', () {
+    test('unknown theme name returns redGraphite', () {
       final theme = AppTheme.getTheme('nonexistent');
       expect(theme.brightness, Brightness.light);
     });
 
-    test('all theme names are available', () {
-      expect(AppTheme.themeNames, containsAll([
-        'cadmiumLight', 'oneDark', 'materialDark', 'graphiteLight', 'ulyssesLight',
-      ]));
+    test('legacy theme names are migrated', () {
+      expect(AppTheme.migrateName('cadmiumLight'), 'redGraphite');
+      expect(AppTheme.migrateName('oneDark'), 'darkGraphite');
+      expect(AppTheme.migrateName('materialDark'), 'dieciOLED');
+      expect(AppTheme.migrateName('graphiteLight'), 'redGraphite');
+      expect(AppTheme.migrateName('ulyssesLight'), 'shibuya');
     });
 
-    test('themeNames matches themes map keys', () {
-      expect(AppTheme.themeNames.toSet(), AppTheme.themes.keys.toSet());
+    test('all theme names have tokens', () {
+      for (final name in AppTheme.themeNames) {
+        final tokens = AppTheme.getTokens(name);
+        expect(tokens.colorBg, isNotNull);
+        expect(tokens.colorAccent, isNotNull);
+      }
     });
   });
 }

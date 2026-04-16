@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import '../../app.dart';
 import '../../core/i18n/l10n/app_localizations.dart';
+import '../../core/theme/app_theme.dart';
 import '../../models/file_node.dart';
 import '../../models/tab_info.dart';
 import '../../providers/editor_provider.dart';
@@ -38,60 +39,59 @@ class _SideBarState extends ConsumerState<SideBar> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final config = ref.watch(settingsProvider);
+    final tokens = AppTheme.getTokens(config.themeName);
     return Container(
       width: 280,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: tokens.colorSurface,
         border: Border(
-          right: BorderSide(
-            color: Theme.of(context).dividerColor,
-            width: 1,
-          ),
+          right: BorderSide(color: tokens.colorBorder, width: 1),
         ),
       ),
       child: Row(
         children: [
-          _buildIconColumn(l10n),
+          _buildIconColumn(l10n, tokens),
           Expanded(child: _buildContentArea(l10n)),
         ],
       ),
     );
   }
 
-  Widget _buildIconColumn(AppLocalizations l10n) {
+  Widget _buildIconColumn(AppLocalizations l10n, AppThemeTokens tokens) {
     return Container(
-      width: 48,
+      width: 40,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        color: tokens.colorSurface,
         border: Border(
-          right: BorderSide(
-            color: Theme.of(context).dividerColor,
-            width: 1,
-          ),
+          right: BorderSide(color: tokens.colorBorder, width: 1),
         ),
       ),
       child: Column(
         children: [
-          _buildIconButton(Icons.folder_outlined, SideBarTab.files, l10n.sidebarFiles),
-          _buildIconButton(Icons.search, SideBarTab.search, l10n.sidebarSearch),
-          _buildIconButton(Icons.list, SideBarTab.toc, l10n.sidebarToc),
+          const SizedBox(height: 4),
+          _buildIconButton(Icons.folder_outlined, SideBarTab.files, l10n.sidebarFiles, tokens),
+          _buildIconButton(Icons.search, SideBarTab.search, l10n.sidebarSearch, tokens),
+          _buildIconButton(Icons.list, SideBarTab.toc, l10n.sidebarToc, tokens),
           const Spacer(),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            color: Theme.of(context).colorScheme.onSurface,
-            onPressed: () {
-              navigatorKey.currentState?.push(
-                MaterialPageRoute(builder: (_) => const SettingsScreen()),
-              );
-            },
-            tooltip: l10n.sidebarSettings,
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: IconButton(
+              icon: Icon(Icons.settings, size: 18, color: tokens.colorTextMuted),
+              onPressed: () {
+                navigatorKey.currentState?.push(
+                  MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                );
+              },
+              tooltip: l10n.sidebarSettings,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildIconButton(IconData icon, SideBarTab tab, String tooltip) {
+  Widget _buildIconButton(IconData icon, SideBarTab tab, String tooltip, AppThemeTokens tokens) {
     final isSelected = _selectedTab == tab;
     final isHovered = _hoveredTab == tab;
     return Tooltip(
@@ -103,24 +103,23 @@ class _SideBarState extends ConsumerState<SideBar> {
         child: GestureDetector(
           onTap: () => setState(() => _selectedTab = tab),
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            curve: Curves.easeInOut,
-            margin: const EdgeInsets.symmetric(vertical: 2, horizontal: 6),
-            padding: const EdgeInsets.all(8),
+            duration: const Duration(milliseconds: 100),
+            curve: Curves.easeOut,
+            width: 32,
+            height: 32,
+            margin: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
             decoration: BoxDecoration(
               color: isSelected
-                  ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.15)
+                  ? tokens.colorSurfaceHover
                   : isHovered
-                      ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06)
+                      ? tokens.colorSurfaceHover.withValues(alpha: 0.5)
                       : Colors.transparent,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
               icon,
-              size: 22,
-              color: isSelected
-                  ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.onSurface,
+              size: 18,
+              color: isSelected ? tokens.colorAccent : tokens.colorTextMuted,
             ),
           ),
         ),
@@ -151,14 +150,42 @@ class _SideBarState extends ConsumerState<SideBar> {
 
   Widget _buildFileTree(AppLocalizations l10n) {
     final fileNodes = ref.watch(fileProvider);
+    final tabState = ref.watch(tabProvider);
+    final currentDir = ref.watch(fileProvider.notifier).currentDirectory;
+
     if (fileNodes.isNotEmpty) {
+      // Collect opened files that are NOT inside the current directory
+      final externalFiles = <OpenedFileEntry>[];
+      if (currentDir != null) {
+        for (final file in tabState.openedFiles) {
+          if (!file.filePath.startsWith(currentDir)) {
+            externalFiles.add(file);
+          }
+        }
+      }
+
       return ListView(
-        children: fileNodes.map((node) => _buildFileNode(node, 0)).toList(),
+        children: [
+          ...fileNodes.map((node) => _buildFileNode(node, 0)),
+          // Show externally opened files below the directory tree
+          if (externalFiles.isNotEmpty) ...[
+            Padding(
+              padding: const EdgeInsets.only(left: 8, top: 12, bottom: 4),
+              child: Text(
+                l10n.sidebarFiles,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                  fontSize: 11,
+                ),
+              ),
+            ),
+            ...externalFiles.map((file) => _buildExternalFileItem(file, tabState, l10n)),
+          ],
+        ],
       );
     }
 
     // No folder opened – show opened files list
-    final tabState = ref.watch(tabProvider);
     if (tabState.openedFiles.isEmpty) {
       return Center(
         child: Padding(
@@ -176,61 +203,75 @@ class _SideBarState extends ConsumerState<SideBar> {
 
     return ListView(
       children: tabState.openedFiles.map((file) {
-        final isActive = tabState.tabs.any((t) => t.filePath == file.filePath && t.id == tabState.activeTabId);
-        return GestureDetector(
-          onSecondaryTapUp: (details) {
-            _showOpenedFileContextMenu(context, details.globalPosition, file);
-          },
-          child: InkWell(
-            onTap: () => _openFileInTab(file.filePath),
-            hoverColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
-            child: Padding(
-              padding: const EdgeInsets.only(left: 8, right: 8),
-              child: SizedBox(
-                height: 28,
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.insert_drive_file,
-                      size: 16,
-                      color: isActive
-                          ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-                    ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        file.fileName,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-                          color: isActive
-                              ? Theme.of(context).colorScheme.primary
-                              : null,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close, size: 14),
-                      iconSize: 14,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
-                      onPressed: () {
-                        ref.read(tabProvider.notifier).removeOpenedFile(file.filePath);
-                      },
-                      tooltip: l10n.closeFile,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
+        return _buildExternalFileItem(file, tabState, l10n);
       }).toList(),
     );
   }
 
+  Widget _buildExternalFileItem(OpenedFileEntry file, TabState tabState, AppLocalizations l10n) {
+    final isActive = tabState.tabs.any((t) => t.filePath == file.filePath && t.id == tabState.activeTabId);
+    return GestureDetector(
+      onSecondaryTapUp: (details) {
+        _showOpenedFileContextMenu(context, details.globalPosition, file);
+      },
+      child: InkWell(
+        onTap: () => _openFileInTab(file.filePath),
+        hoverColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+        child: Padding(
+          padding: const EdgeInsets.only(left: 8, right: 4),
+          child: SizedBox(
+            height: 28,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.insert_drive_file,
+                  size: 16,
+                  color: isActive
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    file.fileName,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+                      color: isActive
+                          ? Theme.of(context).colorScheme.primary
+                          : null,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: IconButton(
+                    icon: const Icon(Icons.close, size: 12),
+                    iconSize: 12,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+                    onPressed: () {
+                      ref.read(tabProvider.notifier).removeOpenedFile(file.filePath);
+                    },
+                    tooltip: l10n.closeFile,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildFileNode(FileNode node, int depth) {
+    final l10n = AppLocalizations.of(context)!;
+    final tabState = ref.watch(tabProvider);
+    final isOpenedInTab = !node.isDirectory &&
+        tabState.tabs.any((t) => t.filePath == node.path);
+    final isRootFolder = depth == 0 && node.isDirectory;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -247,7 +288,7 @@ class _SideBarState extends ConsumerState<SideBar> {
               }
             },
             child: Padding(
-              padding: EdgeInsets.only(left: depth * 16.0 + 8, right: 8),
+              padding: EdgeInsets.only(left: depth * 16.0 + 8, right: 4),
               child: SizedBox(
                 height: 28,
                 child: Row(
@@ -275,6 +316,36 @@ class _SideBarState extends ConsumerState<SideBar> {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                    if (isRootFolder || isOpenedInTab)
+                      SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: IconButton(
+                          icon: const Icon(Icons.close, size: 12),
+                          iconSize: 12,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+                          onPressed: () {
+                            if (isRootFolder) {
+                              // Close the entire folder and all its files
+                              final folderPath = node.path;
+                              ref.read(fileProvider.notifier).closeDirectory();
+
+                              // Close all tabs for files in this folder
+                              final tabState = ref.read(tabProvider);
+                              for (final tab in tabState.tabs) {
+                                if (tab.filePath != null && tab.filePath!.startsWith(folderPath)) {
+                                  ref.read(tabProvider.notifier).removeOpenedFile(tab.filePath!);
+                                }
+                              }
+                            } else {
+                              // Close the file tab
+                              ref.read(tabProvider.notifier).removeOpenedFile(node.path);
+                            }
+                          },
+                          tooltip: isRootFolder ? l10n.fileOpenFolder : l10n.closeFile,
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -288,42 +359,43 @@ class _SideBarState extends ConsumerState<SideBar> {
   }
 
   void _showFileContextMenu(BuildContext context, Offset position, FileNode node) async {
+    final l10n = AppLocalizations.of(context)!;
     final parentDir = node.isDirectory ? node.path : p.dirname(node.path);
     final result = await showMenu<String>(
       context: context,
       position: RelativeRect.fromLTRB(position.dx, position.dy, position.dx, position.dy),
       items: [
-        const PopupMenuItem(value: 'new_file', child: Text('New File')),
-        const PopupMenuItem(value: 'new_folder', child: Text('New Folder')),
+        PopupMenuItem(value: 'new_file', child: Text(l10n.fileNew)),
+        PopupMenuItem(value: 'new_folder', child: Text(l10n.newFolder)),
         const PopupMenuDivider(),
-        const PopupMenuItem(value: 'rename', child: Text('Rename')),
-        const PopupMenuItem(value: 'delete', child: Text('Delete')),
+        PopupMenuItem(value: 'rename', child: Text(l10n.rename)),
+        PopupMenuItem(value: 'delete', child: Text(l10n.delete)),
       ],
     );
     if (result == null || !mounted) return;
     switch (result) {
       case 'new_file':
         if (!mounted) return;
-        final name = await _showInputDialog(this.context, 'New File', 'File name');
+        final name = await _showInputDialog(this.context, l10n.fileNew, l10n.fileNameHint);
         if (name != null && name.isNotEmpty) {
           await ref.read(fileProvider.notifier).createNode(p.join(parentDir, name));
         }
       case 'new_folder':
         if (!mounted) return;
-        final name = await _showInputDialog(this.context, 'New Folder', 'Folder name');
+        final name = await _showInputDialog(this.context, l10n.newFolder, l10n.folderNameHint);
         if (name != null && name.isNotEmpty) {
           await ref.read(fileProvider.notifier).createNode(p.join(parentDir, name), isDirectory: true);
         }
       case 'rename':
         if (!mounted) return;
-        final newName = await _showInputDialog(this.context, 'Rename', 'New name', initialValue: node.name);
+        final newName = await _showInputDialog(this.context, l10n.rename, l10n.newNameHint, initialValue: node.name);
         if (newName != null && newName.isNotEmpty && newName != node.name) {
           final newPath = p.join(p.dirname(node.path), newName);
           await ref.read(fileProvider.notifier).renameNode(node.path, newPath);
         }
       case 'delete':
         if (!mounted) return;
-        final confirmed = await _showConfirmDialog(this.context, 'Delete "${node.name}"?');
+        final confirmed = await _showConfirmDialog(this.context, l10n.confirmDeleteFile(node.name));
         if (confirmed == true) {
           await ref.read(fileProvider.notifier).deleteNode(node.path);
         }
@@ -331,6 +403,7 @@ class _SideBarState extends ConsumerState<SideBar> {
   }
 
   Future<String?> _showInputDialog(BuildContext context, String title, String hint, {String? initialValue}) {
+    final l10n = AppLocalizations.of(context)!;
     final controller = TextEditingController(text: initialValue);
     return showDialog<String>(
       context: context,
@@ -343,22 +416,23 @@ class _SideBarState extends ConsumerState<SideBar> {
           onSubmitted: (value) => Navigator.of(ctx).pop(value),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.of(ctx).pop(controller.text), child: const Text('OK')),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: Text(l10n.cancel)),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(controller.text), child: Text(l10n.ok)),
         ],
       ),
     );
   }
 
   Future<bool?> _showConfirmDialog(BuildContext context, String message) {
+    final l10n = AppLocalizations.of(context)!;
     return showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Confirm'),
+        title: Text(l10n.confirm),
         content: Text(message),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Delete')),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(l10n.cancel)),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: Text(l10n.delete)),
         ],
       ),
     );
@@ -421,6 +495,21 @@ class _SideBarState extends ConsumerState<SideBar> {
   // -- Search Panel --
 
   Widget _buildSearchPanel(AppLocalizations l10n) {
+    final rootPath = ref.watch(fileProvider.notifier).currentDirectory;
+    if (rootPath == null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            l10n.noOpenFolder,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
     return Column(
       children: [
         Padding(
@@ -513,8 +602,8 @@ class _SideBarState extends ConsumerState<SideBar> {
     final query = _searchController.text.trim();
     if (query.isEmpty) return;
 
-    final fileNodes = ref.read(fileProvider);
-    if (fileNodes.isEmpty) return;
+    final rootPath = ref.read(fileProvider.notifier).currentDirectory;
+    if (rootPath == null) return;
 
     setState(() {
       _isSearching = true;
@@ -522,10 +611,7 @@ class _SideBarState extends ConsumerState<SideBar> {
     });
 
     final results = <_SearchResult>[];
-    final rootPath = ref.read(fileProvider.notifier).currentDirectory;
-    if (rootPath != null) {
-      await _searchInDirectory(Directory(rootPath), query, results);
-    }
+    await _searchInDirectory(Directory(rootPath), query, results);
 
     if (mounted) {
       setState(() {

@@ -525,4 +525,137 @@ class AppLocalizationsZh extends AppLocalizations {
   String confirmDeleteFile(String fileName) {
     return '确定要删除 \"$fileName\" 吗？';
   }
+
+  @override
+  String get newFolder => '新建文件夹';
+
+  @override
+  String get rename => '重命名';
+
+  @override
+  String get delete => '删除';
+
+  @override
+  String get confirm => '确认';
+
+  @override
+  String get fileNameHint => '文件名';
+
+  @override
+  String get folderNameHint => '文件夹名';
+
+  @override
+  String get newNameHint => '新名称';
+
+  @override
+  String get closeOtherTabs => '关闭其他标签页';
+
+  @override
+  String get closeTabsToRight => '关闭右侧标签页';
+
+  @override
+  String get closeAllTabs => '关闭所有标签页';
+
+  @override
+  String get revealInExplorer => '在文件管理器中显示';
+
+  @override
+  String get formatTextSubmenu => '文本';
+
+  @override
+  String get formatBlocksSubmenu => '块元素';
+
+  @override
+  String get formatCodeSubmenu => '代码';
+
+  @override
+  String get formatInsertSubmenu => '插入';
+
+  @override
+  String get fileRename => '重命名';
+
+  @override
+  String get newTab => '新建标签页';
+
+  @override
+  String get newNameHintDialog => '新名称';
+
+  @override
+  String get commandPaletteHint => '输入命令...';
+
+  @override
+  String get commandPaletteNoResults => '没有匹配的命令';
+
+  @override
+  String get statusLineFeed => 'LF';
+
+  @override
+  String get settingsTextDirectionLtr => '从左到右';
+
+  @override
+  String get settingsTextDirectionRtl => '从右到左';
+
+  @override
+  String commandFormatLabel(String action) {
+    return '格式：$action';
+  }
+
+  @override
+  String commandFormatDesc(String action) {
+    return '应用$action格式';
+  }
+
+  @override
+  String get commandNewFile => '新建文件';
+
+  @override
+  String get commandNewFileDesc => '创建一个新的无标题文件';
+
+  @override
+  String get commandSave => '保存';
+
+  @override
+  String get commandSaveDesc => '保存当前文件';
+
+  @override
+  String get commandSourceMode => '源码模式';
+
+  @override
+  String get commandSourceModeDesc => '切换到源码编辑模式';
+
+  @override
+  String get commandPreviewMode => '预览模式';
+
+  @override
+  String get commandPreviewModeDesc => '切换到预览模式';
+
+  @override
+  String get commandSplitMode => '分屏模式';
+
+  @override
+  String get commandSplitModeDesc => '切换到分屏编辑模式';
+
+  @override
+  String get commandToggleFocusMode => '切换专注模式';
+
+  @override
+  String get commandToggleFocusModeDesc => '切换无干扰专注模式';
+
+  @override
+  String get commandToggleTypewriterMode => '切换打字机模式';
+
+  @override
+  String get commandToggleTypewriterModeDesc => '切换打字机滚动模式';
+
+  @override
+  String get commandToggleSidebar => '切换侧边栏';
+
+  @override
+  String get commandToggleSidebarDesc => '显示或隐藏侧边栏';
+
+  @override
+  String get commandToggleTabBar => '切换标签栏';
+
+  @override
+  String get commandToggleTabBarDesc => '显示或隐藏标签栏';
 }

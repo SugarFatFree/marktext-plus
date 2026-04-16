@@ -527,6 +527,143 @@ class AppLocalizationsPt extends AppLocalizations {
   String confirmDeleteFile(String fileName) {
     return 'Tem a certeza de que deseja eliminar \"$fileName\"?';
   }
+
+  @override
+  String get newFolder => 'Nova pasta';
+
+  @override
+  String get rename => 'Renomear';
+
+  @override
+  String get delete => 'Eliminar';
+
+  @override
+  String get confirm => 'Confirmar';
+
+  @override
+  String get fileNameHint => 'Nome do ficheiro';
+
+  @override
+  String get folderNameHint => 'Nome da pasta';
+
+  @override
+  String get newNameHint => 'Novo nome';
+
+  @override
+  String get closeOtherTabs => 'Fechar outros separadores';
+
+  @override
+  String get closeTabsToRight => 'Fechar separadores à direita';
+
+  @override
+  String get closeAllTabs => 'Fechar todos os separadores';
+
+  @override
+  String get revealInExplorer => 'Mostrar no explorador de ficheiros';
+
+  @override
+  String get formatTextSubmenu => 'Texto';
+
+  @override
+  String get formatBlocksSubmenu => 'Blocos';
+
+  @override
+  String get formatCodeSubmenu => 'Código';
+
+  @override
+  String get formatInsertSubmenu => 'Inserir';
+
+  @override
+  String get fileRename => 'Renomear';
+
+  @override
+  String get newTab => 'Novo separador';
+
+  @override
+  String get newNameHintDialog => 'Novo nome';
+
+  @override
+  String get commandPaletteHint => 'Escreva um comando...';
+
+  @override
+  String get commandPaletteNoResults => 'Nenhum comando encontrado';
+
+  @override
+  String get statusLineFeed => 'LF';
+
+  @override
+  String get settingsTextDirectionLtr => 'Esquerda para direita';
+
+  @override
+  String get settingsTextDirectionRtl => 'Direita para esquerda';
+
+  @override
+  String commandFormatLabel(String action) {
+    return 'Formato: $action';
+  }
+
+  @override
+  String commandFormatDesc(String action) {
+    return 'Aplicar formatação $action';
+  }
+
+  @override
+  String get commandNewFile => 'Novo ficheiro';
+
+  @override
+  String get commandNewFileDesc => 'Criar um novo ficheiro sem título';
+
+  @override
+  String get commandSave => 'Guardar';
+
+  @override
+  String get commandSaveDesc => 'Guardar o ficheiro atual';
+
+  @override
+  String get commandSourceMode => 'Modo código fonte';
+
+  @override
+  String get commandSourceModeDesc =>
+      'Mudar para modo de edição de código fonte';
+
+  @override
+  String get commandPreviewMode => 'Modo pré-visualização';
+
+  @override
+  String get commandPreviewModeDesc => 'Mudar para modo de pré-visualização';
+
+  @override
+  String get commandSplitMode => 'Modo dividido';
+
+  @override
+  String get commandSplitModeDesc => 'Mudar para modo de edição dividida';
+
+  @override
+  String get commandToggleFocusMode => 'Alternar modo de foco';
+
+  @override
+  String get commandToggleFocusModeDesc =>
+      'Alternar modo de foco sem distrações';
+
+  @override
+  String get commandToggleTypewriterMode => 'Alternar modo máquina de escrever';
+
+  @override
+  String get commandToggleTypewriterModeDesc =>
+      'Alternar modo de deslocamento máquina de escrever';
+
+  @override
+  String get commandToggleSidebar => 'Alternar barra lateral';
+
+  @override
+  String get commandToggleSidebarDesc => 'Mostrar ou ocultar a barra lateral';
+
+  @override
+  String get commandToggleTabBar => 'Alternar barra de separadores';
+
+  @override
+  String get commandToggleTabBarDesc =>
+      'Mostrar ou ocultar a barra de separadores';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -1052,4 +1189,139 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String confirmDeleteFile(String fileName) {
     return 'Tem certeza de que deseja excluir \"$fileName\"?';
   }
+
+  @override
+  String get newFolder => 'Nova pasta';
+
+  @override
+  String get rename => 'Renomear';
+
+  @override
+  String get delete => 'Excluir';
+
+  @override
+  String get confirm => 'Confirmar';
+
+  @override
+  String get fileNameHint => 'Nome do arquivo';
+
+  @override
+  String get folderNameHint => 'Nome da pasta';
+
+  @override
+  String get newNameHint => 'Novo nome';
+
+  @override
+  String get closeOtherTabs => 'Fechar outras abas';
+
+  @override
+  String get closeTabsToRight => 'Fechar abas à direita';
+
+  @override
+  String get closeAllTabs => 'Fechar todas as abas';
+
+  @override
+  String get revealInExplorer => 'Mostrar no explorador de arquivos';
+
+  @override
+  String get formatTextSubmenu => 'Texto';
+
+  @override
+  String get formatBlocksSubmenu => 'Blocos';
+
+  @override
+  String get formatCodeSubmenu => 'Código';
+
+  @override
+  String get formatInsertSubmenu => 'Inserir';
+
+  @override
+  String get fileRename => 'Renomear';
+
+  @override
+  String get newTab => 'Nova aba';
+
+  @override
+  String get newNameHintDialog => 'Novo nome';
+
+  @override
+  String get commandPaletteHint => 'Digite um comando...';
+
+  @override
+  String get commandPaletteNoResults => 'Nenhum comando encontrado';
+
+  @override
+  String get statusLineFeed => 'LF';
+
+  @override
+  String get settingsTextDirectionLtr => 'Esquerda para direita';
+
+  @override
+  String get settingsTextDirectionRtl => 'Direita para esquerda';
+
+  @override
+  String commandFormatLabel(String action) {
+    return 'Formatar: $action';
+  }
+
+  @override
+  String commandFormatDesc(String action) {
+    return 'Aplicar formatação $action';
+  }
+
+  @override
+  String get commandNewFile => 'Novo arquivo';
+
+  @override
+  String get commandNewFileDesc => 'Criar um novo arquivo sem título';
+
+  @override
+  String get commandSave => 'Salvar';
+
+  @override
+  String get commandSaveDesc => 'Salvar o arquivo atual';
+
+  @override
+  String get commandSourceMode => 'Modo código fonte';
+
+  @override
+  String get commandSourceModeDesc => 'Alternar para modo de edição de código';
+
+  @override
+  String get commandPreviewMode => 'Modo pré-visualização';
+
+  @override
+  String get commandPreviewModeDesc => 'Alternar para modo de pré-visualização';
+
+  @override
+  String get commandSplitMode => 'Modo dividido';
+
+  @override
+  String get commandSplitModeDesc => 'Alternar para modo de edição dividida';
+
+  @override
+  String get commandToggleFocusMode => 'Alternar modo de foco';
+
+  @override
+  String get commandToggleFocusModeDesc =>
+      'Alternar modo de foco sem distrações';
+
+  @override
+  String get commandToggleTypewriterMode => 'Alternar modo máquina de escrever';
+
+  @override
+  String get commandToggleTypewriterModeDesc =>
+      'Alternar modo de rolagem máquina de escrever';
+
+  @override
+  String get commandToggleSidebar => 'Alternar barra lateral';
+
+  @override
+  String get commandToggleSidebarDesc => 'Mostrar ou ocultar a barra lateral';
+
+  @override
+  String get commandToggleTabBar => 'Alternar barra de abas';
+
+  @override
+  String get commandToggleTabBarDesc => 'Mostrar ou ocultar a barra de abas';
 }

@@ -16,14 +16,41 @@ class FileNotifier extends StateNotifier<List<FileNode>> {
 
   Future<void> loadDirectory(String path) async {
     _currentDirectory = path;
-    state = await _fileService.buildFileTree(path);
+    final rootName = path.split(RegExp(r'[\\/]')).where((part) => part.isNotEmpty).last;
+    final children = await _fileService.buildFileTree(path);
+    state = [
+      FileNode(
+        name: rootName,
+        path: path,
+        isDirectory: true,
+        children: children,
+        isExpanded: true,
+      ),
+    ];
     _watcherSubscription?.cancel();
     _watcherService.watch(path);
     _watcherSubscription = _watcherService.events.listen((_) async {
       if (_currentDirectory != null) {
-        state = await _fileService.buildFileTree(_currentDirectory!);
+        final currentPath = _currentDirectory!;
+        final currentRootName = currentPath.split(RegExp(r'[\\/]')).where((part) => part.isNotEmpty).last;
+        final currentChildren = await _fileService.buildFileTree(currentPath);
+        state = [
+          FileNode(
+            name: currentRootName,
+            path: currentPath,
+            isDirectory: true,
+            children: currentChildren,
+            isExpanded: true,
+          ),
+        ];
       }
     });
+  }
+
+  void closeDirectory() {
+    _currentDirectory = null;
+    state = [];
+    _watcherSubscription?.cancel();
   }
 
   Future<void> renameNode(String oldPath, String newPath) async {
@@ -47,7 +74,18 @@ class FileNotifier extends StateNotifier<List<FileNode>> {
 
   Future<void> _refreshTree() async {
     if (_currentDirectory != null) {
-      state = await _fileService.buildFileTree(_currentDirectory!);
+      final path = _currentDirectory!;
+      final rootName = path.split(RegExp(r'[\\/]')).where((part) => part.isNotEmpty).last;
+      final children = await _fileService.buildFileTree(path);
+      state = [
+        FileNode(
+          name: rootName,
+          path: path,
+          isDirectory: true,
+          children: children,
+          isExpanded: true,
+        ),
+      ];
     }
   }
 
