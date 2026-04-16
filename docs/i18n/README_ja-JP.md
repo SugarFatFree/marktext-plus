@@ -43,6 +43,18 @@ flutter build macos
 flutter build linux
 ```
 
+### macOS ユーザーへの注意事項
+
+> **注意**
+> Apple の公証を受けていないため、macOS 版では「Apple は MarkText Plus にマルウェアが含まれていないことを確認できません...」という警告が表示されます。
+>
+> MarkText Plus を「アプリケーション」フォルダにドラッグした後、以下のコマンドを実行してください：
+>
+> ```bash
+> xattr -cr /Applications/MarkText\ Plus.app
+> sudo codesign --force --deep --sign - /Applications/MarkText\ Plus.app
+> ```
+
 ## 開発
 
 ### プロジェクト構造

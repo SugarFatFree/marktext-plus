@@ -43,6 +43,18 @@ flutter build macos
 flutter build linux
 ```
 
+### ملاحظة لمستخدمي macOS
+
+> **تحذير**
+> ستظهر إصدارات macOS تحذير "لم تتمكن Apple من التحقق من أن MarkText Plus خالٍ من البرامج الضارة..." بسبب عدم وجود توثيق من Apple.
+>
+> بعد سحب MarkText Plus إلى مجلد "التطبيقات"، يرجى تشغيل الأوامر التالية:
+>
+> ```bash
+> xattr -cr /Applications/MarkText\ Plus.app
+> sudo codesign --force --deep --sign - /Applications/MarkText\ Plus.app
+> ```
+
 ## التطوير
 
 ### هيكل المشروع

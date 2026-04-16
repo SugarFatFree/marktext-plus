@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tab context menu: close others, close to right, close all, copy name/path, reveal in explorer
 - Sidebar active indicator with accent-colored left border
 - File tree drag-and-drop folder support
+- macOS unsigned app warning and workaround instructions in README
 
 ### Changed
 - Redesigned all UI components with token-based styling (tab bar, sidebar, status bar, editor, settings)
