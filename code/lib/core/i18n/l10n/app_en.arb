@@ -97,7 +97,8 @@
   "sidebarSettings": "Settings",
   "formatHeadingSubmenu": "Heading",
   "settingsBulletListMarker": "Bullet List Marker",
-  "settingsDarkMode": "Dark Mode",
+  "settingsLightThemes": "Light Themes",
+  "settingsDarkThemes": "Dark Themes",
   "confirmResetMessage": "Are you sure you want to reset all settings to defaults?",
   "comingSoon": "Coming soon",
   "noFiles": "No files",
@@ -138,6 +139,11 @@
   "themeMaterialDark": "Material Dark",
   "themeGraphiteLight": "Graphite Light",
   "themeUlyssesLight": "Ulysses Light",
+  "themeRedGraphite": "Red Graphite",
+  "themeShibuya": "Shibuya",
+  "themeDarkGraphite": "Dark Graphite",
+  "themeDieciOLED": "Dieci OLED",
+  "themeNord": "Nord",
   "keybindingBold": "Bold",
   "keybindingItalic": "Italic",
   "keybindingUnderline": "Underline",
@@ -218,5 +224,9 @@
   "commandToggleSidebar": "Toggle Sidebar",
   "commandToggleSidebarDesc": "Show or hide the sidebar",
   "commandToggleTabBar": "Toggle Tab Bar",
-  "commandToggleTabBarDesc": "Show or hide the tab bar"
+  "commandToggleTabBarDesc": "Show or hide the tab bar",
+
+  "welcomeNewFile": "New File",
+  "welcomeOpenFile": "Open File",
+  "welcomeDragHint": "Drop files here to open"
 }

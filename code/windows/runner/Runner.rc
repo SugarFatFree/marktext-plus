@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.marktextplus" "\0"
-            VALUE "FileDescription", "marktext_plus" "\0"
+            VALUE "FileDescription", "MarkText Plus" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "marktext_plus" "\0"
+            VALUE "InternalName", "MarkText Plus" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.marktextplus. All rights reserved." "\0"
             VALUE "OriginalFilename", "marktext_plus.exe" "\0"
-            VALUE "ProductName", "marktext_plus" "\0"
+            VALUE "ProductName", "MarkText Plus" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

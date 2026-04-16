@@ -13,7 +13,6 @@ class AppConfig {
   bool autoSave;
   int autoSaveDelay;
   String themeName;
-  bool darkMode;
   String locale;
   String bulletListMarker;
   int tabSize;
@@ -43,7 +42,6 @@ class AppConfig {
     this.autoSave = true,
     this.autoSaveDelay = 5000,
     this.themeName = 'redGraphite',
-    this.darkMode = false,
     this.locale = '',
     this.bulletListMarker = '-',
     this.tabSize = 4,
@@ -74,7 +72,6 @@ class AppConfig {
     'autoSave': autoSave,
     'autoSaveDelay': autoSaveDelay,
     'themeName': themeName,
-    'darkMode': darkMode,
     'locale': locale,
     'bulletListMarker': bulletListMarker,
     'tabSize': tabSize,
@@ -106,7 +103,6 @@ class AppConfig {
       autoSave: json['autoSave'] as bool? ?? true,
       autoSaveDelay: json['autoSaveDelay'] as int? ?? 5000,
       themeName: AppTheme.migrateName(json['themeName'] as String? ?? 'redGraphite'),
-      darkMode: json['darkMode'] as bool? ?? false,
       locale: json['locale'] as String? ?? '',
       bulletListMarker: json['bulletListMarker'] as String? ?? '-',
       tabSize: json['tabSize'] as int? ?? 4,
@@ -151,7 +147,6 @@ class AppConfig {
     bool? autoSave,
     int? autoSaveDelay,
     String? themeName,
-    bool? darkMode,
     String? locale,
     String? bulletListMarker,
     int? tabSize,
@@ -181,7 +176,6 @@ class AppConfig {
       autoSave: autoSave ?? this.autoSave,
       autoSaveDelay: autoSaveDelay ?? this.autoSaveDelay,
       themeName: themeName ?? this.themeName,
-      darkMode: darkMode ?? this.darkMode,
       locale: locale ?? this.locale,
       bulletListMarker: bulletListMarker ?? this.bulletListMarker,
       tabSize: tabSize ?? this.tabSize,

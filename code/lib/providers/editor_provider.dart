@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+enum SearchTarget { source, preview }
+
 enum FormatAction {
   bold,
   italic,
@@ -44,6 +46,12 @@ class EditorState {
   final bool canRedo;
   final bool showFindReplace;
   final int? targetScrollLine;
+  final SearchTarget searchTarget;
+  final String previewSearchQuery;
+  final bool previewSearchCaseSensitive;
+  final bool previewSearchWholeWord;
+  final bool previewSearchUseRegex;
+  final int previewCurrentMatchIndex;
 
   const EditorState({
     this.cursorLine = 0,
@@ -55,6 +63,12 @@ class EditorState {
     this.canRedo = false,
     this.showFindReplace = false,
     this.targetScrollLine,
+    this.searchTarget = SearchTarget.source,
+    this.previewSearchQuery = '',
+    this.previewSearchCaseSensitive = false,
+    this.previewSearchWholeWord = false,
+    this.previewSearchUseRegex = false,
+    this.previewCurrentMatchIndex = -1,
   });
 
   EditorState copyWith({
@@ -69,6 +83,12 @@ class EditorState {
     bool? showFindReplace,
     int? targetScrollLine,
     bool clearTargetScrollLine = false,
+    SearchTarget? searchTarget,
+    String? previewSearchQuery,
+    bool? previewSearchCaseSensitive,
+    bool? previewSearchWholeWord,
+    bool? previewSearchUseRegex,
+    int? previewCurrentMatchIndex,
   }) {
     return EditorState(
       cursorLine: cursorLine ?? this.cursorLine,
@@ -80,6 +100,12 @@ class EditorState {
       canRedo: canRedo ?? this.canRedo,
       showFindReplace: showFindReplace ?? this.showFindReplace,
       targetScrollLine: clearTargetScrollLine ? null : (targetScrollLine ?? this.targetScrollLine),
+      searchTarget: searchTarget ?? this.searchTarget,
+      previewSearchQuery: previewSearchQuery ?? this.previewSearchQuery,
+      previewSearchCaseSensitive: previewSearchCaseSensitive ?? this.previewSearchCaseSensitive,
+      previewSearchWholeWord: previewSearchWholeWord ?? this.previewSearchWholeWord,
+      previewSearchUseRegex: previewSearchUseRegex ?? this.previewSearchUseRegex,
+      previewCurrentMatchIndex: previewCurrentMatchIndex ?? this.previewCurrentMatchIndex,
     );
   }
 }
@@ -90,11 +116,79 @@ class EditorNotifier extends StateNotifier<EditorState> {
   final List<String> _undoStack = [];
   final List<String> _redoStack = [];
   TextEditingController? _controller;
+  ScrollController? _editorScrollController;
+  double _editorTextFieldWidth = 0;
 
   TextEditingController? get controller => _controller;
 
   void setController(TextEditingController controller) {
     _controller = controller;
+  }
+
+  void setEditorScrollController(ScrollController controller) {
+    _editorScrollController = controller;
+  }
+
+  /// Store the actual width available for text rendering inside the TextField.
+  /// SourceEditor should call this after layout so that scrollToSearchMatch
+  /// can account for soft-wrapped lines when computing the scroll target.
+  void setEditorTextFieldWidth(double width) {
+    _editorTextFieldWidth = width;
+  }
+
+  void scrollToSearchMatch(int lineNumber, double fontSize, double lineHeight, {int? charOffset}) {
+    if (_editorScrollController == null || !_editorScrollController!.hasClients) return;
+
+    final actualLineHeight = fontSize * lineHeight;
+    final viewportHeight = _editorScrollController!.position.viewportDimension;
+
+    double targetY;
+
+    // When charOffset and a valid editor width are available, use TextPainter
+    // to compute the real pixel-Y that accounts for soft-wrapped lines.
+    // This fixes the split-mode bug where the narrower pane causes extra
+    // visual lines that the simple `lineNumber * lineHeight` formula misses.
+    if (charOffset != null && _editorTextFieldWidth > 0 && _controller != null) {
+      final text = _controller!.text;
+      final safeOffset = charOffset.clamp(0, text.length);
+      final textBefore = text.substring(0, safeOffset);
+
+      final painter = TextPainter(
+        text: TextSpan(
+          text: textBefore,
+          style: TextStyle(fontSize: fontSize, height: lineHeight),
+        ),
+        textDirection: TextDirection.ltr,
+      );
+      // 16 = contentPadding horizontal (8 * 2) in SourceEditor's TextField
+      final layoutWidth = _editorTextFieldWidth - 16;
+      painter.layout(maxWidth: layoutWidth > 0 ? layoutWidth : double.infinity);
+      targetY = painter.height;
+      painter.dispose();
+    } else {
+      // Fallback: simple line-based calculation (works when no wrapping)
+      targetY = lineNumber * actualLineHeight;
+    }
+
+    // Position the target line at the upper 1/3 of the viewport for better
+    // readability. lineNumber is 0-based from find_replace_bar.dart.
+    final targetOffset = (targetY - viewportHeight / 3).clamp(
+      0.0,
+      _editorScrollController!.position.maxScrollExtent,
+    );
+
+    // Adaptive duration based on scroll distance
+    final currentOffset = _editorScrollController!.offset;
+    final distance = (targetOffset - currentOffset).abs();
+    final duration = distance > viewportHeight * 2
+        ? const Duration(milliseconds: 400)
+        : const Duration(milliseconds: 200);
+
+    _editorScrollController!.animateTo(
+      targetOffset,
+      duration: duration,
+      curve: Curves.easeOut,
+    );
   }
 
   void updateCursor(int line, int col) {
@@ -178,6 +272,33 @@ class EditorNotifier extends StateNotifier<EditorState> {
 
   void clearScrollTarget() {
     state = state.copyWith(clearTargetScrollLine: true);
+  }
+
+  void setSearchTarget(SearchTarget target) {
+    state = state.copyWith(searchTarget: target);
+  }
+
+  void updatePreviewSearch({
+    required String query,
+    required bool caseSensitive,
+    required bool wholeWord,
+    required bool useRegex,
+    required int currentMatchIndex,
+  }) {
+    state = state.copyWith(
+      previewSearchQuery: query,
+      previewSearchCaseSensitive: caseSensitive,
+      previewSearchWholeWord: wholeWord,
+      previewSearchUseRegex: useRegex,
+      previewCurrentMatchIndex: currentMatchIndex,
+    );
+  }
+
+  void clearPreviewSearch() {
+    state = state.copyWith(
+      previewSearchQuery: '',
+      previewCurrentMatchIndex: -1,
+    );
   }
 }
 

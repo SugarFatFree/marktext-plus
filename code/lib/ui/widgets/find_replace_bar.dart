@@ -2,14 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/i18n/l10n/app_localizations.dart';
 import '../../providers/editor_provider.dart';
+import '../../providers/settings_provider.dart';
+import '../editor/highlighting_controller.dart';
 
 class FindReplaceBar extends ConsumerStatefulWidget {
-  final TextEditingController textController;
+  final TextEditingController? textController;
+  final String? rawContent;
+  final bool isSplitMode;
 
   const FindReplaceBar({
     super.key,
-    required this.textController,
-  });
+    this.textController,
+    this.rawContent,
+    this.isSplitMode = false,
+  }) : assert(textController != null || rawContent != null, 'Either textController or rawContent must be provided');
 
   @override
   ConsumerState<FindReplaceBar> createState() => _FindReplaceBarState();
@@ -39,18 +45,47 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
 
   @override
   void dispose() {
+    _clearHighlighting();
     _findController.dispose();
     _replaceController.dispose();
     _findFocusNode.dispose();
     super.dispose();
   }
 
+  void _clearHighlighting() {
+    if (widget.textController is HighlightingController) {
+      (widget.textController as HighlightingController)
+          .updateSearchMatches([], -1);
+    }
+    ref.read(editorProvider.notifier).clearPreviewSearch();
+  }
+
   void _onFindTextChanged() {
     _findMatches();
   }
 
+  /// Get the text to search based on current search target.
+  String _getSearchText() {
+    if (widget.isSplitMode) {
+      final target = ref.read(editorProvider).searchTarget;
+      if (target == SearchTarget.preview) {
+        return widget.rawContent ?? '';
+      }
+      return widget.textController?.text ?? '';
+    }
+    return widget.textController?.text ?? widget.rawContent ?? '';
+  }
+
+  /// Whether current search target is source (has textController).
+  bool _isSourceTarget() {
+    if (widget.isSplitMode) {
+      return ref.read(editorProvider).searchTarget == SearchTarget.source;
+    }
+    return widget.textController != null;
+  }
+
   void _findMatches() {
-    final text = widget.textController.text;
+    final text = _getSearchText();
     final pattern = _findController.text;
 
     if (pattern.isEmpty) {
@@ -58,6 +93,7 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
         _matches = [];
         _currentMatchIndex = -1;
       });
+      _updateHighlighting();
       return;
     }
 
@@ -65,10 +101,7 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
 
     if (_useRegex) {
       try {
-        final regex = RegExp(
-          pattern,
-          caseSensitive: _caseSensitive,
-        );
+        final regex = RegExp(pattern, caseSensitive: _caseSensitive);
         for (final match in regex.allMatches(text)) {
           matches.add(TextRange(start: match.start, end: match.end));
         }
@@ -110,8 +143,27 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
       _currentMatchIndex = matches.isNotEmpty ? 0 : -1;
     });
 
+    _updateHighlighting();
+
     if (matches.isNotEmpty) {
       _highlightMatch(0);
+    }
+  }
+
+  void _updateHighlighting() {
+    if (widget.textController is HighlightingController) {
+      (widget.textController as HighlightingController)
+          .updateSearchMatches(_matches, _currentMatchIndex);
+    }
+    // Update preview search state in provider
+    if (!_isSourceTarget()) {
+      ref.read(editorProvider.notifier).updatePreviewSearch(
+        query: _findController.text,
+        caseSensitive: _caseSensitive,
+        wholeWord: _wholeWord,
+        useRegex: _useRegex,
+        currentMatchIndex: _currentMatchIndex,
+      );
     }
   }
 
@@ -123,10 +175,32 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
     if (index < 0 || index >= _matches.length) return;
 
     final match = _matches[index];
-    widget.textController.selection = TextSelection(
-      baseOffset: match.start,
-      extentOffset: match.end,
-    );
+    final text = _getSearchText();
+
+    // Update highlighting
+    _updateHighlighting();
+
+    if (_isSourceTarget()) {
+      // Source mode: set selection
+      widget.textController!.selection = TextSelection(
+        baseOffset: match.start,
+        extentOffset: match.end,
+      );
+
+      // Scroll to match
+      final lineNumber = text.substring(0, match.start).split('\n').length - 1;
+      final config = ref.read(settingsProvider);
+      ref.read(editorProvider.notifier).scrollToSearchMatch(
+        lineNumber,
+        config.fontSize,
+        config.lineHeight,
+        charOffset: match.start,
+      );
+    } else {
+      // Preview mode: scroll to line
+      final lineNumber = text.substring(0, match.start).split('\n').length;
+      ref.read(editorProvider.notifier).scrollToLine(lineNumber);
+    }
   }
 
   void _findNext() {
@@ -149,17 +223,18 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
   }
 
   void _replace() {
+    if (!_isSourceTarget() || widget.textController == null) return;
     if (_currentMatchIndex < 0 || _currentMatchIndex >= _matches.length) return;
 
     final match = _matches[_currentMatchIndex];
-    final text = widget.textController.text;
+    final text = widget.textController!.text;
     final replacement = _replaceController.text;
 
     final newText = text.substring(0, match.start) +
         replacement +
         text.substring(match.end);
 
-    widget.textController.value = TextEditingValue(
+    widget.textController!.value = TextEditingValue(
       text: newText,
       selection: TextSelection.collapsed(
         offset: match.start + replacement.length,
@@ -170,9 +245,10 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
   }
 
   void _replaceAll() {
+    if (!_isSourceTarget() || widget.textController == null) return;
     if (_matches.isEmpty) return;
 
-    final text = widget.textController.text;
+    final text = widget.textController!.text;
     final replacement = _replaceController.text;
     final pattern = _findController.text;
 
@@ -186,11 +262,9 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
         );
         newText = text.replaceAll(regex, replacement);
       } catch (e) {
-        // Invalid regex
         return;
       }
     } else {
-      // Replace from end to start to maintain indices
       for (int i = _matches.length - 1; i >= 0; i--) {
         final match = _matches[i];
         newText = newText.substring(0, match.start) +
@@ -199,7 +273,7 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
       }
     }
 
-    widget.textController.value = TextEditingValue(
+    widget.textController!.value = TextEditingValue(
       text: newText,
       selection: TextSelection.collapsed(offset: 0),
     );
@@ -208,6 +282,7 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
   }
 
   void _close() {
+    _clearHighlighting();
     ref.read(editorProvider.notifier).hideFindReplace();
   }
 
@@ -217,7 +292,7 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
     final l10n = AppLocalizations.of(context)!;
 
     return Container(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         border: Border(
@@ -236,6 +311,34 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
         children: [
           Row(
             children: [
+              if (widget.isSplitMode) ...[
+                SegmentedButton<SearchTarget>(
+                  segments: const [
+                    ButtonSegment(
+                      value: SearchTarget.source,
+                      label: Text('源代码', style: TextStyle(fontSize: 12)),
+                      icon: Icon(Icons.code, size: 14),
+                    ),
+                    ButtonSegment(
+                      value: SearchTarget.preview,
+                      label: Text('预览', style: TextStyle(fontSize: 12)),
+                      icon: Icon(Icons.visibility, size: 14),
+                    ),
+                  ],
+                  selected: {ref.watch(editorProvider).searchTarget},
+                  onSelectionChanged: (Set<SearchTarget> newSelection) {
+                    ref.read(editorProvider.notifier).setSearchTarget(newSelection.first);
+                    _findMatches();
+                  },
+                  style: ButtonStyle(
+                    visualDensity: VisualDensity.compact,
+                    padding: WidgetStateProperty.all(
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
               Expanded(
                 child: TextField(
                   controller: _findController,
@@ -244,8 +347,8 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
                     hintText: l10n.editFind,
                     isDense: true,
                     contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
+                      horizontal: 8,
+                      vertical: 6,
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(4),
@@ -254,95 +357,11 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
                         ? '${_currentMatchIndex + 1}/${_matches.length}'
                         : null,
                   ),
+                  style: const TextStyle(fontSize: 13),
                   onSubmitted: (_) => _findNext(),
                 ),
               ),
-              const SizedBox(width: 8),
-              IconButton(
-                icon: const Icon(Icons.arrow_upward, size: 18),
-                onPressed: _matches.isNotEmpty ? _findPrevious : null,
-                tooltip: l10n.editFindPrevious,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(
-                  minWidth: 32,
-                  minHeight: 32,
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.arrow_downward, size: 18),
-                onPressed: _matches.isNotEmpty ? _findNext : null,
-                tooltip: l10n.editFindNext,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(
-                  minWidth: 32,
-                  minHeight: 32,
-                ),
-              ),
-              const SizedBox(width: 8),
-              IconButton(
-                icon: Icon(
-                  _showReplace ? Icons.expand_less : Icons.expand_more,
-                  size: 18,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _showReplace = !_showReplace;
-                  });
-                },
-                tooltip: l10n.editReplace,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(
-                  minWidth: 32,
-                  minHeight: 32,
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.close, size: 18),
-                onPressed: _close,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(
-                  minWidth: 32,
-                  minHeight: 32,
-                ),
-              ),
-            ],
-          ),
-          if (_showReplace) ...[
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _replaceController,
-                    decoration: InputDecoration(
-                      hintText: l10n.editReplace,
-                      isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                    onSubmitted: (_) => _replace(),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                TextButton(
-                  onPressed: _matches.isNotEmpty ? _replace : null,
-                  child: Text(l10n.editReplace),
-                ),
-                TextButton(
-                  onPressed: _matches.isNotEmpty ? _replaceAll : null,
-                  child: Text(l10n.editReplaceAll),
-                ),
-              ],
-            ),
-          ],
-          const SizedBox(height: 8),
-          Row(
-            children: [
+              const SizedBox(width: 4),
               _buildOptionButton(
                 label: 'Aa',
                 tooltip: l10n.editCaseSensitive,
@@ -354,7 +373,7 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
                   _findMatches();
                 },
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 2),
               _buildOptionButton(
                 label: '\\b',
                 tooltip: l10n.editWholeWord,
@@ -366,7 +385,7 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
                   _findMatches();
                 },
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 2),
               _buildOptionButton(
                 label: '.*',
                 tooltip: l10n.editRegex,
@@ -378,8 +397,100 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
                   _findMatches();
                 },
               ),
+              const SizedBox(width: 4),
+              IconButton(
+                icon: const Icon(Icons.arrow_upward, size: 16),
+                onPressed: _matches.isNotEmpty ? _findPrevious : null,
+                tooltip: l10n.editFindPrevious,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(
+                  minWidth: 28,
+                  minHeight: 28,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.arrow_downward, size: 16),
+                onPressed: _matches.isNotEmpty ? _findNext : null,
+                tooltip: l10n.editFindNext,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(
+                  minWidth: 28,
+                  minHeight: 28,
+                ),
+              ),
+              if (_isSourceTarget())
+                IconButton(
+                  icon: Icon(
+                    _showReplace ? Icons.expand_less : Icons.expand_more,
+                    size: 16,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _showReplace = !_showReplace;
+                    });
+                  },
+                  tooltip: l10n.editReplace,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 28,
+                    minHeight: 28,
+                  ),
+                ),
+              IconButton(
+                icon: const Icon(Icons.close, size: 16),
+                onPressed: _close,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(
+                  minWidth: 28,
+                  minHeight: 28,
+                ),
+              ),
             ],
           ),
+          if (_showReplace) ...[
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _replaceController,
+                    decoration: InputDecoration(
+                      hintText: l10n.editReplace,
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 6,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    style: const TextStyle(fontSize: 13),
+                    onSubmitted: (_) => _replace(),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                TextButton(
+                  onPressed: _matches.isNotEmpty ? _replace : null,
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    minimumSize: const Size(0, 28),
+                    textStyle: const TextStyle(fontSize: 12),
+                  ),
+                  child: Text(l10n.editReplace),
+                ),
+                TextButton(
+                  onPressed: _matches.isNotEmpty ? _replaceAll : null,
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    minimumSize: const Size(0, 28),
+                    textStyle: const TextStyle(fontSize: 12),
+                  ),
+                  child: Text(l10n.editReplaceAll),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );

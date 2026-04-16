@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/i18n/l10n/app_localizations.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/locale_provider.dart';
+import '../../core/config/app_config.dart';
 import '../../core/theme/app_theme.dart';
 import '../../services/keybinding_service.dart';
 
@@ -78,23 +79,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
           ),
           Expanded(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
-              switchInCurve: Curves.easeInOut,
-              transitionBuilder: (child, animation) {
-                return FadeTransition(opacity: animation, child: child);
-              },
-              child: SingleChildScrollView(
-                key: ValueKey(_selected),
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _content(l10n),
-                    const SizedBox(height: 32),
-                    _resetButton(l10n),
-                  ],
-                ),
+            child: SingleChildScrollView(
+              key: ValueKey(_selected),
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _content(l10n),
+                  const SizedBox(height: 32),
+                  _resetButton(l10n),
+                ],
               ),
             ),
           ),
@@ -127,13 +121,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             child: Row(
               children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  child: Icon(
-                    icon,
-                    size: 18,
-                    color: isSelected ? tokens.colorAccent : tokens.colorTextMuted,
-                  ),
+                Icon(
+                  icon,
+                  size: 18,
+                  color: isSelected ? tokens.colorAccent : tokens.colorTextMuted,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -381,11 +372,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   // -- Theme --
   String _translateThemeName(String name, AppLocalizations l10n) {
     return switch (name) {
-      'redGraphite' => 'Red Graphite',
-      'shibuya' => 'Shibuya',
-      'darkGraphite' => 'Dark Graphite',
-      'dieciOLED' => 'Dieci OLED',
-      'nord' => 'Nord',
+      'redGraphite' => l10n.themeRedGraphite,
+      'shibuya' => l10n.themeShibuya,
+      'darkGraphite' => l10n.themeDarkGraphite,
+      'dieciOLED' => l10n.themeDieciOLED,
+      'nord' => l10n.themeNord,
       _ => name,
     };
   }
@@ -399,56 +390,68 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         Text(l10n.settingsTheme,
             style: Theme.of(context).textTheme.headlineSmall),
         const SizedBox(height: 24),
-        _row(
-          l10n.settingsDarkMode,
-          Switch(
-            value: config.darkMode,
-            onChanged: (v) => ref
-                .read(settingsProvider.notifier)
-                .updateConfig((c) => c.copyWith(darkMode: v)),
-          ),
-        ),
-        const SizedBox(height: 16),
+        Text(l10n.settingsLightThemes,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                )),
+        const SizedBox(height: 12),
         Wrap(
           spacing: 16,
           runSpacing: 16,
-          children: AppTheme.themeNames.map((name) {
-            final tokens = AppTheme.getTokens(name);
-            final selected = config.themeName == name;
-            return InkWell(
-              onTap: () => ref.read(settingsProvider.notifier).setTheme(name),
-              borderRadius: BorderRadius.circular(8),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                width: 140, height: 90,
-                decoration: BoxDecoration(
-                  color: tokens.colorSurface,
-                  border: Border.all(
-                    color: selected ? tokens.colorAccent : tokens.colorBorder,
-                    width: selected ? 2 : 1,
-                  ),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 32, height: 32,
-                      decoration: BoxDecoration(
-                        color: tokens.colorAccent,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(_translateThemeName(name, l10n),
-                        style: TextStyle(color: tokens.colorText, fontSize: 13)),
-                  ],
-                ),
-              ),
-            );
+          children: AppTheme.lightThemeNames.map((name) {
+            return _buildThemeCard(name, config, l10n);
+          }).toList(),
+        ),
+        const SizedBox(height: 24),
+        Text(l10n.settingsDarkThemes,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                )),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 16,
+          runSpacing: 16,
+          children: AppTheme.darkThemeNames.map((name) {
+            return _buildThemeCard(name, config, l10n);
           }).toList(),
         ),
       ],
+    );
+  }
+
+  Widget _buildThemeCard(String name, AppConfig config, AppLocalizations l10n) {
+    final tokens = AppTheme.getTokens(name);
+    final selected = config.themeName == name;
+    return InkWell(
+      onTap: () => ref.read(settingsProvider.notifier).setTheme(name),
+      borderRadius: BorderRadius.circular(8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        width: 140, height: 90,
+        decoration: BoxDecoration(
+          color: tokens.colorSurface,
+          border: Border.all(
+            color: selected ? tokens.colorAccent : tokens.colorBorder,
+            width: selected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 32, height: 32,
+              decoration: BoxDecoration(
+                color: tokens.colorAccent,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(_translateThemeName(name, l10n),
+                style: TextStyle(color: tokens.colorText, fontSize: 13)),
+          ],
+        ),
+      ),
     );
   }
 
@@ -493,39 +496,49 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final service = KeybindingService();
     final bindings = service.keybindings;
 
+    final entries = bindings.entries.toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(l10n.settingsKeybindings,
             style: Theme.of(context).textTheme.headlineSmall),
         const SizedBox(height: 24),
-        ...bindings.entries.map((entry) => Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(_translateKeybindingAction(entry.key, l10n), style: const TextStyle(fontSize: 16)),
-              Row(
+        ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: entries.length,
+          itemBuilder: (context, index) {
+            final entry = entries[index];
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(entry.value, style: const TextStyle(fontFamily: 'monospace')),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    icon: const Icon(Icons.edit, size: 18),
-                    tooltip: l10n.keybindingsEdit,
-                    onPressed: () => _showKeybindingDialog(entry.key, entry.value, l10n),
+                  Text(_translateKeybindingAction(entry.key, l10n), style: const TextStyle(fontSize: 16)),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(entry.value, style: const TextStyle(fontFamily: 'monospace')),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(Icons.edit, size: 18),
+                        tooltip: l10n.keybindingsEdit,
+                        onPressed: () => _showKeybindingDialog(entry.key, entry.value, l10n),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
-          ),
-        )),
+            );
+          },
+        ),
         const SizedBox(height: 16),
         Center(
           child: TextButton.icon(

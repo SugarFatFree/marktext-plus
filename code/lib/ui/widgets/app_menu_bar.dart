@@ -105,24 +105,27 @@ class AppMenuBar extends ConsumerWidget {
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: MenuBar(
-            style: MenuStyle(
-              backgroundColor: WidgetStatePropertyAll(tokens.colorSurface),
-              elevation: const WidgetStatePropertyAll(0),
-              padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        child: Row(
+          children: [
+            MenuBar(
+              style: MenuStyle(
+                backgroundColor: WidgetStatePropertyAll(tokens.colorSurface),
+                elevation: const WidgetStatePropertyAll(0),
+                padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+              ),
+              children: [
+                _buildFileMenu(l10n, ref),
+                _buildEditMenu(l10n, ref),
+                _buildViewMenu(l10n, ref),
+                _buildFormatMenu(l10n, ref),
+                _buildWindowMenu(l10n, ref),
+                _buildHelpMenu(l10n, ref),
+              ],
             ),
-            children: [
-              _buildFileMenu(l10n, ref),
-              _buildEditMenu(l10n, ref),
-              _buildViewMenu(l10n, ref),
-              _buildFormatMenu(l10n, ref),
-              _buildWindowMenu(l10n, ref),
-              _buildHelpMenu(l10n, ref),
-            ],
-          ),
+            const Spacer(),
+            _buildToolbarIcons(ref, tokens),
+          ],
         ),
       ),
     );
@@ -219,18 +222,15 @@ class AppMenuBar extends ConsumerWidget {
     return SubmenuButton(
       menuChildren: [
         MenuItemButton(
-          leadingIcon: const Icon(Icons.insert_drive_file),
           child: Text(l10n.fileNew),
           onPressed: () => _newFile(ref),
         ),
         MenuItemButton(
-          leadingIcon: const Icon(Icons.window),
           child: Text(l10n.fileNewWindow),
           onPressed: () => _newWindow(),
         ),
         const Divider(height: 1),
         MenuItemButton(
-          leadingIcon: const Icon(Icons.folder_open),
           onPressed: () => _openFile(ref),
           shortcut: SingleActivator(
             LogicalKeyboardKey.keyO,
@@ -240,14 +240,12 @@ class AppMenuBar extends ConsumerWidget {
           child: Text(l10n.fileOpen),
         ),
         MenuItemButton(
-          leadingIcon: const Icon(Icons.folder),
           child: Text(l10n.fileOpenFolder),
           onPressed: () => _openFolder(ref),
         ),
         _buildRecentFilesMenu(l10n, ref),
         const Divider(height: 1),
         MenuItemButton(
-          leadingIcon: const Icon(Icons.save),
           onPressed: () => _saveFile(ref),
           shortcut: SingleActivator(
             LogicalKeyboardKey.keyS,
@@ -257,12 +255,10 @@ class AppMenuBar extends ConsumerWidget {
           child: Text(l10n.fileSave),
         ),
         MenuItemButton(
-          leadingIcon: const Icon(Icons.save_as),
           child: Text(l10n.fileSaveAs),
           onPressed: () => _saveFileAs(ref),
         ),
         MenuItemButton(
-          leadingIcon: const Icon(Icons.drive_file_rename_outline),
           child: Text(l10n.fileRename),
           onPressed: () => _renameFile(ref),
         ),
@@ -282,22 +278,39 @@ class AppMenuBar extends ConsumerWidget {
         ),
         const Divider(height: 1),
         MenuItemButton(
-          leadingIcon: const Icon(Icons.settings),
           child: Text(l10n.fileSettings),
           onPressed: () {
             navigatorKey.currentState?.push(
-              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              PageRouteBuilder(
+                pageBuilder: (context, animation, secondaryAnimation) =>
+                    const SettingsScreen(),
+                transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0, 0.05),
+                        end: Offset.zero,
+                      ).animate(CurvedAnimation(
+                        parent: animation,
+                        curve: Curves.easeOut,
+                      )),
+                      child: child,
+                    ),
+                  );
+                },
+                transitionDuration: const Duration(milliseconds: 300),
+              ),
             );
           },
         ),
         const Divider(height: 1),
         MenuItemButton(
-          leadingIcon: const Icon(Icons.exit_to_app),
           child: Text(l10n.fileQuit),
           onPressed: () => exit(0),
         ),
       ],
-      child: Text(l10n.menuFile, style: const TextStyle(fontWeight: FontWeight.bold)),
+      child: Text(l10n.menuFile, style: const TextStyle(fontSize: 13)),
     );
   }
 
@@ -306,7 +319,6 @@ class AppMenuBar extends ConsumerWidget {
     return SubmenuButton(
       menuChildren: [
         MenuItemButton(
-          leadingIcon: const Icon(Icons.undo),
           onPressed: editorState.canUndo
               ? () => ref.read(editorProvider.notifier).undo()
               : null,
@@ -318,7 +330,6 @@ class AppMenuBar extends ConsumerWidget {
           child: Text(l10n.editUndo),
         ),
         MenuItemButton(
-          leadingIcon: const Icon(Icons.redo),
           onPressed: editorState.canRedo
               ? () => ref.read(editorProvider.notifier).redo()
               : null,
@@ -332,7 +343,6 @@ class AppMenuBar extends ConsumerWidget {
         ),
         const Divider(height: 1),
         MenuItemButton(
-          leadingIcon: const Icon(Icons.content_cut),
           child: Text(l10n.editCut),
           onPressed: () {
             final controller = ref.read(editorProvider.notifier).controller;
@@ -349,7 +359,6 @@ class AppMenuBar extends ConsumerWidget {
           },
         ),
         MenuItemButton(
-          leadingIcon: const Icon(Icons.content_copy),
           child: Text(l10n.editCopy),
           onPressed: () {
             final controller = ref.read(editorProvider.notifier).controller;
@@ -361,7 +370,6 @@ class AppMenuBar extends ConsumerWidget {
           },
         ),
         MenuItemButton(
-          leadingIcon: const Icon(Icons.content_paste),
           child: Text(l10n.editPaste),
           onPressed: () async {
             final controller = ref.read(editorProvider.notifier).controller;
@@ -381,18 +389,15 @@ class AppMenuBar extends ConsumerWidget {
         ),
         const Divider(height: 1),
         MenuItemButton(
-          leadingIcon: const Icon(Icons.copy),
           child: Text(l10n.editCopyAsMarkdown),
           onPressed: () => ref.read(editorProvider.notifier).applyFormat(FormatAction.copyAsMarkdown),
         ),
         MenuItemButton(
-          leadingIcon: const Icon(Icons.code),
           child: Text(l10n.editCopyAsHtml),
           onPressed: () => ref.read(editorProvider.notifier).applyFormat(FormatAction.copyAsHtml),
         ),
         const Divider(height: 1),
         MenuItemButton(
-          leadingIcon: const Icon(Icons.select_all),
           shortcut: SingleActivator(
             LogicalKeyboardKey.keyA,
             control: !PlatformUtils.isMacOS,
@@ -402,7 +407,6 @@ class AppMenuBar extends ConsumerWidget {
           onPressed: () => ref.read(editorProvider.notifier).applyFormat(FormatAction.selectAll),
         ),
         MenuItemButton(
-          leadingIcon: const Icon(Icons.content_copy),
           shortcut: SingleActivator(
             LogicalKeyboardKey.keyD,
             control: !PlatformUtils.isMacOS,
@@ -413,7 +417,6 @@ class AppMenuBar extends ConsumerWidget {
         ),
         const Divider(height: 1),
         MenuItemButton(
-          leadingIcon: const Icon(Icons.search),
           shortcut: SingleActivator(
             LogicalKeyboardKey.keyF,
             control: !PlatformUtils.isMacOS,
@@ -423,7 +426,6 @@ class AppMenuBar extends ConsumerWidget {
           onPressed: () => ref.read(editorProvider.notifier).toggleFindReplace(),
         ),
         MenuItemButton(
-          leadingIcon: const Icon(Icons.find_replace),
           shortcut: SingleActivator(
             LogicalKeyboardKey.keyH,
             control: !PlatformUtils.isMacOS,
@@ -433,7 +435,7 @@ class AppMenuBar extends ConsumerWidget {
           onPressed: () => ref.read(editorProvider.notifier).toggleFindReplace(),
         ),
       ],
-      child: Text(l10n.menuEdit, style: const TextStyle(fontWeight: FontWeight.bold)),
+      child: Text(l10n.menuEdit, style: const TextStyle(fontSize: 13)),
     );
   }
 
@@ -553,7 +555,7 @@ class AppMenuBar extends ConsumerWidget {
           },
         ),
       ],
-      child: Text(l10n.menuView, style: const TextStyle(fontWeight: FontWeight.bold)),
+      child: Text(l10n.menuView, style: const TextStyle(fontSize: 13)),
     );
   }
 
@@ -693,7 +695,7 @@ class AppMenuBar extends ConsumerWidget {
           child: Text(l10n.formatInsertSubmenu),
         ),
       ],
-      child: Text(l10n.menuFormat, style: const TextStyle(fontWeight: FontWeight.bold)),
+      child: Text(l10n.menuFormat, style: const TextStyle(fontSize: 13)),
     );
   }
 
@@ -717,7 +719,7 @@ class AppMenuBar extends ConsumerWidget {
           },
         ),
       ],
-      child: Text(l10n.menuWindow, style: const TextStyle(fontWeight: FontWeight.bold)),
+      child: Text(l10n.menuWindow, style: const TextStyle(fontSize: 13)),
     );
   }
 
@@ -738,28 +740,28 @@ class AppMenuBar extends ConsumerWidget {
         const Divider(height: 1),
         MenuItemButton(
           child: Text(l10n.helpCheckUpdates),
-          onPressed: () => _launchUrl('https://github.com/user/marktext-plus/releases'),
+          onPressed: () => _launchUrl('https://github.com/SugarFatFree/marktext-plus/releases'),
         ),
         MenuItemButton(
           child: Text(l10n.helpChangelog),
-          onPressed: () => _launchUrl('https://github.com/user/marktext-plus/releases'),
+          onPressed: () => _launchUrl('https://github.com/SugarFatFree/marktext-plus/releases'),
         ),
         const Divider(height: 1),
         MenuItemButton(
           child: Text(l10n.helpReportBug),
-          onPressed: () => _launchUrl('https://github.com/user/marktext-plus/issues'),
+          onPressed: () => _launchUrl('https://github.com/SugarFatFree/marktext-plus/issues'),
         ),
         MenuItemButton(
           child: Text(l10n.helpRequestFeature),
-          onPressed: () => _launchUrl('https://github.com/user/marktext-plus/issues'),
+          onPressed: () => _launchUrl('https://github.com/SugarFatFree/marktext-plus/issues'),
         ),
         const Divider(height: 1),
         MenuItemButton(
           child: Text(l10n.helpGitHub),
-          onPressed: () => _launchUrl('https://github.com/user/marktext-plus'),
+          onPressed: () => _launchUrl('https://github.com/SugarFatFree/marktext-plus'),
         ),
       ],
-      child: Text(l10n.menuHelp, style: const TextStyle(fontWeight: FontWeight.bold)),
+      child: Text(l10n.menuHelp, style: const TextStyle(fontSize: 13)),
     );
   }
 
@@ -837,5 +839,85 @@ class AppMenuBar extends ConsumerWidget {
     );
     ref.read(tabProvider.notifier).addTab(tab);
     ref.read(settingsProvider.notifier).addRecentFile(filePath);
+  }
+
+  Widget _buildToolbarIcons(WidgetRef ref, AppThemeTokens tokens) {
+    final config = ref.watch(settingsProvider);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Edit mode switch
+        IconButton(
+          icon: Icon(_getEditModeIcon(config.editMode)),
+          iconSize: 18,
+          tooltip: _getEditModeTooltip(config.editMode),
+          onPressed: () => _cycleEditMode(ref, config.editMode),
+        ),
+        const SizedBox(width: 4),
+        // Search
+        IconButton(
+          icon: const Icon(Icons.search),
+          iconSize: 18,
+          tooltip: '搜索',
+          onPressed: () => ref.read(editorProvider.notifier).toggleFindReplace(),
+        ),
+        const SizedBox(width: 4),
+        // Sidebar toggle
+        IconButton(
+          icon: Icon(config.sideBarVisible ? Icons.menu_open : Icons.menu),
+          iconSize: 18,
+          tooltip: config.sideBarVisible ? '隐藏侧边栏' : '显示侧边栏',
+          onPressed: () => ref.read(settingsProvider.notifier).toggleSideBar(),
+        ),
+        const SizedBox(width: 4),
+        // Zoom out
+        IconButton(
+          icon: const Icon(Icons.remove),
+          iconSize: 18,
+          tooltip: '缩小',
+          onPressed: () {
+            final newSize = (config.fontSize - 1).clamp(12.0, 32.0);
+            ref.read(settingsProvider.notifier).setFontSize(newSize);
+          },
+        ),
+        const SizedBox(width: 4),
+        // Zoom in
+        IconButton(
+          icon: const Icon(Icons.add),
+          iconSize: 18,
+          tooltip: '放大',
+          onPressed: () {
+            final newSize = (config.fontSize + 1).clamp(12.0, 32.0);
+            ref.read(settingsProvider.notifier).setFontSize(newSize);
+          },
+        ),
+      ],
+    );
+  }
+
+  IconData _getEditModeIcon(EditMode mode) {
+    return switch (mode) {
+      EditMode.source => Icons.code,
+      EditMode.preview => Icons.visibility,
+      EditMode.split => Icons.view_column,
+    };
+  }
+
+  String _getEditModeTooltip(EditMode mode) {
+    return switch (mode) {
+      EditMode.source => '源代码模式',
+      EditMode.preview => '预览模式',
+      EditMode.split => '双栏模式',
+    };
+  }
+
+  void _cycleEditMode(WidgetRef ref, EditMode current) {
+    final next = switch (current) {
+      EditMode.source => EditMode.preview,
+      EditMode.preview => EditMode.split,
+      EditMode.split => EditMode.source,
+    };
+    ref.read(settingsProvider.notifier).setEditMode(next);
   }
 }

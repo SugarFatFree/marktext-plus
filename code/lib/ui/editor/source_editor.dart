@@ -65,6 +65,7 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     // Register controller with editor provider and push initial history
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(editorProvider.notifier).setController(_controller);
+      ref.read(editorProvider.notifier).setEditorScrollController(_editorScrollController);
       ref.read(editorProvider.notifier).pushHistory(widget.initialContent);
       _isInitialized = true;
 
@@ -73,14 +74,22 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
         if (next != null && _editorScrollController.hasClients) {
           final config = ref.read(settingsProvider);
           final lineHeight = config.fontSize * config.lineHeight;
-          final offset = ((next - 1) * lineHeight).clamp(
+          final targetOffset = ((next - 1) * lineHeight).clamp(
             0.0,
             _editorScrollController.position.maxScrollExtent,
           );
+
+          final currentOffset = _editorScrollController.offset;
+          final viewportHeight = _editorScrollController.position.viewportDimension;
+          final distance = (targetOffset - currentOffset).abs();
+          final duration = distance > viewportHeight * 2
+              ? const Duration(milliseconds: 400)
+              : const Duration(milliseconds: 200);
+
           _editorScrollController.animateTo(
-            offset,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
+            targetOffset,
+            duration: duration,
+            curve: Curves.easeOut,
           );
           ref.read(editorProvider.notifier).clearScrollTarget();
         }
@@ -512,11 +521,11 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     final config = ref.watch(settingsProvider);
     final tokens = AppTheme.getTokens(config.themeName);
 
-    // Listen for pending format actions
-    final editorState = ref.watch(editorProvider);
-    if (editorState.pendingFormat != null) {
+    // Watch only fields used by build to avoid unrelated rebuilds during scroll
+    final pendingFormat = ref.watch(editorProvider.select((s) => s.pendingFormat));
+    if (pendingFormat != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _applyFormat(editorState.pendingFormat!);
+        _applyFormat(pendingFormat);
         ref.read(editorProvider.notifier).clearFormat();
       });
     }
@@ -539,7 +548,7 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     final gutterWidth = (digits * 10.0 + 20).clamp(50.0, 70.0);
 
     // Current line for highlighting
-    final currentLine = editorState.cursorLine;
+    final currentLine = ref.watch(editorProvider.select((s) => s.cursorLine));
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -578,25 +587,37 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
           ),
         ),
         Expanded(
-          child: Focus(
-            onKeyEvent: _handleKeyEvent,
-            child: DropTarget(
-              onDragDone: _handleImageDrop,
-              child: TextField(
-                controller: _controller,
-                scrollController: _editorScrollController,
-                maxLines: null,
-                expands: true,
-                style: editorStyle,
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.all(8),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  ref.read(editorProvider.notifier).setEditorTextFieldWidth(
+                    constraints.maxWidth,
+                  );
+                }
+              });
+
+              return Focus(
+                onKeyEvent: _handleKeyEvent,
+                child: DropTarget(
+                  onDragDone: _handleImageDrop,
+                  child: TextField(
+                    controller: _controller,
+                    scrollController: _editorScrollController,
+                    maxLines: null,
+                    expands: true,
+                    style: editorStyle,
+                    decoration: const InputDecoration(
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.all(8),
+                    ),
+                    onChanged: (value) {
+                      setState(() {});
+                    },
+                  ),
                 ),
-                onChanged: (value) {
-                  setState(() {});
-                },
-              ),
-            ),
+              );
+            },
           ),
         ),
       ],

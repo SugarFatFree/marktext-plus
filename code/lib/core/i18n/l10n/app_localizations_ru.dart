@@ -298,7 +298,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get settingsBulletListMarker => 'Маркер списка';
 
   @override
-  String get settingsDarkMode => 'Тёмный режим';
+  String get settingsLightThemes => 'Светлые темы';
+
+  @override
+  String get settingsDarkThemes => 'Тёмные темы';
 
   @override
   String get confirmResetMessage =>
@@ -419,6 +422,21 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get themeUlyssesLight => 'Ulysses светлый';
+
+  @override
+  String get themeRedGraphite => 'Красный графит';
+
+  @override
+  String get themeShibuya => 'Сибуя';
+
+  @override
+  String get themeDarkGraphite => 'Тёмный графит';
+
+  @override
+  String get themeDieciOLED => 'Dieci OLED';
+
+  @override
+  String get themeNord => 'Nord';
 
   @override
   String get keybindingBold => 'Жирный';
@@ -662,4 +680,13 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get commandToggleTabBarDesc => 'Показать или скрыть панель вкладок';
+
+  @override
+  String get welcomeNewFile => 'Новый файл';
+
+  @override
+  String get welcomeOpenFile => 'Открыть файл';
+
+  @override
+  String get welcomeDragHint => 'Перетащите файлы сюда для открытия';
 }

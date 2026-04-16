@@ -298,7 +298,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsBulletListMarker => '글머리 기호';
 
   @override
-  String get settingsDarkMode => '다크 모드';
+  String get settingsLightThemes => '라이트 테마';
+
+  @override
+  String get settingsDarkThemes => '다크 테마';
 
   @override
   String get confirmResetMessage => '모든 설정을 기본값으로 되돌리시겠습니까?';
@@ -418,6 +421,21 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get themeUlyssesLight => 'Ulysses 라이트';
+
+  @override
+  String get themeRedGraphite => '레드 그래파이트';
+
+  @override
+  String get themeShibuya => '시부야';
+
+  @override
+  String get themeDarkGraphite => '다크 그래파이트';
+
+  @override
+  String get themeDieciOLED => 'Dieci OLED';
+
+  @override
+  String get themeNord => 'Nord';
 
   @override
   String get keybindingBold => '굵게';
@@ -658,4 +676,13 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get commandToggleTabBarDesc => '탭 바 표시/숨기기';
+
+  @override
+  String get welcomeNewFile => '새 파일';
+
+  @override
+  String get welcomeOpenFile => '파일 열기';
+
+  @override
+  String get welcomeDragHint => '파일을 여기에 드롭하여 열기';
 }

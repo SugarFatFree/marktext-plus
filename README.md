@@ -2,17 +2,54 @@
 
 # MarkText Plus
 
-A lightweight, cross-platform Markdown editor built with Flutter, reimagined from the original [MarkText](https://github.com/marktext/marktext).
+> A lightweight, cross-platform Markdown editor built with Flutter
 
-## Features
+[![Release](https://img.shields.io/github/v/release/yourusername/marktext-plus)](https://github.com/yourusername/marktext-plus/releases)
+[![License](https://img.shields.io/github/license/yourusername/marktext-plus)](LICENSE)
 
-- **Multi-language Support**: 12 languages including English, Chinese, Japanese, Korean, German, French, Italian, Russian, Spanish, Portuguese, Arabic, and Brazilian Portuguese
-- **Lightweight & Fast**: Self-built Markdown parser and renderer for optimal performance
-- **Persistent Configuration**: JSON-based settings storage with automatic save
-- **Dual-pane Editing**: Source code, preview, and split-view modes
-- **Cross-platform**: Runs on Windows, macOS, and Linux
-- **Modern UI**: Clean interface with 5 built-in themes
-- **Syntax Highlighting**: Real-time Markdown syntax highlighting in source mode
+A modern Markdown editor reimagined from the original [MarkText](https://github.com/marktext/marktext), built with Flutter for true cross-platform support.
+
+## Screenshots
+
+![MarkText Plus Themes](docs/v1.1.1/picture/theme/红石墨.png)
+
+## ✨ Features
+
+- **🌍 Multi-language Support**: 12 languages including English, Chinese, Japanese, Korean, German, French, Italian, Russian, Spanish, Portuguese, Arabic, and Brazilian Portuguese
+- **🎨 Beautiful Themes**: 5 built-in themes
+  - Light: Red Graphite, Shibuya
+  - Dark: Dark Graphite, Dieci OLED, Nord
+- **⚡ Lightweight & Fast**: Self-built Markdown parser and renderer for optimal performance
+- **💾 Persistent Configuration**: JSON-based settings storage with automatic save
+- **📝 Three Edit Modes**: 
+  - Source Code Mode: Syntax highlighting with line numbers
+  - Preview Mode: Real-time rendered Markdown
+  - Split View Mode: Side-by-side editing and preview
+- **🖥️ Cross-platform**: Runs on Windows, macOS, and Linux
+- **🔍 Find & Replace**: Full-featured search with regex support
+- **📂 File Management**: Sidebar with file tree navigation
+- **⌨️ Keyboard Shortcuts**: Comprehensive keyboard shortcuts for efficient editing
+
+### 🎨 Themes
+
+<table>
+  <tr>
+    <th>Light Themes</th>
+    <th>Dark Themes</th>
+  </tr>
+  <tr>
+    <td><img src="docs/v1.1.1/picture/theme/红石墨.png" alt="Red Graphite" width="400"/></td>
+    <td><img src="docs/v1.1.1/picture/theme/深色石墨.png" alt="Dark Graphite" width="400"/></td>
+  </tr>
+  <tr>
+    <td><img src="docs/v1.1.1/picture/theme/涩谷.png" alt="Shibuya" width="400"/></td>
+    <td><img src="docs/v1.1.1/picture/theme/纯黑.png" alt="Dieci OLED" width="400"/></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td><img src="docs/v1.1.1/picture/theme/极光.png" alt="Nord" width="400"/></td>
+  </tr>
+</table>
 
 ## Installation
 

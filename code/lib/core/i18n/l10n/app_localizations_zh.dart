@@ -298,7 +298,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsBulletListMarker => '无序列表标记';
 
   @override
-  String get settingsDarkMode => '深色模式';
+  String get settingsLightThemes => '浅色主题';
+
+  @override
+  String get settingsDarkThemes => '深色主题';
 
   @override
   String get confirmResetMessage => '确定要恢复所有设置为默认值吗？';
@@ -418,6 +421,21 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get themeUlyssesLight => 'Ulysses 浅色';
+
+  @override
+  String get themeRedGraphite => '红石墨';
+
+  @override
+  String get themeShibuya => '涩谷';
+
+  @override
+  String get themeDarkGraphite => '深色石墨';
+
+  @override
+  String get themeDieciOLED => 'Dieci 纯黑';
+
+  @override
+  String get themeNord => 'Nord 极光';
 
   @override
   String get keybindingBold => '粗体';
@@ -658,4 +676,13 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get commandToggleTabBarDesc => '显示或隐藏标签栏';
+
+  @override
+  String get welcomeNewFile => '新建文件';
+
+  @override
+  String get welcomeOpenFile => '打开文件';
+
+  @override
+  String get welcomeDragHint => '拖拽文件到此处打开';
 }

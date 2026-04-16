@@ -95,7 +95,8 @@
   "sidebarSettings": "Настройки",
   "formatHeadingSubmenu": "Заголовок",
   "settingsBulletListMarker": "Маркер списка",
-  "settingsDarkMode": "Тёмный режим",
+  "settingsLightThemes": "Светлые темы",
+  "settingsDarkThemes": "Тёмные темы",
   "confirmResetMessage": "Вы уверены, что хотите сбросить все настройки?",
   "comingSoon": "Скоро",
   "noFiles": "Нет файлов",
@@ -135,6 +136,11 @@
   "themeMaterialDark": "Material тёмный",
   "themeGraphiteLight": "Графит светлый",
   "themeUlyssesLight": "Ulysses светлый",
+  "themeRedGraphite": "Красный графит",
+  "themeShibuya": "Сибуя",
+  "themeDarkGraphite": "Тёмный графит",
+  "themeDieciOLED": "Dieci OLED",
+  "themeNord": "Nord",
   "keybindingBold": "Жирный",
   "keybindingItalic": "Курсив",
   "keybindingUnderline": "Подчёркнутый",
@@ -215,5 +221,9 @@
   "commandToggleSidebar": "Боковая панель",
   "commandToggleSidebarDesc": "Показать или скрыть боковую панель",
   "commandToggleTabBar": "Панель вкладок",
-  "commandToggleTabBarDesc": "Показать или скрыть панель вкладок"
+  "commandToggleTabBarDesc": "Показать или скрыть панель вкладок",
+
+  "welcomeNewFile": "Новый файл",
+  "welcomeOpenFile": "Открыть файл",
+  "welcomeDragHint": "Перетащите файлы сюда для открытия"
 }

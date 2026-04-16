@@ -6,6 +6,7 @@ import 'package:desktop_drop/desktop_drop.dart';
 import 'package:path/path.dart' as p;
 import '../../core/config/app_config.dart';
 import '../../core/i18n/l10n/app_localizations.dart';
+import '../../core/theme/app_theme.dart';
 import '../../providers/editor_provider.dart';
 import '../../providers/file_provider.dart';
 import '../../providers/settings_provider.dart';
@@ -215,24 +216,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Focus(
       autofocus: true,
       onKeyEvent: (node, event) {
+        if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+        final isCtrl = PlatformUtils.isMacOS
+            ? HardwareKeyboard.instance.isMetaPressed
+            : HardwareKeyboard.instance.isControlPressed;
+
         // Ctrl+P / Cmd+P -> command palette
-        if (event is KeyDownEvent &&
-            event.logicalKey == LogicalKeyboardKey.keyP &&
-            (PlatformUtils.isMacOS
-                ? HardwareKeyboard.instance.isMetaPressed
-                : HardwareKeyboard.instance.isControlPressed)) {
+        if (event.logicalKey == LogicalKeyboardKey.keyP && isCtrl) {
           CommandPalette.show(context);
           return KeyEventResult.handled;
         }
-        if (config.focusMode &&
-            event is KeyDownEvent &&
-            event.logicalKey == LogicalKeyboardKey.escape) {
+
+        // Ctrl+F / Cmd+F -> toggle find/replace
+        if (event.logicalKey == LogicalKeyboardKey.keyF && isCtrl) {
+          ref.read(editorProvider.notifier).toggleFindReplace();
+          return KeyEventResult.handled;
+        }
+
+        // Ctrl+H / Cmd+H -> toggle find/replace
+        if (event.logicalKey == LogicalKeyboardKey.keyH && isCtrl) {
+          ref.read(editorProvider.notifier).toggleFindReplace();
+          return KeyEventResult.handled;
+        }
+
+        if (config.focusMode && event.logicalKey == LogicalKeyboardKey.escape) {
           ref.read(settingsProvider.notifier).toggleFocusMode();
           return KeyEventResult.handled;
         }
-        if (editorState.showFindReplace &&
-            event is KeyDownEvent &&
-            event.logicalKey == LogicalKeyboardKey.escape) {
+        if (editorState.showFindReplace && event.logicalKey == LogicalKeyboardKey.escape) {
           ref.read(editorProvider.notifier).hideFindReplace();
           return KeyEventResult.handled;
         }
@@ -273,9 +285,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               builder: (context) {
                                 final controller =
                                     ref.read(editorProvider.notifier).controller;
-                                if (controller != null) {
+                                final activeTab = ref.watch(activeTabProvider);
+                                final isSplit = config.editMode == EditMode.split;
+                                if (isSplit && controller != null && activeTab != null) {
+                                  return FindReplaceBar(
+                                    textController: controller,
+                                    rawContent: activeTab.content,
+                                    isSplitMode: true,
+                                  );
+                                } else if (controller != null) {
                                   return FindReplaceBar(
                                       textController: controller);
+                                } else if (activeTab != null) {
+                                  return FindReplaceBar(
+                                      rawContent: activeTab.content);
                                 }
                                 return const SizedBox.shrink();
                               },
@@ -300,9 +323,74 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildEditorArea(EditMode editMode) {
     final activeTab = ref.watch(activeTabProvider);
     if (activeTab == null) {
-      return const Center(child: Text(''));
+      final l10n = AppLocalizations.of(context)!;
+      final tokens = AppTheme.getTokens(ref.watch(settingsProvider).themeName);
+      final isMac = PlatformUtils.isMacOS;
+      final mod = isMac ? '\u2318' : 'Ctrl';
+      return Center(
+        child: Opacity(
+          opacity: 0.6,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Opacity(
+                opacity: 0.3,
+                child: Image.asset('assets/app_icon.png', width: 80, height: 80),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'MarkText Plus',
+                style: TextStyle(fontSize: 24, color: tokens.colorTextMuted),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                '$mod+N    ${l10n.welcomeNewFile}',
+                style: TextStyle(fontSize: 13, color: tokens.colorTextMuted),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '$mod+O    ${l10n.welcomeOpenFile}',
+                style: TextStyle(fontSize: 13, color: tokens.colorTextMuted),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                l10n.welcomeDragHint,
+                style: TextStyle(fontSize: 13, color: tokens.colorTextMuted),
+              ),
+            ],
+          ),
+        ),
+      );
     }
-    final content = activeTab.content;
+    Widget editor;
+    if (activeTab.isLoading) {
+      final tokens = AppTheme.getTokens(ref.watch(settingsProvider).themeName);
+      editor = Center(
+        key: ValueKey('loading_${activeTab.id}'),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                valueColor: AlwaysStoppedAnimation<Color>(tokens.colorAccent),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              activeTab.fileName,
+              style: TextStyle(
+                fontSize: 13,
+                color: tokens.colorTextMuted,
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      final content = activeTab.content;
 
     void onContentChanged(String newContent) {
       ref.read(tabProvider.notifier).updateContent(activeTab.id, newContent);
@@ -311,22 +399,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // Use ValueKey so the editor rebuilds when switching tabs
     switch (editMode) {
       case EditMode.source:
-        return SourceEditor(
-          key: ValueKey(activeTab.id),
+        editor = SourceEditor(
+          key: ValueKey('source_${activeTab.id}'),
           initialContent: content,
           onChanged: onContentChanged,
         );
       case EditMode.preview:
-        return MarkdownRenderer(
-          key: ValueKey(activeTab.id),
+        editor = MarkdownRenderer(
+          key: ValueKey('preview_${activeTab.id}'),
           markdown: content,
         );
       case EditMode.split:
-        return SplitEditor(
-          key: ValueKey(activeTab.id),
+        editor = SplitEditor(
+          key: ValueKey('split_${activeTab.id}'),
           initialContent: content,
           onChanged: onContentChanged,
         );
     }
+    }
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 80),
+      switchInCurve: Curves.easeOut,
+      switchOutCurve: Curves.easeOut,
+      transitionBuilder: (child, animation) {
+        return FadeTransition(
+          opacity: animation,
+          child: child,
+        );
+      },
+      child: editor,
+    );
   }
 }

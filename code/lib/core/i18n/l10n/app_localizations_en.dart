@@ -299,7 +299,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsBulletListMarker => 'Bullet List Marker';
 
   @override
-  String get settingsDarkMode => 'Dark Mode';
+  String get settingsLightThemes => 'Light Themes';
+
+  @override
+  String get settingsDarkThemes => 'Dark Themes';
 
   @override
   String get confirmResetMessage =>
@@ -420,6 +423,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get themeUlyssesLight => 'Ulysses Light';
+
+  @override
+  String get themeRedGraphite => 'Red Graphite';
+
+  @override
+  String get themeShibuya => 'Shibuya';
+
+  @override
+  String get themeDarkGraphite => 'Dark Graphite';
+
+  @override
+  String get themeDieciOLED => 'Dieci OLED';
+
+  @override
+  String get themeNord => 'Nord';
 
   @override
   String get keybindingBold => 'Bold';
@@ -661,4 +679,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get commandToggleTabBarDesc => 'Show or hide the tab bar';
+
+  @override
+  String get welcomeNewFile => 'New File';
+
+  @override
+  String get welcomeOpenFile => 'Open File';
+
+  @override
+  String get welcomeDragHint => 'Drop files here to open';
 }

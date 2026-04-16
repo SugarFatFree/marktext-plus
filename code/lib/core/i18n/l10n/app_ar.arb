@@ -95,7 +95,8 @@
   "sidebarSettings": "الإعدادات",
   "formatHeadingSubmenu": "عنوان",
   "settingsBulletListMarker": "علامة القائمة",
-  "settingsDarkMode": "الوضع الداكن",
+  "settingsLightThemes": "سمات فاتحة",
+  "settingsDarkThemes": "سمات داكنة",
   "confirmResetMessage": "هل أنت متأكد من إعادة تعيين جميع الإعدادات؟",
   "comingSoon": "قريباً",
   "noFiles": "لا توجد ملفات",
@@ -135,6 +136,11 @@
   "themeMaterialDark": "Material داكن",
   "themeGraphiteLight": "جرافيت فاتح",
   "themeUlyssesLight": "Ulysses فاتح",
+  "themeRedGraphite": "جرافيت أحمر",
+  "themeShibuya": "شيبويا",
+  "themeDarkGraphite": "جرافيت داكن",
+  "themeDieciOLED": "Dieci OLED",
+  "themeNord": "Nord",
   "keybindingBold": "غامق",
   "keybindingItalic": "مائل",
   "keybindingUnderline": "تسطير",
@@ -215,5 +221,9 @@
   "commandToggleSidebar": "تبديل الشريط الجانبي",
   "commandToggleSidebarDesc": "إظهار أو إخفاء الشريط الجانبي",
   "commandToggleTabBar": "تبديل شريط التبويب",
-  "commandToggleTabBarDesc": "إظهار أو إخفاء شريط التبويب"
+  "commandToggleTabBarDesc": "إظهار أو إخفاء شريط التبويب",
+
+  "welcomeNewFile": "ملف جديد",
+  "welcomeOpenFile": "فتح ملف",
+  "welcomeDragHint": "اسحب الملفات هنا لفتحها"
 }
