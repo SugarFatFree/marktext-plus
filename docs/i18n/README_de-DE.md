@@ -43,6 +43,18 @@ flutter build macos
 flutter build linux
 ```
 
+### Hinweis fuer macOS-Benutzer
+
+> **Warnung**
+> macOS-Versionen zeigen die Warnung "Apple konnte nicht ueberpruefen, ob MarkText Plus frei von Schadsoftware ist..." an, da keine Notarisierung vorliegt.
+>
+> Nachdem Sie MarkText Plus in den Ordner "Programme" gezogen haben, fuehren Sie bitte folgende Befehle aus:
+>
+> ```bash
+> xattr -cr /Applications/MarkText\ Plus.app
+> sudo codesign --force --deep --sign - /Applications/MarkText\ Plus.app
+> ```
+
 ## Entwicklung
 
 ### Projektstruktur

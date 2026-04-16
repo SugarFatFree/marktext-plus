@@ -43,6 +43,18 @@ flutter build macos
 flutter build linux
 ```
 
+### Nota para utilizadores macOS
+
+> **Aviso**
+> As versões macOS irão mostrar o aviso "A Apple não conseguiu verificar se o MarkText Plus está livre de malware..." devido à falta de notarização.
+>
+> Após arrastar o MarkText Plus para a pasta "Aplicações", execute os seguintes comandos:
+>
+> ```bash
+> xattr -cr /Applications/MarkText\ Plus.app
+> sudo codesign --force --deep --sign - /Applications/MarkText\ Plus.app
+> ```
+
 ## Desenvolvimento
 
 ### Estrutura do projeto

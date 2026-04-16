@@ -43,6 +43,18 @@ flutter build macos
 flutter build linux
 ```
 
+### macOS 사용자 참고 사항
+
+> **주의**
+> Apple 공증이 없기 때문에 macOS 릴리스에서 "Apple이 MarkText Plus에 악성 소프트웨어가 없는지 확인할 수 없습니다..."라는 경고가 표시됩니다.
+>
+> MarkText Plus를 "응용 프로그램" 폴더로 드래그한 후 다음 명령을 실행하세요:
+>
+> ```bash
+> xattr -cr /Applications/MarkText\ Plus.app
+> sudo codesign --force --deep --sign - /Applications/MarkText\ Plus.app
+> ```
+
 ## 개발
 
 ### 프로젝트 구조
