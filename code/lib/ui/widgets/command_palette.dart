@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../core/i18n/l10n/app_localizations.dart';
 import '../../services/command_registry.dart';
 
 class CommandPalette extends StatefulWidget {
@@ -75,6 +76,7 @@ class _CommandPaletteState extends State<CommandPalette> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Focus(
       onKeyEvent: _handleKeyEvent,
       child: Dialog(
@@ -90,8 +92,8 @@ class _CommandPaletteState extends State<CommandPalette> {
                 child: TextField(
                   controller: _controller,
                   focusNode: _focusNode,
-                  decoration: const InputDecoration(
-                    hintText: 'Type a command...',
+                  decoration: InputDecoration(
+                    hintText: l10n.commandPaletteHint,
                     prefixIcon: Icon(Icons.search),
                     border: OutlineInputBorder(),
                     isDense: true,
@@ -102,9 +104,9 @@ class _CommandPaletteState extends State<CommandPalette> {
               ConstrainedBox(
                 constraints: const BoxConstraints(maxHeight: 400),
                 child: _results.isEmpty
-                    ? const Padding(
-                        padding: EdgeInsets.all(16),
-                        child: Text('No matching commands'),
+                    ? Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text(l10n.commandPaletteNoResults),
                       )
                     : ListView.builder(
                         shrinkWrap: true,

@@ -11,7 +11,7 @@ void main() {
       expect(config.splitRatio, 0.5);
       expect(config.fontSize, 16.0);
       expect(config.locale, '');
-      expect(config.themeName, 'cadmiumLight');
+      expect(config.themeName, 'redGraphite');
       expect(config.autoSave, true);
     });
 

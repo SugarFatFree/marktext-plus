@@ -528,4 +528,141 @@ class AppLocalizationsFr extends AppLocalizations {
   String confirmDeleteFile(String fileName) {
     return 'Êtes-vous sûr de vouloir supprimer \"$fileName\" ?';
   }
+
+  @override
+  String get newFolder => 'Nouveau dossier';
+
+  @override
+  String get rename => 'Renommer';
+
+  @override
+  String get delete => 'Supprimer';
+
+  @override
+  String get confirm => 'Confirmer';
+
+  @override
+  String get fileNameHint => 'Nom du fichier';
+
+  @override
+  String get folderNameHint => 'Nom du dossier';
+
+  @override
+  String get newNameHint => 'Nouveau nom';
+
+  @override
+  String get closeOtherTabs => 'Fermer les autres onglets';
+
+  @override
+  String get closeTabsToRight => 'Fermer les onglets à droite';
+
+  @override
+  String get closeAllTabs => 'Fermer tous les onglets';
+
+  @override
+  String get revealInExplorer => 'Afficher dans l\'explorateur';
+
+  @override
+  String get formatTextSubmenu => 'Texte';
+
+  @override
+  String get formatBlocksSubmenu => 'Blocs';
+
+  @override
+  String get formatCodeSubmenu => 'Code';
+
+  @override
+  String get formatInsertSubmenu => 'Insérer';
+
+  @override
+  String get fileRename => 'Renommer';
+
+  @override
+  String get newTab => 'Nouvel onglet';
+
+  @override
+  String get newNameHintDialog => 'Nouveau nom';
+
+  @override
+  String get commandPaletteHint => 'Saisir une commande...';
+
+  @override
+  String get commandPaletteNoResults => 'Aucune commande correspondante';
+
+  @override
+  String get statusLineFeed => 'LF';
+
+  @override
+  String get settingsTextDirectionLtr => 'Gauche à droite';
+
+  @override
+  String get settingsTextDirectionRtl => 'Droite à gauche';
+
+  @override
+  String commandFormatLabel(String action) {
+    return 'Format : $action';
+  }
+
+  @override
+  String commandFormatDesc(String action) {
+    return 'Appliquer le formatage $action';
+  }
+
+  @override
+  String get commandNewFile => 'Nouveau fichier';
+
+  @override
+  String get commandNewFileDesc => 'Créer un nouveau fichier sans titre';
+
+  @override
+  String get commandSave => 'Enregistrer';
+
+  @override
+  String get commandSaveDesc => 'Enregistrer le fichier actuel';
+
+  @override
+  String get commandSourceMode => 'Mode source';
+
+  @override
+  String get commandSourceModeDesc => 'Passer en mode édition du code source';
+
+  @override
+  String get commandPreviewMode => 'Mode aperçu';
+
+  @override
+  String get commandPreviewModeDesc => 'Passer en mode aperçu';
+
+  @override
+  String get commandSplitMode => 'Mode divisé';
+
+  @override
+  String get commandSplitModeDesc => 'Passer en mode édition divisée';
+
+  @override
+  String get commandToggleFocusMode => 'Basculer le mode focus';
+
+  @override
+  String get commandToggleFocusModeDesc =>
+      'Basculer le mode focus sans distraction';
+
+  @override
+  String get commandToggleTypewriterMode => 'Basculer le mode machine à écrire';
+
+  @override
+  String get commandToggleTypewriterModeDesc =>
+      'Basculer le mode défilement machine à écrire';
+
+  @override
+  String get commandToggleSidebar => 'Basculer la barre latérale';
+
+  @override
+  String get commandToggleSidebarDesc =>
+      'Afficher ou masquer la barre latérale';
+
+  @override
+  String get commandToggleTabBar => 'Basculer la barre d\'onglets';
+
+  @override
+  String get commandToggleTabBarDesc =>
+      'Afficher ou masquer la barre d\'onglets';
 }

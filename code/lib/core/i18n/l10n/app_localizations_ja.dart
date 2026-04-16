@@ -525,4 +525,137 @@ class AppLocalizationsJa extends AppLocalizations {
   String confirmDeleteFile(String fileName) {
     return '\"$fileName\" を削除してもよろしいですか？';
   }
+
+  @override
+  String get newFolder => '新しいフォルダ';
+
+  @override
+  String get rename => '名前を変更';
+
+  @override
+  String get delete => '削除';
+
+  @override
+  String get confirm => '確認';
+
+  @override
+  String get fileNameHint => 'ファイル名';
+
+  @override
+  String get folderNameHint => 'フォルダ名';
+
+  @override
+  String get newNameHint => '新しい名前';
+
+  @override
+  String get closeOtherTabs => '他のタブを閉じる';
+
+  @override
+  String get closeTabsToRight => '右側のタブを閉じる';
+
+  @override
+  String get closeAllTabs => 'すべてのタブを閉じる';
+
+  @override
+  String get revealInExplorer => 'ファイルマネージャーで表示';
+
+  @override
+  String get formatTextSubmenu => 'テキスト';
+
+  @override
+  String get formatBlocksSubmenu => 'ブロック';
+
+  @override
+  String get formatCodeSubmenu => 'コード';
+
+  @override
+  String get formatInsertSubmenu => '挿入';
+
+  @override
+  String get fileRename => '名前を変更';
+
+  @override
+  String get newTab => '新しいタブ';
+
+  @override
+  String get newNameHintDialog => '新しい名前';
+
+  @override
+  String get commandPaletteHint => 'コマンドを入力...';
+
+  @override
+  String get commandPaletteNoResults => '一致するコマンドがありません';
+
+  @override
+  String get statusLineFeed => 'LF';
+
+  @override
+  String get settingsTextDirectionLtr => '左から右';
+
+  @override
+  String get settingsTextDirectionRtl => '右から左';
+
+  @override
+  String commandFormatLabel(String action) {
+    return '書式：$action';
+  }
+
+  @override
+  String commandFormatDesc(String action) {
+    return '$action書式を適用';
+  }
+
+  @override
+  String get commandNewFile => '新規ファイル';
+
+  @override
+  String get commandNewFileDesc => '新しい無題ファイルを作成';
+
+  @override
+  String get commandSave => '保存';
+
+  @override
+  String get commandSaveDesc => '現在のファイルを保存';
+
+  @override
+  String get commandSourceMode => 'ソースモード';
+
+  @override
+  String get commandSourceModeDesc => 'ソースコード編集モードに切り替え';
+
+  @override
+  String get commandPreviewMode => 'プレビューモード';
+
+  @override
+  String get commandPreviewModeDesc => 'プレビューモードに切り替え';
+
+  @override
+  String get commandSplitMode => '分割モード';
+
+  @override
+  String get commandSplitModeDesc => '分割編集モードに切り替え';
+
+  @override
+  String get commandToggleFocusMode => 'フォーカスモード切替';
+
+  @override
+  String get commandToggleFocusModeDesc => '集中フォーカスモードを切り替え';
+
+  @override
+  String get commandToggleTypewriterMode => 'タイプライターモード切替';
+
+  @override
+  String get commandToggleTypewriterModeDesc => 'タイプライタースクロールモードを切り替え';
+
+  @override
+  String get commandToggleSidebar => 'サイドバー切替';
+
+  @override
+  String get commandToggleSidebarDesc => 'サイドバーの表示/非表示を切り替え';
+
+  @override
+  String get commandToggleTabBar => 'タブバー切替';
+
+  @override
+  String get commandToggleTabBarDesc => 'タブバーの表示/非表示を切り替え';
 }

@@ -526,4 +526,140 @@ class AppLocalizationsRu extends AppLocalizations {
   String confirmDeleteFile(String fileName) {
     return 'Вы уверены, что хотите удалить \"$fileName\"?';
   }
+
+  @override
+  String get newFolder => 'Новая папка';
+
+  @override
+  String get rename => 'Переименовать';
+
+  @override
+  String get delete => 'Удалить';
+
+  @override
+  String get confirm => 'Подтвердить';
+
+  @override
+  String get fileNameHint => 'Имя файла';
+
+  @override
+  String get folderNameHint => 'Имя папки';
+
+  @override
+  String get newNameHint => 'Новое имя';
+
+  @override
+  String get closeOtherTabs => 'Закрыть другие вкладки';
+
+  @override
+  String get closeTabsToRight => 'Закрыть вкладки справа';
+
+  @override
+  String get closeAllTabs => 'Закрыть все вкладки';
+
+  @override
+  String get revealInExplorer => 'Показать в проводнике';
+
+  @override
+  String get formatTextSubmenu => 'Текст';
+
+  @override
+  String get formatBlocksSubmenu => 'Блоки';
+
+  @override
+  String get formatCodeSubmenu => 'Код';
+
+  @override
+  String get formatInsertSubmenu => 'Вставка';
+
+  @override
+  String get fileRename => 'Переименовать';
+
+  @override
+  String get newTab => 'Новая вкладка';
+
+  @override
+  String get newNameHintDialog => 'Новое имя';
+
+  @override
+  String get commandPaletteHint => 'Введите команду...';
+
+  @override
+  String get commandPaletteNoResults => 'Команды не найдены';
+
+  @override
+  String get statusLineFeed => 'LF';
+
+  @override
+  String get settingsTextDirectionLtr => 'Слева направо';
+
+  @override
+  String get settingsTextDirectionRtl => 'Справа налево';
+
+  @override
+  String commandFormatLabel(String action) {
+    return 'Формат: $action';
+  }
+
+  @override
+  String commandFormatDesc(String action) {
+    return 'Применить форматирование $action';
+  }
+
+  @override
+  String get commandNewFile => 'Новый файл';
+
+  @override
+  String get commandNewFileDesc => 'Создать новый файл без названия';
+
+  @override
+  String get commandSave => 'Сохранить';
+
+  @override
+  String get commandSaveDesc => 'Сохранить текущий файл';
+
+  @override
+  String get commandSourceMode => 'Режим исходного кода';
+
+  @override
+  String get commandSourceModeDesc =>
+      'Переключиться в режим редактирования кода';
+
+  @override
+  String get commandPreviewMode => 'Режим предпросмотра';
+
+  @override
+  String get commandPreviewModeDesc => 'Переключиться в режим предпросмотра';
+
+  @override
+  String get commandSplitMode => 'Режим разделения';
+
+  @override
+  String get commandSplitModeDesc =>
+      'Переключиться в режим разделённого редактирования';
+
+  @override
+  String get commandToggleFocusMode => 'Режим фокусировки';
+
+  @override
+  String get commandToggleFocusModeDesc => 'Переключить режим фокусировки';
+
+  @override
+  String get commandToggleTypewriterMode => 'Режим печатной машинки';
+
+  @override
+  String get commandToggleTypewriterModeDesc =>
+      'Переключить режим печатной машинки';
+
+  @override
+  String get commandToggleSidebar => 'Боковая панель';
+
+  @override
+  String get commandToggleSidebarDesc => 'Показать или скрыть боковую панель';
+
+  @override
+  String get commandToggleTabBar => 'Панель вкладок';
+
+  @override
+  String get commandToggleTabBarDesc => 'Показать или скрыть панель вкладок';
 }

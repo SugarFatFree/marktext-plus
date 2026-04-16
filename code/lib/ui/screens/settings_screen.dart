@@ -37,34 +37,64 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final config = ref.watch(settingsProvider);
+    final tokens = AppTheme.getTokens(config.themeName);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.fileSettings)),
+      backgroundColor: tokens.colorBg,
+      appBar: AppBar(
+        title: Text(l10n.fileSettings),
+        backgroundColor: tokens.colorSurface,
+        foregroundColor: tokens.colorText,
+        elevation: 0,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(height: 1, color: tokens.colorBorder),
+        ),
+      ),
       body: Row(
         children: [
-          SizedBox(
-            width: 200,
+          Container(
+            width: 220,
+            decoration: BoxDecoration(
+              color: tokens.colorSurface,
+              boxShadow: [
+                BoxShadow(
+                  color: tokens.colorBorder.withValues(alpha: 0.3),
+                  blurRadius: 4,
+                  offset: const Offset(1, 0),
+                ),
+              ],
+            ),
             child: ListView(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
               children: [
-                _catTile(_Category.general, l10n.settingsGeneral, Icons.settings),
-                _catTile(_Category.editor, l10n.settingsEditor, Icons.edit),
-                _catTile(_Category.markdown, l10n.settingsMarkdown, Icons.code),
-                _catTile(_Category.theme, l10n.settingsTheme, Icons.palette),
-                _catTile(_Category.keybindings, l10n.settingsKeybindings, Icons.keyboard),
+                _catTile(_Category.general, l10n.settingsGeneral, Icons.settings, tokens),
+                _catTile(_Category.editor, l10n.settingsEditor, Icons.edit, tokens),
+                _catTile(_Category.markdown, l10n.settingsMarkdown, Icons.code, tokens),
+                _catTile(_Category.theme, l10n.settingsTheme, Icons.palette, tokens),
+                _catTile(_Category.keybindings, l10n.settingsKeybindings, Icons.keyboard, tokens),
               ],
             ),
           ),
-          const VerticalDivider(width: 1),
           Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _content(l10n),
-                  const SizedBox(height: 32),
-                  _resetButton(l10n),
-                ],
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              switchInCurve: Curves.easeInOut,
+              transitionBuilder: (child, animation) {
+                return FadeTransition(opacity: animation, child: child);
+              },
+              child: SingleChildScrollView(
+                key: ValueKey(_selected),
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _content(l10n),
+                    const SizedBox(height: 32),
+                    _resetButton(l10n),
+                  ],
+                ),
               ),
             ),
           ),
@@ -73,12 +103,60 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Widget _catTile(_Category cat, String label, IconData icon) {
-    return ListTile(
-      leading: Icon(icon),
-      title: Text(label),
-      selected: _selected == cat,
-      onTap: () => setState(() => _selected = cat),
+  Widget _catTile(_Category cat, String label, IconData icon, AppThemeTokens tokens) {
+    final isSelected = _selected == cat;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: () => setState(() => _selected = cat),
+          hoverColor: tokens.colorSurfaceHover.withValues(alpha: 0.5),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            decoration: BoxDecoration(
+              color: isSelected ? tokens.colorAccentMuted : Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+              border: isSelected
+                ? Border.all(color: tokens.colorAccent.withValues(alpha: 0.3), width: 1)
+                : null,
+            ),
+            child: Row(
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  child: Icon(
+                    icon,
+                    size: 18,
+                    color: isSelected ? tokens.colorAccent : tokens.colorTextMuted,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isSelected ? tokens.colorAccent : tokens.colorText,
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                  ),
+                ),
+                if (isSelected)
+                  Icon(
+                    Icons.chevron_right,
+                    size: 16,
+                    color: tokens.colorAccent,
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -243,9 +321,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           l10n.settingsTextDirection,
           DropdownButton<String>(
             value: config.textDirection,
-            items: const [
-              DropdownMenuItem(value: 'ltr', child: Text('LTR')),
-              DropdownMenuItem(value: 'rtl', child: Text('RTL')),
+            items: [
+              DropdownMenuItem(value: 'ltr', child: Text(l10n.settingsTextDirectionLtr)),
+              DropdownMenuItem(value: 'rtl', child: Text(l10n.settingsTextDirectionRtl)),
             ],
             onChanged: (v) {
               if (v != null) {
@@ -303,11 +381,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   // -- Theme --
   String _translateThemeName(String name, AppLocalizations l10n) {
     return switch (name) {
-      'cadmiumLight' => l10n.themeCadmiumLight,
-      'oneDark' => l10n.themeOneDark,
-      'materialDark' => l10n.themeMaterialDark,
-      'graphiteLight' => l10n.themeGraphiteLight,
-      'ulyssesLight' => l10n.themeUlyssesLight,
+      'redGraphite' => 'Red Graphite',
+      'shibuya' => 'Shibuya',
+      'darkGraphite' => 'Dark Graphite',
+      'dieciOLED' => 'Dieci OLED',
+      'nord' => 'Nord',
       _ => name,
     };
   }
@@ -335,17 +413,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           spacing: 16,
           runSpacing: 16,
           children: AppTheme.themeNames.map((name) {
-            final theme = AppTheme.getTheme(name);
+            final tokens = AppTheme.getTokens(name);
             final selected = config.themeName == name;
             return InkWell(
               onTap: () => ref.read(settingsProvider.notifier).setTheme(name),
-              child: Container(
-                width: 150, height: 100,
+              borderRadius: BorderRadius.circular(8),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                width: 140, height: 90,
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.surface,
+                  color: tokens.colorSurface,
                   border: Border.all(
-                    color: selected ? theme.colorScheme.primary : Colors.grey,
-                    width: selected ? 3 : 1,
+                    color: selected ? tokens.colorAccent : tokens.colorBorder,
+                    width: selected ? 2 : 1,
                   ),
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -353,15 +433,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Container(
-                      width: 40, height: 40,
+                      width: 32, height: 32,
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.primary,
+                        color: tokens.colorAccent,
                         shape: BoxShape.circle,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(_translateThemeName(name, l10n),
-                        style: TextStyle(color: theme.colorScheme.onSurface)),
+                        style: TextStyle(color: tokens.colorText, fontSize: 13)),
                   ],
                 ),
               ),

@@ -526,4 +526,138 @@ class AppLocalizationsAr extends AppLocalizations {
   String confirmDeleteFile(String fileName) {
     return 'هل أنت متأكد من حذف \"$fileName\"؟';
   }
+
+  @override
+  String get newFolder => 'مجلد جديد';
+
+  @override
+  String get rename => 'إعادة تسمية';
+
+  @override
+  String get delete => 'حذف';
+
+  @override
+  String get confirm => 'تأكيد';
+
+  @override
+  String get fileNameHint => 'اسم الملف';
+
+  @override
+  String get folderNameHint => 'اسم المجلد';
+
+  @override
+  String get newNameHint => 'الاسم الجديد';
+
+  @override
+  String get closeOtherTabs => 'إغلاق علامات التبويب الأخرى';
+
+  @override
+  String get closeTabsToRight => 'إغلاق علامات التبويب على اليمين';
+
+  @override
+  String get closeAllTabs => 'إغلاق جميع علامات التبويب';
+
+  @override
+  String get revealInExplorer => 'عرض في مستكشف الملفات';
+
+  @override
+  String get formatTextSubmenu => 'نص';
+
+  @override
+  String get formatBlocksSubmenu => 'كتل';
+
+  @override
+  String get formatCodeSubmenu => 'كود';
+
+  @override
+  String get formatInsertSubmenu => 'إدراج';
+
+  @override
+  String get fileRename => 'إعادة تسمية';
+
+  @override
+  String get newTab => 'علامة تبويب جديدة';
+
+  @override
+  String get newNameHintDialog => 'الاسم الجديد';
+
+  @override
+  String get commandPaletteHint => 'اكتب أمراً...';
+
+  @override
+  String get commandPaletteNoResults => 'لا توجد أوامر مطابقة';
+
+  @override
+  String get statusLineFeed => 'LF';
+
+  @override
+  String get settingsTextDirectionLtr => 'من اليسار لليمين';
+
+  @override
+  String get settingsTextDirectionRtl => 'من اليمين لليسار';
+
+  @override
+  String commandFormatLabel(String action) {
+    return 'تنسيق: $action';
+  }
+
+  @override
+  String commandFormatDesc(String action) {
+    return 'تطبيق تنسيق $action';
+  }
+
+  @override
+  String get commandNewFile => 'ملف جديد';
+
+  @override
+  String get commandNewFileDesc => 'إنشاء ملف جديد بدون عنوان';
+
+  @override
+  String get commandSave => 'حفظ';
+
+  @override
+  String get commandSaveDesc => 'حفظ الملف الحالي';
+
+  @override
+  String get commandSourceMode => 'وضع المصدر';
+
+  @override
+  String get commandSourceModeDesc => 'التبديل إلى وضع تحرير المصدر';
+
+  @override
+  String get commandPreviewMode => 'وضع المعاينة';
+
+  @override
+  String get commandPreviewModeDesc => 'التبديل إلى وضع المعاينة';
+
+  @override
+  String get commandSplitMode => 'وضع التقسيم';
+
+  @override
+  String get commandSplitModeDesc => 'التبديل إلى وضع التحرير المقسم';
+
+  @override
+  String get commandToggleFocusMode => 'تبديل وضع التركيز';
+
+  @override
+  String get commandToggleFocusModeDesc => 'تبديل وضع التركيز بدون تشتيت';
+
+  @override
+  String get commandToggleTypewriterMode => 'تبديل وضع الآلة الكاتبة';
+
+  @override
+  String get commandToggleTypewriterModeDesc =>
+      'تبديل وضع التمرير بالآلة الكاتبة';
+
+  @override
+  String get commandToggleSidebar => 'تبديل الشريط الجانبي';
+
+  @override
+  String get commandToggleSidebarDesc => 'إظهار أو إخفاء الشريط الجانبي';
+
+  @override
+  String get commandToggleTabBar => 'تبديل شريط التبويب';
+
+  @override
+  String get commandToggleTabBarDesc => 'إظهار أو إخفاء شريط التبويب';
 }

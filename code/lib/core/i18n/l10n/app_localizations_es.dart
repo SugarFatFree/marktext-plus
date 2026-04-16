@@ -527,4 +527,141 @@ class AppLocalizationsEs extends AppLocalizations {
   String confirmDeleteFile(String fileName) {
     return '¿Está seguro de que desea eliminar \"$fileName\"?';
   }
+
+  @override
+  String get newFolder => 'Nueva carpeta';
+
+  @override
+  String get rename => 'Renombrar';
+
+  @override
+  String get delete => 'Eliminar';
+
+  @override
+  String get confirm => 'Confirmar';
+
+  @override
+  String get fileNameHint => 'Nombre del archivo';
+
+  @override
+  String get folderNameHint => 'Nombre de la carpeta';
+
+  @override
+  String get newNameHint => 'Nuevo nombre';
+
+  @override
+  String get closeOtherTabs => 'Cerrar otras pestañas';
+
+  @override
+  String get closeTabsToRight => 'Cerrar pestañas a la derecha';
+
+  @override
+  String get closeAllTabs => 'Cerrar todas las pestañas';
+
+  @override
+  String get revealInExplorer => 'Mostrar en el explorador';
+
+  @override
+  String get formatTextSubmenu => 'Texto';
+
+  @override
+  String get formatBlocksSubmenu => 'Bloques';
+
+  @override
+  String get formatCodeSubmenu => 'Código';
+
+  @override
+  String get formatInsertSubmenu => 'Insertar';
+
+  @override
+  String get fileRename => 'Renombrar';
+
+  @override
+  String get newTab => 'Nueva pestaña';
+
+  @override
+  String get newNameHintDialog => 'Nuevo nombre';
+
+  @override
+  String get commandPaletteHint => 'Escribir un comando...';
+
+  @override
+  String get commandPaletteNoResults => 'No se encontraron comandos';
+
+  @override
+  String get statusLineFeed => 'LF';
+
+  @override
+  String get settingsTextDirectionLtr => 'Izquierda a derecha';
+
+  @override
+  String get settingsTextDirectionRtl => 'Derecha a izquierda';
+
+  @override
+  String commandFormatLabel(String action) {
+    return 'Formato: $action';
+  }
+
+  @override
+  String commandFormatDesc(String action) {
+    return 'Aplicar formato $action';
+  }
+
+  @override
+  String get commandNewFile => 'Nuevo archivo';
+
+  @override
+  String get commandNewFileDesc => 'Crear un nuevo archivo sin título';
+
+  @override
+  String get commandSave => 'Guardar';
+
+  @override
+  String get commandSaveDesc => 'Guardar el archivo actual';
+
+  @override
+  String get commandSourceMode => 'Modo código fuente';
+
+  @override
+  String get commandSourceModeDesc =>
+      'Cambiar al modo de edición de código fuente';
+
+  @override
+  String get commandPreviewMode => 'Modo vista previa';
+
+  @override
+  String get commandPreviewModeDesc => 'Cambiar al modo de vista previa';
+
+  @override
+  String get commandSplitMode => 'Modo dividido';
+
+  @override
+  String get commandSplitModeDesc => 'Cambiar al modo de edición dividida';
+
+  @override
+  String get commandToggleFocusMode => 'Alternar modo enfoque';
+
+  @override
+  String get commandToggleFocusModeDesc =>
+      'Alternar modo de enfoque sin distracciones';
+
+  @override
+  String get commandToggleTypewriterMode => 'Alternar modo máquina de escribir';
+
+  @override
+  String get commandToggleTypewriterModeDesc =>
+      'Alternar modo de desplazamiento máquina de escribir';
+
+  @override
+  String get commandToggleSidebar => 'Alternar barra lateral';
+
+  @override
+  String get commandToggleSidebarDesc => 'Mostrar u ocultar la barra lateral';
+
+  @override
+  String get commandToggleTabBar => 'Alternar barra de pestañas';
+
+  @override
+  String get commandToggleTabBarDesc =>
+      'Mostrar u ocultar la barra de pestañas';
 }

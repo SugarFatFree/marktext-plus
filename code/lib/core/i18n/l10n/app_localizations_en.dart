@@ -527,4 +527,138 @@ class AppLocalizationsEn extends AppLocalizations {
   String confirmDeleteFile(String fileName) {
     return 'Are you sure you want to delete \"$fileName\"?';
   }
+
+  @override
+  String get newFolder => 'New Folder';
+
+  @override
+  String get rename => 'Rename';
+
+  @override
+  String get delete => 'Delete';
+
+  @override
+  String get confirm => 'Confirm';
+
+  @override
+  String get fileNameHint => 'File name';
+
+  @override
+  String get folderNameHint => 'Folder name';
+
+  @override
+  String get newNameHint => 'New name';
+
+  @override
+  String get closeOtherTabs => 'Close Other Tabs';
+
+  @override
+  String get closeTabsToRight => 'Close Tabs to the Right';
+
+  @override
+  String get closeAllTabs => 'Close All Tabs';
+
+  @override
+  String get revealInExplorer => 'Reveal in File Explorer';
+
+  @override
+  String get formatTextSubmenu => 'Text';
+
+  @override
+  String get formatBlocksSubmenu => 'Blocks';
+
+  @override
+  String get formatCodeSubmenu => 'Code';
+
+  @override
+  String get formatInsertSubmenu => 'Insert';
+
+  @override
+  String get fileRename => 'Rename';
+
+  @override
+  String get newTab => 'New Tab';
+
+  @override
+  String get newNameHintDialog => 'New name';
+
+  @override
+  String get commandPaletteHint => 'Type a command...';
+
+  @override
+  String get commandPaletteNoResults => 'No matching commands';
+
+  @override
+  String get statusLineFeed => 'LF';
+
+  @override
+  String get settingsTextDirectionLtr => 'LTR';
+
+  @override
+  String get settingsTextDirectionRtl => 'RTL';
+
+  @override
+  String commandFormatLabel(String action) {
+    return 'Format: $action';
+  }
+
+  @override
+  String commandFormatDesc(String action) {
+    return 'Apply $action formatting';
+  }
+
+  @override
+  String get commandNewFile => 'New File';
+
+  @override
+  String get commandNewFileDesc => 'Create a new untitled file';
+
+  @override
+  String get commandSave => 'Save';
+
+  @override
+  String get commandSaveDesc => 'Save the current file';
+
+  @override
+  String get commandSourceMode => 'Source Mode';
+
+  @override
+  String get commandSourceModeDesc => 'Switch to source code editing mode';
+
+  @override
+  String get commandPreviewMode => 'Preview Mode';
+
+  @override
+  String get commandPreviewModeDesc => 'Switch to preview mode';
+
+  @override
+  String get commandSplitMode => 'Split Mode';
+
+  @override
+  String get commandSplitModeDesc => 'Switch to split editing mode';
+
+  @override
+  String get commandToggleFocusMode => 'Toggle Focus Mode';
+
+  @override
+  String get commandToggleFocusModeDesc => 'Toggle distraction-free focus mode';
+
+  @override
+  String get commandToggleTypewriterMode => 'Toggle Typewriter Mode';
+
+  @override
+  String get commandToggleTypewriterModeDesc =>
+      'Toggle typewriter scrolling mode';
+
+  @override
+  String get commandToggleSidebar => 'Toggle Sidebar';
+
+  @override
+  String get commandToggleSidebarDesc => 'Show or hide the sidebar';
+
+  @override
+  String get commandToggleTabBar => 'Toggle Tab Bar';
+
+  @override
+  String get commandToggleTabBarDesc => 'Show or hide the tab bar';
 }

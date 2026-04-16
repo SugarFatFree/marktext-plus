@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../app.dart';
 import '../../core/config/app_config.dart';
 import '../../core/i18n/l10n/app_localizations.dart';
+import '../../core/theme/app_theme.dart';
 import '../../models/tab_info.dart';
 import '../../providers/editor_provider.dart';
 import '../../providers/file_provider.dart';
@@ -88,28 +89,40 @@ class AppMenuBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final tokens = AppTheme.getTokens(ref.watch(settingsProvider).themeName);
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: tokens.colorSurface,
+        border: Border(
+          bottom: BorderSide(color: tokens.colorBorder, width: 1),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 2,
+            color: tokens.colorBorder.withValues(alpha: 0.3),
+            blurRadius: 4,
             offset: const Offset(0, 1),
           ),
         ],
       ),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: MenuBar(
-          children: [
-            _buildFileMenu(l10n, ref),
-            _buildEditMenu(l10n, ref),
-            _buildViewMenu(l10n, ref),
-            _buildFormatMenu(l10n, ref),
-            _buildWindowMenu(l10n, ref),
-            _buildHelpMenu(l10n, ref),
-          ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: MenuBar(
+            style: MenuStyle(
+              backgroundColor: WidgetStatePropertyAll(tokens.colorSurface),
+              elevation: const WidgetStatePropertyAll(0),
+              padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+            ),
+            children: [
+              _buildFileMenu(l10n, ref),
+              _buildEditMenu(l10n, ref),
+              _buildViewMenu(l10n, ref),
+              _buildFormatMenu(l10n, ref),
+              _buildWindowMenu(l10n, ref),
+              _buildHelpMenu(l10n, ref),
+            ],
+          ),
         ),
       ),
     );
@@ -178,20 +191,21 @@ class AppMenuBar extends ConsumerWidget {
     final oldPath = activeTab.filePath!;
     final ctx = navigatorKey.currentContext;
     if (ctx == null) return;
+    final l10n = AppLocalizations.of(ctx)!;
     final controller = TextEditingController(text: p.basename(oldPath));
     final newName = await showDialog<String>(
       context: ctx,
       builder: (dialogCtx) => AlertDialog(
-        title: const Text('Rename'),
+        title: Text(l10n.fileRename),
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(hintText: 'New name'),
+          decoration: InputDecoration(hintText: l10n.newNameHintDialog),
           onSubmitted: (value) => Navigator.of(dialogCtx).pop(value),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(dialogCtx).pop(), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.of(dialogCtx).pop(controller.text), child: const Text('OK')),
+          TextButton(onPressed: () => Navigator.of(dialogCtx).pop(), child: Text(l10n.cancel)),
+          TextButton(onPressed: () => Navigator.of(dialogCtx).pop(controller.text), child: Text(l10n.ok)),
         ],
       ),
     );
@@ -249,7 +263,7 @@ class AppMenuBar extends ConsumerWidget {
         ),
         MenuItemButton(
           leadingIcon: const Icon(Icons.drive_file_rename_outline),
-          child: const Text('Rename'),
+          child: Text(l10n.fileRename),
           onPressed: () => _renameFile(ref),
         ),
         const Divider(height: 1),
@@ -553,22 +567,40 @@ class AppMenuBar extends ConsumerWidget {
     final headingKeys = ['heading1', 'heading2', 'heading3', 'heading4', 'heading5', 'heading6'];
     return SubmenuButton(
       menuChildren: [
-        MenuItemButton(
-          shortcut: _parseShortcut(kb.getKeybinding('bold')),
-          child: Text(l10n.formatBold),
-          onPressed: () => fmt(FormatAction.bold),
+        SubmenuButton(
+          menuChildren: [
+            MenuItemButton(
+              shortcut: _parseShortcut(kb.getKeybinding('bold')),
+              child: Text(l10n.formatBold),
+              onPressed: () => fmt(FormatAction.bold),
+            ),
+            MenuItemButton(
+              shortcut: _parseShortcut(kb.getKeybinding('italic')),
+              child: Text(l10n.formatItalic),
+              onPressed: () => fmt(FormatAction.italic),
+            ),
+            MenuItemButton(
+              shortcut: _parseShortcut(kb.getKeybinding('strikethrough')),
+              child: Text(l10n.formatStrikethrough),
+              onPressed: () => fmt(FormatAction.strikethrough),
+            ),
+            MenuItemButton(
+              shortcut: _parseShortcut(kb.getKeybinding('underline')),
+              child: Text(l10n.formatUnderline),
+              onPressed: () => fmt(FormatAction.underline),
+            ),
+            MenuItemButton(
+              shortcut: _parseShortcut(kb.getKeybinding('highlight')),
+              child: Text(l10n.formatHighlight),
+              onPressed: () => fmt(FormatAction.highlight),
+            ),
+            MenuItemButton(
+              child: Text(l10n.formatClearFormatting),
+              onPressed: () => fmt(FormatAction.clearFormatting),
+            ),
+          ],
+          child: Text(l10n.formatTextSubmenu),
         ),
-        MenuItemButton(
-          shortcut: _parseShortcut(kb.getKeybinding('italic')),
-          child: Text(l10n.formatItalic),
-          onPressed: () => fmt(FormatAction.italic),
-        ),
-        MenuItemButton(
-          shortcut: _parseShortcut(kb.getKeybinding('strikethrough')),
-          child: Text(l10n.formatStrikethrough),
-          onPressed: () => fmt(FormatAction.strikethrough),
-        ),
-        const Divider(height: 1),
         SubmenuButton(
           menuChildren: List.generate(
             6,
@@ -580,91 +612,85 @@ class AppMenuBar extends ConsumerWidget {
           ),
           child: Text(l10n.formatHeadingSubmenu),
         ),
-        const Divider(height: 1),
-        MenuItemButton(
-          shortcut: _parseShortcut(kb.getKeybinding('orderedList')),
-          child: Text(l10n.formatOrderedList),
-          onPressed: () => fmt(FormatAction.orderedList),
+        SubmenuButton(
+          menuChildren: [
+            MenuItemButton(
+              shortcut: _parseShortcut(kb.getKeybinding('orderedList')),
+              child: Text(l10n.formatOrderedList),
+              onPressed: () => fmt(FormatAction.orderedList),
+            ),
+            MenuItemButton(
+              shortcut: _parseShortcut(kb.getKeybinding('unorderedList')),
+              child: Text(l10n.formatUnorderedList),
+              onPressed: () => fmt(FormatAction.unorderedList),
+            ),
+            MenuItemButton(
+              shortcut: _parseShortcut(kb.getKeybinding('taskList')),
+              child: Text(l10n.formatTaskList),
+              onPressed: () => fmt(FormatAction.taskList),
+            ),
+            MenuItemButton(
+              shortcut: _parseShortcut(kb.getKeybinding('quoteBlock')),
+              child: Text(l10n.formatQuoteBlock),
+              onPressed: () => fmt(FormatAction.quoteBlock),
+            ),
+          ],
+          child: Text(l10n.formatBlocksSubmenu),
         ),
-        MenuItemButton(
-          shortcut: _parseShortcut(kb.getKeybinding('unorderedList')),
-          child: Text(l10n.formatUnorderedList),
-          onPressed: () => fmt(FormatAction.unorderedList),
+        SubmenuButton(
+          menuChildren: [
+            MenuItemButton(
+              shortcut: _parseShortcut(kb.getKeybinding('codeBlock')),
+              child: Text(l10n.formatCodeBlock),
+              onPressed: () => fmt(FormatAction.codeBlock),
+            ),
+            MenuItemButton(
+              child: Text(l10n.formatMathBlock),
+              onPressed: () => fmt(FormatAction.mathBlock),
+            ),
+            MenuItemButton(
+              shortcut: _parseShortcut(kb.getKeybinding('inlineCode')),
+              child: Text(l10n.formatInlineCode),
+              onPressed: () => fmt(FormatAction.inlineCode),
+            ),
+            MenuItemButton(
+              child: Text(l10n.formatInlineMath),
+              onPressed: () => fmt(FormatAction.inlineMath),
+            ),
+          ],
+          child: Text(l10n.formatCodeSubmenu),
         ),
-        MenuItemButton(
-          shortcut: _parseShortcut(kb.getKeybinding('taskList')),
-          child: Text(l10n.formatTaskList),
-          onPressed: () => fmt(FormatAction.taskList),
-        ),
-        const Divider(height: 1),
-        MenuItemButton(
-          shortcut: _parseShortcut(kb.getKeybinding('codeBlock')),
-          child: Text(l10n.formatCodeBlock),
-          onPressed: () => fmt(FormatAction.codeBlock),
-        ),
-        MenuItemButton(
-          shortcut: _parseShortcut(kb.getKeybinding('quoteBlock')),
-          child: Text(l10n.formatQuoteBlock),
-          onPressed: () => fmt(FormatAction.quoteBlock),
-        ),
-        MenuItemButton(
-          child: Text(l10n.formatMathBlock),
-          onPressed: () => fmt(FormatAction.mathBlock),
-        ),
-        const Divider(height: 1),
-        MenuItemButton(
-          shortcut: _parseShortcut(kb.getKeybinding('table')),
-          child: Text(l10n.formatTable),
-          onPressed: () => fmt(FormatAction.table),
-        ),
-        MenuItemButton(
-          shortcut: _parseShortcut(kb.getKeybinding('link')),
-          child: Text(l10n.formatLink),
-          onPressed: () => fmt(FormatAction.link),
-        ),
-        MenuItemButton(
-          shortcut: _parseShortcut(kb.getKeybinding('image')),
-          child: Text(l10n.formatImage),
-          onPressed: () => fmt(FormatAction.image),
-        ),
-        const Divider(height: 1),
-        MenuItemButton(
-          child: Text(l10n.formatHorizontalRule),
-          onPressed: () => fmt(FormatAction.horizontalRule),
-        ),
-        const Divider(height: 1),
-        MenuItemButton(
-          shortcut: _parseShortcut(kb.getKeybinding('underline')),
-          child: Text(l10n.formatUnderline),
-          onPressed: () => fmt(FormatAction.underline),
-        ),
-        MenuItemButton(
-          child: Text(l10n.formatSuperscript),
-          onPressed: () => fmt(FormatAction.superscript),
-        ),
-        MenuItemButton(
-          child: Text(l10n.formatSubscript),
-          onPressed: () => fmt(FormatAction.subscript),
-        ),
-        MenuItemButton(
-          shortcut: _parseShortcut(kb.getKeybinding('highlight')),
-          child: Text(l10n.formatHighlight),
-          onPressed: () => fmt(FormatAction.highlight),
-        ),
-        const Divider(height: 1),
-        MenuItemButton(
-          shortcut: _parseShortcut(kb.getKeybinding('inlineCode')),
-          child: Text(l10n.formatInlineCode),
-          onPressed: () => fmt(FormatAction.inlineCode),
-        ),
-        MenuItemButton(
-          child: Text(l10n.formatInlineMath),
-          onPressed: () => fmt(FormatAction.inlineMath),
-        ),
-        const Divider(height: 1),
-        MenuItemButton(
-          child: Text(l10n.formatClearFormatting),
-          onPressed: () => fmt(FormatAction.clearFormatting),
+        SubmenuButton(
+          menuChildren: [
+            MenuItemButton(
+              shortcut: _parseShortcut(kb.getKeybinding('table')),
+              child: Text(l10n.formatTable),
+              onPressed: () => fmt(FormatAction.table),
+            ),
+            MenuItemButton(
+              shortcut: _parseShortcut(kb.getKeybinding('link')),
+              child: Text(l10n.formatLink),
+              onPressed: () => fmt(FormatAction.link),
+            ),
+            MenuItemButton(
+              shortcut: _parseShortcut(kb.getKeybinding('image')),
+              child: Text(l10n.formatImage),
+              onPressed: () => fmt(FormatAction.image),
+            ),
+            MenuItemButton(
+              child: Text(l10n.formatHorizontalRule),
+              onPressed: () => fmt(FormatAction.horizontalRule),
+            ),
+            MenuItemButton(
+              child: Text(l10n.formatSuperscript),
+              onPressed: () => fmt(FormatAction.superscript),
+            ),
+            MenuItemButton(
+              child: Text(l10n.formatSubscript),
+              onPressed: () => fmt(FormatAction.subscript),
+            ),
+          ],
+          child: Text(l10n.formatInsertSubmenu),
         ),
       ],
       child: Text(l10n.menuFormat, style: const TextStyle(fontWeight: FontWeight.bold)),

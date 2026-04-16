@@ -526,4 +526,142 @@ class AppLocalizationsIt extends AppLocalizations {
   String confirmDeleteFile(String fileName) {
     return 'Sei sicuro di voler eliminare \"$fileName\"?';
   }
+
+  @override
+  String get newFolder => 'Nuova cartella';
+
+  @override
+  String get rename => 'Rinomina';
+
+  @override
+  String get delete => 'Elimina';
+
+  @override
+  String get confirm => 'Conferma';
+
+  @override
+  String get fileNameHint => 'Nome del file';
+
+  @override
+  String get folderNameHint => 'Nome della cartella';
+
+  @override
+  String get newNameHint => 'Nuovo nome';
+
+  @override
+  String get closeOtherTabs => 'Chiudi le altre schede';
+
+  @override
+  String get closeTabsToRight => 'Chiudi le schede a destra';
+
+  @override
+  String get closeAllTabs => 'Chiudi tutte le schede';
+
+  @override
+  String get revealInExplorer => 'Mostra nel file manager';
+
+  @override
+  String get formatTextSubmenu => 'Testo';
+
+  @override
+  String get formatBlocksSubmenu => 'Blocchi';
+
+  @override
+  String get formatCodeSubmenu => 'Codice';
+
+  @override
+  String get formatInsertSubmenu => 'Inserisci';
+
+  @override
+  String get fileRename => 'Rinomina';
+
+  @override
+  String get newTab => 'Nuova scheda';
+
+  @override
+  String get newNameHintDialog => 'Nuovo nome';
+
+  @override
+  String get commandPaletteHint => 'Digita un comando...';
+
+  @override
+  String get commandPaletteNoResults => 'Nessun comando corrispondente';
+
+  @override
+  String get statusLineFeed => 'LF';
+
+  @override
+  String get settingsTextDirectionLtr => 'Da sinistra a destra';
+
+  @override
+  String get settingsTextDirectionRtl => 'Da destra a sinistra';
+
+  @override
+  String commandFormatLabel(String action) {
+    return 'Formato: $action';
+  }
+
+  @override
+  String commandFormatDesc(String action) {
+    return 'Applica formattazione $action';
+  }
+
+  @override
+  String get commandNewFile => 'Nuovo file';
+
+  @override
+  String get commandNewFileDesc => 'Crea un nuovo file senza titolo';
+
+  @override
+  String get commandSave => 'Salva';
+
+  @override
+  String get commandSaveDesc => 'Salva il file corrente';
+
+  @override
+  String get commandSourceMode => 'Modalità sorgente';
+
+  @override
+  String get commandSourceModeDesc =>
+      'Passa alla modalità di modifica del codice sorgente';
+
+  @override
+  String get commandPreviewMode => 'Modalità anteprima';
+
+  @override
+  String get commandPreviewModeDesc => 'Passa alla modalità anteprima';
+
+  @override
+  String get commandSplitMode => 'Modalità divisa';
+
+  @override
+  String get commandSplitModeDesc => 'Passa alla modalità di modifica divisa';
+
+  @override
+  String get commandToggleFocusMode => 'Attiva/disattiva modalità focus';
+
+  @override
+  String get commandToggleFocusModeDesc =>
+      'Attiva/disattiva la modalità focus senza distrazioni';
+
+  @override
+  String get commandToggleTypewriterMode =>
+      'Attiva/disattiva modalità macchina da scrivere';
+
+  @override
+  String get commandToggleTypewriterModeDesc =>
+      'Attiva/disattiva lo scorrimento macchina da scrivere';
+
+  @override
+  String get commandToggleSidebar => 'Attiva/disattiva barra laterale';
+
+  @override
+  String get commandToggleSidebarDesc => 'Mostra o nascondi la barra laterale';
+
+  @override
+  String get commandToggleTabBar => 'Attiva/disattiva barra schede';
+
+  @override
+  String get commandToggleTabBarDesc =>
+      'Mostra o nascondi la barra delle schede';
 }
