@@ -5,6 +5,22 @@ All notable changes to MarkText Plus will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.1.1] - 2026-04-16
+
+### Fixed
+- Fixed keyboard shortcuts (Ctrl+F, Ctrl+H) not working when focus is in editor TextField
+- Fixed dark mode display issues — removed independent dark mode toggle, themes now auto-determine light/dark mode
+- Fixed excessive UI heights for menu bar, submenu items, and tab context menu (48px → 36px)
+- Fixed table overflow in preview mode — added horizontal scrolling for wide tables
+- Fixed preview content width not expanding when sidebar is hidden — now uses configurable `editorMaxWidth`
+- Fixed preview mode font rendering — applied Open Sans font family with 16px size and 1.6 line height
+- Fixed source view selection highlight overflow at line endings — newline characters now share TextStyle with preceding text
+
+### Changed
+- Settings screen: split themes into "Light Themes" and "Dark Themes" sections with consistent font weight (w600)
+- Theme names now fully internationalized in all 12 languages (e.g., "Dieci OLED" → "Dieci 纯黑" in Chinese)
+- Removed `darkMode` boolean from AppConfig, replaced with automatic theme mode detection based on selected theme
+
 ## [v1.1.0] - 2026-04-16
 
 ### Added

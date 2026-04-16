@@ -95,7 +95,8 @@
   "sidebarSettings": "Einstellungen",
   "formatHeadingSubmenu": "Überschrift",
   "settingsBulletListMarker": "Aufzählungszeichen",
-  "settingsDarkMode": "Dunkelmodus",
+  "settingsLightThemes": "Helle Themen",
+  "settingsDarkThemes": "Dunkle Themen",
   "confirmResetMessage": "Möchten Sie alle Einstellungen auf die Standardwerte zurücksetzen?",
   "comingSoon": "Demnächst",
   "noFiles": "Keine Dateien",
@@ -135,6 +136,11 @@
   "themeMaterialDark": "Material Dunkel",
   "themeGraphiteLight": "Graphit Hell",
   "themeUlyssesLight": "Ulysses Hell",
+  "themeRedGraphite": "Rot Graphit",
+  "themeShibuya": "Shibuya",
+  "themeDarkGraphite": "Dunkel Graphit",
+  "themeDieciOLED": "Dieci OLED",
+  "themeNord": "Nord",
   "keybindingBold": "Fett",
   "keybindingItalic": "Kursiv",
   "keybindingUnderline": "Unterstrichen",
@@ -215,5 +221,9 @@
   "commandToggleSidebar": "Seitenleiste umschalten",
   "commandToggleSidebarDesc": "Seitenleiste ein-/ausblenden",
   "commandToggleTabBar": "Tab-Leiste umschalten",
-  "commandToggleTabBarDesc": "Tab-Leiste ein-/ausblenden"
+  "commandToggleTabBarDesc": "Tab-Leiste ein-/ausblenden",
+
+  "welcomeNewFile": "Neue Datei",
+  "welcomeOpenFile": "Datei öffnen",
+  "welcomeDragHint": "Dateien hierher ziehen zum Öffnen"
 }

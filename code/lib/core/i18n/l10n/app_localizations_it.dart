@@ -298,7 +298,10 @@ class AppLocalizationsIt extends AppLocalizations {
   String get settingsBulletListMarker => 'Marcatore elenco';
 
   @override
-  String get settingsDarkMode => 'Modalità scura';
+  String get settingsLightThemes => 'Temi chiari';
+
+  @override
+  String get settingsDarkThemes => 'Temi scuri';
 
   @override
   String get confirmResetMessage =>
@@ -419,6 +422,21 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get themeUlyssesLight => 'Ulysses Chiaro';
+
+  @override
+  String get themeRedGraphite => 'Grafite Rosso';
+
+  @override
+  String get themeShibuya => 'Shibuya';
+
+  @override
+  String get themeDarkGraphite => 'Grafite Scuro';
+
+  @override
+  String get themeDieciOLED => 'Dieci OLED';
+
+  @override
+  String get themeNord => 'Nord';
 
   @override
   String get keybindingBold => 'Grassetto';
@@ -664,4 +682,13 @@ class AppLocalizationsIt extends AppLocalizations {
   @override
   String get commandToggleTabBarDesc =>
       'Mostra o nascondi la barra delle schede';
+
+  @override
+  String get welcomeNewFile => 'Nuovo file';
+
+  @override
+  String get welcomeOpenFile => 'Apri file';
+
+  @override
+  String get welcomeDragHint => 'Trascina i file qui per aprirli';
 }

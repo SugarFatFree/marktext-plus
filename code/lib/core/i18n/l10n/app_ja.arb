@@ -95,7 +95,8 @@
   "sidebarSettings": "設定",
   "formatHeadingSubmenu": "見出し",
   "settingsBulletListMarker": "箇条書きマーカー",
-  "settingsDarkMode": "ダークモード",
+  "settingsLightThemes": "ライトテーマ",
+  "settingsDarkThemes": "ダークテーマ",
   "confirmResetMessage": "すべての設定をデフォルトに戻しますか？",
   "comingSoon": "近日公開",
   "noFiles": "ファイルなし",
@@ -135,6 +136,11 @@
   "themeMaterialDark": "Material ダーク",
   "themeGraphiteLight": "グラファイトライト",
   "themeUlyssesLight": "Ulysses ライト",
+  "themeRedGraphite": "レッドグラファイト",
+  "themeShibuya": "渋谷",
+  "themeDarkGraphite": "ダークグラファイト",
+  "themeDieciOLED": "Dieci OLED",
+  "themeNord": "Nord",
   "keybindingBold": "太字",
   "keybindingItalic": "斜体",
   "keybindingUnderline": "下線",
@@ -215,5 +221,9 @@
   "commandToggleSidebar": "サイドバー切替",
   "commandToggleSidebarDesc": "サイドバーの表示/非表示を切り替え",
   "commandToggleTabBar": "タブバー切替",
-  "commandToggleTabBarDesc": "タブバーの表示/非表示を切り替え"
+  "commandToggleTabBarDesc": "タブバーの表示/非表示を切り替え",
+
+  "welcomeNewFile": "新規ファイル",
+  "welcomeOpenFile": "ファイルを開く",
+  "welcomeDragHint": "ファイルをここにドロップして開く"
 }

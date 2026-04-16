@@ -95,7 +95,8 @@
   "sidebarSettings": "설정",
   "formatHeadingSubmenu": "제목",
   "settingsBulletListMarker": "글머리 기호",
-  "settingsDarkMode": "다크 모드",
+  "settingsLightThemes": "라이트 테마",
+  "settingsDarkThemes": "다크 테마",
   "confirmResetMessage": "모든 설정을 기본값으로 되돌리시겠습니까?",
   "comingSoon": "곧 출시",
   "noFiles": "파일 없음",
@@ -135,6 +136,11 @@
   "themeMaterialDark": "Material 다크",
   "themeGraphiteLight": "그래파이트 라이트",
   "themeUlyssesLight": "Ulysses 라이트",
+  "themeRedGraphite": "레드 그래파이트",
+  "themeShibuya": "시부야",
+  "themeDarkGraphite": "다크 그래파이트",
+  "themeDieciOLED": "Dieci OLED",
+  "themeNord": "Nord",
   "keybindingBold": "굵게",
   "keybindingItalic": "기울임꼴",
   "keybindingUnderline": "밑줄",
@@ -215,5 +221,9 @@
   "commandToggleSidebar": "사이드바 전환",
   "commandToggleSidebarDesc": "사이드바 표시/숨기기",
   "commandToggleTabBar": "탭 바 전환",
-  "commandToggleTabBarDesc": "탭 바 표시/숨기기"
+  "commandToggleTabBarDesc": "탭 바 표시/숨기기",
+
+  "welcomeNewFile": "새 파일",
+  "welcomeOpenFile": "파일 열기",
+  "welcomeDragHint": "파일을 여기에 드롭하여 열기"
 }

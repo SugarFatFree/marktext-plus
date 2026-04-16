@@ -298,7 +298,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsBulletListMarker => '箇条書きマーカー';
 
   @override
-  String get settingsDarkMode => 'ダークモード';
+  String get settingsLightThemes => 'ライトテーマ';
+
+  @override
+  String get settingsDarkThemes => 'ダークテーマ';
 
   @override
   String get confirmResetMessage => 'すべての設定をデフォルトに戻しますか？';
@@ -418,6 +421,21 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get themeUlyssesLight => 'Ulysses ライト';
+
+  @override
+  String get themeRedGraphite => 'レッドグラファイト';
+
+  @override
+  String get themeShibuya => '渋谷';
+
+  @override
+  String get themeDarkGraphite => 'ダークグラファイト';
+
+  @override
+  String get themeDieciOLED => 'Dieci OLED';
+
+  @override
+  String get themeNord => 'Nord';
 
   @override
   String get keybindingBold => '太字';
@@ -658,4 +676,13 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get commandToggleTabBarDesc => 'タブバーの表示/非表示を切り替え';
+
+  @override
+  String get welcomeNewFile => '新規ファイル';
+
+  @override
+  String get welcomeOpenFile => 'ファイルを開く';
+
+  @override
+  String get welcomeDragHint => 'ファイルをここにドロップして開く';
 }

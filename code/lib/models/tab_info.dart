@@ -6,6 +6,7 @@ class TabInfo {
   String fileName;
   String content;
   bool isModified;
+  bool isLoading;
   int cursorPosition;
   double scrollOffset;
   EditMode editMode;
@@ -16,6 +17,7 @@ class TabInfo {
     this.fileName = 'Untitled',
     this.content = '',
     this.isModified = false,
+    this.isLoading = false,
     this.cursorPosition = 0,
     this.scrollOffset = 0,
     this.editMode = EditMode.preview,
@@ -26,6 +28,7 @@ class TabInfo {
     String? fileName,
     String? content,
     bool? isModified,
+    bool? isLoading,
     int? cursorPosition,
     double? scrollOffset,
     EditMode? editMode,
@@ -36,6 +39,7 @@ class TabInfo {
       fileName: fileName ?? this.fileName,
       content: content ?? this.content,
       isModified: isModified ?? this.isModified,
+      isLoading: isLoading ?? this.isLoading,
       cursorPosition: cursorPosition ?? this.cursorPosition,
       scrollOffset: scrollOffset ?? this.scrollOffset,
       editMode: editMode ?? this.editMode,

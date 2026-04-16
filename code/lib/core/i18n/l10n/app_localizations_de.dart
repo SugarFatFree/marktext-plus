@@ -299,7 +299,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsBulletListMarker => 'Aufzählungszeichen';
 
   @override
-  String get settingsDarkMode => 'Dunkelmodus';
+  String get settingsLightThemes => 'Helle Themen';
+
+  @override
+  String get settingsDarkThemes => 'Dunkle Themen';
 
   @override
   String get confirmResetMessage =>
@@ -420,6 +423,21 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get themeUlyssesLight => 'Ulysses Hell';
+
+  @override
+  String get themeRedGraphite => 'Rot Graphit';
+
+  @override
+  String get themeShibuya => 'Shibuya';
+
+  @override
+  String get themeDarkGraphite => 'Dunkel Graphit';
+
+  @override
+  String get themeDieciOLED => 'Dieci OLED';
+
+  @override
+  String get themeNord => 'Nord';
 
   @override
   String get keybindingBold => 'Fett';
@@ -663,4 +681,13 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get commandToggleTabBarDesc => 'Tab-Leiste ein-/ausblenden';
+
+  @override
+  String get welcomeNewFile => 'Neue Datei';
+
+  @override
+  String get welcomeOpenFile => 'Datei öffnen';
+
+  @override
+  String get welcomeDragHint => 'Dateien hierher ziehen zum Öffnen';
 }

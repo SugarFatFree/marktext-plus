@@ -95,7 +95,8 @@
   "sidebarSettings": "设置",
   "formatHeadingSubmenu": "标题",
   "settingsBulletListMarker": "无序列表标记",
-  "settingsDarkMode": "深色模式",
+  "settingsLightThemes": "浅色主题",
+  "settingsDarkThemes": "深色主题",
   "confirmResetMessage": "确定要恢复所有设置为默认值吗？",
   "comingSoon": "即将推出",
   "noFiles": "没有文件",
@@ -135,6 +136,11 @@
   "themeMaterialDark": "Material 深色",
   "themeGraphiteLight": "石墨浅色",
   "themeUlyssesLight": "Ulysses 浅色",
+  "themeRedGraphite": "红石墨",
+  "themeShibuya": "涩谷",
+  "themeDarkGraphite": "深色石墨",
+  "themeDieciOLED": "Dieci 纯黑",
+  "themeNord": "Nord 极光",
   "keybindingBold": "粗体",
   "keybindingItalic": "斜体",
   "keybindingUnderline": "下划线",
@@ -215,5 +221,9 @@
   "commandToggleSidebar": "切换侧边栏",
   "commandToggleSidebarDesc": "显示或隐藏侧边栏",
   "commandToggleTabBar": "切换标签栏",
-  "commandToggleTabBarDesc": "显示或隐藏标签栏"
+  "commandToggleTabBarDesc": "显示或隐藏标签栏",
+
+  "welcomeNewFile": "新建文件",
+  "welcomeOpenFile": "打开文件",
+  "welcomeDragHint": "拖拽文件到此处打开"
 }

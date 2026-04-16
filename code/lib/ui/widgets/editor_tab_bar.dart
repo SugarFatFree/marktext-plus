@@ -89,9 +89,40 @@ class _TabItem extends ConsumerStatefulWidget {
   ConsumerState<_TabItem> createState() => _TabItemState();
 }
 
-class _TabItemState extends ConsumerState<_TabItem> {
+class _TabItemState extends ConsumerState<_TabItem> with SingleTickerProviderStateMixin {
   bool _isHovered = false;
   bool _isCloseHovered = false;
+  late AnimationController _fadeController;
+  late Animation<double> _fadeAnimation;
+  bool _isClosing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+    );
+    _fadeAnimation = CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeOut,
+    );
+    _fadeController.forward();
+  }
+
+  @override
+  void dispose() {
+    _fadeController.dispose();
+    super.dispose();
+  }
+
+  void _handleClose() {
+    if (_isClosing) return;
+    setState(() => _isClosing = true);
+    // Immediately call onClose to switch content, while tab fades out
+    widget.onClose();
+    _fadeController.reverse();
+  }
 
   void _showContextMenu(BuildContext context, Offset position) async {
     final l10n = AppLocalizations.of(context)!;
@@ -102,16 +133,16 @@ class _TabItemState extends ConsumerState<_TabItem> {
       context: context,
       position: RelativeRect.fromLTRB(position.dx, position.dy, position.dx, position.dy),
       items: [
-        PopupMenuItem(value: 'close', child: Text(l10n.closeFile)),
-        PopupMenuItem(value: 'close_others', child: Text(l10n.closeOtherTabs)),
-        PopupMenuItem(value: 'close_right', child: Text(l10n.closeTabsToRight)),
-        PopupMenuItem(value: 'close_all', child: Text(l10n.closeAllTabs)),
+        PopupMenuItem(value: 'close', height: 36, child: Text(l10n.closeFile, style: const TextStyle(fontWeight: FontWeight.normal))),
+        PopupMenuItem(value: 'close_others', height: 36, child: Text(l10n.closeOtherTabs, style: const TextStyle(fontWeight: FontWeight.normal))),
+        PopupMenuItem(value: 'close_right', height: 36, child: Text(l10n.closeTabsToRight, style: const TextStyle(fontWeight: FontWeight.normal))),
+        PopupMenuItem(value: 'close_all', height: 36, child: Text(l10n.closeAllTabs, style: const TextStyle(fontWeight: FontWeight.normal))),
         if (hasFilePath) ...[
           const PopupMenuDivider(),
-          PopupMenuItem(value: 'copy_name', child: Text(l10n.copyFileName)),
-          PopupMenuItem(value: 'copy_path', child: Text(l10n.copyFilePath)),
+          PopupMenuItem(value: 'copy_name', height: 36, child: Text(l10n.copyFileName, style: const TextStyle(fontWeight: FontWeight.normal))),
+          PopupMenuItem(value: 'copy_path', height: 36, child: Text(l10n.copyFilePath, style: const TextStyle(fontWeight: FontWeight.normal))),
           const PopupMenuDivider(),
-          PopupMenuItem(value: 'reveal', child: Text(l10n.revealInExplorer)),
+          PopupMenuItem(value: 'reveal', height: 36, child: Text(l10n.revealInExplorer, style: const TextStyle(fontWeight: FontWeight.normal))),
         ],
       ],
     );
@@ -148,15 +179,20 @@ class _TabItemState extends ConsumerState<_TabItem> {
 
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        onSecondaryTapUp: (details) {
-          _showContextMenu(context, details.globalPosition);
-        },
-        child: AnimatedContainer(
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: SizeTransition(
+        sizeFactor: _fadeAnimation,
+        axis: Axis.horizontal,
+        child: MouseRegion(
+          onEnter: (_) => setState(() => _isHovered = true),
+          onExit: (_) => setState(() => _isHovered = false),
+          child: GestureDetector(
+            onTap: widget.onTap,
+            onSecondaryTapUp: (details) {
+              _showContextMenu(context, details.globalPosition);
+            },
+            child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           curve: Curves.easeOut,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -199,7 +235,7 @@ class _TabItemState extends ConsumerState<_TabItem> {
                   onEnter: (_) => setState(() => _isCloseHovered = true),
                   onExit: (_) => setState(() => _isCloseHovered = false),
                   child: GestureDetector(
-                    onTap: widget.onClose,
+                    onTap: _handleClose,
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 100),
                       padding: const EdgeInsets.all(2),
@@ -221,6 +257,8 @@ class _TabItemState extends ConsumerState<_TabItem> {
                 ),
               ],
             ],
+          ),
+        ),
           ),
         ),
       ),

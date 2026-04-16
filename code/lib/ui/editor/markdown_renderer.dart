@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_highlight/flutter_highlight.dart';
+import 'package:highlight/highlight.dart' show highlight, Node;
 import 'package:flutter_highlight/themes/github.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -34,6 +34,7 @@ class MarkdownRenderer extends ConsumerStatefulWidget {
 
 class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   final _headingKeys = <int, GlobalKey>{};
+  int _matchCounter = 0;
 
   /// Parse raw markdown to find heading line numbers (1-based),
   /// matching the same logic used by the TOC panel.
@@ -119,10 +120,13 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     final theme = Theme.of(context);
     final config = ref.watch(settingsProvider);
     final tokens = AppTheme.getTokens(config.themeName);
+    // Watch editorProvider to rebuild when search state changes
+    ref.watch(editorProvider);
     final parser = md.MarkdownParser();
     final nodes = parser.parse(widget.markdown);
     final headingLines = _findHeadingLines(widget.markdown);
     final widgets = <Widget>[];
+    _matchCounter = 0;
 
     int headingIndex = 0;
     for (final node in nodes) {
@@ -157,15 +161,17 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       }
     }
 
-    return SingleChildScrollView(
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 680),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: widgets,
+    return SelectionArea(
+      child: SingleChildScrollView(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: config.editorMaxWidth.toDouble()),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: widgets,
+              ),
             ),
           ),
         ),
@@ -175,10 +181,10 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
 
   Widget _buildHeading(md.HeadingNode node, ThemeData theme, AppThemeTokens tokens, {Key? key}) {
     final style = switch (node.level) {
-      1 => TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: tokens.colorText),
-      2 => TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: tokens.colorText),
-      3 => TextStyle(fontSize: 21, fontWeight: FontWeight.w600, color: tokens.colorText),
-      _ => TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: tokens.colorTextMuted),
+      1 => TextStyle(fontFamily: _previewFontFamily, fontSize: 28, fontWeight: FontWeight.w700, color: tokens.colorText),
+      2 => TextStyle(fontFamily: _previewFontFamily, fontSize: 24, fontWeight: FontWeight.w600, color: tokens.colorText),
+      3 => TextStyle(fontFamily: _previewFontFamily, fontSize: 21, fontWeight: FontWeight.w600, color: tokens.colorText),
+      _ => TextStyle(fontFamily: _previewFontFamily, fontSize: 17, fontWeight: FontWeight.w600, color: tokens.colorTextMuted),
     };
 
     return Padding(
@@ -201,11 +207,13 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     );
   }
 
+  static const _previewFontFamily = 'Open Sans, Helvetica Neue, Arial, sans-serif';
+
   Widget _buildParagraph(md.ParagraphNode node, ThemeData theme) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Text.rich(
-        _buildInlineSpans(node.inlineSpans, theme, const TextStyle(fontSize: 17, height: 1.7)),
+        _buildInlineSpans(node.inlineSpans, theme, const TextStyle(fontFamily: _previewFontFamily, fontSize: 16, height: 1.6)),
       ),
     );
   }
@@ -235,7 +243,10 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       );
     }
 
+    final baseCodeStyle = const TextStyle(fontFamily: 'monospace', fontSize: 14);
+
     return Container(
+      width: double.infinity,
       margin: const EdgeInsets.symmetric(vertical: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -243,18 +254,74 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         borderRadius: BorderRadius.circular(8),
       ),
       child: node.language.isNotEmpty
-          ? HighlightView(
-              node.code,
-              language: node.language,
-              theme: githubTheme,
-              padding: EdgeInsets.zero,
-              textStyle: const TextStyle(fontFamily: 'monospace', fontSize: 14),
+          ? Text.rich(
+              TextSpan(
+                style: _buildCodeTextStyle(baseCodeStyle),
+                children: _buildHighlightedCodeSpans(node.code, node.language),
+              ),
             )
           : Text(
               node.code,
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 14),
+              style: baseCodeStyle,
             ),
     );
+  }
+
+  TextStyle _buildCodeTextStyle(TextStyle baseStyle) {
+    return baseStyle.copyWith(
+      color: githubTheme['root']?.color ?? const Color(0xff000000),
+    );
+  }
+
+  List<TextSpan> _buildHighlightedCodeSpans(String source, String language, {int tabSize = 8}) {
+    final nodes = highlight.parse(source.replaceAll('\t', ' ' * tabSize), language: language).nodes;
+    if (nodes == null || nodes.isEmpty) {
+      return [TextSpan(text: source)];
+    }
+    return _convertHighlightNodes(nodes, githubTheme);
+  }
+
+  List<TextSpan> _convertHighlightNodes(List<Node> nodes, Map<String, TextStyle> theme) {
+    final spans = <TextSpan>[];
+    var currentSpans = spans;
+    final stack = <List<TextSpan>>[];
+
+    void traverse(Node node) {
+      if (node.value != null) {
+        currentSpans.add(
+          node.className == null
+              ? TextSpan(text: node.value)
+              : TextSpan(text: node.value, style: theme[node.className!]),
+        );
+        return;
+      }
+
+      if (node.children == null) return;
+
+      if (node.className == null) {
+        for (final child in node.children!) {
+          traverse(child);
+        }
+        return;
+      }
+
+      final nestedSpans = <TextSpan>[];
+      currentSpans.add(TextSpan(children: nestedSpans, style: theme[node.className!]));
+      stack.add(currentSpans);
+      currentSpans = nestedSpans;
+
+      for (final child in node.children!) {
+        traverse(child);
+      }
+
+      currentSpans = stack.removeLast();
+    }
+
+    for (final node in nodes) {
+      traverse(node);
+    }
+
+    return spans;
   }
 
   Widget _buildList(md.ListNode node, ThemeData theme) {
@@ -325,7 +392,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text.rich(
-        _buildInlineSpans(node.inlineSpans, theme, const TextStyle(fontSize: 17, height: 1.7)),
+        _buildInlineSpans(node.inlineSpans, theme, const TextStyle(fontFamily: _previewFontFamily, fontSize: 16, height: 1.6)),
       ),
     );
   }
@@ -338,44 +405,52 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         border: Border.all(color: theme.dividerColor),
         borderRadius: BorderRadius.circular(4),
       ),
-      child: Table(
-        border: TableBorder.symmetric(
-          inside: BorderSide(color: theme.dividerColor),
-        ),
-        defaultColumnWidth: const IntrinsicColumnWidth(),
-        children: [
-          TableRow(
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minWidth: 200),
+          child: Table(
+            border: TableBorder.symmetric(
+              inside: BorderSide(color: theme.dividerColor),
             ),
+            defaultColumnWidth: const IntrinsicColumnWidth(),
             children: [
-              for (var i = 0; i < node.headers.length; i++)
-                Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: Text(
-                    node.headers[i],
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+              TableRow(
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest,
+                ),
+                children: [
+                  for (var i = 0; i < node.headers.length; i++)
+                    Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: Text(
+                        node.headers[i],
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontFamily: _previewFontFamily,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: _getAlignment(node.alignments, i),
+                      ),
                     ),
-                    textAlign: _getAlignment(node.alignments, i),
-                  ),
+                ],
+              ),
+              for (final row in node.rows)
+                TableRow(
+                  children: [
+                    for (var i = 0; i < colCount; i++)
+                      Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: Text(
+                          i < row.length ? row[i] : '',
+                          style: TextStyle(fontFamily: _previewFontFamily),
+                          textAlign: _getAlignment(node.alignments, i),
+                        ),
+                      ),
+                  ],
                 ),
             ],
           ),
-          for (final row in node.rows)
-            TableRow(
-              children: [
-                for (var i = 0; i < colCount; i++)
-                  Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Text(
-                      i < row.length ? row[i] : '',
-                      textAlign: _getAlignment(node.alignments, i),
-                    ),
-                  ),
-              ],
-            ),
-        ],
+        ),
       ),
     );
   }
@@ -454,35 +529,119 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     );
   }
 
+  /// Split a text span into segments with search highlighting applied.
+  List<InlineSpan> _applySearchHighlight(String text, TextStyle? style, EditorState editorState) {
+    final query = editorState.previewSearchQuery;
+    if (query.isEmpty || text.isEmpty) {
+      return [TextSpan(text: text, style: style)];
+    }
+
+    final matchRanges = <TextRange>[];
+    try {
+      if (editorState.previewSearchUseRegex) {
+        final regex = RegExp(query, caseSensitive: editorState.previewSearchCaseSensitive);
+        for (final m in regex.allMatches(text)) {
+          matchRanges.add(TextRange(start: m.start, end: m.end));
+        }
+      } else {
+        String searchText = text;
+        String searchPattern = query;
+        if (!editorState.previewSearchCaseSensitive) {
+          searchText = text.toLowerCase();
+          searchPattern = query.toLowerCase();
+        }
+        int index = 0;
+        while (index < searchText.length) {
+          final pos = searchText.indexOf(searchPattern, index);
+          if (pos == -1) break;
+          if (editorState.previewSearchWholeWord) {
+            final isWordStart = pos == 0 || !RegExp(r'[a-zA-Z0-9_]').hasMatch(text[pos - 1]);
+            final isWordEnd = pos + query.length >= text.length ||
+                !RegExp(r'[a-zA-Z0-9_]').hasMatch(text[pos + query.length]);
+            if (isWordStart && isWordEnd) {
+              matchRanges.add(TextRange(start: pos, end: pos + query.length));
+            }
+          } else {
+            matchRanges.add(TextRange(start: pos, end: pos + query.length));
+          }
+          index = pos + 1;
+        }
+      }
+    } catch (_) {
+      return [TextSpan(text: text, style: style)];
+    }
+
+    if (matchRanges.isEmpty) {
+      return [TextSpan(text: text, style: style)];
+    }
+
+    final result = <InlineSpan>[];
+    int lastEnd = 0;
+    final currentIdx = editorState.previewCurrentMatchIndex;
+
+    for (final range in matchRanges) {
+      if (range.start > lastEnd) {
+        result.add(TextSpan(text: text.substring(lastEnd, range.start), style: style));
+      }
+      final isCurrent = _matchCounter == currentIdx;
+      result.add(TextSpan(
+        text: text.substring(range.start, range.end),
+        style: style?.copyWith(
+          backgroundColor: isCurrent
+              ? Colors.orange.withValues(alpha: 0.6)
+              : Colors.yellow.withValues(alpha: 0.4),
+        ),
+      ));
+      _matchCounter++;
+      lastEnd = range.end;
+    }
+    if (lastEnd < text.length) {
+      result.add(TextSpan(text: text.substring(lastEnd), style: style));
+    }
+    return result;
+  }
+
   TextSpan _buildInlineSpans(
     List<md.InlineSpan> spans,
     ThemeData theme,
     TextStyle? baseStyle,
   ) {
     final children = <InlineSpan>[];
+    final es = ref.read(editorProvider);
+    final hasSearch = es.previewSearchQuery.isNotEmpty;
 
     for (final span in spans) {
       switch (span.type) {
         case md.InlineType.text:
-          children.add(TextSpan(text: span.text, style: baseStyle));
+          if (hasSearch) {
+            children.addAll(_applySearchHighlight(span.text, baseStyle, es));
+          } else {
+            children.add(TextSpan(text: span.text, style: baseStyle));
+          }
         case md.InlineType.bold:
-          children.add(TextSpan(
-            text: span.text,
-            style: baseStyle?.copyWith(fontWeight: FontWeight.bold),
-          ));
+          final s = baseStyle?.copyWith(fontWeight: FontWeight.bold);
+          if (hasSearch) {
+            children.addAll(_applySearchHighlight(span.text, s, es));
+          } else {
+            children.add(TextSpan(text: span.text, style: s));
+          }
         case md.InlineType.italic:
-          children.add(TextSpan(
-            text: span.text,
-            style: baseStyle?.copyWith(fontStyle: FontStyle.italic),
-          ));
+          final s = baseStyle?.copyWith(fontStyle: FontStyle.italic);
+          if (hasSearch) {
+            children.addAll(_applySearchHighlight(span.text, s, es));
+          } else {
+            children.add(TextSpan(text: span.text, style: s));
+          }
         case md.InlineType.code:
-          children.add(TextSpan(
-            text: span.text,
-            style: baseStyle?.copyWith(
-              fontFamily: 'monospace',
-              backgroundColor: theme.colorScheme.surfaceContainerHighest,
-            ),
-          ));
+          final s = baseStyle?.copyWith(
+            fontFamily: 'monospace',
+            backgroundColor: theme.colorScheme.surfaceContainerHighest,
+          );
+          if (hasSearch) {
+            children.addAll(_applySearchHighlight(span.text, s, es));
+          } else {
+            children.add(TextSpan(text: span.text, style: s));
+          }
         case md.InlineType.link:
           children.add(TextSpan(
             text: span.text,
@@ -496,10 +655,12 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         case md.InlineType.image:
           children.add(_buildImageSpan(span, theme));
         case md.InlineType.strikethrough:
-          children.add(TextSpan(
-            text: span.text,
-            style: baseStyle?.copyWith(decoration: TextDecoration.lineThrough),
-          ));
+          final s = baseStyle?.copyWith(decoration: TextDecoration.lineThrough);
+          if (hasSearch) {
+            children.addAll(_applySearchHighlight(span.text, s, es));
+          } else {
+            children.add(TextSpan(text: span.text, style: s));
+          }
         case md.InlineType.mathInline:
           children.add(WidgetSpan(
             child: Math.tex(
@@ -508,12 +669,14 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             ),
           ));
         case md.InlineType.highlight:
-          children.add(TextSpan(
-            text: span.text,
-            style: baseStyle?.copyWith(
-              backgroundColor: Colors.yellow.withValues(alpha: 0.4),
-            ),
-          ));
+          final s = baseStyle?.copyWith(
+            backgroundColor: Colors.yellow.withValues(alpha: 0.4),
+          );
+          if (hasSearch) {
+            children.addAll(_applySearchHighlight(span.text, s, es));
+          } else {
+            children.add(TextSpan(text: span.text, style: s));
+          }
         case md.InlineType.superscript:
           children.add(WidgetSpan(
             alignment: PlaceholderAlignment.middle,
@@ -537,10 +700,12 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             ),
           ));
         case md.InlineType.underline:
-          children.add(TextSpan(
-            text: span.text,
-            style: baseStyle?.copyWith(decoration: TextDecoration.underline),
-          ));
+          final s = baseStyle?.copyWith(decoration: TextDecoration.underline);
+          if (hasSearch) {
+            children.addAll(_applySearchHighlight(span.text, s, es));
+          } else {
+            children.add(TextSpan(text: span.text, style: s));
+          }
         case md.InlineType.footnoteRef:
           children.add(WidgetSpan(
             alignment: PlaceholderAlignment.top,

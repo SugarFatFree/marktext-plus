@@ -299,7 +299,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get settingsBulletListMarker => 'Marcador de lista';
 
   @override
-  String get settingsDarkMode => 'Modo escuro';
+  String get settingsLightThemes => 'Temas claros';
+
+  @override
+  String get settingsDarkThemes => 'Temas escuros';
 
   @override
   String get confirmResetMessage =>
@@ -420,6 +423,21 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get themeUlyssesLight => 'Ulysses Claro';
+
+  @override
+  String get themeRedGraphite => 'Grafite Vermelho';
+
+  @override
+  String get themeShibuya => 'Shibuya';
+
+  @override
+  String get themeDarkGraphite => 'Grafite Escuro';
+
+  @override
+  String get themeDieciOLED => 'Dieci OLED';
+
+  @override
+  String get themeNord => 'Nord';
 
   @override
   String get keybindingBold => 'Negrito';
@@ -664,6 +682,15 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get commandToggleTabBarDesc =>
       'Mostrar ou ocultar a barra de separadores';
+
+  @override
+  String get welcomeNewFile => 'Novo ficheiro';
+
+  @override
+  String get welcomeOpenFile => 'Abrir ficheiro';
+
+  @override
+  String get welcomeDragHint => 'Arraste ficheiros para aqui para abrir';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -961,7 +988,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get settingsBulletListMarker => 'Marcador de lista';
 
   @override
-  String get settingsDarkMode => 'Modo escuro';
+  String get settingsLightThemes => 'Temas claros';
+
+  @override
+  String get settingsDarkThemes => 'Temas escuros';
 
   @override
   String get confirmResetMessage =>
@@ -1082,6 +1112,21 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get themeUlyssesLight => 'Ulysses Claro';
+
+  @override
+  String get themeRedGraphite => 'Grafite Vermelho';
+
+  @override
+  String get themeShibuya => 'Shibuya';
+
+  @override
+  String get themeDarkGraphite => 'Grafite Escuro';
+
+  @override
+  String get themeDieciOLED => 'Dieci OLED';
+
+  @override
+  String get themeNord => 'Nord';
 
   @override
   String get keybindingBold => 'Negrito';
@@ -1324,4 +1369,13 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get commandToggleTabBarDesc => 'Mostrar ou ocultar a barra de abas';
+
+  @override
+  String get welcomeNewFile => 'Novo arquivo';
+
+  @override
+  String get welcomeOpenFile => 'Abrir arquivo';
+
+  @override
+  String get welcomeDragHint => 'Arraste arquivos para cá para abrir';
 }

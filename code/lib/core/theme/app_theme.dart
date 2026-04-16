@@ -50,6 +50,17 @@ class AppTheme {
     'nord',
   ];
 
+  static const List<String> lightThemeNames = [
+    'redGraphite',
+    'shibuya',
+  ];
+
+  static const List<String> darkThemeNames = [
+    'darkGraphite',
+    'dieciOLED',
+    'nord',
+  ];
+
   // Red Graphite (light, default)
   static const redGraphite = AppThemeTokens(
     colorBg: Color(0xFFFFFFFF),
@@ -198,6 +209,8 @@ class AppTheme {
       ),
       menuButtonTheme: MenuButtonThemeData(
         style: ButtonStyle(
+          minimumSize: WidgetStatePropertyAll(Size(0, 36)),
+          padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
           textStyle: WidgetStatePropertyAll(
             TextStyle(fontSize: 14, fontWeight: FontWeight.normal, color: tokens.colorText),
           ),
@@ -214,6 +227,7 @@ class AppTheme {
       ),
       popupMenuTheme: PopupMenuThemeData(
         textStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.normal, color: tokens.colorText),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
       dividerColor: tokens.colorBorder,
       iconTheme: IconThemeData(color: tokens.colorTextMuted),

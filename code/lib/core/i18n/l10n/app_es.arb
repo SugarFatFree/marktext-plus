@@ -95,7 +95,8 @@
   "sidebarSettings": "Configuración",
   "formatHeadingSubmenu": "Encabezado",
   "settingsBulletListMarker": "Marcador de lista",
-  "settingsDarkMode": "Modo oscuro",
+  "settingsLightThemes": "Temas claros",
+  "settingsDarkThemes": "Temas oscuros",
   "confirmResetMessage": "¿Está seguro de que desea restablecer toda la configuración?",
   "comingSoon": "Próximamente",
   "noFiles": "Sin archivos",
@@ -135,6 +136,11 @@
   "themeMaterialDark": "Material Oscuro",
   "themeGraphiteLight": "Grafito Claro",
   "themeUlyssesLight": "Ulysses Claro",
+  "themeRedGraphite": "Grafito Rojo",
+  "themeShibuya": "Shibuya",
+  "themeDarkGraphite": "Grafito Oscuro",
+  "themeDieciOLED": "Dieci OLED",
+  "themeNord": "Nord",
   "keybindingBold": "Negrita",
   "keybindingItalic": "Cursiva",
   "keybindingUnderline": "Subrayado",
@@ -215,5 +221,9 @@
   "commandToggleSidebar": "Alternar barra lateral",
   "commandToggleSidebarDesc": "Mostrar u ocultar la barra lateral",
   "commandToggleTabBar": "Alternar barra de pestañas",
-  "commandToggleTabBarDesc": "Mostrar u ocultar la barra de pestañas"
+  "commandToggleTabBarDesc": "Mostrar u ocultar la barra de pestañas",
+
+  "welcomeNewFile": "Nuevo archivo",
+  "welcomeOpenFile": "Abrir archivo",
+  "welcomeDragHint": "Arrastra archivos aquí para abrirlos"
 }

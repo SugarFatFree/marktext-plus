@@ -39,10 +39,7 @@ class SettingsNotifier extends StateNotifier<AppConfig> {
   }
 
   Future<void> setTheme(String theme) async {
-    await updateConfig((config) => config.copyWith(
-      themeName: theme,
-      darkMode: false,
-    ));
+    await updateConfig((config) => config.copyWith(themeName: theme));
   }
 
   Future<void> setFontSize(double size) async {

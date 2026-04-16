@@ -95,7 +95,8 @@
   "sidebarSettings": "Impostazioni",
   "formatHeadingSubmenu": "Intestazione",
   "settingsBulletListMarker": "Marcatore elenco",
-  "settingsDarkMode": "Modalità scura",
+  "settingsLightThemes": "Temi chiari",
+  "settingsDarkThemes": "Temi scuri",
   "confirmResetMessage": "Ripristinare tutte le impostazioni ai valori predefiniti?",
   "comingSoon": "Prossimamente",
   "noFiles": "Nessun file",
@@ -135,6 +136,11 @@
   "themeMaterialDark": "Material Scuro",
   "themeGraphiteLight": "Grafite Chiaro",
   "themeUlyssesLight": "Ulysses Chiaro",
+  "themeRedGraphite": "Grafite Rosso",
+  "themeShibuya": "Shibuya",
+  "themeDarkGraphite": "Grafite Scuro",
+  "themeDieciOLED": "Dieci OLED",
+  "themeNord": "Nord",
   "keybindingBold": "Grassetto",
   "keybindingItalic": "Corsivo",
   "keybindingUnderline": "Sottolineato",
@@ -215,5 +221,9 @@
   "commandToggleSidebar": "Attiva/disattiva barra laterale",
   "commandToggleSidebarDesc": "Mostra o nascondi la barra laterale",
   "commandToggleTabBar": "Attiva/disattiva barra schede",
-  "commandToggleTabBarDesc": "Mostra o nascondi la barra delle schede"
+  "commandToggleTabBarDesc": "Mostra o nascondi la barra delle schede",
+
+  "welcomeNewFile": "Nuovo file",
+  "welcomeOpenFile": "Apri file",
+  "welcomeDragHint": "Trascina i file qui per aprirli"
 }

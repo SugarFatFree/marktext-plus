@@ -80,7 +80,26 @@ class _SideBarState extends ConsumerState<SideBar> {
               icon: Icon(Icons.settings, size: 18, color: tokens.colorTextMuted),
               onPressed: () {
                 navigatorKey.currentState?.push(
-                  MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                  PageRouteBuilder(
+                    pageBuilder: (context, animation, secondaryAnimation) =>
+                        const SettingsScreen(),
+                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                      return FadeTransition(
+                        opacity: animation,
+                        child: SlideTransition(
+                          position: Tween<Offset>(
+                            begin: const Offset(0, 0.05),
+                            end: Offset.zero,
+                          ).animate(CurvedAnimation(
+                            parent: animation,
+                            curve: Curves.easeOut,
+                          )),
+                          child: child,
+                        ),
+                      );
+                    },
+                    transitionDuration: const Duration(milliseconds: 300),
+                  ),
                 );
               },
               tooltip: l10n.sidebarSettings,
@@ -189,13 +208,25 @@ class _SideBarState extends ConsumerState<SideBar> {
     if (tabState.openedFiles.isEmpty) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Text(
-            l10n.noOpenFolder,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-            ),
-            textAlign: TextAlign.center,
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.folder_open_outlined,
+                size: 48,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.15),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                l10n.noOpenFolder,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
         ),
       );
@@ -477,18 +508,39 @@ class _SideBarState extends ConsumerState<SideBar> {
   }
 
   void _openFileInTab(String filePath) async {
+    final tabNotifier = ref.read(tabProvider.notifier);
+    final currentTabs = ref.read(tabProvider);
+
+    // Fast path: if a tab for this file already exists, just switch to it
+    final existing = currentTabs.tabs.where(
+      (t) => t.filePath != null && t.filePath == filePath,
+    ).firstOrNull;
+    if (existing != null) {
+      tabNotifier.setActiveTab(existing.id);
+      return;
+    }
+
+    // Optimistic UI: create tab immediately with loading state
+    final tabId = DateTime.now().millisecondsSinceEpoch.toString();
+    final tab = TabInfo(
+      id: tabId,
+      filePath: filePath,
+      fileName: p.basename(filePath),
+      content: '',
+      isLoading: true,
+    );
+    tabNotifier.addTab(tab);
+    ref.read(settingsProvider.notifier).addRecentFile(filePath);
+
+    // Load file content asynchronously
     try {
       final content = await File(filePath).readAsString();
-      final tab = TabInfo(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        filePath: filePath,
-        fileName: p.basename(filePath),
-        content: content,
-      );
-      ref.read(tabProvider.notifier).addTab(tab);
-      ref.read(settingsProvider.notifier).addRecentFile(filePath);
+      if (!mounted) return;
+      tabNotifier.loadTabContent(tabId, content);
     } catch (_) {
-      // Non-text file or read error, ignore
+      // Read failed – remove the loading tab
+      if (!mounted) return;
+      tabNotifier.failTabLoading(tabId);
     }
   }
 
@@ -499,13 +551,25 @@ class _SideBarState extends ConsumerState<SideBar> {
     if (rootPath == null) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Text(
-            l10n.noOpenFolder,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-            ),
-            textAlign: TextAlign.center,
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.search_off_outlined,
+                size: 48,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.15),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                l10n.noOpenFolder,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
         ),
       );
@@ -554,12 +618,26 @@ class _SideBarState extends ConsumerState<SideBar> {
         Expanded(
           child: _searchResults.isEmpty
               ? Center(
-                  child: Text(
-                    _searchController.text.isEmpty ? '' : l10n.searchNoResults,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                    ),
-                  ),
+                  child: _searchController.text.isEmpty
+                      ? const SizedBox.shrink()
+                      : Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.search_off,
+                              size: 36,
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.15),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              l10n.searchNoResults,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                              ),
+                            ),
+                          ],
+                        ),
                 )
               : ListView.builder(
                   itemCount: _searchResults.length,
@@ -674,11 +752,23 @@ class _SideBarState extends ConsumerState<SideBar> {
 
     if (headings.isEmpty) {
       return Center(
-        child: Text(
-          l10n.tocEmpty,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-          ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.segment_outlined,
+              size: 48,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.15),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              l10n.tocEmpty,
+              style: TextStyle(
+                fontSize: 13,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+              ),
+            ),
+          ],
         ),
       );
     }

@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
+import 'package:window_manager/window_manager.dart';
 import 'app.dart';
 import 'core/config/config_service.dart';
 import 'providers/locale_provider.dart';
@@ -11,6 +12,19 @@ import 'providers/tab_provider.dart';
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize window_manager
+  await windowManager.ensureInitialized();
+
+  WindowOptions windowOptions = const WindowOptions(
+    size: Size(1280, 720),
+    title: 'MarkText Plus',
+  );
+
+  windowManager.waitUntilReadyToShow(windowOptions, () async {
+    await windowManager.show();
+    await windowManager.focus();
+  });
 
   // Filter startup file arguments
   final allowedExtensions = {'.md', '.markdown', '.txt'};

@@ -1,6 +1,15 @@
 import 'package:flutter/material.dart';
 
 class MarkdownSyntaxHighlighter {
+  static final List<_Pattern> _inlinePatterns = [
+    _Pattern(RegExp(r'\*\*(.+?)\*\*'), _PatternType.bold),
+    _Pattern(RegExp(r'`(.+?)`'), _PatternType.code),
+    _Pattern(RegExp(r'!\[([^\]]*)\]\(([^)]+)\)'), _PatternType.link),
+    _Pattern(RegExp(r'\[([^\]]+)\]\(([^)]+)\)'), _PatternType.link),
+    _Pattern(RegExp(r'~~(.+?)~~'), _PatternType.strikethrough),
+    _Pattern(RegExp(r'\*(.+?)\*'), _PatternType.italic),
+  ];
+
   static TextSpan highlight(
     String text, {
     required Color headingColor,
@@ -9,34 +18,64 @@ class MarkdownSyntaxHighlighter {
     required Color linkColor,
     required Color defaultColor,
   }) {
-    final List<TextSpan> spans = [];
+    if (text.isEmpty) {
+      return const TextSpan(children: <TextSpan>[]);
+    }
+
+    // Split text into lines (preserving line structure) and produce one
+    // TextSpan per line with the newline character appended to the line
+    // content.  This avoids orphan '\n' spans that cause Flutter's
+    // EditableText to extend the selection highlight across the full
+    // remaining width of the line (the "selection overflow" bug).
     final lines = text.split('\n');
+    final List<TextSpan> spans = [];
 
     for (int i = 0; i < lines.length; i++) {
-      final line = lines[i];
+      final lineText = lines[i];
+      final isLastLine = i == lines.length - 1;
+      // Suffix: attach '\n' to the last span of each line (except the
+      // very last line of the document) so that every newline character
+      // shares the same TextStyle as the preceding visible text.
+      final suffix = isLastLine ? '' : '\n';
 
-      if (line.startsWith('#')) {
+      if (lineText.isEmpty) {
+        // Blank line – emit a single span containing only the newline.
+        if (suffix.isNotEmpty) {
+          spans.add(TextSpan(
+            text: suffix,
+            style: TextStyle(color: defaultColor),
+          ));
+        }
+        continue;
+      }
+
+      if (lineText.startsWith('#')) {
         spans.add(TextSpan(
-          text: line,
+          text: '$lineText$suffix',
           style: TextStyle(color: headingColor, fontWeight: FontWeight.bold),
         ));
-      } else if (line.startsWith('```')) {
+      } else if (lineText.startsWith('```')) {
         spans.add(TextSpan(
-          text: line,
+          text: '$lineText$suffix',
           style: TextStyle(color: codeColor, fontFamily: 'monospace'),
         ));
       } else {
-        spans.addAll(_highlightInline(
-          line,
+        final inlineSpans = _highlightInline(
+          lineText,
           boldColor: boldColor,
           codeColor: codeColor,
           linkColor: linkColor,
           defaultColor: defaultColor,
-        ));
-      }
-
-      if (i < lines.length - 1) {
-        spans.add(TextSpan(text: '\n', style: TextStyle(color: defaultColor)));
+        );
+        if (suffix.isNotEmpty && inlineSpans.isNotEmpty) {
+          // Append '\n' to the last inline span so it shares the same style.
+          final last = inlineSpans.last;
+          inlineSpans[inlineSpans.length - 1] = TextSpan(
+            text: '${last.text ?? ''}$suffix',
+            style: last.style,
+          );
+        }
+        spans.addAll(inlineSpans);
       }
     }
 
@@ -50,34 +89,39 @@ class MarkdownSyntaxHighlighter {
     required Color linkColor,
     required Color defaultColor,
   }) {
+    if (text.isEmpty) {
+      return const <TextSpan>[];
+    }
+
     final List<TextSpan> spans = [];
     int pos = 0;
-
-    final patterns = [
-      _Pattern(RegExp(r'\*\*(.+?)\*\*'), boldColor, FontWeight.bold),
-      _Pattern(RegExp(r'`(.+?)`'), codeColor, FontWeight.normal, 'monospace'),
-      _Pattern(RegExp(r'!\[([^\]]*)\]\(([^)]+)\)'), linkColor, FontWeight.normal, null, null, null, true),
-      _Pattern(RegExp(r'\[([^\]]+)\]\(([^)]+)\)'), linkColor, FontWeight.normal, null, null, null, true),
-      _Pattern(RegExp(r'~~(.+?)~~'), defaultColor, FontWeight.normal, null, TextDecoration.lineThrough),
-      _Pattern(RegExp(r'\*(.+?)\*'), defaultColor, FontWeight.normal, null, null, FontStyle.italic),
-    ];
 
     while (pos < text.length) {
       Match? earliestMatch;
       _Pattern? matchedPattern;
 
-      for (final pattern in patterns) {
-        final match = pattern.regex.firstMatch(text.substring(pos));
+      for (final pattern in _inlinePatterns) {
+        final match = pattern.regex.matchAsPrefix(text, pos) ??
+            pattern.regex.firstMatch(text.substring(pos));
         if (match != null) {
-          if (earliestMatch == null || match.start < earliestMatch.start) {
-            earliestMatch = match;
-            matchedPattern = pattern;
+          final normalizedMatch = match.pattern == pattern.regex
+              ? match
+              : pattern.regex.firstMatch(text.substring(pos));
+          if (normalizedMatch != null) {
+            if (earliestMatch == null ||
+                normalizedMatch.start < earliestMatch.start) {
+              earliestMatch = normalizedMatch;
+              matchedPattern = pattern;
+            }
           }
         }
       }
 
       if (earliestMatch == null) {
-        spans.add(TextSpan(text: text.substring(pos), style: TextStyle(color: defaultColor)));
+        spans.add(TextSpan(
+          text: text.substring(pos),
+          style: TextStyle(color: defaultColor),
+        ));
         break;
       }
 
@@ -88,43 +132,60 @@ class MarkdownSyntaxHighlighter {
         ));
       }
 
-      final matchText = matchedPattern!.useFullMatch
-          ? earliestMatch.group(0)!
-          : (earliestMatch.group(1) ?? earliestMatch.group(0)!);
+      final matchText = earliestMatch.group(0)!;
       spans.add(TextSpan(
         text: matchText,
-        style: TextStyle(
-          color: matchedPattern.color,
-          fontWeight: matchedPattern.fontWeight,
-          fontFamily: matchedPattern.fontFamily,
-          decoration: matchedPattern.decoration,
-          fontStyle: matchedPattern.fontStyle,
+        style: _styleForPattern(
+          matchedPattern!.type,
+          boldColor: boldColor,
+          codeColor: codeColor,
+          linkColor: linkColor,
+          defaultColor: defaultColor,
         ),
       ));
 
-      pos += earliestMatch.start + earliestMatch.group(0)!.length;
+      pos += earliestMatch.start + matchText.length;
     }
 
     return spans;
   }
+
+  static TextStyle _styleForPattern(
+    _PatternType type, {
+    required Color boldColor,
+    required Color codeColor,
+    required Color linkColor,
+    required Color defaultColor,
+  }) {
+    switch (type) {
+      case _PatternType.bold:
+        return TextStyle(color: boldColor, fontWeight: FontWeight.bold);
+      case _PatternType.code:
+        return TextStyle(color: codeColor, fontFamily: 'monospace');
+      case _PatternType.link:
+        return TextStyle(color: linkColor);
+      case _PatternType.strikethrough:
+        return TextStyle(
+          color: defaultColor,
+          decoration: TextDecoration.lineThrough,
+        );
+      case _PatternType.italic:
+        return TextStyle(color: defaultColor, fontStyle: FontStyle.italic);
+    }
+  }
+}
+
+enum _PatternType {
+  bold,
+  code,
+  link,
+  strikethrough,
+  italic,
 }
 
 class _Pattern {
   final RegExp regex;
-  final Color color;
-  final FontWeight fontWeight;
-  final String? fontFamily;
-  final TextDecoration? decoration;
-  final FontStyle? fontStyle;
-  final bool useFullMatch;
+  final _PatternType type;
 
-  _Pattern(
-    this.regex,
-    this.color,
-    this.fontWeight, [
-    this.fontFamily,
-    this.decoration,
-    this.fontStyle,
-    this.useFullMatch = false,
-  ]);
+  const _Pattern(this.regex, this.type);
 }

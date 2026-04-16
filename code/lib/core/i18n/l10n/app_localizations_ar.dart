@@ -298,7 +298,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settingsBulletListMarker => 'علامة القائمة';
 
   @override
-  String get settingsDarkMode => 'الوضع الداكن';
+  String get settingsLightThemes => 'سمات فاتحة';
+
+  @override
+  String get settingsDarkThemes => 'سمات داكنة';
 
   @override
   String get confirmResetMessage =>
@@ -419,6 +422,21 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get themeUlyssesLight => 'Ulysses فاتح';
+
+  @override
+  String get themeRedGraphite => 'جرافيت أحمر';
+
+  @override
+  String get themeShibuya => 'شيبويا';
+
+  @override
+  String get themeDarkGraphite => 'جرافيت داكن';
+
+  @override
+  String get themeDieciOLED => 'Dieci OLED';
+
+  @override
+  String get themeNord => 'Nord';
 
   @override
   String get keybindingBold => 'غامق';
@@ -660,4 +678,13 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get commandToggleTabBarDesc => 'إظهار أو إخفاء شريط التبويب';
+
+  @override
+  String get welcomeNewFile => 'ملف جديد';
+
+  @override
+  String get welcomeOpenFile => 'فتح ملف';
+
+  @override
+  String get welcomeDragHint => 'اسحب الملفات هنا لفتحها';
 }

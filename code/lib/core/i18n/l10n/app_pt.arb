@@ -95,7 +95,8 @@
   "sidebarSettings": "Definições",
   "formatHeadingSubmenu": "Título",
   "settingsBulletListMarker": "Marcador de lista",
-  "settingsDarkMode": "Modo escuro",
+  "settingsLightThemes": "Temas claros",
+  "settingsDarkThemes": "Temas escuros",
   "confirmResetMessage": "Tem a certeza de que pretende repor todas as definições?",
   "comingSoon": "Em breve",
   "noFiles": "Sem ficheiros",
@@ -135,6 +136,11 @@
   "themeMaterialDark": "Material Escuro",
   "themeGraphiteLight": "Grafite Claro",
   "themeUlyssesLight": "Ulysses Claro",
+  "themeRedGraphite": "Grafite Vermelho",
+  "themeShibuya": "Shibuya",
+  "themeDarkGraphite": "Grafite Escuro",
+  "themeDieciOLED": "Dieci OLED",
+  "themeNord": "Nord",
   "keybindingBold": "Negrito",
   "keybindingItalic": "Itálico",
   "keybindingUnderline": "Sublinhado",
@@ -215,5 +221,9 @@
   "commandToggleSidebar": "Alternar barra lateral",
   "commandToggleSidebarDesc": "Mostrar ou ocultar a barra lateral",
   "commandToggleTabBar": "Alternar barra de separadores",
-  "commandToggleTabBarDesc": "Mostrar ou ocultar a barra de separadores"
+  "commandToggleTabBarDesc": "Mostrar ou ocultar a barra de separadores",
+
+  "welcomeNewFile": "Novo ficheiro",
+  "welcomeOpenFile": "Abrir ficheiro",
+  "welcomeDragHint": "Arraste ficheiros para aqui para abrir"
 }

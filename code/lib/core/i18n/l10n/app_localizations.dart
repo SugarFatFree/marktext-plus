@@ -687,11 +687,17 @@ abstract class AppLocalizations {
   /// **'Bullet List Marker'**
   String get settingsBulletListMarker;
 
-  /// No description provided for @settingsDarkMode.
+  /// No description provided for @settingsLightThemes.
   ///
   /// In en, this message translates to:
-  /// **'Dark Mode'**
-  String get settingsDarkMode;
+  /// **'Light Themes'**
+  String get settingsLightThemes;
+
+  /// No description provided for @settingsDarkThemes.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark Themes'**
+  String get settingsDarkThemes;
 
   /// No description provided for @confirmResetMessage.
   ///
@@ -926,6 +932,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Ulysses Light'**
   String get themeUlyssesLight;
+
+  /// No description provided for @themeRedGraphite.
+  ///
+  /// In en, this message translates to:
+  /// **'Red Graphite'**
+  String get themeRedGraphite;
+
+  /// No description provided for @themeShibuya.
+  ///
+  /// In en, this message translates to:
+  /// **'Shibuya'**
+  String get themeShibuya;
+
+  /// No description provided for @themeDarkGraphite.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark Graphite'**
+  String get themeDarkGraphite;
+
+  /// No description provided for @themeDieciOLED.
+  ///
+  /// In en, this message translates to:
+  /// **'Dieci OLED'**
+  String get themeDieciOLED;
+
+  /// No description provided for @themeNord.
+  ///
+  /// In en, this message translates to:
+  /// **'Nord'**
+  String get themeNord;
 
   /// No description provided for @keybindingBold.
   ///
@@ -1394,6 +1430,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Show or hide the tab bar'**
   String get commandToggleTabBarDesc;
+
+  /// No description provided for @welcomeNewFile.
+  ///
+  /// In en, this message translates to:
+  /// **'New File'**
+  String get welcomeNewFile;
+
+  /// No description provided for @welcomeOpenFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Open File'**
+  String get welcomeOpenFile;
+
+  /// No description provided for @welcomeDragHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Drop files here to open'**
+  String get welcomeDragHint;
 }
 
 class _AppLocalizationsDelegate

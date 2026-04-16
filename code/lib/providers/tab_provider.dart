@@ -106,12 +106,31 @@ class TabNotifier extends StateNotifier<TabState> {
   void updateContent(String id, String content) {
     final tabs = state.tabs.map((tab) {
       if (tab.id == id) {
-        return tab.copyWith(content: content, isModified: true);
+        return tab.copyWith(content: content, isModified: true, isLoading: false);
       }
       return tab;
     }).toList();
     state = state.copyWith(tabs: tabs);
     _scheduleAutoSave(id);
+  }
+
+  void loadTabContent(String id, String content) {
+    final tabs = state.tabs.map((tab) {
+      if (tab.id == id) {
+        return tab.copyWith(content: content, isLoading: false);
+      }
+      return tab;
+    }).toList();
+    state = state.copyWith(tabs: tabs);
+  }
+
+  void failTabLoading(String id) {
+    final tabs = state.tabs.where((tab) => tab.id != id).toList();
+    String? newActiveId = state.activeTabId;
+    if (state.activeTabId == id) {
+      newActiveId = tabs.isNotEmpty ? tabs.last.id : null;
+    }
+    state = state.copyWith(tabs: tabs, activeTabId: newActiveId);
   }
 
   void _scheduleAutoSave(String tabId) {

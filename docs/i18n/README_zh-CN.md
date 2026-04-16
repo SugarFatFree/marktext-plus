@@ -2,17 +2,54 @@
 
 # MarkText Plus
 
-基于 Flutter 构建的轻量级跨平台 Markdown 编辑器，重新设计自原版 [MarkText](https://github.com/marktext/marktext)。
+> 基于 Flutter 构建的轻量级跨平台 Markdown 编辑器
 
-## 功能特性
+[![Release](https://img.shields.io/github/v/release/yourusername/marktext-plus)](https://github.com/yourusername/marktext-plus/releases)
+[![License](https://img.shields.io/github/license/yourusername/marktext-plus)](../../LICENSE)
 
-- **多语言支持**：支持 12 种语言，包括英语、中文、日语、韩语、德语、法语、意大利语、俄语、西班牙语、葡萄牙语、阿拉伯语和巴西葡萄牙语
-- **轻量快速**：自研 Markdown 解析器和渲染器，性能优化
-- **配置持久化**：基于 JSON 的设置存储，自动保存
-- **双栏编辑**：源代码、预览和分屏模式
-- **跨平台**：支持 Windows、macOS 和 Linux
-- **现代化界面**：简洁的界面设计，内置 5 种主题
-- **语法高亮**：源代码模式下实时 Markdown 语法高亮
+重新设计自原版 [MarkText](https://github.com/marktext/marktext)，使用 Flutter 实现真正的跨平台支持。
+
+## 截图
+
+![MarkText Plus 主题](../../docs/v1.1.1/picture/theme/红石墨.png)
+
+## ✨ 功能特性
+
+- **🌍 多语言支持**：支持 12 种语言，包括英语、中文、日语、韩语、德语、法语、意大利语、俄语、西班牙语、葡萄牙语、阿拉伯语和巴西葡萄牙语
+- **🎨 精美主题**：内置 5 种主题
+  - 浅色：红石墨、涩谷
+  - 深色：深色石墨、Dieci 纯黑、Nord 极光
+- **⚡ 轻量快速**：自研 Markdown 解析器和渲染器，性能优化
+- **💾 配置持久化**：基于 JSON 的设置存储，自动保存
+- **📝 三种编辑模式**：
+  - 源代码模式：语法高亮 + 行号
+  - 预览模式：实时渲染 Markdown
+  - 分屏模式：并排编辑和预览
+- **🖥️ 跨平台**：支持 Windows、macOS 和 Linux
+- **🔍 查找替换**：全功能搜索，支持正则表达式
+- **📂 文件管理**：侧边栏文件树导航
+- **⌨️ 快捷键**：全面的键盘快捷键，高效编辑
+
+### 🎨 主题
+
+<table>
+  <tr>
+    <th>浅色主题</th>
+    <th>深色主题</th>
+  </tr>
+  <tr>
+    <td><img src="../../docs/v1.1.1/picture/theme/红石墨.png" alt="红石墨" width="400"/></td>
+    <td><img src="../../docs/v1.1.1/picture/theme/深色石墨.png" alt="深色石墨" width="400"/></td>
+  </tr>
+  <tr>
+    <td><img src="../../docs/v1.1.1/picture/theme/涩谷.png" alt="涩谷" width="400"/></td>
+    <td><img src="../../docs/v1.1.1/picture/theme/纯黑.png" alt="Dieci 纯黑" width="400"/></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td><img src="../../docs/v1.1.1/picture/theme/极光.png" alt="Nord 极光" width="400"/></td>
+  </tr>
+</table>
 
 ## 安装
 
