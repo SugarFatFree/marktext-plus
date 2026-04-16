@@ -1,73 +1,96 @@
-[简体中文](docs/i18n/README_zh-CN.md) | [日本語](docs/i18n/README_ja-JP.md) | [한국어](docs/i18n/README_ko-KR.md) | [Deutsch](docs/i18n/README_de-DE.md) | [Français](docs/i18n/README_fr-FR.md) | [Italiano](docs/i18n/README_it-IT.md) | [Русский](docs/i18n/README_ru-RU.md) | [Español](docs/i18n/README_es-ES.md) | [Português](docs/i18n/README_pt-PT.md) | [العربية](docs/i18n/README_ar-SA.md) | [Português (Brasil)](docs/i18n/README_pt-BR.md)
+<div align="center">
 
 # MarkText Plus
 
-> A lightweight, cross-platform Markdown editor built with Flutter
+**A lightweight, cross-platform Markdown editor that makes writing a pleasure**
 
-[![Release](https://img.shields.io/github/v/release/yourusername/marktext-plus)](https://github.com/yourusername/marktext-plus/releases)
-[![License](https://img.shields.io/github/license/yourusername/marktext-plus)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/yourusername/marktext-plus?style=flat-square)](https://github.com/yourusername/marktext-plus/releases)
+[![License](https://img.shields.io/github/license/yourusername/marktext-plus?style=flat-square)](LICENSE)
+[![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?style=flat-square&logo=flutter)](https://flutter.dev)
+[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square)](https://github.com/yourusername/marktext-plus)
 
-A modern Markdown editor reimagined from the original [MarkText](https://github.com/marktext/marktext), built with Flutter for true cross-platform support.
+[简体中文](docs/i18n/README_zh-CN.md) | [日本語](docs/i18n/README_ja-JP.md) | [한국어](docs/i18n/README_ko-KR.md) | [Deutsch](docs/i18n/README_de-DE.md) | [Français](docs/i18n/README_fr-FR.md) | [Italiano](docs/i18n/README_it-IT.md) | [Русский](docs/i18n/README_ru-RU.md) | [Español](docs/i18n/README_es-ES.md) | [Português](docs/i18n/README_pt-PT.md) | [العربية](docs/i18n/README_ar-SA.md) | [Português (Brasil)](docs/i18n/README_pt-BR.md)
 
-## Screenshots
+![MarkText Plus](docs/v1.1.1/picture/theme/红石墨.png)
 
-![MarkText Plus Themes](docs/v1.1.1/picture/theme/红石墨.png)
+</div>
 
-## ✨ Features
+---
 
-- **🌍 Multi-language Support**: 12 languages including English, Chinese, Japanese, Korean, German, French, Italian, Russian, Spanish, Portuguese, Arabic, and Brazilian Portuguese
-- **🎨 Beautiful Themes**: 5 built-in themes
-  - Light: Red Graphite, Shibuya
-  - Dark: Dark Graphite, Dieci OLED, Nord
-- **⚡ Lightweight & Fast**: Self-built Markdown parser and renderer for optimal performance
-- **💾 Persistent Configuration**: JSON-based settings storage with automatic save
-- **📝 Three Edit Modes**: 
-  - Source Code Mode: Syntax highlighting with line numbers
-  - Preview Mode: Real-time rendered Markdown
-  - Split View Mode: Side-by-side editing and preview
-- **🖥️ Cross-platform**: Runs on Windows, macOS, and Linux
-- **🔍 Find & Replace**: Full-featured search with regex support
-- **📂 File Management**: Sidebar with file tree navigation
-- **⌨️ Keyboard Shortcuts**: Comprehensive keyboard shortcuts for efficient editing
+## 💡 What is MarkText Plus?
 
-### 🎨 Themes
+MarkText Plus is a **modern Markdown editor** reimagined from the original [MarkText](https://github.com/marktext/marktext), rebuilt with Flutter for true cross-platform support. It solves the pain points of traditional Markdown editors:
 
-<table>
-  <tr>
-    <th>Light Themes</th>
-    <th>Dark Themes</th>
-  </tr>
-  <tr>
-    <td><img src="docs/v1.1.1/picture/theme/红石墨.png" alt="Red Graphite" width="400"/></td>
-    <td><img src="docs/v1.1.1/picture/theme/深色石墨.png" alt="Dark Graphite" width="400"/></td>
-  </tr>
-  <tr>
-    <td><img src="docs/v1.1.1/picture/theme/涩谷.png" alt="Shibuya" width="400"/></td>
-    <td><img src="docs/v1.1.1/picture/theme/纯黑.png" alt="Dieci OLED" width="400"/></td>
-  </tr>
-  <tr>
-    <td></td>
-    <td><img src="docs/v1.1.1/picture/theme/极光.png" alt="Nord" width="400"/></td>
-  </tr>
-</table>
+- ❌ Heavy and slow startup times → ✅ **Lightning-fast** with self-built parser
+- ❌ Limited theme options → ✅ **5 beautiful themes** (light & dark)
+- ❌ Poor cross-platform experience → ✅ **Native performance** on Windows, macOS, Linux
+- ❌ Complex setup → ✅ **3 commands to get started**
 
-## Installation
+## 🚀 Quick Start
 
-### Prerequisites
-
-- Flutter 3.x or higher
-- Dart 3.x or higher
-
-### Build from Source
+Get up and running in less than 30 seconds:
 
 ```bash
 git clone https://github.com/yourusername/marktext-plus.git
 cd marktext-plus/code
-flutter pub get
-flutter run
+flutter pub get && flutter run
 ```
 
-### Release Builds
+That's it! The editor will launch with a sample document ready to edit.
+
+## ✨ Features
+
+| Feature | Description |
+|---------|-------------|
+| **📝 Three Edit Modes** | Source code with syntax highlighting, live preview, and split-view |
+| **🎨 5 Beautiful Themes** | Red Graphite, Shibuya, Dark Graphite, Dieci OLED, Nord |
+| **🌍 12 Languages** | English, Chinese, Japanese, Korean, German, French, Italian, Russian, Spanish, Portuguese, Arabic, Brazilian Portuguese |
+| **⚡ Lightning Fast** | Self-built Markdown parser & renderer — no heavy dependencies |
+| **🔍 Find & Replace** | Full-featured search with regex support |
+| **📂 File Tree** | Sidebar navigation with drag-and-drop folder support |
+| **⌨️ Customizable Shortcuts** | Fully configurable keyboard bindings |
+| **💾 Auto Save** | JSON-based persistent configuration, never lose your work |
+
+## 🎨 Themes
+
+<table>
+  <tr>
+    <td align="center"><b>Red Graphite</b><br/><img src="docs/v1.1.1/picture/theme/红石墨.png" alt="Red Graphite" width="400"/></td>
+    <td align="center"><b>Shibuya</b><br/><img src="docs/v1.1.1/picture/theme/涩谷.png" alt="Shibuya" width="400"/></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Dark Graphite</b><br/><img src="docs/v1.1.1/picture/theme/深色石墨.png" alt="Dark Graphite" width="400"/></td>
+    <td align="center"><b>Dieci OLED</b><br/><img src="docs/v1.1.1/picture/theme/纯黑.png" alt="Dieci OLED" width="400"/></td>
+  </tr>
+  <tr>
+    <td align="center" colspan="2"><b>Nord</b><br/><img src="docs/v1.1.1/picture/theme/极光.png" alt="Nord" width="400"/></td>
+  </tr>
+</table>
+
+## 📦 Installation
+
+### Download Pre-built Binaries
+
+Download the latest release for your platform from [Releases](https://github.com/yourusername/marktext-plus/releases).
+
+| Platform | Architecture | Format |
+|----------|-------------|--------|
+| Windows | x64 | `.exe` installer |
+| macOS | ARM64 | `.dmg` |
+| Linux | x64 / ARM64 | `.deb` / `.rpm` |
+
+### Build from Source
+
+> **Prerequisites**: Flutter 3.x+, Dart 3.x+
+
+```bash
+git clone https://github.com/yourusername/marktext-plus.git
+cd marktext-plus/code
+flutter pub get && flutter run
+```
+
+<details>
+<summary><b>Release Build Commands</b></summary>
 
 ```bash
 # Windows
@@ -79,62 +102,61 @@ flutter build macos
 # Linux
 flutter build linux
 ```
+</details>
 
-### Note for macOS Users
+<details>
+<summary><b>macOS Users: Bypass Unsigned App Warning</b></summary>
 
-> **Warning**
-> macOS releases will show an "Apple couldn't verify MarkText Plus is free of malware..." warning due to a lack of notarization.
->
-> After dragging MarkText Plus into the "Applications" folder, please run:
+> macOS may show "Apple couldn't verify MarkText Plus..." warning. After dragging to Applications:
 >
 > ```bash
 > xattr -cr /Applications/MarkText\ Plus.app
 > sudo codesign --force --deep --sign - /Applications/MarkText\ Plus.app
 > ```
+</details>
 
-## Development
-
-### Project Structure
+## 🏗️ Architecture
 
 ```
-code/
-├── lib/
-│   ├── main.dart              # Application entry point
-│   ├── app.dart               # MaterialApp configuration
-│   ├── core/                  # Core configuration and themes
-│   ├── models/                # Data models
-│   ├── services/              # Business logic services
-│   ├── providers/             # Riverpod state management
-│   └── ui/                    # UI components
-└── test/                      # Unit and widget tests
+code/lib/
+├── main.dart           # Entry point
+├── app.dart            # MaterialApp with theme/locale/i18n binding
+├── core/               # Theme tokens, config, i18n (12 languages)
+├── models/             # TabInfo, FileNode
+├── services/           # Markdown parser, file I/O, keybinding
+├── providers/          # Riverpod state management
+└── ui/
+    ├── editor/         # Source editor, preview renderer, split view
+    ├── screens/        # Home, Settings
+    └── widgets/        # Menu bar, sidebar, tab bar, status bar
 ```
 
-### Architecture
-
-Four-layer architecture:
-- **UI Layer**: Flutter widgets and screens
-- **State Layer**: Riverpod providers for state management
-- **Service Layer**: Business logic and data processing
-- **Platform Layer**: File I/O and system integration
+Four-layer architecture: **UI** → **State** (Riverpod) → **Service** → **Platform**
 
 ### Running Tests
 
 ```bash
-flutter test
+cd code && flutter test
 ```
 
-## Contributing
+## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-## License
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) for details.
 
 Based on [MarkText](https://github.com/marktext/marktext) by Luo Ran and contributors.
 
-## Acknowledgments
+## 🙏 Acknowledgments
 
-- Original MarkText project and its contributors
-- Flutter and Dart teams
+- [MarkText](https://github.com/marktext/marktext) — the original project that inspired this editor
+- [Flutter](https://flutter.dev) — the cross-platform framework
 - All open source libraries used in this project
