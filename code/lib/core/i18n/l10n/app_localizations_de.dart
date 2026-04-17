@@ -256,8 +256,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get unsavedChanges => 'Nicht gespeicherte Änderungen';
 
   @override
-  String get unsavedChangesMessage =>
-      'Möchten Sie die Änderungen vor dem Schließen speichern?';
+  String get unsavedChangesMessage => 'Möchten Sie die Änderungen vor dem Schließen speichern?';
 
   @override
   String get save => 'Speichern';
@@ -305,8 +304,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsDarkThemes => 'Dunkle Themen';
 
   @override
-  String get confirmResetMessage =>
-      'Möchten Sie alle Einstellungen auf die Standardwerte zurücksetzen?';
+  String get confirmResetMessage => 'Möchten Sie alle Einstellungen auf die Standardwerte zurücksetzen?';
 
   @override
   String get comingSoon => 'Demnächst';
@@ -650,8 +648,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get commandSourceMode => 'Quellcode-Modus';
 
   @override
-  String get commandSourceModeDesc =>
-      'Zum Quellcode-Bearbeitungsmodus wechseln';
+  String get commandSourceModeDesc => 'Zum Quellcode-Bearbeitungsmodus wechseln';
 
   @override
   String get commandPreviewMode => 'Vorschau-Modus';
@@ -669,15 +666,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get commandToggleFocusMode => 'Fokusmodus umschalten';
 
   @override
-  String get commandToggleFocusModeDesc =>
-      'Ablenkungsfreien Fokusmodus umschalten';
+  String get commandToggleFocusModeDesc => 'Ablenkungsfreien Fokusmodus umschalten';
 
   @override
   String get commandToggleTypewriterMode => 'Schreibmaschinenmodus umschalten';
 
   @override
-  String get commandToggleTypewriterModeDesc =>
-      'Schreibmaschinen-Scrollmodus umschalten';
+  String get commandToggleTypewriterModeDesc => 'Schreibmaschinen-Scrollmodus umschalten';
 
   @override
   String get commandToggleSidebar => 'Seitenleiste umschalten';

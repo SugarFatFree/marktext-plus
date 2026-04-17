@@ -256,8 +256,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get unsavedChanges => 'Unsaved Changes';
 
   @override
-  String get unsavedChangesMessage =>
-      'Do you want to save changes before closing?';
+  String get unsavedChangesMessage => 'Do you want to save changes before closing?';
 
   @override
   String get save => 'Save';
@@ -305,8 +304,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsDarkThemes => 'Dark Themes';
 
   @override
-  String get confirmResetMessage =>
-      'Are you sure you want to reset all settings to defaults?';
+  String get confirmResetMessage => 'Are you sure you want to reset all settings to defaults?';
 
   @override
   String get comingSoon => 'Coming soon';
@@ -674,8 +672,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commandToggleTypewriterMode => 'Toggle Typewriter Mode';
 
   @override
-  String get commandToggleTypewriterModeDesc =>
-      'Toggle typewriter scrolling mode';
+  String get commandToggleTypewriterModeDesc => 'Toggle typewriter scrolling mode';
 
   @override
   String get commandToggleSidebar => 'Toggle Sidebar';

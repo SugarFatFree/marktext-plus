@@ -1,14 +1,20 @@
 import 'dart:io';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:highlight/highlight.dart' show highlight, Node;
 import 'package:flutter_highlight/themes/github.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as p;
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../models/tab_info.dart';
 import '../../providers/editor_provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../providers/tab_provider.dart';
 import '../../services/markdown_parser.dart' as md;
 import '../widgets/diagram_widget.dart';
 
@@ -29,6 +35,7 @@ class MarkdownRenderer extends ConsumerStatefulWidget {
 class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   final _headingKeys = <int, GlobalKey>{};
   int _matchCounter = 0;
+  final _recognizers = <TapGestureRecognizer>[];
 
   /// Parse raw markdown to find heading line numbers (1-based),
   /// matching the same logic used by the TOC panel.
@@ -67,7 +74,47 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   }
 
   @override
+  void dispose() {
+    for (final recognizer in _recognizers) {
+      recognizer.dispose();
+    }
+    super.dispose();
+  }
+
+  void _disposeRecognizers() {
+    for (final recognizer in _recognizers) {
+      recognizer.dispose();
+    }
+    _recognizers.clear();
+  }
+
+  Future<void> _openLink(String href) async {
+    if (href.startsWith('http://') || href.startsWith('https://')) {
+      await launchUrl(Uri.parse(href), mode: LaunchMode.externalApplication);
+      return;
+    }
+
+    final activeTabId = ref.read(tabProvider).activeTabId;
+    final activeTab = ref.read(tabProvider).tabs.where((tab) => tab.id == activeTabId).firstOrNull;
+    final baseDir = activeTab?.filePath != null ? p.dirname(activeTab!.filePath!) : null;
+    final resolvedPath = baseDir != null ? p.normalize(p.join(baseDir, href)) : p.normalize(href);
+    final file = File(resolvedPath);
+    if (!file.existsSync()) return;
+
+    final content = await file.readAsString();
+    ref.read(tabProvider.notifier).addTab(
+      TabInfo(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        filePath: resolvedPath,
+        fileName: p.basename(resolvedPath),
+        content: content,
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    _disposeRecognizers();
     final theme = Theme.of(context);
     final config = ref.watch(settingsProvider);
     final tokens = AppTheme.getTokens(config.themeName);
@@ -113,14 +160,16 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     }
 
     return SingleChildScrollView(
-      child: Center(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: config.editorMaxWidth.toDouble()),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: widgets,
+      child: SelectionArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: config.editorMaxWidth.toDouble()),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: widgets,
+              ),
             ),
           ),
         ),
@@ -142,7 +191,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SelectableText.rich(
+          Text.rich(
             _buildInlineSpans(node.inlineSpans, theme, style),
             style: style,
           ),
@@ -162,7 +211,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   Widget _buildParagraph(md.ParagraphNode node, ThemeData theme) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
-      child: SelectableText.rich(
+      child: Text.rich(
         _buildInlineSpans(node.inlineSpans, theme, const TextStyle(fontFamily: _previewFontFamily, fontSize: 16, height: 1.6)),
       ),
     );
@@ -302,7 +351,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: SelectableText.rich(
+              child: Text.rich(
                 _buildInlineSpans(item.inlineSpans, theme, theme.textTheme.bodyMedium),
               ),
             ),
@@ -321,7 +370,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             style: theme.textTheme.bodyMedium,
           ),
           Expanded(
-            child: SelectableText.rich(
+            child: Text.rich(
               _buildInlineSpans(item.inlineSpans, theme, theme.textTheme.bodyMedium),
             ),
           ),
@@ -341,7 +390,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         color: tokens.colorAccentMuted.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(4),
       ),
-      child: SelectableText.rich(
+      child: Text.rich(
         _buildInlineSpans(node.inlineSpans, theme, const TextStyle(fontFamily: _previewFontFamily, fontSize: 16, height: 1.6)),
       ),
     );
@@ -355,52 +404,48 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         border: Border.all(color: theme.dividerColor),
         borderRadius: BorderRadius.circular(4),
       ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minWidth: 200),
-          child: Table(
-            border: TableBorder.symmetric(
-              inside: BorderSide(color: theme.dividerColor),
+      // Remove SingleChildScrollView to avoid breaking SelectionArea continuity
+      // Trade-off: wide tables will wrap or overflow instead of horizontal scroll
+      child: Table(
+        border: TableBorder.symmetric(
+          inside: BorderSide(color: theme.dividerColor),
+        ),
+        defaultColumnWidth: const IntrinsicColumnWidth(),
+        children: [
+          TableRow(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest,
             ),
-            defaultColumnWidth: const IntrinsicColumnWidth(),
             children: [
-              TableRow(
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                ),
-                children: [
-                  for (var i = 0; i < node.headers.length; i++)
-                    Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: Text(
-                        node.headers[i],
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontFamily: _previewFontFamily,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: _getAlignment(node.alignments, i),
-                      ),
+              for (var i = 0; i < node.headers.length; i++)
+                Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Text(
+                    node.headers[i],
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontFamily: _previewFontFamily,
+                      fontWeight: FontWeight.bold,
                     ),
-                ],
-              ),
-              for (final row in node.rows)
-                TableRow(
-                  children: [
-                    for (var i = 0; i < colCount; i++)
-                      Padding(
-                        padding: const EdgeInsets.all(8),
-                        child: Text(
-                          i < row.length ? row[i] : '',
-                          style: TextStyle(fontFamily: _previewFontFamily),
-                          textAlign: _getAlignment(node.alignments, i),
-                        ),
-                      ),
-                  ],
+                    textAlign: _getAlignment(node.alignments, i),
+                  ),
                 ),
             ],
           ),
-        ),
+          for (final row in node.rows)
+            TableRow(
+              children: [
+                for (var i = 0; i < colCount; i++)
+                  Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Text(
+                      i < row.length ? row[i] : '',
+                      style: TextStyle(fontFamily: _previewFontFamily),
+                      textAlign: _getAlignment(node.alignments, i),
+                    ),
+                  ),
+              ],
+            ),
+        ],
       ),
     );
   }
@@ -585,22 +630,33 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         case md.InlineType.code:
           final s = baseStyle?.copyWith(
             fontFamily: 'monospace',
-            backgroundColor: theme.colorScheme.surfaceContainerHighest,
+            backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
           );
           if (hasSearch) {
             children.addAll(_applySearchHighlight(span.text, s, es));
           } else {
-            children.add(TextSpan(text: span.text, style: s));
+            children.add(TextSpan(text: ' ${span.text} ', style: s));
           }
         case md.InlineType.link:
           final s = baseStyle?.copyWith(
             color: theme.colorScheme.primary,
-            decoration: TextDecoration.underline,
+            // Remove underline decoration to avoid triggering rebuild on Ctrl press
+            decoration: TextDecoration.none,
           );
+          // Check modifier state at click time, not during build
+          final recognizer = TapGestureRecognizer()
+            ..onTap = () {
+              if (span.href != null &&
+                  (HardwareKeyboard.instance.isControlPressed ||
+                   HardwareKeyboard.instance.isMetaPressed)) {
+                _openLink(span.href!);
+              }
+            };
+          _recognizers.add(recognizer);
           if (hasSearch) {
             children.addAll(_applySearchHighlight(span.text, s, es));
           } else {
-            children.add(TextSpan(text: span.text, style: s));
+            children.add(TextSpan(text: span.text, style: s, recognizer: recognizer));
           }
         case md.InlineType.image:
           children.add(_buildImageSpan(span, theme));

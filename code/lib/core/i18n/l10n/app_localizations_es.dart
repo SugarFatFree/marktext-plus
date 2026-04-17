@@ -256,8 +256,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get unsavedChanges => 'Cambios sin guardar';
 
   @override
-  String get unsavedChangesMessage =>
-      '¿Desea guardar los cambios antes de cerrar?';
+  String get unsavedChangesMessage => '¿Desea guardar los cambios antes de cerrar?';
 
   @override
   String get save => 'Guardar';
@@ -305,8 +304,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get settingsDarkThemes => 'Temas oscuros';
 
   @override
-  String get confirmResetMessage =>
-      '¿Está seguro de que desea restablecer toda la configuración?';
+  String get confirmResetMessage => '¿Está seguro de que desea restablecer toda la configuración?';
 
   @override
   String get comingSoon => 'Próximamente';
@@ -650,8 +648,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get commandSourceMode => 'Modo código fuente';
 
   @override
-  String get commandSourceModeDesc =>
-      'Cambiar al modo de edición de código fuente';
+  String get commandSourceModeDesc => 'Cambiar al modo de edición de código fuente';
 
   @override
   String get commandPreviewMode => 'Modo vista previa';
@@ -669,15 +666,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get commandToggleFocusMode => 'Alternar modo enfoque';
 
   @override
-  String get commandToggleFocusModeDesc =>
-      'Alternar modo de enfoque sin distracciones';
+  String get commandToggleFocusModeDesc => 'Alternar modo de enfoque sin distracciones';
 
   @override
   String get commandToggleTypewriterMode => 'Alternar modo máquina de escribir';
 
   @override
-  String get commandToggleTypewriterModeDesc =>
-      'Alternar modo de desplazamiento máquina de escribir';
+  String get commandToggleTypewriterModeDesc => 'Alternar modo de desplazamiento máquina de escribir';
 
   @override
   String get commandToggleSidebar => 'Alternar barra lateral';
@@ -689,8 +684,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get commandToggleTabBar => 'Alternar barra de pestañas';
 
   @override
-  String get commandToggleTabBarDesc =>
-      'Mostrar u ocultar la barra de pestañas';
+  String get commandToggleTabBarDesc => 'Mostrar u ocultar la barra de pestañas';
 
   @override
   String get welcomeNewFile => 'Nuevo archivo';
