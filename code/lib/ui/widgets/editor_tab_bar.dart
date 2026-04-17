@@ -225,7 +225,7 @@ class _TabItemState extends ConsumerState<_TabItem> with SingleTickerProviderSta
                 style: TextStyle(
                   fontSize: 13,
                   color: widget.isActive ? widget.tokens.colorText : widget.tokens.colorTextMuted,
-                  fontWeight: widget.isActive ? FontWeight.w500 : FontWeight.normal,
+                  fontWeight: FontWeight.normal,
                 ),
                 child: Text(widget.tab.fileName),
               ),
