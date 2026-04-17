@@ -649,8 +649,8 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
               color: theme.colorScheme.primary,
               decoration: TextDecoration.underline,
             ),
-            recognizer: TapGestureRecognizer()
-              ..onTap = () => _handleLinkTap(span.href),
+            recognizer: LongPressGestureRecognizer()
+              ..onLongPress = () => _handleLinkTap(span.href),
           ));
         case md.InlineType.image:
           children.add(_buildImageSpan(span, theme));
