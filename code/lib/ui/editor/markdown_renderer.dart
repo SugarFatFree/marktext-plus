@@ -1,20 +1,14 @@
 import 'dart:io';
 
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:highlight/highlight.dart' show highlight, Node;
 import 'package:flutter_highlight/themes/github.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path/path.dart' as p;
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/theme/app_theme.dart';
-import '../../models/tab_info.dart';
 import '../../providers/editor_provider.dart';
-import '../../providers/file_provider.dart';
 import '../../providers/settings_provider.dart';
-import '../../providers/tab_provider.dart';
 import '../../services/markdown_parser.dart' as md;
 import '../widgets/diagram_widget.dart';
 
@@ -70,49 +64,6 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         },
       );
     });
-  }
-
-  void _handleLinkTap(String? href) {
-    if (href == null || href.isEmpty) return;
-
-    // External URL
-    if (href.startsWith('http://') || href.startsWith('https://')) {
-      launchUrl(Uri.parse(href));
-      return;
-    }
-
-    // Local markdown file
-    final ext = p.extension(href).toLowerCase();
-    if (ext == '.md' || ext == '.markdown' || ext == '.txt') {
-      // Resolve relative path against current file
-      final activeTab = ref.read(activeTabProvider);
-      String resolvedPath = href;
-      if (activeTab?.filePath != null && !p.isAbsolute(href)) {
-        resolvedPath = p.normalize(p.join(p.dirname(activeTab!.filePath!), href));
-      }
-      final file = File(resolvedPath);
-      if (file.existsSync()) {
-        final content = file.readAsStringSync();
-        final tab = TabInfo(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
-          filePath: resolvedPath,
-          fileName: p.basename(resolvedPath),
-          content: content,
-        );
-        ref.read(tabProvider.notifier).addTab(tab);
-        ref.read(settingsProvider.notifier).addRecentFile(resolvedPath);
-
-        // If no folder is open, load the file's parent directory
-        final currentDir = ref.read(fileProvider.notifier).currentDirectory;
-        if (currentDir == null) {
-          ref.read(fileProvider.notifier).loadDirectory(p.dirname(resolvedPath));
-        }
-      }
-      return;
-    }
-
-    // Other local links - try to launch
-    launchUrl(Uri.parse(href));
   }
 
   @override
@@ -642,15 +593,15 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             children.add(TextSpan(text: span.text, style: s));
           }
         case md.InlineType.link:
-          children.add(TextSpan(
-            text: span.text,
-            style: baseStyle?.copyWith(
-              color: theme.colorScheme.primary,
-              decoration: TextDecoration.underline,
-            ),
-            recognizer: LongPressGestureRecognizer()
-              ..onLongPress = () => _handleLinkTap(span.href),
-          ));
+          final s = baseStyle?.copyWith(
+            color: theme.colorScheme.primary,
+            decoration: TextDecoration.underline,
+          );
+          if (hasSearch) {
+            children.addAll(_applySearchHighlight(span.text, s, es));
+          } else {
+            children.add(TextSpan(text: span.text, style: s));
+          }
         case md.InlineType.image:
           children.add(_buildImageSpan(span, theme));
         case md.InlineType.strikethrough:
