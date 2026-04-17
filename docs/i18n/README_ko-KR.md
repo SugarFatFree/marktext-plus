@@ -26,7 +26,7 @@ MarkText Plus는 원본 [MarkText](https://github.com/marktext/marktext)를 바�
 30초 안에 실행할 수 있습니다.
 
 ```bash
-git clone https://github.com/yourusername/marktext-plus.git
+git clone https://github.com/SugarFatFree/marktext-plus.git
 cd marktext-plus/code
 flutter pub get && flutter run
 ```
@@ -75,7 +75,7 @@ flutter pub get && flutter run
 
 ### 사전 빌드 바이너리 다운로드
 
-[Releases](https://github.com/yourusername/marktext-plus/releases)에서 플랫폼에 맞는 최신 버전을 다운로드하세요.
+[Releases](https://github.com/SugarFatFree/marktext-plus/releases)에서 플랫폼에 맞는 최신 버전을 다운로드하세요.
 
 | Platform | Architecture | Format |
 |----------|-------------|--------|
@@ -88,7 +88,7 @@ flutter pub get && flutter run
 > **사전 요구 사항**: Flutter 3.x+, Dart 3.x+
 
 ```bash
-git clone https://github.com/yourusername/marktext-plus.git
+git clone https://github.com/SugarFatFree/marktext-plus.git
 cd marktext-plus/code
 flutter pub get && flutter run
 ```

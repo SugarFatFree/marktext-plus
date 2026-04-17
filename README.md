@@ -4,10 +4,10 @@
 
 **A lightweight, cross-platform Markdown editor that makes writing a pleasure**
 
-[![Release](https://img.shields.io/github/v/release/yourusername/marktext-plus?style=flat-square)](https://github.com/yourusername/marktext-plus/releases)
-[![License](https://img.shields.io/github/license/yourusername/marktext-plus?style=flat-square)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/SugarFatFree/marktext-plus?style=flat-square)](https://github.com/SugarFatFree/marktext-plus/releases)
+[![License](https://img.shields.io/github/license/SugarFatFree/marktext-plus?style=flat-square)](LICENSE)
 [![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?style=flat-square&logo=flutter)](https://flutter.dev)
-[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square)](https://github.com/yourusername/marktext-plus)
+[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square)](https://github.com/SugarFatFree/marktext-plus)
 
 [简体中文](docs/i18n/README_zh-CN.md) | [日本語](docs/i18n/README_ja-JP.md) | [한국어](docs/i18n/README_ko-KR.md) | [Deutsch](docs/i18n/README_de-DE.md) | [Français](docs/i18n/README_fr-FR.md) | [Italiano](docs/i18n/README_it-IT.md) | [Русский](docs/i18n/README_ru-RU.md) | [Español](docs/i18n/README_es-ES.md) | [Português](docs/i18n/README_pt-PT.md) | [العربية](docs/i18n/README_ar-SA.md) | [Português (Brasil)](docs/i18n/README_pt-BR.md)
 
@@ -31,7 +31,7 @@ MarkText Plus is a **modern Markdown editor** reimagined from the original [Mark
 Get up and running in less than 30 seconds:
 
 ```bash
-git clone https://github.com/yourusername/marktext-plus.git
+git clone https://github.com/SugarFatFree/marktext-plus.git
 cd marktext-plus/code
 flutter pub get && flutter run
 ```
@@ -80,7 +80,7 @@ That's it! The editor will launch with a sample document ready to edit.
 
 ### Download Pre-built Binaries
 
-Download the latest release for your platform from [Releases](https://github.com/yourusername/marktext-plus/releases).
+Download the latest release for your platform from [Releases](https://github.com/SugarFatFree/marktext-plus/releases).
 
 | Platform | Architecture | Format |
 |----------|-------------|--------|
@@ -93,7 +93,7 @@ Download the latest release for your platform from [Releases](https://github.com
 > **Prerequisites**: Flutter 3.x+, Dart 3.x+
 
 ```bash
-git clone https://github.com/yourusername/marktext-plus.git
+git clone https://github.com/SugarFatFree/marktext-plus.git
 cd marktext-plus/code
 flutter pub get && flutter run
 ```

@@ -26,7 +26,7 @@ MarkText Plus は、オリジナルの [MarkText](https://github.com/marktext/ma
 30 秒以内で起動できます。
 
 ```bash
-git clone https://github.com/yourusername/marktext-plus.git
+git clone https://github.com/SugarFatFree/marktext-plus.git
 cd marktext-plus/code
 flutter pub get && flutter run
 ```
@@ -75,7 +75,7 @@ flutter pub get && flutter run
 
 ### プレビルド版をダウンロード
 
-[Releases](https://github.com/yourusername/marktext-plus/releases) から、お使いのプラットフォーム向け最新バージョンをダウンロードしてください。
+[Releases](https://github.com/SugarFatFree/marktext-plus/releases) から、お使いのプラットフォーム向け最新バージョンをダウンロードしてください。
 
 | Platform | Architecture | Format |
 |----------|-------------|--------|
@@ -88,7 +88,7 @@ flutter pub get && flutter run
 > **前提条件**: Flutter 3.x+、Dart 3.x+
 
 ```bash
-git clone https://github.com/yourusername/marktext-plus.git
+git clone https://github.com/SugarFatFree/marktext-plus.git
 cd marktext-plus/code
 flutter pub get && flutter run
 ```
