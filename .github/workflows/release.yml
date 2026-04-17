@@ -108,7 +108,7 @@ jobs:
       - name: Package zip
         run: |
           cd code/build/macos/Build/Products/Release
-          zip -r "${{ github.workspace }}/marktext-plus-${{ github.ref_name }}-macos-arm64.zip" "marktext_plus.app"
+          zip -r "${{ github.workspace }}/marktext-plus-${{ github.ref_name }}-macos-arm64.zip" "MarkText Plus.app"
 
       - name: Install create-dmg
         run: brew install create-dmg
@@ -121,11 +121,11 @@ jobs:
             --window-pos 200 120 \
             --window-size 600 400 \
             --icon-size 100 \
-            --icon "marktext_plus.app" 150 185 \
-            --hide-extension "marktext_plus.app" \
+            --icon "MarkText Plus.app" 150 185 \
+            --hide-extension "MarkText Plus.app" \
             --app-drop-link 450 185 \
             "marktext-plus-${{ github.ref_name }}-macos-arm64.dmg" \
-            "code/build/macos/Build/Products/Release/marktext_plus.app" \
+            "code/build/macos/Build/Products/Release/MarkText Plus.app" \
           || true
           # create-dmg returns non-zero even on success when no code signing identity is found
 
