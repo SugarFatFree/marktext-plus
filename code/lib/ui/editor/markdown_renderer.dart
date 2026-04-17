@@ -161,17 +161,15 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       }
     }
 
-    return SelectionArea(
-      child: SingleChildScrollView(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: config.editorMaxWidth.toDouble()),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: widgets,
-              ),
+    return SingleChildScrollView(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: config.editorMaxWidth.toDouble()),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: widgets,
             ),
           ),
         ),
@@ -181,10 +179,10 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
 
   Widget _buildHeading(md.HeadingNode node, ThemeData theme, AppThemeTokens tokens, {Key? key}) {
     final style = switch (node.level) {
-      1 => TextStyle(fontFamily: _previewFontFamily, fontSize: 28, fontWeight: FontWeight.w700, color: tokens.colorText),
-      2 => TextStyle(fontFamily: _previewFontFamily, fontSize: 24, fontWeight: FontWeight.w600, color: tokens.colorText),
-      3 => TextStyle(fontFamily: _previewFontFamily, fontSize: 21, fontWeight: FontWeight.w600, color: tokens.colorText),
-      _ => TextStyle(fontFamily: _previewFontFamily, fontSize: 17, fontWeight: FontWeight.w600, color: tokens.colorTextMuted),
+      1 => TextStyle(fontFamily: _previewFontFamily, fontFamilyFallback: _previewFontFallback, fontSize: 28, fontWeight: FontWeight.w700, color: tokens.colorText),
+      2 => TextStyle(fontFamily: _previewFontFamily, fontFamilyFallback: _previewFontFallback, fontSize: 24, fontWeight: FontWeight.w600, color: tokens.colorText),
+      3 => TextStyle(fontFamily: _previewFontFamily, fontFamilyFallback: _previewFontFallback, fontSize: 21, fontWeight: FontWeight.w600, color: tokens.colorText),
+      _ => TextStyle(fontFamily: _previewFontFamily, fontFamilyFallback: _previewFontFallback, fontSize: 17, fontWeight: FontWeight.w600, color: tokens.colorTextMuted),
     };
 
     return Padding(
@@ -193,7 +191,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text.rich(
+          SelectableText.rich(
             _buildInlineSpans(node.inlineSpans, theme, style),
             style: style,
           ),
@@ -207,12 +205,13 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     );
   }
 
-  static const _previewFontFamily = 'Open Sans, Helvetica Neue, Arial, sans-serif';
+  static const _previewFontFamily = 'Open Sans';
+  static const _previewFontFallback = ['Helvetica Neue', 'Arial'];
 
   Widget _buildParagraph(md.ParagraphNode node, ThemeData theme) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Text.rich(
+      child: SelectableText.rich(
         _buildInlineSpans(node.inlineSpans, theme, const TextStyle(fontFamily: _previewFontFamily, fontSize: 16, height: 1.6)),
       ),
     );
@@ -352,7 +351,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: Text.rich(
+              child: SelectableText.rich(
                 _buildInlineSpans(item.inlineSpans, theme, theme.textTheme.bodyMedium),
               ),
             ),
@@ -371,7 +370,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             style: theme.textTheme.bodyMedium,
           ),
           Expanded(
-            child: Text.rich(
+            child: SelectableText.rich(
               _buildInlineSpans(item.inlineSpans, theme, theme.textTheme.bodyMedium),
             ),
           ),
@@ -391,7 +390,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         color: tokens.colorAccentMuted.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(4),
       ),
-      child: Text.rich(
+      child: SelectableText.rich(
         _buildInlineSpans(node.inlineSpans, theme, const TextStyle(fontFamily: _previewFontFamily, fontSize: 16, height: 1.6)),
       ),
     );
