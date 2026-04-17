@@ -5,6 +5,22 @@ All notable changes to MarkText Plus will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.1.2] - 2026-04-17
+
+### Added
+- 3 new themes: Pink Blossom (light), Sky Blue (light), Midnight (dark)
+- Preview mode link interaction: Ctrl+Click (Windows/Linux) or Cmd+Click (macOS) to open links in browser or new tab
+- Theme names now fully localized in all 12 languages (simplified Chinese names for Chinese locale)
+
+### Fixed
+- Fixed preview mode text selection highlight issues with mixed CJK/Latin content, inline code, and links
+- Fixed tab title font weight inconsistency (all tabs now use normal weight)
+
+### Changed
+- README theme section reorganized into light/dark two-column layout showing all 8 themes
+- Link rendering in preview mode: removed default underline decoration to fix selection highlight visibility
+- Table rendering in preview mode: removed horizontal scroll wrapper to fix selection continuity
+
 ## [v1.1.1] - 2026-04-16
 
 ### Fixed

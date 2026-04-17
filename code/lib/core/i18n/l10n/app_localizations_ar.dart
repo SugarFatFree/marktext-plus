@@ -304,8 +304,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settingsDarkThemes => 'سمات داكنة';
 
   @override
-  String get confirmResetMessage =>
-      'هل أنت متأكد من إعادة تعيين جميع الإعدادات؟';
+  String get confirmResetMessage => 'هل أنت متأكد من إعادة تعيين جميع الإعدادات؟';
 
   @override
   String get comingSoon => 'قريباً';
@@ -430,6 +429,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get themeShibuya => 'شيبويا';
 
   @override
+  String get themePinkBlossom => 'زهرة وردية';
+
+  @override
+  String get themeSkyBlue => 'أزرق سماوي';
+
+  @override
   String get themeDarkGraphite => 'جرافيت داكن';
 
   @override
@@ -437,6 +442,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get themeNord => 'Nord';
+
+  @override
+  String get themeMidnight => 'منتصف الليل';
 
   @override
   String get keybindingBold => 'غامق';
@@ -664,8 +672,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get commandToggleTypewriterMode => 'تبديل وضع الآلة الكاتبة';
 
   @override
-  String get commandToggleTypewriterModeDesc =>
-      'تبديل وضع التمرير بالآلة الكاتبة';
+  String get commandToggleTypewriterModeDesc => 'تبديل وضع التمرير بالآلة الكاتبة';
 
   @override
   String get commandToggleSidebar => 'تبديل الشريط الجانبي';

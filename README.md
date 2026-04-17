@@ -55,15 +55,24 @@ That's it! The editor will launch with a sample document ready to edit.
 
 <table>
   <tr>
-    <td align="center"><b>Red Graphite</b><br/><img src="docs/v1.1.1/picture/theme/红石墨.png" alt="Red Graphite" width="400"/></td>
-    <td align="center"><b>Shibuya</b><br/><img src="docs/v1.1.1/picture/theme/涩谷.png" alt="Shibuya" width="400"/></td>
+    <th align="center">Light Themes</th>
+    <th align="center">Dark Themes</th>
   </tr>
   <tr>
-    <td align="center"><b>Dark Graphite</b><br/><img src="docs/v1.1.1/picture/theme/深色石墨.png" alt="Dark Graphite" width="400"/></td>
-    <td align="center"><b>Dieci OLED</b><br/><img src="docs/v1.1.1/picture/theme/纯黑.png" alt="Dieci OLED" width="400"/></td>
+    <td align="center"><b>Red Graphite</b><br/><img src="docs/v1.1.2/picture/theme/红石墨.png" alt="Red Graphite" width="400"/></td>
+    <td align="center"><b>Dark Graphite</b><br/><img src="docs/v1.1.2/picture/theme/深色石墨.png" alt="Dark Graphite" width="400"/></td>
   </tr>
   <tr>
-    <td align="center" colspan="2"><b>Nord</b><br/><img src="docs/v1.1.1/picture/theme/极光.png" alt="Nord" width="400"/></td>
+    <td align="center"><b>Shibuya</b><br/><img src="docs/v1.1.2/picture/theme/涩谷.png" alt="Shibuya" width="400"/></td>
+    <td align="center"><b>Dieci OLED</b><br/><img src="docs/v1.1.2/picture/theme/纯黑.png" alt="Dieci OLED" width="400"/></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Pink Blossom</b><br/><img src="docs/v1.1.2/picture/theme/粉樱.png" alt="Pink Blossom" width="400"/></td>
+    <td align="center"><b>Nord</b><br/><img src="docs/v1.1.2/picture/theme/极光.png" alt="Nord" width="400"/></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Sky Blue</b><br/><img src="docs/v1.1.2/picture/theme/天蓝.png" alt="Sky Blue" width="400"/></td>
+    <td align="center"><b>Midnight</b><br/><img src="docs/v1.1.2/picture/theme/暗夜蓝.png" alt="Midnight" width="400"/></td>
   </tr>
 </table>
 

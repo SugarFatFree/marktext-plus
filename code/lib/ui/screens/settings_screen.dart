@@ -374,9 +374,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return switch (name) {
       'redGraphite' => l10n.themeRedGraphite,
       'shibuya' => l10n.themeShibuya,
+      'pinkBlossom' => l10n.themePinkBlossom,
+      'skyBlue' => l10n.themeSkyBlue,
       'darkGraphite' => l10n.themeDarkGraphite,
       'dieciOLED' => l10n.themeDieciOLED,
       'nord' => l10n.themeNord,
+      'midnight' => l10n.themeMidnight,
       _ => name,
     };
   }

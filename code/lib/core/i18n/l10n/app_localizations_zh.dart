@@ -429,13 +429,22 @@ class AppLocalizationsZh extends AppLocalizations {
   String get themeShibuya => '涩谷';
 
   @override
+  String get themePinkBlossom => '粉樱';
+
+  @override
+  String get themeSkyBlue => '天蓝';
+
+  @override
   String get themeDarkGraphite => '深色石墨';
 
   @override
-  String get themeDieciOLED => 'Dieci 纯黑';
+  String get themeDieciOLED => '纯黑';
 
   @override
-  String get themeNord => 'Nord 极光';
+  String get themeNord => '极光';
+
+  @override
+  String get themeMidnight => '暗夜蓝';
 
   @override
   String get keybindingBold => '粗体';

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:highlight/highlight.dart' show highlight, Node;
 import 'package:flutter_highlight/themes/github.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
@@ -12,7 +13,6 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/tab_info.dart';
 import '../../providers/editor_provider.dart';
-import '../../providers/file_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/tab_provider.dart';
 import '../../services/markdown_parser.dart' as md;
@@ -35,6 +35,7 @@ class MarkdownRenderer extends ConsumerStatefulWidget {
 class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   final _headingKeys = <int, GlobalKey>{};
   int _matchCounter = 0;
+  final _recognizers = <TapGestureRecognizer>[];
 
   /// Parse raw markdown to find heading line numbers (1-based),
   /// matching the same logic used by the TOC panel.
@@ -72,51 +73,48 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     });
   }
 
-  void _handleLinkTap(String? href) {
-    if (href == null || href.isEmpty) return;
+  @override
+  void dispose() {
+    for (final recognizer in _recognizers) {
+      recognizer.dispose();
+    }
+    super.dispose();
+  }
 
-    // External URL
+  void _disposeRecognizers() {
+    for (final recognizer in _recognizers) {
+      recognizer.dispose();
+    }
+    _recognizers.clear();
+  }
+
+  Future<void> _openLink(String href) async {
     if (href.startsWith('http://') || href.startsWith('https://')) {
-      launchUrl(Uri.parse(href));
+      await launchUrl(Uri.parse(href), mode: LaunchMode.externalApplication);
       return;
     }
 
-    // Local markdown file
-    final ext = p.extension(href).toLowerCase();
-    if (ext == '.md' || ext == '.markdown' || ext == '.txt') {
-      // Resolve relative path against current file
-      final activeTab = ref.read(activeTabProvider);
-      String resolvedPath = href;
-      if (activeTab?.filePath != null && !p.isAbsolute(href)) {
-        resolvedPath = p.normalize(p.join(p.dirname(activeTab!.filePath!), href));
-      }
-      final file = File(resolvedPath);
-      if (file.existsSync()) {
-        final content = file.readAsStringSync();
-        final tab = TabInfo(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
-          filePath: resolvedPath,
-          fileName: p.basename(resolvedPath),
-          content: content,
-        );
-        ref.read(tabProvider.notifier).addTab(tab);
-        ref.read(settingsProvider.notifier).addRecentFile(resolvedPath);
+    final activeTabId = ref.read(tabProvider).activeTabId;
+    final activeTab = ref.read(tabProvider).tabs.where((tab) => tab.id == activeTabId).firstOrNull;
+    final baseDir = activeTab?.filePath != null ? p.dirname(activeTab!.filePath!) : null;
+    final resolvedPath = baseDir != null ? p.normalize(p.join(baseDir, href)) : p.normalize(href);
+    final file = File(resolvedPath);
+    if (!file.existsSync()) return;
 
-        // If no folder is open, load the file's parent directory
-        final currentDir = ref.read(fileProvider.notifier).currentDirectory;
-        if (currentDir == null) {
-          ref.read(fileProvider.notifier).loadDirectory(p.dirname(resolvedPath));
-        }
-      }
-      return;
-    }
-
-    // Other local links - try to launch
-    launchUrl(Uri.parse(href));
+    final content = await file.readAsString();
+    ref.read(tabProvider.notifier).addTab(
+      TabInfo(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        filePath: resolvedPath,
+        fileName: p.basename(resolvedPath),
+        content: content,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    _disposeRecognizers();
     final theme = Theme.of(context);
     final config = ref.watch(settingsProvider);
     final tokens = AppTheme.getTokens(config.themeName);
@@ -161,8 +159,8 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       }
     }
 
-    return SelectionArea(
-      child: SingleChildScrollView(
+    return SingleChildScrollView(
+      child: SelectionArea(
         child: Center(
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: config.editorMaxWidth.toDouble()),
@@ -181,10 +179,10 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
 
   Widget _buildHeading(md.HeadingNode node, ThemeData theme, AppThemeTokens tokens, {Key? key}) {
     final style = switch (node.level) {
-      1 => TextStyle(fontFamily: _previewFontFamily, fontSize: 28, fontWeight: FontWeight.w700, color: tokens.colorText),
-      2 => TextStyle(fontFamily: _previewFontFamily, fontSize: 24, fontWeight: FontWeight.w600, color: tokens.colorText),
-      3 => TextStyle(fontFamily: _previewFontFamily, fontSize: 21, fontWeight: FontWeight.w600, color: tokens.colorText),
-      _ => TextStyle(fontFamily: _previewFontFamily, fontSize: 17, fontWeight: FontWeight.w600, color: tokens.colorTextMuted),
+      1 => TextStyle(fontFamily: _previewFontFamily, fontFamilyFallback: _previewFontFallback, fontSize: 28, fontWeight: FontWeight.w700, color: tokens.colorText),
+      2 => TextStyle(fontFamily: _previewFontFamily, fontFamilyFallback: _previewFontFallback, fontSize: 24, fontWeight: FontWeight.w600, color: tokens.colorText),
+      3 => TextStyle(fontFamily: _previewFontFamily, fontFamilyFallback: _previewFontFallback, fontSize: 21, fontWeight: FontWeight.w600, color: tokens.colorText),
+      _ => TextStyle(fontFamily: _previewFontFamily, fontFamilyFallback: _previewFontFallback, fontSize: 17, fontWeight: FontWeight.w600, color: tokens.colorTextMuted),
     };
 
     return Padding(
@@ -207,7 +205,8 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     );
   }
 
-  static const _previewFontFamily = 'Open Sans, Helvetica Neue, Arial, sans-serif';
+  static const _previewFontFamily = 'Open Sans';
+  static const _previewFontFallback = ['Helvetica Neue', 'Arial'];
 
   Widget _buildParagraph(md.ParagraphNode node, ThemeData theme) {
     return Padding(
@@ -405,52 +404,48 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         border: Border.all(color: theme.dividerColor),
         borderRadius: BorderRadius.circular(4),
       ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minWidth: 200),
-          child: Table(
-            border: TableBorder.symmetric(
-              inside: BorderSide(color: theme.dividerColor),
+      // Remove SingleChildScrollView to avoid breaking SelectionArea continuity
+      // Trade-off: wide tables will wrap or overflow instead of horizontal scroll
+      child: Table(
+        border: TableBorder.symmetric(
+          inside: BorderSide(color: theme.dividerColor),
+        ),
+        defaultColumnWidth: const IntrinsicColumnWidth(),
+        children: [
+          TableRow(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest,
             ),
-            defaultColumnWidth: const IntrinsicColumnWidth(),
             children: [
-              TableRow(
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                ),
-                children: [
-                  for (var i = 0; i < node.headers.length; i++)
-                    Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: Text(
-                        node.headers[i],
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontFamily: _previewFontFamily,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: _getAlignment(node.alignments, i),
-                      ),
+              for (var i = 0; i < node.headers.length; i++)
+                Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Text(
+                    node.headers[i],
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontFamily: _previewFontFamily,
+                      fontWeight: FontWeight.bold,
                     ),
-                ],
-              ),
-              for (final row in node.rows)
-                TableRow(
-                  children: [
-                    for (var i = 0; i < colCount; i++)
-                      Padding(
-                        padding: const EdgeInsets.all(8),
-                        child: Text(
-                          i < row.length ? row[i] : '',
-                          style: TextStyle(fontFamily: _previewFontFamily),
-                          textAlign: _getAlignment(node.alignments, i),
-                        ),
-                      ),
-                  ],
+                    textAlign: _getAlignment(node.alignments, i),
+                  ),
                 ),
             ],
           ),
-        ),
+          for (final row in node.rows)
+            TableRow(
+              children: [
+                for (var i = 0; i < colCount; i++)
+                  Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Text(
+                      i < row.length ? row[i] : '',
+                      style: TextStyle(fontFamily: _previewFontFamily),
+                      textAlign: _getAlignment(node.alignments, i),
+                    ),
+                  ),
+              ],
+            ),
+        ],
       ),
     );
   }
@@ -635,23 +630,34 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         case md.InlineType.code:
           final s = baseStyle?.copyWith(
             fontFamily: 'monospace',
-            backgroundColor: theme.colorScheme.surfaceContainerHighest,
+            backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
           );
           if (hasSearch) {
             children.addAll(_applySearchHighlight(span.text, s, es));
           } else {
-            children.add(TextSpan(text: span.text, style: s));
+            children.add(TextSpan(text: ' ${span.text} ', style: s));
           }
         case md.InlineType.link:
-          children.add(TextSpan(
-            text: span.text,
-            style: baseStyle?.copyWith(
-              color: theme.colorScheme.primary,
-              decoration: TextDecoration.underline,
-            ),
-            recognizer: TapGestureRecognizer()
-              ..onTap = () => _handleLinkTap(span.href),
-          ));
+          final s = baseStyle?.copyWith(
+            color: theme.colorScheme.primary,
+            // Remove underline decoration to avoid triggering rebuild on Ctrl press
+            decoration: TextDecoration.none,
+          );
+          // Check modifier state at click time, not during build
+          final recognizer = TapGestureRecognizer()
+            ..onTap = () {
+              if (span.href != null &&
+                  (HardwareKeyboard.instance.isControlPressed ||
+                   HardwareKeyboard.instance.isMetaPressed)) {
+                _openLink(span.href!);
+              }
+            };
+          _recognizers.add(recognizer);
+          if (hasSearch) {
+            children.addAll(_applySearchHighlight(span.text, s, es));
+          } else {
+            children.add(TextSpan(text: span.text, style: s, recognizer: recognizer));
+          }
         case md.InlineType.image:
           children.add(_buildImageSpan(span, theme));
         case md.InlineType.strikethrough:

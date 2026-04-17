@@ -256,8 +256,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get unsavedChanges => 'Alterações não guardadas';
 
   @override
-  String get unsavedChangesMessage =>
-      'Deseja guardar as alterações antes de fechar?';
+  String get unsavedChangesMessage => 'Deseja guardar as alterações antes de fechar?';
 
   @override
   String get save => 'Guardar';
@@ -305,8 +304,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get settingsDarkThemes => 'Temas escuros';
 
   @override
-  String get confirmResetMessage =>
-      'Tem a certeza de que pretende repor todas as definições?';
+  String get confirmResetMessage => 'Tem a certeza de que pretende repor todas as definições?';
 
   @override
   String get comingSoon => 'Em breve';
@@ -431,6 +429,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String get themeShibuya => 'Shibuya';
 
   @override
+  String get themePinkBlossom => 'Flor Rosa';
+
+  @override
+  String get themeSkyBlue => 'Azul Céu';
+
+  @override
   String get themeDarkGraphite => 'Grafite Escuro';
 
   @override
@@ -438,6 +442,9 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get themeNord => 'Nord';
+
+  @override
+  String get themeMidnight => 'Meia-Noite';
 
   @override
   String get keybindingBold => 'Negrito';
@@ -641,8 +648,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get commandSourceMode => 'Modo código fonte';
 
   @override
-  String get commandSourceModeDesc =>
-      'Mudar para modo de edição de código fonte';
+  String get commandSourceModeDesc => 'Mudar para modo de edição de código fonte';
 
   @override
   String get commandPreviewMode => 'Modo pré-visualização';
@@ -660,15 +666,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get commandToggleFocusMode => 'Alternar modo de foco';
 
   @override
-  String get commandToggleFocusModeDesc =>
-      'Alternar modo de foco sem distrações';
+  String get commandToggleFocusModeDesc => 'Alternar modo de foco sem distrações';
 
   @override
   String get commandToggleTypewriterMode => 'Alternar modo máquina de escrever';
 
   @override
-  String get commandToggleTypewriterModeDesc =>
-      'Alternar modo de deslocamento máquina de escrever';
+  String get commandToggleTypewriterModeDesc => 'Alternar modo de deslocamento máquina de escrever';
 
   @override
   String get commandToggleSidebar => 'Alternar barra lateral';
@@ -680,8 +684,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get commandToggleTabBar => 'Alternar barra de separadores';
 
   @override
-  String get commandToggleTabBarDesc =>
-      'Mostrar ou ocultar a barra de separadores';
+  String get commandToggleTabBarDesc => 'Mostrar ou ocultar a barra de separadores';
 
   @override
   String get welcomeNewFile => 'Novo ficheiro';
@@ -695,7 +698,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
 class AppLocalizationsPtBr extends AppLocalizationsPt {
-  AppLocalizationsPtBr() : super('pt_BR');
+  AppLocalizationsPtBr(): super('pt_BR');
 
   @override
   String get appTitle => 'MarkText Plus';
@@ -945,8 +948,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get unsavedChanges => 'Alterações não salvas';
 
   @override
-  String get unsavedChangesMessage =>
-      'Deseja salvar as alterações antes de fechar?';
+  String get unsavedChangesMessage => 'Deseja salvar as alterações antes de fechar?';
 
   @override
   String get save => 'Salvar';
@@ -994,8 +996,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get settingsDarkThemes => 'Temas escuros';
 
   @override
-  String get confirmResetMessage =>
-      'Tem certeza de que deseja redefinir todas as configurações?';
+  String get confirmResetMessage => 'Tem certeza de que deseja redefinir todas as configurações?';
 
   @override
   String get comingSoon => 'Em breve';
@@ -1120,6 +1121,12 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get themeShibuya => 'Shibuya';
 
   @override
+  String get themePinkBlossom => 'Flor Rosa';
+
+  @override
+  String get themeSkyBlue => 'Azul Céu';
+
+  @override
   String get themeDarkGraphite => 'Grafite Escuro';
 
   @override
@@ -1127,6 +1134,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get themeNord => 'Nord';
+
+  @override
+  String get themeMidnight => 'Meia-Noite';
 
   @override
   String get keybindingBold => 'Negrito';
@@ -1348,15 +1358,13 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get commandToggleFocusMode => 'Alternar modo de foco';
 
   @override
-  String get commandToggleFocusModeDesc =>
-      'Alternar modo de foco sem distrações';
+  String get commandToggleFocusModeDesc => 'Alternar modo de foco sem distrações';
 
   @override
   String get commandToggleTypewriterMode => 'Alternar modo máquina de escrever';
 
   @override
-  String get commandToggleTypewriterModeDesc =>
-      'Alternar modo de rolagem máquina de escrever';
+  String get commandToggleTypewriterModeDesc => 'Alternar modo de rolagem máquina de escrever';
 
   @override
   String get commandToggleSidebar => 'Alternar barra lateral';

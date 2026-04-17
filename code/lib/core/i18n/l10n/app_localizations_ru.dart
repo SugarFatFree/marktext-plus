@@ -304,8 +304,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get settingsDarkThemes => 'Тёмные темы';
 
   @override
-  String get confirmResetMessage =>
-      'Вы уверены, что хотите сбросить все настройки?';
+  String get confirmResetMessage => 'Вы уверены, что хотите сбросить все настройки?';
 
   @override
   String get comingSoon => 'Скоро';
@@ -430,6 +429,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get themeShibuya => 'Сибуя';
 
   @override
+  String get themePinkBlossom => 'Розовый цветок';
+
+  @override
+  String get themeSkyBlue => 'Небесно-голубой';
+
+  @override
   String get themeDarkGraphite => 'Тёмный графит';
 
   @override
@@ -437,6 +442,9 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get themeNord => 'Nord';
+
+  @override
+  String get themeMidnight => 'Полночь';
 
   @override
   String get keybindingBold => 'Жирный';
@@ -640,8 +648,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get commandSourceMode => 'Режим исходного кода';
 
   @override
-  String get commandSourceModeDesc =>
-      'Переключиться в режим редактирования кода';
+  String get commandSourceModeDesc => 'Переключиться в режим редактирования кода';
 
   @override
   String get commandPreviewMode => 'Режим предпросмотра';
@@ -653,8 +660,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get commandSplitMode => 'Режим разделения';
 
   @override
-  String get commandSplitModeDesc =>
-      'Переключиться в режим разделённого редактирования';
+  String get commandSplitModeDesc => 'Переключиться в режим разделённого редактирования';
 
   @override
   String get commandToggleFocusMode => 'Режим фокусировки';
@@ -666,8 +672,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get commandToggleTypewriterMode => 'Режим печатной машинки';
 
   @override
-  String get commandToggleTypewriterModeDesc =>
-      'Переключить режим печатной машинки';
+  String get commandToggleTypewriterModeDesc => 'Переключить режим печатной машинки';
 
   @override
   String get commandToggleSidebar => 'Боковая панель';

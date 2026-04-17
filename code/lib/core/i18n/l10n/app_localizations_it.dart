@@ -304,8 +304,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get settingsDarkThemes => 'Temi scuri';
 
   @override
-  String get confirmResetMessage =>
-      'Ripristinare tutte le impostazioni ai valori predefiniti?';
+  String get confirmResetMessage => 'Ripristinare tutte le impostazioni ai valori predefiniti?';
 
   @override
   String get comingSoon => 'Prossimamente';
@@ -430,6 +429,12 @@ class AppLocalizationsIt extends AppLocalizations {
   String get themeShibuya => 'Shibuya';
 
   @override
+  String get themePinkBlossom => 'Fiore Rosa';
+
+  @override
+  String get themeSkyBlue => 'Azzurro Cielo';
+
+  @override
   String get themeDarkGraphite => 'Grafite Scuro';
 
   @override
@@ -437,6 +442,9 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get themeNord => 'Nord';
+
+  @override
+  String get themeMidnight => 'Mezzanotte';
 
   @override
   String get keybindingBold => 'Grassetto';
@@ -640,8 +648,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get commandSourceMode => 'Modalità sorgente';
 
   @override
-  String get commandSourceModeDesc =>
-      'Passa alla modalità di modifica del codice sorgente';
+  String get commandSourceModeDesc => 'Passa alla modalità di modifica del codice sorgente';
 
   @override
   String get commandPreviewMode => 'Modalità anteprima';
@@ -659,16 +666,13 @@ class AppLocalizationsIt extends AppLocalizations {
   String get commandToggleFocusMode => 'Attiva/disattiva modalità focus';
 
   @override
-  String get commandToggleFocusModeDesc =>
-      'Attiva/disattiva la modalità focus senza distrazioni';
+  String get commandToggleFocusModeDesc => 'Attiva/disattiva la modalità focus senza distrazioni';
 
   @override
-  String get commandToggleTypewriterMode =>
-      'Attiva/disattiva modalità macchina da scrivere';
+  String get commandToggleTypewriterMode => 'Attiva/disattiva modalità macchina da scrivere';
 
   @override
-  String get commandToggleTypewriterModeDesc =>
-      'Attiva/disattiva lo scorrimento macchina da scrivere';
+  String get commandToggleTypewriterModeDesc => 'Attiva/disattiva lo scorrimento macchina da scrivere';
 
   @override
   String get commandToggleSidebar => 'Attiva/disattiva barra laterale';
@@ -680,8 +684,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get commandToggleTabBar => 'Attiva/disattiva barra schede';
 
   @override
-  String get commandToggleTabBarDesc =>
-      'Mostra o nascondi la barra delle schede';
+  String get commandToggleTabBarDesc => 'Mostra o nascondi la barra delle schede';
 
   @override
   String get welcomeNewFile => 'Nuovo file';
