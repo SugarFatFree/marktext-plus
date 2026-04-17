@@ -45,20 +45,26 @@ class AppTheme {
   static const List<String> themeNames = [
     'redGraphite',
     'shibuya',
+    'pinkBlossom',
+    'skyBlue',
     'darkGraphite',
     'dieciOLED',
     'nord',
+    'midnight',
   ];
 
   static const List<String> lightThemeNames = [
     'redGraphite',
     'shibuya',
+    'pinkBlossom',
+    'skyBlue',
   ];
 
   static const List<String> darkThemeNames = [
     'darkGraphite',
     'dieciOLED',
     'nord',
+    'midnight',
   ];
 
   // Red Graphite (light, default)
@@ -98,6 +104,46 @@ class AppTheme {
     syntaxLink: Color(0xFFB86F5A),
     syntaxQuote: Color(0xFF888888),
     syntaxComment: Color(0xFFBBBBBB),
+    brightness: Brightness.light,
+  );
+
+  // Pink Blossom (light)
+  static const pinkBlossom = AppThemeTokens(
+    colorBg: Color(0xFFFFF5F7),
+    colorSurface: Color(0xFFFFE4E9),
+    colorSurfaceHover: Color(0xFFFFD6DD),
+    colorText: Color(0xFF4A1F2F),
+    colorTextMuted: Color(0xFF8B5A6B),
+    colorTextDisabled: Color(0xFFC4A4B0),
+    colorAccent: Color(0xFFE91E63),
+    colorAccentMuted: Color(0xFFFCE4EC),
+    colorBorder: Color(0xFFFFD6E0),
+    syntaxHeading: Color(0xFFD81B60),
+    syntaxBold: Color(0xFF4A1F2F),
+    syntaxCode: Color(0xFFC2185B),
+    syntaxLink: Color(0xFFE91E63),
+    syntaxQuote: Color(0xFF8B5A6B),
+    syntaxComment: Color(0xFFC4A4B0),
+    brightness: Brightness.light,
+  );
+
+  // Sky Blue (light)
+  static const skyBlue = AppThemeTokens(
+    colorBg: Color(0xFFF0F8FF),
+    colorSurface: Color(0xFFE3F2FD),
+    colorSurfaceHover: Color(0xFFBBDEFB),
+    colorText: Color(0xFF1A3A52),
+    colorTextMuted: Color(0xFF546E7A),
+    colorTextDisabled: Color(0xFF90A4AE),
+    colorAccent: Color(0xFF2196F3),
+    colorAccentMuted: Color(0xFFE3F2FD),
+    colorBorder: Color(0xFFB3E5FC),
+    syntaxHeading: Color(0xFF1976D2),
+    syntaxBold: Color(0xFF1A3A52),
+    syntaxCode: Color(0xFF1E88E5),
+    syntaxLink: Color(0xFF2196F3),
+    syntaxQuote: Color(0xFF546E7A),
+    syntaxComment: Color(0xFF90A4AE),
     brightness: Brightness.light,
   );
 
@@ -161,6 +207,26 @@ class AppTheme {
     brightness: Brightness.dark,
   );
 
+  // Midnight (dark, deep blue)
+  static const midnight = AppThemeTokens(
+    colorBg: Color(0xFF0D1117),
+    colorSurface: Color(0xFF161B22),
+    colorSurfaceHover: Color(0xFF21262D),
+    colorText: Color(0xFFC9D1D9),
+    colorTextMuted: Color(0xFF8B949E),
+    colorTextDisabled: Color(0xFF484F58),
+    colorAccent: Color(0xFF58A6FF),
+    colorAccentMuted: Color(0xFF1C2D41),
+    colorBorder: Color(0xFF30363D),
+    syntaxHeading: Color(0xFF58A6FF),
+    syntaxBold: Color(0xFFC9D1D9),
+    syntaxCode: Color(0xFF79C0FF),
+    syntaxLink: Color(0xFF58A6FF),
+    syntaxQuote: Color(0xFF8B949E),
+    syntaxComment: Color(0xFF6E7681),
+    brightness: Brightness.dark,
+  );
+
   /// Migrate legacy theme names
   static String migrateName(String name) {
     return switch (name) {
@@ -178,9 +244,12 @@ class AppTheme {
     return switch (name) {
       'redGraphite' => redGraphite,
       'shibuya' => shibuya,
+      'pinkBlossom' => pinkBlossom,
+      'skyBlue' => skyBlue,
       'darkGraphite' => darkGraphite,
       'dieciOLED' => dieciOLED,
       'nord' => nord,
+      'midnight' => midnight,
       _ => redGraphite,
     };
   }

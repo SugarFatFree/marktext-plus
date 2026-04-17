@@ -4,8 +4,8 @@ import 'package:marktext_plus/core/theme/app_theme.dart';
 
 void main() {
   group('AppTheme', () {
-    test('has 5 built-in themes', () {
-      expect(AppTheme.themeNames.length, 5);
+    test('has 8 built-in themes', () {
+      expect(AppTheme.themeNames.length, 8);
     });
 
     test('redGraphite is a light theme', () {
@@ -15,6 +15,16 @@ void main() {
 
     test('shibuya is a light theme', () {
       final theme = AppTheme.getTheme('shibuya');
+      expect(theme.brightness, Brightness.light);
+    });
+
+    test('pinkBlossom is a light theme', () {
+      final theme = AppTheme.getTheme('pinkBlossom');
+      expect(theme.brightness, Brightness.light);
+    });
+
+    test('skyBlue is a light theme', () {
+      final theme = AppTheme.getTheme('skyBlue');
       expect(theme.brightness, Brightness.light);
     });
 
@@ -30,6 +40,11 @@ void main() {
 
     test('nord is a dark theme', () {
       final theme = AppTheme.getTheme('nord');
+      expect(theme.brightness, Brightness.dark);
+    });
+
+    test('midnight is a dark theme', () {
+      final theme = AppTheme.getTheme('midnight');
       expect(theme.brightness, Brightness.dark);
     });
 

@@ -945,6 +945,18 @@ abstract class AppLocalizations {
   /// **'Shibuya'**
   String get themeShibuya;
 
+  /// No description provided for @themePinkBlossom.
+  ///
+  /// In en, this message translates to:
+  /// **'Pink Blossom'**
+  String get themePinkBlossom;
+
+  /// No description provided for @themeSkyBlue.
+  ///
+  /// In en, this message translates to:
+  /// **'Sky Blue'**
+  String get themeSkyBlue;
+
   /// No description provided for @themeDarkGraphite.
   ///
   /// In en, this message translates to:
@@ -962,6 +974,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Nord'**
   String get themeNord;
+
+  /// No description provided for @themeMidnight.
+  ///
+  /// In en, this message translates to:
+  /// **'Midnight'**
+  String get themeMidnight;
 
   /// No description provided for @keybindingBold.
   ///

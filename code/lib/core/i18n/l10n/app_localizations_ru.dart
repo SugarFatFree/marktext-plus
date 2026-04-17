@@ -430,6 +430,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get themeShibuya => 'Сибуя';
 
   @override
+  String get themePinkBlossom => 'Розовый цветок';
+
+  @override
+  String get themeSkyBlue => 'Небесно-голубой';
+
+  @override
   String get themeDarkGraphite => 'Тёмный графит';
 
   @override
@@ -437,6 +443,9 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get themeNord => 'Nord';
+
+  @override
+  String get themeMidnight => 'Полночь';
 
   @override
   String get keybindingBold => 'Жирный';

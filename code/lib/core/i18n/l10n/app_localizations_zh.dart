@@ -429,6 +429,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get themeShibuya => '涩谷';
 
   @override
+  String get themePinkBlossom => '粉樱';
+
+  @override
+  String get themeSkyBlue => '天蓝';
+
+  @override
   String get themeDarkGraphite => '深色石墨';
 
   @override
@@ -436,6 +442,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get themeNord => 'Nord 极光';
+
+  @override
+  String get themeMidnight => '午夜蓝';
 
   @override
   String get keybindingBold => '粗体';

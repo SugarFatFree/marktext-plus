@@ -431,6 +431,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get themeShibuya => 'Shibuya';
 
   @override
+  String get themePinkBlossom => 'Pink Blossom';
+
+  @override
+  String get themeSkyBlue => 'Sky Blue';
+
+  @override
   String get themeDarkGraphite => 'Dark Graphite';
 
   @override
@@ -438,6 +444,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get themeNord => 'Nord';
+
+  @override
+  String get themeMidnight => 'Midnight';
 
   @override
   String get keybindingBold => 'Bold';

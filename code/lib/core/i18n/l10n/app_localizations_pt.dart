@@ -431,6 +431,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String get themeShibuya => 'Shibuya';
 
   @override
+  String get themePinkBlossom => 'Flor Rosa';
+
+  @override
+  String get themeSkyBlue => 'Azul Céu';
+
+  @override
   String get themeDarkGraphite => 'Grafite Escuro';
 
   @override
@@ -438,6 +444,9 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get themeNord => 'Nord';
+
+  @override
+  String get themeMidnight => 'Meia-Noite';
 
   @override
   String get keybindingBold => 'Negrito';
@@ -1120,6 +1129,12 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get themeShibuya => 'Shibuya';
 
   @override
+  String get themePinkBlossom => 'Flor Rosa';
+
+  @override
+  String get themeSkyBlue => 'Azul Céu';
+
+  @override
   String get themeDarkGraphite => 'Grafite Escuro';
 
   @override
@@ -1127,6 +1142,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get themeNord => 'Nord';
+
+  @override
+  String get themeMidnight => 'Meia-Noite';
 
   @override
   String get keybindingBold => 'Negrito';

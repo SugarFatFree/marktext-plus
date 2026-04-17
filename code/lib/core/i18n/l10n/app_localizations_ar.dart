@@ -430,6 +430,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get themeShibuya => 'شيبويا';
 
   @override
+  String get themePinkBlossom => 'زهرة وردية';
+
+  @override
+  String get themeSkyBlue => 'أزرق سماوي';
+
+  @override
   String get themeDarkGraphite => 'جرافيت داكن';
 
   @override
@@ -437,6 +443,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get themeNord => 'Nord';
+
+  @override
+  String get themeMidnight => 'منتصف الليل';
 
   @override
   String get keybindingBold => 'غامق';
