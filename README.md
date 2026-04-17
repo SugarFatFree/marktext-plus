@@ -11,7 +11,7 @@
 
 [简体中文](docs/i18n/README_zh-CN.md) | [日本語](docs/i18n/README_ja-JP.md) | [한국어](docs/i18n/README_ko-KR.md) | [Deutsch](docs/i18n/README_de-DE.md) | [Français](docs/i18n/README_fr-FR.md) | [Italiano](docs/i18n/README_it-IT.md) | [Русский](docs/i18n/README_ru-RU.md) | [Español](docs/i18n/README_es-ES.md) | [Português](docs/i18n/README_pt-PT.md) | [العربية](docs/i18n/README_ar-SA.md) | [Português (Brasil)](docs/i18n/README_pt-BR.md)
 
-![MarkText Plus](docs/v1.1.1/picture/theme/红石墨.png)
+![MarkText Plus](docs/v1.1.2/picture/theme/red-graphite.png)
 
 </div>
 
@@ -22,7 +22,7 @@
 MarkText Plus is a **modern Markdown editor** reimagined from the original [MarkText](https://github.com/marktext/marktext), rebuilt with Flutter for true cross-platform support. It solves the pain points of traditional Markdown editors:
 
 - ❌ Heavy and slow startup times → ✅ **Lightning-fast** with self-built parser
-- ❌ Limited theme options → ✅ **5 beautiful themes** (light & dark)
+- ❌ Limited theme options → ✅ **8 beautiful themes** (light & dark)
 - ❌ Poor cross-platform experience → ✅ **Native performance** on Windows, macOS, Linux
 - ❌ Complex setup → ✅ **3 commands to get started**
 
@@ -43,7 +43,7 @@ That's it! The editor will launch with a sample document ready to edit.
 | Feature | Description |
 |---------|-------------|
 | **📝 Three Edit Modes** | Source code with syntax highlighting, live preview, and split-view |
-| **🎨 5 Beautiful Themes** | Red Graphite, Shibuya, Dark Graphite, Dieci OLED, Nord |
+| **🎨 8 Beautiful Themes** | Red Graphite, Shibuya, Pink Blossom, Sky Blue, Dark Graphite, Dieci OLED, Nord, Midnight |
 | **🌍 12 Languages** | English, Chinese, Japanese, Korean, German, French, Italian, Russian, Spanish, Portuguese, Arabic, Brazilian Portuguese |
 | **⚡ Lightning Fast** | Self-built Markdown parser & renderer — no heavy dependencies |
 | **🔍 Find & Replace** | Full-featured search with regex support |
@@ -59,20 +59,20 @@ That's it! The editor will launch with a sample document ready to edit.
     <th align="center">Dark Themes</th>
   </tr>
   <tr>
-    <td align="center"><b>Red Graphite</b><br/><img src="docs/v1.1.2/picture/theme/红石墨.png" alt="Red Graphite" width="400"/></td>
-    <td align="center"><b>Dark Graphite</b><br/><img src="docs/v1.1.2/picture/theme/深色石墨.png" alt="Dark Graphite" width="400"/></td>
+    <td align="center"><b>Red Graphite</b><br/><img src="docs/v1.1.2/picture/theme/red-graphite.png" alt="Red Graphite" width="400"/></td>
+    <td align="center"><b>Dark Graphite</b><br/><img src="docs/v1.1.2/picture/theme/dark-graphite.png" alt="Dark Graphite" width="400"/></td>
   </tr>
   <tr>
-    <td align="center"><b>Shibuya</b><br/><img src="docs/v1.1.2/picture/theme/涩谷.png" alt="Shibuya" width="400"/></td>
-    <td align="center"><b>Dieci OLED</b><br/><img src="docs/v1.1.2/picture/theme/纯黑.png" alt="Dieci OLED" width="400"/></td>
+    <td align="center"><b>Shibuya</b><br/><img src="docs/v1.1.2/picture/theme/shibuya.png" alt="Shibuya" width="400"/></td>
+    <td align="center"><b>Dieci OLED</b><br/><img src="docs/v1.1.2/picture/theme/dieci-oled.png" alt="Dieci OLED" width="400"/></td>
   </tr>
   <tr>
-    <td align="center"><b>Pink Blossom</b><br/><img src="docs/v1.1.2/picture/theme/粉樱.png" alt="Pink Blossom" width="400"/></td>
-    <td align="center"><b>Nord</b><br/><img src="docs/v1.1.2/picture/theme/极光.png" alt="Nord" width="400"/></td>
+    <td align="center"><b>Pink Blossom</b><br/><img src="docs/v1.1.2/picture/theme/pink-blossom.png" alt="Pink Blossom" width="400"/></td>
+    <td align="center"><b>Nord</b><br/><img src="docs/v1.1.2/picture/theme/nord.png" alt="Nord" width="400"/></td>
   </tr>
   <tr>
-    <td align="center"><b>Sky Blue</b><br/><img src="docs/v1.1.2/picture/theme/天蓝.png" alt="Sky Blue" width="400"/></td>
-    <td align="center"><b>Midnight</b><br/><img src="docs/v1.1.2/picture/theme/暗夜蓝.png" alt="Midnight" width="400"/></td>
+    <td align="center"><b>Sky Blue</b><br/><img src="docs/v1.1.2/picture/theme/sky-blue.png" alt="Sky Blue" width="400"/></td>
+    <td align="center"><b>Midnight</b><br/><img src="docs/v1.1.2/picture/theme/midnight.png" alt="Midnight" width="400"/></td>
   </tr>
 </table>
 

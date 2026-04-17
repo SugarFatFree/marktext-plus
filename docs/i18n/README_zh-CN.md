@@ -11,7 +11,7 @@
 
 [English](../../README.md) | [日本語](README_ja-JP.md) | [한국어](README_ko-KR.md) | [Deutsch](README_de-DE.md) | [Français](README_fr-FR.md) | [Italiano](README_it-IT.md) | [Русский](README_ru-RU.md) | [Español](README_es-ES.md) | [Português](README_pt-PT.md) | [العربية](README_ar-SA.md) | [Português (Brasil)](README_pt-BR.md)
 
-![MarkText Plus](../../docs/v1.1.1/picture/theme/红石墨.png)
+![MarkText Plus](../../docs/v1.1.2/picture/theme/red-graphite.png)
 
 </div>
 
@@ -22,7 +22,7 @@
 MarkText Plus 是一款**现代化的 Markdown 编辑器**，重新设计自原版 [MarkText](https://github.com/marktext/marktext)，使用 Flutter 重构以实现真正的跨平台支持。它解决了传统 Markdown 编辑器的痛点：
 
 - ❌ 启动缓慢、体积庞大 → ✅ **闪电般快速**，自研解析器
-- ❌ 主题选择有限 → ✅ **5 款精美主题**（浅色 & 深色）
+- ❌ 主题选择有限 → ✅ **8 款精美主题**（浅色 & 深色）
 - ❌ 跨平台体验差 → ✅ **原生性能**，支持 Windows、macOS、Linux
 - ❌ 配置复杂 → ✅ **3 条命令即可开始**
 
@@ -43,7 +43,7 @@ flutter pub get && flutter run
 | 功能 | 描述 |
 |------|------|
 | **📝 三种编辑模式** | 源代码语法高亮、实时预览、分屏模式 |
-| **🎨 5 款精美主题** | 红石墨、涩谷、深色石墨、Dieci 纯黑、Nord 极光 |
+| **🎨 8 款精美主题** | 红石墨、涩谷、粉樱、天青、深色石墨、Dieci 纯黑、Nord 极光、午夜 |
 | **🌍 12 种语言** | 英语、中文、日语、韩语、德语、法语、意大利语、俄语、西班牙语、葡萄牙语、阿拉伯语、巴西葡萄牙语 |
 | **⚡ 极速响应** | 自研 Markdown 解析器和渲染器，无重型依赖 |
 | **🔍 查找替换** | 全功能搜索，支持正则表达式 |
@@ -55,15 +55,24 @@ flutter pub get && flutter run
 
 <table>
   <tr>
-    <td align="center"><b>红石墨</b><br/><img src="../../docs/v1.1.1/picture/theme/红石墨.png" alt="红石墨" width="400"/></td>
-    <td align="center"><b>涩谷</b><br/><img src="../../docs/v1.1.1/picture/theme/涩谷.png" alt="涩谷" width="400"/></td>
+    <th align="center">Light Themes</th>
+    <th align="center">Dark Themes</th>
   </tr>
   <tr>
-    <td align="center"><b>深色石墨</b><br/><img src="../../docs/v1.1.1/picture/theme/深色石墨.png" alt="深色石墨" width="400"/></td>
-    <td align="center"><b>Dieci 纯黑</b><br/><img src="../../docs/v1.1.1/picture/theme/纯黑.png" alt="Dieci 纯黑" width="400"/></td>
+    <td align="center"><b>Red Graphite</b><br/><img src="../../docs/v1.1.2/picture/theme/red-graphite.png" alt="Red Graphite" width="400"/></td>
+    <td align="center"><b>Dark Graphite</b><br/><img src="../../docs/v1.1.2/picture/theme/dark-graphite.png" alt="Dark Graphite" width="400"/></td>
   </tr>
   <tr>
-    <td align="center" colspan="2"><b>Nord 极光</b><br/><img src="../../docs/v1.1.1/picture/theme/极光.png" alt="Nord 极光" width="400"/></td>
+    <td align="center"><b>Shibuya</b><br/><img src="../../docs/v1.1.2/picture/theme/shibuya.png" alt="Shibuya" width="400"/></td>
+    <td align="center"><b>Dieci OLED</b><br/><img src="../../docs/v1.1.2/picture/theme/dieci-oled.png" alt="Dieci OLED" width="400"/></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Pink Blossom</b><br/><img src="../../docs/v1.1.2/picture/theme/pink-blossom.png" alt="Pink Blossom" width="400"/></td>
+    <td align="center"><b>Nord</b><br/><img src="../../docs/v1.1.2/picture/theme/nord.png" alt="Nord" width="400"/></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Sky Blue</b><br/><img src="../../docs/v1.1.2/picture/theme/sky-blue.png" alt="Sky Blue" width="400"/></td>
+    <td align="center"><b>Midnight</b><br/><img src="../../docs/v1.1.2/picture/theme/midnight.png" alt="Midnight" width="400"/></td>
   </tr>
 </table>
 
