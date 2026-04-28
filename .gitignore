@@ -55,4 +55,4 @@ code/macos/Flutter/ephemeral/
 *.log
 .claude/settings.local.json
 .marktext-plus/
-CLAUDE.md
+code/**/CLAUDE.md
