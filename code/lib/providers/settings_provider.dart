@@ -5,13 +5,7 @@ import '../core/config/config_service.dart';
 class SettingsNotifier extends StateNotifier<AppConfig> {
   final ConfigService _configService;
 
-  SettingsNotifier(this._configService) : super(AppConfig()) {
-    _loadConfig();
-  }
-
-  Future<void> _loadConfig() async {
-    state = await _configService.load();
-  }
+  SettingsNotifier(this._configService, AppConfig initialConfig) : super(initialConfig);
 
   Future<void> updateConfig(AppConfig Function(AppConfig) updater) async {
     state = updater(state);

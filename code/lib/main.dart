@@ -65,7 +65,7 @@ void main(List<String> args) async {
 
   final container = ProviderContainer(
     overrides: [
-      settingsProvider.overrideWith((ref) => SettingsNotifier(configService)),
+      settingsProvider.overrideWith((ref) => SettingsNotifier(configService, config)),
       localeProvider.overrideWith((ref) => LocaleNotifier(initialLocale)),
       startupFilesProvider.overrideWith((ref) => startupFiles),
     ],

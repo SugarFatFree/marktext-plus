@@ -56,3 +56,4 @@ code/macos/Flutter/ephemeral/
 .claude/settings.local.json
 .marktext-plus/
 code/**/CLAUDE.md
+docs/功能规划路线图.md
