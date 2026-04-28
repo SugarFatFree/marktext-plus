@@ -53,6 +53,6 @@ code/macos/Flutter/ephemeral/
 
 # Miscellaneous
 *.log
-.claude/
+.claude/settings.local.json
 .marktext-plus/
 CLAUDE.md
