@@ -149,11 +149,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     ref.read(tabProvider.notifier).markSaved(activeTab.id);
   }
 
-  void _openStartupFiles() {
+  void _openStartupFiles() async {
     if (_startupFilesProcessed) return;
     _startupFilesProcessed = true;
 
     final files = ref.read(startupFilesProvider);
+    if (files.isEmpty) return;
+
+    final config = ref.read(settingsProvider);
+    if (config.fileOpenBehavior == FileOpenBehavior.notSet && mounted) {
+      final choice = await _showFileOpenBehaviorDialog();
+      if (choice != null) {
+        ref.read(settingsProvider.notifier).updateConfig(
+          (c) => c.copyWith(fileOpenBehavior: choice),
+        );
+      }
+    }
+
     for (final path in files) {
       try {
         final content = File(path).readAsStringSync();
@@ -167,6 +179,69 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ref.read(settingsProvider.notifier).addRecentFile(path);
       } catch (_) {}
     }
+  }
+
+  Future<FileOpenBehavior?> _showFileOpenBehaviorDialog() {
+    final l10n = AppLocalizations.of(context)!;
+    return showDialog<FileOpenBehavior>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.fileOpenBehaviorTitle),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l10n.fileOpenBehaviorMessage),
+            const SizedBox(height: 16),
+            _buildRadioOption(
+              ctx,
+              l10n.fileOpenBehaviorNewWindow,
+              l10n.fileOpenBehaviorNewWindowDesc,
+              FileOpenBehavior.newWindow,
+            ),
+            _buildRadioOption(
+              ctx,
+              l10n.fileOpenBehaviorExistingWindow,
+              l10n.fileOpenBehaviorExistingWindowDesc,
+              FileOpenBehavior.existingWindow,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRadioOption(
+    BuildContext ctx,
+    String title,
+    String subtitle,
+    FileOpenBehavior value,
+  ) {
+    return InkWell(
+      onTap: () => Navigator.of(ctx).pop(value),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: [
+            Radio<FileOpenBehavior>(
+              value: value,
+              groupValue: null,
+              onChanged: (_) => Navigator.of(ctx).pop(value),
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _handleDrop(DropDoneDetails details) async {

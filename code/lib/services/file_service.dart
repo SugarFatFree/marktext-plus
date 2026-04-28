@@ -4,7 +4,8 @@ import '../models/file_node.dart';
 
 class FileService {
   Future<String> readFile(String path) async {
-    return await File(path).readAsString();
+    final content = await File(path).readAsString();
+    return content.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
   }
 
   Future<void> writeFile(String path, String content) async {

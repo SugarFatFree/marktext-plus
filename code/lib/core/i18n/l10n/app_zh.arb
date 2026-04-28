@@ -228,5 +228,14 @@
 
   "welcomeNewFile": "新建文件",
   "welcomeOpenFile": "打开文件",
-  "welcomeDragHint": "拖拽文件到此处打开"
+  "welcomeDragHint": "拖拽文件到此处打开",
+
+  "fileOpenBehavior": "文件打开行为",
+  "fileOpenBehaviorTitle": "如何打开文件？",
+  "fileOpenBehaviorMessage": "当应用已运行时，双击文件：",
+  "fileOpenBehaviorNewWindow": "在新窗口打开",
+  "fileOpenBehaviorNewWindowDesc": "允许多个应用实例",
+  "fileOpenBehaviorExistingWindow": "在当前窗口打开",
+  "fileOpenBehaviorExistingWindowDesc": "添加到现有标签页（单实例）",
+  "fileOpenBehaviorNotSet": "未配置"
 }

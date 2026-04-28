@@ -256,7 +256,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get unsavedChanges => 'Modifications non enregistrées';
 
   @override
-  String get unsavedChangesMessage => 'Voulez-vous enregistrer les modifications avant de fermer ?';
+  String get unsavedChangesMessage =>
+      'Voulez-vous enregistrer les modifications avant de fermer ?';
 
   @override
   String get save => 'Enregistrer';
@@ -304,7 +305,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsDarkThemes => 'Thèmes sombres';
 
   @override
-  String get confirmResetMessage => 'Voulez-vous vraiment réinitialiser tous les paramètres ?';
+  String get confirmResetMessage =>
+      'Voulez-vous vraiment réinitialiser tous les paramètres ?';
 
   @override
   String get comingSoon => 'Bientôt disponible';
@@ -393,7 +395,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get keybindingsEdit => 'Modifier le raccourci';
 
   @override
-  String get keybindingsPressKeys => 'Appuyez sur une combinaison de touches...';
+  String get keybindingsPressKeys =>
+      'Appuyez sur une combinaison de touches...';
 
   @override
   String get keybindingsReset => 'Réinitialiser par défaut';
@@ -666,25 +669,29 @@ class AppLocalizationsFr extends AppLocalizations {
   String get commandToggleFocusMode => 'Basculer le mode focus';
 
   @override
-  String get commandToggleFocusModeDesc => 'Basculer le mode focus sans distraction';
+  String get commandToggleFocusModeDesc =>
+      'Basculer le mode focus sans distraction';
 
   @override
   String get commandToggleTypewriterMode => 'Basculer le mode machine à écrire';
 
   @override
-  String get commandToggleTypewriterModeDesc => 'Basculer le mode défilement machine à écrire';
+  String get commandToggleTypewriterModeDesc =>
+      'Basculer le mode défilement machine à écrire';
 
   @override
   String get commandToggleSidebar => 'Basculer la barre latérale';
 
   @override
-  String get commandToggleSidebarDesc => 'Afficher ou masquer la barre latérale';
+  String get commandToggleSidebarDesc =>
+      'Afficher ou masquer la barre latérale';
 
   @override
   String get commandToggleTabBar => 'Basculer la barre d\'onglets';
 
   @override
-  String get commandToggleTabBarDesc => 'Afficher ou masquer la barre d\'onglets';
+  String get commandToggleTabBarDesc =>
+      'Afficher ou masquer la barre d\'onglets';
 
   @override
   String get welcomeNewFile => 'Nouveau fichier';
@@ -694,4 +701,30 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get welcomeDragHint => 'Déposez des fichiers ici pour les ouvrir';
+
+  @override
+  String get fileOpenBehavior => 'File Opening Behavior';
+
+  @override
+  String get fileOpenBehaviorTitle => 'How to Open Files?';
+
+  @override
+  String get fileOpenBehaviorMessage =>
+      'When you double-click a file while the app is already running:';
+
+  @override
+  String get fileOpenBehaviorNewWindow => 'Open in New Window';
+
+  @override
+  String get fileOpenBehaviorNewWindowDesc => 'Allow multiple app instances';
+
+  @override
+  String get fileOpenBehaviorExistingWindow => 'Open in Current Window';
+
+  @override
+  String get fileOpenBehaviorExistingWindowDesc =>
+      'Add to existing tabs (single instance)';
+
+  @override
+  String get fileOpenBehaviorNotSet => 'Not configured';
 }

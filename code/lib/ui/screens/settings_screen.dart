@@ -221,6 +221,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
           ),
         ),
+        _row(
+          l10n.fileOpenBehavior,
+          DropdownButton<FileOpenBehavior>(
+            value: config.fileOpenBehavior,
+            items: [
+              DropdownMenuItem(
+                value: FileOpenBehavior.notSet,
+                child: Text(l10n.fileOpenBehaviorNotSet),
+              ),
+              DropdownMenuItem(
+                value: FileOpenBehavior.newWindow,
+                child: Text(l10n.fileOpenBehaviorNewWindow),
+              ),
+              DropdownMenuItem(
+                value: FileOpenBehavior.existingWindow,
+                child: Text(l10n.fileOpenBehaviorExistingWindow),
+              ),
+            ],
+            onChanged: (value) {
+              if (value == null) return;
+              ref
+                  .read(settingsProvider.notifier)
+                  .updateConfig((c) => c.copyWith(fileOpenBehavior: value));
+            },
+          ),
+        ),
       ],
     );
   }

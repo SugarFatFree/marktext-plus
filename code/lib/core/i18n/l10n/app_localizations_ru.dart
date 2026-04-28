@@ -304,7 +304,8 @@ class AppLocalizationsRu extends AppLocalizations {
   String get settingsDarkThemes => 'Тёмные темы';
 
   @override
-  String get confirmResetMessage => 'Вы уверены, что хотите сбросить все настройки?';
+  String get confirmResetMessage =>
+      'Вы уверены, что хотите сбросить все настройки?';
 
   @override
   String get comingSoon => 'Скоро';
@@ -648,7 +649,8 @@ class AppLocalizationsRu extends AppLocalizations {
   String get commandSourceMode => 'Режим исходного кода';
 
   @override
-  String get commandSourceModeDesc => 'Переключиться в режим редактирования кода';
+  String get commandSourceModeDesc =>
+      'Переключиться в режим редактирования кода';
 
   @override
   String get commandPreviewMode => 'Режим предпросмотра';
@@ -660,7 +662,8 @@ class AppLocalizationsRu extends AppLocalizations {
   String get commandSplitMode => 'Режим разделения';
 
   @override
-  String get commandSplitModeDesc => 'Переключиться в режим разделённого редактирования';
+  String get commandSplitModeDesc =>
+      'Переключиться в режим разделённого редактирования';
 
   @override
   String get commandToggleFocusMode => 'Режим фокусировки';
@@ -672,7 +675,8 @@ class AppLocalizationsRu extends AppLocalizations {
   String get commandToggleTypewriterMode => 'Режим печатной машинки';
 
   @override
-  String get commandToggleTypewriterModeDesc => 'Переключить режим печатной машинки';
+  String get commandToggleTypewriterModeDesc =>
+      'Переключить режим печатной машинки';
 
   @override
   String get commandToggleSidebar => 'Боковая панель';
@@ -694,4 +698,30 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get welcomeDragHint => 'Перетащите файлы сюда для открытия';
+
+  @override
+  String get fileOpenBehavior => 'File Opening Behavior';
+
+  @override
+  String get fileOpenBehaviorTitle => 'How to Open Files?';
+
+  @override
+  String get fileOpenBehaviorMessage =>
+      'When you double-click a file while the app is already running:';
+
+  @override
+  String get fileOpenBehaviorNewWindow => 'Open in New Window';
+
+  @override
+  String get fileOpenBehaviorNewWindowDesc => 'Allow multiple app instances';
+
+  @override
+  String get fileOpenBehaviorExistingWindow => 'Open in Current Window';
+
+  @override
+  String get fileOpenBehaviorExistingWindowDesc =>
+      'Add to existing tabs (single instance)';
+
+  @override
+  String get fileOpenBehaviorNotSet => 'Not configured';
 }

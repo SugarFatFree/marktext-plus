@@ -304,7 +304,8 @@ class AppLocalizationsIt extends AppLocalizations {
   String get settingsDarkThemes => 'Temi scuri';
 
   @override
-  String get confirmResetMessage => 'Ripristinare tutte le impostazioni ai valori predefiniti?';
+  String get confirmResetMessage =>
+      'Ripristinare tutte le impostazioni ai valori predefiniti?';
 
   @override
   String get comingSoon => 'Prossimamente';
@@ -648,7 +649,8 @@ class AppLocalizationsIt extends AppLocalizations {
   String get commandSourceMode => 'Modalità sorgente';
 
   @override
-  String get commandSourceModeDesc => 'Passa alla modalità di modifica del codice sorgente';
+  String get commandSourceModeDesc =>
+      'Passa alla modalità di modifica del codice sorgente';
 
   @override
   String get commandPreviewMode => 'Modalità anteprima';
@@ -666,13 +668,16 @@ class AppLocalizationsIt extends AppLocalizations {
   String get commandToggleFocusMode => 'Attiva/disattiva modalità focus';
 
   @override
-  String get commandToggleFocusModeDesc => 'Attiva/disattiva la modalità focus senza distrazioni';
+  String get commandToggleFocusModeDesc =>
+      'Attiva/disattiva la modalità focus senza distrazioni';
 
   @override
-  String get commandToggleTypewriterMode => 'Attiva/disattiva modalità macchina da scrivere';
+  String get commandToggleTypewriterMode =>
+      'Attiva/disattiva modalità macchina da scrivere';
 
   @override
-  String get commandToggleTypewriterModeDesc => 'Attiva/disattiva lo scorrimento macchina da scrivere';
+  String get commandToggleTypewriterModeDesc =>
+      'Attiva/disattiva lo scorrimento macchina da scrivere';
 
   @override
   String get commandToggleSidebar => 'Attiva/disattiva barra laterale';
@@ -684,7 +689,8 @@ class AppLocalizationsIt extends AppLocalizations {
   String get commandToggleTabBar => 'Attiva/disattiva barra schede';
 
   @override
-  String get commandToggleTabBarDesc => 'Mostra o nascondi la barra delle schede';
+  String get commandToggleTabBarDesc =>
+      'Mostra o nascondi la barra delle schede';
 
   @override
   String get welcomeNewFile => 'Nuovo file';
@@ -694,4 +700,30 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get welcomeDragHint => 'Trascina i file qui per aprirli';
+
+  @override
+  String get fileOpenBehavior => 'File Opening Behavior';
+
+  @override
+  String get fileOpenBehaviorTitle => 'How to Open Files?';
+
+  @override
+  String get fileOpenBehaviorMessage =>
+      'When you double-click a file while the app is already running:';
+
+  @override
+  String get fileOpenBehaviorNewWindow => 'Open in New Window';
+
+  @override
+  String get fileOpenBehaviorNewWindowDesc => 'Allow multiple app instances';
+
+  @override
+  String get fileOpenBehaviorExistingWindow => 'Open in Current Window';
+
+  @override
+  String get fileOpenBehaviorExistingWindowDesc =>
+      'Add to existing tabs (single instance)';
+
+  @override
+  String get fileOpenBehaviorNotSet => 'Not configured';
 }

@@ -5,6 +5,25 @@ All notable changes to MarkText Plus will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.1.3] - 2026-04-28
+
+### Added
+- Mermaid diagram rendering in preview mode using pure Dart/Flutter (no WebView dependency)
+- Copy source button on Mermaid diagram blocks
+- Single-instance mode: configurable file opening behavior (new window vs existing window)
+- First-launch dialog to choose file opening preference
+- File opening behavior setting in Settings → General
+- Table cells now render inline Markdown syntax (bold, links, code, etc.)
+
+### Fixed
+- Windows line endings (`\r\n`) causing all Markdown syntax to fail rendering
+- Config directory `.marktext-plus` being created in the file's directory instead of user home
+- Mermaid CDN version upgraded from v10 to v11 in HTML export
+
+### Changed
+- Config storage moved from `~/.marktext-plus/` to system application support directory
+- Mermaid diagram rendering enlarged (font 16px, node spacing 80px)
+
 ## [v1.1.2] - 2026-04-17
 
 ### Added

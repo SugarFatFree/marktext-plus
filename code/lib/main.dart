@@ -3,15 +3,43 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:windows_single_instance/windows_single_instance.dart';
 import 'app.dart';
 import 'core/config/config_service.dart';
 import 'providers/locale_provider.dart';
 import 'providers/settings_provider.dart';
 import 'providers/tab_provider.dart';
 
+ProviderContainer? _globalContainer;
+
+List<String> _filterStartupFiles(List<dynamic> args) {
+  const allowedExtensions = {'.md', '.markdown', '.txt'};
+  return args.where((arg) {
+    if (arg is! String) return false;
+    final ext = p.extension(arg).toLowerCase();
+    return allowedExtensions.contains(ext) && File(arg).existsSync();
+  }).cast<String>().toList();
+}
+
+void _handleSecondInstance(List<dynamic> newArgs) {
+  final newFiles = _filterStartupFiles(newArgs);
+  if (newFiles.isEmpty) return;
+  _globalContainer?.read(tabProvider.notifier).openFilesFromSecondInstance(newFiles);
+}
+
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize single instance on Windows
+  if (Platform.isWindows) {
+    await WindowsSingleInstance.ensureSingleInstance(
+      args,
+      "marktext_plus_instance",
+      onSecondWindow: _handleSecondInstance,
+    );
+  }
 
   // Initialize window_manager
   await windowManager.ensureInitialized();
@@ -27,13 +55,10 @@ void main(List<String> args) async {
   });
 
   // Filter startup file arguments
-  final allowedExtensions = {'.md', '.markdown', '.txt'};
-  final startupFiles = args.where((arg) {
-    final ext = p.extension(arg).toLowerCase();
-    return allowedExtensions.contains(ext) && File(arg).existsSync();
-  }).toList();
+  final startupFiles = _filterStartupFiles(args);
 
-  final configDir = p.join(Platform.environment['HOME'] ?? '.', '.marktext-plus');
+  final appSupportDir = await getApplicationSupportDirectory();
+  final configDir = appSupportDir.path;
   final configService = ConfigService(configDir: configDir);
   final config = await configService.load();
   final initialLocale = LocaleNotifier.parseLocale(config.locale);
@@ -45,6 +70,8 @@ void main(List<String> args) async {
       startupFilesProvider.overrideWith((ref) => startupFiles),
     ],
   );
+
+  _globalContainer = container;
 
   runApp(UncontrolledProviderScope(
     container: container,

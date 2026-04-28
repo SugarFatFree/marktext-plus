@@ -21,7 +21,7 @@ class ExportService {
     buffer.writeln('  <style>');
     buffer.writeln(_getGitHubStyleCss());
     buffer.writeln('  </style>');
-    buffer.writeln('  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>');
+    buffer.writeln('  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>');
     buffer.writeln('  <script>mermaid.initialize({startOnLoad: true, securityLevel: "strict"});</script>');
     buffer.writeln('</head>');
     buffer.writeln('<body>');
