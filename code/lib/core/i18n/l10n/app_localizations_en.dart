@@ -256,7 +256,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get unsavedChanges => 'Unsaved Changes';
 
   @override
-  String get unsavedChangesMessage => 'Do you want to save changes before closing?';
+  String get unsavedChangesMessage =>
+      'Do you want to save changes before closing?';
 
   @override
   String get save => 'Save';
@@ -304,7 +305,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsDarkThemes => 'Dark Themes';
 
   @override
-  String get confirmResetMessage => 'Are you sure you want to reset all settings to defaults?';
+  String get confirmResetMessage =>
+      'Are you sure you want to reset all settings to defaults?';
 
   @override
   String get comingSoon => 'Coming soon';
@@ -672,7 +674,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commandToggleTypewriterMode => 'Toggle Typewriter Mode';
 
   @override
-  String get commandToggleTypewriterModeDesc => 'Toggle typewriter scrolling mode';
+  String get commandToggleTypewriterModeDesc =>
+      'Toggle typewriter scrolling mode';
 
   @override
   String get commandToggleSidebar => 'Toggle Sidebar';
@@ -694,4 +697,30 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get welcomeDragHint => 'Drop files here to open';
+
+  @override
+  String get fileOpenBehavior => 'File Opening Behavior';
+
+  @override
+  String get fileOpenBehaviorTitle => 'How to Open Files?';
+
+  @override
+  String get fileOpenBehaviorMessage =>
+      'When you double-click a file while the app is already running:';
+
+  @override
+  String get fileOpenBehaviorNewWindow => 'Open in New Window';
+
+  @override
+  String get fileOpenBehaviorNewWindowDesc => 'Allow multiple app instances';
+
+  @override
+  String get fileOpenBehaviorExistingWindow => 'Open in Current Window';
+
+  @override
+  String get fileOpenBehaviorExistingWindowDesc =>
+      'Add to existing tabs (single instance)';
+
+  @override
+  String get fileOpenBehaviorNotSet => 'Not configured';
 }

@@ -694,4 +694,28 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get welcomeDragHint => '拖拽文件到此处打开';
+
+  @override
+  String get fileOpenBehavior => '文件打开行为';
+
+  @override
+  String get fileOpenBehaviorTitle => '如何打开文件？';
+
+  @override
+  String get fileOpenBehaviorMessage => '当应用已运行时，双击文件：';
+
+  @override
+  String get fileOpenBehaviorNewWindow => '在新窗口打开';
+
+  @override
+  String get fileOpenBehaviorNewWindowDesc => '允许多个应用实例';
+
+  @override
+  String get fileOpenBehaviorExistingWindow => '在当前窗口打开';
+
+  @override
+  String get fileOpenBehaviorExistingWindowDesc => '添加到现有标签页（单实例）';
+
+  @override
+  String get fileOpenBehaviorNotSet => '未配置';
 }

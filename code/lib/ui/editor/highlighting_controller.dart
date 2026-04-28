@@ -12,13 +12,39 @@ class HighlightingController extends TextEditingController {
   int _currentMatchIndex = -1;
 
   HighlightingController({
-    super.text,
+    String? text,
     required this.headingColor,
     required this.boldColor,
     required this.codeColor,
     required this.linkColor,
     required this.defaultColor,
-  });
+  }) : super(text: text != null ? _normalizeLineEndings(text) : null);
+
+  static String _normalizeLineEndings(String text) {
+    return text.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
+  }
+
+  @override
+  set text(String newText) {
+    super.text = _normalizeLineEndings(newText);
+  }
+
+  @override
+  set value(TextEditingValue newValue) {
+    if (newValue.text.contains('\r')) {
+      final normalized = _normalizeLineEndings(newValue.text);
+      final offsetDiff = newValue.text.length - normalized.length;
+      super.value = newValue.copyWith(
+        text: normalized,
+        selection: TextSelection.collapsed(
+          offset: (newValue.selection.baseOffset - offsetDiff)
+              .clamp(0, normalized.length),
+        ),
+      );
+    } else {
+      super.value = newValue;
+    }
+  }
 
   void updateSearchMatches(List<TextRange> matches, int currentIndex) {
     _searchMatches = matches;

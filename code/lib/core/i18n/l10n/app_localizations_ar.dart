@@ -304,7 +304,8 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settingsDarkThemes => 'سمات داكنة';
 
   @override
-  String get confirmResetMessage => 'هل أنت متأكد من إعادة تعيين جميع الإعدادات؟';
+  String get confirmResetMessage =>
+      'هل أنت متأكد من إعادة تعيين جميع الإعدادات؟';
 
   @override
   String get comingSoon => 'قريباً';
@@ -672,7 +673,8 @@ class AppLocalizationsAr extends AppLocalizations {
   String get commandToggleTypewriterMode => 'تبديل وضع الآلة الكاتبة';
 
   @override
-  String get commandToggleTypewriterModeDesc => 'تبديل وضع التمرير بالآلة الكاتبة';
+  String get commandToggleTypewriterModeDesc =>
+      'تبديل وضع التمرير بالآلة الكاتبة';
 
   @override
   String get commandToggleSidebar => 'تبديل الشريط الجانبي';
@@ -694,4 +696,30 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get welcomeDragHint => 'اسحب الملفات هنا لفتحها';
+
+  @override
+  String get fileOpenBehavior => 'File Opening Behavior';
+
+  @override
+  String get fileOpenBehaviorTitle => 'How to Open Files?';
+
+  @override
+  String get fileOpenBehaviorMessage =>
+      'When you double-click a file while the app is already running:';
+
+  @override
+  String get fileOpenBehaviorNewWindow => 'Open in New Window';
+
+  @override
+  String get fileOpenBehaviorNewWindowDesc => 'Allow multiple app instances';
+
+  @override
+  String get fileOpenBehaviorExistingWindow => 'Open in Current Window';
+
+  @override
+  String get fileOpenBehaviorExistingWindowDesc =>
+      'Add to existing tabs (single instance)';
+
+  @override
+  String get fileOpenBehaviorNotSet => 'Not configured';
 }

@@ -256,7 +256,8 @@ class AppLocalizationsEs extends AppLocalizations {
   String get unsavedChanges => 'Cambios sin guardar';
 
   @override
-  String get unsavedChangesMessage => '¿Desea guardar los cambios antes de cerrar?';
+  String get unsavedChangesMessage =>
+      '¿Desea guardar los cambios antes de cerrar?';
 
   @override
   String get save => 'Guardar';
@@ -304,7 +305,8 @@ class AppLocalizationsEs extends AppLocalizations {
   String get settingsDarkThemes => 'Temas oscuros';
 
   @override
-  String get confirmResetMessage => '¿Está seguro de que desea restablecer toda la configuración?';
+  String get confirmResetMessage =>
+      '¿Está seguro de que desea restablecer toda la configuración?';
 
   @override
   String get comingSoon => 'Próximamente';
@@ -648,7 +650,8 @@ class AppLocalizationsEs extends AppLocalizations {
   String get commandSourceMode => 'Modo código fuente';
 
   @override
-  String get commandSourceModeDesc => 'Cambiar al modo de edición de código fuente';
+  String get commandSourceModeDesc =>
+      'Cambiar al modo de edición de código fuente';
 
   @override
   String get commandPreviewMode => 'Modo vista previa';
@@ -666,13 +669,15 @@ class AppLocalizationsEs extends AppLocalizations {
   String get commandToggleFocusMode => 'Alternar modo enfoque';
 
   @override
-  String get commandToggleFocusModeDesc => 'Alternar modo de enfoque sin distracciones';
+  String get commandToggleFocusModeDesc =>
+      'Alternar modo de enfoque sin distracciones';
 
   @override
   String get commandToggleTypewriterMode => 'Alternar modo máquina de escribir';
 
   @override
-  String get commandToggleTypewriterModeDesc => 'Alternar modo de desplazamiento máquina de escribir';
+  String get commandToggleTypewriterModeDesc =>
+      'Alternar modo de desplazamiento máquina de escribir';
 
   @override
   String get commandToggleSidebar => 'Alternar barra lateral';
@@ -684,7 +689,8 @@ class AppLocalizationsEs extends AppLocalizations {
   String get commandToggleTabBar => 'Alternar barra de pestañas';
 
   @override
-  String get commandToggleTabBarDesc => 'Mostrar u ocultar la barra de pestañas';
+  String get commandToggleTabBarDesc =>
+      'Mostrar u ocultar la barra de pestañas';
 
   @override
   String get welcomeNewFile => 'Nuevo archivo';
@@ -694,4 +700,30 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get welcomeDragHint => 'Arrastra archivos aquí para abrirlos';
+
+  @override
+  String get fileOpenBehavior => 'File Opening Behavior';
+
+  @override
+  String get fileOpenBehaviorTitle => 'How to Open Files?';
+
+  @override
+  String get fileOpenBehaviorMessage =>
+      'When you double-click a file while the app is already running:';
+
+  @override
+  String get fileOpenBehaviorNewWindow => 'Open in New Window';
+
+  @override
+  String get fileOpenBehaviorNewWindowDesc => 'Allow multiple app instances';
+
+  @override
+  String get fileOpenBehaviorExistingWindow => 'Open in Current Window';
+
+  @override
+  String get fileOpenBehaviorExistingWindowDesc =>
+      'Add to existing tabs (single instance)';
+
+  @override
+  String get fileOpenBehaviorNotSet => 'Not configured';
 }

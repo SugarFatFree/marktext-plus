@@ -2,6 +2,8 @@ import '../theme/app_theme.dart';
 
 enum EditMode { source, preview, split }
 
+enum FileOpenBehavior { newWindow, existingWindow, notSet }
+
 class AppConfig {
   bool sideBarVisible;
   bool tabBarVisible;
@@ -30,6 +32,7 @@ class AppConfig {
   String textDirection;
   String imageStorageMode;
   String imageFolder;
+  FileOpenBehavior fileOpenBehavior;
 
   AppConfig({
     this.sideBarVisible = true,
@@ -59,6 +62,7 @@ class AppConfig {
     this.textDirection = 'ltr',
     this.imageStorageMode = 'copy',
     this.imageFolder = 'assets/images',
+    this.fileOpenBehavior = FileOpenBehavior.notSet,
   });
 
   Map<String, dynamic> toJson() => {
@@ -89,6 +93,7 @@ class AppConfig {
     'textDirection': textDirection,
     'imageStorageMode': imageStorageMode,
     'imageFolder': imageFolder,
+    'fileOpenBehavior': fileOpenBehavior.name,
   };
 
   factory AppConfig.fromJson(Map<String, dynamic> json) {
@@ -122,6 +127,7 @@ class AppConfig {
       textDirection: json['textDirection'] as String? ?? 'ltr',
       imageStorageMode: json['imageStorageMode'] as String? ?? 'copy',
       imageFolder: json['imageFolder'] as String? ?? 'assets/images',
+      fileOpenBehavior: _parseFileOpenBehavior(json['fileOpenBehavior']),
     );
   }
 
@@ -136,6 +142,16 @@ class AppConfig {
     if (value is num) return value.toDouble();
     return defaultValue;
   }
+
+  static FileOpenBehavior _parseFileOpenBehavior(dynamic value) {
+    if (value is String) {
+      return FileOpenBehavior.values
+          .where((e) => e.name == value)
+          .firstOrNull ?? FileOpenBehavior.notSet;
+    }
+    return FileOpenBehavior.notSet;
+  }
+
   AppConfig copyWith({
     bool? sideBarVisible,
     bool? tabBarVisible,
@@ -164,6 +180,7 @@ class AppConfig {
     String? textDirection,
     String? imageStorageMode,
     String? imageFolder,
+    FileOpenBehavior? fileOpenBehavior,
   }) {
     return AppConfig(
       sideBarVisible: sideBarVisible ?? this.sideBarVisible,
@@ -193,6 +210,7 @@ class AppConfig {
       textDirection: textDirection ?? this.textDirection,
       imageStorageMode: imageStorageMode ?? this.imageStorageMode,
       imageFolder: imageFolder ?? this.imageFolder,
+      fileOpenBehavior: fileOpenBehavior ?? this.fileOpenBehavior,
     );
   }
 }

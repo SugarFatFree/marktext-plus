@@ -16,7 +16,7 @@ import '../../providers/editor_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/tab_provider.dart';
 import '../../services/markdown_parser.dart' as md;
-import '../widgets/diagram_widget.dart';
+import '../widgets/mermaid_renderer.dart';
 
 class MarkdownRenderer extends ConsumerStatefulWidget {
   final String markdown;
@@ -36,6 +36,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   final _headingKeys = <int, GlobalKey>{};
   int _matchCounter = 0;
   final _recognizers = <TapGestureRecognizer>[];
+  final _inlineParser = md.MarkdownParser();
 
   /// Parse raw markdown to find heading line numbers (1-based),
   /// matching the same logic used by the TOC panel.
@@ -235,9 +236,8 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   Widget _buildCodeBlock(md.CodeBlockNode node, ThemeData theme, AppThemeTokens tokens) {
     final lang = node.language.toLowerCase();
     if (_diagramLanguages.contains(lang)) {
-      return DiagramWidget(
+      return MermaidRenderer(
         code: node.code,
-        type: node.language,
         isDarkMode: theme.brightness == Brightness.dark,
       );
     }
@@ -420,11 +420,14 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
               for (var i = 0; i < node.headers.length; i++)
                 Padding(
                   padding: const EdgeInsets.all(8),
-                  child: Text(
-                    node.headers[i],
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontFamily: _previewFontFamily,
-                      fontWeight: FontWeight.bold,
+                  child: Text.rich(
+                    _buildInlineSpans(
+                      _inlineParser.parseInline(node.headers[i]),
+                      theme,
+                      theme.textTheme.bodyMedium?.copyWith(
+                        fontFamily: _previewFontFamily,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     textAlign: _getAlignment(node.alignments, i),
                   ),
@@ -437,9 +440,12 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
                 for (var i = 0; i < colCount; i++)
                   Padding(
                     padding: const EdgeInsets.all(8),
-                    child: Text(
-                      i < row.length ? row[i] : '',
-                      style: TextStyle(fontFamily: _previewFontFamily),
+                    child: Text.rich(
+                      _buildInlineSpans(
+                        _inlineParser.parseInline(i < row.length ? row[i] : ''),
+                        theme,
+                        TextStyle(fontFamily: _previewFontFamily),
+                      ),
                       textAlign: _getAlignment(node.alignments, i),
                     ),
                   ),

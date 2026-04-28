@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 class KeybindingService {
   static final KeybindingService _instance = KeybindingService._();
@@ -36,6 +37,7 @@ class KeybindingService {
   };
 
   Map<String, String> _keybindings = Map.from(defaultKeybindings);
+  String? _configDir;
 
   Map<String, String> get keybindings => Map.unmodifiable(_keybindings);
 
@@ -54,7 +56,7 @@ class KeybindingService {
   }
 
   Future<void> load() async {
-    final file = _getFile();
+    final file = await _getFile();
     if (await file.exists()) {
       try {
         final json = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
@@ -71,13 +73,20 @@ class KeybindingService {
   }
 
   Future<void> _save() async {
-    final file = _getFile();
+    final file = await _getFile();
     await file.parent.create(recursive: true);
     await file.writeAsString(const JsonEncoder.withIndent('  ').convert(_keybindings));
   }
 
-  File _getFile() {
-    final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'] ?? '.';
-    return File(p.join(home, '.marktext-plus', 'keybindings.json'));
+  Future<String> _getConfigDir() async {
+    if (_configDir != null) return _configDir!;
+    final dir = await getApplicationSupportDirectory();
+    _configDir = dir.path;
+    return _configDir!;
+  }
+
+  Future<File> _getFile() async {
+    final dir = await _getConfigDir();
+    return File(p.join(dir, 'keybindings.json'));
   }
 }

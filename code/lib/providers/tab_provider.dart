@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as p;
 import '../models/tab_info.dart';
+import '../services/file_service.dart';
 import 'settings_provider.dart';
 
 /// Lightweight record of a file shown in the sidebar (no-folder mode).
@@ -199,6 +201,28 @@ class TabNotifier extends StateNotifier<TabState> {
 
   void closeAllTabs() {
     state = state.copyWith(tabs: [], activeTabId: null);
+  }
+
+  Future<void> openFilesFromSecondInstance(List<String> filePaths) async {
+    final fileService = FileService();
+    for (final path in filePaths) {
+      final existing = state.tabs.where((t) => t.filePath == path).firstOrNull;
+      if (existing != null) {
+        state = state.copyWith(activeTabId: existing.id);
+        continue;
+      }
+      try {
+        final content = await fileService.readFile(path);
+        final tab = TabInfo(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          filePath: path,
+          fileName: p.basename(path),
+          content: content,
+          isModified: false,
+        );
+        addTab(tab);
+      } catch (_) {}
+    }
   }
 }
 

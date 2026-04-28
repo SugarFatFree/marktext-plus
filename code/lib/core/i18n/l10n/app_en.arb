@@ -231,5 +231,14 @@
 
   "welcomeNewFile": "New File",
   "welcomeOpenFile": "Open File",
-  "welcomeDragHint": "Drop files here to open"
+  "welcomeDragHint": "Drop files here to open",
+
+  "fileOpenBehavior": "File Opening Behavior",
+  "fileOpenBehaviorTitle": "How to Open Files?",
+  "fileOpenBehaviorMessage": "When you double-click a file while the app is already running:",
+  "fileOpenBehaviorNewWindow": "Open in New Window",
+  "fileOpenBehaviorNewWindowDesc": "Allow multiple app instances",
+  "fileOpenBehaviorExistingWindow": "Open in Current Window",
+  "fileOpenBehaviorExistingWindowDesc": "Add to existing tabs (single instance)",
+  "fileOpenBehaviorNotSet": "Not configured"
 }

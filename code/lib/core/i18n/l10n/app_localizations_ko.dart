@@ -694,4 +694,30 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get welcomeDragHint => '파일을 여기에 드롭하여 열기';
+
+  @override
+  String get fileOpenBehavior => 'File Opening Behavior';
+
+  @override
+  String get fileOpenBehaviorTitle => 'How to Open Files?';
+
+  @override
+  String get fileOpenBehaviorMessage =>
+      'When you double-click a file while the app is already running:';
+
+  @override
+  String get fileOpenBehaviorNewWindow => 'Open in New Window';
+
+  @override
+  String get fileOpenBehaviorNewWindowDesc => 'Allow multiple app instances';
+
+  @override
+  String get fileOpenBehaviorExistingWindow => 'Open in Current Window';
+
+  @override
+  String get fileOpenBehaviorExistingWindowDesc =>
+      'Add to existing tabs (single instance)';
+
+  @override
+  String get fileOpenBehaviorNotSet => 'Not configured';
 }
