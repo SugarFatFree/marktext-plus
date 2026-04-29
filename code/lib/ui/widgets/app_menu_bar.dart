@@ -273,6 +273,10 @@ class AppMenuBar extends ConsumerWidget {
               child: Text(l10n.fileExportPdf),
               onPressed: () => _exportPdf(ref),
             ),
+            MenuItemButton(
+              child: Text(l10n.fileExportWord),
+              onPressed: () => _exportWord(ref),
+            ),
           ],
           child: Text(l10n.fileExport),
         ),
@@ -789,6 +793,19 @@ class AppMenuBar extends ConsumerWidget {
     );
     if (path == null) return;
     await ExportService.exportToPdf(activeTab.content, path);
+  }
+
+  void _exportWord(WidgetRef ref) async {
+    final activeTab = ref.read(activeTabProvider);
+    if (activeTab == null) return;
+    final path = await FilePicker.platform.saveFile(
+      dialogTitle: 'Export Word',
+      fileName: '${p.basenameWithoutExtension(activeTab.fileName)}.docx',
+      type: FileType.custom,
+      allowedExtensions: ['docx'],
+    );
+    if (path == null) return;
+    await ExportService.exportToDocx(activeTab.content, path);
   }
 
   void _newWindow() async {

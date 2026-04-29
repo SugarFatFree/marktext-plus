@@ -18,6 +18,7 @@
   "fileExport": "エクスポート",
   "fileExportHtml": "HTML",
   "fileExportPdf": "PDF",
+  "fileExportWord": "Word (.docx)",
   "fileSettings": "設定",
   "fileQuit": "終了",
   "editUndo": "元に戻す",

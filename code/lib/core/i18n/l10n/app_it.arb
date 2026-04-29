@@ -18,6 +18,7 @@
   "fileExport": "Esporta",
   "fileExportHtml": "HTML",
   "fileExportPdf": "PDF",
+  "fileExportWord": "Word (.docx)",
   "fileSettings": "Impostazioni",
   "fileQuit": "Esci",
   "editUndo": "Annulla",

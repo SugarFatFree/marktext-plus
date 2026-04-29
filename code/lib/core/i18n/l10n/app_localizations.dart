@@ -225,6 +225,12 @@ abstract class AppLocalizations {
   /// **'PDF'**
   String get fileExportPdf;
 
+  /// No description provided for @fileExportWord.
+  ///
+  /// In en, this message translates to:
+  /// **'Word (.docx)'**
+  String get fileExportWord;
+
   /// No description provided for @fileSettings.
   ///
   /// In en, this message translates to:
@@ -794,6 +800,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Copy as HTML'**
   String get editCopyAsHtml;
+
+  /// No description provided for @previewCopyAsHtmlTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy as HTML (for Word/WPS)'**
+  String get previewCopyAsHtmlTooltip;
+
+  /// No description provided for @previewCopyAsHtmlSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied as HTML. You can now paste into Word/WPS with formatting.'**
+  String get previewCopyAsHtmlSuccess;
 
   /// No description provided for @editSelectAll.
   ///
