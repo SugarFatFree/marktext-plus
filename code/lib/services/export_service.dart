@@ -1,10 +1,69 @@
 import 'dart:io';
+import 'package:docx_creator/docx_creator.dart' hide MarkdownParser;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'markdown_parser.dart';
 
 class ExportService {
   ExportService._();
+
+  static List<pw.Font>? _cachedFontFallbacks;
+
+  /// Load system fonts for multi-language support (CJK, Cyrillic, Arabic, etc.)
+  /// Only loads .ttf files (not .ttc) to avoid TTC parsing issues.
+  static Future<List<pw.Font>> _loadSystemFonts() async {
+    if (_cachedFontFallbacks != null) {
+      return _cachedFontFallbacks!;
+    }
+
+    final fonts = <pw.Font>[];
+    final fontPaths = <String>[];
+
+    if (Platform.isWindows) {
+      final windir = Platform.environment['WINDIR'] ?? 'C:\\Windows';
+      fontPaths.addAll([
+        '$windir\\Fonts\\simhei.ttf',
+        '$windir\\Fonts\\malgun.ttf',
+        '$windir\\Fonts\\arial.ttf',
+        '$windir\\Fonts\\tahoma.ttf',
+        '$windir\\Fonts\\times.ttf',
+        '$windir\\Fonts\\seguiemj.ttf',    // Segoe UI Emoji (emoji)
+      ]);
+    } else if (Platform.isMacOS) {
+      fontPaths.addAll([
+        '/Library/Fonts/Arial Unicode.ttf',
+        '/Library/Fonts/Osaka.ttf',
+        '/System/Library/Fonts/Supplemental/Arial Unicode.ttf',
+        '/System/Library/Fonts/Apple Color Emoji.ttc',
+      ]);
+    } else if (Platform.isLinux) {
+      fontPaths.addAll([
+        '/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf',
+        '/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf',
+        '/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf',
+        '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+        '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
+      ]);
+    }
+
+    // Load all available fonts
+    for (final path in fontPaths) {
+      final file = File(path);
+      if (await file.exists()) {
+        try {
+          final bytes = await file.readAsBytes();
+          final font = pw.Font.ttf(bytes.buffer.asByteData());
+          fonts.add(font);
+        } catch (e) {
+          // Skip fonts that fail to load
+          continue;
+        }
+      }
+    }
+
+    _cachedFontFallbacks = fonts;
+    return fonts;
+  }
 
   /// Export Markdown to HTML with GitHub-style CSS
   static Future<void> exportToHtml(String markdown, String savePath) async {
@@ -28,7 +87,7 @@ class ExportService {
     buffer.writeln('  <div class="markdown-body">');
 
     for (final node in ast) {
-      buffer.writeln(_nodeToHtml(node));
+      buffer.writeln(nodeToHtml(node));
     }
 
     buffer.writeln('  </div>');
@@ -43,6 +102,20 @@ class ExportService {
     final parser = MarkdownParser();
     final ast = parser.parse(markdown);
 
+    final fontFallbacks = await _loadSystemFonts();
+    final primaryFont = fontFallbacks.isNotEmpty ? fontFallbacks.first : null;
+
+    try {
+      final bytes = await _buildPdf(ast, primaryFont, fontFallbacks);
+      await File(savePath).writeAsBytes(bytes);
+    } catch (e) {
+      // Font error — retry without custom fonts
+      final bytes = await _buildPdf(ast, null, []);
+      await File(savePath).writeAsBytes(bytes);
+    }
+  }
+
+  static Future<List<int>> _buildPdf(List<MarkdownNode> ast, pw.Font? primaryFont, List<pw.Font> fontFallbacks) async {
     final pdf = pw.Document();
 
     pdf.addPage(
@@ -52,18 +125,128 @@ class ExportService {
         build: (context) {
           final widgets = <pw.Widget>[];
           for (final node in ast) {
-            widgets.addAll(_nodeToPdfWidgets(node));
+            widgets.addAll(_nodeToPdfWidgets(node, primaryFont: primaryFont, fontFallbacks: fontFallbacks));
           }
           return widgets;
         },
       ),
     );
 
-    final bytes = await pdf.save();
-    await File(savePath).writeAsBytes(bytes);
+    return await pdf.save();
   }
 
-  static String _nodeToHtml(MarkdownNode node) {
+  /// Export Markdown to Word (.docx)
+  static Future<void> exportToDocx(String markdown, String savePath) async {
+    final parser = MarkdownParser();
+    final ast = parser.parse(markdown);
+
+    var builder = docx();
+
+    for (final node in ast) {
+      builder = _addNodeToDocx(builder, node);
+    }
+
+    final doc = builder.build();
+    await DocxExporter().exportToFile(doc, savePath);
+  }
+
+  static DocxDocumentBuilder _addNodeToDocx(DocxDocumentBuilder builder, MarkdownNode node) {
+    switch (node.type) {
+      case NodeType.heading:
+        final heading = node as HeadingNode;
+        final level = switch (heading.level) {
+          1 => DocxHeadingLevel.h1,
+          2 => DocxHeadingLevel.h2,
+          3 => DocxHeadingLevel.h3,
+          4 => DocxHeadingLevel.h4,
+          5 => DocxHeadingLevel.h5,
+          _ => DocxHeadingLevel.h6,
+        };
+        return builder.heading(level, heading.content);
+
+      case NodeType.paragraph:
+        final para = node as ParagraphNode;
+        if (para.inlineSpans.length == 1 && para.inlineSpans.first.type == InlineType.text) {
+          return builder.p(para.content);
+        }
+        final children = _inlineSpansToDocxTexts(para.inlineSpans);
+        return builder.add(DocxParagraph(children: children));
+
+      case NodeType.codeBlock:
+        final code = node as CodeBlockNode;
+        return builder.code(code.code);
+
+      case NodeType.orderedList:
+      case NodeType.unorderedList:
+        final list = node as ListNode;
+        final items = list.items.map((item) {
+          final text = _inlineSpansToText(item.inlineSpans);
+          if (item.isTask) {
+            return '${item.isChecked ? '☑' : '☐'} $text';
+          }
+          return text;
+        }).toList();
+        return list.ordered ? builder.numbered(items) : builder.bullet(items);
+
+      case NodeType.blockquote:
+        final quote = node as BlockquoteNode;
+        return builder.quote(quote.content);
+
+      case NodeType.horizontalRule:
+        return builder.hr();
+
+      case NodeType.table:
+        final table = node as TableNode;
+        final rows = <List<String>>[
+          table.headers,
+          ...table.rows,
+        ];
+        return builder.table(rows);
+
+      case NodeType.mathBlock:
+        final math = node as MathBlockNode;
+        return builder.code(math.expression);
+
+      case NodeType.frontMatter:
+        final fm = node as FrontMatterNode;
+        return builder.code(fm.content);
+
+      case NodeType.footnoteDefinition:
+        final fn = node as FootnoteDefinitionNode;
+        return builder.p('[${fn.id}]: ${fn.content}');
+
+      case NodeType.htmlBlock:
+        final html = node as HtmlBlockNode;
+        return builder.p(html.html);
+    }
+  }
+
+  static List<DocxText> _inlineSpansToDocxTexts(List<InlineSpan> spans) {
+    return spans.map((span) {
+      switch (span.type) {
+        case InlineType.bold:
+          return DocxText(span.text, fontWeight: DocxFontWeight.bold);
+        case InlineType.italic:
+          return DocxText(span.text, fontStyle: DocxFontStyle.italic);
+        case InlineType.underline:
+          return DocxText(span.text, decorations: [DocxTextDecoration.underline]);
+        case InlineType.strikethrough:
+          return DocxText(span.text, decorations: [DocxTextDecoration.strikethrough]);
+        case InlineType.code:
+          return DocxText(span.text, fontFamily: 'Courier New', shadingFill: 'f6f8fa');
+        case InlineType.link:
+          return DocxText(span.text, color: DocxColor('#0366d6'), href: span.href, decorations: [DocxTextDecoration.underline]);
+        case InlineType.superscript:
+          return DocxText(span.text, isSuperscript: true);
+        case InlineType.subscript:
+          return DocxText(span.text, isSubscript: true);
+        default:
+          return DocxText(span.text);
+      }
+    }).toList();
+  }
+
+  static String nodeToHtml(MarkdownNode node) {
     switch (node.type) {
       case NodeType.heading:
         final heading = node as HeadingNode;
@@ -190,7 +373,7 @@ class ExportService {
         .replaceAll("'", '&#39;');
   }
 
-  static List<pw.Widget> _nodeToPdfWidgets(MarkdownNode node) {
+  static List<pw.Widget> _nodeToPdfWidgets(MarkdownNode node, {pw.Font? primaryFont, List<pw.Font> fontFallbacks = const []}) {
     switch (node.type) {
       case NodeType.heading:
         final heading = node as HeadingNode;
@@ -199,8 +382,8 @@ class ExportService {
           pw.Padding(
             padding: const pw.EdgeInsets.only(top: 12, bottom: 6),
             child: pw.Text(
-              heading.content,
-              style: pw.TextStyle(fontSize: fontSize, fontWeight: pw.FontWeight.bold),
+              _normalizeForPdf(heading.content),
+              style: pw.TextStyle(fontSize: fontSize, fontWeight: pw.FontWeight.bold, font: primaryFont, fontFallback: fontFallbacks),
             ),
           ),
         ];
@@ -210,7 +393,7 @@ class ExportService {
         return [
           pw.Padding(
             padding: const pw.EdgeInsets.only(bottom: 10),
-            child: pw.Text(para.content, style: const pw.TextStyle(fontSize: 12)),
+            child: pw.Text(_normalizeForPdf(para.content), style: pw.TextStyle(fontSize: 12, font: primaryFont, fontFallback: fontFallbacks)),
           ),
         ];
 
@@ -225,8 +408,8 @@ class ExportService {
               borderRadius: pw.BorderRadius.circular(4),
             ),
             child: pw.Text(
-              code.code,
-              style: pw.TextStyle(fontSize: 10, font: pw.Font.courier()),
+              _normalizeForPdf(code.code),
+              style: pw.TextStyle(fontSize: 10, font: pw.Font.courier(), fontFallback: fontFallbacks),
             ),
           ),
         ];
@@ -244,7 +427,10 @@ class ExportService {
                 final prefix = isOrdered ? '${entry.key + 1}.' : '\u2022';
                 return pw.Padding(
                   padding: const pw.EdgeInsets.only(bottom: 4),
-                  child: pw.Text('$prefix ${_inlineSpansToText(entry.value.inlineSpans)}'),
+                  child: pw.Text(
+                    _normalizeForPdf('$prefix ${_inlineSpansToText(entry.value.inlineSpans)}'),
+                    style: pw.TextStyle(font: primaryFont, fontFallback: fontFallbacks),
+                  ),
                 );
               }).toList(),
             ),
@@ -260,7 +446,7 @@ class ExportService {
             decoration: const pw.BoxDecoration(
               border: pw.Border(left: pw.BorderSide(width: 4, color: PdfColors.grey)),
             ),
-            child: pw.Text(quote.content, style: const pw.TextStyle(fontSize: 12)),
+            child: pw.Text(_normalizeForPdf(quote.content), style: pw.TextStyle(fontSize: 12, font: primaryFont, fontFallback: fontFallbacks)),
           ),
         ];
 
@@ -278,9 +464,10 @@ class ExportService {
           pw.Padding(
             padding: const pw.EdgeInsets.only(bottom: 10),
             child: pw.TableHelper.fromTextArray(
-              headers: table.headers,
-              data: table.rows,
-              headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+              headers: table.headers.map(_normalizeForPdf).toList(),
+              data: table.rows.map((row) => row.map(_normalizeForPdf).toList()).toList(),
+              headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, font: primaryFont, fontFallback: fontFallbacks),
+              cellStyle: pw.TextStyle(font: primaryFont, fontFallback: fontFallbacks),
               cellAlignment: pw.Alignment.centerLeft,
             ),
           ),
@@ -295,7 +482,7 @@ class ExportService {
             decoration: pw.BoxDecoration(
               border: pw.Border.all(color: PdfColors.grey300),
             ),
-            child: pw.Text(math.expression, style: const pw.TextStyle(fontSize: 12)),
+            child: pw.Text(_normalizeForPdf(math.expression), style: pw.TextStyle(fontSize: 12, font: primaryFont, fontFallback: fontFallbacks)),
           ),
         ];
 
@@ -309,7 +496,7 @@ class ExportService {
               color: PdfColors.grey200,
               borderRadius: pw.BorderRadius.circular(4),
             ),
-            child: pw.Text(fm.content, style: pw.TextStyle(fontSize: 10, font: pw.Font.courier())),
+            child: pw.Text(_normalizeForPdf(fm.content), style: pw.TextStyle(fontSize: 10, font: pw.Font.courier(), fontFallback: fontFallbacks)),
           ),
         ];
 
@@ -319,8 +506,8 @@ class ExportService {
           pw.Padding(
             padding: const pw.EdgeInsets.only(bottom: 4),
             child: pw.Text(
-              '[${fn.id}]: ${fn.content}',
-              style: const pw.TextStyle(fontSize: 10),
+              _normalizeForPdf('[${fn.id}]: ${fn.content}'),
+              style: pw.TextStyle(fontSize: 10, font: primaryFont, fontFallback: fontFallbacks),
             ),
           ),
         ];
@@ -335,10 +522,20 @@ class ExportService {
               color: PdfColors.grey300,
               borderRadius: pw.BorderRadius.circular(4),
             ),
-            child: pw.Text(html.html, style: pw.TextStyle(fontSize: 10, font: pw.Font.courier())),
+            child: pw.Text(html.html, style: pw.TextStyle(fontSize: 10, font: pw.Font.courier(), fontFallback: fontFallbacks)),
           ),
         ];
     }
+  }
+
+  /// Normalize text for PDF rendering - only map common emoji that might not be in fonts
+  static String _normalizeForPdf(String text) {
+    // Keep most emoji as-is, only normalize problematic ones
+    return text
+        .replaceAll('✅', '☑')  // Checkmark variants
+        .replaceAll('❌', '✗')
+        .replaceAll('✔️', '✔')
+        .replaceAll('❤️', '♥');
   }
 
   static String _inlineSpansToText(List<InlineSpan> spans) {

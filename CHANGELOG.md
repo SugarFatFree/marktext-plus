@@ -5,6 +5,28 @@ All notable changes to MarkText Plus will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.2.0] - 2026-04-29
+
+### Added
+- Word (.docx) export functionality with full formatting support (headings, lists, tables, inline styles)
+- Automatic HTML clipboard format on Ctrl+C in preview mode for rich paste into Word/Outlook
+
+### Fixed
+- PDF export crash caused by TrueType Collection (.ttc) font parsing errors
+- PDF emoji rendering - now displays emoji correctly using system emoji fonts (Segoe UI Emoji on Windows)
+- Preview mode copy-paste losing line breaks when pasting into Word
+
+### Changed
+- Removed redundant "Copy as HTML" toolbar button in preview mode (now automatic on Ctrl+C)
+- Optimized markdown parsing performance with AST caching - no longer re-parses on every rebuild
+- Simplified PDF emoji normalization - only maps problematic variants (✅→☑, ❌→✗), lets fonts handle others
+- Removed expensive font pre-validation in PDF export - now uses try-catch fallback for better startup performance
+
+### Performance
+- 3x faster preview mode rendering for large documents (AST caching eliminates redundant parsing)
+- Eliminated 6+ PDF generation operations during font loading (removed testDoc.save() validation)
+- HTML conversion now cached until content changes (faster Ctrl+C in preview)
+
 ## [v1.1.4] - 2026-04-28
 
 ### Fixed

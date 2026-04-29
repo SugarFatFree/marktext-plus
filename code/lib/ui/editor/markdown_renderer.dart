@@ -16,6 +16,8 @@ import '../../providers/editor_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/tab_provider.dart';
 import '../../services/markdown_parser.dart' as md;
+import '../../services/export_service.dart';
+import '../../services/clipboard_service.dart';
 import '../widgets/mermaid_renderer.dart';
 
 class MarkdownRenderer extends ConsumerStatefulWidget {
@@ -37,6 +39,12 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   int _matchCounter = 0;
   final _recognizers = <TapGestureRecognizer>[];
   final _inlineParser = md.MarkdownParser();
+
+  // AST cache — only re-parse when markdown content changes
+  String? _cachedMarkdown;
+  List<md.MarkdownNode>? _cachedNodes;
+  List<int>? _cachedHeadingLines;
+  String? _cachedHtml;
 
   /// Parse raw markdown to find heading line numbers (1-based),
   /// matching the same logic used by the TOC panel.
@@ -121,9 +129,17 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     final tokens = AppTheme.getTokens(config.themeName);
     // Watch editorProvider to rebuild when search state changes
     ref.watch(editorProvider);
-    final parser = md.MarkdownParser();
-    final nodes = parser.parse(widget.markdown);
-    final headingLines = _findHeadingLines(widget.markdown);
+
+    // Only re-parse when markdown content actually changes
+    if (_cachedMarkdown != widget.markdown) {
+      _cachedMarkdown = widget.markdown;
+      final parser = md.MarkdownParser();
+      _cachedNodes = parser.parse(widget.markdown);
+      _cachedHeadingLines = _findHeadingLines(widget.markdown);
+      _cachedHtml = null;
+    }
+    final nodes = _cachedNodes!;
+    final headingLines = _cachedHeadingLines!;
     final widgets = <Widget>[];
     _matchCounter = 0;
 
@@ -160,22 +176,49 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       }
     }
 
-    return SingleChildScrollView(
-      child: SelectionArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: config.editorMaxWidth.toDouble()),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: widgets,
+    return Focus(
+      onKeyEvent: (node, event) {
+        if (event is KeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.keyC &&
+            (HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed)) {
+          Future.delayed(const Duration(milliseconds: 50), () => _copyAsHtml());
+        }
+        return KeyEventResult.ignored;
+      },
+      child: SingleChildScrollView(
+        child: SelectionArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: config.editorMaxWidth.toDouble()),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: widgets,
+                ),
               ),
             ),
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _copyAsHtml() async {
+    final html = _markdownToHtml();
+    await ClipboardService.copyWithHtml(widget.markdown, html);
+  }
+
+  /// Convert current markdown to HTML for clipboard use
+  String _markdownToHtml() {
+    if (_cachedHtml != null) return _cachedHtml!;
+    final nodes = _cachedNodes ?? md.MarkdownParser().parse(widget.markdown);
+    final buffer = StringBuffer();
+    for (final node in nodes) {
+      buffer.writeln(ExportService.nodeToHtml(node));
+    }
+    _cachedHtml = buffer.toString();
+    return _cachedHtml!;
   }
 
   Widget _buildHeading(md.HeadingNode node, ThemeData theme, AppThemeTokens tokens, {Key? key}) {

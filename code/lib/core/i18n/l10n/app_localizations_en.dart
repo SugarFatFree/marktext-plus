@@ -63,6 +63,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fileExportPdf => 'PDF';
 
   @override
+  String get fileExportWord => 'Word (.docx)';
+
+  @override
   String get fileSettings => 'Settings';
 
   @override
@@ -354,6 +357,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get editCopyAsHtml => 'Copy as HTML';
+
+  @override
+  String get previewCopyAsHtmlTooltip => 'Copy as HTML (for Word/WPS)';
+
+  @override
+  String get previewCopyAsHtmlSuccess =>
+      'Copied as HTML. You can now paste into Word/WPS with formatting.';
 
   @override
   String get editSelectAll => 'Select All';

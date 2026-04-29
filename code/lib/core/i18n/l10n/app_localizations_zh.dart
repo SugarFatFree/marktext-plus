@@ -63,6 +63,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get fileExportPdf => 'PDF';
 
   @override
+  String get fileExportWord => 'Word (.docx)';
+
+  @override
   String get fileSettings => '设置';
 
   @override
@@ -352,6 +355,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get editCopyAsHtml => '复制为 HTML';
+
+  @override
+  String get previewCopyAsHtmlTooltip => '复制为 HTML（用于 Word/WPS）';
+
+  @override
+  String get previewCopyAsHtmlSuccess => '已复制为 HTML 格式，现在可以粘贴到 Word/WPS 并保留格式。';
 
   @override
   String get editSelectAll => '全选';
