@@ -33,6 +33,8 @@ class AppConfig {
   String imageStorageMode;
   String imageFolder;
   FileOpenBehavior fileOpenBehavior;
+  String lastUpdateCheck;
+  String skipVersion;
 
   AppConfig({
     this.sideBarVisible = true,
@@ -63,6 +65,8 @@ class AppConfig {
     this.imageStorageMode = 'copy',
     this.imageFolder = 'assets/images',
     this.fileOpenBehavior = FileOpenBehavior.notSet,
+    this.lastUpdateCheck = '',
+    this.skipVersion = '',
   });
 
   Map<String, dynamic> toJson() => {
@@ -94,6 +98,8 @@ class AppConfig {
     'imageStorageMode': imageStorageMode,
     'imageFolder': imageFolder,
     'fileOpenBehavior': fileOpenBehavior.name,
+    'lastUpdateCheck': lastUpdateCheck,
+    'skipVersion': skipVersion,
   };
 
   factory AppConfig.fromJson(Map<String, dynamic> json) {
@@ -128,6 +134,8 @@ class AppConfig {
       imageStorageMode: json['imageStorageMode'] as String? ?? 'copy',
       imageFolder: json['imageFolder'] as String? ?? 'assets/images',
       fileOpenBehavior: _parseFileOpenBehavior(json['fileOpenBehavior']),
+      lastUpdateCheck: json['lastUpdateCheck'] as String? ?? '',
+      skipVersion: json['skipVersion'] as String? ?? '',
     );
   }
 
@@ -181,6 +189,8 @@ class AppConfig {
     String? imageStorageMode,
     String? imageFolder,
     FileOpenBehavior? fileOpenBehavior,
+    String? lastUpdateCheck,
+    String? skipVersion,
   }) {
     return AppConfig(
       sideBarVisible: sideBarVisible ?? this.sideBarVisible,
@@ -211,6 +221,8 @@ class AppConfig {
       imageStorageMode: imageStorageMode ?? this.imageStorageMode,
       imageFolder: imageFolder ?? this.imageFolder,
       fileOpenBehavior: fileOpenBehavior ?? this.fileOpenBehavior,
+      lastUpdateCheck: lastUpdateCheck ?? this.lastUpdateCheck,
+      skipVersion: skipVersion ?? this.skipVersion,
     );
   }
 }

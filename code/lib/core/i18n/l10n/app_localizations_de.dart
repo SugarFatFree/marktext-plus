@@ -735,4 +735,10 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get fileOpenBehaviorNotSet => 'Not configured';
+
+  @override
+  String get updateAvailable => 'New version available';
+
+  @override
+  String get updateDismiss => 'Dismiss';
 }

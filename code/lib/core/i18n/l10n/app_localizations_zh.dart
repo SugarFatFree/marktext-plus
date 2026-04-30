@@ -727,4 +727,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get fileOpenBehaviorNotSet => '未配置';
+
+  @override
+  String get updateAvailable => '发现新版本';
+
+  @override
+  String get updateDismiss => '忽略';
 }

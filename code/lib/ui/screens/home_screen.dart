@@ -11,8 +11,11 @@ import '../../providers/editor_provider.dart';
 import '../../providers/file_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/tab_provider.dart';
+import '../../providers/update_provider.dart';
 import '../../models/tab_info.dart';
 import '../../services/command_registry.dart';
+import '../../services/update_service.dart';
+import '../../core/constants.dart';
 import '../../utils/platform_utils.dart';
 import '../widgets/app_menu_bar.dart';
 import '../widgets/side_bar.dart';
@@ -33,6 +36,27 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _startupFilesProcessed = false;
+  bool _updateCheckDone = false;
+
+  void _checkForUpdates() async {
+    if (_updateCheckDone) return;
+    _updateCheckDone = true;
+
+    final config = ref.read(settingsProvider);
+    final lastCheck = DateTime.tryParse(config.lastUpdateCheck);
+    final now = DateTime.now();
+
+    if (lastCheck != null && now.difference(lastCheck).inHours < 24) return;
+
+    await ref.read(settingsProvider.notifier).updateConfig(
+      (c) => c.copyWith(lastUpdateCheck: now.toIso8601String()),
+    );
+
+    final update = await UpdateService.checkForUpdate(AppConstants.appVersion);
+    if (update != null && update.version != config.skipVersion) {
+      ref.read(updateProvider.notifier).setUpdate(update);
+    }
+  }
 
   void _registerCommands(AppLocalizations l10n) {
     final registry = CommandRegistry.instance;
@@ -287,6 +311,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     _registerCommands(l10n);
     _openStartupFiles();
+    _checkForUpdates();
 
     return Focus(
       autofocus: true,

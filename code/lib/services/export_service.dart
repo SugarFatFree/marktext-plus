@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:docx_creator/docx_creator.dart' hide MarkdownParser;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -7,7 +8,43 @@ import 'markdown_parser.dart';
 class ExportService {
   ExportService._();
 
+  // PDF style constants (GitHub Markdown inspired)
+  static const _pdfBodySize = 12.0;
+  static const _pdfBodyHeight = 1.5;
+  static const _pdfCodeSize = 11.0;
+  static const _pdfHeadingSizes = <int, double>{1: 24, 2: 20, 3: 18, 4: 16, 5: 14, 6: 12};
+  static const _pdfSpaceBefore = 16.0;
+  static const _pdfSpaceAfter = 12.0;
+  static const _pdfSpaceHeading = 8.0;
+  static const _pdfSpaceListItem = 6.0;
+  static final _pdfCodeBg = PdfColor.fromHex('#f6f8fa');
+  static final _pdfCodeBorder = PdfColor.fromHex('#e1e4e8');
+  static final _pdfQuoteBorder = PdfColor.fromHex('#dfe2e5');
+  static final _pdfQuoteBg = PdfColor.fromHex('#f9f9f9');
+  static final _pdfTableHeaderBg = PdfColor.fromHex('#f6f8fa');
+  static final _pdfTableBorder = PdfColor.fromHex('#dfe2e5');
+  static final _pdfTableAltBg = PdfColor.fromHex('#f9f9f9');
+
   static List<pw.Font>? _cachedFontFallbacks;
+
+  static const _mermaidLanguages = {
+    'mermaid',
+    'flowchart',
+    'sequence',
+    'gantt',
+    'classdiagram',
+    'statediagram',
+    'erdiagram',
+    'journey',
+    'gitgraph',
+    'pie',
+    'mindmap',
+  };
+
+  static bool _isMermaidLanguage(String? lang) {
+    if (lang == null || lang.isEmpty) return false;
+    return _mermaidLanguages.contains(lang.toLowerCase());
+  }
 
   /// Load system fonts for multi-language support (CJK, Cyrillic, Arabic, etc.)
   /// Only loads .ttf files (not .ttc) to avoid TTC parsing issues.
@@ -98,7 +135,7 @@ class ExportService {
   }
 
   /// Export Markdown to PDF
-  static Future<void> exportToPdf(String markdown, String savePath) async {
+  static Future<void> exportToPdf(String markdown, String savePath, {Map<String, Uint8List>? mermaidImages}) async {
     final parser = MarkdownParser();
     final ast = parser.parse(markdown);
 
@@ -106,16 +143,15 @@ class ExportService {
     final primaryFont = fontFallbacks.isNotEmpty ? fontFallbacks.first : null;
 
     try {
-      final bytes = await _buildPdf(ast, primaryFont, fontFallbacks);
+      final bytes = await _buildPdf(ast, primaryFont, fontFallbacks, mermaidImages);
       await File(savePath).writeAsBytes(bytes);
     } catch (e) {
-      // Font error — retry without custom fonts
-      final bytes = await _buildPdf(ast, null, []);
+      final bytes = await _buildPdf(ast, null, [], mermaidImages);
       await File(savePath).writeAsBytes(bytes);
     }
   }
 
-  static Future<List<int>> _buildPdf(List<MarkdownNode> ast, pw.Font? primaryFont, List<pw.Font> fontFallbacks) async {
+  static Future<List<int>> _buildPdf(List<MarkdownNode> ast, pw.Font? primaryFont, List<pw.Font> fontFallbacks, Map<String, Uint8List>? mermaidImages) async {
     final pdf = pw.Document();
 
     pdf.addPage(
@@ -124,8 +160,18 @@ class ExportService {
         margin: const pw.EdgeInsets.all(40),
         build: (context) {
           final widgets = <pw.Widget>[];
+          int mermaidIndex = 0;
           for (final node in ast) {
-            widgets.addAll(_nodeToPdfWidgets(node, primaryFont: primaryFont, fontFallbacks: fontFallbacks));
+            String? mermaidKey;
+            if (node is CodeBlockNode && _isMermaidLanguage(node.language)) {
+              mermaidKey = 'mermaid_$mermaidIndex';
+              mermaidIndex++;
+            }
+            Uint8List? img;
+            if (mermaidKey != null && mermaidImages != null) {
+              img = mermaidImages[mermaidKey];
+            }
+            widgets.addAll(_nodeToPdfWidgets(node, primaryFont: primaryFont, fontFallbacks: fontFallbacks, mermaidImage: img));
           }
           return widgets;
         },
@@ -136,21 +182,37 @@ class ExportService {
   }
 
   /// Export Markdown to Word (.docx)
-  static Future<void> exportToDocx(String markdown, String savePath) async {
+  static Future<void> exportToDocx(String markdown, String savePath, {Map<String, Uint8List>? mermaidImages}) async {
     final parser = MarkdownParser();
     final ast = parser.parse(markdown);
 
-    var builder = docx();
+    var builder = docx().section(
+      pageSize: DocxPageSize.a4,
+      marginTop: 1440,
+      marginBottom: 1440,
+      marginLeft: 1440,
+      marginRight: 1440,
+    );
 
+    int mermaidIndex = 0;
     for (final node in ast) {
-      builder = _addNodeToDocx(builder, node);
+      String? mermaidKey;
+      if (node is CodeBlockNode && _isMermaidLanguage(node.language)) {
+        mermaidKey = 'mermaid_$mermaidIndex';
+        mermaidIndex++;
+      }
+      Uint8List? img;
+      if (mermaidKey != null && mermaidImages != null) {
+        img = mermaidImages[mermaidKey];
+      }
+      builder = _addNodeToDocx(builder, node, mermaidImage: img);
     }
 
     final doc = builder.build();
     await DocxExporter().exportToFile(doc, savePath);
   }
 
-  static DocxDocumentBuilder _addNodeToDocx(DocxDocumentBuilder builder, MarkdownNode node) {
+  static DocxDocumentBuilder _addNodeToDocx(DocxDocumentBuilder builder, MarkdownNode node, {Uint8List? mermaidImage}) {
     switch (node.type) {
       case NodeType.heading:
         final heading = node as HeadingNode;
@@ -166,58 +228,111 @@ class ExportService {
 
       case NodeType.paragraph:
         final para = node as ParagraphNode;
-        if (para.inlineSpans.length == 1 && para.inlineSpans.first.type == InlineType.text) {
-          return builder.p(para.content);
-        }
-        final children = _inlineSpansToDocxTexts(para.inlineSpans);
-        return builder.add(DocxParagraph(children: children));
+        final children = (para.inlineSpans.length == 1 && para.inlineSpans.first.type == InlineType.text)
+            ? [DocxText(para.content)]
+            : _inlineSpansToDocxTexts(para.inlineSpans);
+        return builder.add(DocxParagraph(
+          children: children,
+          spacingAfter: 240,
+          lineSpacing: 360,
+        ));
 
       case NodeType.codeBlock:
         final code = node as CodeBlockNode;
-        return builder.code(code.code);
+        final isMermaid = _isMermaidLanguage(code.language);
+        if (isMermaid && mermaidImage != null) {
+          return builder.image(DocxImage(bytes: mermaidImage, extension: 'png', width: 400, height: 300));
+        }
+        if (isMermaid) {
+          builder = builder.add(DocxParagraph(
+            children: [
+              DocxText('Mermaid Diagram (${code.language})', fontSize: 18, fontStyle: DocxFontStyle.italic, color: DocxColor('#6a737d')),
+            ],
+            spacingAfter: 60,
+          ));
+        }
+        return builder.add(DocxParagraph(
+          children: [
+            DocxText(code.code, fontFamily: 'Courier New', fontSize: 20, shadingFill: 'f6f8fa'),
+          ],
+          spacingAfter: 240,
+          spacingBefore: isMermaid ? 0 : 120,
+          indentLeft: 240,
+          indentRight: 240,
+          shadingFill: 'f6f8fa',
+        ));
 
       case NodeType.orderedList:
       case NodeType.unorderedList:
         final list = node as ListNode;
         final items = list.items.map((item) {
           final text = _inlineSpansToText(item.inlineSpans);
-          if (item.isTask) {
-            return '${item.isChecked ? '☑' : '☐'} $text';
-          }
+          if (item.isTask) return '${item.isChecked ? '☑' : '☐'} $text';
           return text;
         }).toList();
         return list.ordered ? builder.numbered(items) : builder.bullet(items);
 
       case NodeType.blockquote:
         final quote = node as BlockquoteNode;
-        return builder.quote(quote.content);
+        return builder.add(DocxParagraph(
+          children: [
+            DocxText(quote.content, fontStyle: DocxFontStyle.italic, color: DocxColor('#6a737d')),
+          ],
+          indentLeft: 720,
+          spacingAfter: 240,
+          borderLeft: DocxBorderSide(
+            style: DocxBorder.single,
+            color: DocxColor('#dfe2e5'),
+            size: 12,
+            space: 8,
+          ),
+          shadingFill: 'f9f9f9',
+        ));
 
       case NodeType.horizontalRule:
         return builder.hr();
 
       case NodeType.table:
         final table = node as TableNode;
-        final rows = <List<String>>[
-          table.headers,
-          ...table.rows,
-        ];
-        return builder.table(rows);
+        final rows = <List<String>>[table.headers, ...table.rows];
+        return builder.table(rows, hasHeader: true);
 
       case NodeType.mathBlock:
         final math = node as MathBlockNode;
-        return builder.code(math.expression);
+        return builder.add(DocxParagraph(
+          children: [DocxText(math.expression, fontFamily: 'Courier New', fontSize: 20)],
+          spacingAfter: 240,
+          shadingFill: 'f6f8fa',
+          indentLeft: 240,
+          indentRight: 240,
+        ));
 
       case NodeType.frontMatter:
         final fm = node as FrontMatterNode;
-        return builder.code(fm.content);
+        return builder.add(DocxParagraph(
+          children: [DocxText(fm.content, fontFamily: 'Courier New', fontSize: 20)],
+          spacingAfter: 240,
+          shadingFill: 'f6f8fa',
+          indentLeft: 240,
+          indentRight: 240,
+        ));
 
       case NodeType.footnoteDefinition:
         final fn = node as FootnoteDefinitionNode;
-        return builder.p('[${fn.id}]: ${fn.content}');
+        return builder.add(DocxParagraph(
+          children: [DocxText('[${fn.id}]: ${fn.content}', fontSize: 20, color: DocxColor('#6a737d'))],
+          spacingAfter: 120,
+        ));
 
       case NodeType.htmlBlock:
         final html = node as HtmlBlockNode;
-        return builder.p(html.html);
+        return builder.add(DocxParagraph(
+          children: [DocxText(html.html, fontFamily: 'Courier New', fontSize: 20)],
+          spacingAfter: 240,
+          shadingFill: 'f6f8fa',
+          indentLeft: 240,
+          indentRight: 240,
+        ));
     }
   }
 
@@ -233,7 +348,7 @@ class ExportService {
         case InlineType.strikethrough:
           return DocxText(span.text, decorations: [DocxTextDecoration.strikethrough]);
         case InlineType.code:
-          return DocxText(span.text, fontFamily: 'Courier New', shadingFill: 'f6f8fa');
+          return DocxText(span.text, fontFamily: 'Courier New', fontSize: 20, shadingFill: 'f6f8fa');
         case InlineType.link:
           return DocxText(span.text, color: DocxColor('#0366d6'), href: span.href, decorations: [DocxTextDecoration.underline]);
         case InlineType.superscript:
@@ -373,17 +488,35 @@ class ExportService {
         .replaceAll("'", '&#39;');
   }
 
-  static List<pw.Widget> _nodeToPdfWidgets(MarkdownNode node, {pw.Font? primaryFont, List<pw.Font> fontFallbacks = const []}) {
+  static List<pw.Widget> _nodeToPdfWidgets(MarkdownNode node, {pw.Font? primaryFont, List<pw.Font> fontFallbacks = const [], Uint8List? mermaidImage}) {
     switch (node.type) {
       case NodeType.heading:
         final heading = node as HeadingNode;
-        final fontSize = 24.0 - (heading.level - 1) * 2.0;
+        final fontSize = _pdfHeadingSizes[heading.level] ?? 12.0;
+        final hasBottomBorder = heading.level <= 2;
         return [
           pw.Padding(
-            padding: const pw.EdgeInsets.only(top: 12, bottom: 6),
-            child: pw.Text(
-              _normalizeForPdf(heading.content),
-              style: pw.TextStyle(fontSize: fontSize, fontWeight: pw.FontWeight.bold, font: primaryFont, fontFallback: fontFallbacks),
+            padding: pw.EdgeInsets.only(top: _pdfSpaceBefore, bottom: _pdfSpaceHeading),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  _normalizeForPdf(heading.content),
+                  style: pw.TextStyle(
+                    fontSize: fontSize,
+                    fontWeight: pw.FontWeight.bold,
+                    font: primaryFont,
+                    fontFallback: fontFallbacks,
+                    height: 1.2,
+                  ),
+                ),
+                if (hasBottomBorder)
+                  pw.Container(
+                    margin: const pw.EdgeInsets.only(top: 4),
+                    height: 1,
+                    color: PdfColors.grey300,
+                  ),
+              ],
             ),
           ),
         ];
@@ -392,47 +525,126 @@ class ExportService {
         final para = node as ParagraphNode;
         return [
           pw.Padding(
-            padding: const pw.EdgeInsets.only(bottom: 10),
-            child: pw.Text(_normalizeForPdf(para.content), style: pw.TextStyle(fontSize: 12, font: primaryFont, fontFallback: fontFallbacks)),
+            padding: pw.EdgeInsets.only(bottom: _pdfSpaceAfter),
+            child: pw.Text(
+              _normalizeForPdf(para.content),
+              style: pw.TextStyle(
+                fontSize: _pdfBodySize,
+                height: _pdfBodyHeight,
+                font: primaryFont,
+                fontFallback: fontFallbacks,
+              ),
+            ),
           ),
         ];
 
       case NodeType.codeBlock:
         final code = node as CodeBlockNode;
-        return [
-          pw.Container(
-            padding: const pw.EdgeInsets.all(10),
-            margin: const pw.EdgeInsets.only(bottom: 10),
-            decoration: pw.BoxDecoration(
-              color: PdfColors.grey300,
-              borderRadius: pw.BorderRadius.circular(4),
+        final isMermaid = _isMermaidLanguage(code.language);
+        final widgets = <pw.Widget>[];
+
+        if (isMermaid && mermaidImage != null) {
+          // Render Mermaid as image
+          widgets.add(
+            pw.Container(
+              margin: pw.EdgeInsets.only(bottom: _pdfSpaceAfter),
+              padding: const pw.EdgeInsets.all(12),
+              decoration: pw.BoxDecoration(
+                border: pw.Border.all(color: _pdfCodeBorder, width: 1),
+                borderRadius: pw.BorderRadius.circular(4),
+              ),
+              child: pw.Image(pw.MemoryImage(mermaidImage)),
             ),
-            child: pw.Text(
-              _normalizeForPdf(code.code),
-              style: pw.TextStyle(fontSize: 10, font: pw.Font.courier(), fontFallback: fontFallbacks),
+          );
+        } else {
+          // Show source code
+          if (isMermaid) {
+            widgets.add(
+              pw.Padding(
+                padding: const pw.EdgeInsets.only(bottom: 4),
+                child: pw.Text(
+                  'Mermaid Diagram (${code.language})',
+                  style: pw.TextStyle(
+                    fontSize: 10,
+                    color: PdfColors.grey600,
+                    fontStyle: pw.FontStyle.italic,
+                    font: primaryFont,
+                    fontFallback: fontFallbacks,
+                  ),
+                ),
+              ),
+            );
+          }
+
+          widgets.add(
+            pw.Container(
+              margin: pw.EdgeInsets.only(bottom: _pdfSpaceAfter),
+              padding: const pw.EdgeInsets.all(12),
+              decoration: pw.BoxDecoration(
+                color: _pdfCodeBg,
+                border: pw.Border.all(color: _pdfCodeBorder, width: 1),
+                borderRadius: pw.BorderRadius.circular(4),
+              ),
+              child: pw.Text(
+                _normalizeForPdf(code.code),
+                style: pw.TextStyle(
+                  font: primaryFont ?? pw.Font.courier(),
+                  fontFallback: [pw.Font.courier(), ...fontFallbacks],
+                  fontSize: _pdfCodeSize,
+                  height: 1.4,
+                ),
+              ),
             ),
-          ),
-        ];
+          );
+        }
+
+        return widgets;
 
       case NodeType.orderedList:
       case NodeType.unorderedList:
         final list = node as ListNode;
-        final isOrdered = list.ordered;
+        final items = <pw.Widget>[];
+        for (var i = 0; i < list.items.length; i++) {
+          final item = list.items[i];
+          final marker = list.ordered ? '${i + 1}. ' : '• ';
+          final checkbox = item.isTask ? (item.isChecked ? '☑ ' : '☐ ') : '';
+          items.add(
+            pw.Padding(
+              padding: pw.EdgeInsets.only(left: 20, bottom: _pdfSpaceListItem),
+              child: pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(
+                    checkbox + marker,
+                    style: pw.TextStyle(
+                      fontSize: _pdfBodySize,
+                      height: _pdfBodyHeight,
+                      font: primaryFont,
+                      fontFallback: fontFallbacks,
+                    ),
+                  ),
+                  pw.Expanded(
+                    child: pw.Text(
+                      _normalizeForPdf(_inlineSpansToText(item.inlineSpans)),
+                      style: pw.TextStyle(
+                        fontSize: _pdfBodySize,
+                        height: _pdfBodyHeight,
+                        font: primaryFont,
+                        fontFallback: fontFallbacks,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
         return [
           pw.Padding(
-            padding: const pw.EdgeInsets.only(left: 20, bottom: 10),
+            padding: pw.EdgeInsets.only(bottom: _pdfSpaceAfter),
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: list.items.asMap().entries.map((entry) {
-                final prefix = isOrdered ? '${entry.key + 1}.' : '\u2022';
-                return pw.Padding(
-                  padding: const pw.EdgeInsets.only(bottom: 4),
-                  child: pw.Text(
-                    _normalizeForPdf('$prefix ${_inlineSpansToText(entry.value.inlineSpans)}'),
-                    style: pw.TextStyle(font: primaryFont, fontFallback: fontFallbacks),
-                  ),
-                );
-              }).toList(),
+              children: items,
             ),
           ),
         ];
@@ -441,20 +653,31 @@ class ExportService {
         final quote = node as BlockquoteNode;
         return [
           pw.Container(
-            padding: const pw.EdgeInsets.all(10),
-            margin: const pw.EdgeInsets.only(bottom: 10),
-            decoration: const pw.BoxDecoration(
-              border: pw.Border(left: pw.BorderSide(width: 4, color: PdfColors.grey)),
+            margin: pw.EdgeInsets.only(bottom: _pdfSpaceAfter),
+            padding: const pw.EdgeInsets.only(left: 12, top: 8, bottom: 8, right: 8),
+            decoration: pw.BoxDecoration(
+              border: pw.Border(left: pw.BorderSide(color: _pdfQuoteBorder, width: 3)),
+              color: _pdfQuoteBg,
             ),
-            child: pw.Text(_normalizeForPdf(quote.content), style: pw.TextStyle(fontSize: 12, font: primaryFont, fontFallback: fontFallbacks)),
+            child: pw.Text(
+              _normalizeForPdf(quote.content),
+              style: pw.TextStyle(
+                fontSize: _pdfBodySize,
+                height: _pdfBodyHeight,
+                font: primaryFont,
+                fontFallback: fontFallbacks,
+                fontStyle: pw.FontStyle.italic,
+                color: PdfColors.grey700,
+              ),
+            ),
           ),
         ];
 
       case NodeType.horizontalRule:
         return [
           pw.Padding(
-            padding: const pw.EdgeInsets.symmetric(vertical: 10),
-            child: pw.Divider(thickness: 1),
+            padding: pw.EdgeInsets.symmetric(vertical: _pdfSpaceAfter),
+            child: pw.Divider(thickness: 2, color: PdfColors.grey300),
           ),
         ];
 
@@ -462,13 +685,50 @@ class ExportService {
         final table = node as TableNode;
         return [
           pw.Padding(
-            padding: const pw.EdgeInsets.only(bottom: 10),
-            child: pw.TableHelper.fromTextArray(
-              headers: table.headers.map(_normalizeForPdf).toList(),
-              data: table.rows.map((row) => row.map(_normalizeForPdf).toList()).toList(),
-              headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, font: primaryFont, fontFallback: fontFallbacks),
-              cellStyle: pw.TextStyle(font: primaryFont, fontFallback: fontFallbacks),
-              cellAlignment: pw.Alignment.centerLeft,
+            padding: pw.EdgeInsets.only(bottom: _pdfSpaceAfter),
+            child: pw.Table(
+              border: pw.TableBorder.all(color: _pdfTableBorder, width: 1),
+              children: [
+                pw.TableRow(
+                  decoration: pw.BoxDecoration(color: _pdfTableHeaderBg),
+                  children: table.headers.map((header) {
+                    return pw.Padding(
+                      padding: const pw.EdgeInsets.all(8),
+                      child: pw.Text(
+                        _normalizeForPdf(header),
+                        style: pw.TextStyle(
+                          fontSize: _pdfBodySize,
+                          fontWeight: pw.FontWeight.bold,
+                          font: primaryFont,
+                          fontFallback: fontFallbacks,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                ...table.rows.asMap().entries.map((entry) {
+                  final rowIndex = entry.key;
+                  final row = entry.value;
+                  final isEvenRow = rowIndex % 2 == 0;
+                  return pw.TableRow(
+                    decoration: isEvenRow ? pw.BoxDecoration(color: _pdfTableAltBg) : null,
+                    children: row.map((cell) {
+                      return pw.Padding(
+                        padding: const pw.EdgeInsets.all(8),
+                        child: pw.Text(
+                          _normalizeForPdf(cell),
+                          style: pw.TextStyle(
+                            fontSize: _pdfBodySize,
+                            height: 1.3,
+                            font: primaryFont,
+                            fontFallback: fontFallbacks,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  );
+                }),
+              ],
             ),
           ),
         ];
@@ -477,12 +737,14 @@ class ExportService {
         final math = node as MathBlockNode;
         return [
           pw.Container(
-            padding: const pw.EdgeInsets.all(10),
-            margin: const pw.EdgeInsets.only(bottom: 10),
+            margin: pw.EdgeInsets.only(bottom: _pdfSpaceAfter),
+            padding: const pw.EdgeInsets.all(12),
             decoration: pw.BoxDecoration(
-              border: pw.Border.all(color: PdfColors.grey300),
+              color: _pdfCodeBg,
+              border: pw.Border.all(color: _pdfCodeBorder, width: 1),
+              borderRadius: pw.BorderRadius.circular(4),
             ),
-            child: pw.Text(_normalizeForPdf(math.expression), style: pw.TextStyle(fontSize: 12, font: primaryFont, fontFallback: fontFallbacks)),
+            child: pw.Text(_normalizeForPdf(math.expression), style: pw.TextStyle(fontSize: _pdfBodySize, font: primaryFont, fontFallback: fontFallbacks)),
           ),
         ];
 
@@ -490,13 +752,13 @@ class ExportService {
         final fm = node as FrontMatterNode;
         return [
           pw.Container(
-            padding: const pw.EdgeInsets.all(10),
-            margin: const pw.EdgeInsets.only(bottom: 10),
+            margin: pw.EdgeInsets.only(bottom: _pdfSpaceAfter),
+            padding: const pw.EdgeInsets.all(12),
             decoration: pw.BoxDecoration(
-              color: PdfColors.grey200,
+              color: _pdfCodeBg,
               borderRadius: pw.BorderRadius.circular(4),
             ),
-            child: pw.Text(_normalizeForPdf(fm.content), style: pw.TextStyle(fontSize: 10, font: pw.Font.courier(), fontFallback: fontFallbacks)),
+            child: pw.Text(_normalizeForPdf(fm.content), style: pw.TextStyle(fontSize: _pdfCodeSize, font: primaryFont ?? pw.Font.courier(), fontFallback: [pw.Font.courier(), ...fontFallbacks], height: 1.4)),
           ),
         ];
 
@@ -504,10 +766,10 @@ class ExportService {
         final fn = node as FootnoteDefinitionNode;
         return [
           pw.Padding(
-            padding: const pw.EdgeInsets.only(bottom: 4),
+            padding: pw.EdgeInsets.only(bottom: _pdfSpaceListItem),
             child: pw.Text(
               _normalizeForPdf('[${fn.id}]: ${fn.content}'),
-              style: pw.TextStyle(fontSize: 10, font: primaryFont, fontFallback: fontFallbacks),
+              style: pw.TextStyle(fontSize: 10, font: primaryFont, fontFallback: fontFallbacks, color: PdfColors.grey700),
             ),
           ),
         ];
@@ -516,13 +778,13 @@ class ExportService {
         final html = node as HtmlBlockNode;
         return [
           pw.Container(
-            padding: const pw.EdgeInsets.all(10),
-            margin: const pw.EdgeInsets.only(bottom: 10),
+            margin: pw.EdgeInsets.only(bottom: _pdfSpaceAfter),
+            padding: const pw.EdgeInsets.all(12),
             decoration: pw.BoxDecoration(
-              color: PdfColors.grey300,
+              color: _pdfCodeBg,
               borderRadius: pw.BorderRadius.circular(4),
             ),
-            child: pw.Text(html.html, style: pw.TextStyle(fontSize: 10, font: pw.Font.courier(), fontFallback: fontFallbacks)),
+            child: pw.Text(html.html, style: pw.TextStyle(fontSize: _pdfCodeSize, font: primaryFont ?? pw.Font.courier(), fontFallback: [pw.Font.courier(), ...fontFallbacks], height: 1.4)),
           ),
         ];
     }

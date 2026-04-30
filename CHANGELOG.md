@@ -5,6 +5,25 @@ All notable changes to MarkText Plus will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.2.1] - 2026-04-30
+
+### Added
+- Auto-update check via GitHub Releases API (once per day, non-intrusive status bar indicator)
+- Mermaid diagram rendering as images in PDF/Word export (using offscreen widget capture)
+- Platform-native font system: Windows (Microsoft YaHei UI), macOS (San Francisco), Linux (Noto Sans)
+- Multi-language font fallback chain for CJK, Korean, Japanese, Arabic, Cyrillic
+
+### Fixed
+- Preview mode font inconsistency — was using Roboto instead of system default font
+- Selection highlight height variation in preview mode (StrutStyle + TextLeadingDistribution.even)
+- PDF code block Chinese characters garbled (Courier font doesn't support CJK)
+- PDF/Word export showing Mermaid source code instead of rendered diagrams
+
+### Changed
+- PDF export styling overhaul: GitHub-inspired typography, proper spacing, borders, alternating table rows
+- Word export styling overhaul: page margins, paragraph spacing, line height, code block backgrounds
+- Unified font rendering across all UI components (menus, settings, dialogs, preview, status bar)
+
 ## [v1.2.0] - 2026-04-29
 
 ### Added

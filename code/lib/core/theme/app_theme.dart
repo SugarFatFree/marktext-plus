@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 
 /// Bear-style theme tokens
@@ -254,11 +255,49 @@ class AppTheme {
     };
   }
 
+  static List<String> get platformFontFallback {
+    if (Platform.isWindows) {
+      return [
+        'Microsoft YaHei UI',  // Chinese
+        'Malgun Gothic',       // Korean
+        'Yu Gothic UI',        // Japanese
+        'Segoe UI',            // Latin, Cyrillic, Greek, Arabic
+        'Arial',               // Fallback
+      ];
+    }
+    if (Platform.isMacOS) {
+      return [
+        '.AppleSystemUIFont',  // System font (San Francisco)
+        'PingFang SC',         // Simplified Chinese
+        'Hiragino Sans',       // Japanese
+        'Apple SD Gothic Neo', // Korean
+        'Arial',               // Fallback
+      ];
+    }
+    // Linux
+    return [
+      'Noto Sans',
+      'Noto Sans CJK SC',    // Chinese
+      'Noto Sans CJK JP',    // Japanese
+      'Noto Sans CJK KR',    // Korean
+      'Noto Sans Arabic',    // Arabic
+      'DejaVu Sans',         // Fallback
+    ];
+  }
+
   /// Build ThemeData from tokens
   static ThemeData getTheme(String name) {
     final tokens = getTokens(name);
+    final fontFallback = platformFontFallback;
+    final baseTextStyle = TextStyle(
+      fontFamilyFallback: fontFallback,
+      color: tokens.colorText,
+    );
+
     return ThemeData(
       useMaterial3: true,
+      fontFamily: fontFallback.first,
+      fontFamilyFallback: fontFallback.skip(1).toList(),
       brightness: tokens.brightness,
       scaffoldBackgroundColor: tokens.colorBg,
       colorScheme: ColorScheme(
@@ -273,15 +312,22 @@ class AppTheme {
         onSurface: tokens.colorText,
       ),
       textTheme: TextTheme(
-        bodyMedium: TextStyle(color: tokens.colorText, fontSize: 15),
-        bodyLarge: TextStyle(color: tokens.colorText, fontSize: 17),
+        bodyMedium: baseTextStyle.copyWith(fontSize: 15),
+        bodyLarge: baseTextStyle.copyWith(fontSize: 17),
+        bodySmall: baseTextStyle.copyWith(fontSize: 13, color: tokens.colorTextMuted),
+        titleLarge: baseTextStyle.copyWith(fontSize: 20, fontWeight: FontWeight.w600),
+        titleMedium: baseTextStyle.copyWith(fontSize: 16, fontWeight: FontWeight.w500),
+        titleSmall: baseTextStyle.copyWith(fontSize: 14, fontWeight: FontWeight.w500),
+        labelLarge: baseTextStyle.copyWith(fontSize: 14),
+        labelMedium: baseTextStyle.copyWith(fontSize: 12),
+        labelSmall: baseTextStyle.copyWith(fontSize: 11, color: tokens.colorTextMuted),
       ),
       menuButtonTheme: MenuButtonThemeData(
         style: ButtonStyle(
           minimumSize: WidgetStatePropertyAll(Size(0, 36)),
           padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
           textStyle: WidgetStatePropertyAll(
-            TextStyle(fontSize: 14, fontWeight: FontWeight.normal, color: tokens.colorText),
+            baseTextStyle.copyWith(fontSize: 14, fontWeight: FontWeight.normal),
           ),
           backgroundColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.hovered)) {
@@ -295,7 +341,7 @@ class AppTheme {
         ),
       ),
       popupMenuTheme: PopupMenuThemeData(
-        textStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.normal, color: tokens.colorText),
+        textStyle: baseTextStyle.copyWith(fontSize: 14, fontWeight: FontWeight.normal),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
       dividerColor: tokens.colorBorder,

@@ -736,6 +736,12 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get fileOpenBehaviorNotSet => 'Not configured';
+
+  @override
+  String get updateAvailable => 'New version available';
+
+  @override
+  String get updateDismiss => 'Dismiss';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).

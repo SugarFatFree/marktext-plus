@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/i18n/l10n/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
 import '../../providers/editor_provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../providers/update_provider.dart';
 import '../../providers/word_count_provider.dart';
+import '../../services/update_service.dart';
 
 class StatusBar extends ConsumerWidget {
   const StatusBar({super.key});
@@ -13,6 +16,7 @@ class StatusBar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final editorState = ref.watch(editorProvider);
     final wordCount = ref.watch(wordCountProvider);
+    final updateState = ref.watch(updateProvider);
     final l10n = AppLocalizations.of(context)!;
     final tokens = AppTheme.getTokens(ref.watch(settingsProvider).themeName);
     final style = TextStyle(fontSize: 12, color: tokens.colorTextMuted);
@@ -36,12 +40,37 @@ class StatusBar extends ConsumerWidget {
           _divider(tokens),
           Text(l10n.statusLineFeed, style: style),
           const Spacer(),
+          if (updateState.availableUpdate != null && !updateState.dismissed) ...[
+            _buildUpdateIndicator(updateState.availableUpdate!, tokens, ref),
+            _divider(tokens),
+          ],
           Text('${l10n.statusWords}: ${wordCount.words}', style: style),
           _divider(tokens),
           Text('${l10n.statusChars}: ${wordCount.characters}', style: style),
           _divider(tokens),
           Text('${l10n.statusParagraphs}: ${wordCount.paragraphs}', style: style),
         ],
+      ),
+    );
+  }
+
+  Widget _buildUpdateIndicator(UpdateInfo update, AppThemeTokens tokens, WidgetRef ref) {
+    return InkWell(
+      onTap: () => launchUrl(Uri.parse(update.url)),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(
+          color: tokens.colorAccent.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.system_update, size: 14, color: tokens.colorAccent),
+            const SizedBox(width: 4),
+            Text('v${update.version}', style: TextStyle(fontSize: 12, color: tokens.colorAccent, fontWeight: FontWeight.w600)),
+          ],
+        ),
       ),
     );
   }

@@ -223,10 +223,10 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
 
   Widget _buildHeading(md.HeadingNode node, ThemeData theme, AppThemeTokens tokens, {Key? key}) {
     final style = switch (node.level) {
-      1 => TextStyle(fontFamily: _previewFontFamily, fontFamilyFallback: _previewFontFallback, fontSize: 28, fontWeight: FontWeight.w700, color: tokens.colorText),
-      2 => TextStyle(fontFamily: _previewFontFamily, fontFamilyFallback: _previewFontFallback, fontSize: 24, fontWeight: FontWeight.w600, color: tokens.colorText),
-      3 => TextStyle(fontFamily: _previewFontFamily, fontFamilyFallback: _previewFontFallback, fontSize: 21, fontWeight: FontWeight.w600, color: tokens.colorText),
-      _ => TextStyle(fontFamily: _previewFontFamily, fontFamilyFallback: _previewFontFallback, fontSize: 17, fontWeight: FontWeight.w600, color: tokens.colorTextMuted),
+      1 => TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: tokens.colorText),
+      2 => TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: tokens.colorText),
+      3 => TextStyle(fontSize: 21, fontWeight: FontWeight.w600, color: tokens.colorText),
+      _ => TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: tokens.colorTextMuted),
     };
 
     return Padding(
@@ -238,6 +238,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
           Text.rich(
             _buildInlineSpans(node.inlineSpans, theme, style),
             style: style,
+            strutStyle: StrutStyle(fontSize: style.fontSize, height: style.height ?? 1.4, forceStrutHeight: true),
           ),
           if (node.level == 1)
             Padding(
@@ -249,14 +250,26 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     );
   }
 
-  static const _previewFontFamily = 'Open Sans';
-  static const _previewFontFallback = ['Helvetica Neue', 'Arial'];
+  static final _defaultTextStyle = TextStyle(
+    fontSize: 16,
+    height: 1.6,
+    leadingDistribution: TextLeadingDistribution.even,
+    fontFamilyFallback: AppTheme.platformFontFallback,
+  );
+  static final _defaultStrutStyle = StrutStyle(
+    fontSize: 16,
+    height: 1.6,
+    forceStrutHeight: true,
+    leadingDistribution: TextLeadingDistribution.even,
+    fontFamilyFallback: AppTheme.platformFontFallback,
+  );
 
   Widget _buildParagraph(md.ParagraphNode node, ThemeData theme) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Text.rich(
-        _buildInlineSpans(node.inlineSpans, theme, const TextStyle(fontFamily: _previewFontFamily, fontSize: 16, height: 1.6)),
+        _buildInlineSpans(node.inlineSpans, theme, _defaultTextStyle),
+        strutStyle: _defaultStrutStyle,
       ),
     );
   }
@@ -395,7 +408,8 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             const SizedBox(width: 8),
             Expanded(
               child: Text.rich(
-                _buildInlineSpans(item.inlineSpans, theme, theme.textTheme.bodyMedium),
+                _buildInlineSpans(item.inlineSpans, theme, _defaultTextStyle),
+                strutStyle: _defaultStrutStyle,
               ),
             ),
           ],
@@ -410,11 +424,12 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         children: [
           Text(
             ordered ? '${index + 1}. ' : '• ',
-            style: theme.textTheme.bodyMedium,
+            style: _defaultTextStyle,
           ),
           Expanded(
             child: Text.rich(
-              _buildInlineSpans(item.inlineSpans, theme, theme.textTheme.bodyMedium),
+              _buildInlineSpans(item.inlineSpans, theme, _defaultTextStyle),
+              strutStyle: _defaultStrutStyle,
             ),
           ),
         ],
@@ -434,7 +449,8 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text.rich(
-        _buildInlineSpans(node.inlineSpans, theme, const TextStyle(fontFamily: _previewFontFamily, fontSize: 16, height: 1.6)),
+        _buildInlineSpans(node.inlineSpans, theme, _defaultTextStyle),
+        strutStyle: _defaultStrutStyle,
       ),
     );
   }
@@ -468,7 +484,6 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
                       _inlineParser.parseInline(node.headers[i]),
                       theme,
                       theme.textTheme.bodyMedium?.copyWith(
-                        fontFamily: _previewFontFamily,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -487,7 +502,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
                       _buildInlineSpans(
                         _inlineParser.parseInline(i < row.length ? row[i] : ''),
                         theme,
-                        TextStyle(fontFamily: _previewFontFamily),
+                        const TextStyle(),
                       ),
                       textAlign: _getAlignment(node.alignments, i),
                     ),
@@ -679,6 +694,8 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         case md.InlineType.code:
           final s = baseStyle?.copyWith(
             fontFamily: 'monospace',
+            fontSize: (baseStyle.fontSize ?? 16) * 0.9,
+            height: baseStyle.height,
             backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
           );
           if (hasSearch) {
