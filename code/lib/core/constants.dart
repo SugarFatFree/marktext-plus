@@ -2,7 +2,7 @@ class AppConstants {
   AppConstants._();
 
   static const String appName = 'MarkText Plus';
-  static const String appVersion = '1.0.1';
+  static const String appVersion = '1.2.1';
   static const String configFileName = 'config.json';
   static const String configDirName = 'marktext-plus';
 

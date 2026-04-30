@@ -1,5 +1,8 @@
 import 'dart:io';
+import 'dart:async';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
@@ -16,8 +19,11 @@ import '../../providers/settings_provider.dart';
 import '../../providers/tab_provider.dart';
 import '../../services/export_service.dart';
 import '../../services/keybinding_service.dart';
+import '../../services/markdown_parser.dart';
 import '../../utils/platform_utils.dart';
 import '../screens/settings_screen.dart';
+import '../editor/mermaid/widgets/mermaid_diagram.dart';
+import '../editor/mermaid/models/style.dart';
 
 class AppMenuBar extends ConsumerWidget {
   const AppMenuBar({super.key});
@@ -792,7 +798,8 @@ class AppMenuBar extends ConsumerWidget {
       allowedExtensions: ['pdf'],
     );
     if (path == null) return;
-    await ExportService.exportToPdf(activeTab.content, path);
+    final mermaidImages = await _renderMermaidImages(activeTab.content);
+    await ExportService.exportToPdf(activeTab.content, path, mermaidImages: mermaidImages);
   }
 
   void _exportWord(WidgetRef ref) async {
@@ -805,7 +812,83 @@ class AppMenuBar extends ConsumerWidget {
       allowedExtensions: ['docx'],
     );
     if (path == null) return;
-    await ExportService.exportToDocx(activeTab.content, path);
+    final mermaidImages = await _renderMermaidImages(activeTab.content);
+    await ExportService.exportToDocx(activeTab.content, path, mermaidImages: mermaidImages);
+  }
+
+  static const _mermaidLanguages = {
+    'mermaid', 'flowchart', 'sequence', 'gantt', 'classdiagram',
+    'statediagram', 'erdiagram', 'journey', 'gitgraph', 'pie', 'mindmap',
+  };
+
+  Future<Map<String, Uint8List>> _renderMermaidImages(String markdown) async {
+    final parser = MarkdownParser();
+    final ast = parser.parse(markdown);
+    final images = <String, Uint8List>{};
+    int index = 0;
+
+    for (final node in ast) {
+      if (node is CodeBlockNode && _mermaidLanguages.contains(node.language.toLowerCase())) {
+        final key = 'mermaid_$index';
+        index++;
+        try {
+          final bytes = await _renderMermaidToImage(node.code);
+          if (bytes != null) images[key] = bytes;
+        } catch (_) {
+          // Skip failed renders
+        }
+      }
+    }
+    return images;
+  }
+
+  Future<Uint8List?> _renderMermaidToImage(String code) async {
+    final key = GlobalKey();
+
+    final overlay = Overlay.of(navigatorKey.currentContext!);
+    late OverlayEntry entry;
+
+    entry = OverlayEntry(
+      builder: (_) => Positioned(
+        left: -9999,
+        top: -9999,
+        child: RepaintBoundary(
+          key: key,
+          child: Container(
+            color: Colors.white,
+            width: 800,
+            child: MermaidDiagram(
+              code: code,
+              width: 800,
+              style: const MermaidStyle(),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(entry);
+
+    // Wait for layout + paint
+    for (int i = 0; i < 5; i++) {
+      await WidgetsBinding.instance.endOfFrame;
+      await Future.delayed(const Duration(milliseconds: 200));
+    }
+
+    Uint8List? result;
+    try {
+      final boundary = key.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary != null && boundary.hasSize && boundary.size.width > 0) {
+        final image = await boundary.toImage(pixelRatio: 2.0);
+        final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+        if (byteData != null) {
+          result = byteData.buffer.asUint8List();
+        }
+      }
+    } catch (_) {}
+
+    entry.remove();
+    return result;
   }
 
   void _newWindow() async {

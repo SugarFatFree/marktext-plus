@@ -243,5 +243,7 @@
   "fileOpenBehaviorNewWindowDesc": "Allow multiple app instances",
   "fileOpenBehaviorExistingWindow": "Open in Current Window",
   "fileOpenBehaviorExistingWindowDesc": "Add to existing tabs (single instance)",
-  "fileOpenBehaviorNotSet": "Not configured"
+  "fileOpenBehaviorNotSet": "Not configured",
+  "updateAvailable": "New version available",
+  "updateDismiss": "Dismiss"
 }
