@@ -181,7 +181,8 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         if (event is KeyDownEvent &&
             event.logicalKey == LogicalKeyboardKey.keyC &&
             (HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed)) {
-          Future.delayed(const Duration(milliseconds: 50), () => _copyAsHtml());
+          // Let SelectionArea handle the copy first, then enhance with HTML format
+          Future.delayed(const Duration(milliseconds: 100), () => _enhanceClipboardWithHtml());
         }
         return KeyEventResult.ignored;
       },
@@ -204,9 +205,24 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     );
   }
 
-  Future<void> _copyAsHtml() async {
-    final html = _markdownToHtml();
-    await ClipboardService.copyWithHtml(widget.markdown, html);
+  Future<void> _enhanceClipboardWithHtml() async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    final selectedText = data?.text;
+    if (selectedText == null || selectedText.isEmpty) return;
+
+    // Convert selected markdown text to HTML
+    final html = _selectedTextToHtml(selectedText);
+    await ClipboardService.copyWithHtml(selectedText, html);
+  }
+
+  String _selectedTextToHtml(String markdown) {
+    final parser = md.MarkdownParser();
+    final nodes = parser.parse(markdown);
+    final buffer = StringBuffer();
+    for (final node in nodes) {
+      buffer.writeln(ExportService.nodeToHtml(node));
+    }
+    return buffer.toString();
   }
 
   /// Convert current markdown to HTML for clipboard use

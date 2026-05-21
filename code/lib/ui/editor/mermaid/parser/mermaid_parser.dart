@@ -11,6 +11,7 @@ import 'kanban_parser.dart';
 import 'pie_chart_parser.dart';
 import 'radar_parser.dart';
 import 'sequence_parser.dart';
+import 'state_diagram_parser.dart';
 import 'timeline_parser.dart';
 import 'xy_chart_parser.dart';
 
@@ -163,8 +164,12 @@ class MermaidParser {
         }
         return null;
       case DiagramType.classDiagram:
+        return null;
       case DiagramType.stateDiagram:
-        // TODO: Implement class and state diagram parsers
+        final result = StateDiagramParser().parse(cleanedLines);
+        if (result != null) {
+          return MermaidParseResult(diagram: result);
+        }
         return null;
       case DiagramType.unknown:
         return null;

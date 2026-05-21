@@ -223,7 +223,7 @@ class MarkdownParser {
 
   /// Parse markdown text into a list of block-level nodes.
   List<MarkdownNode> parse(String markdown) {
-    final lines = markdown.split('\n');
+    final lines = markdown.replaceAll('\r\n', '\n').replaceAll('\r', '\n').split('\n');
     final nodes = <MarkdownNode>[];
     var i = 0;
 

@@ -35,6 +35,7 @@ class AppConfig {
   FileOpenBehavior fileOpenBehavior;
   String lastUpdateCheck;
   String skipVersion;
+  String sideBarDirectory;
 
   AppConfig({
     this.sideBarVisible = true,
@@ -67,6 +68,7 @@ class AppConfig {
     this.fileOpenBehavior = FileOpenBehavior.notSet,
     this.lastUpdateCheck = '',
     this.skipVersion = '',
+    this.sideBarDirectory = '',
   });
 
   Map<String, dynamic> toJson() => {
@@ -100,6 +102,7 @@ class AppConfig {
     'fileOpenBehavior': fileOpenBehavior.name,
     'lastUpdateCheck': lastUpdateCheck,
     'skipVersion': skipVersion,
+    'sideBarDirectory': sideBarDirectory,
   };
 
   factory AppConfig.fromJson(Map<String, dynamic> json) {
@@ -136,6 +139,7 @@ class AppConfig {
       fileOpenBehavior: _parseFileOpenBehavior(json['fileOpenBehavior']),
       lastUpdateCheck: json['lastUpdateCheck'] as String? ?? '',
       skipVersion: json['skipVersion'] as String? ?? '',
+      sideBarDirectory: json['sideBarDirectory'] as String? ?? '',
     );
   }
 
@@ -191,6 +195,7 @@ class AppConfig {
     FileOpenBehavior? fileOpenBehavior,
     String? lastUpdateCheck,
     String? skipVersion,
+    String? sideBarDirectory,
   }) {
     return AppConfig(
       sideBarVisible: sideBarVisible ?? this.sideBarVisible,
@@ -223,6 +228,7 @@ class AppConfig {
       fileOpenBehavior: fileOpenBehavior ?? this.fileOpenBehavior,
       lastUpdateCheck: lastUpdateCheck ?? this.lastUpdateCheck,
       skipVersion: skipVersion ?? this.skipVersion,
+      sideBarDirectory: sideBarDirectory ?? this.sideBarDirectory,
     );
   }
 }

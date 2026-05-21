@@ -361,6 +361,9 @@ class _SideBarState extends ConsumerState<SideBar> {
                               // Close the entire folder and all its files
                               final folderPath = node.path;
                               ref.read(fileProvider.notifier).closeDirectory();
+                              ref.read(settingsProvider.notifier).updateConfig(
+                                (c) => c.copyWith(sideBarDirectory: ''),
+                              );
 
                               // Close all tabs for files in this folder
                               final tabState = ref.read(tabProvider);
