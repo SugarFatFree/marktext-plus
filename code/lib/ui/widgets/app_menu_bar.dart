@@ -167,6 +167,9 @@ class AppMenuBar extends ConsumerWidget {
     final result = await FilePicker.platform.getDirectoryPath();
     if (result == null) return;
     ref.read(fileProvider.notifier).loadDirectory(result);
+    ref.read(settingsProvider.notifier).updateConfig(
+      (c) => c.copyWith(sideBarDirectory: result),
+    );
   }
 
   void _saveFile(WidgetRef ref) async {

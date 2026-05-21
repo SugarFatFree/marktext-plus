@@ -37,6 +37,20 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _startupFilesProcessed = false;
   bool _updateCheckDone = false;
+  bool _sideBarRestored = false;
+
+  void _restoreSideBarDirectory() {
+    if (_sideBarRestored) return;
+    _sideBarRestored = true;
+
+    final config = ref.read(settingsProvider);
+    if (config.sideBarDirectory.isNotEmpty) {
+      final dir = Directory(config.sideBarDirectory);
+      if (dir.existsSync()) {
+        ref.read(fileProvider.notifier).loadDirectory(config.sideBarDirectory);
+      }
+    }
+  }
 
   void _checkForUpdates() async {
     if (_updateCheckDone) return;
@@ -279,6 +293,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (entity == FileSystemEntityType.directory) {
         // Open the folder in the file tree
         await ref.read(fileProvider.notifier).loadDirectory(path);
+        await ref.read(settingsProvider.notifier).updateConfig(
+          (c) => c.copyWith(sideBarDirectory: path),
+        );
         continue;
       }
 
@@ -312,6 +329,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     _registerCommands(l10n);
     _openStartupFiles();
     _checkForUpdates();
+    _restoreSideBarDirectory();
 
     return Focus(
       autofocus: true,
