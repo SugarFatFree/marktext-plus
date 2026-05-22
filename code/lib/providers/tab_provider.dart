@@ -46,6 +46,26 @@ class TabNotifier extends StateNotifier<TabState> {
 
   TabNotifier(this._ref) : super(const TabState());
 
+  /// Restore opened-file entries from persisted config (no tabs opened).
+  void restoreOpenedFiles(List<String> filePaths) {
+    final entries = <OpenedFileEntry>[];
+    for (final path in filePaths) {
+      if (File(path).existsSync()) {
+        entries.add(OpenedFileEntry(filePath: path, fileName: p.basename(path)));
+      }
+    }
+    if (entries.isNotEmpty) {
+      state = state.copyWith(openedFiles: entries);
+    }
+  }
+
+  void _persistOpenedFiles() {
+    final paths = state.openedFiles.map((f) => f.filePath).toList();
+    _ref.read(settingsProvider.notifier).updateConfig(
+      (c) => c.copyWith(sideBarOpenedFiles: paths),
+    );
+  }
+
   @override
   void dispose() {
     _autoSaveTimer?.cancel();
@@ -55,17 +75,20 @@ class TabNotifier extends StateNotifier<TabState> {
   void addTab(TabInfo tab) {
     // Also register in openedFiles if it has a real file path
     var openedFiles = state.openedFiles;
+    var openedFilesChanged = false;
     if (tab.filePath != null &&
         !openedFiles.any((f) => f.filePath == tab.filePath)) {
       openedFiles = [
         ...openedFiles,
         OpenedFileEntry(filePath: tab.filePath!, fileName: tab.fileName),
       ];
+      openedFilesChanged = true;
     }
     // Avoid duplicate tabs for the same file
     final existing = state.tabs.where((t) => t.filePath != null && t.filePath == tab.filePath).firstOrNull;
     if (existing != null) {
       state = state.copyWith(activeTabId: existing.id, openedFiles: openedFiles);
+      if (openedFilesChanged) _persistOpenedFiles();
       return;
     }
     state = state.copyWith(
@@ -73,6 +96,7 @@ class TabNotifier extends StateNotifier<TabState> {
       activeTabId: tab.id,
       openedFiles: openedFiles,
     );
+    if (openedFilesChanged) _persistOpenedFiles();
   }
 
   void removeTab(String id) {
@@ -99,6 +123,7 @@ class TabNotifier extends StateNotifier<TabState> {
       }
     }
     state = state.copyWith(tabs: tabs, activeTabId: activeId, openedFiles: openedFiles);
+    _persistOpenedFiles();
   }
 
   void setActiveTab(String id) {

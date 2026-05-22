@@ -1,6 +1,8 @@
 // Lightweight self-built Markdown parser supporting CommonMark + GFM subset.
 // Uses regex-based line scanning for block-level and inline parsing.
 
+import 'dart:convert' show LineSplitter;
+
 // -- Enums --
 
 enum NodeType {
@@ -223,7 +225,9 @@ class MarkdownParser {
 
   /// Parse markdown text into a list of block-level nodes.
   List<MarkdownNode> parse(String markdown) {
-    final lines = markdown.replaceAll('\r\n', '\n').replaceAll('\r', '\n').split('\n');
+    // LineSplitter handles \n, \r\n, and \r in a single pass without
+    // creating intermediate string copies (faster than replaceAll for large files)
+    final lines = const LineSplitter().convert(markdown);
     final nodes = <MarkdownNode>[];
     var i = 0;
 

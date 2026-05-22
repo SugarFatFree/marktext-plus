@@ -2,9 +2,18 @@ import '../models/diagram.dart';
 import '../models/edge.dart';
 import '../models/node.dart';
 
+/// Parser for Mermaid state diagrams (stateDiagram / stateDiagram-v2)
+///
+/// Supports:
+/// - `[*] --> state` (start) and `state --> [*]` (end) special markers
+/// - `state1 --> state2: label` transitions with optional labels
+/// - Self-loops (`state --> state`)
+/// - Multiple [*] occurrences are treated as separate start/end nodes
 class StateDiagramParser {
   final Map<String, MermaidNode> _nodes = {};
   final List<MermaidEdge> _edges = [];
+  int _startCount = 0;
+  int _endCount = 0;
 
   MermaidDiagramData? parse(List<String> lines) {
     if (lines.isEmpty) return null;
@@ -18,7 +27,7 @@ class StateDiagramParser {
     if (_nodes.isEmpty) return null;
 
     return MermaidDiagramData(
-      type: DiagramType.stateDiagram,
+      type: DiagramType.flowchart,
       nodes: _nodes.values.toList(),
       edges: _edges,
       direction: DiagramDirection.topToBottom,
@@ -27,39 +36,53 @@ class StateDiagramParser {
 
   void _parseLine(String line) {
     if (line.isEmpty) return;
+    if (line.startsWith('note ')) return; // Skip notes for now
+    if (line.startsWith('%%')) return; // Skip comments
 
-    final transitionMatch = RegExp(
-      r'^(.+?)\s*-->\s*(.+?)(?:\s*:\s*(.+))?$',
-    ).firstMatch(line);
+    // Parse: state1 --> state2: optional label
+    final m = RegExp(r'^(.+?)\s*-->\s*([^:]+?)(?:\s*:\s*(.+))?$').firstMatch(line);
+    if (m == null) return;
 
-    if (transitionMatch != null) {
-      final fromRaw = transitionMatch.group(1)!.trim();
-      final toRaw = transitionMatch.group(2)!.trim();
-      final label = transitionMatch.group(3)?.trim();
+    final fromRaw = m.group(1)!.trim();
+    final toRaw = m.group(2)!.trim();
+    final label = m.group(3)?.trim();
 
-      final fromId = _normalizeId(fromRaw);
-      final toId = _normalizeId(toRaw);
+    final fromId = _registerNode(fromRaw, isFrom: true);
+    final toId = _registerNode(toRaw, isFrom: false);
 
-      _ensureNode(fromId, fromRaw);
-      _ensureNode(toId, toRaw);
+    _edges.add(MermaidEdge(
+      from: fromId,
+      to: toId,
+      label: label,
+      arrowType: ArrowType.arrow,
+    ));
+  }
 
-      _edges.add(MermaidEdge(
-        from: fromId,
-        to: toId,
-        label: label,
-      ));
+  /// Returns the unique node ID for the given raw token.
+  /// Each `[*]` instance becomes a separate start/end node.
+  String _registerNode(String raw, {required bool isFrom}) {
+    if (raw == '[*]') {
+      // Start state when used as source, end state when used as target
+      final id = isFrom ? '__start_${_startCount++}__' : '__end_${_endCount++}__';
+      _nodes[id] = MermaidNode(
+        id: id,
+        label: '',
+        shape: NodeShape.circle,
+      );
+      return id;
     }
+
+    final id = _normalizeId(raw);
+    _nodes.putIfAbsent(
+      id,
+      () => MermaidNode(id: id, label: raw, shape: NodeShape.stadium),
+    );
+    return id;
   }
 
   String _normalizeId(String raw) {
-    if (raw == '[*]') return '__start_end__';
-    return raw.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_');
-  }
-
-  void _ensureNode(String id, String raw) {
-    if (_nodes.containsKey(id)) return;
-    final label = raw == '[*]' ? '●' : raw;
-    final shape = raw == '[*]' ? NodeShape.circle : NodeShape.roundedRect;
-    _nodes[id] = MermaidNode(id: id, label: label, shape: shape);
+    // Strip trailing modifier markers like '*' that Mermaid uses for emphasis
+    final cleaned = raw.replaceAll(RegExp(r'[\s*]+$'), '').trim();
+    return cleaned.replaceAll(RegExp(r'[^a-zA-Z0-9_一-龥]'), '_');
   }
 }
