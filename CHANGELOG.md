@@ -5,17 +5,21 @@ All notable changes to MarkText Plus will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v1.2.2] - 2026-05-01
+## [v1.2.2] - 2026-05-22
 
 ### Added
 - Sidebar directory persistence across app restarts (without auto-opening tabs)
-- Mermaid stateDiagram-v2 syntax support
-- Mermaid diagram zoom and pan (double-click to activate, Ctrl+scroll to zoom, drag to pan)
+- Sidebar opened-files list also persists (individual files appear after restart)
+- Mermaid stateDiagram-v2 syntax support (with Dagre layout, stadium-shape states)
+- Mermaid fullscreen viewer (double-click or button) with zoom/pan/Esc to close
+- Mermaid diagrams scroll horizontally when wider than container
 
 ### Fixed
 - Preview mode Ctrl+C copying entire document instead of selected text
 - Markdown files with Windows line endings (\r\n) failing to parse
+- Large file parsing slow due to repeated CRLF replaceAll (now uses LineSplitter)
 - Mermaid diagrams clipped when wider than container
+- stateDiagram-v2 layout chaos (now reuses Dagre flowchart layout)
 
 ## [v1.2.1] - 2026-04-30
 

@@ -36,6 +36,7 @@ class AppConfig {
   String lastUpdateCheck;
   String skipVersion;
   String sideBarDirectory;
+  List<String> sideBarOpenedFiles;
 
   AppConfig({
     this.sideBarVisible = true,
@@ -69,6 +70,7 @@ class AppConfig {
     this.lastUpdateCheck = '',
     this.skipVersion = '',
     this.sideBarDirectory = '',
+    this.sideBarOpenedFiles = const [],
   });
 
   Map<String, dynamic> toJson() => {
@@ -103,6 +105,7 @@ class AppConfig {
     'lastUpdateCheck': lastUpdateCheck,
     'skipVersion': skipVersion,
     'sideBarDirectory': sideBarDirectory,
+    'sideBarOpenedFiles': sideBarOpenedFiles,
   };
 
   factory AppConfig.fromJson(Map<String, dynamic> json) {
@@ -140,6 +143,7 @@ class AppConfig {
       lastUpdateCheck: json['lastUpdateCheck'] as String? ?? '',
       skipVersion: json['skipVersion'] as String? ?? '',
       sideBarDirectory: json['sideBarDirectory'] as String? ?? '',
+      sideBarOpenedFiles: (json['sideBarOpenedFiles'] as List?)?.cast<String>() ?? const [],
     );
   }
 
@@ -196,6 +200,7 @@ class AppConfig {
     String? lastUpdateCheck,
     String? skipVersion,
     String? sideBarDirectory,
+    List<String>? sideBarOpenedFiles,
   }) {
     return AppConfig(
       sideBarVisible: sideBarVisible ?? this.sideBarVisible,
@@ -229,6 +234,7 @@ class AppConfig {
       lastUpdateCheck: lastUpdateCheck ?? this.lastUpdateCheck,
       skipVersion: skipVersion ?? this.skipVersion,
       sideBarDirectory: sideBarDirectory ?? this.sideBarDirectory,
+      sideBarOpenedFiles: sideBarOpenedFiles ?? this.sideBarOpenedFiles,
     );
   }
 }

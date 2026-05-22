@@ -50,6 +50,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ref.read(fileProvider.notifier).loadDirectory(config.sideBarDirectory);
       }
     }
+    if (config.sideBarOpenedFiles.isNotEmpty) {
+      ref.read(tabProvider.notifier).restoreOpenedFiles(config.sideBarOpenedFiles);
+    }
   }
 
   void _checkForUpdates() async {

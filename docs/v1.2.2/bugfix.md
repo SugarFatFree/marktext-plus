@@ -6,6 +6,10 @@
 | BUG-002 | 2026-05-01 | 特定 Markdown 文件无法解析（Windows 换行符问题） | P1 | 已修复 |
 | BUG-003 | 2026-05-01 | Mermaid 图表过宽时被截断，无法缩放和拖动 | P2 | 已修复 |
 | BUG-004 | 2026-05-01 | stateDiagram-v2 语法无法识别 | P1 | 已修复 |
+| BUG-005 | 2026-05-22 | 解析文件时 replaceAll 替换换行符导致大文件卡顿 | P0 | 已修复 |
+| BUG-006 | 2026-05-22 | Mermaid 图表过宽仍被截断，需要全屏放大查看 | P1 | 已修复 |
+| BUG-007 | 2026-05-22 | stateDiagram-v2 渲染样式混乱 | P1 | 已修复 |
+| BUG-008 | 2026-05-22 | 单独打开的文件未在侧边栏持久化 | P1 | 已修复 |
 
 ---
 
@@ -125,3 +129,99 @@ stateDiagram-v2
 
 - `lib/ui/editor/mermaid/parser/state_diagram_parser.dart`（新增）
 - `lib/ui/editor/mermaid/parser/mermaid_parser.dart`
+
+---
+
+## BUG-005 — 解析文件时 replaceAll 替换换行符导致大文件卡顿
+
+### 现象
+
+打开较大文件时非常卡。
+
+### 根因分析
+
+`MarkdownParser.parse()` 之前使用 `markdown.replaceAll('\r\n', '\n').replaceAll('\r', '\n').split('\n')`，每次解析都会两次扫描整个字符串并创建中间字符串拷贝。对于大文件来说开销很大，而且每次重新解析（编辑、搜索高亮等）都要重复执行。
+
+### 修复方案
+
+改用 `dart:convert` 的 `LineSplitter().convert(markdown)`：单次 O(n) 扫描，同时处理 `\n`、`\r\n` 和 `\r`，不创建中间完整字符串拷贝。
+
+### 涉及文件
+
+- `lib/services/markdown_parser.dart`
+
+---
+
+## BUG-006 — Mermaid 图表过宽仍被截断，需要全屏放大查看
+
+### 现象
+
+Mermaid 图表如果太宽，右侧内容被截断。需要全屏视图来查看完整图表。
+
+### 修复方案
+
+重写 `MermaidRenderer`：
+
+1. **内联模式自适应**：用 `LayoutBuilder` + `SingleChildScrollView(scrollDirection: Axis.horizontal)`，超出宽度时可水平滚动
+2. **双击/点击"全屏"按钮**：弹出全屏覆盖层 `_MermaidFullscreenView`
+3. **全屏视图**：
+   - `InteractiveViewer` 自动适配窗口大小
+   - `Listener` 监听 `Ctrl+滚轮` 实现缩放（0.2x ~ 5.0x）
+   - 鼠标拖动平移
+   - `KeyboardListener` 监听 `Esc` 键关闭
+   - 右上角"重置"和"关闭"按钮
+   - 底部提示操作方式
+
+### 涉及文件
+
+- `lib/ui/widgets/mermaid_renderer.dart`
+
+---
+
+## BUG-007 — stateDiagram-v2 渲染样式混乱
+
+### 现象
+
+stateDiagram-v2 虽然能识别但布局混乱，文字重叠。
+
+### 根因分析
+
+之前的 `StateDiagramParser` 返回 `DiagramType.stateDiagram`，但 `MermaidDiagram` 的 `_getLayoutEngine` 对此类型回退到 `SimpleLayoutEngine`，没有专门的状态机布局算法，导致节点位置错乱。
+
+### 修复方案
+
+1. 让 `StateDiagramParser` 返回 `DiagramType.flowchart`，复用成熟的 `DagreLayout` 和 `FlowchartPainter`
+2. 用 `NodeShape.stadium`（药丸形）渲染普通状态，更接近 Mermaid 风格
+3. `[*]` 用 `NodeShape.circle` 渲染（黑色实心圆）
+4. 多次出现的 `[*]` 创建独立的起始/结束节点（避免重叠）
+5. ID 规范化保留中文字符（`一-龥` 区间）
+6. 自动跳过 `note ...` 和 `%%` 注释行
+
+### 涉及文件
+
+- `lib/ui/editor/mermaid/parser/state_diagram_parser.dart`
+
+---
+
+## BUG-008 — 单独打开的文件未在侧边栏持久化
+
+### 现象
+
+单独打开一个文件后该文件出现在侧边栏，但软件重启后侧边栏只剩本次打开的文件，之前的丢失。
+
+### 根因分析
+
+之前的持久化只保存 `sideBarDirectory`（打开的文件夹路径），没有保存 `tabState.openedFiles`（侧边栏的"已打开文件"列表）。
+
+### 修复方案
+
+1. `AppConfig` 添加 `sideBarOpenedFiles: List<String>` 字段
+2. `TabNotifier` 在 `addTab` 添加新文件、`removeOpenedFile` 移除文件时调用 `_persistOpenedFiles()` 同步到配置
+3. 启动时 `HomeScreen._restoreSideBarDirectory()` 调用 `tabProvider.notifier.restoreOpenedFiles(config.sideBarOpenedFiles)`，仅填充侧边栏列表，不打开任何 tab
+4. 恢复前检查文件是否仍存在（避免幽灵条目）
+
+### 涉及文件
+
+- `lib/core/config/app_config.dart`
+- `lib/providers/tab_provider.dart`
+- `lib/ui/screens/home_screen.dart`
