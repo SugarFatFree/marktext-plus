@@ -11,8 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sidebar directory persistence across app restarts (without auto-opening tabs)
 - Sidebar opened-files list also persists (individual files appear after restart)
 - Mermaid stateDiagram-v2 syntax support (with Dagre layout, stadium-shape states)
-- Mermaid fullscreen viewer (double-click or button) with zoom/pan/Esc to close
-- Mermaid diagrams scroll horizontally when wider than container
+- Mermaid viewer dialog (double-click or button), zoom/pan/Esc to close, dialog sized to ~80% of screen
+- Mermaid inline auto-fit (scales down when wider than container)
 
 ### Fixed
 - Preview mode Ctrl+C copying entire document instead of selected text
@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Large file parsing slow due to repeated CRLF replaceAll (now uses LineSplitter)
 - Mermaid diagrams clipped when wider than container
 - stateDiagram-v2 layout chaos (now reuses Dagre flowchart layout)
+- stateDiagram showing multiple end nodes (now unified) + long edge labels overlapping (dynamic spacing based on label length)
 
 ## [v1.2.1] - 2026-04-30
 

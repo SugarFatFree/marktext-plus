@@ -10,6 +10,8 @@
 | BUG-006 | 2026-05-22 | Mermaid 图表过宽仍被截断，需要全屏放大查看 | P1 | 已修复 |
 | BUG-007 | 2026-05-22 | stateDiagram-v2 渲染样式混乱 | P1 | 已修复 |
 | BUG-008 | 2026-05-22 | 单独打开的文件未在侧边栏持久化 | P1 | 已修复 |
+| BUG-009 | 2026-05-22 | Mermaid 内联视图未自适应缩放 + 全屏窗口霸占整屏 | P1 | 已修复 |
+| BUG-010 | 2026-05-22 | stateDiagram 出现两个结束节点 + 长标签互相覆盖 | P1 | 已修复 |
 
 ---
 
@@ -225,3 +227,46 @@ stateDiagram-v2 虽然能识别但布局混乱，文字重叠。
 - `lib/core/config/app_config.dart`
 - `lib/providers/tab_provider.dart`
 - `lib/ui/screens/home_screen.dart`
+
+---
+
+## BUG-009 — Mermaid 内联视图未自适应缩放 + 全屏窗口霸占整屏
+
+### 现象
+
+1. Mermaid 图表过宽时仍然被截断（之前的修复只是水平滚动，没有自动缩放）
+2. 双击图表后弹出的全屏窗口直接占满整个应用窗口，没有自动缩放，使用体验不好
+
+### 修复方案
+
+1. **内联自适应**：将 `SingleChildScrollView(scrollDirection: horizontal)` 替换为 `FittedBox(fit: BoxFit.scaleDown)`，超出容器宽度时自动等比缩小
+2. **全屏窗口改为 Dialog**：从 `PageRouteBuilder`（占满整屏）改为 `showDialog`，通过 `insetPadding` 限制为屏幕的 80% 大小
+3. Dialog 增加标题栏（含工具栏按钮）、内容区（`InteractiveViewer` + `Ctrl+滚轮` 缩放 + 拖动）、底部提示栏
+
+### 涉及文件
+
+- `lib/ui/widgets/mermaid_renderer.dart`
+
+---
+
+## BUG-010 — stateDiagram 出现两个结束节点 + 长标签互相覆盖
+
+### 现象
+
+1. 一个状态图中如果有多个 `state --> [*]` 表达式，渲染出多个独立的结束节点
+2. 当一条边的标签较长（如"取消自动续订(auto_renew=0, status保持active*)"）时，会覆盖到其他边的标签
+
+### 根因分析
+
+1. 之前的解析器为每个 `[*]` 创建独立节点（`__end_0__`, `__end_1__` ...），逻辑错误
+2. Dagre 布局基于固定的 `nodeSpacingX`/`Y`，没有根据 edge label 长度调整间距
+
+### 修复方案
+
+1. `[*]` 作为源时统一为 `__start__`，作为目标时统一为 `__end__`，所有指向 `[*]` 的边汇聚到同一个结束节点
+2. `MermaidRenderer._buildStyle()` 扫描代码估算最长 edge label 宽度（CJK 字符算 2 倍宽），按 `每字符 +10px` 动态增加 `nodeSpacingX`/`nodeSpacingY`，最多增加 200px
+
+### 涉及文件
+
+- `lib/ui/editor/mermaid/parser/state_diagram_parser.dart`
+- `lib/ui/widgets/mermaid_renderer.dart`

@@ -8,12 +8,12 @@ import '../models/node.dart';
 /// - `[*] --> state` (start) and `state --> [*]` (end) special markers
 /// - `state1 --> state2: label` transitions with optional labels
 /// - Self-loops (`state --> state`)
-/// - Multiple [*] occurrences are treated as separate start/end nodes
 class StateDiagramParser {
+  static const _startId = '__start__';
+  static const _endId = '__end__';
+
   final Map<String, MermaidNode> _nodes = {};
   final List<MermaidEdge> _edges = [];
-  int _startCount = 0;
-  int _endCount = 0;
 
   MermaidDiagramData? parse(List<String> lines) {
     if (lines.isEmpty) return null;
@@ -36,10 +36,9 @@ class StateDiagramParser {
 
   void _parseLine(String line) {
     if (line.isEmpty) return;
-    if (line.startsWith('note ')) return; // Skip notes for now
-    if (line.startsWith('%%')) return; // Skip comments
+    if (line.startsWith('note ')) return;
+    if (line.startsWith('%%')) return;
 
-    // Parse: state1 --> state2: optional label
     final m = RegExp(r'^(.+?)\s*-->\s*([^:]+?)(?:\s*:\s*(.+))?$').firstMatch(line);
     if (m == null) return;
 
@@ -59,15 +58,13 @@ class StateDiagramParser {
   }
 
   /// Returns the unique node ID for the given raw token.
-  /// Each `[*]` instance becomes a separate start/end node.
+  /// All `[*]` as source share one start node; all `[*]` as target share one end node.
   String _registerNode(String raw, {required bool isFrom}) {
     if (raw == '[*]') {
-      // Start state when used as source, end state when used as target
-      final id = isFrom ? '__start_${_startCount++}__' : '__end_${_endCount++}__';
-      _nodes[id] = MermaidNode(
-        id: id,
-        label: '',
-        shape: NodeShape.circle,
+      final id = isFrom ? _startId : _endId;
+      _nodes.putIfAbsent(
+        id,
+        () => MermaidNode(id: id, label: '', shape: NodeShape.circle),
       );
       return id;
     }
@@ -81,8 +78,8 @@ class StateDiagramParser {
   }
 
   String _normalizeId(String raw) {
-    // Strip trailing modifier markers like '*' that Mermaid uses for emphasis
     final cleaned = raw.replaceAll(RegExp(r'[\s*]+$'), '').trim();
     return cleaned.replaceAll(RegExp(r'[^a-zA-Z0-9_一-龥]'), '_');
   }
 }
+
