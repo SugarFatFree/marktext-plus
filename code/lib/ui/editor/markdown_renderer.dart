@@ -35,6 +35,8 @@ class MarkdownRenderer extends ConsumerStatefulWidget {
 }
 
 class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
+  // Maps source line number → GlobalKey, used for TOC scroll targeting.
+  // Build phase rebuilds this map fresh per pass to avoid stale duplicates.
   final _headingKeys = <int, GlobalKey>{};
   int _matchCounter = 0;
   final _recognizers = <TapGestureRecognizer>[];
@@ -49,7 +51,10 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   /// Parse raw markdown to find heading line numbers (1-based),
   /// matching the same logic used by the TOC panel.
   List<int> _findHeadingLines(String markdown) {
-    final lines = markdown.split('\n');
+    final source = markdown.isNotEmpty && markdown.codeUnitAt(0) == 0xFEFF
+        ? markdown.substring(1)
+        : markdown;
+    final lines = source.split('\n');
     final result = <int>[];
     for (int i = 0; i < lines.length; i++) {
       if (RegExp(r'^#{1,6}\s+.+$').hasMatch(lines[i])) {
@@ -142,6 +147,9 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     final headingLines = _cachedHeadingLines!;
     final widgets = <Widget>[];
     _matchCounter = 0;
+    // Rebuild heading key map fresh each frame so duplicate or unknown
+    // line numbers can't share the same GlobalKey across siblings.
+    _headingKeys.clear();
 
     int headingIndex = 0;
     for (final node in nodes) {
@@ -151,8 +159,13 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
               ? headingLines[headingIndex]
               : -1;
           headingIndex++;
-          _headingKeys.putIfAbsent(lineNum, () => GlobalKey());
-          widgets.add(_buildHeading(node, theme, tokens, key: _headingKeys[lineNum]));
+          // Always allocate a fresh key for each heading; only the first
+          // heading at a given lineNum is registered for scroll targeting.
+          final key = GlobalKey();
+          if (lineNum > 0) {
+            _headingKeys.putIfAbsent(lineNum, () => key);
+          }
+          widgets.add(_buildHeading(node, theme, tokens, key: key));
         case md.ParagraphNode():
           widgets.add(_buildParagraph(node, theme));
         case md.CodeBlockNode():
@@ -315,6 +328,8 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     }
 
     final baseCodeStyle = const TextStyle(fontFamily: 'monospace', fontSize: 14);
+    // Skip highlighting for very large blocks to keep first-render responsive
+    final canHighlight = node.language.isNotEmpty && node.code.length <= 20000;
 
     return Container(
       width: double.infinity,
@@ -324,7 +339,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         color: tokens.colorSurface,
         borderRadius: BorderRadius.circular(8),
       ),
-      child: node.language.isNotEmpty
+      child: canHighlight
           ? Text.rich(
               TextSpan(
                 style: _buildCodeTextStyle(baseCodeStyle),

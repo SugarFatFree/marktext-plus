@@ -39,6 +39,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _updateCheckDone = false;
   bool _sideBarRestored = false;
 
+  @override
+  void initState() {
+    super.initState();
+    // Run startup side-effects after the first frame so we don't mutate
+    // providers during the widget tree build.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _openStartupFiles();
+      _checkForUpdates();
+      _restoreSideBarDirectory();
+    });
+  }
+
   void _restoreSideBarDirectory() {
     if (_sideBarRestored) return;
     _sideBarRestored = true;
@@ -209,7 +222,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     for (final path in files) {
       try {
-        final content = File(path).readAsStringSync();
+        final content = await File(path).readAsString();
         final tab = TabInfo(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
           filePath: path,
@@ -330,9 +343,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final l10n = AppLocalizations.of(context)!;
 
     _registerCommands(l10n);
-    _openStartupFiles();
-    _checkForUpdates();
-    _restoreSideBarDirectory();
 
     return Focus(
       autofocus: true,

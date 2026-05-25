@@ -12,6 +12,9 @@
 | BUG-008 | 2026-05-22 | 单独打开的文件未在侧边栏持久化 | P1 | 已修复 |
 | BUG-009 | 2026-05-22 | Mermaid 内联视图未自适应缩放 + 全屏窗口霸占整屏 | P1 | 已修复 |
 | BUG-010 | 2026-05-22 | stateDiagram 出现两个结束节点 + 长标签互相覆盖 | P1 | 已修复 |
+| BUG-011 | 2026-05-25 | 首次打开大文件主线程卡住 | P0 | 已修复 |
+| BUG-012 | 2026-05-25 | 带 UTF-8 BOM 的文件第一行一级标题预览不显示 | P1 | 已修复 |
+| BUG-013 | 2026-05-25 | 打开文件预览时 SelectionRegistrarScope 报 Duplicate keys | P0 | 已修复 |
 
 ---
 
@@ -270,3 +273,87 @@ stateDiagram-v2 虽然能识别但布局混乱，文字重叠。
 
 - `lib/ui/editor/mermaid/parser/state_diagram_parser.dart`
 - `lib/ui/widgets/mermaid_renderer.dart`
+
+---
+
+## BUG-011 — 首次打开大文件主线程卡住
+
+| 字段 | 内容 |
+|------|------|
+| 优先级 | P0 |
+| 状态 | 已修复 |
+
+### 现象
+
+首次打开稍大且样式丰富（含较多代码块、表格等）的 Markdown 文件时，软件明显卡住数秒，UI 无响应。
+
+### 根因分析
+
+1. `home_screen.dart` 的 `_openStartupFiles()` 使用了同步 API `File(path).readAsStringSync()`，在 UI 线程上阻塞读盘
+2. `_buildCodeBlock` 对所有有语言标记的代码块都跑 `flutter_highlight` 的 `highlight.parse`，这是纯 Dart 同步语法树解析，对超长代码段（几十 KB 以上）开销很大，再加上递归构造 TextSpan 树，会进一步拉长首次构建时间
+3. 这两步都发生在 `build()` 路径或同步初始化阶段，叠加起来造成首次打开卡顿
+
+### 修复方案
+
+1. `home_screen.dart`：将 `readAsStringSync()` 改为 `await File(path).readAsString()`，避免同步阻塞主线程
+2. `markdown_renderer.dart` 的 `_buildCodeBlock`：对长度超过 20000 字符的代码块跳过 `flutter_highlight`，回退为不高亮的纯文本渲染（仍保留等宽字体和样式）。AST 缓存机制保证了后续重建不会重复执行解析
+
+### 涉及文件
+
+- `lib/ui/screens/home_screen.dart`
+- `lib/ui/editor/markdown_renderer.dart`
+
+---
+
+## BUG-012 — 带 UTF-8 BOM 的文件第一行一级标题预览不显示
+
+| 字段 | 内容 |
+|------|------|
+| 优先级 | P1 |
+| 状态 | 已修复 |
+
+### 现象
+
+部分 Markdown 文件首行的一级标题（`# Title`）在预览模式下不显示，被当作普通段落渲染。源码模式下内容看起来是正常的。
+
+### 根因分析
+
+Windows 上某些工具（记事本、PowerShell `>` 重定向、部分编辑器另存为 UTF-8）保存的文件会在文件开头插入 UTF-8 BOM (`U+FEFF`)。文件读取后第一行实际是 `﻿# Title`，而 `MarkdownParser._headingRe = RegExp(r'^(#{1,6})\s+(.+)$')` 因为开头是 BOM 而无法匹配，导致一级标题被识别为普通段落。同样地，`MarkdownRenderer._findHeadingLines` 也无法找到首行 heading，TOC 跳转和滚动联动会错位。
+
+### 修复方案
+
+在解析入口处剥离 BOM：
+1. `MarkdownParser.parse()` 开头：如果首字符为 `0xFEFF`，调用 `markdown.substring(1)` 去掉
+2. `MarkdownRenderer._findHeadingLines()` 同样处理一遍，保证 TOC 与 AST 行号一致
+
+### 涉及文件
+
+- `lib/services/markdown_parser.dart`
+- `lib/ui/editor/markdown_renderer.dart`
+
+---
+
+## BUG-013 — 打开文件预览时 SelectionRegistrarScope 报 Duplicate keys
+
+| 字段 | 内容 |
+|------|------|
+| 优先级 | P0 |
+| 状态 | 已修复 |
+
+### 现象
+
+某些 Markdown 文件在预览模式下打开会抛 `Duplicate keys found. Column has multiple children with key [GlobalKey#xxx]` 异常，预览渲染失败。
+
+### 根因分析
+
+`MarkdownRenderer.build()` 之前用 `_headingKeys.putIfAbsent(lineNum, () => GlobalKey())` 给 heading 分配 GlobalKey。当 `_findHeadingLines` 找到的行号数量与解析器 `parse()` 产生的 `HeadingNode` 数量不一致（例如 `# H` 出现在引用块或代码块外的特殊上下文）时，多个 HeadingNode 会用 `lineNum=-1` 共用同一个 GlobalKey；又因为 `_headingKeys` 是 State 字段在多次 build 之间复用，重复使用同一 GlobalKey 在 Column 兄弟节点中触发断言失败。
+
+### 修复方案
+
+1. 每帧 build 开头清空 `_headingKeys`，避免跨帧复用
+2. 为每个 HeadingNode 都分配新的 `GlobalKey()`，互不共用
+3. 仅当 `lineNum > 0` 时把首个 key 注册到 `_headingKeys` 用于 TOC 滚动定位（用 `putIfAbsent` 避免重复行号覆盖）
+
+### 涉及文件
+
+- `lib/ui/editor/markdown_renderer.dart`
