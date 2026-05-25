@@ -225,9 +225,13 @@ class MarkdownParser {
 
   /// Parse markdown text into a list of block-level nodes.
   List<MarkdownNode> parse(String markdown) {
+    // Strip UTF-8 BOM if present (otherwise heading regex on the first line fails)
+    final source = markdown.isNotEmpty && markdown.codeUnitAt(0) == 0xFEFF
+        ? markdown.substring(1)
+        : markdown;
     // LineSplitter handles \n, \r\n, and \r in a single pass without
     // creating intermediate string copies (faster than replaceAll for large files)
-    final lines = const LineSplitter().convert(markdown);
+    final lines = const LineSplitter().convert(source);
     final nodes = <MarkdownNode>[];
     var i = 0;
 

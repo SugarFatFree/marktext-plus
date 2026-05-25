@@ -21,6 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Mermaid diagrams clipped when wider than container
 - stateDiagram-v2 layout chaos (now reuses Dagre flowchart layout)
 - stateDiagram showing multiple end nodes (now unified) + long edge labels overlapping (dynamic spacing based on label length)
+- First file open blocking UI thread due to synchronous readAsStringSync (now async)
+- Large code blocks (>20KB) causing UI freeze during syntax highlighting (now skipped)
+- UTF-8 BOM causing first-line heading to not render in preview mode
+- Duplicate GlobalKey crash when opening files with certain heading structures
+- Provider modification during widget build causing startup crash (moved to postFrameCallback)
 
 ## [v1.2.1] - 2026-04-30
 
