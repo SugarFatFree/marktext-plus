@@ -210,8 +210,8 @@ class HtmlBlockNode extends MarkdownNode {
 class MarkdownParser {
   static final _headingRe = RegExp(r'^(#{1,6})\s+(.+)$');
   static final _hrRe = RegExp(r'^(\*{3,}|-{3,}|_{3,})\s*$');
-  static final _codeFenceRe = RegExp(r'^```(\w*)');
-  static final _codeFenceEndRe = RegExp(r'^```\s*$');
+  static final _codeFenceRe = RegExp(r'^\s*```(\w*)');
+  static final _codeFenceEndRe = RegExp(r'^\s*```\s*$');
   static final _mathBlockRe = RegExp(r'^\$\$\s*$');
   static final _taskRe = RegExp(r'^\[( |x)\]\s+(.+)$');
   static final _blockquoteRe = RegExp(r'^>\s?(.*)$');

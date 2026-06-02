@@ -1,13 +1,18 @@
+import 'dart:io';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:file_picker/file_picker.dart';
 import '../editor/mermaid/widgets/mermaid_diagram.dart';
 import '../editor/mermaid/models/style.dart';
 import '../editor/mermaid/models/node.dart' show NodeStyle;
 import '../editor/mermaid/models/edge.dart' show EdgeStyle;
 
 /// Renders Mermaid diagrams with auto-fit and fullscreen view
-class MermaidRenderer extends StatelessWidget {
+class MermaidRenderer extends StatefulWidget {
   final String code;
   final bool isDarkMode;
 
@@ -17,12 +22,15 @@ class MermaidRenderer extends StatelessWidget {
     required this.isDarkMode,
   });
 
+  @override
+  State<MermaidRenderer> createState() => _MermaidRendererState();
+}
+
+class _MermaidRendererState extends State<MermaidRenderer> {
+  final GlobalKey _diagramKey = GlobalKey();
+
   MermaidStyle _buildStyle() {
-    final baseStyle = isDarkMode ? MermaidStyle.dark() : const MermaidStyle();
-    // Increase spacing for diagrams with long edge labels (state diagrams especially)
-    final maxLabelLen = _estimateMaxEdgeLabelLength();
-    // Each char adds ~10px space; cap at 200px extra
-    final extraSpacing = (maxLabelLen * 10).clamp(0, 200).toDouble();
+    final baseStyle = widget.isDarkMode ? MermaidStyle.dark() : const MermaidStyle();
     return MermaidStyle(
       backgroundColor: baseStyle.backgroundColor,
       defaultNodeStyle: NodeStyle(
@@ -38,8 +46,9 @@ class MermaidRenderer extends StatelessWidget {
         strokeWidth: baseStyle.defaultEdgeStyle.strokeWidth,
         labelFontSize: 14.0,
       ),
-      nodeSpacingX: 80.0 + extraSpacing,
-      nodeSpacingY: 80.0 + extraSpacing,
+      // DagreLayout now dynamically adjusts spacing based on edge labels
+      nodeSpacingX: 60.0,
+      nodeSpacingY: 60.0,
       padding: 30.0,
       fontFamily: baseStyle.fontFamily,
       themeMode: baseStyle.themeMode,
@@ -47,20 +56,50 @@ class MermaidRenderer extends StatelessWidget {
     );
   }
 
-  /// Estimate the longest edge label length in the source code (for spacing adjustment).
-  int _estimateMaxEdgeLabelLength() {
-    int max = 0;
-    for (final line in code.split('\n')) {
-      final trimmed = line.trim();
-      // Match `... --> ... : label` or `... -->|label| ...`
-      final m1 = RegExp(r'-->\s*[^:|]+?\s*:\s*(.+)$').firstMatch(trimmed);
-      final m2 = RegExp(r'-->\|([^|]+)\|').firstMatch(trimmed);
-      final label = (m1?.group(1) ?? m2?.group(1) ?? '').trim();
-      // Chinese chars count as ~2 width
-      final width = label.runes.fold<int>(0, (acc, r) => acc + (r > 127 ? 2 : 1));
-      if (width > max) max = width;
+  Future<void> _saveAsImage(BuildContext context) async {
+    try {
+      final boundary = _diagramKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to capture diagram')),
+          );
+        }
+        return;
+      }
+
+      // Capture at 2x for higher quality
+      final image = await boundary.toImage(pixelRatio: 2.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) return;
+      final pngBytes = byteData.buffer.asUint8List();
+
+      // Let user pick save location
+      final savePath = await FilePicker.platform.saveFile(
+        dialogTitle: 'Save Diagram As',
+        fileName: 'mermaid_diagram.png',
+        type: FileType.custom,
+        allowedExtensions: ['png'],
+        bytes: pngBytes,
+      );
+
+      // On desktop, savePath returns the path; on mobile/web, the file is already saved via bytes
+      if (savePath != null && !Platform.isAndroid && !Platform.isIOS) {
+        await File(savePath).writeAsBytes(pngBytes);
+      }
+
+      if (context.mounted && savePath != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Saved to $savePath')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Save failed: $e')),
+        );
+      }
     }
-    return max;
   }
 
   @override
@@ -104,9 +143,22 @@ class MermaidRenderer extends StatelessWidget {
                     ),
                   ),
                 ),
+                Tooltip(
+                  message: '保存图表为 PNG',
+                  child: TextButton.icon(
+                    onPressed: () => _saveAsImage(context),
+                    icon: const Icon(Icons.download_outlined, size: 16),
+                    label: const Text('另存为'),
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      textStyle: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ),
                 TextButton.icon(
                   onPressed: () async {
-                    await Clipboard.setData(ClipboardData(text: code));
+                    await Clipboard.setData(ClipboardData(text: widget.code));
                   },
                   icon: const Icon(Icons.copy_outlined, size: 16),
                   label: const Text('复制源码'),
@@ -126,15 +178,21 @@ class MermaidRenderer extends StatelessWidget {
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   // Auto-fit: scale down to container width if diagram is too wide
-                  return FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.topLeft,
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        minWidth: constraints.maxWidth,
-                        maxWidth: constraints.maxWidth * 3,
+                  return RepaintBoundary(
+                    key: _diagramKey,
+                    child: Container(
+                      color: widget.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.topLeft,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minWidth: constraints.maxWidth,
+                            maxWidth: constraints.maxWidth * 3,
+                          ),
+                          child: _buildDiagram(style),
+                        ),
                       ),
-                      child: _buildDiagram(style),
                     ),
                   );
                 },
@@ -150,13 +208,13 @@ class MermaidRenderer extends StatelessWidget {
     showDialog(
       context: context,
       barrierColor: Colors.black54,
-      builder: (context) => _MermaidFullscreenView(code: code, style: style),
+      builder: (context) => _MermaidFullscreenView(code: widget.code, style: style),
     );
   }
 
   Widget _buildDiagram(MermaidStyle style) {
     return MermaidDiagram(
-      code: code,
+      code: widget.code,
       style: style,
       errorBuilder: (context, error) {
         return Container(
