@@ -55,8 +55,8 @@ class MermaidStyle {
     this.defaultEdgeStyle = const EdgeStyle(
       strokeColor: MermaidColors.defaultEdgeColor,
     ),
-    this.nodeSpacingX = 50.0,
-    this.nodeSpacingY = 50.0,
+    this.nodeSpacingX = 60.0,
+    this.nodeSpacingY = 60.0,
     this.padding = 20.0,
     this.fontFamily,
     this.themeMode = MermaidThemeMode.light,

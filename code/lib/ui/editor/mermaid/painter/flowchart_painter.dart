@@ -29,18 +29,64 @@ class FlowchartPainter extends MermaidPainter {
       subgraphBounds = _drawSubgraphs(canvas);
     }
 
-    // Draw edges (behind nodes)
+    // Group edges by (from, to) to handle parallel edges with offsets
+    final edgeGroups = <String, List<MermaidEdge>>{};
+    for (final edge in diagram.edges) {
+      if (edge.isSubgraphEdge && subgraphBounds != null) continue;
+      final key = '${edge.from}->${edge.to}';
+      edgeGroups.putIfAbsent(key, () => []).add(edge);
+    }
+
+    // Compute perpendicular offset multiplier for each edge
+    final edgeOffsets = <MermaidEdge, double>{};
+    for (final group in edgeGroups.values) {
+      for (var i = 0; i < group.length; i++) {
+        double offsetMultiplier;
+        if (group.length == 1) {
+          offsetMultiplier = 0.0; // Single edge: no offset
+        } else {
+          // Distribute evenly: -(N-1)/2 .. +(N-1)/2 with step 1
+          final centerOffset = (group.length - 1) / 2.0;
+          offsetMultiplier = (i - centerOffset);
+        }
+        edgeOffsets[group[i]] = offsetMultiplier;
+      }
+    }
+
+    // Draw edges (behind nodes) with parallel-edge offsets
     for (final edge in diagram.edges) {
       if (edge.isSubgraphEdge && subgraphBounds != null) {
         _drawSubgraphEdge(canvas, edge, subgraphBounds);
       } else {
-        _drawEdge(canvas, edge);
+        _drawEdge(canvas, edge, parallelOffset: edgeOffsets[edge] ?? 0.0);
       }
     }
 
     // Draw nodes on top
     for (final node in diagram.nodes) {
       _drawNode(canvas, node);
+    }
+
+    // Draw edge labels last to prevent node overlap
+    for (final group in edgeGroups.values) {
+      for (var i = 0; i < group.length; i++) {
+        final edge = group[i];
+        final fromNode = diagram.nodes.firstWhere((n) => n.id == edge.from);
+        final toNode = diagram.nodes.firstWhere((n) => n.id == edge.to);
+        final from = Offset(fromNode.x + fromNode.width / 2, fromNode.y + fromNode.height / 2);
+        final to = Offset(toNode.x + toNode.width / 2, toNode.y + toNode.height / 2);
+
+        // Label sits above its edge - use the same offset as the edge line
+        final lineOffset = edgeOffsets[edge] ?? 0.0;
+        // Place label slightly further from line for readability
+        // For single edge: t=0.5, multiplier = 1 (one side)
+        // For parallel: align with line offset
+        final labelOffsetMultiplier = group.length == 1
+            ? 1.0
+            : lineOffset * 2.5; // Scale up so label sits clearly on its line
+
+        _drawEdgeLabel(canvas, edge, from, to, perpendicularMultiplier: labelOffsetMultiplier);
+      }
     }
   }
 
@@ -453,7 +499,7 @@ class FlowchartPainter extends MermaidPainter {
     );
   }
 
-  void _drawEdge(Canvas canvas, MermaidEdge edge) {
+  void _drawEdge(Canvas canvas, MermaidEdge edge, {double parallelOffset = 0.0}) {
     final fromNode = diagram.getNode(edge.from);
     final toNode = diagram.getNode(edge.to);
 
@@ -472,7 +518,29 @@ class FlowchartPainter extends MermaidPainter {
     );
 
     // Determine connection points based on layout direction and node positions
-    final (fromPoint, toPoint) = _getConnectionPoints(fromNode, toNode);
+    var (fromPoint, toPoint) = _getConnectionPoints(fromNode, toNode);
+
+    // Apply parallel offset perpendicular to edge direction for parallel edges
+    if (parallelOffset != 0.0) {
+      final dx = toPoint.dx - fromPoint.dx;
+      final dy = toPoint.dy - fromPoint.dy;
+      final length = math.sqrt(dx * dx + dy * dy);
+      if (length > 0) {
+        // Perpendicular vector (rotated 90 degrees)
+        final perpX = -dy / length;
+        final perpY = dx / length;
+        // Each unit of offset = 18px, so 2 parallel edges sit ~36px apart
+        final offsetDistance = parallelOffset * 18.0;
+        fromPoint = Offset(
+          fromPoint.dx + perpX * offsetDistance,
+          fromPoint.dy + perpY * offsetDistance,
+        );
+        toPoint = Offset(
+          toPoint.dx + perpX * offsetDistance,
+          toPoint.dy + perpY * offsetDistance,
+        );
+      }
+    }
 
     // Check if this is a back-edge (going backwards in the flow)
     final isBackEdge = _isBackEdge(fromNode, toNode);
@@ -597,9 +665,6 @@ class FlowchartPainter extends MermaidPainter {
         drawArrowHead(canvas, from, reverseAngle, edge.arrowType, paint);
       }
     }
-
-    // Draw label
-    _drawEdgeLabel(canvas, edge, from, to);
   }
 
   /// Draw back edge (loops back) with curved path around nodes
@@ -767,9 +832,6 @@ class FlowchartPainter extends MermaidPainter {
         drawArrowHead(canvas, arrowPoint, arrowAngle, edge.arrowType, paint);
       }
     }
-
-    // Draw label at midpoint of the curve
-    _drawEdgeLabel(canvas, edge, from, to);
   }
 
   void _drawDashedPath(Canvas canvas, Path path, Paint paint) {
@@ -788,24 +850,36 @@ class FlowchartPainter extends MermaidPainter {
     }
   }
 
-  void _drawEdgeLabel(Canvas canvas, MermaidEdge edge, Offset from, Offset to) {
+  void _drawEdgeLabel(Canvas canvas, MermaidEdge edge, Offset from, Offset to, {double perpendicularMultiplier = 1.0}) {
     if (edge.label == null || edge.label!.isEmpty) return;
 
-    // Position label at the midpoint, slightly offset
+    // Position label at midpoint of the edge
     final midPoint = Offset(
       (from.dx + to.dx) / 2,
       (from.dy + to.dy) / 2,
     );
 
-    // Offset label to avoid overlapping with the line
-    final labelOffset = _isHorizontal
-        ? const Offset(0, -12)
-        : const Offset(12, 0);
+    // Calculate perpendicular offset to avoid overlapping with the line
+    final dx = to.dx - from.dx;
+    final dy = to.dy - from.dy;
+    final edgeLength = math.sqrt(dx * dx + dy * dy);
 
+    // Perpendicular vector (rotated 90 degrees)
+    final perpX = edgeLength > 0 ? -dy / edgeLength : 0.0;
+    final perpY = edgeLength > 0 ? dx / edgeLength : 0.0;
+
+    // Estimate label height for spacing between parallel labels
     final edgeStyle = edge.style ?? style.defaultEdgeStyle;
+    final fontSize = edgeStyle.labelFontSize;
+    final estimatedLabelHeight = fontSize * 1.5;
+    // Multiplier-based perpendicular offset: each unit = half label height
+    final perpDistance = (estimatedLabelHeight / 2 + 8) * perpendicularMultiplier;
+
+    final labelOffset = Offset(perpX * perpDistance, perpY * perpDistance);
+
     final textStyle = TextStyle(
       color: Color(edgeStyle.labelColor ?? MermaidColors.defaultTextColor),
-      fontSize: edgeStyle.labelFontSize,
+      fontSize: fontSize,
     );
 
     drawText(
@@ -815,7 +889,8 @@ class FlowchartPainter extends MermaidPainter {
       textStyle,
       backgroundColor: Color(
         edgeStyle.labelBackgroundColor ?? style.backgroundColor,
-      ),
+      ).withValues(alpha: 0.95),
+      maxWidth: 120.0,
     );
   }
 

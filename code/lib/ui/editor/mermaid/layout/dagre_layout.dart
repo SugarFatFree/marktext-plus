@@ -483,9 +483,62 @@ class DagreLayout extends LayoutEngine {
         direction == DiagramDirection.rightToLeft;
 
     final style = context.style;
-    // Increase spacing for better readability
-    final rankSep = (isHorizontal ? style.nodeSpacingX : style.nodeSpacingY) * 1.2;
-    final nodeSep = (isHorizontal ? style.nodeSpacingY : style.nodeSpacingX) * 1.0;
+
+    // Calculate edge label sizes for dynamic spacing
+    // Use MAX (not median) to ensure all labels fit without overlap
+    double maxLabelWidth = 0;
+    double maxLabelHeight = 0;
+    int maxParallelEdges = 1;
+
+    // Count parallel edges between same node pairs
+    final edgeGroupCounts = <String, int>{};
+    for (final edge in context.diagram.edges) {
+      final key = '${edge.from}->${edge.to}';
+      edgeGroupCounts[key] = (edgeGroupCounts[key] ?? 0) + 1;
+    }
+    for (final count in edgeGroupCounts.values) {
+      if (count > maxParallelEdges) maxParallelEdges = count;
+    }
+
+    for (final edge in context.diagram.edges) {
+      if (edge.label != null && edge.label!.isNotEmpty) {
+        final edgeStyle = edge.style ?? style.defaultEdgeStyle;
+        final fontSize = edgeStyle.labelFontSize;
+        // Account for line wrapping at ~120px max width
+        final rawWidth = edge.label!.length * fontSize * 0.7; // Chinese chars wider
+        final wrappedWidth = math.min(rawWidth, 120.0);
+        final wrapLines = (rawWidth / 120.0).ceil().clamp(1, 4);
+        final labelHeight = fontSize * 1.5 * wrapLines;
+        maxLabelWidth = math.max(maxLabelWidth, wrappedWidth);
+        maxLabelHeight = math.max(maxLabelHeight, labelHeight.toDouble());
+      }
+    }
+
+    // Spacing strategy:
+    // - rankSep (between layers): must accommodate label height + padding
+    //   For vertical layouts, this is critical because labels sit between layers
+    // - nodeSep (within layer): also needs extra space when parallel edges exist
+    //   so the perpendicular line offsets don't push edges into adjacent nodes
+    // - parallel edges need EXTRA perpendicular space:
+    //   each parallel edge offsets ±18px from center, so 2 edges span 36px,
+    //   3 edges span 54px, etc. We need that much extra room around the edge path.
+    final parallelExtraVertical = (maxParallelEdges - 1) * 40.0;
+    final parallelExtraHorizontal = (maxParallelEdges - 1) * 50.0;
+
+    final baseSepX = style.nodeSpacingX;
+    final baseSepY = style.nodeSpacingY;
+
+    final rankSep = isHorizontal
+        // Horizontal layout: labels sit horizontally above/below the line
+        ? math.max(baseSepX * 1.5, maxLabelWidth + 60 + parallelExtraVertical)
+        // Vertical layout: labels sit vertically, need height clearance
+        : math.max(baseSepY * 1.5, maxLabelHeight * 2 + 50 + parallelExtraVertical);
+    final nodeSep = isHorizontal
+        ? math.max(baseSepY, maxLabelHeight + 30 + parallelExtraHorizontal)
+        // Vertical layout: same-layer nodes must be far enough apart that
+        // parallel edges (offset perpendicular = horizontal) don't collide
+        // with neighboring nodes
+        : math.max(baseSepX, maxLabelWidth + 30 + parallelExtraHorizontal);
 
     // Calculate max width for each layer (for centering)
     final layerMaxSizes = <double>[];

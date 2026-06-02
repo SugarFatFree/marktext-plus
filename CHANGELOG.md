@@ -5,6 +5,34 @@ All notable changes to MarkText Plus will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.2.3] - 2026-06-02
+
+### Added
+- Mermaid diagram export as PNG image (toolbar "另存为" button, 2x resolution capture via RepaintBoundary)
+- Progressive rendering for large files (initial 50 nodes, recursively schedules more via postFrameCallback)
+- File loading uses isolate (compute) for background reading, no longer blocks UI thread
+- Loading skeleton screens during editor mode switches
+- Per-mode scroll offset fields in TabInfo (foundation for future split-mode scroll sync)
+
+### Fixed
+- File-open behavior dialog repeatedly appearing (default to existingWindow when dismissed)
+- Indented code blocks not rendering (regex now allows leading whitespace)
+- Large files (>900 lines) freezing preview window (progressive rendering + isolate-based file read)
+- Blockquote text overlapping inside multi-line quotes (removed forceStrutHeight)
+- Table last column overflowing border (FlexColumnWidth in preview mode)
+- Split-mode tables not horizontally scrollable (mode-aware scroll wrapper)
+- Mode switching loses scroll position (IndexedStack keeps all editor states alive)
+- Mode switching causing severe lag for large files (deferred build with skeleton screen)
+- File loading animation appearing static (forced frame render before isolate work begins)
+- Mermaid stateDiagram parallel edges overlapping each other and their labels (perpendicular line offset + label follows its line)
+- Mermaid edge labels covered by nodes (draw order: edges → nodes → labels)
+- Mermaid layout cramped (Dagre dynamic spacing based on max label size + parallel-edge count)
+
+### Changed
+- Mermaid edge label max wrap width tightened to 120px (better vertical layout)
+- Mermaid base node spacing reduced to 60px (DagreLayout now adds dynamic extra spacing)
+- Editor mode switching duration reduced to 150ms with smoother easing
+
 ## [v1.2.2] - 2026-05-22
 
 ### Added

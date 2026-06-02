@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -213,26 +214,46 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final config = ref.read(settingsProvider);
     if (config.fileOpenBehavior == FileOpenBehavior.notSet && mounted) {
       final choice = await _showFileOpenBehaviorDialog();
-      if (choice != null) {
-        ref.read(settingsProvider.notifier).updateConfig(
-          (c) => c.copyWith(fileOpenBehavior: choice),
-        );
-      }
+      // If user dismisses dialog (ESC or system close), default to existingWindow
+      final finalChoice = choice ?? FileOpenBehavior.existingWindow;
+      ref.read(settingsProvider.notifier).updateConfig(
+        (c) => c.copyWith(fileOpenBehavior: finalChoice),
+      );
     }
 
     for (final path in files) {
       try {
-        final content = await File(path).readAsString();
+        // Create tab with loading state first
+        final tabId = DateTime.now().millisecondsSinceEpoch.toString();
         final tab = TabInfo(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          id: tabId,
           filePath: path,
           fileName: p.basename(path),
-          content: content,
+          content: '',
+          isLoading: true,
         );
         ref.read(tabProvider.notifier).addTab(tab);
+
+        // Force a frame to render the loading indicator
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          try {
+            // Read file content in isolate for large files
+            final content = await compute(_readFileInIsolate, path);
+            ref.read(tabProvider.notifier).updateContent(tabId, content);
+          } catch (e) {
+            // Handle error: remove the loading tab or show error state
+            ref.read(tabProvider.notifier).removeTab(tabId);
+          }
+        });
+
         ref.read(settingsProvider.notifier).addRecentFile(path);
       } catch (_) {}
     }
+  }
+
+  // Top-level or static function for compute isolate
+  static Future<String> _readFileInIsolate(String path) async {
+    return await File(path).readAsString();
   }
 
   Future<FileOpenBehavior?> _showFileOpenBehaviorDialog() {
@@ -320,15 +341,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (!allowedExtensions.contains(ext)) continue;
 
       try {
-        // Open the file from its original location (don't copy)
-        final content = await File(path).readAsString();
+        // Create tab with loading state first
+        final tabId = DateTime.now().millisecondsSinceEpoch.toString();
         final tab = TabInfo(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          id: tabId,
           filePath: path,
           fileName: p.basename(path),
-          content: content,
+          content: '',
+          isLoading: true,
         );
         ref.read(tabProvider.notifier).addTab(tab);
+
+        // Force a frame to render the loading indicator
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          try {
+            // Read file content in isolate for large files
+            final content = await compute(_readFileInIsolate, path);
+            ref.read(tabProvider.notifier).updateContent(tabId, content);
+          } catch (e) {
+            ref.read(tabProvider.notifier).removeTab(tabId);
+          }
+        });
+
         ref.read(settingsProvider.notifier).addRecentFile(path);
       } catch (_) {
         // Skip files that can't be read
@@ -493,72 +527,166 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
       );
     }
-    Widget editor;
+
     if (activeTab.isLoading) {
       final tokens = AppTheme.getTokens(ref.watch(settingsProvider).themeName);
-      editor = Center(
+      return Center(
         key: ValueKey('loading_${activeTab.id}'),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             SizedBox(
-              width: 24,
-              height: 24,
+              width: 32,
+              height: 32,
               child: CircularProgressIndicator(
-                strokeWidth: 2.5,
+                strokeWidth: 3,
                 valueColor: AlwaysStoppedAnimation<Color>(tokens.colorAccent),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             Text(
               activeTab.fileName,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: 14,
                 color: tokens.colorTextMuted,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Loading...',
+              style: TextStyle(
+                fontSize: 12,
+                color: tokens.colorTextMuted.withValues(alpha: 0.6),
               ),
             ),
           ],
         ),
       );
-    } else {
-      final content = activeTab.content;
+    }
+
+    final content = activeTab.content;
 
     void onContentChanged(String newContent) {
       ref.read(tabProvider.notifier).updateContent(activeTab.id, newContent);
     }
 
-    // Use ValueKey so the editor rebuilds when switching tabs
-    switch (editMode) {
-      case EditMode.source:
-        editor = SourceEditor(
-          key: ValueKey('source_${activeTab.id}'),
-          initialContent: content,
-          onChanged: onContentChanged,
-        );
-      case EditMode.preview:
-        editor = MarkdownRenderer(
-          key: ValueKey('preview_${activeTab.id}'),
-          markdown: content,
-        );
-      case EditMode.split:
-        editor = SplitEditor(
-          key: ValueKey('split_${activeTab.id}'),
-          initialContent: content,
-          onChanged: onContentChanged,
-        );
-    }
-    }
+    // Use IndexedStack to keep all editor states, avoiding rebuild on mode switch
+    final currentIndex = editMode.index;
+
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 80),
+      duration: const Duration(milliseconds: 150),
       switchInCurve: Curves.easeOut,
-      switchOutCurve: Curves.easeOut,
-      transitionBuilder: (child, animation) {
-        return FadeTransition(
-          opacity: animation,
-          child: child,
-        );
-      },
-      child: editor,
+      child: IndexedStack(
+        key: ValueKey('editors_${activeTab.id}_$currentIndex'),
+        index: currentIndex,
+        sizing: StackFit.expand,
+        children: [
+          // EditMode.source (index 0)
+          _DeferredEditorBuilder(
+            key: ValueKey('source_${activeTab.id}'),
+            shouldBuild: currentIndex == 0,
+            builder: () => SourceEditor(
+              key: ValueKey('source_inner_${activeTab.id}'),
+              initialContent: content,
+              onChanged: onContentChanged,
+            ),
+          ),
+          // EditMode.preview (index 1)
+          _DeferredEditorBuilder(
+            key: ValueKey('preview_${activeTab.id}'),
+            shouldBuild: currentIndex == 1,
+            builder: () => MarkdownRenderer(
+              key: ValueKey('preview_inner_${activeTab.id}'),
+              markdown: content,
+            ),
+          ),
+          // EditMode.split (index 2)
+          _DeferredEditorBuilder(
+            key: ValueKey('split_${activeTab.id}'),
+            shouldBuild: currentIndex == 2,
+            builder: () => SplitEditor(
+              key: ValueKey('split_inner_${activeTab.id}'),
+              initialContent: content,
+              onChanged: onContentChanged,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Deferred editor builder that shows a skeleton screen while building
+class _DeferredEditorBuilder extends StatefulWidget {
+  const _DeferredEditorBuilder({
+    super.key,
+    required this.shouldBuild,
+    required this.builder,
+  });
+
+  final bool shouldBuild;
+  final Widget Function() builder;
+
+  @override
+  State<_DeferredEditorBuilder> createState() => _DeferredEditorBuilderState();
+}
+
+class _DeferredEditorBuilderState extends State<_DeferredEditorBuilder> {
+  Widget? _cachedWidget;
+  bool _isBuilding = false;
+
+  @override
+  void didUpdateWidget(_DeferredEditorBuilder oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.shouldBuild && !oldWidget.shouldBuild && _cachedWidget == null) {
+      _startBuild();
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.shouldBuild) {
+      _startBuild();
+    }
+  }
+
+  void _startBuild() {
+    if (_isBuilding || _cachedWidget != null) return;
+    _isBuilding = true;
+
+    // Defer build to next frame to show skeleton first
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() {
+        _cachedWidget = widget.builder();
+        _isBuilding = false;
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_cachedWidget != null) {
+      return _cachedWidget!;
+    }
+
+    // Show skeleton screen while building
+    return Container(
+      color: Theme.of(context).colorScheme.surface,
+      child: Center(
+        child: SizedBox(
+          width: 32,
+          height: 32,
+          child: CircularProgressIndicator(
+            strokeWidth: 3,
+            valueColor: AlwaysStoppedAnimation<Color>(
+              Theme.of(context).colorScheme.primary,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

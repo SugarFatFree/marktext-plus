@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/config/app_config.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/tab_info.dart';
 import '../../providers/editor_provider.dart';
@@ -46,7 +47,11 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   String? _cachedMarkdown;
   List<md.MarkdownNode>? _cachedNodes;
   List<int>? _cachedHeadingLines;
-  String? _cachedHtml;
+
+  // Progressive rendering state
+  int _renderedNodeCount = 0;
+  static const _initialBatchSize = 50;
+  static const _incrementalBatchSize = 50;
 
   /// Parse raw markdown to find heading line numbers (1-based),
   /// matching the same logic used by the TOC panel.
@@ -141,10 +146,19 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       final parser = md.MarkdownParser();
       _cachedNodes = parser.parse(widget.markdown);
       _cachedHeadingLines = _findHeadingLines(widget.markdown);
-      _cachedHtml = null;
+      _renderedNodeCount = 0; // Reset progressive rendering on content change
     }
     final nodes = _cachedNodes!;
     final headingLines = _cachedHeadingLines!;
+
+    // Progressive rendering: initially render first batch, then incrementally add more
+    if (_renderedNodeCount == 0) {
+      _renderedNodeCount = nodes.length > _initialBatchSize ? _initialBatchSize : nodes.length;
+      if (nodes.length > _initialBatchSize) {
+        _scheduleNextBatch(nodes.length);
+      }
+    }
+
     final widgets = <Widget>[];
     _matchCounter = 0;
     // Rebuild heading key map fresh each frame so duplicate or unknown
@@ -152,7 +166,8 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     _headingKeys.clear();
 
     int headingIndex = 0;
-    for (final node in nodes) {
+    for (int i = 0; i < _renderedNodeCount; i++) {
+      final node = nodes[i];
       switch (node) {
         case md.HeadingNode():
           final lineNum = headingIndex < headingLines.length
@@ -187,6 +202,20 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         case md.HtmlBlockNode():
           widgets.add(_buildHtmlBlock(node, theme));
       }
+    }
+
+    // Add loading indicator if more nodes are pending
+    if (_renderedNodeCount < nodes.length) {
+      widgets.add(const Padding(
+        padding: EdgeInsets.all(16),
+        child: Center(
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      ));
     }
 
     return Focus(
@@ -238,16 +267,17 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     return buffer.toString();
   }
 
-  /// Convert current markdown to HTML for clipboard use
-  String _markdownToHtml() {
-    if (_cachedHtml != null) return _cachedHtml!;
-    final nodes = _cachedNodes ?? md.MarkdownParser().parse(widget.markdown);
-    final buffer = StringBuffer();
-    for (final node in nodes) {
-      buffer.writeln(ExportService.nodeToHtml(node));
-    }
-    _cachedHtml = buffer.toString();
-    return _cachedHtml!;
+  void _scheduleNextBatch(int totalNodes) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _renderedNodeCount >= totalNodes) return;
+      setState(() {
+        _renderedNodeCount = (_renderedNodeCount + _incrementalBatchSize).clamp(0, totalNodes);
+      });
+      // Continue scheduling until all nodes are rendered
+      if (_renderedNodeCount < totalNodes) {
+        _scheduleNextBatch(totalNodes);
+      }
+    });
   }
 
   Widget _buildHeading(md.HeadingNode node, ThemeData theme, AppThemeTokens tokens, {Key? key}) {
@@ -481,68 +511,93 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       ),
       child: Text.rich(
         _buildInlineSpans(node.inlineSpans, theme, _defaultTextStyle),
-        strutStyle: _defaultStrutStyle,
+        // Use natural line height without forcing strut height to prevent text overlap
+        strutStyle: StrutStyle(
+          fontSize: 16,
+          height: 1.6,
+          leadingDistribution: TextLeadingDistribution.even,
+          fontFamilyFallback: AppTheme.platformFontFallback,
+        ),
       ),
     );
   }
 
   Widget _buildTable(md.TableNode node, ThemeData theme) {
     final colCount = node.headers.length;
-    return Container(
+    final config = ref.watch(settingsProvider);
+    final isSplitMode = config.editMode == EditMode.split;
+
+    // In split mode, enable horizontal scroll for narrow space
+    // In preview mode, use flexible width with text wrapping
+    final tableWidget = Table(
+      border: TableBorder.symmetric(
+        inside: BorderSide(color: theme.dividerColor),
+      ),
+      defaultColumnWidth: isSplitMode
+          ? const IntrinsicColumnWidth()
+          : const FlexColumnWidth(),
+      children: [
+        TableRow(
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHighest,
+          ),
+          children: [
+            for (var i = 0; i < node.headers.length; i++)
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: Text.rich(
+                  _buildInlineSpans(
+                    _inlineParser.parseInline(node.headers[i]),
+                    theme,
+                    theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  textAlign: _getAlignment(node.alignments, i),
+                  softWrap: true,
+                ),
+              ),
+          ],
+        ),
+        for (final row in node.rows)
+          TableRow(
+            children: [
+              for (var i = 0; i < colCount; i++)
+                Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Text.rich(
+                    _buildInlineSpans(
+                      _inlineParser.parseInline(i < row.length ? row[i] : ''),
+                      theme,
+                      const TextStyle(),
+                    ),
+                    textAlign: _getAlignment(node.alignments, i),
+                    softWrap: true,
+                  ),
+                ),
+            ],
+          ),
+      ],
+    );
+
+    final tableContainer = Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
         border: Border.all(color: theme.dividerColor),
         borderRadius: BorderRadius.circular(4),
       ),
-      // Remove SingleChildScrollView to avoid breaking SelectionArea continuity
-      // Trade-off: wide tables will wrap or overflow instead of horizontal scroll
-      child: Table(
-        border: TableBorder.symmetric(
-          inside: BorderSide(color: theme.dividerColor),
-        ),
-        defaultColumnWidth: const IntrinsicColumnWidth(),
-        children: [
-          TableRow(
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest,
-            ),
-            children: [
-              for (var i = 0; i < node.headers.length; i++)
-                Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: Text.rich(
-                    _buildInlineSpans(
-                      _inlineParser.parseInline(node.headers[i]),
-                      theme,
-                      theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    textAlign: _getAlignment(node.alignments, i),
-                  ),
-                ),
-            ],
-          ),
-          for (final row in node.rows)
-            TableRow(
-              children: [
-                for (var i = 0; i < colCount; i++)
-                  Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Text.rich(
-                      _buildInlineSpans(
-                        _inlineParser.parseInline(i < row.length ? row[i] : ''),
-                        theme,
-                        const TextStyle(),
-                      ),
-                      textAlign: _getAlignment(node.alignments, i),
-                    ),
-                  ),
-              ],
-            ),
-        ],
-      ),
+      child: tableWidget,
     );
+
+    // Only enable horizontal scroll in split mode
+    if (isSplitMode) {
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: tableContainer,
+      );
+    }
+
+    return tableContainer;
   }
 
   TextAlign _getAlignment(List<String> alignments, int index) {
