@@ -10,6 +10,7 @@ import '../../providers/update_provider.dart';
 import '../../providers/word_count_provider.dart';
 import '../../services/update_service.dart';
 import '../editor/syntax_highlighter.dart';
+import '../../models/file_encoding.dart';
 import '../../models/line_ending.dart';
 
 class StatusBar extends ConsumerWidget {
@@ -26,6 +27,8 @@ class StatusBar extends ConsumerWidget {
             IncrementalMarkdownHighlighter.maxHighlightedLength));
     final lineEnding = ref.watch(
         activeTabProvider.select((tab) => tab?.lineEnding ?? LineEnding.lf));
+    final encoding = ref.watch(activeTabProvider
+        .select((tab) => tab?.encoding ?? FileEncoding.utf8Encoding));
     final updateState = ref.watch(updateProvider);
     final l10n = AppLocalizations.of(context)!;
     final tokens = AppTheme.getTokens(ref.watch(settingsProvider).themeName);
@@ -50,6 +53,11 @@ class StatusBar extends ConsumerWidget {
           _divider(tokens),
           // Was the literal "LF" regardless of what the file actually used.
           Text(lineEnding.label, style: style),
+          _divider(tokens),
+          // Beside the line ending because it is the same kind of fact about
+          // the file on disk — and because a document that opened as mojibake
+          // is otherwise a mystery: "Latin-1" here is the explanation.
+          Text(encoding.label, style: style),
           if (highlightOff) ...[
             _divider(tokens),
             Text(l10n.statusHighlightOff, style: style),
