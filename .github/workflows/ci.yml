@@ -98,6 +98,64 @@ jobs:
         working-directory: code
         run: flutter build windows --release
 
+      # An installer as well as the loose files. A folder unzipped from a
+      # downloaded artifact carries the mark of the web and is unsigned, so
+      # Windows checks it on every launch — which makes it useless for
+      # comparing startup against an installed build. Installing puts the
+      # program somewhere normal and takes that difference out of the
+      # measurement. It is also how anyone would actually run it.
+      - name: Create Inno Setup script
+        shell: pwsh
+        run: |
+          $iss = @"
+          [Setup]
+          AppName=MarkText Plus
+          AppVersion=0.0.0
+          AppPublisher=MarkText Plus
+          DefaultDirName={autopf}\MarkText Plus
+          DefaultGroupName=MarkText Plus
+          OutputDir=${{ github.workspace }}
+          OutputBaseFilename=marktext-plus-setup
+          Compression=lzma2
+          SolidCompression=yes
+          SetupIconFile=${{ github.workspace }}\code\windows\runner\resources\app_icon.ico
+          UninstallDisplayIcon={app}\marktext_plus.exe
+          ArchitecturesInstallIn64BitMode=x64compatible
+          WizardStyle=modern
+          ChangesAssociations=yes
+
+          [Registry]
+          Root: HKA; Subkey: "Software\Classes\MarkTextPlus.md"; ValueType: string; ValueName: ""; ValueData: "MarkText Plus Markdown File"; Flags: uninsdeletekey
+          Root: HKA; Subkey: "Software\Classes\MarkTextPlus.md\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\marktext_plus.exe,0"
+          Root: HKA; Subkey: "Software\Classes\MarkTextPlus.md\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\marktext_plus.exe"" ""%1"""
+          Root: HKA; Subkey: "Software\Classes\.md\OpenWithProgids"; ValueType: string; ValueName: "MarkTextPlus.md"; ValueData: ""; Flags: uninsdeletevalue
+          Root: HKA; Subkey: "Software\Classes\.markdown\OpenWithProgids"; ValueType: string; ValueName: "MarkTextPlus.md"; ValueData: ""; Flags: uninsdeletevalue
+          Root: HKA; Subkey: "Software\Classes\.txt\OpenWithProgids"; ValueType: string; ValueName: "MarkTextPlus.md"; ValueData: ""; Flags: uninsdeletevalue
+
+          [Files]
+          Source: "${{ github.workspace }}\code\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: recursesubdirs
+
+          [Icons]
+          Name: "{group}\MarkText Plus"; Filename: "{app}\marktext_plus.exe"
+          Name: "{autodesktop}\MarkText Plus"; Filename: "{app}\marktext_plus.exe"; Tasks: desktopicon
+
+          [Tasks]
+          Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional icons:"
+
+          [Run]
+          Filename: "{app}\marktext_plus.exe"; Description: "Launch MarkText Plus"; Flags: nowait postinstall skipifsilent
+          "@
+          $iss | Out-File -FilePath "setup.iss" -Encoding UTF8
+
+      - name: Build installer
+        run: iscc setup.iss
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64-setup-${{ github.sha }}
+          path: marktext-plus-setup.exe
+          retention-days: 14
+
       # Uploaded unzipped: the action zips the directory itself, and a nested
       # archive would need unpacking twice before the exe could be run.
       - uses: actions/upload-artifact@v4
