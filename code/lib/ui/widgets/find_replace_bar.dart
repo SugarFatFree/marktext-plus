@@ -99,6 +99,19 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
     super.initState();
     _findController.addListener(_onFindTextChanged);
     widget.textController?.addListener(_onDocumentChanged);
+
+    // Find Next and Find Previous live in the Edit menu and on a shortcut, but
+    // the match list is here, so they arrive as a request to step.
+    ref.listenManual(editorProvider.select((s) => s.findStepRequest),
+        (previous, next) {
+      if (previous == null || next <= previous) return;
+      if (ref.read(editorProvider).findStepForward) {
+        _findNext();
+      } else {
+        _findPrevious();
+      }
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _findFocusNode.requestFocus();
     });

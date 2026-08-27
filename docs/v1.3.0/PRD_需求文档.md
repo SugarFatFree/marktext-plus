@@ -19,6 +19,7 @@
 | FEAT-011 | 2026-08-27 | 快捷键真正生效，且与设置页的自定义打通 | 高 | 中等 | 已实现 |
 | FEAT-012 | 2026-08-27 | 补齐文件菜单：关闭标签页、清空最近文件 | 中 | 简单 | 已实现 |
 | FEAT-013 | 2026-08-27 | 补齐视图菜单：命令面板、目录（TOC）入口 | 中 | 简单 | 已实现 |
+| FEAT-014 | 2026-08-27 | 补齐编辑菜单：查找下一个 / 上一个（F3 / Shift+F3） | 中 | 中等 | 已实现 |
 
 ## 详细需求
 
@@ -209,3 +210,18 @@
 | 涉及文件 | `lib/providers/sidebar_provider.dart`（新增）、`lib/ui/widgets/side_bar.dart`、`lib/ui/widgets/app_menu_bar.dart`、`lib/core/i18n/l10n/*` |
 | 验收标准 | 视图菜单能打开命令面板；点「目录」后侧边栏展开并停在目录面板 |
 | 未跟进的源项目菜单项 | `reloadImages`、`reloadWindow`、`showDeveloperTools` —— 后两个是 Electron 开发期专用，在 Flutter 桌面端没有对应物；`reloadImages` 价值有限，暂不实现 |
+
+---
+
+### FEAT-014 — 查找下一个 / 上一个
+
+| 字段 | 内容 |
+|------|------|
+| 实现日期 | 2026-08-27 |
+| 优先级 | 中 |
+| 难易度 | 中等 |
+| 需求描述 | 「查找下一个 / 上一个」在本项目里**只以查找栏上两个箭头按钮的 tooltip 形式存在** —— 没有菜单项，也没有快捷键，只能用鼠标点。源项目在编辑菜单里有这两项，Linux/Windows 绑 F3 / Shift+F3 |
+| 实现方案 | ① 匹配列表属于查找栏自身的 state，菜单够不着，所以在 `EditorState` 里加一个**递增计数** `findStepRequest` 加方向标记，查找栏用 `ref.listenManual` 响应 —— 用计数而不是布尔，是因为连续两次「下一个」必须能区分开<br>② 快捷键触发时若查找栏是关的，**先打开再跳**，不必先按 Ctrl+F<br>③ 键位服务支持 F1–F12：原先的规则是「没有修饰键就一定不是快捷键」（否则每次打字都要查表），现在把功能键作为例外 —— F3 本身不输入任何字符 |
+| 涉及文件 | `lib/providers/editor_provider.dart`、`lib/ui/widgets/find_replace_bar.dart`、`lib/ui/widgets/app_menu_bar.dart`、`lib/ui/screens/home_screen.dart`、`lib/ui/screens/settings_screen.dart`、`lib/services/keybinding_service.dart`、`test/services/keybinding_service_test.dart` |
+| 验收标准 | F3 / Shift+F3 在查找栏开着或关着时都能跳到下/上一个匹配；两项出现在编辑菜单并标出快捷键；在设置页可改绑 |
+| 自查发现 | 写成 `static const _functionKeys = {LogicalKeyboardKey.f1, ...}` 会**编译不过** —— `LogicalKeyboardKey` 重写了 `==`，没有 primitive equality，不能作为常量集合的元素。本地桩测试先于 CI 暴露了这一点，已改为 `static final` |

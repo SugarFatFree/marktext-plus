@@ -452,17 +452,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
   bool _runShortcut(KeyEvent event) {
     final action = KeybindingService()
         .actionForEvent(event, isMacOS: PlatformUtils.isMacOS);
+    if (action == null) return false;
 
+    final editor = ref.read(editorProvider.notifier);
     switch (action) {
       case 'find':
       case 'replace':
-        ref.read(editorProvider.notifier).toggleFindReplace();
+        editor.toggleFindReplace();
         return true;
       case 'save':
         AppMenuBar.saveFile(ref);
         return true;
       case 'open':
         AppMenuBar.openFile(ref);
+        return true;
+      case 'findNext':
+        editor.stepToFindMatch(forward: true);
+        return true;
+      case 'findPrevious':
+        editor.stepToFindMatch(forward: false);
         return true;
       case 'closeTab':
         final tab = ref.read(activeTabProvider);

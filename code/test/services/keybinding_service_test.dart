@@ -134,6 +134,20 @@ void main() {
       expect(clashes, isEmpty, reason: clashes.join('; '));
     });
 
+    test('function keys are bindable on their own', () {
+      // Ordinary letters must not be treated as shortcuts without a modifier,
+      // but F3 types nothing, so upstream binds Find Next to it directly.
+      final findNext = service.activatorFor('findNext', isMacOS: false)!;
+      expect(findNext.trigger, LogicalKeyboardKey.f3);
+      expect(findNext.control, isFalse);
+      expect(findNext.shift, isFalse);
+
+      final findPrevious =
+          service.activatorFor('findPrevious', isMacOS: false)!;
+      expect(findPrevious.trigger, LogicalKeyboardKey.f3);
+      expect(findPrevious.shift, isTrue);
+    });
+
     test('every binding parses', () {
       for (final entry in KeybindingService.defaultKeybindings.entries) {
         expect(service.activatorFor(entry.key, isMacOS: false), isNotNull,

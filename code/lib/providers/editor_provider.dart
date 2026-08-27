@@ -56,6 +56,16 @@ class EditorState {
   final bool previewSearchUseRegex;
   final int previewCurrentMatchIndex;
 
+  /// Bumped each time the user asks to step to another search match.
+  ///
+  /// A counter rather than a flag: two consecutive "next" requests have to be
+  /// distinguishable, and the find bar owns the match list so it is the one
+  /// that has to act on this.
+  final int findStepRequest;
+
+  /// Which way the last [findStepRequest] wants to go.
+  final bool findStepForward;
+
   const EditorState({
     this.cursorLine = 0,
     this.cursorCol = 0,
@@ -72,6 +82,8 @@ class EditorState {
     this.previewSearchWholeWord = false,
     this.previewSearchUseRegex = false,
     this.previewCurrentMatchIndex = -1,
+    this.findStepRequest = 0,
+    this.findStepForward = true,
   });
 
   EditorState copyWith({
@@ -92,6 +104,8 @@ class EditorState {
     bool? previewSearchWholeWord,
     bool? previewSearchUseRegex,
     int? previewCurrentMatchIndex,
+    int? findStepRequest,
+    bool? findStepForward,
   }) {
     return EditorState(
       cursorLine: cursorLine ?? this.cursorLine,
@@ -109,6 +123,8 @@ class EditorState {
       previewSearchWholeWord: previewSearchWholeWord ?? this.previewSearchWholeWord,
       previewSearchUseRegex: previewSearchUseRegex ?? this.previewSearchUseRegex,
       previewCurrentMatchIndex: previewCurrentMatchIndex ?? this.previewCurrentMatchIndex,
+      findStepRequest: findStepRequest ?? this.findStepRequest,
+      findStepForward: findStepForward ?? this.findStepForward,
     );
   }
 }
@@ -312,6 +328,18 @@ class EditorNotifier extends StateNotifier<EditorState> {
     state = state.copyWith(
       canUndo: _undoStack.length > 1,
       canRedo: _redoStack.isNotEmpty,
+    );
+  }
+
+  /// Asks the find bar to move to the next or previous match.
+  ///
+  /// Opens the bar first when it is closed, so the shortcut works without
+  /// having to press Ctrl+F beforehand.
+  void stepToFindMatch({required bool forward}) {
+    state = state.copyWith(
+      showFindReplace: true,
+      findStepRequest: state.findStepRequest + 1,
+      findStepForward: forward,
     );
   }
 

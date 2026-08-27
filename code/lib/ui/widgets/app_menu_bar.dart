@@ -375,6 +375,20 @@ class AppMenuBar extends ConsumerWidget {
           onPressed: () => ref.read(editorProvider.notifier).toggleFindReplace(),
         ),
         MenuItemButton(
+          shortcut: _shortcut('findNext'),
+          child: Text(l10n.editFindNext),
+          onPressed: () => ref
+              .read(editorProvider.notifier)
+              .stepToFindMatch(forward: true),
+        ),
+        MenuItemButton(
+          shortcut: _shortcut('findPrevious'),
+          child: Text(l10n.editFindPrevious),
+          onPressed: () => ref
+              .read(editorProvider.notifier)
+              .stepToFindMatch(forward: false),
+        ),
+        MenuItemButton(
           shortcut: _shortcut('replace'),
           child: Text(l10n.editReplace),
           onPressed: () => ref.read(editorProvider.notifier).toggleFindReplace(),

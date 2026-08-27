@@ -48,6 +48,9 @@ class KeybindingService {
     'inlineMath': 'Ctrl+M',
     'mathBlock': 'Ctrl+Shift+M',
     'closeTab': 'Ctrl+W',
+    // Upstream uses F3 on Linux and Windows for these.
+    'findNext': 'F3',
+    'findPrevious': 'Shift+F3',
   };
 
   Map<String, String> _keybindings = Map.from(defaultKeybindings);
@@ -135,11 +138,29 @@ class KeybindingService {
       alt: keyboard.isAltPressed,
       meta: keyboard.isMetaPressed,
     );
-    // A bare keypress is never a shortcut; checking here keeps the common
-    // case — ordinary typing — down to one comparison.
-    if (!combo.control && !combo.meta && !combo.alt) return null;
+    // Ordinary typing must not be searched against the table, and it is the
+    // overwhelmingly common case. Function keys are the exception: F3 types
+    // nothing, so it is a shortcut on its own.
+    if (!combo.control &&
+        !combo.meta &&
+        !combo.alt &&
+        !_isFunctionKey(combo.key)) {
+      return null;
+    }
     return _reverseIndex(isMacOS)[combo];
   }
+
+  /// Not const: LogicalKeyboardKey overrides ==, so it has no primitive
+  /// equality and cannot be an element of a constant set.
+  static final Set<LogicalKeyboardKey> _functionKeys = {
+    LogicalKeyboardKey.f1, LogicalKeyboardKey.f2, LogicalKeyboardKey.f3,
+    LogicalKeyboardKey.f4, LogicalKeyboardKey.f5, LogicalKeyboardKey.f6,
+    LogicalKeyboardKey.f7, LogicalKeyboardKey.f8, LogicalKeyboardKey.f9,
+    LogicalKeyboardKey.f10, LogicalKeyboardKey.f11, LogicalKeyboardKey.f12,
+  };
+
+  static bool _isFunctionKey(LogicalKeyboardKey key) =>
+      _functionKeys.contains(key);
 
   /// Maps the key names used in bindings to logical keys.
   static LogicalKeyboardKey? keyForLabel(String label) {
@@ -179,6 +200,18 @@ class KeybindingService {
       '`' => LogicalKeyboardKey.backquote,
       '=' => LogicalKeyboardKey.equal,
       '-' => LogicalKeyboardKey.minus,
+      'F1' => LogicalKeyboardKey.f1,
+      'F2' => LogicalKeyboardKey.f2,
+      'F3' => LogicalKeyboardKey.f3,
+      'F4' => LogicalKeyboardKey.f4,
+      'F5' => LogicalKeyboardKey.f5,
+      'F6' => LogicalKeyboardKey.f6,
+      'F7' => LogicalKeyboardKey.f7,
+      'F8' => LogicalKeyboardKey.f8,
+      'F9' => LogicalKeyboardKey.f9,
+      'F10' => LogicalKeyboardKey.f10,
+      'F11' => LogicalKeyboardKey.f11,
+      'F12' => LogicalKeyboardKey.f12,
       _ => null,
     };
   }
