@@ -66,7 +66,7 @@ class AppMenuBar extends ConsumerWidget {
                 padding: const WidgetStatePropertyAll(EdgeInsets.zero),
               ),
               children: [
-                _buildFileMenu(l10n, ref),
+                _buildFileMenu(context, l10n, ref),
                 _buildEditMenu(l10n, ref),
                 _buildViewMenu(l10n, ref),
                 _buildFormatMenu(l10n, ref),
@@ -178,7 +178,8 @@ class AppMenuBar extends ConsumerWidget {
     ref.read(tabProvider.notifier).updateTabPath(activeTab.id, newPath, newName);
   }
 
-  Widget _buildFileMenu(AppLocalizations l10n, WidgetRef ref) {
+  Widget _buildFileMenu(
+      BuildContext context, AppLocalizations l10n, WidgetRef ref) {
     return SubmenuButton(
       menuChildren: [
         MenuItemButton(
