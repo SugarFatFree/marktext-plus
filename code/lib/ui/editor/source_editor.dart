@@ -288,6 +288,22 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
       return KeyEventResult.ignored;
     }
 
+    // Handle tab: indent rather than move focus.
+    //
+    // A TextField gives Tab to the focus traversal by default, so pressing it
+    // in the editor jumped to the next control instead of indenting — and the
+    // tab size setting had nothing reading it.
+    if (event.logicalKey == LogicalKeyboardKey.tab) {
+      final indent = ' ' * ref.read(settingsProvider).tabSize;
+
+      if (HardwareKeyboard.instance.isShiftPressed) {
+        _outdentSelection(indent.length);
+      } else {
+        _indentSelection(indent);
+      }
+      return KeyEventResult.handled;
+    }
+
     // Handle backspace: delete empty pairs
     if (event.logicalKey == LogicalKeyboardKey.backspace) {
       if (!selection.isCollapsed) return KeyEventResult.ignored;
@@ -417,7 +433,9 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
       case FormatAction.orderedList:
         _applyLinePrefixAtCursor('1. ');
       case FormatAction.unorderedList:
-        _applyLinePrefixAtCursor('- ');
+        // The configured marker, which nothing was reading: choosing * or +
+        // in settings still produced a dash.
+        _applyLinePrefixAtCursor('${ref.read(settingsProvider).listMarker} ');
       case FormatAction.taskList:
         _applyLinePrefixAtCursor('- [ ] ');
       case FormatAction.quoteBlock:
@@ -624,6 +642,72 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     } else if (next <= 6) {
       _setHeadingLevel(next);
     }
+  }
+
+  /// Inserts [indent] at the cursor, or in front of every selected line.
+  void _indentSelection(String indent) {
+    final selection = _controller.selection;
+    final text = _controller.text;
+
+    if (selection.isCollapsed) {
+      final offset = selection.baseOffset;
+      _controller.value = TextEditingValue(
+        text: text.substring(0, offset) + indent + text.substring(offset),
+        selection: TextSelection.collapsed(offset: offset + indent.length),
+      );
+      return;
+    }
+
+    final (start, end) = _selectedLineBounds();
+    final lines = text.substring(start, end).split('\n');
+    final replacement = lines.map((line) => '$indent$line').join('\n');
+
+    _controller.value = TextEditingValue(
+      text: text.substring(0, start) + replacement + text.substring(end),
+      selection: TextSelection(
+        baseOffset: start,
+        extentOffset: start + replacement.length,
+      ),
+    );
+  }
+
+  /// Removes up to [width] columns of indentation from the affected lines.
+  void _outdentSelection(int width) {
+    final text = _controller.text;
+    final (start, end) = _selectedLineBounds();
+    final lines = text.substring(start, end).split('\n');
+
+    final replacement = lines.map((line) {
+      var removed = 0;
+      var index = 0;
+      while (index < line.length && removed < width && line[index] == ' ') {
+        removed++;
+        index++;
+      }
+      return line.substring(index);
+    }).join('\n');
+
+    _controller.value = TextEditingValue(
+      text: text.substring(0, start) + replacement + text.substring(end),
+      selection: TextSelection(
+        baseOffset: start,
+        extentOffset: start + replacement.length,
+      ),
+    );
+  }
+
+  /// Start and end offsets of the whole lines the selection touches.
+  (int, int) _selectedLineBounds() {
+    final selection = _controller.selection;
+    final text = _controller.text;
+
+    var start = text.lastIndexOf('\n', selection.start > 0 ? selection.start - 1 : 0);
+    start = start == -1 ? 0 : start + 1;
+
+    var end = text.indexOf('\n', selection.end);
+    if (end == -1) end = text.length;
+
+    return (start, end);
   }
 
   void _applyLinePrefixAtCursor(String prefix) {
