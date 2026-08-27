@@ -258,5 +258,6 @@
   "paragraphToParagraph": "Converter em parágrafo",
   "close": "Fechar",
   "mermaidViewerTitle": "Visualizador de diagramas Mermaid",
-  "mermaidViewerHint": "Ctrl+Roda para ampliar    Arrastar para deslocar    Esc para fechar"
+  "mermaidViewerHint": "Ctrl+Roda para ampliar    Arrastar para deslocar    Esc para fechar",
+  "statusHighlightOff": "Realce de sintaxe desativado (arquivo grande)"
 }

@@ -774,4 +774,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mermaidViewerHint => 'Ctrl+Scroll to zoom    Drag to pan    Esc to close';
+  @override
+  String get statusHighlightOff => 'Syntax highlighting off (large file)';
 }

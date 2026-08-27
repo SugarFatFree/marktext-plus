@@ -52,122 +52,128 @@ class HighlightingController extends TextEditingController {
     notifyListeners();
   }
 
+  final IncrementalMarkdownHighlighter _highlighter =
+      IncrementalMarkdownHighlighter();
+
+  /// Whether the document is large enough that highlighting has been turned
+  /// off. Editing still works; only the colouring is gone.
+  bool get isHighlightingSuspended => _highlighter.isSuspended;
+
   @override
   TextSpan buildTextSpan({
     required BuildContext context,
     TextStyle? style,
     required bool withComposing,
   }) {
-    final highlighted = MarkdownSyntaxHighlighter.highlight(
+    // Called on every rebuild — caret moves, focus changes, a search-match
+    // update — so this reuses the spans of every line the last edit did not
+    // touch instead of re-scanning the document.
+    final children = _highlighter.build(
       text,
-      headingColor: headingColor,
-      boldColor: boldColor,
-      codeColor: codeColor,
-      linkColor: linkColor,
-      defaultColor: defaultColor,
+      HighlightColors(
+        heading: headingColor,
+        bold: boldColor,
+        code: codeColor,
+        link: linkColor,
+        defaultColor: defaultColor,
+      ),
     );
 
-    final children = highlighted.children;
-
-    // Validate that the total text length of all children spans matches the
-    // controller text length.  A mismatch causes Flutter's EditableText to
-    // miscalculate selection rects, leading to highlight overflow.  When a
-    // mismatch is detected, fall back to a single unstyled TextSpan.
-    if (children != null && children.isNotEmpty) {
-      int spanTextLen = 0;
-      for (final child in children) {
-        if (child is TextSpan) {
-          spanTextLen += (child.text?.length ?? 0);
-        }
+    // EditableText positions the caret and selection by walking these spans,
+    // so their combined length has to equal the controller's text. If a
+    // highlighting bug ever breaks that, an unstyled document is far better
+    // than misplaced selection rectangles.
+    int spanTextLen = 0;
+    for (final child in children) {
+      spanTextLen += child.text?.length ?? 0;
+    }
+    if (spanTextLen != text.length) {
+      if (_searchMatches.isEmpty) {
+        return TextSpan(style: style, text: text);
       }
-      if (spanTextLen != text.length) {
-        // Fallback: single span, no syntax highlighting
-        if (_searchMatches.isEmpty) {
-          return TextSpan(style: style, text: text);
-        }
-        return TextSpan(
-          style: style,
-          children: _applySearchHighlight(
-            [TextSpan(text: text, style: TextStyle(color: defaultColor))],
-          ),
-        );
-      }
+      return TextSpan(
+        style: style,
+        children: _applySearchHighlight(
+          [TextSpan(text: text, style: TextStyle(color: defaultColor))],
+        ),
+      );
     }
 
     if (_searchMatches.isEmpty) {
       return TextSpan(style: style, children: children);
     }
 
-    // Apply search highlight on top of syntax highlighting
-    return TextSpan(
-      style: style,
-      children: _applySearchHighlight(children ?? []),
-    );
+    return TextSpan(style: style, children: _applySearchHighlight(children));
   }
 
-  List<InlineSpan> _applySearchHighlight(List<InlineSpan> spans) {
+  /// Paints the search highlight over the syntax spans.
+  ///
+  /// Both lists are in ascending document order, so this walks them together.
+  /// Testing every match against every span was quadratic, and a search in a
+  /// large document produces plenty of both.
+  List<InlineSpan> _applySearchHighlight(List<TextSpan> spans) {
     final result = <InlineSpan>[];
     int offset = 0;
+    int matchIndex = 0;
 
     for (final span in spans) {
-      if (span is TextSpan && span.text != null) {
-        final spanText = span.text!;
-        final spanStart = offset;
-        final spanEnd = offset + spanText.length;
+      final spanText = span.text;
+      if (spanText == null) {
+        result.add(span);
+        continue;
+      }
 
-        // Find matches that overlap with this span
-        final overlappingMatches = _searchMatches.where((match) {
-          return match.start < spanEnd && match.end > spanStart;
-        }).toList();
+      final spanStart = offset;
+      final spanEnd = offset + spanText.length;
+      offset = spanEnd;
 
-        if (overlappingMatches.isEmpty) {
-          result.add(span);
-        } else {
-          // Split span and apply highlights
-          final segments = <InlineSpan>[];
-          int segmentStart = 0;
+      // Matches that ended before this span will not be needed again.
+      while (matchIndex < _searchMatches.length &&
+          _searchMatches[matchIndex].end <= spanStart) {
+        matchIndex++;
+      }
 
-          for (int i = 0; i < overlappingMatches.length; i++) {
-            final match = overlappingMatches[i];
-            final matchStart = (match.start - spanStart).clamp(0, spanText.length);
-            final matchEnd = (match.end - spanStart).clamp(0, spanText.length);
+      if (matchIndex >= _searchMatches.length ||
+          _searchMatches[matchIndex].start >= spanEnd) {
+        result.add(span);
+        continue;
+      }
 
-            // Add text before match
-            if (segmentStart < matchStart) {
-              segments.add(TextSpan(
-                text: spanText.substring(segmentStart, matchStart),
-                style: span.style,
-              ));
-            }
+      int segmentStart = 0;
+      // A match can straddle several spans, so look ahead without consuming:
+      // the next span may still need this one.
+      for (int i = matchIndex;
+          i < _searchMatches.length && _searchMatches[i].start < spanEnd;
+          i++) {
+        final match = _searchMatches[i];
+        final matchStart = (match.start - spanStart).clamp(0, spanText.length);
+        final matchEnd = (match.end - spanStart).clamp(0, spanText.length);
+        if (matchEnd <= segmentStart) continue;
 
-            // Add highlighted match
-            final isCurrentMatch = _searchMatches.indexOf(match) == _currentMatchIndex;
-            segments.add(TextSpan(
-              text: spanText.substring(matchStart, matchEnd),
-              style: span.style?.copyWith(
-                backgroundColor: isCurrentMatch
-                    ? const Color(0x80FF9800) // Orange for current match
-                    : const Color(0x4DFFEB3B), // Yellow for other matches
-              ),
-            ));
-
-            segmentStart = matchEnd;
-          }
-
-          // Add remaining text
-          if (segmentStart < spanText.length) {
-            segments.add(TextSpan(
-              text: spanText.substring(segmentStart),
-              style: span.style,
-            ));
-          }
-
-          result.addAll(segments);
+        if (segmentStart < matchStart) {
+          result.add(TextSpan(
+            text: spanText.substring(segmentStart, matchStart),
+            style: span.style,
+          ));
         }
 
-        offset = spanEnd;
-      } else {
-        result.add(span);
+        result.add(TextSpan(
+          text: spanText.substring(matchStart, matchEnd),
+          style: span.style?.copyWith(
+            backgroundColor: i == _currentMatchIndex
+                ? const Color(0x80FF9800) // Orange for the current match
+                : const Color(0x4DFFEB3B), // Yellow for the others
+          ),
+        ));
+
+        segmentStart = matchEnd;
+      }
+
+      if (segmentStart < spanText.length) {
+        result.add(TextSpan(
+          text: spanText.substring(segmentStart),
+          style: span.style,
+        ));
       }
     }
 

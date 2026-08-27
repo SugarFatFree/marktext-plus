@@ -258,5 +258,6 @@
   "paragraphToParagraph": "In Absatz umwandeln",
   "close": "Schließen",
   "mermaidViewerTitle": "Mermaid-Diagrammansicht",
-  "mermaidViewerHint": "Strg+Scrollen zum Zoomen    Ziehen zum Verschieben    Esc zum Schließen"
+  "mermaidViewerHint": "Strg+Scrollen zum Zoomen    Ziehen zum Verschieben    Esc zum Schließen",
+  "statusHighlightOff": "Syntaxhervorhebung aus (große Datei)"
 }

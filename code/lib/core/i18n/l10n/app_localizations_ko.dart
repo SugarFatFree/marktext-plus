@@ -771,4 +771,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get mermaidViewerHint => 'Ctrl+스크롤로 확대/축소    드래그로 이동    Esc로 닫기';
+  @override
+  String get statusHighlightOff => '큰 파일이라 구문 강조를 껐습니다';
 }

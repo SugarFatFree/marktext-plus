@@ -777,6 +777,8 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get mermaidViewerHint => 'Ctrl+Roda para ampliar    Arrastar para deslocar    Esc para fechar';
+  @override
+  String get statusHighlightOff => 'Realce de sintaxe desativado (ficheiro grande)';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -1511,4 +1513,6 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get mermaidViewerHint => 'Ctrl+Roda para ampliar    Arrastar para deslocar    Esc para fechar';
+  @override
+  String get statusHighlightOff => 'Realce de sintaxe desativado (arquivo grande)';
 }

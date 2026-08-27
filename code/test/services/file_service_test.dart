@@ -38,5 +38,32 @@ void main() {
       expect(nodes.any((n) => n.name == 'a.md'), true);
       expect(nodes.any((n) => n.name == 'sub' && n.isDirectory), true);
     });
+
+    test('listDirectory does not descend into subdirectories', () async {
+      Directory('${tempDir.path}/sub/deeper').createSync(recursive: true);
+      File('${tempDir.path}/sub/deeper/c.md').writeAsStringSync('');
+
+      final nodes = await service.listDirectory(tempDir.path);
+      final sub = nodes.firstWhere((n) => n.name == 'sub');
+
+      // Reading the whole tree up front is what made opening a folder slow.
+      expect(sub.children, isEmpty);
+    });
+
+    test('listDirectory sorts directories first, then by name', () async {
+      File('${tempDir.path}/b.md').writeAsStringSync('');
+      File('${tempDir.path}/A.md').writeAsStringSync('');
+      Directory('${tempDir.path}/zdir').createSync();
+
+      final names = (await service.listDirectory(tempDir.path))
+          .map((n) => n.name)
+          .toList();
+
+      expect(names, ['zdir', 'A.md', 'b.md']);
+    });
+
+    test('listDirectory returns empty for a path it cannot read', () async {
+      expect(await service.listDirectory('${tempDir.path}/missing'), isEmpty);
+    });
   });
 }

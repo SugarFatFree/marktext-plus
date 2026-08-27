@@ -778,4 +778,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get mermaidViewerHint => 'Ctrl+Molette pour zoomer    Glisser pour déplacer    Échap pour fermer';
+  @override
+  String get statusHighlightOff => 'Coloration syntaxique désactivée (fichier volumineux)';
 }

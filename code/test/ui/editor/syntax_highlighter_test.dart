@@ -237,6 +237,114 @@ void main() {
       }
     });
   });
+
+  group('IncrementalMarkdownHighlighter', () {
+    const colors = HighlightColors(
+      heading: Colors.blue,
+      bold: Colors.red,
+      code: Colors.green,
+      link: Colors.purple,
+      defaultColor: Colors.black,
+    );
+
+    List<TextSpan> full(String text) {
+      if (text.isEmpty) return const <TextSpan>[];
+      return MarkdownSyntaxHighlighter.highlight(
+        text,
+        headingColor: colors.heading,
+        boldColor: colors.bold,
+        codeColor: colors.code,
+        linkColor: colors.link,
+        defaultColor: colors.defaultColor,
+      ).children!.cast<TextSpan>();
+    }
+
+    void expectSameAsFull(List<TextSpan> incremental, String text) {
+      final reference = full(text);
+      expect(
+        incremental.map((s) => s.text).toList(),
+        reference.map((s) => s.text).toList(),
+      );
+      expect(
+        incremental.map((s) => s.style).toList(),
+        reference.map((s) => s.style).toList(),
+      );
+      expect(incremental.map((s) => s.text ?? '').join(), text);
+    }
+
+    test('matches a full re-highlight through a run of edits', () {
+      // The cache reuses the head and tail of the previous line list, so
+      // insertions, deletions and in-place edits each have to keep it honest.
+      final highlighter = IncrementalMarkdownHighlighter();
+      final steps = [
+        '# Title\n\nplain **bold** text\n`code`',
+        '# Title\n\nplain **bold** texts\n`code`',
+        '# Title\n\ninserted line\nplain **bold** texts\n`code`',
+        '# Title\n\nplain **bold** texts\n`code`',
+        '# Title changed\n\nplain **bold** texts\n`code`',
+        '# Title changed\n\nplain **bold** texts\n`code`\n',
+        '',
+        'single',
+      ];
+
+      for (final step in steps) {
+        expectSameAsFull(highlighter.build(step, colors), step);
+      }
+    });
+
+    test('reuses spans for lines an edit did not touch', () {
+      final highlighter = IncrementalMarkdownHighlighter();
+      final first = highlighter.build('aaa\nbbb\nccc', colors);
+      final second = highlighter.build('aaX\nbbb\nccc', colors);
+
+      // Only the edited first line is rescanned; the last line's span object
+      // is handed back untouched. (Lines before the last get a fresh span so
+      // their newline can carry the line's style, so identity only holds for
+      // the last line.)
+      expect(identical(first.last, second.last), isTrue);
+      expect(identical(first.first, second.first), isFalse);
+    });
+
+    test('handles blank lines and a trailing newline', () {
+      final highlighter = IncrementalMarkdownHighlighter();
+      for (final source in ['\n', '\n\n\n', 'hello\n', 'a\n\nb']) {
+        expectSameAsFull(highlighter.build(source, colors), source);
+      }
+    });
+
+    test('a colour change rebuilds everything', () {
+      final highlighter = IncrementalMarkdownHighlighter();
+      highlighter.build('# Title', colors);
+
+      const other = HighlightColors(
+        heading: Colors.orange,
+        bold: Colors.red,
+        code: Colors.green,
+        link: Colors.purple,
+        defaultColor: Colors.black,
+      );
+      final recoloured = highlighter.build('# Title', other);
+
+      expect(recoloured.single.style?.color, Colors.orange);
+    });
+
+    test('gives up on documents past the size limit but keeps the text', () {
+      final highlighter = IncrementalMarkdownHighlighter();
+      final huge = '# h\n' *
+          (IncrementalMarkdownHighlighter.maxHighlightedLength ~/ 4 + 1);
+
+      final spans = highlighter.build(huge, colors);
+
+      expect(highlighter.isSuspended, isTrue);
+      expect(spans, hasLength(1));
+      expect(spans.single.text, huge);
+
+      // And it starts highlighting again once the document is small.
+      final back = highlighter.build('# h', colors);
+      expect(highlighter.isSuspended, isFalse);
+      expect(back.single.style?.color, colors.heading);
+    });
+  });
 }
 
 String repr(String s) =>

@@ -1612,6 +1612,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Ctrl+Scroll to zoom    Drag to pan    Esc to close'**
   String get mermaidViewerHint;
+
+  /// Status bar note shown when a document is too large to highlight
+  ///
+  /// In en, this message translates to:
+  /// **'Syntax highlighting off (large file)'**
+  String get statusHighlightOff;
 }
 
 class _AppLocalizationsDelegate

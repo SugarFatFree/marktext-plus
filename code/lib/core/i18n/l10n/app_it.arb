@@ -258,5 +258,6 @@
   "paragraphToParagraph": "Converti in paragrafo",
   "close": "Chiudi",
   "mermaidViewerTitle": "Visualizzatore diagrammi Mermaid",
-  "mermaidViewerHint": "Ctrl+Rotella per zoomare    Trascina per spostare    Esc per chiudere"
+  "mermaidViewerHint": "Ctrl+Rotella per zoomare    Trascina per spostare    Esc per chiudere",
+  "statusHighlightOff": "Evidenziazione sintassi disattivata (file grande)"
 }

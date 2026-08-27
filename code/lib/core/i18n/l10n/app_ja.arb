@@ -258,5 +258,6 @@
   "paragraphToParagraph": "段落に変換",
   "close": "閉じる",
   "mermaidViewerTitle": "Mermaid ダイアグラムビューア",
-  "mermaidViewerHint": "Ctrl+スクロールで拡大縮小    ドラッグで移動    Esc で閉じる"
+  "mermaidViewerHint": "Ctrl+スクロールで拡大縮小    ドラッグで移動    Esc で閉じる",
+  "statusHighlightOff": "大きなファイルのため構文ハイライトは無効"
 }

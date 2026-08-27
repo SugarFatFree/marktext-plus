@@ -776,4 +776,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get mermaidViewerHint => 'Strg+Scrollen zum Zoomen    Ziehen zum Verschieben    Esc zum Schließen';
+  @override
+  String get statusHighlightOff => 'Syntaxhervorhebung aus (große Datei)';
 }

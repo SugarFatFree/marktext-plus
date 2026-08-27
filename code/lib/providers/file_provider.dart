@@ -10,45 +10,36 @@ class FileNotifier extends StateNotifier<List<FileNode>> {
   StreamSubscription? _watcherSubscription;
   String? _currentDirectory;
 
+  /// Directories the user has opened, by absolute path. Kept outside the tree
+  /// so a refresh — after a rename, or a change the watcher reported — can put
+  /// the tree back the way the user had it instead of collapsing it.
+  final Set<String> _expanded = {};
+
   FileNotifier(this._fileService) : super([]);
 
   String? get currentDirectory => _currentDirectory;
 
+  static String _displayName(String path) {
+    final parts = path.split(RegExp(r'[\\/]')).where((part) => part.isNotEmpty);
+    return parts.isEmpty ? path : parts.last;
+  }
+
   Future<void> loadDirectory(String path) async {
     _currentDirectory = path;
-    final rootName = path.split(RegExp(r'[\\/]')).where((part) => part.isNotEmpty).last;
-    final children = await _fileService.buildFileTree(path);
-    state = [
-      FileNode(
-        name: rootName,
-        path: path,
-        isDirectory: true,
-        children: children,
-        isExpanded: true,
-      ),
-    ];
+    _expanded
+      ..clear()
+      ..add(path);
+
+    state = [await _readNode(path, _displayName(path))];
+
     _watcherSubscription?.cancel();
     _watcherService.watch(path);
-    _watcherSubscription = _watcherService.events.listen((_) async {
-      if (_currentDirectory != null) {
-        final currentPath = _currentDirectory!;
-        final currentRootName = currentPath.split(RegExp(r'[\\/]')).where((part) => part.isNotEmpty).last;
-        final currentChildren = await _fileService.buildFileTree(currentPath);
-        state = [
-          FileNode(
-            name: currentRootName,
-            path: currentPath,
-            isDirectory: true,
-            children: currentChildren,
-            isExpanded: true,
-          ),
-        ];
-      }
-    });
+    _watcherSubscription = _watcherService.events.listen((_) => _refreshTree());
   }
 
   void closeDirectory() {
     _currentDirectory = null;
+    _expanded.clear();
     state = [];
     _watcherSubscription?.cancel();
   }
@@ -60,10 +51,12 @@ class FileNotifier extends StateNotifier<List<FileNode>> {
 
   Future<void> deleteNode(String path) async {
     await _fileService.deleteEntity(path);
+    _expanded.removeWhere((e) => e == path || e.startsWith('$path/'));
     await _refreshTree();
   }
 
-  Future<void> createNode(String path, {bool isDirectory = false, String content = ''}) async {
+  Future<void> createNode(String path,
+      {bool isDirectory = false, String content = ''}) async {
     if (isDirectory) {
       await _fileService.createDirectory(path);
     } else {
@@ -72,48 +65,48 @@ class FileNotifier extends StateNotifier<List<FileNode>> {
     await _refreshTree();
   }
 
-  Future<void> _refreshTree() async {
-    if (_currentDirectory != null) {
-      final path = _currentDirectory!;
-      final rootName = path.split(RegExp(r'[\\/]')).where((part) => part.isNotEmpty).last;
-      final children = await _fileService.buildFileTree(path);
-      state = [
-        FileNode(
-          name: rootName,
-          path: path,
-          isDirectory: true,
-          children: children,
-          isExpanded: true,
-        ),
-      ];
+  Future<void> toggleExpand(String path) async {
+    if (_expanded.contains(path)) {
+      _expanded.remove(path);
+    } else {
+      _expanded.add(path);
     }
+    await _refreshTree();
   }
 
-  void toggleExpand(String path) {
-    state = _toggleNodeExpand(state, path);
+  Future<void> _refreshTree() async {
+    final path = _currentDirectory;
+    if (path == null) return;
+
+    final tree = await _readNode(path, _displayName(path));
+    // Another directory was opened, or the sidebar closed, while we were
+    // reading; that newer state wins.
+    if (_currentDirectory != path) return;
+    state = [tree];
   }
 
-  List<FileNode> _toggleNodeExpand(List<FileNode> nodes, String path) {
-    return nodes.map((node) {
-      if (node.path == path) {
-        return FileNode(
-          name: node.name,
-          path: node.path,
-          isDirectory: node.isDirectory,
-          children: node.children,
-          isExpanded: !node.isExpanded,
-        );
-      } else if (node.isDirectory && node.children.isNotEmpty) {
-        return FileNode(
-          name: node.name,
-          path: node.path,
-          isDirectory: node.isDirectory,
-          children: _toggleNodeExpand(node.children, path),
-          isExpanded: node.isExpanded,
-        );
-      }
-      return node;
-    }).toList();
+  /// Reads [path] and, recursively, only those descendants the user has
+  /// expanded. Everything else stays unread until it is opened.
+  Future<FileNode> _readNode(String path, String name) async {
+    if (!_expanded.contains(path)) {
+      return FileNode(name: name, path: path, isDirectory: true);
+    }
+
+    final entries = await _fileService.listDirectory(path);
+    final children = <FileNode>[];
+    for (final entry in entries) {
+      children.add(entry.isDirectory
+          ? await _readNode(entry.path, entry.name)
+          : entry);
+    }
+
+    return FileNode(
+      name: name,
+      path: path,
+      isDirectory: true,
+      children: children,
+      isExpanded: true,
+    );
   }
 }
 

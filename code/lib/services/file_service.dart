@@ -12,39 +12,42 @@ class FileService {
     await File(path).writeAsString(content);
   }
 
+  /// Reads one level of [dirPath]. Directories first, then files, each group
+  /// by name.
+  ///
+  /// Deliberately not recursive: the sidebar used to walk the entire tree
+  /// before it could show anything, which on a project with a node_modules or
+  /// a .git took seconds — on every launch, and again after every save, since
+  /// the file watcher rebuilt the whole tree. Children are read when a
+  /// directory is expanded.
   Future<List<FileNode>> listDirectory(String dirPath) async {
     final dir = Directory(dirPath);
-    final entities = await dir.list().toList();
+
+    List<FileSystemEntity> entities;
+    try {
+      entities = await dir.list(followLinks: false).toList();
+    } on FileSystemException {
+      // Unreadable directory (permissions, or removed since it was listed).
+      return const [];
+    }
+
     entities.sort((a, b) {
       final aIsDir = a is Directory;
       final bIsDir = b is Directory;
       if (aIsDir != bIsDir) return aIsDir ? -1 : 1;
-      return p.basename(a.path).compareTo(p.basename(b.path));
+      return p.basename(a.path).toLowerCase().compareTo(
+            p.basename(b.path).toLowerCase(),
+          );
     });
-    return entities.map((e) {
-      final name = p.basename(e.path);
-      return FileNode(
-        name: name,
-        path: e.path,
-        isDirectory: e is Directory,
-      );
-    }).toList();
-  }
 
-  Future<List<FileNode>> buildFileTree(String dirPath) async {
-    final nodes = await listDirectory(dirPath);
-    for (final node in nodes) {
-      if (node.isDirectory) {
-        final children = await buildFileTree(node.path);
-        nodes[nodes.indexOf(node)] = FileNode(
-          name: node.name,
-          path: node.path,
-          isDirectory: true,
-          children: children,
-        );
-      }
-    }
-    return nodes;
+    return [
+      for (final e in entities)
+        FileNode(
+          name: p.basename(e.path),
+          path: e.path,
+          isDirectory: e is Directory,
+        ),
+    ];
   }
 
   Future<void> renameFile(String oldPath, String newPath) async {

@@ -303,5 +303,9 @@
   "mermaidViewerHint": "Ctrl+Scroll to zoom    Drag to pan    Esc to close",
   "@mermaidViewerHint": {
     "description": "Hint line listing the fullscreen diagram viewer gestures"
+  },
+  "statusHighlightOff": "Syntax highlighting off (large file)",
+  "@statusHighlightOff": {
+    "description": "Status bar note shown when a document is too large to highlight"
   }
 }

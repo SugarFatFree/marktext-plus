@@ -270,5 +270,6 @@
   "paragraphToParagraph": "转为段落",
   "close": "关闭",
   "mermaidViewerTitle": "Mermaid 图表查看",
-  "mermaidViewerHint": "Ctrl+滚轮缩放    拖动平移    Esc 关闭"
+  "mermaidViewerHint": "Ctrl+滚轮缩放    拖动平移    Esc 关闭",
+  "statusHighlightOff": "大文件已关闭语法高亮"
 }

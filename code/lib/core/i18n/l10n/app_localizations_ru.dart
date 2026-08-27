@@ -775,4 +775,6 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get mermaidViewerHint => 'Ctrl+колесо — масштаб    Перетаскивание — панорама    Esc — закрыть';
+  @override
+  String get statusHighlightOff => 'Подсветка синтаксиса отключена (большой файл)';
 }

@@ -56,6 +56,9 @@
 | BUG-047 | 2026-08-27 | 全部替换会吃掉正文：重叠匹配 + 陈旧偏移 | **P0** | 已修复 |
 | BUG-048 | 2026-08-27 | 12 语言应用里存在硬编码中文界面文案 | P2 | 已修复 |
 | BUG-049 | 2026-08-27 | Mermaid 日/韩/俄文节点被合并成同一个节点 | P1 | 已修复 |
+| BUG-050 | 2026-08-27 | 启动/打开文件夹卡顿：侧边栏一次性递归遍历整棵目录树 | **P0** | 已修复 |
+| BUG-051 | 2026-08-27 | 每次重绘都全量重扫语法高亮，大文件每次按键停顿数百毫秒 | **P0** | 已修复 |
+| BUG-052 | 2026-08-27 | 字数统计：日/韩/俄文一律统计为 0，且 1MB 文档卡 280ms | P1 | 已修复 |
 
 ---
 
@@ -767,6 +770,56 @@
 | 修复方案 | 抽出共用的 `normalizeMermaidId`（`lib/ui/editor/mermaid/parser/identifier.dart`），改用 Unicode 属性类 `[^\p{L}\p{M}\p{N}_]`（`unicode: true`）：**只折叠空白和标点，保留任何文字系统的字母**。ER 图额外保留 `-`，与原行为一致 |
 | 涉及文件 | `lib/ui/editor/mermaid/parser/identifier.dart`（新增）、`class_diagram_parser.dart`、`state_diagram_parser.dart`、`er_diagram_parser.dart`、`test/ui/editor/mermaid/identifier_test.dart`（新增） |
 | 验证方式 | 单测既覆盖净化函数本身（含「5 个不同名字必须得到 5 个不同 id」），也在**解析层**断言日文状态图保留两个状态、韩文类图保留两个类且边的两端 id 正确 |
+
+---
+
+## BUG-050 启动与打开文件夹卡顿：一次性递归遍历整棵目录树
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | **P0** |
+| 状态 | 已修复 |
+| 用户反馈 | 「怎么感觉现在启动打开文件好慢啊」 |
+| 现象 | 启动时窗口出来后要愣好几秒才能用；打开一个稍大的项目文件夹同样卡住 |
+| 根因分析 | `FileService.buildFileTree` **递归遍历整棵目录树**后才返回，侧边栏才能显示第一层。`.git`、`node_modules` 这类目录全都会被走完。而 `_restoreSideBarDirectory` 在**每次启动**都会对上次打开的目录做这件事 |
+| 雪上加霜 | ① 每层里 `nodes[nodes.indexOf(node)] = ...`，`indexOf` 是线性查找，单层目录项一多就是 **O(n²)**；② 文件监听每收到一次事件（比如保存文件）就**重建整棵树**；③ 重建后展开状态全部丢失，新建/重命名文件后目录树会整个塌回去 |
+| 实测数据 | 本仓库（1571 个节点）：递归 **335 ms** vs 只列一层 **0 ms**；`~/.pub-cache/hosted/pub.dev`（35887 个节点）：递归 **2643 ms** vs 只列一层 **4 ms**（**660 倍**）；1500 个同级子目录：407 ms vs 29 ms |
+| 修复方案 | ① `listDirectory` 只读一层，`buildFileTree` 删除；② `FileNotifier` 用一个 `_expanded` 路径集合作为展开状态的**唯一真相**，只读取用户展开过的那些目录；③ 展开状态因此能跨刷新保留，重命名/新建后目录树不再塌陷；④ 目录读不动（权限、已删除）时返回空而不是抛异常；⑤ 排序改为不区分大小写 |
+| 涉及文件 | `lib/services/file_service.dart`、`lib/providers/file_provider.dart`、`lib/models/file_node.dart`、`test/services/file_service_test.dart` |
+
+---
+
+## BUG-051 每次重绘都全量重扫语法高亮
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | **P0** |
+| 状态 | 已修复 |
+| 现象 | 文件一大，打字就明显跟不上；开着查找栏时更严重，几乎卡死 |
+| 根因分析 | `HighlightingController.buildTextSpan` 是 Flutter 在**每一次重绘**时调用的（光标移动、失焦、搜索命中更新都算），而它每次都把**整篇文档**重新切行、重新跑 6 条正则。1 MB 文档一次就是 **212 ms** |
+| 第二个热点 | `_highlightInline` 每前进一个位置，就对**每条正则**做 `text.substring(pos)`（最多 3 次），长段落因此退化成二次方 |
+| 第三个热点 | `_applySearchHighlight` 对**每个 span** 遍历**全部匹配**，内层还有一个 `indexOf`。80000 span / 1973 个匹配时单次 **1329 ms** —— 大文件里一开搜索就是整窗冻结 |
+| 修复方案 | ① 新增 `IncrementalMarkdownHighlighter`：**按行缓存 span**，比对新旧行数组的公共前缀与公共后缀，只重扫改动的那几行；② 行内扫描改用 `RegExp.allMatches(text, pos)`，带偏移且惰性，不再复制字符串；③ 搜索叠加改为**双指针归并**（两个列表本就都按文档顺序升序）；④ 超过 2 MB 的文档直接不高亮 —— 这时瓶颈已不是扫描而是 Flutter 给几十万个 span 排版，状态栏会显示「大文件已关闭语法高亮」，编辑功能不受影响 |
+| 实测数据 | 50 KB：22.1 → **1.2 ms**；200 KB：48.5 → **6.2 ms**；1 MB：212 → **23.7 ms**。文本没变的重绘 1 MB 只要 14 ms。搜索叠加 80000 span：1329 → **12 ms**（**110 倍**） |
+| 涉及文件 | `lib/ui/editor/syntax_highlighter.dart`、`lib/ui/editor/highlighting_controller.dart`、`lib/ui/widgets/status_bar.dart`、`lib/core/i18n/l10n/*`、`test/ui/editor/syntax_highlighter_test.dart` |
+| 验证方式 | 本地用桩类型跑真实源码对拍：**3600 次随机编辑**（插入/删除/改行/追加字符）下增量结果与全量重扫**逐 span 完全一致**；搜索叠加新旧算法 **2000 组随机输入**结果一致。两者都断言拼回的文本等于原文 |
+
+---
+
+## BUG-052 字数统计把日/韩/俄文算成 0
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+| 现象 | 写日文、韩文、俄文时状态栏词数恒为 **0**；`café` 被算成 2 个词；1 MB 文档每次统计卡 280 ms |
+| 根因分析 | `countWords` 只认两个字符类：`[\u4e00-\u9fa5]`（汉字基本区）按字计，`[a-zA-Z0-9]+` 按词计。**假名、谚文、西里尔、希腊字母一个都不匹配**，于是完全不计数；带变音符的拉丁字母会把词从中间断开。性能上则是三遍正则加一次 `replaceAll` 复制出整篇文档的副本，跑在 UI isolate 上，打字停顿 300 ms 后就会抖一下 |
+| 修复方案 | 改为**单遍遍历码点**：CJK 与假名、谚文按字计（这几种语言本来就这么报字数），其余「非空白非标点」的码点按词计。字符数改按**码点**计，一个 emoji 算 1 个字符而不是 2 |
+| 实测数据 | 1 MB 文档：280 → **13 ms**（**21 倍**） |
+| 涉及文件 | `lib/services/word_count_service.dart`、`test/services/word_count_service_test.dart`（新增） |
 
 ---
 

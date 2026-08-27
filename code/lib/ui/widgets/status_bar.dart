@@ -5,9 +5,11 @@ import '../../core/i18n/l10n/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
 import '../../providers/editor_provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../providers/tab_provider.dart';
 import '../../providers/update_provider.dart';
 import '../../providers/word_count_provider.dart';
 import '../../services/update_service.dart';
+import '../editor/syntax_highlighter.dart';
 
 class StatusBar extends ConsumerWidget {
   const StatusBar({super.key});
@@ -16,6 +18,11 @@ class StatusBar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final editorState = ref.watch(editorProvider);
     final wordCount = ref.watch(wordCountProvider);
+    // Losing the syntax colours on a huge file is otherwise unexplained. This
+    // reads only the boolean, so typing does not rebuild the status bar.
+    final highlightOff = ref.watch(activeTabProvider.select((tab) =>
+        (tab?.content.length ?? 0) >
+            IncrementalMarkdownHighlighter.maxHighlightedLength));
     final updateState = ref.watch(updateProvider);
     final l10n = AppLocalizations.of(context)!;
     final tokens = AppTheme.getTokens(ref.watch(settingsProvider).themeName);
@@ -39,6 +46,10 @@ class StatusBar extends ConsumerWidget {
           Text(l10n.statusMarkdown, style: style),
           _divider(tokens),
           Text(l10n.statusLineFeed, style: style),
+          if (highlightOff) ...[
+            _divider(tokens),
+            Text(l10n.statusHighlightOff, style: style),
+          ],
           const Spacer(),
           if (updateState.availableUpdate != null && !updateState.dismissed) ...[
             _buildUpdateIndicator(

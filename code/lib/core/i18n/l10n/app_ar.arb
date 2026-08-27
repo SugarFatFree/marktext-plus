@@ -258,5 +258,6 @@
   "paragraphToParagraph": "تحويل إلى فقرة",
   "close": "إغلاق",
   "mermaidViewerTitle": "عارض مخططات Mermaid",
-  "mermaidViewerHint": "Ctrl+عجلة الفأرة للتكبير    السحب للتحريك    Esc للإغلاق"
+  "mermaidViewerHint": "Ctrl+عجلة الفأرة للتكبير    السحب للتحريك    Esc للإغلاق",
+  "statusHighlightOff": "تم إيقاف تلوين البنية (ملف كبير)"
 }

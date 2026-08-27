@@ -771,4 +771,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get mermaidViewerHint => 'Ctrl+スクロールで拡大縮小    ドラッグで移動    Esc で閉じる';
+  @override
+  String get statusHighlightOff => '大きなファイルのため構文ハイライトは無効';
 }

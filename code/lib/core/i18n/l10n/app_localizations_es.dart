@@ -777,4 +777,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get mermaidViewerHint => 'Ctrl+Rueda para ampliar    Arrastrar para desplazar    Esc para cerrar';
+  @override
+  String get statusHighlightOff => 'Resaltado de sintaxis desactivado (archivo grande)';
 }

@@ -768,4 +768,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get mermaidViewerHint => 'Ctrl+滚轮缩放    拖动平移    Esc 关闭';
+  @override
+  String get statusHighlightOff => '大文件已关闭语法高亮';
 }

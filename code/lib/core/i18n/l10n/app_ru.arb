@@ -258,5 +258,6 @@
   "paragraphToParagraph": "Преобразовать в абзац",
   "close": "Закрыть",
   "mermaidViewerTitle": "Просмотр диаграммы Mermaid",
-  "mermaidViewerHint": "Ctrl+колесо — масштаб    Перетаскивание — панорама    Esc — закрыть"
+  "mermaidViewerHint": "Ctrl+колесо — масштаб    Перетаскивание — панорама    Esc — закрыть",
+  "statusHighlightOff": "Подсветка синтаксиса отключена (большой файл)"
 }

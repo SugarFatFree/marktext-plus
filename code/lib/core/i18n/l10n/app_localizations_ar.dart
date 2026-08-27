@@ -773,4 +773,6 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get mermaidViewerHint => 'Ctrl+عجلة الفأرة للتكبير    السحب للتحريك    Esc للإغلاق';
+  @override
+  String get statusHighlightOff => 'تم إيقاف تلوين البنية (ملف كبير)';
 }
