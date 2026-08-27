@@ -443,14 +443,15 @@ erDiagram
 
   group('Parse failure diagnosis', () {
     test('names the unrecognised type and lists what is supported', () {
-      // This example keeps going stale as types get implemented — erDiagram,
-      // then mindmap. quadrantChart is far enough down the list to hold for
-      // now; whoever implements it needs to change this line too.
+      // Previous versions of this test named a real mermaid type that was not
+      // implemented yet — erDiagram, then mindmap, then quadrantChart — and
+      // each one broke the test the day it was implemented. A header that
+      // mermaid itself will never define cannot go stale.
       final message = parser.describeParseFailure(
-        'quadrantChart\n  title Reach and engagement',
+        'notARealDiagramType\n  some body line',
       );
 
-      expect(message, contains('quadrantchart'));
+      expect(message, contains('notarealdiagramtype'));
       expect(message, contains('classDiagram'));
       expect(message, contains('sequenceDiagram'));
     });
