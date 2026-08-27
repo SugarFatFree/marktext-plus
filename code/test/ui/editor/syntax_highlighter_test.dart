@@ -334,6 +334,76 @@ void main() {
     });
   });
 
+  group('Fenced code blocks', () {
+    const headingColor = Colors.blue;
+    const boldColor = Colors.red;
+    const codeColor = Colors.green;
+    const linkColor = Colors.purple;
+    const defaultColor = Colors.black;
+    const quoteColor = Colors.teal;
+
+    List<TextSpan> spansOf(String source) => MarkdownSyntaxHighlighter.highlight(
+          source,
+          headingColor: headingColor,
+          boldColor: boldColor,
+          codeColor: codeColor,
+          linkColor: linkColor,
+          defaultColor: defaultColor,
+          quoteColor: quoteColor,
+        ).children!.cast<TextSpan>();
+
+    test('markdown inside a fence is not styled as markdown', () {
+      // Styling is decided a line at a time, and a line on its own cannot tell
+      // that it sits inside a fence — so `**bold**`, `[a](b)`, `# comment` and
+      // `> arrow` in a snippet were all coloured as markdown.
+      for (final body in ['**bold**', '[a](b)', '# comment', '> arrow']) {
+        final spans = spansOf('```\n$body\n```');
+        expect(spans.map((s) => s.text ?? '').join(), '```\n$body\n```');
+        expect(
+          spans.every((s) => s.style?.color == codeColor),
+          isTrue,
+          reason: body,
+        );
+      }
+    });
+
+    test('styling resumes after the closing fence', () {
+      final spans = spansOf('```\nx\n```\n**bold**');
+      expect(spans.last.style?.color, boldColor);
+    });
+
+    test('a tilde fence works like a backtick one', () {
+      final spans = spansOf('~~~\n**bold**\n~~~');
+      expect(spans.every((s) => s.style?.color == codeColor), isTrue);
+    });
+
+    test('a fence closes only on its own character and length', () {
+      // ```` ``` ```` cannot close a fence opened with ````` ~~~ `````, and a
+      // shorter run cannot close a longer one.
+      final mixed = spansOf('~~~\n```\n**bold**\n~~~');
+      expect(mixed.every((s) => s.style?.color == codeColor), isTrue);
+
+      final shorter = spansOf('`````\n```\n**bold**\n`````');
+      expect(shorter.every((s) => s.style?.color == codeColor), isTrue);
+    });
+
+    test('a run carrying an info string does not close a fence', () {
+      final spans = spansOf('```\n**a**\n```dart\n**b**');
+      expect(spans.every((s) => s.style?.color == codeColor), isTrue);
+    });
+
+    test('an unclosed fence runs to the end of the document', () {
+      final spans = spansOf('```\n**bold**\n# heading');
+      expect(spans.every((s) => s.style?.color == codeColor), isTrue);
+    });
+
+    test('four spaces is not a fence', () {
+      // That is an indented code block, which this highlighter leaves alone.
+      final spans = spansOf('    ```\n**bold**');
+      expect(spans.last.style?.color, boldColor);
+    });
+  });
+
   group('IncrementalMarkdownHighlighter', () {
     const colors = HighlightColors(
       heading: Colors.blue,
@@ -422,6 +492,28 @@ void main() {
       final recoloured = highlighter.build('# Title', other);
 
       expect(recoloured.single.style?.color, Colors.orange);
+    });
+
+    test('opening a fence restyles every line below it', () {
+      // The cache reuses lines whose text did not change; typing the opening
+      // ``` leaves every line below textually identical while changing how
+      // all of them are drawn, so the reuse has to key on fence state too.
+      final highlighter = IncrementalMarkdownHighlighter();
+      const plain = '**bold**\n# heading\n';
+
+      expectSameAsFull(highlighter.build(plain, colors), plain);
+
+      const fenced = '```\n**bold**\n# heading\n';
+      final inside = highlighter.build(fenced, colors);
+      expectSameAsFull(inside, fenced);
+      expect(
+        inside.every((s) => s.style?.color == colors.code),
+        isTrue,
+        reason: 'everything between the fences is code',
+      );
+
+      // And closing it again puts the styling back.
+      expectSameAsFull(highlighter.build(plain, colors), plain);
     });
 
     test('gives up on documents past the size limit but keeps the text', () {

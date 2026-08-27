@@ -31,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - "Save as" rebinds the tab to the file it wrote, so the title updates and the next save no longer asks again
 - A failed write leaves the document marked as modified instead of claiming it was saved
 - Link and image text may contain a bracketed run, as in `[see [1] here](url)`
+- Front matter written as TOML (`+++`) or JSON (`;;;`, `{ … }`) is recognised, not just YAML — a Hugo file no longer shows its metadata as a paragraph of plus signs
+- A mermaid timeline groups its periods under `section` bands, drawn above the period titles and coloured per band
 
 ### Fixed
 - Clicking a folder-search result now scrolls to the line that matched, instead of opening the file at the top
@@ -39,6 +41,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - An HTML block ends at the first blank line, so a distant closing tag no longer swallows the headings and prose in between — and markdown inside a `<details>` renders as markdown
 - An ordered list written from `3.` is numbered from three, in the preview and in all three export formats
 - A fenced code block indented under a list item no longer carries that indentation into every line of the snippet
+- A footnote definition whose text has no spaces — `[^1]: 中文脚注`, `[^1]: https://…` — is no longer swallowed by the link-definition rule and dropped from the document
+- A document that opens with a thematic break is no longer read as front matter reaching to the next `---`, which hid everything in between
+- A kanban board indented with four spaces or with tabs draws instead of failing to render at all
+- A pie chart written `pie title …`, the spelling mermaid's own documentation uses, keeps its title
+- A timeline `section` line is no longer drawn as text inside whichever event came before it
+- A Gantt task written `until <id>` gets a real length instead of a zero-width bar, and `after a1 a2` resolves against both tasks rather than neither
+- A settings write that cannot reach the disk no longer surfaces as an unhandled error far from anything the user did
+- A link in the preview that cannot be opened — a typo'd address, no handler registered for the scheme — says so instead of failing silently
+- Markdown inside a fenced code block is no longer coloured as markdown in the source editor: `**bold**`, `[a](b)`, `# comment` and `> arrow` in a snippet stay code
 
 ## [v1.3.0] - 2026-08-27
 
