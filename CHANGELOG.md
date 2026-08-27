@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sequence diagrams honour `box … end` participant groupings and `autonumber`
 - Mermaid `block-beta` diagrams render: a wrapping grid of shaped blocks with arrows between them
 - Mermaid C4 diagrams render (`C4Context` and its four siblings), completing every diagram type the upstream editor draws
+- State diagrams read described states, choice nodes, composite states, `direction`, and the concurrency separator, instead of dropping every line that is not a transition
 - Email addresses are linked, both `<foo@example.com>` and bare ones in prose
 - An open document reloads when the file changes on disk, as long as it has no unsaved edits
 - "Save as" rebinds the tab to the file it wrote, so the title updates and the next save no longer asks again

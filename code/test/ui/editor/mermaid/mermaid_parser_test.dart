@@ -1127,6 +1127,135 @@ quadrantChart
     });
   });
 
+  group('State diagrams', () {
+    MermaidDiagramData stateOf(String source) =>
+        parser.parseWithData(source)!.diagram;
+
+    test('a described state keeps its description, not its alias', () {
+      // `state "…" as id` exists to give a state a readable name, and the
+      // whole line was being ignored.
+      final diagram = stateOf(
+        'stateDiagram-v2\n  state "Sitting still" as idle\n  [*] --> idle',
+      );
+
+      final state = diagram.nodes.firstWhere((n) => n.id == 'idle');
+      expect(state.label, 'Sitting still');
+    });
+
+    test('choice, fork and join are told apart', () {
+      final diagram = stateOf(
+        'stateDiagram-v2\n'
+        '  state pick <<choice>>\n'
+        '  state f <<fork>>\n'
+        '  idle --> pick\n'
+        '  idle --> f',
+      );
+
+      expect(
+        diagram.nodes.firstWhere((n) => n.id == 'pick').shape,
+        NodeShape.diamond,
+      );
+      // No bar shape exists here, so a fork stays a rectangle rather than
+      // being drawn as something it is not.
+      expect(
+        diagram.nodes.firstWhere((n) => n.id == 'f').shape,
+        NodeShape.rectangle,
+      );
+    });
+
+    test('a composite state becomes a labelled group', () {
+      final diagram = stateOf(
+        'stateDiagram-v2\n'
+        '  state Outer {\n'
+        '    A --> B\n'
+        '  }\n'
+        '  B --> C',
+      );
+
+      final group = diagram.subgraphs.single;
+      expect(group.label, 'Outer');
+      expect(group.nodeIds, containsAll(['A', 'B']));
+      expect(group.nodeIds, isNot(contains('C')));
+    });
+
+    test('composites nest, and the outer one holds the inner one members', () {
+      final diagram = stateOf(
+        'stateDiagram-v2\n'
+        '  state Outer {\n'
+        '    A --> B\n'
+        '    state Inner {\n'
+        '      C --> D\n'
+        '    }\n'
+        '  }',
+      );
+
+      final inner = diagram.subgraphs.firstWhere((g) => g.id == 'Inner');
+      final outer = diagram.subgraphs.firstWhere((g) => g.id == 'Outer');
+      expect(inner.nodeIds, ['C', 'D']);
+      expect(outer.nodeIds, containsAll(['A', 'B', 'C', 'D']));
+
+      // The subgraph box has an opaque fill, so the outer one has to be
+      // painted first or it covers the inner box and its label completely.
+      expect(diagram.subgraphs.map((g) => g.id).toList(), ['Outer', 'Inner']);
+    });
+
+    test('sibling composites keep the order they were written in', () {
+      final diagram = stateOf(
+        'stateDiagram-v2\n'
+        '  state First {\n'
+        '    A --> B\n'
+        '  }\n'
+        '  state Second {\n'
+        '    C --> D\n'
+        '  }',
+      );
+
+      expect(diagram.subgraphs.map((g) => g.id).toList(), ['First', 'Second']);
+    });
+
+    test('a start marker inside a composite is that composite own', () {
+      // Sharing one start node across the diagram wired every composite's
+      // entry point to the same circle.
+      final diagram = stateOf(
+        'stateDiagram-v2\n'
+        '  [*] --> Outer\n'
+        '  state Outer {\n'
+        '    [*] --> A\n'
+        '  }',
+      );
+
+      final starts = diagram.nodes.where((n) => n.id.startsWith('__start__'));
+      expect(starts, hasLength(2));
+    });
+
+    test('direction is honoured', () {
+      expect(
+        stateOf('stateDiagram-v2\n  direction LR\n  A --> B').direction,
+        DiagramDirection.leftToRight,
+      );
+    });
+
+    test('the concurrency separator is not a transition', () {
+      final diagram = stateOf(
+        'stateDiagram-v2\n'
+        '  state Both {\n'
+        '    A --> B\n'
+        '    --\n'
+        '    C --> D\n'
+        '  }',
+      );
+
+      expect(diagram.edges, hasLength(2));
+    });
+
+    test('a composite with no closing brace still groups what it got', () {
+      final diagram =
+          stateOf('stateDiagram-v2\n  state Outer {\n    A --> B');
+
+      expect(diagram.subgraphs.single.nodeIds, ['A', 'B']);
+    });
+  });
+
   group('C4 diagrams', () {
     test('elements, their kinds and their external flag are read', () {
       final data = parser
