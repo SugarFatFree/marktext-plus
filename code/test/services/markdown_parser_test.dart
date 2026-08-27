@@ -933,8 +933,7 @@ void _htmlBlockTests() {
       for (final line in [
         '<kbd>Ctrl</kbd>+<kbd>C</kbd>',
         '<span class="x">text</span>',
-        '<img src="a.png">',
-        '<br>',
+        '<b>bold</b> and then some prose',
       ]) {
         final nodes = parser.parse('text\n\n$line\n\n# After\n');
         expect(
@@ -943,6 +942,30 @@ void _htmlBlockTests() {
           reason: line,
         );
         expect(nodes.where((n) => n.type == NodeType.heading).length, 1);
+      }
+    });
+
+    test('any tag alone on its line does start a block', () {
+      // Condition 7 of the spec, and the shape a README uses for a badge:
+      // the anchor and the image each sit on a line of their own.
+      for (final line in ['<img src="a.png">', '<br>', '<a href="x">']) {
+        final nodes = parser.parse('text\n\n$line\n\n# After\n');
+        expect(
+          nodes.where((n) => n.type == NodeType.htmlBlock).length,
+          1,
+          reason: line,
+        );
+      }
+    });
+
+    test('an autolink alone on its line is not an html block', () {
+      for (final line in ['<https://example.com>', '<foo@example.com>']) {
+        final nodes = parser.parse('text\n\n$line\n\n# After\n');
+        expect(
+          nodes.where((n) => n.type == NodeType.htmlBlock),
+          isEmpty,
+          reason: line,
+        );
       }
     });
 

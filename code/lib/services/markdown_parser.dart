@@ -406,6 +406,15 @@ class MarkdownParser {
     'pre', 'script', 'style', 'textarea',
   };
 
+  /// A single complete tag with nothing else on its line.
+  ///
+  /// Condition 7 of the spec: a tag of *any* name alone on its line opens a
+  /// block too. That is how a README writes `<a href="…">` or `<img src="…">`
+  /// on lines of their own, and it is what separates them from a line of
+  /// `<kbd>Ctrl</kbd>+<kbd>C</kbd>`, where the tag is followed by content.
+  static final _htmlTagAloneRe =
+      RegExp(r'^<[a-zA-Z][a-zA-Z0-9-]*(?:\s[^<>]*?)?/?>\s*$');
+
   /// A link reference definition: `[label]: url "title"`.
   static final _linkDefRe = RegExp(
     r'^\s{0,3}\[([^\]]+)\]:\s*(\S+)(?:\s+"([^"]*)")?\s*$',
@@ -729,7 +738,8 @@ class MarkdownParser {
       // HTML block
       final htmlMatch = _htmlBlockStartRe.firstMatch(line);
       if (htmlMatch != null &&
-          _blockHtmlTags.contains(htmlMatch.group(1)!.toLowerCase())) {
+          (_blockHtmlTags.contains(htmlMatch.group(1)!.toLowerCase()) ||
+              _htmlTagAloneRe.hasMatch(line))) {
         final tag = htmlMatch.group(1)!;
         final htmlLines = <String>[line];
         final closeTag = '</$tag>';
