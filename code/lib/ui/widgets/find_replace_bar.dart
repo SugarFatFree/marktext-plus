@@ -18,6 +18,27 @@ class FindReplaceBar extends ConsumerStatefulWidget {
     this.isSplitMode = false,
   }) : assert(textController != null || rawContent != null, 'Either textController or rawContent must be provided');
 
+  /// Writes [replacement] over each of [ranges] in [text].
+  ///
+  /// Back to front, so replacing one range does not move the next. [ranges]
+  /// must be non-overlapping and in document order, which is what
+  /// [findMatches] returns.
+  @visibleForTesting
+  static String replaceRanges(
+    String text,
+    List<TextRange> ranges,
+    String replacement,
+  ) {
+    var out = text;
+    for (var i = ranges.length - 1; i >= 0; i--) {
+      final range = ranges[i];
+      out = out.substring(0, range.start) +
+          replacement +
+          out.substring(range.end);
+    }
+    return out;
+  }
+
   /// Scans [text] for [pattern], returning non-overlapping ranges in document
   /// order.
   ///
@@ -292,28 +313,16 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
     }
 
     final replacement = _replaceController.text;
-    final pattern = _findController.text;
 
-    String newText = text;
-
-    if (_useRegex) {
-      try {
-        final regex = RegExp(
-          pattern,
-          caseSensitive: _caseSensitive,
-        );
-        newText = text.replaceAll(regex, replacement);
-      } catch (e) {
-        return;
-      }
-    } else {
-      for (int i = _matches.length - 1; i >= 0; i--) {
-        final match = _matches[i];
-        newText = newText.substring(0, match.start) +
-            replacement +
-            newText.substring(match.end);
-      }
-    }
+    // Both kinds of search replace exactly the ranges that were counted and
+    // highlighted, back to front so the earlier offsets stay valid.
+    //
+    // The regular-expression case used to call `String.replaceAll` instead,
+    // which finds its own matches — including the empty ones this deliberately
+    // skips. Searching `x*` in `axbxc` reported two matches and then wrote
+    // `YaYYbYYcY`: six replacements, in a document the user had been shown two.
+    final newText =
+        FindReplaceBar.replaceRanges(text, _matches, replacement);
 
     widget.textController!.value = TextEditingValue(
       text: newText,

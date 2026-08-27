@@ -4,15 +4,12 @@ import 'package:marktext_plus/ui/widgets/find_replace_bar.dart';
 
 /// Splices matches back into the document the way replace-all does, so a
 /// regression in the scan shows up as corrupted text rather than a count.
-String replaceAll(String text, List<TextRange> matches, String replacement) {
-  var out = text;
-  for (var i = matches.length - 1; i >= 0; i--) {
-    out = out.substring(0, matches[i].start) +
-        replacement +
-        out.substring(matches[i].end);
-  }
-  return out;
-}
+///
+/// The production routine, not a copy of it: this file used to carry its own
+/// implementation, which meant these tests could pass while the editor did
+/// something else.
+String replaceAll(String text, List<TextRange> matches, String replacement) =>
+    FindReplaceBar.replaceRanges(text, matches, replacement);
 
 List<int> starts(List<TextRange> matches) => matches.map((m) => m.start).toList();
 
@@ -84,6 +81,51 @@ void main() {
       final matches = FindReplaceBar.findMatches(doc, 'foo');
       expect(matches, hasLength(4));
       expect(replaceAll(doc, matches, 'X'), 'X bar X baz XX');
+    });
+  });
+
+  group('replace-all writes only what was counted', () {
+    /// A pattern that can match nothing reports a hit at every position.
+    /// [FindReplaceBar.findMatches] drops those; `String.replaceAll` does not,
+    /// and the regular-expression branch used to call it — so the editor wrote
+    /// six replacements in a document it had shown two matches for.
+    void expectAgrees(String text, String pattern, String replacement,
+        int expectedMatches, String expected) {
+      final matches = FindReplaceBar.findMatches(
+        text,
+        pattern,
+        caseSensitive: true,
+        useRegex: true,
+      );
+      expect(matches, hasLength(expectedMatches), reason: pattern);
+      expect(
+        FindReplaceBar.replaceRanges(text, matches, replacement),
+        expected,
+        reason: pattern,
+      );
+    }
+
+    test('a pattern that can match nothing replaces only its real hits', () {
+      expectAgrees('axbxc', 'x*', 'Y', 2, 'aYbYc');
+      expectAgrees('abc', 'a?', 'Y', 1, 'Ybc');
+      expectAgrees('abc', '.*', 'Y', 1, 'Y');
+    });
+
+    test('ordinary patterns are unchanged', () {
+      expectAgrees('axbxc', 'x', 'Y', 2, 'aYbYc');
+      expectAgrees('foo bar', r'\bfoo\b', 'Y', 1, 'Y bar');
+      expectAgrees('aaaa', 'aa', 'Y', 2, 'YY');
+    });
+
+    test('a longer replacement does not disturb the ranges after it', () {
+      final matches = FindReplaceBar.findMatches('a b a b', 'a');
+      expect(FindReplaceBar.replaceRanges('a b a b', matches, 'LONG'),
+          'LONG b LONG b');
+    });
+
+    test('an empty replacement deletes the matches', () {
+      final matches = FindReplaceBar.findMatches('a-b-c', '-');
+      expect(FindReplaceBar.replaceRanges('a-b-c', matches, ''), 'abc');
     });
   });
 }
