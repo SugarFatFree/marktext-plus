@@ -57,6 +57,15 @@ class WordCountService {
           inWord = true;
         }
         paragraphHasText = true;
+      } else if (inWord && _isWordJoiner(rune)) {
+        // An apostrophe or a hyphen between two letters belongs to the word:
+        // `don't` is one word and `state-of-the-art` is one, and counting the
+        // pieces made an English document read several per cent long.
+        //
+        // No lookahead is needed. Leaving `inWord` set is exactly what stops
+        // the letter after the joiner from starting a new word, and a joiner
+        // with nothing after it changes no count at all.
+        paragraphHasText = true;
       } else {
         inWord = false;
         if (rune != 0x20 && rune != 0x09 && rune != 0x0D) {
@@ -86,6 +95,15 @@ class WordCountService {
 
   /// Everything that is not whitespace or punctuation, so that Cyrillic,
   /// Greek and accented Latin all count as parts of a word.
+  /// Characters that join a word rather than ending it.
+  ///
+  /// Only counted as such between two word characters — a bullet `-` or a
+  /// quotation mark on its own reaches this test with no word open.
+  static bool _isWordJoiner(int rune) =>
+      rune == 0x27 || // apostrophe
+      rune == 0x2019 || // right single quotation mark, the typographic one
+      rune == 0x2D; // hyphen-minus
+
   static bool _isWordCharacter(int rune) {
     if (rune <= 0x20) return false; // control characters and space
     if (rune >= 0x21 && rune <= 0x2F) return false; // ! through /

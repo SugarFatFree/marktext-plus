@@ -53,6 +53,22 @@ void main() {
       expect(service.countWords('one\n\n').paragraphs, 1);
     });
 
+    test('an apostrophe or a hyphen stays inside the word', () {
+      // Counting the pieces made an English document read several per cent
+      // longer than it is.
+      expect(service.countWords("don't can't").words, 2);
+      expect(service.countWords('well-known state-of-the-art').words, 2);
+      // The typographic apostrophe too, which is what most editors insert.
+      expect(service.countWords('don\u2019t stop').words, 2);
+    });
+
+    test('a joiner with no word open is still not a word', () {
+      // Bullets and quotation marks reach the same test.
+      expect(service.countWords('- item one\n- item two').words, 4);
+      expect(service.countWords("'quoted' word").words, 2);
+      expect(service.countWords('a - b').words, 2);
+    });
+
     test('punctuation alone is not a word', () {
       expect(service.countWords('... --- !!!').words, 0);
       expect(service.countWords('，。！').words, 0);
