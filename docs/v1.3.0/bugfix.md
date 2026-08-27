@@ -13,7 +13,7 @@
 | BUG-004 | 2026-08-27 | Mermaid 缺失 erDiagram / journey / gitGraph / mindmap / quadrantChart 等类型 | P1 | erDiagram、journey、gitGraph、mindmap 已完成，其余待补 |
 | BUG-005 | 2026-08-27 | Mermaid `_cleanLines` 粗暴剥离 `%%`，破坏 `%%{init:...}%%` 指令与标签内文本 | P1 | 已修复 |
 | BUG-006 | 2026-08-27 | Mermaid `graph`/`flowchart` 检测强制要求尾随空格，`graph TD;` 等写法失配 | P1 | 已修复 |
-| BUG-007 | 2026-08-27 | `markdown_renderer` 的 `_diagramLanguages` 与实际支持类型错配 | P2 | 待修复 |
+| BUG-007 | 2026-08-27 | `markdown_renderer` 的 `_diagramLanguages` 与实际支持类型错配 | P2 | 已修复 |
 | BUG-008 | 2026-08-27 | 不支持 PlantUML / Vega-Lite 代码块（源项目支持） | P2 | 待修复 |
 | BUG-009 | 2026-08-27 | Linux 使用 G_APPLICATION_NON_UNIQUE，每打开一个文件就新开一个进程 | P1 | 已修复（运行时行为待人工验证） |
 | BUG-010 | 2026-08-27 | 启动时弹出「如何打开文件？」模态框，反复出现 | P0 | 已修复 |
@@ -118,7 +118,7 @@
 | 状态 | 待修复 |
 | 现象 | ` ```pie ` / ` ```sequence ` / ` ```mindmap ` 等被当作 Mermaid 交给渲染器，但其中 `mindmap` / `classdiagram` / `erdiagram` / `journey` / `gitgraph` 根本没有 parser，直接白屏；反之源项目支持的 ` ```flowchart `（flowchart.js 语法，非 mermaid）被错误当成 mermaid 解析 |
 | 根因分析 | `lib/ui/editor/markdown_renderer.dart:336` 的 `_diagramLanguages` 集合是硬编码清单，与 `MermaidParser._detectDiagramType` 的真实能力集没有单一事实来源 |
-| 修复方案 | 由 `MermaidParser` 暴露 `static bool canRender(String lang, String code)`，`markdown_renderer` 改为调用它；无法渲染时降级为语法高亮代码块 + 错误提示，而不是空白 |
+| 修复方案 | `MermaidParser` 暴露 `static bool handlesLanguage(String)`，从 `supportedTypes` 派生而非另立清单，实现新类型时两处不可能再脱节；`markdown_renderer` 改为调用它。解析失败时由 `describeParseFailure` 给出具体原因（见 BUG-003 相关改动），而非空白。<br>**行为变化**：` ```sequence ` 不再当作图表标签 —— 它是 js-sequence-diagrams 的标记而非 mermaid 类型名（mermaid 用 `sequenceDiagram`），此类代码块现按普通代码块高亮显示。对 flowchart.js / PlantUML / Vega-Lite 语法的真正支持见 BUG-008 |
 | 涉及文件 | `lib/ui/editor/markdown_renderer.dart`、`lib/ui/editor/mermaid/parser/mermaid_parser.dart`、`lib/ui/widgets/mermaid_renderer.dart` |
 
 ---

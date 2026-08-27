@@ -273,6 +273,26 @@ class MermaidParser {
     'xychart',
   ];
 
+  /// Whether a fenced code block tagged [language] should be handed to the
+  /// diagram renderer.
+  ///
+  /// Derived from [supportedTypes] rather than kept as a second hard-coded
+  /// list, so implementing a type cannot leave the two disagreeing. The
+  /// canonical tag is ```mermaid, with the bare type names accepted as a
+  /// convenience.
+  static bool handlesLanguage(String language) {
+    final lang = language.trim().toLowerCase();
+    if (lang.isEmpty) return false;
+    if (lang == 'mermaid') return true;
+
+    for (final supported in supportedTypes) {
+      for (final name in supported.split(' / ')) {
+        if (lang == name.trim().toLowerCase()) return true;
+      }
+    }
+    return false;
+  }
+
   /// Explains why [source] could not be rendered.
   ///
   /// Distinguishing "type not supported yet" from "syntax error in a type we

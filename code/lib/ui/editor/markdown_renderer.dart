@@ -19,6 +19,7 @@ import '../../providers/tab_provider.dart';
 import '../../services/markdown_parser.dart' as md;
 import '../../services/export_service.dart';
 import '../../services/clipboard_service.dart';
+import 'mermaid/parser/mermaid_parser.dart';
 import '../widgets/mermaid_renderer.dart';
 
 class MarkdownRenderer extends ConsumerStatefulWidget {
@@ -482,24 +483,11 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     );
   }
 
-  /// Languages recognized as Mermaid diagram types.
-  static const _diagramLanguages = {
-    'mermaid',
-    'flowchart',
-    'sequence',
-    'gantt',
-    'classdiagram',
-    'statediagram',
-    'erdiagram',
-    'journey',
-    'gitgraph',
-    'pie',
-    'mindmap',
-  };
-
   Widget _buildCodeBlock(md.CodeBlockNode node, ThemeData theme, AppThemeTokens tokens) {
     final lang = node.language.toLowerCase();
-    if (_diagramLanguages.contains(lang)) {
+    // Asks the parser what it can draw rather than keeping a second list here,
+    // which drifted out of step with the parser as types were implemented.
+    if (MermaidParser.handlesLanguage(lang)) {
       return MermaidRenderer(
         code: node.code,
         isDarkMode: theme.brightness == Brightness.dark,

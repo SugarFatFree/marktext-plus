@@ -32,6 +32,43 @@ void main() {
     });
   });
 
+  group('Language handling', () {
+    test('accepts the canonical mermaid tag and bare type names', () {
+      for (final lang in [
+        'mermaid',
+        'MERMAID',
+        'classDiagram',
+        'erDiagram',
+        'journey',
+        'gitGraph',
+        'mindmap',
+        'pie',
+        'gantt',
+      ]) {
+        expect(
+          MermaidParser.handlesLanguage(lang),
+          isTrue,
+          reason: '"$lang" should be rendered as a diagram',
+        );
+      }
+    });
+
+    test('leaves ordinary code languages alone', () {
+      for (final lang in ['dart', 'json', 'bash', 'python', '']) {
+        expect(
+          MermaidParser.handlesLanguage(lang),
+          isFalse,
+          reason: '"$lang" should stay a code block',
+        );
+      }
+    });
+
+    test('splits the combined graph / flowchart entry', () {
+      expect(MermaidParser.handlesLanguage('graph'), isTrue);
+      expect(MermaidParser.handlesLanguage('flowchart'), isTrue);
+    });
+  });
+
   group('Comment handling', () {
     test('strips a trailing comment', () {
       final result = parser.parseWithData('graph TD\n  A --> B %% a comment');
