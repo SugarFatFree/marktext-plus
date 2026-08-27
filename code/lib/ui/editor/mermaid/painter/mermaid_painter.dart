@@ -31,8 +31,9 @@ abstract class MermaidPainter extends CustomPainter {
     Offset position,
     double angle,
     ArrowType type,
-    Paint paint,
-  ) {
+    Paint paint, {
+    Color? fillColor,
+  }) {
     const arrowSize = 10.0;
 
     switch (type) {
@@ -78,10 +79,109 @@ abstract class MermaidPainter extends CustomPainter {
         );
         break;
 
+      case ArrowType.openArrow:
+        {
+          // Same open V as ArrowType.arrow; kept distinct so class diagrams
+          // can express "dependency" independently of flowchart arrows.
+          final openPath = Path();
+          openPath.moveTo(position.dx, position.dy);
+          openPath.lineTo(
+            position.dx - arrowSize * math.cos(angle - 0.4),
+            position.dy - arrowSize * math.sin(angle - 0.4),
+          );
+          openPath.moveTo(position.dx, position.dy);
+          openPath.lineTo(
+            position.dx - arrowSize * math.cos(angle + 0.4),
+            position.dy - arrowSize * math.sin(angle + 0.4),
+          );
+          canvas.drawPath(openPath, _strokeOf(paint));
+        }
+        break;
+
+      case ArrowType.hollowTriangle:
+        {
+          const triangleSize = 15.0;
+          const spread = 0.36;
+          final trianglePath = Path();
+          trianglePath.moveTo(position.dx, position.dy);
+          trianglePath.lineTo(
+            position.dx - triangleSize * math.cos(angle - spread),
+            position.dy - triangleSize * math.sin(angle - spread),
+          );
+          trianglePath.lineTo(
+            position.dx - triangleSize * math.cos(angle + spread),
+            position.dy - triangleSize * math.sin(angle + spread),
+          );
+          trianglePath.close();
+          canvas.drawPath(trianglePath, _fillOf(fillColor));
+          canvas.drawPath(trianglePath, _strokeOf(paint));
+        }
+        break;
+
+      case ArrowType.filledDiamond:
+      case ArrowType.hollowDiamond:
+        {
+          const diamondLength = 18.0;
+          const diamondHalfWidth = 6.5;
+          final dirX = math.cos(angle);
+          final dirY = math.sin(angle);
+          // Perpendicular unit vector.
+          final normalX = -dirY;
+          final normalY = dirX;
+          final midX = position.dx - (diamondLength / 2) * dirX;
+          final midY = position.dy - (diamondLength / 2) * dirY;
+
+          final diamondPath = Path();
+          diamondPath.moveTo(position.dx, position.dy);
+          diamondPath.lineTo(
+            midX + diamondHalfWidth * normalX,
+            midY + diamondHalfWidth * normalY,
+          );
+          diamondPath.lineTo(
+            position.dx - diamondLength * dirX,
+            position.dy - diamondLength * dirY,
+          );
+          diamondPath.lineTo(
+            midX - diamondHalfWidth * normalX,
+            midY - diamondHalfWidth * normalY,
+          );
+          diamondPath.close();
+
+          if (type == ArrowType.filledDiamond) {
+            canvas.drawPath(diamondPath, _fillOf(paint.color));
+          } else {
+            canvas.drawPath(diamondPath, _fillOf(fillColor));
+          }
+          canvas.drawPath(diamondPath, _strokeOf(paint));
+        }
+        break;
+
       case ArrowType.none:
       case ArrowType.doubleArrow:
         break;
     }
+  }
+
+  /// Stroke paint mirroring [source]'s colour and width.
+  ///
+  /// Built fresh rather than mutating [source] so callers can keep reusing the
+  /// same Paint across an edge without inheriting a style flipped here.
+  Paint _strokeOf(Paint source) {
+    return Paint()
+      ..color = source.color
+      ..strokeWidth = source.strokeWidth
+      ..strokeCap = source.strokeCap
+      ..style = PaintingStyle.stroke
+      ..isAntiAlias = true;
+  }
+
+  /// Solid fill paint, defaulting to the diagram background so "hollow" heads
+  /// hide the line running underneath them.
+  Paint _fillOf(Color? color) {
+    return Paint()
+      ..color = color ?? Color(style.backgroundColor)
+      ..style = PaintingStyle.fill
+      ..isAntiAlias = true;
   }
 
   /// Draws text with optional background
