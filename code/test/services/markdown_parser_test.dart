@@ -1662,6 +1662,84 @@ void _linkSyntaxTests() {
 }
 
 void _sourceSpanTests() {
+  group('Pathological long lines', () {
+    final parser = MarkdownParser();
+
+    /// A run of markers with nothing to close them used to make the engine
+    /// hand the run back one character at a time from every starting
+    /// position. A line of 60,000 `[` took fifty-one seconds to parse, with
+    /// the preview frozen for all of it.
+    ///
+    /// The bar is two seconds: loose enough not to flake on a loaded runner,
+    /// and still failing by two orders of magnitude if the backtracking
+    /// returns.
+    void expectFast(String label, String line) {
+      final watch = Stopwatch()..start();
+      final nodes = parser.parse(line);
+      watch.stop();
+
+      expect(nodes, isNotEmpty, reason: label);
+      expect(
+        watch.elapsedMilliseconds,
+        lessThan(2000),
+        reason: '$label took ${watch.elapsedMilliseconds}ms',
+      );
+    }
+
+    test('unmatched brackets', () {
+      expectFast('open brackets', '[' * 20000);
+      expectFast('brackets then one close', '${'[' * 20000}]');
+      expectFast('image openers', '![' * 10000);
+    });
+
+    test('unclosed link destinations', () {
+      expectFast('open parens', '[a](' * 5000);
+      expectFast('unclosed link', '[a](b' * 5000);
+      expectFast('image flood', '![a](' * 5000);
+    });
+
+    test('runs of emphasis markers', () {
+      expectFast('asterisks', '*' * 20000);
+      expectFast('alternating asterisks', '*a' * 10000);
+      expectFast('alternating backticks', '`a' * 10000);
+      expectFast('underscores', '_' * 20000);
+      expectFast('tildes', '~' * 20000);
+    });
+
+    test('ordinary long lines', () {
+      expectFast('prose', 'the quick brown fox ' * 2000);
+      expectFast('csv', List.generate(8000, (i) => 'c$i').join(','));
+      expectFast('minified json',
+          '{${List.generate(2000, (i) => '"k$i":$i').join(',')}}');
+    });
+
+    test('a reference link still resolves after the rewrite', () {
+      // The reference branch was rewritten to the balanced bracket shape; its
+      // two capture groups had to stay in the same positions, since every
+      // branch after it is numbered by hand.
+      final spans = parser
+          .parse('[text][ref]\n\n[ref]: https://example.com\n')
+          .whereType<ParagraphNode>()
+          .first
+          .inlineSpans;
+      final link = spans.firstWhere((s) => s.type == InlineType.link);
+      expect(link.href, 'https://example.com');
+    });
+
+    test('a badge still parses after the rewrite', () {
+      // Same for the image-used-as-a-link branch.
+      final spans = parser
+          .parse('[![alt](img.png)](https://example.com)')
+          .whereType<ParagraphNode>()
+          .single
+          .inlineSpans;
+      expect(spans, hasLength(1));
+      expect(spans.single.type, InlineType.image);
+      expect(spans.single.href, 'img.png');
+      expect(spans.single.linkHref, 'https://example.com');
+    });
+  });
+
   group('Source spans', () {
     late MarkdownParser parser;
     setUp(() => parser = MarkdownParser());

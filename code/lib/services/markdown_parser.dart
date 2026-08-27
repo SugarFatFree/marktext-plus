@@ -1196,7 +1196,13 @@ class MarkdownParser {
       // An image used as a link — the shape of a README badge. It has to come
       // before the image branch, which would otherwise claim the inner
       // ![...](...) and leave the rest as literal text.
-      r'\[!\[([^\]]*)\]\(\s*(?:<([^>]*)>|([^()\s"]+))\s*\)\]'
+      //
+      // The alt text uses the same balanced shape as the branches below. With
+      // `[^\]]*` a line of `![` repeated made the engine hand the run back one
+      // character at a time from every starting position: 30,000 of them took
+      // twenty-two seconds. Group count is unchanged — the inner groups are
+      // non-capturing.
+      r'\[!\[((?:[^\[\]]|\[[^\[\]]*\])*)\]\(\s*(?:<([^>]*)>|([^()\s"]+))\s*\)\]'
       r'\(\s*(?:<([^>]*)>|([^()\s"]+))\s*\)'  // 1 alt, 2/3 src, 4/5 href
       // Same balanced-bracket alt text as the link branch below. Without it
       // `![alt [x]](img.png)` fell through to that branch, which matched from
@@ -1243,7 +1249,13 @@ class MarkdownParser {
       // Appended rather than inserted: these add groups 19..21, leaving every
       // existing branch's numbering alone.
       r'|<((?:https?|ftp|mailto):[^>\s]+)>'         // 19 autolink
-      r'|\[([^\]]+)\]\[([^\]]*)\]'                // 20 text, 21 label
+      // Both brackets use the balanced shape the inline-link branch uses. With
+      // `[^\]]+` the engine handed a long run of `[` back one character at a
+      // time from every starting position, and a line of 60,000 of them took
+      // fifty-one seconds to parse — with the preview frozen throughout.
+      // Group count is unchanged: the inner groups are non-capturing.
+      r'|\[((?:[^\[\]]|\[[^\[\]]*\])*)\]'
+      r'\[((?:[^\[\]]|\[[^\[\]]*\])*)\]'          // 20 text, 21 label
       // A bare address, which GitHub Flavored Markdown links automatically.
       // Last of all, so an address already inside [](…) or <…> is claimed by
       // those branches first.
