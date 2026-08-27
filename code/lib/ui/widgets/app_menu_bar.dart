@@ -133,7 +133,7 @@ class AppMenuBar extends ConsumerWidget {
               ],
             ),
             const Spacer(),
-            _buildToolbarIcons(ref, tokens),
+            _buildToolbarIcons(ref, tokens, l10n),
           ],
         ),
       ),
@@ -979,7 +979,8 @@ class AppMenuBar extends ConsumerWidget {
     ref.read(settingsProvider.notifier).addRecentFile(filePath);
   }
 
-  Widget _buildToolbarIcons(WidgetRef ref, AppThemeTokens tokens) {
+  Widget _buildToolbarIcons(
+      WidgetRef ref, AppThemeTokens tokens, AppLocalizations l10n) {
     final config = ref.watch(settingsProvider);
 
     return Row(
@@ -989,7 +990,7 @@ class AppMenuBar extends ConsumerWidget {
         IconButton(
           icon: Icon(_getEditModeIcon(config.editMode)),
           iconSize: 18,
-          tooltip: _getEditModeTooltip(config.editMode),
+          tooltip: _getEditModeTooltip(config.editMode, l10n),
           onPressed: () => _cycleEditMode(ref, config.editMode),
         ),
         const SizedBox(width: 4),
@@ -997,7 +998,7 @@ class AppMenuBar extends ConsumerWidget {
         IconButton(
           icon: const Icon(Icons.search),
           iconSize: 18,
-          tooltip: '搜索',
+          tooltip: l10n.sidebarSearch,
           onPressed: () => ref.read(editorProvider.notifier).toggleFindReplace(),
         ),
         const SizedBox(width: 4),
@@ -1005,7 +1006,7 @@ class AppMenuBar extends ConsumerWidget {
         IconButton(
           icon: Icon(config.sideBarVisible ? Icons.menu_open : Icons.menu),
           iconSize: 18,
-          tooltip: config.sideBarVisible ? '隐藏侧边栏' : '显示侧边栏',
+          tooltip: config.sideBarVisible ? l10n.viewHideSidebar : l10n.viewShowSidebar,
           onPressed: () => ref.read(settingsProvider.notifier).toggleSideBar(),
         ),
         const SizedBox(width: 4),
@@ -1013,7 +1014,7 @@ class AppMenuBar extends ConsumerWidget {
         IconButton(
           icon: const Icon(Icons.remove),
           iconSize: 18,
-          tooltip: '缩小',
+          tooltip: l10n.viewZoomOut,
           onPressed: () {
             final newSize = (config.fontSize - 1).clamp(12.0, 32.0);
             ref.read(settingsProvider.notifier).setFontSize(newSize);
@@ -1024,7 +1025,7 @@ class AppMenuBar extends ConsumerWidget {
         IconButton(
           icon: const Icon(Icons.add),
           iconSize: 18,
-          tooltip: '放大',
+          tooltip: l10n.viewZoomIn,
           onPressed: () {
             final newSize = (config.fontSize + 1).clamp(12.0, 32.0);
             ref.read(settingsProvider.notifier).setFontSize(newSize);
@@ -1042,11 +1043,11 @@ class AppMenuBar extends ConsumerWidget {
     };
   }
 
-  String _getEditModeTooltip(EditMode mode) {
+  String _getEditModeTooltip(EditMode mode, AppLocalizations l10n) {
     return switch (mode) {
-      EditMode.source => '源代码模式',
-      EditMode.preview => '预览模式',
-      EditMode.split => '双栏模式',
+      EditMode.source => l10n.commandSourceMode,
+      EditMode.preview => l10n.commandPreviewMode,
+      EditMode.split => l10n.commandSplitMode,
     };
   }
 

@@ -255,5 +255,8 @@
   "menuParagraph": "Paragrafo",
   "paragraphPromoteHeading": "Alza livello del titolo",
   "paragraphDemoteHeading": "Abbassa livello del titolo",
-  "paragraphToParagraph": "Converti in paragrafo"
+  "paragraphToParagraph": "Converti in paragrafo",
+  "close": "Chiudi",
+  "mermaidViewerTitle": "Visualizzatore diagrammi Mermaid",
+  "mermaidViewerHint": "Ctrl+Rotella per zoomare    Trascina per spostare    Esc per chiudere"
 }

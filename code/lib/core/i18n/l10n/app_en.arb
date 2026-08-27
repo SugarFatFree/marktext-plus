@@ -291,5 +291,17 @@
   "menuParagraph": "Paragraph",
   "paragraphPromoteHeading": "Promote Heading",
   "paragraphDemoteHeading": "Demote Heading",
-  "paragraphToParagraph": "Convert to Paragraph"
+  "paragraphToParagraph": "Convert to Paragraph",
+  "close": "Close",
+  "@close": {
+    "description": "Generic label for a button that closes a dialog"
+  },
+  "mermaidViewerTitle": "Mermaid Diagram Viewer",
+  "@mermaidViewerTitle": {
+    "description": "Title of the fullscreen Mermaid diagram dialog"
+  },
+  "mermaidViewerHint": "Ctrl+Scroll to zoom    Drag to pan    Esc to close",
+  "@mermaidViewerHint": {
+    "description": "Hint line listing the fullscreen diagram viewer gestures"
+  }
 }

@@ -769,4 +769,12 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get paragraphToParagraph => 'Convertir en párrafo';
+  @override
+  String get close => 'Cerrar';
+
+  @override
+  String get mermaidViewerTitle => 'Visor de diagramas Mermaid';
+
+  @override
+  String get mermaidViewerHint => 'Ctrl+Rueda para ampliar    Arrastrar para desplazar    Esc para cerrar';
 }

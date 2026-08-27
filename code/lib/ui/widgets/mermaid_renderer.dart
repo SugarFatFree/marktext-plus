@@ -289,6 +289,7 @@ class _MermaidFullscreenViewState extends State<_MermaidFullscreenView> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final l10n = AppLocalizations.of(context)!;
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: EdgeInsets.symmetric(
@@ -327,14 +328,17 @@ class _MermaidFullscreenViewState extends State<_MermaidFullscreenView> {
                   children: [
                     const Icon(Icons.schema_outlined, size: 20),
                     const SizedBox(width: 8),
-                    const Text(
-                      'Mermaid 图表查看',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                    Text(
+                      l10n.mermaidViewerTitle,
+                      style: const TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.w600),
                     ),
                     const Spacer(),
-                    _toolbarButton(Icons.zoom_out_map, '重置', _resetZoom),
+                    _toolbarButton(
+                        Icons.zoom_out_map, l10n.viewResetZoom, _resetZoom),
                     const SizedBox(width: 8),
-                    _toolbarButton(Icons.close, '关闭', () => Navigator.of(context).pop()),
+                    _toolbarButton(Icons.close, l10n.close,
+                        () => Navigator.of(context).pop()),
                   ],
                 ),
               ),
@@ -378,10 +382,10 @@ class _MermaidFullscreenViewState extends State<_MermaidFullscreenView> {
                   color: Colors.grey.shade100,
                   borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
                 ),
-                child: const Center(
+                child: Center(
                   child: Text(
-                    'Ctrl+滚轮缩放    拖动平移    Esc 关闭',
-                    style: TextStyle(color: Colors.black54, fontSize: 12),
+                    l10n.mermaidViewerHint,
+                    style: const TextStyle(color: Colors.black54, fontSize: 12),
                   ),
                 ),
               ),

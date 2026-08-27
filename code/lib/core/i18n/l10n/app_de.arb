@@ -255,5 +255,8 @@
   "menuParagraph": "Absatz",
   "paragraphPromoteHeading": "Überschrift höherstufen",
   "paragraphDemoteHeading": "Überschrift tieferstufen",
-  "paragraphToParagraph": "In Absatz umwandeln"
+  "paragraphToParagraph": "In Absatz umwandeln",
+  "close": "Schließen",
+  "mermaidViewerTitle": "Mermaid-Diagrammansicht",
+  "mermaidViewerHint": "Strg+Scrollen zum Zoomen    Ziehen zum Verschieben    Esc zum Schließen"
 }

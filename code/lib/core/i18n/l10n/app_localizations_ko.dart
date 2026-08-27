@@ -763,4 +763,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get paragraphToParagraph => '단락으로 변환';
+  @override
+  String get close => '닫기';
+
+  @override
+  String get mermaidViewerTitle => 'Mermaid 다이어그램 뷰어';
+
+  @override
+  String get mermaidViewerHint => 'Ctrl+스크롤로 확대/축소    드래그로 이동    Esc로 닫기';
 }

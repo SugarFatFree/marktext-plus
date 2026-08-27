@@ -255,5 +255,8 @@
   "menuParagraph": "단락",
   "paragraphPromoteHeading": "제목 수준 올리기",
   "paragraphDemoteHeading": "제목 수준 내리기",
-  "paragraphToParagraph": "단락으로 변환"
+  "paragraphToParagraph": "단락으로 변환",
+  "close": "닫기",
+  "mermaidViewerTitle": "Mermaid 다이어그램 뷰어",
+  "mermaidViewerHint": "Ctrl+스크롤로 확대/축소    드래그로 이동    Esc로 닫기"
 }

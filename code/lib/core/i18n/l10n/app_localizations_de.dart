@@ -768,4 +768,12 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get paragraphToParagraph => 'In Absatz umwandeln';
+  @override
+  String get close => 'Schließen';
+
+  @override
+  String get mermaidViewerTitle => 'Mermaid-Diagrammansicht';
+
+  @override
+  String get mermaidViewerHint => 'Strg+Scrollen zum Zoomen    Ziehen zum Verschieben    Esc zum Schließen';
 }

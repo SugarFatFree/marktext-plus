@@ -767,4 +767,12 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get paragraphToParagraph => 'Преобразовать в абзац';
+  @override
+  String get close => 'Закрыть';
+
+  @override
+  String get mermaidViewerTitle => 'Просмотр диаграммы Mermaid';
+
+  @override
+  String get mermaidViewerHint => 'Ctrl+колесо — масштаб    Перетаскивание — панорама    Esc — закрыть';
 }

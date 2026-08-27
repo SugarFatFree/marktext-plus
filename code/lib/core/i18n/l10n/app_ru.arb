@@ -255,5 +255,8 @@
   "menuParagraph": "Абзац",
   "paragraphPromoteHeading": "Повысить уровень заголовка",
   "paragraphDemoteHeading": "Понизить уровень заголовка",
-  "paragraphToParagraph": "Преобразовать в абзац"
+  "paragraphToParagraph": "Преобразовать в абзац",
+  "close": "Закрыть",
+  "mermaidViewerTitle": "Просмотр диаграммы Mermaid",
+  "mermaidViewerHint": "Ctrl+колесо — масштаб    Перетаскивание — панорама    Esc — закрыть"
 }

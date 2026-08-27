@@ -1594,6 +1594,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Convert to Paragraph'**
   String get paragraphToParagraph;
+
+  /// Generic label for a button that closes a dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get close;
+
+  /// Title of the fullscreen Mermaid diagram dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Mermaid Diagram Viewer'**
+  String get mermaidViewerTitle;
+
+  /// Hint line listing the fullscreen diagram viewer gestures
+  ///
+  /// In en, this message translates to:
+  /// **'Ctrl+Scroll to zoom    Drag to pan    Esc to close'**
+  String get mermaidViewerHint;
 }
 
 class _AppLocalizationsDelegate

@@ -763,4 +763,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get paragraphToParagraph => '段落に変換';
+  @override
+  String get close => '閉じる';
+
+  @override
+  String get mermaidViewerTitle => 'Mermaid ダイアグラムビューア';
+
+  @override
+  String get mermaidViewerHint => 'Ctrl+スクロールで拡大縮小    ドラッグで移動    Esc で閉じる';
 }

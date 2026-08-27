@@ -712,7 +712,7 @@ class _InteractiveMermaidDiagramState extends State<InteractiveMermaidDiagram> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // 使用实际可用空间来计算布局
+        // Lay out against the space actually available
         final availableWidth = constraints.maxWidth.isFinite
             ? constraints.maxWidth
             : 800.0;

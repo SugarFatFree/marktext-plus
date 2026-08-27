@@ -765,4 +765,12 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get paragraphToParagraph => 'تحويل إلى فقرة';
+  @override
+  String get close => 'إغلاق';
+
+  @override
+  String get mermaidViewerTitle => 'عارض مخططات Mermaid';
+
+  @override
+  String get mermaidViewerHint => 'Ctrl+عجلة الفأرة للتكبير    السحب للتحريك    Esc للإغلاق';
 }

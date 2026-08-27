@@ -760,4 +760,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get paragraphToParagraph => '转为段落';
+  @override
+  String get close => '关闭';
+
+  @override
+  String get mermaidViewerTitle => 'Mermaid 图表查看';
+
+  @override
+  String get mermaidViewerHint => 'Ctrl+滚轮缩放    拖动平移    Esc 关闭';
 }

@@ -53,6 +53,8 @@
 | BUG-044 | 2026-08-27 | 代码字体设置无效；分屏比例存了不恢复 | P2 | 已修复 |
 | BUG-045 | 2026-08-27 | 「在新窗口打开」设置无效，选了仍在当前窗口打开 | P2 | 已修复 |
 | BUG-046 | 2026-08-27 | 所有标签页共用一个撤销栈，撤销可能取回另一文件的内容 | **P0** | 已修复 |
+| BUG-047 | 2026-08-27 | 全部替换会吃掉正文：重叠匹配 + 陈旧偏移 | **P0** | 已修复 |
+| BUG-048 | 2026-08-27 | 12 语言应用里存在硬编码中文界面文案 | P2 | 已修复 |
 
 ---
 
@@ -715,6 +717,39 @@
 | 附带问题 | 撤销栈**无上限**。每 300ms 防抖压入一份**完整文档副本**，长时间编辑大文件会持续累积，内存只增不减 |
 | 修复方案 | 历史改为按 `tabId` 分桶（`Map<String, List<String>>`）；`SourceEditor` / `SplitEditor` 新增必传的 `tabId`，`initState` 中先 `setHistoryTab` 再 `pushHistory`。栈上限 200 条，超出时**从最旧一端裁剪** —— 撤销针对的是近期操作。标签关闭时 `removeTab` 调用 `forgetHistory` 释放该桶 |
 | 涉及文件 | `lib/providers/editor_provider.dart`、`lib/providers/tab_provider.dart`、`lib/ui/editor/source_editor.dart`、`lib/ui/editor/split_editor.dart`、`lib/ui/screens/home_screen.dart` |
+
+---
+
+## BUG-047 全部替换会吃掉正文
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | **P0** |
+| 状态 | 已修复 |
+| 现象 | 在 `aaaa` 中查找 `aa` 替换为 `b`，结果不是 `bb` 而是 **`b`** —— 少了两个字符。计数器也显示「3 处」而实际只有 2 处 |
+| 根因分析 | `_findMatches` 的扫描循环写的是 `index = pos + 1`，即**每次只前进一个字符**，于是产生了**互相重叠**的匹配区间 `[0,2] [1,3] [2,4]`。`_replaceAll` 从后往前逐个 splice，后一次 splice 的区间落在前一次已经改写过的文本上，越切越短 —— 这不是「替换错了」，是**丢数据** |
+| 第二个根因 | 查找栏打开期间用户仍可继续编辑正文，但 `_matches` 只在**查找词变化**时重算。文档改动后偏移全部失效，此时点「替换」就会按旧偏移改写**不相干的位置** |
+| 顺带发现 | ① `_buildOptionButton` 接收 `tooltip` 参数却**从未渲染** `Tooltip`，导致 `Aa` / `\b` / `.*` 三个按钮没有任何说明；② 正则模式下扫描分支根本不做全词判断，但 `\b` 按钮照样可以点亮，属于**假开关** |
+| 修复方案 | ① 扫描改为 `index = pos + pattern.length`，保证匹配不重叠；② 记录扫描时的文本快照 `_scannedText`，替换前比对，不一致则先重扫再返回；③ 监听正文控制器，正文变化时重扫但**不移动光标**（用户正在打字）；④ 「替换」后定位到刚写入位置**之后**的下一个匹配，而不是弹回第 0 个 —— 顺带杜绝了「查 a 替换成 aa」时原地死循环；⑤ 补上 `Tooltip`；⑥ 正则模式下禁用全词按钮并置灰 |
+| 涉及文件 | `lib/ui/widgets/find_replace_bar.dart`、`test/ui/widgets/find_replace_bar_test.dart` |
+| 验证方式 | 扫描逻辑抽为 `FindReplaceBar.findMatches` 静态方法并补 9 条单测，其中一条直接按替换全部的方式回填区间，断言 `aaaa` → `bb`，让回归表现为**正文损坏**而不只是计数不符 |
+
+---
+
+## BUG-048 12 语言应用里的硬编码中文界面文案
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P2 |
+| 状态 | 已修复 |
+| 现象 | 英文（及其余 10 种语言）界面下，工具栏提示、编辑模式提示、查找栏的「源代码/预览」切换、Mermaid 全屏查看器的标题与手势提示**全部显示中文** |
+| 根因分析 | 这些控件是后加的，作者直接写了中文字面量，没有走 `AppLocalizations`。`flutter analyze` 不会报这类问题，只有把「界面里出现的字面量」和「arb 里声明的键」两边对照才看得出来 |
+| 修复方案 | 复用已有键（`viewSourceCode`、`viewPreview`、`sidebarSearch`、`viewShowSidebar`/`viewHideSidebar`、`viewZoomIn`/`viewZoomOut`、`viewResetZoom`、`commandSourceMode`/`commandPreviewMode`/`commandSplitMode`），并新增 3 个键 `close`、`mermaidViewerTitle`、`mermaidViewerHint`，为 12 种语言全部补齐译文与生成代码 |
+| 保留不改 | `settings_screen.dart` 中的 `'简体中文'`、`'日本語'` —— 语言选择列表**本就应当用各自的语言书写**，不是缺陷 |
+| 涉及文件 | `lib/ui/widgets/app_menu_bar.dart`、`lib/ui/widgets/find_replace_bar.dart`、`lib/ui/widgets/mermaid_renderer.dart`、`lib/core/i18n/l10n/*.arb`、`lib/core/i18n/l10n/app_localizations*.dart` |
+| 验证方式 | 脚本比对 arb 键集合与生成代码：250 个键、244 个无参 getter + 6 个带参方法，11 个语言实现类**无一缺项** |
 
 ---
 

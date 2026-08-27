@@ -255,5 +255,8 @@
   "menuParagraph": "فقرة",
   "paragraphPromoteHeading": "رفع مستوى العنوان",
   "paragraphDemoteHeading": "خفض مستوى العنوان",
-  "paragraphToParagraph": "تحويل إلى فقرة"
+  "paragraphToParagraph": "تحويل إلى فقرة",
+  "close": "إغلاق",
+  "mermaidViewerTitle": "عارض مخططات Mermaid",
+  "mermaidViewerHint": "Ctrl+عجلة الفأرة للتكبير    السحب للتحريك    Esc للإغلاق"
 }

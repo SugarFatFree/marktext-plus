@@ -769,6 +769,14 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get paragraphToParagraph => 'Converter em parágrafo';
+  @override
+  String get close => 'Fechar';
+
+  @override
+  String get mermaidViewerTitle => 'Visualizador de diagramas Mermaid';
+
+  @override
+  String get mermaidViewerHint => 'Ctrl+Roda para ampliar    Arrastar para deslocar    Esc para fechar';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -1495,4 +1503,12 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get paragraphToParagraph => 'Converter em parágrafo';
+  @override
+  String get close => 'Fechar';
+
+  @override
+  String get mermaidViewerTitle => 'Visualizador de diagramas Mermaid';
+
+  @override
+  String get mermaidViewerHint => 'Ctrl+Roda para ampliar    Arrastar para deslocar    Esc para fechar';
 }
