@@ -472,6 +472,70 @@ void main() {
     });
   });
 
+  group('Email autolinks', () {
+    final parser = MarkdownParser();
+
+    List<InlineSpan> spansOf(String source) =>
+        (parser.parse(source).first as ParagraphNode).inlineSpans;
+
+    test('an address in angle brackets becomes a mailto link', () {
+      final spans = spansOf('<foo@example.com>');
+
+      expect(spans.single.type, InlineType.link);
+      expect(spans.single.text, 'foo@example.com');
+      expect(spans.single.href, 'mailto:foo@example.com');
+    });
+
+    test('a bare address in prose is linked', () {
+      final spans = spansOf('mail me at foo@example.com');
+
+      expect(spans.last.type, InlineType.link);
+      expect(spans.last.href, 'mailto:foo@example.com');
+    });
+
+    test('a full stop ends the sentence, not the address', () {
+      final spans = spansOf('mail me at foo@example.com.');
+
+      expect(spans[1].text, 'foo@example.com');
+      expect(spans.last.type, InlineType.text);
+      expect(spans.last.text, '.');
+    });
+
+    test('something that is not an address is left alone', () {
+      // No dot in the domain, no local part, and a number pair that only
+      // looks like one.
+      for (final source in ['a@b is not', '@mention only', '5@2 each']) {
+        final spans = spansOf(source);
+        expect(
+          spans.every((s) => s.type != InlineType.link),
+          isTrue,
+          reason: source,
+        );
+      }
+    });
+
+    test('an address inside a code span or a link stays where it is', () {
+      expect(spansOf('see `foo@example.com` here')[1].type, InlineType.code);
+
+      final linked = spansOf('[text](mailto:foo@example.com)').single;
+      expect(linked.text, 'text');
+      expect(linked.href, 'mailto:foo@example.com');
+    });
+
+    test('the address survives escape and entity restoration', () {
+      // Both rebuild every span field by field, and have dropped a new field
+      // on the floor before.
+      expect(
+        spansOf(r'mail \*me\* at foo@example.com').last.href,
+        'mailto:foo@example.com',
+      );
+      expect(
+        spansOf('entity &amp; then foo@example.com').last.href,
+        'mailto:foo@example.com',
+      );
+    });
+  });
+
   group('ATX heading closing sequence', () {
     final parser = MarkdownParser();
 

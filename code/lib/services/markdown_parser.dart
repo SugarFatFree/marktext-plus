@@ -1062,6 +1062,13 @@ class MarkdownParser {
       // Last of all, so an address already inside [](…) or <…> is claimed by
       // those branches first.
       r'|((?:https?://|www\.)[^\s<>\[\]()]+)'      // 22 bare url
+      // Appended after the bare-url branch so its numbering stays put. An
+      // address in angle brackets is CommonMark; a bare one is GitHub's
+      // extension, and both are what a reader expects to be able to click.
+      r'|<([^\s<>@]+@[^\s<>@]+\.[^\s<>@]+)>'       // 23 email autolink
+      // The lookbehind keeps this off the tail of something already matched
+      // as an address, and requiring a dot in the domain keeps it off `a@b`.
+      r'|(?<![\w.@+-])([\w.+-]+@[\w-]+(?:\.[\w-]+)+)'  // 24 bare email
     );
 
     var lastEnd = 0;
@@ -1178,6 +1185,30 @@ class MarkdownParser {
           spans.add(InlineSpan(
             type: InlineType.text,
             text: raw.substring(url.length),
+          ));
+        }
+      } else if (match.group(35) != null) {
+        // Autolink: <foo@example.com>
+        final address = match.group(35)!;
+        spans.add(InlineSpan(
+          type: InlineType.link,
+          text: address,
+          href: 'mailto:$address',
+        ));
+      } else if (match.group(36) != null) {
+        // A bare address. Trailing punctuation ends the sentence, not the
+        // address, exactly as for a bare URL.
+        final raw = match.group(36)!;
+        final address = raw.replaceFirst(RegExp(r'[.,;:!?]+$'), '');
+        spans.add(InlineSpan(
+          type: InlineType.link,
+          text: address,
+          href: 'mailto:$address',
+        ));
+        if (address.length < raw.length) {
+          spans.add(InlineSpan(
+            type: InlineType.text,
+            text: raw.substring(address.length),
           ));
         }
       } else if (match.group(32) != null) {
