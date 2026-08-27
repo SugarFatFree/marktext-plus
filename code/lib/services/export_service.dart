@@ -708,7 +708,11 @@ class ExportService {
           final src = inlined ?? _escapeHtml(original);
           final alt = _escapeHtml(span.text);
           final title = span.title != null ? ' title="${_escapeHtml(span.title!)}"' : '';
-          return '<img src="$src" alt="$alt"$title>';
+          final img = '<img src="$src" alt="$alt"$title>';
+          // An image wrapped in a link — a badge — is an anchor around it.
+          final linkHref = span.linkHref;
+          if (linkHref == null || linkHref.isEmpty) return img;
+          return '<a href="${_escapeHtml(linkHref)}">$img</a>';
         case InlineType.strikethrough:
           return '<del>$text</del>';
         case InlineType.mathInline:

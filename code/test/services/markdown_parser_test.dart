@@ -2,6 +2,53 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/services/markdown_parser.dart';
 
 void main() {
+  group('An image used as a link', () {
+    final parser = MarkdownParser();
+
+    List<InlineSpan> spansOf(String source) =>
+        (parser.parse(source).single as ParagraphNode).inlineSpans;
+
+    const badge =
+        '[![build](https://img.shields.io/b.svg)](https://ci.example.com)';
+
+    test('a badge is one image that knows where it links', () {
+      // The commonest thing at the top of a README. Parsed as separate
+      // constructs it came out as a broken link, the characters "](", and a
+      // second link.
+      final spans = spansOf(badge);
+
+      expect(spans, hasLength(1));
+      expect(spans.single.type, InlineType.image);
+      expect(spans.single.text, 'build');
+      expect(spans.single.href, 'https://img.shields.io/b.svg');
+      expect(spans.single.linkHref, 'https://ci.example.com');
+    });
+
+    test('both destinations may use angle brackets', () {
+      final span = spansOf('[![a](<my img.png>)](<my page.html>)').single;
+      expect(span.href, 'my img.png');
+      expect(span.linkHref, 'my page.html');
+    });
+
+    test('a plain image has no link', () {
+      expect(spansOf('![a](i.png)').single.linkHref, isNull);
+    });
+
+    test('two badges in a row stay separate', () {
+      final images =
+          spansOf('$badge $badge').where((s) => s.type == InlineType.image);
+      expect(images, hasLength(2));
+    });
+
+    test('the field survives escape and entity processing', () {
+      // Both of those rebuild the span, and a field left out of either is
+      // silently lost.
+      final span = spansOf('[![a &amp; b](i.png)](http://x.com)').single;
+      expect(span.text, 'a & b');
+      expect(span.linkHref, 'http://x.com');
+    });
+  });
+
   group('Link destinations and titles', () {
     final parser = MarkdownParser();
 

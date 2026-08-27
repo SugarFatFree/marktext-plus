@@ -346,3 +346,5 @@ void main() {}
 2. The next step
    1. renumbered from one
    2. inside this step
+
+[![build](https://img.shields.io/badge/build-passing-green.svg)](https://ci.example.com)

@@ -1130,6 +1130,18 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       );
     }
 
+    // A badge is an image wrapped in a link, so it opens the link when tapped.
+    final linkHref = span.linkHref;
+    if (linkHref != null && linkHref.isNotEmpty) {
+      imageWidget = MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: () => _openLink(linkHref),
+          child: imageWidget,
+        ),
+      );
+    }
+
     return WidgetSpan(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),

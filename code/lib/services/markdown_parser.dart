@@ -45,11 +45,19 @@ class InlineSpan {
   final String? href;
   final String? title;
 
+  /// Where an image links to, when it is wrapped in a link.
+  ///
+  /// The shape of a README badge. Kept alongside the image rather than as a
+  /// separate span because the model is flat: a link span cannot contain an
+  /// image span.
+  final String? linkHref;
+
   const InlineSpan({
     required this.type,
     required this.text,
     this.href,
     this.title,
+    this.linkHref,
   });
 }
 
@@ -999,7 +1007,12 @@ class MarkdownParser {
       // containing a space is written — `[doc](<my file.md>)` — and the title
       // may be quoted with either kind of quote. Neither was accepted, and
       // both fell apart into literal text.
-      r'!\[([^\]]*)\]\(\s*(?:<([^>]*)>|((?:[^()\s"]|\([^()]*\))+))'
+      // An image used as a link — the shape of a README badge. It has to come
+      // before the image branch, which would otherwise claim the inner
+      // ![...](...) and leave the rest as literal text.
+      r'\[!\[([^\]]*)\]\(\s*(?:<([^>]*)>|([^()\s"]+))\s*\)\]'
+      r'\(\s*(?:<([^>]*)>|([^()\s"]+))\s*\)'  // 1 alt, 2/3 src, 4/5 href
+      r'|!\[([^\]]*)\]\(\s*(?:<([^>]*)>|((?:[^()\s"]|\([^()]*\))+))'
       r'''(?:\s+(?:"([^"]*)"|'([^']*)'))?\s*\)'''  // 1 alt, 2/3 src, 4/5 title
       r'''|\[([^\]]*)\]\(\s*(?:<([^>]*)>|((?:[^()\s"]|\([^()]*\))+))'''
       r'''(?:\s+(?:"([^"]*)"|'([^']*)'))?\s*\)'''  // 6 text, 7/8 href, 9/10 title
@@ -1010,7 +1023,7 @@ class MarkdownParser {
       // spans and truncated `` `x` `` at the first inner tick.
       // The backreference is by absolute group number, so it moves whenever a
       // group is added ahead of it — as the angle-bracket destinations did.
-      r'|(`+)([^`]|[^`].*?[^`]|`+?)\12(?!`)'  // inline code
+      r'|(`+)([^`]|[^`].*?[^`]|`+?)\17(?!`)'  // inline code
       // Requires non-space at both ends, so `$5 and $10` is money, not maths.
       r'|\$(?!\s)([^$\n]+?)(?<!\s)\$'  // inline math
       r'|==(.+?)=='                // highlight
@@ -1058,36 +1071,45 @@ class MarkdownParser {
       // Groups: 1 alt, 2/3 src, 4/5 title | 6 text, 7/8 href, 9/10 title |
       // 11 footnote... Destination and title each have two forms, so each
       // contributes two groups of which one is null.
-      final imageSrc = match.group(2) ?? match.group(3);
-      final linkHref = match.group(7) ?? match.group(8);
+      final badgeSrc = match.group(2) ?? match.group(3);
+      final imageSrc = match.group(7) ?? match.group(8);
+      final linkHref = match.group(12) ?? match.group(13);
 
-      if (imageSrc != null) {
-        // Image: ![alt](src "title")
+      if (badgeSrc != null) {
+        // An image that is itself a link.
         spans.add(InlineSpan(
           type: InlineType.image,
           text: match.group(1) ?? '',
+          href: badgeSrc,
+          linkHref: match.group(4) ?? match.group(5),
+        ));
+      } else if (imageSrc != null) {
+        // Image: ![alt](src "title")
+        spans.add(InlineSpan(
+          type: InlineType.image,
+          text: match.group(6) ?? '',
           href: imageSrc,
-          title: match.group(4) ?? match.group(5),
+          title: match.group(9) ?? match.group(10),
         ));
       } else if (linkHref != null) {
         // Link: [text](href "title")
         spans.add(InlineSpan(
           type: InlineType.link,
-          text: match.group(6) ?? '',
+          text: match.group(11) ?? '',
           href: linkHref,
-          title: match.group(9) ?? match.group(10),
+          title: match.group(14) ?? match.group(15),
         ));
-      } else if (match.group(11) != null) {
+      } else if (match.group(16) != null) {
         // Footnote ref
         spans.add(InlineSpan(
           type: InlineType.footnoteRef,
-          text: match.group(11)!,
+          text: match.group(16)!,
         ));
-      } else if (match.group(12) != null) {
+      } else if (match.group(17) != null) {
         // Inline code. CommonMark drops one leading and one trailing space
         // when both are present, so `` ` `` is a single backtick rather than
         // a padded one.
-        var code = match.group(13)!;
+        var code = match.group(18)!;
         if (code.length >= 2 &&
             code.startsWith(' ') &&
             code.endsWith(' ') &&
@@ -1095,55 +1117,55 @@ class MarkdownParser {
           code = code.substring(1, code.length - 1);
         }
         spans.add(InlineSpan(type: InlineType.code, text: code));
-      } else if (match.group(14) != null) {
+      } else if (match.group(19) != null) {
         // Inline math
-        spans.add(InlineSpan(type: InlineType.mathInline, text: match.group(14)!));
-      } else if (match.group(15) != null) {
+        spans.add(InlineSpan(type: InlineType.mathInline, text: match.group(19)!));
+      } else if (match.group(20) != null) {
         // Highlight
-        spans.add(InlineSpan(type: InlineType.highlight, text: match.group(15)!));
-      } else if (match.group(16) != null) {
+        spans.add(InlineSpan(type: InlineType.highlight, text: match.group(20)!));
+      } else if (match.group(21) != null) {
         // Underline
-        spans.add(InlineSpan(type: InlineType.underline, text: match.group(16)!));
-      } else if (match.group(17) != null) {
+        spans.add(InlineSpan(type: InlineType.underline, text: match.group(21)!));
+      } else if (match.group(22) != null) {
         // Bold italic ***
         spans.add(
-            InlineSpan(type: InlineType.boldItalic, text: match.group(17)!));
-      } else if (match.group(18) != null) {
+            InlineSpan(type: InlineType.boldItalic, text: match.group(22)!));
+      } else if (match.group(23) != null) {
         // Bold **
-        spans.add(InlineSpan(type: InlineType.bold, text: match.group(18)!));
-      } else if (match.group(19) != null) {
+        spans.add(InlineSpan(type: InlineType.bold, text: match.group(23)!));
+      } else if (match.group(24) != null) {
         // Bold italic ___
         spans.add(
-            InlineSpan(type: InlineType.boldItalic, text: match.group(19)!));
-      } else if (match.group(20) != null) {
+            InlineSpan(type: InlineType.boldItalic, text: match.group(24)!));
+      } else if (match.group(25) != null) {
         // Bold __
-        spans.add(InlineSpan(type: InlineType.bold, text: match.group(20)!));
-      } else if (match.group(21) != null) {
+        spans.add(InlineSpan(type: InlineType.bold, text: match.group(25)!));
+      } else if (match.group(26) != null) {
         // Strikethrough
         spans.add(InlineSpan(
           type: InlineType.strikethrough,
-          text: match.group(21)!,
+          text: match.group(26)!,
         ));
-      } else if (match.group(22) != null) {
+      } else if (match.group(27) != null) {
         // Superscript
-        spans.add(InlineSpan(type: InlineType.superscript, text: match.group(22)!));
-      } else if (match.group(23) != null) {
+        spans.add(InlineSpan(type: InlineType.superscript, text: match.group(27)!));
+      } else if (match.group(28) != null) {
         // Subscript
-        spans.add(InlineSpan(type: InlineType.subscript, text: match.group(23)!));
-      } else if (match.group(24) != null) {
-        // Italic *
-        spans.add(InlineSpan(type: InlineType.italic, text: match.group(24)!));
-      } else if (match.group(25) != null) {
-        // Italic _
-        spans.add(InlineSpan(type: InlineType.italic, text: match.group(25)!));
-      } else if (match.group(26) != null) {
-        // Autolink: <https://example.com>
-        final url = match.group(26)!;
-        spans.add(InlineSpan(type: InlineType.link, text: url, href: url));
+        spans.add(InlineSpan(type: InlineType.subscript, text: match.group(28)!));
       } else if (match.group(29) != null) {
+        // Italic *
+        spans.add(InlineSpan(type: InlineType.italic, text: match.group(29)!));
+      } else if (match.group(30) != null) {
+        // Italic _
+        spans.add(InlineSpan(type: InlineType.italic, text: match.group(30)!));
+      } else if (match.group(31) != null) {
+        // Autolink: <https://example.com>
+        final url = match.group(31)!;
+        spans.add(InlineSpan(type: InlineType.link, text: url, href: url));
+      } else if (match.group(34) != null) {
         // Trailing punctuation ends the sentence, not the address: in
         // "see https://example.com." the full stop is not part of the link.
-        final raw = match.group(29)!;
+        final raw = match.group(34)!;
         final url = raw.replaceFirst(RegExp(r'[.,;:!?]+$'), '');
         spans.add(InlineSpan(type: InlineType.link, text: url, href: url));
         if (url.length < raw.length) {
@@ -1152,20 +1174,20 @@ class MarkdownParser {
             text: raw.substring(url.length),
           ));
         }
-      } else if (match.group(27) != null) {
+      } else if (match.group(32) != null) {
         // Reference link: [text][label], or [text][] where the text is the
         // label. Unresolved references stay as written rather than becoming a
         // link to nowhere.
-        final label = match.group(28)!.isEmpty
-            ? match.group(27)!
-            : match.group(28)!;
+        final label = match.group(33)!.isEmpty
+            ? match.group(32)!
+            : match.group(33)!;
         final definition = _linkDefinitions[label.toLowerCase()];
         if (definition == null) {
           spans.add(InlineSpan(type: InlineType.text, text: match.group(0)!));
         } else {
           spans.add(InlineSpan(
             type: InlineType.link,
-            text: match.group(27)!,
+            text: match.group(32)!,
             href: definition.url,
             title: definition.title,
           ));
@@ -1198,6 +1220,7 @@ class MarkdownParser {
         text: _decodeEntities(restored.text),
         href: restored.href,
         title: restored.title,
+        linkHref: restored.linkHref,
       );
     }).toList();
   }
@@ -1273,6 +1296,9 @@ class MarkdownParser {
       text: restore(span.text),
       href: span.href == null ? null : restore(span.href!),
       title: span.title == null ? null : restore(span.title!),
+      // Rebuilding the span here means every field has to be carried across;
+      // one left out is silently lost for any text containing an escape.
+      linkHref: span.linkHref == null ? null : restore(span.linkHref!),
     );
   }
 
