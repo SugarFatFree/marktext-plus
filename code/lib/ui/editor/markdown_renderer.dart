@@ -504,7 +504,13 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       );
     }
 
-    final baseCodeStyle = const TextStyle(fontFamily: 'monospace', fontSize: 14);
+    // The code font setting had nothing reading it: code was always rendered
+    // in the platform's generic monospace face whatever was chosen.
+    final baseCodeStyle = TextStyle(
+      fontFamily: ref.read(settingsProvider).codeFontFamily,
+      fontFamilyFallback: const ['monospace'],
+      fontSize: 14,
+    );
     // Skip highlighting for very large blocks to keep first-render responsive
     final canHighlight = node.language.isNotEmpty && node.code.length <= 20000;
 
