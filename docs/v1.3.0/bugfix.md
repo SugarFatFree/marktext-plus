@@ -51,6 +51,7 @@
 | BUG-042 | 2026-08-27 | 窗口大小/位置存了却从不读取，每次启动都回到默认尺寸 | P1 | 已修复 |
 | BUG-043 | 2026-08-27 | Tab 键不缩进；Tab 大小与列表标记两项设置形同虚设 | P1 | 已修复 |
 | BUG-044 | 2026-08-27 | 代码字体设置无效；分屏比例存了不恢复 | P2 | 已修复 |
+| BUG-045 | 2026-08-27 | 「在新窗口打开」设置无效，选了仍在当前窗口打开 | P2 | 已修复 |
 
 ---
 
@@ -680,9 +681,24 @@
 | 状态 | 已修复 |
 | 现象 | ① 设置中更改「代码字体」无任何效果，代码块始终使用平台通用等宽字体；② 拖动分屏分隔条后重启，比例回到对半 |
 | 发现方式 | 以**从 `AppConfig` 提取的真实字段名**重做 BUG-043 的检查（前次手写候选名导致误判，见该条「排查中的一次失误」）。32 个字段中：4 个仅被设置页自身读取、3 个从未被读取 |
-| 完整结论 | **仅设置页读取**：`enableHtml`（需 HTML 渲染能力，另行跟踪）、`codeFontFamily`（本条修复）、`textDirection`（RTL 手动覆盖，未实现）、`fileOpenBehavior`（BUG-010 移除弹窗后语义悬空，「新窗口」选项尚无对应行为）。<br>**从未读取**：`splitRatio`（本条修复）、`imageStorageMode` / `imageFolder`（图片设置未实现）|
+| 完整结论 | **仅设置页读取**：`enableHtml`（需 HTML 渲染能力，另行跟踪）、`codeFontFamily`（本条修复）、`textDirection`（RTL 手动覆盖，未实现）、`fileOpenBehavior`（已于 BUG-045 修复）。<br>**从未读取**：`splitRatio`（本条修复）、`imageStorageMode` / `imageFolder`（图片设置未实现）|
 | 修复方案 | 代码块样式改用 `config.codeFontFamily`，并以 `monospace` 作为 `fontFamilyFallback` —— 配置的字体在目标系统上未必存在。<br>分屏比例在 `initState` 中读回并 `clamp(0.2, 0.8)`（配置文件可能被手工改成越界值），拖动时以 400ms 防抖写回，避免每帧一次磁盘写入；定时器在 `dispose` 中取消 |
 | 涉及文件 | `lib/ui/editor/markdown_renderer.dart`、`lib/ui/editor/split_editor.dart` |
+
+---
+
+## BUG-045 「在新窗口打开」设置无效
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P2 |
+| 状态 | 已修复 |
+| 现象 | 设置中选择「在新窗口打开」后，从文件管理器双击 `.md` 仍在当前窗口新开标签页 |
+| 根因分析 | 又一处「能力已具备、只差接线」：`_newWindow()` 早已能跨平台启动新进程（菜单「新建窗口」即用它），而 `fileOpenBehavior` 除设置页回显外无人读取。<br>关键在于**该判断应置于何处**：单实例层（Linux 的 `G_APPLICATION_HANDLES_OPEN`、Windows 的 `windows_single_instance`）位于原生侧，读不到 Dart 配置，必然把第二次启动转发进来。因此只能在接收端 `openFilesFromSecondInstance` 判断，若配置为「新窗口」再启动新进程 |
+| 修复方案 | 启动逻辑提取为 `PlatformUtils.launchNewWindow({String? filePath})` 供菜单与本处共用（macOS 需 `open -n`，直接执行可执行文件只会激活既有实例）。`openFilesFromSecondInstance` 开头检查配置，为 `newWindow` 时逐个文件启动新进程后返回 |
+| 提交前自查 | `FileOpenBehavior` 定义于 `app_config.dart`，而 `tab_provider.dart` 仅 import 了 `settings_provider.dart` —— Dart 的 import **不传递**，该枚举实际不可见。此问题在推送前经可见性检查发现并补齐 import，未流入 CI |
+| 涉及文件 | `lib/utils/platform_utils.dart`、`lib/providers/tab_provider.dart`、`lib/ui/widgets/app_menu_bar.dart` |
 
 ---
 

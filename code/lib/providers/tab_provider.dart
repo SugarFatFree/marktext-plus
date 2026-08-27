@@ -2,8 +2,10 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
+import '../core/config/app_config.dart';
 import '../models/tab_info.dart';
 import '../services/file_service.dart';
+import '../utils/platform_utils.dart';
 import 'settings_provider.dart';
 
 /// Lightweight record of a file shown in the sidebar (no-folder mode).
@@ -235,6 +237,17 @@ class TabNotifier extends StateNotifier<TabState> {
   }
 
   Future<void> openFilesFromSecondInstance(List<String> filePaths) async {
+    // The single-instance layer always routes a second launch here, so this is
+    // where the preference has to be honoured: choosing "open in a new window"
+    // previously changed nothing, because nothing read the setting.
+    if (_ref.read(settingsProvider).fileOpenBehavior ==
+        FileOpenBehavior.newWindow) {
+      for (final path in filePaths) {
+        await PlatformUtils.launchNewWindow(filePath: path);
+      }
+      return;
+    }
+
     final fileService = FileService();
     for (final path in filePaths) {
       final existing = state.tabs.where((t) => t.filePath == path).firstOrNull;

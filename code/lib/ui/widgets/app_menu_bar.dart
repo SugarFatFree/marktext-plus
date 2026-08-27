@@ -935,12 +935,7 @@ class AppMenuBar extends ConsumerWidget {
   }
 
   void _newWindow() async {
-    final executable = Platform.resolvedExecutable;
-    if (PlatformUtils.isMacOS) {
-      await Process.start('open', ['-n', '-a', executable]);
-    } else {
-      await Process.start(executable, [], mode: ProcessStartMode.detached);
-    }
+    await PlatformUtils.launchNewWindow();
   }
 
   void _launchUrl(String url) async {
