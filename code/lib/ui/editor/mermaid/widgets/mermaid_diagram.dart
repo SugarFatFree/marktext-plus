@@ -16,6 +16,7 @@ import '../models/journey.dart';
 import '../models/kanban.dart';
 import '../models/mindmap.dart';
 import '../models/pie_chart.dart';
+import '../models/quadrant_chart.dart';
 import '../models/radar.dart';
 import '../models/timeline.dart';
 import '../models/style.dart';
@@ -29,6 +30,7 @@ import '../painter/journey_painter.dart';
 import '../painter/kanban_painter.dart';
 import '../painter/mindmap_painter.dart';
 import '../painter/pie_chart_painter.dart';
+import '../painter/quadrant_painter.dart';
 import '../painter/radar_painter.dart';
 import '../painter/sequence_painter.dart';
 import '../painter/timeline_painter.dart';
@@ -108,6 +110,7 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
   GanttChartData? _ganttChartData;
   TimelineChartData? _timelineChartData;
   KanbanChartData? _kanbanChartData;
+  QuadrantChartData? _quadrantChartData;
   RadarChartData? _radarChartData;
   XYChartData? _xyChartData;
   ClassDiagramData? _classDiagramData;
@@ -198,6 +201,14 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
           _style,
           Size(widget.width ?? availableWidth, widget.height ?? 600),
         );
+      } else if (diagram.type == DiagramType.quadrantChart &&
+          result.quadrantChartData != null) {
+        final quadrantLayout = QuadrantChartLayout(deviceConfig: _deviceConfig);
+        size = quadrantLayout.computeLayout(
+          result.quadrantChartData!,
+          _style,
+          Size(widget.width ?? availableWidth, widget.height ?? 600),
+        );
       } else if (diagram.type == DiagramType.radar && result.radarChartData != null) {
         // Use Radar chart layout with responsive config
         final radarLayout = RadarChartLayout(deviceConfig: _deviceConfig);
@@ -280,6 +291,7 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
       _ganttChartData = result.ganttChartData;
       _timelineChartData = result.timelineChartData;
       _kanbanChartData = result.kanbanChartData;
+      _quadrantChartData = result.quadrantChartData;
       _radarChartData = result.radarChartData;
       _xyChartData = result.xyChartData;
       _classDiagramData = result.classDiagramData;
@@ -365,6 +377,15 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
         if (_kanbanChartData != null) {
           return KanbanPainter(
             kanbanData: _kanbanChartData!,
+            style: _style,
+            deviceConfig: _deviceConfig,
+          );
+        }
+        return FlowchartPainter(diagram: diagram, style: _style);
+      case DiagramType.quadrantChart:
+        if (_quadrantChartData != null) {
+          return QuadrantPainter(
+            quadrantData: _quadrantChartData!,
             style: _style,
             deviceConfig: _deviceConfig,
           );
@@ -772,6 +793,7 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
   GanttChartData? _ganttChartData;
   TimelineChartData? _timelineChartData;
   KanbanChartData? _kanbanChartData;
+  QuadrantChartData? _quadrantChartData;
   RadarChartData? _radarChartData;
   XYChartData? _xyChartData;
   ClassDiagramData? _classDiagramData;
@@ -843,6 +865,14 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
         final kanbanLayout = KanbanChartLayout(deviceConfig: _deviceConfig);
         size = kanbanLayout.computeLayout(
           result.kanbanChartData!,
+          _style,
+          widget.viewportSize,
+        );
+      } else if (diagram.type == DiagramType.quadrantChart &&
+          result.quadrantChartData != null) {
+        final quadrantLayout = QuadrantChartLayout(deviceConfig: _deviceConfig);
+        size = quadrantLayout.computeLayout(
+          result.quadrantChartData!,
           _style,
           widget.viewportSize,
         );
@@ -929,6 +959,7 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
         _ganttChartData = result.ganttChartData;
         _timelineChartData = result.timelineChartData;
         _kanbanChartData = result.kanbanChartData;
+        _quadrantChartData = result.quadrantChartData;
         _radarChartData = result.radarChartData;
         _xyChartData = result.xyChartData;
         _classDiagramData = result.classDiagramData;
@@ -1009,6 +1040,15 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
         if (_kanbanChartData != null) {
           return KanbanPainter(
             kanbanData: _kanbanChartData!,
+            style: _style,
+            deviceConfig: _deviceConfig,
+          );
+        }
+        return FlowchartPainter(diagram: diagram, style: _style);
+      case DiagramType.quadrantChart:
+        if (_quadrantChartData != null) {
+          return QuadrantPainter(
+            quadrantData: _quadrantChartData!,
             style: _style,
             deviceConfig: _deviceConfig,
           );

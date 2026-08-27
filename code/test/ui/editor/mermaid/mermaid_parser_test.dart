@@ -469,6 +469,98 @@ erDiagram
     });
   });
 
+  group('Quadrant charts', () {
+    test('parses the full syntax from the mermaid docs', () {
+      final result = parser.parseWithData('''
+quadrantChart
+    title Reach and engagement of campaigns
+    x-axis Low Reach --> High Reach
+    y-axis Low Engagement --> High Engagement
+    quadrant-1 We should expand
+    quadrant-2 Need to promote
+    quadrant-3 Re-evaluate
+    quadrant-4 May be improved
+    Campaign A: [0.3, 0.6]
+    Campaign C: [0.57, 0.69] radius: 10, color: #ff0000
+''');
+
+      expect(result, isNotNull);
+      expect(result!.diagram.type, DiagramType.quadrantChart);
+
+      final chart = result.quadrantChartData!;
+      expect(chart.title, 'Reach and engagement of campaigns');
+      expect(chart.xAxisLeft, 'Low Reach');
+      expect(chart.xAxisRight, 'High Reach');
+      expect(chart.yAxisBottom, 'Low Engagement');
+      expect(chart.yAxisTop, 'High Engagement');
+      expect(chart.quadrant1, 'We should expand');
+      expect(chart.quadrant4, 'May be improved');
+
+      expect(chart.points, hasLength(2));
+      expect(chart.points[0].label, 'Campaign A');
+      expect(chart.points[0].x, 0.3);
+      expect(chart.points[0].y, 0.6);
+      expect(chart.points[0].radius, isNull);
+      expect(chart.points[1].radius, 10);
+      expect(chart.points[1].color, 0xFFFF0000);
+    });
+
+    test('an axis without an arrow names only its low end', () {
+      final chart = parser
+          .parseWithData('quadrantChart
+  x-axis Reach
+  A: [0.5, 0.5]')!
+          .quadrantChartData!;
+
+      expect(chart.xAxisLeft, 'Reach');
+      expect(chart.xAxisRight, isNull);
+    });
+
+    test('coordinates outside the plot are clamped to it', () {
+      final chart = parser
+          .parseWithData('quadrantChart
+  A: [1.8, -0.4]')!
+          .quadrantChartData!;
+
+      expect(chart.points.single.x, 1.0);
+      expect(chart.points.single.y, 0.0);
+    });
+
+    test('accepts quoted labels and short hex colours', () {
+      final chart = parser
+          .parseWithData('quadrantChart
+  "Campaign X": [0.1, 0.2] color: #f00')!
+          .quadrantChartData!;
+
+      expect(chart.points.single.label, 'Campaign X');
+      expect(chart.points.single.color, 0xFFFF0000);
+    });
+
+    test('an unparseable colour falls back to the default', () {
+      final chart = parser
+          .parseWithData('quadrantChart
+  A: [0.1, 0.2] color: #zzz')!
+          .quadrantChartData!;
+
+      expect(chart.points.single.color, isNull);
+    });
+
+    test('quadrant labels alone still make a chart', () {
+      // Axes and regions are worth drawing even before any point is plotted.
+      final result = parser.parseWithData('quadrantChart
+  quadrant-1 Expand');
+      expect(result?.quadrantChartData?.quadrant1, 'Expand');
+    });
+
+    test('a header with nothing under it is not a diagram', () {
+      expect(parser.parseWithData('quadrantChart'), isNull);
+    });
+
+    test('is offered as a supported type', () {
+      expect(MermaidParser.handlesLanguage('quadrantChart'), isTrue);
+    });
+  });
+
   group('Class diagrams', () {
     test('parses classes, members and visibility', () {
       final result = parser.parseWithData('''

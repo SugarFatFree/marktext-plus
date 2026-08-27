@@ -61,6 +61,9 @@ enum DiagramType {
   /// XY chart diagram
   xyChart,
 
+  /// Quadrant chart diagram
+  quadrantChart,
+
   /// Unknown/unsupported type
   unknown,
 }

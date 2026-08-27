@@ -7,6 +7,7 @@ import '../models/journey.dart';
 import '../models/diagram.dart';
 import '../models/kanban.dart';
 import '../models/node.dart';
+import '../models/quadrant_chart.dart';
 import '../models/radar.dart';
 import '../models/timeline.dart';
 import '../models/style.dart';
@@ -293,6 +294,46 @@ class RadarChartLayout {
     final totalHeight = titleHeight + chartSize + legendHeight + padding * 2;
 
     return Size(totalWidth, totalHeight);
+  }
+}
+
+/// Layout engine for quadrant charts
+class QuadrantChartLayout {
+  /// Creates a quadrant chart layout engine
+  const QuadrantChartLayout({this.deviceConfig});
+
+  /// Responsive device configuration
+  final MermaidDeviceConfig? deviceConfig;
+
+  /// Computes layout size for a quadrant chart.
+  ///
+  /// The plot is square; the extra height is the title plus the axis captions
+  /// drawn outside it on all four sides.
+  Size computeLayout(
+    QuadrantChartData quadrantData,
+    MermaidStyle style,
+    Size availableSize,
+  ) {
+    final isMobile = deviceConfig?.deviceType == DeviceType.mobile;
+    final padding = style.padding;
+    final titleHeight =
+        quadrantData.title != null ? (isMobile ? 32.0 : 40.0) : 0.0;
+    const axisGutter = 26.0;
+
+    final availableWidth = availableSize.width - padding * 2 - axisGutter * 2;
+    final availableHeight =
+        availableSize.height - padding * 2 - titleHeight - axisGutter * 2;
+
+    final side = math.min(
+      math.min(availableWidth, availableHeight),
+      isMobile ? 320.0 : 460.0,
+    );
+    if (side <= 0) return Size.zero;
+
+    return Size(
+      side + padding * 2 + axisGutter * 2,
+      side + padding * 2 + titleHeight + axisGutter * 2,
+    );
   }
 }
 

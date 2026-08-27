@@ -7,6 +7,7 @@ import '../models/journey.dart';
 import '../models/kanban.dart';
 import '../models/mindmap.dart';
 import '../models/pie_chart.dart';
+import '../models/quadrant_chart.dart';
 import '../models/radar.dart';
 import '../models/timeline.dart';
 import '../models/xy_chart.dart';
@@ -19,6 +20,7 @@ import 'journey_parser.dart';
 import 'kanban_parser.dart';
 import 'mindmap_parser.dart';
 import 'pie_chart_parser.dart';
+import 'quadrant_parser.dart';
 import 'radar_parser.dart';
 import 'sequence_parser.dart';
 import 'state_diagram_parser.dart';
@@ -34,6 +36,7 @@ class MermaidParseResult {
     this.ganttChartData,
     this.timelineChartData,
     this.kanbanChartData,
+    this.quadrantChartData,
     this.radarChartData,
     this.xyChartData,
     this.classDiagramData,
@@ -57,6 +60,9 @@ class MermaidParseResult {
 
   /// Kanban chart specific data (only set for Kanban charts)
   final KanbanChartData? kanbanChartData;
+
+  /// Quadrant chart specific data (only set for quadrant charts)
+  final QuadrantChartData? quadrantChartData;
 
   /// Radar chart specific data (only set for Radar charts)
   final RadarChartData? radarChartData;
@@ -159,6 +165,15 @@ class MermaidParser {
           return MermaidParseResult(
             diagram: result.$1,
             kanbanChartData: result.$2,
+          );
+        }
+        return null;
+      case DiagramType.quadrantChart:
+        final result = const QuadrantParser().parse(cleanedLines);
+        if (result != null) {
+          return MermaidParseResult(
+            diagram: result.$1,
+            quadrantChartData: result.$2,
           );
         }
         return null;
@@ -271,6 +286,7 @@ class MermaidParser {
     'kanban',
     'radar-beta',
     'xychart',
+    'quadrantChart',
   ];
 
   /// Whether a fenced code block tagged [language] should be handed to the
@@ -340,6 +356,8 @@ class MermaidParser {
         return 'timeline';
       case DiagramType.kanban:
         return 'Kanban board';
+      case DiagramType.quadrantChart:
+        return 'quadrant chart';
       case DiagramType.radar:
         return 'radar chart';
       case DiagramType.xyChart:
@@ -393,6 +411,11 @@ class MermaidParser {
     // XY chart
     if (firstLine.startsWith('xychart')) {
       return DiagramType.xyChart;
+    }
+
+    // Quadrant chart
+    if (firstLine.startsWith('quadrantchart')) {
+      return DiagramType.quadrantChart;
     }
 
     // Class diagram
