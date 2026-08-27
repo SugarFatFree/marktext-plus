@@ -16,7 +16,12 @@ void main() {
       // A real temp dir per run: HomeScreen's startup update check persists
       // lastUpdateCheck, and a fixed path would leak state between runs and
       // between developers' machines.
-      final configDir = await Directory.systemTemp.createTemp('marktext_test');
+      //
+      // createTempSync, not the async form: testWidgets runs inside a
+      // FakeAsync zone, where a dart:io future completes on the real event
+      // loop that the zone never advances. Awaiting one suspends the test body
+      // on its very first line until the timeout fires.
+      final configDir = Directory.systemTemp.createTempSync('marktext_test');
       addTearDown(() {
         if (configDir.existsSync()) configDir.deleteSync(recursive: true);
       });
