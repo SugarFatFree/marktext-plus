@@ -1024,6 +1024,8 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     _controller.codeColor = tokens.syntaxCode;
     _controller.linkColor = tokens.syntaxLink;
     _controller.defaultColor = tokens.colorText;
+    _controller.quoteColor = tokens.syntaxQuote;
+    _controller.commentColor = tokens.syntaxComment;
 
     // Dynamic gutter width
     final digits = lineCount < 10

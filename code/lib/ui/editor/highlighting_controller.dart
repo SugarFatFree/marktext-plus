@@ -8,6 +8,8 @@ class HighlightingController extends TextEditingController {
   Color codeColor;
   Color linkColor;
   Color defaultColor;
+  Color quoteColor;
+  Color commentColor;
 
   List<TextRange> _searchMatches = [];
   int _currentMatchIndex = -1;
@@ -19,7 +21,11 @@ class HighlightingController extends TextEditingController {
     required this.codeColor,
     required this.linkColor,
     required this.defaultColor,
-  }) : super(text: text != null ? _normalizeLineEndings(text) : null);
+    Color? quoteColor,
+    Color? commentColor,
+  })  : quoteColor = quoteColor ?? defaultColor,
+        commentColor = commentColor ?? defaultColor,
+        super(text: text != null ? _normalizeLineEndings(text) : null);
 
   static String _normalizeLineEndings(String text) =>
       FileService.normalizeLineEndings(text);
@@ -76,6 +82,8 @@ class HighlightingController extends TextEditingController {
         code: codeColor,
         link: linkColor,
         defaultColor: defaultColor,
+        quote: quoteColor,
+        comment: commentColor,
       ),
     );
 

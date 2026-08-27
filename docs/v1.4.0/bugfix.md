@@ -19,6 +19,7 @@
 | BUG-015 | 2026-08-28 | 字数统计把 `don't` 算成两个词 | P2 | 已修复 |
 | BUG-016 | 2026-08-28 | 打开非 UTF-8 文件时标签页静默消失；带 BOM 的文件保存后丢 BOM | **P0** | 已修复 |
 | BUG-017 | 2026-08-28 | 用空行分隔写的列表，渲染得和不分隔时一模一样 | P2 | 已修复 |
+| BUG-018 | 2026-08-28 | 主题为引用和注释定义了颜色，源码编辑器却从来不用 | P2 | 已修复 |
 
 ## 详细记录
 
@@ -331,5 +332,24 @@
 | 尚未做 | 上游段落菜单里的 `looseListItem` 是一个**切换命令**（把当前列表在松散/紧凑之间转换），需要新增 12 语种菜单文案，本次只做了「按写法正确渲染」这一半 |
 | 涉及文件 | `lib/services/markdown_parser.dart`、`lib/services/export_service.dart`、`lib/ui/editor/markdown_renderer.dart`、`test/services/markdown_parser_test.dart`、`test/fixtures_showcase_test.dart` |
 | 验证方式 | 61 条语料基线对拍**零差异**（`isLoose` 是新增信息，不改变既有输出）；7 种写法本地探查；5 个解析测试 + 1 个导出测试；十个历史断言脚本全部通过 |
+
+---
+
+### BUG-018 主题为引用和注释定义了颜色，源码编辑器却从来不用
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-28 |
+| 优先级 | P2 |
+| 状态 | 已修复 |
+| 怎么发现的 | 沿用「设置项是否生效」的思路，把 `AppThemeTokens` 的 15 个颜色 token 逐个在主题代码之外 grep。12 个在用，**3 个从来没被读过**：`syntaxQuote`、`syntaxComment`、`colorTextDisabled` |
+| 现象 | 8 套主题各自为「引用」和「注释」配了颜色，但源码编辑器的高亮器**根本没有这两个类别** —— 引用行和 HTML 注释都按正文色画。换主题时这两处永远看不出差别 |
+| 修复方案 | 高亮器新增两类：以 `>` 开头的行整行按引用色画；单行 `<!-- … -->` 按注释色画。源码编辑器把两个 token 传下去 |
+| 注释模式的位置很关键 | `<!--.*?-->` 必须排在强调类模式**之前**。扫描器取「位置最靠前的匹配」，若强调先匹配上，`<!-- a *b* c -->` 会被 `*b*` 从中间切开、只剩一半是注释色 |
+| 相等性 | `HighlightColors` 的 `==` / `hashCode` 必须带上这两个新字段 —— 缓存的 span 正是用它们画的，漏掉就会在换主题后留下旧颜色 |
+| 不是缺陷的一处 | `source_editor` 的 `initState` 里写着 `Colors.orange/blue/green/cyan/white`，看着像忽略了主题，但 `build` 里立刻用 token 覆盖，首帧之前就已正确 —— 只是可读性差，未改 |
+| 未处理 | `colorTextDisabled` 仍无人使用（纯 UI 色，没有明确归属）；跨行的 HTML 注释不着色 —— 高亮器是**逐行**缓存的，跨行状态会破坏「只重扫改动行」这个前提 |
+| 涉及文件 | `lib/ui/editor/syntax_highlighter.dart`、`lib/ui/editor/highlighting_controller.dart`、`lib/ui/editor/source_editor.dart`、`test/ui/editor/syntax_highlighter_test.dart` |
+| 验证方式 | 11 种行本地探查（引用/缩进引用/嵌套引用、含星号的注释、标题、粗体、代码、围栏、`a > b`）。每一条都断言**着色后各段文本长度之和等于原文长度** —— `buildTextSpan` 用它定位光标，长度对不上光标就会错位 |
 
 ---

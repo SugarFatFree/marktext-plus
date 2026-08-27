@@ -11,6 +11,9 @@ class MarkdownSyntaxHighlighter {
     _Pattern(RegExp(r'`(.+?)`'), _PatternType.code),
     _Pattern(RegExp(r'!\[([^\]]*)\]\(([^)]+)\)'), _PatternType.link),
     _Pattern(RegExp(r'\[([^\]]+)\]\(([^)]+)\)'), _PatternType.link),
+    // Before the emphasis patterns: a comment may contain anything, and
+    // letting `*` inside one match first would colour half of it as italic.
+    _Pattern(RegExp(r'<!--.*?-->'), _PatternType.comment),
     _Pattern(RegExp(r'~~(.+?)~~'), _PatternType.strikethrough),
     _Pattern(RegExp(r'\*(.+?)\*'), _PatternType.italic),
   ];
@@ -23,6 +26,8 @@ class MarkdownSyntaxHighlighter {
     required Color codeColor,
     required Color linkColor,
     required Color defaultColor,
+    Color? quoteColor,
+    Color? commentColor,
   }) {
     if (text.isEmpty) {
       return const TextSpan(children: <TextSpan>[]);
@@ -30,6 +35,8 @@ class MarkdownSyntaxHighlighter {
 
     final colors = HighlightColors(
       heading: headingColor,
+      quote: quoteColor ?? defaultColor,
+      comment: commentColor ?? defaultColor,
       bold: boldColor,
       code: codeColor,
       link: linkColor,
@@ -91,6 +98,13 @@ class MarkdownSyntaxHighlighter {
           style: TextStyle(color: colors.heading, fontWeight: FontWeight.bold),
         ),
       ];
+    }
+
+    // A quoted line is coloured whole, which is how the themes' quote colour
+    // was meant to be used — it was defined and then never painted with.
+    final withoutIndent = line.trimLeft();
+    if (withoutIndent.startsWith('>')) {
+      return [TextSpan(text: line, style: TextStyle(color: colors.quote))];
     }
 
     if (line.startsWith('```')) {
@@ -168,6 +182,8 @@ class MarkdownSyntaxHighlighter {
         );
       case _PatternType.italic:
         return TextStyle(color: colors.defaultColor, fontStyle: FontStyle.italic);
+      case _PatternType.comment:
+        return TextStyle(color: colors.comment, fontStyle: FontStyle.italic);
     }
   }
 }
@@ -182,13 +198,22 @@ class HighlightColors {
   final Color link;
   final Color defaultColor;
 
+  /// A blockquote line.
+  final Color quote;
+
+  /// An HTML comment on one line.
+  final Color comment;
+
   const HighlightColors({
     required this.heading,
     required this.bold,
     required this.code,
     required this.link,
     required this.defaultColor,
-  });
+    Color? quote,
+    Color? comment,
+  })  : quote = quote ?? defaultColor,
+        comment = comment ?? defaultColor;
 
   @override
   bool operator ==(Object other) =>
@@ -197,10 +222,15 @@ class HighlightColors {
       other.bold == bold &&
       other.code == code &&
       other.link == link &&
-      other.defaultColor == defaultColor;
+      other.defaultColor == defaultColor &&
+      // Part of the comparison because the cached spans were painted with
+      // these: leaving them out would keep stale colours after a theme change.
+      other.quote == quote &&
+      other.comment == comment;
 
   @override
-  int get hashCode => Object.hash(heading, bold, code, link, defaultColor);
+  int get hashCode =>
+      Object.hash(heading, bold, code, link, defaultColor, quote, comment);
 }
 
 /// Keeps per-line spans between rebuilds and re-scans only the lines an edit
@@ -283,6 +313,7 @@ enum _PatternType {
   link,
   strikethrough,
   italic,
+  comment,
 }
 
 class _Pattern {

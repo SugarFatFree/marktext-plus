@@ -10,6 +10,90 @@ void main() {
     const linkColor = Colors.purple;
     const defaultColor = Colors.black;
 
+    test('a quoted line is painted with the quote colour', () {
+      // The themes have carried a quote colour all along with nothing
+      // painting in it.
+      const quoteColor = Colors.teal;
+      for (final source in ['> quoted', '  > indented', '>> nested']) {
+        final result = MarkdownSyntaxHighlighter.highlight(
+          source,
+          headingColor: headingColor,
+          boldColor: boldColor,
+          codeColor: codeColor,
+          linkColor: linkColor,
+          defaultColor: defaultColor,
+          quoteColor: quoteColor,
+        );
+
+        final spans = result.children!.cast<TextSpan>();
+        expect(spans.map((s) => s.text).join(), source, reason: source);
+        expect(spans.first.style?.color, quoteColor, reason: source);
+      }
+    });
+
+    test('a greater-than sign inside a line is not a quote', () {
+      const quoteColor = Colors.teal;
+      final result = MarkdownSyntaxHighlighter.highlight(
+        'a > b',
+        headingColor: headingColor,
+        boldColor: boldColor,
+        codeColor: codeColor,
+        linkColor: linkColor,
+        defaultColor: defaultColor,
+        quoteColor: quoteColor,
+      );
+
+      expect(
+        result.children!.cast<TextSpan>().any(
+          (s) => s.style?.color == quoteColor,
+        ),
+        isFalse,
+      );
+    });
+
+    test('a comment is painted whole, emphasis inside it and all', () {
+      // The comment pattern is tried before the emphasis ones, or the `*b*`
+      // in `<!-- a *b* c -->` would take half of it.
+      const commentColor = Colors.brown;
+      const source = '<!-- a *b* c -->';
+      final result = MarkdownSyntaxHighlighter.highlight(
+        source,
+        headingColor: headingColor,
+        boldColor: boldColor,
+        codeColor: codeColor,
+        linkColor: linkColor,
+        defaultColor: defaultColor,
+        commentColor: commentColor,
+      );
+
+      final spans = result.children!.cast<TextSpan>();
+      expect(spans.map((s) => s.text).join(), source);
+      expect(spans.single.style?.color, commentColor);
+    });
+
+    test('the two new colours take part in the equality that caches spans', () {
+      // The cached spans were painted with them, so leaving them out of the
+      // comparison would keep stale colours after a theme change.
+      const a = HighlightColors(
+        heading: Colors.red,
+        bold: Colors.green,
+        code: Colors.blue,
+        link: Colors.purple,
+        defaultColor: Colors.black,
+        quote: Colors.teal,
+      );
+      const b = HighlightColors(
+        heading: Colors.red,
+        bold: Colors.green,
+        code: Colors.blue,
+        link: Colors.purple,
+        defaultColor: Colors.black,
+        quote: Colors.orange,
+      );
+
+      expect(a == b, isFalse);
+    });
+
     test('preserves original text length and content for markdown markers', () {
       const source = '**bold** end\n`code` tail';
       final result = MarkdownSyntaxHighlighter.highlight(
@@ -124,18 +208,19 @@ void main() {
           span.children?.forEach(visit);
         }
       }
+
       visit(root);
       return buf.toString();
     }
 
     TextSpan hl(String source) => MarkdownSyntaxHighlighter.highlight(
-          source,
-          headingColor: headingColor,
-          boldColor: boldColor,
-          codeColor: codeColor,
-          linkColor: linkColor,
-          defaultColor: defaultColor,
-        );
+      source,
+      headingColor: headingColor,
+      boldColor: boldColor,
+      codeColor: codeColor,
+      linkColor: linkColor,
+      defaultColor: defaultColor,
+    );
 
     test('text consistency: multiline plain text', () {
       const source = 'line one\nline two\nline three';
@@ -192,10 +277,16 @@ void main() {
       final result = hl(source);
       for (final child in result.children!) {
         if (child is TextSpan) {
-          expect(child.text, isNotNull,
-              reason: 'TextSpan with null text found');
-          expect(child.text, isNot(''),
-              reason: 'TextSpan with empty text found');
+          expect(
+            child.text,
+            isNotNull,
+            reason: 'TextSpan with null text found',
+          );
+          expect(
+            child.text,
+            isNot(''),
+            reason: 'TextSpan with empty text found',
+          );
         }
       }
     });
@@ -214,8 +305,11 @@ void main() {
           // A standalone '\n' is only acceptable for blank lines where
           // there is no preceding visible text to attach to.  In that
           // case the span must still carry a TextStyle.
-          expect(spans[i].style, isNotNull,
-              reason: 'Standalone newline span must have a style');
+          expect(
+            spans[i].style,
+            isNotNull,
+            reason: 'Standalone newline span must have a style',
+          );
         }
       }
     });
@@ -230,9 +324,11 @@ void main() {
         // it must have a non-null style (proving the newline shares
         // the style of the preceding text).
         if (text.endsWith('\n') && text.length > 1) {
-          expect(span.style, isNotNull,
-              reason:
-                  'Span "$text" ends with newline but has no style');
+          expect(
+            span.style,
+            isNotNull,
+            reason: 'Span "$text" ends with newline but has no style',
+          );
         }
       }
     });
@@ -330,7 +426,8 @@ void main() {
 
     test('gives up on documents past the size limit but keeps the text', () {
       final highlighter = IncrementalMarkdownHighlighter();
-      final huge = '# h\n' *
+      final huge =
+          '# h\n' *
           (IncrementalMarkdownHighlighter.maxHighlightedLength ~/ 4 + 1);
 
       final spans = highlighter.build(huge, colors);
@@ -347,5 +444,4 @@ void main() {
   });
 }
 
-String repr(String s) =>
-    s.replaceAll('\n', '\\n').replaceAll('\t', '\\t');
+String repr(String s) => s.replaceAll('\n', '\\n').replaceAll('\t', '\\t');

@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Clicking the line ending in the status bar switches the document between LF and CRLF
 - A list written with blank lines between its items is drawn and exported with the spacing that asks for
 - The "enable HTML" setting does something: inline tags such as `<kbd>`, `<u>` and `<br>` are rendered, in the preview and in every export
+- Blockquote lines and single-line HTML comments are coloured in the source editor, using the theme colours that were already defined for them
 - Email addresses are linked, both `<foo@example.com>` and bare ones in prose
 - An open document reloads when the file changes on disk, as long as it has no unsaved edits
 - "Save as" rebinds the tab to the file it wrote, so the title updates and the next save no longer asks again
