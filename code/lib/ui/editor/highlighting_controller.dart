@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/file_service.dart';
 import 'syntax_highlighter.dart';
 
 class HighlightingController extends TextEditingController {
@@ -20,9 +21,8 @@ class HighlightingController extends TextEditingController {
     required this.defaultColor,
   }) : super(text: text != null ? _normalizeLineEndings(text) : null);
 
-  static String _normalizeLineEndings(String text) {
-    return text.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
-  }
+  static String _normalizeLineEndings(String text) =>
+      FileService.normalizeLineEndings(text);
 
   @override
   set text(String newText) {

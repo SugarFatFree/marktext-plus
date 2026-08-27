@@ -201,7 +201,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
     }
   }
 
+  /// The localisations the command palette was last filled from.
+  ///
+  /// [build] runs on every cursor move, because it watches the editor state,
+  /// and rebuilding thirty commands with their formatted labels each time was
+  /// pure garbage. The command list only depends on the language.
+  AppLocalizations? _commandsBuiltFrom;
+
   void _registerCommands(AppLocalizations l10n) {
+    if (identical(_commandsBuiltFrom, l10n)) return;
+    _commandsBuiltFrom = l10n;
+
     final registry = CommandRegistry.instance;
     registry.clear();
 
@@ -416,7 +426,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
   @override
   Widget build(BuildContext context) {
     final config = ref.watch(settingsProvider);
-    final editorState = ref.watch(editorProvider);
+    // Only the find bar's visibility is read here. Watching the whole editor
+    // state rebuilt this entire screen on every cursor move.
+    final showFindReplace =
+        ref.watch(editorProvider.select((s) => s.showFindReplace));
     final l10n = AppLocalizations.of(context)!;
 
     _registerCommands(l10n);
@@ -452,7 +465,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
           ref.read(settingsProvider.notifier).toggleFocusMode();
           return KeyEventResult.handled;
         }
-        if (editorState.showFindReplace && event.logicalKey == LogicalKeyboardKey.escape) {
+        if (showFindReplace && event.logicalKey == LogicalKeyboardKey.escape) {
           ref.read(editorProvider.notifier).hideFindReplace();
           return KeyEventResult.handled;
         }
@@ -488,7 +501,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
                                 ? const EditorTabBar()
                                 : const SizedBox.shrink(),
                           ),
-                          if (editorState.showFindReplace)
+                          if (showFindReplace)
                             Builder(
                               builder: (context) {
                                 final controller =

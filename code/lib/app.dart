@@ -13,20 +13,32 @@ final navigatorKey = GlobalKey<NavigatorState>();
 class MarkTextPlusApp extends ConsumerWidget {
   const MarkTextPlusApp({super.key});
 
+  /// The brightness already pushed to the window.
+  ///
+  /// Setting it is a platform channel call, and this used to run on every
+  /// rebuild of the app root.
+  static Brightness? _appliedBrightness;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final config = ref.watch(settingsProvider);
+    // Only the theme name matters here. Watching the whole config rebuilt the
+    // entire app whenever any setting was written — the split divider
+    // position, the list of open files, the last update check.
+    final themeName = ref.watch(settingsProvider.select((c) => c.themeName));
     final locale = ref.watch(localeProvider);
-    final tokens = AppTheme.getTokens(config.themeName);
+    final tokens = AppTheme.getTokens(themeName);
 
     // Sync window brightness with theme
-    windowManager.setBrightness(tokens.brightness);
+    if (_appliedBrightness != tokens.brightness) {
+      _appliedBrightness = tokens.brightness;
+      windowManager.setBrightness(tokens.brightness);
+    }
 
     return MaterialApp(
       navigatorKey: navigatorKey,
       title: 'MarkText Plus',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.getTheme(config.themeName),
+      theme: AppTheme.getTheme(themeName),
       themeMode: tokens.brightness == Brightness.dark ? ThemeMode.dark : ThemeMode.light,
       themeAnimationDuration: Duration.zero,
       locale: locale,

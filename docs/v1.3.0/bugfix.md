@@ -60,6 +60,7 @@
 | BUG-051 | 2026-08-27 | 每次重绘都全量重扫语法高亮，大文件每次按键停顿数百毫秒 | **P0** | 已修复 |
 | BUG-052 | 2026-08-27 | 字数统计：日/韩/俄文一律统计为 0，且 1MB 文档卡 280ms | P1 | 已修复 |
 | BUG-053 | 2026-08-27 | 预览渐进渲染呈二次方增长，双栏模式下每次按键重放一轮 | **P0** | 已修复 |
+| BUG-054 | 2026-08-27 | 重绘范围过宽：光标一动就重建命令表，配置一写就重建整个应用 | P1 | 已修复 |
 
 ---
 
@@ -839,6 +840,21 @@
 | 实测数据 | 1000 个块：20 帧 / 10500 次 → **6 帧 / 2550 次**；5000 个块：100 帧 / 252500 次 → **8 帧 / 11350 次（22×）**；20000 个块：400 帧 / 401 万次 → **16 帧 / 12.4 万次（32×）** |
 | 遗留 | 外层仍是 `SingleChildScrollView` + `Column`，全部块都会实例化。换成 `ListView.builder` 可以只构建可见块，但会影响 `SelectionArea` 的跨屏选择（预览富文本复制依赖它）与标题 GlobalKey 滚动定位，需要单独设计，留待后续版本 |
 | 涉及文件 | `lib/ui/editor/markdown_renderer.dart` |
+
+---
+
+## BUG-054 重绘范围过宽
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+| 现象 | 移动光标、拖动分栏条这类与内容无关的操作，也会带来整屏级别的重建开销 |
+| 根因分析 | ① `HomeScreen.build` 里 `ref.watch(editorProvider)` 订阅的是**整个编辑器状态**，而 `cursorLine`/`cursorCol` 每移动一次光标就变，于是整个主界面每次光标移动都重建 —— 但它实际只用到 `showFindReplace` 一个字段；② `build` 里还调用 `_registerCommands`，每次都 `clear()` 后重新构造三十来个 `Command`，连带三十多次带参本地化字符串格式化；③ `MarkTextPlusApp.build` 里 `ref.watch(settingsProvider)` 订阅**整份配置**，任何一次写入（分栏条位置防抖写、已打开文件列表、上次检查更新时间、窗口几何）都会重建整个 `MaterialApp`；④ 每次重建都新造一个 `ThemeData`（要构建全部组件子主题）；⑤ `windowManager.setBrightness` 作为副作用写在 `build` 里，每次重建都发一次平台通道调用 |
+| 修复方案 | ① `HomeScreen` 改用 `editorProvider.select((s) => s.showFindReplace)`；② 命令表按 `AppLocalizations` 实例身份缓存，只在切换语言时重建；③ 应用根改用 `settingsProvider.select((c) => c.themeName)`；④ `AppTheme.getTheme` 按主题名缓存 `ThemeData`（共 8 个且不可变）；⑤ 亮度只在真正变化时才下发 |
+| 顺带优化 | 换行归一化先判断有没有 `\r` 再动手 —— 替换会复制出两份完整文档，而多数文件根本没有回车符。5 MB 文档：30 → **4.6 ms**，而且这件事在打开文件时会做**两遍**（`FileService` 一次、`HighlightingController` 一次） |
+| 涉及文件 | `lib/app.dart`、`lib/core/theme/app_theme.dart`、`lib/ui/screens/home_screen.dart`、`lib/services/file_service.dart`、`lib/ui/editor/highlighting_controller.dart` |
 
 ---
 

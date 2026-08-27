@@ -285,8 +285,18 @@ class AppTheme {
     ];
   }
 
+  /// Built themes, by name.
+  ///
+  /// Constructing a [ThemeData] builds every component sub-theme, and the app
+  /// root rebuilds whenever any setting is written — a debounced divider drag,
+  /// the list of open files. There are eight themes and they never change.
+  static final Map<String, ThemeData> _themeCache = {};
+
   /// Build ThemeData from tokens
-  static ThemeData getTheme(String name) {
+  static ThemeData getTheme(String name) =>
+      _themeCache.putIfAbsent(name, () => _buildTheme(name));
+
+  static ThemeData _buildTheme(String name) {
     final tokens = getTokens(name);
     final fontFallback = platformFontFallback;
     final baseTextStyle = TextStyle(
