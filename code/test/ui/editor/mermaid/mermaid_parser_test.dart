@@ -6,6 +6,7 @@ import 'package:marktext_plus/ui/editor/mermaid/models/git_graph.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/mindmap.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/requirement_diagram.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/sankey.dart';
+import 'package:marktext_plus/ui/editor/mermaid/models/sequence.dart';
 import 'package:marktext_plus/ui/editor/mermaid/parser/mermaid_parser.dart';
 
 void main() {
@@ -631,6 +632,53 @@ erDiagram
 
       expect(data.activations, isEmpty);
     });
+    test('notes take a row of their own, in source order', () {
+      final data = parser
+          .parseWithData(
+            'sequenceDiagram\n'
+            '  participant A\n'
+            '  participant B\n'
+            '  Note left of A: start\n'
+            '  A->>B: ask\n'
+            '  Note over A,B: agreed\n'
+            '  B-->>A: answer\n'
+            '  Note right of B: done',
+          )!
+          .sequenceData!;
+
+      expect(data.steps.map((s) => s.isNote).toList(),
+          [true, false, true, false, true]);
+      expect(data.steps.first.note!.placement, SequenceNotePlacement.leftOf);
+      expect(data.steps.first.note!.text, 'start');
+      expect(data.steps[2].note!.participantIds, ['A', 'B']);
+      expect(data.steps.last.note!.placement, SequenceNotePlacement.rightOf);
+    });
+
+    test('an activation bar counts note rows too', () {
+      // Bars are positioned in rows, not in messages: with the note ignored
+      // the bar stopped one row short of the reply that closes it.
+      final data = parser
+          .parseWithData(
+            'sequenceDiagram\n'
+            '  A->>+B: ask\n'
+            '  Note over B: working\n'
+            '  B-->>-A: answer',
+          )!
+          .sequenceData!;
+
+      expect(data.steps, hasLength(3));
+      expect(data.activations.single.startIndex, 0);
+      expect(data.activations.single.endIndex, 2);
+    });
+
+    test('note is recognised in lower case and without a colon', () {
+      final data = parser
+          .parseWithData('sequenceDiagram\n  A->>B: hi\n  note over A: fine')!
+          .sequenceData!;
+
+      expect(data.steps.last.note!.text, 'fine');
+    });
+
   });
 
   group('Flowchart arrows and labels', () {

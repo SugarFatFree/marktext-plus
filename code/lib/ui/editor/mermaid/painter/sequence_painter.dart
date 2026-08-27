@@ -38,6 +38,15 @@ class SequencePainter extends MermaidPainter {
   /// How far each nested bar steps to the right of the one enclosing it.
   static const double _activationNestOffset = 5;
 
+  /// Widest a note box gets before its text wraps.
+  static const double _noteMaxWidth = 220;
+
+  /// Narrowest a note box gets, so a one-word note still reads as a box.
+  static const double _noteMinWidth = 60;
+
+  /// Gap between a note box and the lifeline it hangs off.
+  static const double _noteGap = 12;
+
   @override
   void paint(Canvas canvas, Size size) {
     if (diagram.nodes.isEmpty) return;
@@ -48,7 +57,11 @@ class SequencePainter extends MermaidPainter {
 
     final firstNode = diagram.nodes.first;
     final messageStartY = firstNode.y + firstNode.height + messageStartOffset;
-    final totalMessagesHeight = diagram.edges.length * messageSpacing;
+    // A note takes a row of its own; counting only messages drew it on top of
+    // the message beside it.
+    final steps = sequenceData?.steps;
+    final rowCount = steps?.length ?? diagram.edges.length;
+    final totalMessagesHeight = rowCount * messageSpacing;
     final bottomY = messageStartY + totalMessagesHeight + 20;
 
     // Draw participant lifelines (dashed vertical lines)
@@ -65,11 +78,24 @@ class SequencePainter extends MermaidPainter {
     // top of the bar it starts, not behind it.
     _drawActivations(canvas, messageStartY, messageSpacing);
 
-    // Draw messages
-    var messageY = messageStartY;
-    for (final edge in diagram.edges) {
-      _drawMessage(canvas, edge, messageY);
-      messageY += messageSpacing;
+    // Draw messages and notes, one row each
+    var rowY = messageStartY;
+    if (steps == null) {
+      for (final edge in diagram.edges) {
+        _drawMessage(canvas, edge, rowY);
+        rowY += messageSpacing;
+      }
+    } else {
+      for (final step in steps) {
+        final note = step.note;
+        if (note != null) {
+          _drawNote(canvas, note, rowY);
+        } else if (step.messageIndex >= 0 &&
+            step.messageIndex < diagram.edges.length) {
+          _drawMessage(canvas, diagram.edges[step.messageIndex], rowY);
+        }
+        rowY += messageSpacing;
+      }
     }
 
     // Draw participant boxes at bottom
@@ -113,6 +139,70 @@ class SequencePainter extends MermaidPainter {
       canvas.drawRect(rect, fill);
       canvas.drawRect(rect, stroke);
     }
+  }
+
+  /// Draws a note box on the row at [y].
+  void _drawNote(Canvas canvas, SequenceNote note, double y) {
+    final anchors = <MermaidNode>[];
+    for (final id in note.participantIds) {
+      final node = diagram.getNode(id);
+      if (node != null) anchors.add(node);
+    }
+    if (anchors.isEmpty) return;
+
+    final textStyle = TextStyle(
+      color: const Color(0xFF3E2723),
+      fontSize: (deviceConfig?.fontSize ?? 14.0) - 2,
+    );
+    final text = TextPainter(
+      text: TextSpan(text: note.text, style: textStyle),
+      textDirection: TextDirection.ltr,
+      textAlign: TextAlign.center,
+      maxLines: 3,
+      ellipsis: '…',
+    )..layout(maxWidth: _noteMaxWidth);
+
+    const hPad = 10.0;
+    const vPad = 6.0;
+    final boxWidth = math.max(text.width + hPad * 2, _noteMinWidth);
+    final boxHeight = text.height + vPad * 2;
+
+    final firstX = anchors.first.x + anchors.first.width / 2;
+    final lastX = anchors.last.x + anchors.last.width / 2;
+    final (left, width) = switch (note.placement) {
+      SequenceNotePlacement.leftOf => (firstX - _noteGap - boxWidth, boxWidth),
+      SequenceNotePlacement.rightOf => (firstX + _noteGap, boxWidth),
+      // `Note over A,B` stretches between the two lifelines, and has to be at
+      // least wide enough for its own text either way.
+      SequenceNotePlacement.over when anchors.length > 1 => _spanBox(
+        firstX,
+        lastX,
+        boxWidth,
+      ),
+      SequenceNotePlacement.over => (firstX - boxWidth / 2, boxWidth),
+    };
+
+    final rect = Rect.fromLTWH(left, y - boxHeight / 2, width, boxHeight);
+    canvas.drawRect(rect, Paint()..color = const Color(0xFFFFF5AD));
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..color = const Color(0xFFAAAA33),
+    );
+
+    text.paint(
+      canvas,
+      Offset(rect.left + (width - text.width) / 2, rect.top + vPad),
+    );
+  }
+
+  /// Left edge and width of a note stretched between two lifelines.
+  (double, double) _spanBox(double firstX, double lastX, double minWidth) {
+    final gapBetween = (lastX - firstX).abs();
+    final width = math.max(gapBetween + _noteGap * 2, minWidth);
+    return (math.min(firstX, lastX) - (width - gapBetween) / 2, width);
   }
 
   void _drawLifeline(

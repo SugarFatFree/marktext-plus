@@ -367,6 +367,7 @@ graph TD
 ```mermaid
 sequenceDiagram
   用户->>+系统: 登录
+  Note over 用户,系统: 认证流程
   系统-->>-用户: 成功
 ```
 

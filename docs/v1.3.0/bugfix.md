@@ -91,6 +91,7 @@
 | BUG-082 | 2026-08-27 | 中文节点名的流程图渲染为空；时序图丢消息 | **P0** | 已修复 |
 | BUG-083 | 2026-08-27 | 看板列用中文 id 时整块看板解析失败 | P1 | 已修复 |
 | BUG-084 | 2026-08-27 | 时序图的激活条（`+`/`-`、activate）从来不画 | P1 | 已修复 |
+| BUG-085 | 2026-08-27 | 时序图的 Note（便签）整行被丢弃 | P1 | 已修复 |
 
 ---
 
@@ -1387,6 +1388,22 @@
 | 绘制 | 激活条在消息之前画，箭头才会压在条上而不是被条盖住 |
 | 涉及文件 | `lib/ui/editor/mermaid/models/sequence.dart`（新增）、`parser/sequence_parser.dart`、`parser/mermaid_parser.dart`、`painter/sequence_painter.dart`、`widgets/mermaid_diagram.dart`、`test/ui/editor/mermaid/mermaid_parser_test.dart` |
 | 验证方式 | 六种写法本地跑通：`+/-`、独立 activate、嵌套、未闭合、多余 deactivate、中文参与者名；并断言「独立写法与简写产出完全相同的区间」 |
+
+---
+
+## BUG-085 时序图的 Note 整行被丢弃
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+| 现象 | `Note left of A: 起点`、`Note over A,B: 双方约定`、`Note right of B: 终点` 三种写法在源项目里都会画出一个浅黄色便签框，本项目里这些行连解析都没进 —— `_parseLine` 开头一句 `// TODO: Handle notes` 直接 return |
+| 根因分析 | 除了没解析，还有一个更深的结构问题：画布是按「第几条消息」算纵坐标的（`edges.length * messageSpacing`）。便签不是消息，如果只把它塞进消息列表会多画一条箭头，如果不塞就会和旁边那条消息**画在同一行、叠在一起** |
+| 修复方案 | 引入「行」（`SequenceStep`）这一层：一行要么是一条消息，要么是一个便签。解析器按源码顺序产出行序列，画布遍历行而不是遍历边，布局高度也按行数算（`SequenceLayout.rowCount`）。**激活条的起止索引一并改为按行计**，否则一条中间夹了便签的激活条会短一行 |
+| 便签绘制 | `over` 单参与者：框居中压在生命线上；`over A,B`：在两条生命线之间横跨，同时保证不窄于自身文字；`left of` / `right of`：贴着生命线左右挂出去。样式取 mermaid 的浅黄底（`#FFF5AD`）加橄榄色边 |
+| 涉及文件 | `lib/ui/editor/mermaid/models/sequence.dart`、`parser/sequence_parser.dart`、`painter/sequence_painter.dart`、`layout/sugiyama_layout.dart`、`widgets/mermaid_diagram.dart`、`test/ui/editor/mermaid/mermaid_parser_test.dart`、`test/fixtures/showcase.md` |
+| 验证方式 | 三种位置混排、便签与激活条混排、小写 `note`、无冒号写法本地逐一跑通；断言「夹了便签的激活条终点落在第 2 行而不是第 1 行」 |
 
 ---
 

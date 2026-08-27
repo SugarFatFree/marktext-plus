@@ -80,8 +80,9 @@ class SugiyamaLayout extends LayoutEngine {
     for (final edges in graph.values) {
       hasIncoming.addAll(edges);
     }
-    final roots =
-        nodes.where((n) => !hasIncoming.contains(n.id)).map((n) => n.id);
+    final roots = nodes
+        .where((n) => !hasIncoming.contains(n.id))
+        .map((n) => n.id);
 
     // Calculate depth for each node using DFS
     int calculateDepth(String nodeId) {
@@ -201,7 +202,8 @@ class SugiyamaLayout extends LayoutEngine {
         // Keep current relative position
         barycenters[node] = layer.indexOf(node).toDouble();
       } else {
-        barycenters[node] = positions.reduce((a, b) => a + b) / positions.length;
+        barycenters[node] =
+            positions.reduce((a, b) => a + b) / positions.length;
       }
     }
 
@@ -215,7 +217,8 @@ class SugiyamaLayout extends LayoutEngine {
     DiagramDirection direction,
     MermaidStyle style,
   ) {
-    final isHorizontal = direction == DiagramDirection.leftToRight ||
+    final isHorizontal =
+        direction == DiagramDirection.leftToRight ||
         direction == DiagramDirection.rightToLeft;
 
     double totalWidth = 0;
@@ -240,7 +243,9 @@ class SugiyamaLayout extends LayoutEngine {
       }
 
       layerSizes.add(layerMain);
-      layerMaxCross.add(layerCross - (isHorizontal ? style.nodeSpacingY : style.nodeSpacingX));
+      layerMaxCross.add(
+        layerCross - (isHorizontal ? style.nodeSpacingY : style.nodeSpacingX),
+      );
     }
 
     // Position nodes
@@ -253,7 +258,9 @@ class SugiyamaLayout extends LayoutEngine {
       // Center nodes within layer
       double crossOffset = style.padding;
       final totalCross = layerMaxCross[layerIdx];
-      final maxCross = layerMaxCross.isEmpty ? 0.0 : layerMaxCross.reduce(math.max);
+      final maxCross = layerMaxCross.isEmpty
+          ? 0.0
+          : layerMaxCross.reduce(math.max);
       crossOffset += (maxCross - totalCross) / 2;
 
       for (final node in layer) {
@@ -270,8 +277,8 @@ class SugiyamaLayout extends LayoutEngine {
         }
       }
 
-      mainOffset += layerMain +
-          (isHorizontal ? style.nodeSpacingX : style.nodeSpacingY);
+      mainOffset +=
+          layerMain + (isHorizontal ? style.nodeSpacingX : style.nodeSpacingY);
     }
 
     // Apply direction reversal if needed
@@ -297,8 +304,10 @@ class SugiyamaLayout extends LayoutEngine {
     // Calculate total size
     final allNodes = layers.expand((l) => l).toList();
     if (allNodes.isNotEmpty) {
-      totalWidth = allNodes.map((n) => n.x + n.width).reduce(math.max) + style.padding;
-      totalHeight = allNodes.map((n) => n.y + n.height).reduce(math.max) + style.padding;
+      totalWidth =
+          allNodes.map((n) => n.x + n.width).reduce(math.max) + style.padding;
+      totalHeight =
+          allNodes.map((n) => n.y + n.height).reduce(math.max) + style.padding;
     }
 
     return Size(totalWidth, totalHeight);
@@ -308,10 +317,17 @@ class SugiyamaLayout extends LayoutEngine {
 /// Layout engine for sequence diagrams
 class SequenceLayout extends LayoutEngine {
   /// Creates a sequence layout engine
-  const SequenceLayout({this.deviceConfig});
+  const SequenceLayout({this.deviceConfig, this.rowCount});
 
   /// Responsive device configuration
   final MermaidDeviceConfig? deviceConfig;
+
+  /// Number of rows to reserve height for.
+  ///
+  /// Notes take a row of their own, so the message count alone leaves the
+  /// diagram short by one row per note. Null falls back to the message count,
+  /// which is right for a diagram with no notes.
+  final int? rowCount;
 
   @override
   Size computeLayout(
@@ -352,7 +368,10 @@ class SequenceLayout extends LayoutEngine {
     }
 
     // Minimum spacing based on label length, with responsive bounds
-    final minSpacing = math.max(participantSpacingBase * 0.6, maxLabelLength + 30);
+    final minSpacing = math.max(
+      participantSpacingBase * 0.6,
+      maxLabelLength + 30,
+    );
     final maxSpacing = participantSpacingBase; // Use responsive max spacing
 
     // Calculate optimal spacing
@@ -365,9 +384,12 @@ class SequenceLayout extends LayoutEngine {
     }
 
     // Total width is based on actual content
-    final totalWidth = style.padding * 2 +
+    final totalWidth =
+        style.padding * 2 +
         totalNodesWidth +
-        (participantCount > 1 ? (participantCount - 1) * participantSpacing : 0);
+        (participantCount > 1
+            ? (participantCount - 1) * participantSpacing
+            : 0);
 
     // Position participants with calculated spacing
     var currentX = style.padding;
@@ -383,9 +405,14 @@ class SequenceLayout extends LayoutEngine {
     final bottomParticipantHeight = messageSpacing;
 
     final nodeHeight = diagram.nodes.first.height;
-    final messagesHeight = diagram.edges.length * messageSpacing;
-    final totalHeight = topY + nodeHeight + messageStartOffset +
-        messagesHeight + bottomParticipantHeight + style.padding;
+    final messagesHeight = (rowCount ?? diagram.edges.length) * messageSpacing;
+    final totalHeight =
+        topY +
+        nodeHeight +
+        messageStartOffset +
+        messagesHeight +
+        bottomParticipantHeight +
+        style.padding;
 
     return Size(totalWidth, totalHeight);
   }

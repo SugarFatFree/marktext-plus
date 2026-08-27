@@ -18,6 +18,7 @@ class SequenceParser {
   final List<SequenceMessage> _messages = [];
   final Map<String, String> _aliases = {};
   final List<SequenceActivation> _activations = [];
+  final List<SequenceStep> _steps = [];
 
   /// Start index of each bar still open, innermost last, per participant.
   final Map<String, List<int>> _openBars = {};
@@ -35,6 +36,7 @@ class SequenceParser {
     _aliases.clear();
     _activations.clear();
     _openBars.clear();
+    _steps.clear();
 
     // Skip the first line (sequenceDiagram declaration)
     for (var i = 1; i < lines.length; i++) {
@@ -49,7 +51,7 @@ class SequenceParser {
           SequenceActivation(
             participantId: entry.key,
             startIndex: entry.value[depth],
-            endIndex: _messages.length - 1,
+            endIndex: _steps.length - 1,
             depth: depth,
           ),
         );
@@ -70,7 +72,10 @@ class SequenceParser {
         edges: edges,
         direction: DiagramDirection.leftToRight,
       ),
-      SequenceDiagramData(activations: List.of(_activations)),
+      SequenceDiagramData(
+        steps: List.of(_steps),
+        activations: List.of(_activations),
+      ),
     );
   }
 
@@ -85,8 +90,8 @@ class SequenceParser {
     }
 
     // Parse notes
-    if (trimmed.startsWith('Note ') || trimmed.startsWith('note ')) {
-      // TODO: Handle notes
+    if (trimmed.toLowerCase().startsWith('note ')) {
+      _parseNote(trimmed);
       return;
     }
 
@@ -100,13 +105,13 @@ class SequenceParser {
       final id = trimmed.substring(9).trim();
       if (id.isNotEmpty) {
         _ensureParticipant(id);
-        _openBar(id, _messages.isEmpty ? 0 : _messages.length - 1);
+        _openBar(id, _steps.isEmpty ? 0 : _steps.length - 1);
       }
       return;
     }
     if (trimmed.startsWith('deactivate ')) {
       final id = trimmed.substring(11).trim();
-      if (id.isNotEmpty) _closeBar(id, _messages.length - 1);
+      if (id.isNotEmpty) _closeBar(id, _steps.length - 1);
       return;
     }
 
@@ -222,7 +227,6 @@ class SequenceParser {
     _ensureParticipant(from);
     _ensureParticipant(to);
 
-    final index = _messages.length;
     _messages.add(
       SequenceMessage(
         from: from,
@@ -235,12 +239,59 @@ class SequenceParser {
         deactivate: marker == '-',
       ),
     );
+    _steps.add(SequenceStep.message(_messages.length - 1));
 
+    final index = _steps.length - 1;
     if (marker == '+') {
       _openBar(to, index);
     } else if (marker == '-') {
       _closeBar(from, index);
     }
+  }
+
+  /// `Note`, the placement, the participants, then the text after the colon.
+  static final _notePattern = RegExp(
+    r'^note\s+(left of|right of|over)\s+([^:]+?)\s*(?::\s*(.*))?$',
+    caseSensitive: false,
+  );
+
+  /// `Note left of A: text`, `Note right of A: text`, `Note over A,B: text`.
+  void _parseNote(String line) {
+    final match = _notePattern.firstMatch(line);
+    if (match == null) return;
+
+    final placement = switch (match.group(1)!.toLowerCase()) {
+      'left of' => SequenceNotePlacement.leftOf,
+      'right of' => SequenceNotePlacement.rightOf,
+      _ => SequenceNotePlacement.over,
+    };
+
+    final ids = match
+        .group(2)!
+        .split(',')
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toList();
+    if (ids.isEmpty) return;
+
+    // `left of` and `right of` name exactly one participant; a second name
+    // there is the author's mistake, not something to guess at.
+    final participants = placement == SequenceNotePlacement.over
+        ? ids.take(2).toList()
+        : ids.take(1).toList();
+    for (final id in participants) {
+      _ensureParticipant(id);
+    }
+
+    _steps.add(
+      SequenceStep.note(
+        SequenceNote(
+          placement: placement,
+          participantIds: participants,
+          text: match.group(3)?.trim() ?? '',
+        ),
+      ),
+    );
   }
 
   void _openBar(String id, int startIndex) {

@@ -159,7 +159,8 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
   void _parseDiagram(double availableWidth) {
     // Get responsive config
     if (widget.enableResponsive) {
-      final responsiveConfig = widget.responsiveConfig ?? const MermaidResponsiveConfig();
+      final responsiveConfig =
+          widget.responsiveConfig ?? const MermaidResponsiveConfig();
       _deviceConfig = responsiveConfig.getConfigForWidth(availableWidth);
 
       // Apply responsive settings to style
@@ -186,7 +187,8 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
           _style,
           Size(widget.width ?? availableWidth, widget.height ?? 600),
         );
-      } else if (diagram.type == DiagramType.ganttChart && result.ganttChartData != null) {
+      } else if (diagram.type == DiagramType.ganttChart &&
+          result.ganttChartData != null) {
         // Use Gantt chart layout with responsive config
         final ganttLayout = GanttChartLayout(deviceConfig: _deviceConfig);
         size = ganttLayout.computeLayout(
@@ -194,7 +196,8 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
           _style,
           Size(widget.width ?? availableWidth, widget.height ?? 600),
         );
-      } else if (diagram.type == DiagramType.timeline && result.timelineChartData != null) {
+      } else if (diagram.type == DiagramType.timeline &&
+          result.timelineChartData != null) {
         // Use Timeline chart layout with responsive config
         final timelineLayout = TimelineChartLayout(deviceConfig: _deviceConfig);
         size = timelineLayout.computeLayout(
@@ -202,7 +205,8 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
           _style,
           Size(widget.width ?? availableWidth, widget.height ?? 600),
         );
-      } else if (diagram.type == DiagramType.kanban && result.kanbanChartData != null) {
+      } else if (diagram.type == DiagramType.kanban &&
+          result.kanbanChartData != null) {
         // Use Kanban chart layout with responsive config
         final kanbanLayout = KanbanChartLayout(deviceConfig: _deviceConfig);
         size = kanbanLayout.computeLayout(
@@ -218,6 +222,17 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
           _style,
           Size(widget.width ?? availableWidth, widget.height ?? 600),
         );
+      } else if (diagram.type == DiagramType.sequence &&
+          result.sequenceData != null) {
+        final sequenceLayout = SequenceLayout(
+          deviceConfig: _deviceConfig,
+          rowCount: result.sequenceData!.steps.length,
+        );
+        size = sequenceLayout.computeLayout(
+          diagram,
+          _style,
+          Size(widget.width ?? availableWidth, widget.height ?? 600),
+        );
       } else if (diagram.type == DiagramType.sankey &&
           result.sankeyChartData != null) {
         final sankeyLayout = SankeyChartLayout(deviceConfig: _deviceConfig);
@@ -226,7 +241,8 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
           _style,
           Size(widget.width ?? availableWidth, widget.height ?? 600),
         );
-      } else if (diagram.type == DiagramType.radar && result.radarChartData != null) {
+      } else if (diagram.type == DiagramType.radar &&
+          result.radarChartData != null) {
         // Use Radar chart layout with responsive config
         final radarLayout = RadarChartLayout(deviceConfig: _deviceConfig);
         size = radarLayout.computeLayout(
@@ -234,7 +250,8 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
           _style,
           Size(widget.width ?? availableWidth, widget.height ?? 600),
         );
-      } else if (diagram.type == DiagramType.xyChart && result.xyChartData != null) {
+      } else if (diagram.type == DiagramType.xyChart &&
+          result.xyChartData != null) {
         // Use XY chart layout with responsive config
         final xyLayout = XYChartLayout(deviceConfig: _deviceConfig);
         size = xyLayout.computeLayout(
@@ -260,9 +277,7 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
         );
       } else if (diagram.type == DiagramType.journey &&
           result.journeyData != null) {
-        final journeyLayout = JourneyChartLayout(
-          deviceConfig: _deviceConfig,
-        );
+        final journeyLayout = JourneyChartLayout(deviceConfig: _deviceConfig);
         size = journeyLayout.computeLayout(
           result.journeyData!,
           _style,
@@ -343,7 +358,10 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
     }
   }
 
-  MermaidStyle _applyResponsiveStyle(MermaidStyle style, MermaidDeviceConfig config) {
+  MermaidStyle _applyResponsiveStyle(
+    MermaidStyle style,
+    MermaidDeviceConfig config,
+  ) {
     return style.copyWith(
       padding: config.padding,
       nodeSpacingX: config.nodeSpacingX,
@@ -553,14 +571,14 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
 
         final displayWidth = widget.width != null
             ? (_computedSize.width > widget.width!
-                ? _computedSize.width
-                : widget.width!)
+                  ? _computedSize.width
+                  : widget.width!)
             : _computedSize.width.clamp(0.0, maxWidth);
 
         final displayHeight = widget.height != null
             ? (_computedSize.height > widget.height!
-                ? _computedSize.height
-                : widget.height!)
+                  ? _computedSize.height
+                  : widget.height!)
             : _computedSize.height;
 
         // For mobile, wrap in horizontal scroll if needed
@@ -568,10 +586,7 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
           width: displayWidth,
           height: displayHeight,
           color: Color(_style.backgroundColor),
-          child: CustomPaint(
-            painter: painter,
-            size: _computedSize,
-          ),
+          child: CustomPaint(painter: painter, size: _computedSize),
         );
 
         // Enable horizontal scrolling on mobile if diagram is wider than screen
@@ -597,12 +612,7 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
     final localPosition = details.localPosition;
 
     for (final node in _diagram!.nodes) {
-      final nodeRect = Rect.fromLTWH(
-        node.x,
-        node.y,
-        node.width,
-        node.height,
-      );
+      final nodeRect = Rect.fromLTWH(node.x, node.y, node.width, node.height);
 
       if (nodeRect.contains(localPosition)) {
         widget.onNodeTap!(node.id);
@@ -639,10 +649,7 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
           const SizedBox(height: 8),
           Text(
             error,
-            style: TextStyle(
-              color: Colors.red.shade900,
-              fontSize: 12,
-            ),
+            style: TextStyle(color: Colors.red.shade900, fontSize: 12),
           ),
           const SizedBox(height: 12),
           Container(
@@ -653,10 +660,7 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
             ),
             child: Text(
               widget.code,
-              style: const TextStyle(
-                fontFamily: 'monospace',
-                fontSize: 11,
-              ),
+              style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
             ),
           ),
         ],
@@ -754,7 +758,10 @@ class _InteractiveMermaidDiagramState extends State<InteractiveMermaidDiagram> {
 
     // Use the smaller scale to ensure the entire diagram fits
     // But don't scale up beyond 1.0 (100%)
-    final scale = (scaleX < scaleY ? scaleX : scaleY).clamp(widget.minScale, 1.0);
+    final scale = (scaleX < scaleY ? scaleX : scaleY).clamp(
+      widget.minScale,
+      1.0,
+    );
 
     // Calculate the scaled diagram size
     final scaledWidth = diagramSize.width * scale;
@@ -932,6 +939,17 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
           _style,
           widget.viewportSize,
         );
+      } else if (diagram.type == DiagramType.sequence &&
+          result.sequenceData != null) {
+        final sequenceLayout = SequenceLayout(
+          deviceConfig: _deviceConfig,
+          rowCount: result.sequenceData!.steps.length,
+        );
+        size = sequenceLayout.computeLayout(
+          diagram,
+          _style,
+          widget.viewportSize,
+        );
       } else if (diagram.type == DiagramType.sankey &&
           result.sankeyChartData != null) {
         final sankeyLayout = SankeyChartLayout(deviceConfig: _deviceConfig);
@@ -974,9 +992,7 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
         );
       } else if (diagram.type == DiagramType.journey &&
           result.journeyData != null) {
-        final journeyLayout = JourneyChartLayout(
-          deviceConfig: _deviceConfig,
-        );
+        final journeyLayout = JourneyChartLayout(deviceConfig: _deviceConfig);
         size = journeyLayout.computeLayout(
           result.journeyData!,
           _style,
@@ -990,11 +1006,7 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
           erData: result.erDiagramData!,
           deviceConfig: _deviceConfig,
         );
-        size = erLayout.computeLayout(
-          diagram,
-          _style,
-          widget.viewportSize,
-        );
+        size = erLayout.computeLayout(diagram, _style, widget.viewportSize);
       } else if (diagram.type == DiagramType.requirementDiagram &&
           result.requirementDiagramData != null) {
         final requirementLayout = RequirementDiagramLayout(
@@ -1014,18 +1026,10 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
           classData: result.classDiagramData!,
           deviceConfig: _deviceConfig,
         );
-        size = classLayout.computeLayout(
-          diagram,
-          _style,
-          widget.viewportSize,
-        );
+        size = classLayout.computeLayout(diagram, _style, widget.viewportSize);
       } else {
         final layoutEngine = _getLayoutEngine(diagram.type);
-        size = layoutEngine.computeLayout(
-          diagram,
-          _style,
-          widget.viewportSize,
-        );
+        size = layoutEngine.computeLayout(diagram, _style, widget.viewportSize);
       }
 
       setState(() {
@@ -1244,10 +1248,7 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
       color: Color(_style.backgroundColor),
       child: GestureDetector(
         onTapDown: widget.onNodeTap != null ? _handleTap : null,
-        child: CustomPaint(
-          painter: painter,
-          size: _computedSize,
-        ),
+        child: CustomPaint(painter: painter, size: _computedSize),
       ),
     );
   }
@@ -1258,12 +1259,7 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
     final localPosition = details.localPosition;
 
     for (final node in _diagram!.nodes) {
-      final nodeRect = Rect.fromLTWH(
-        node.x,
-        node.y,
-        node.width,
-        node.height,
-      );
+      final nodeRect = Rect.fromLTWH(node.x, node.y, node.width, node.height);
 
       if (nodeRect.contains(localPosition)) {
         widget.onNodeTap!(node.id);
@@ -1300,10 +1296,7 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
           const SizedBox(height: 8),
           Text(
             error,
-            style: TextStyle(
-              color: Colors.red.shade900,
-              fontSize: 12,
-            ),
+            style: TextStyle(color: Colors.red.shade900, fontSize: 12),
           ),
         ],
       ),
