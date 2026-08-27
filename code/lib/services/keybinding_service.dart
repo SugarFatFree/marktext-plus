@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter/services.dart';
 // SingleActivator lives in widgets, not services, alongside LogicalKeyboardKey.
 import 'package:flutter/widgets.dart';
