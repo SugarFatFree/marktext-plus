@@ -1008,14 +1008,14 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     return (start, end);
   }
 
-  /// Applies [toggleLooseList] to the document at the caret.
+  /// Applies [SourceEditor.toggleLooseList] to the document at the caret.
   void _toggleLooseList() {
     final text = _controller.text;
     final caret = _controller.selection.baseOffset.clamp(0, text.length);
     final before = text.substring(0, caret);
     final line = '\n'.allMatches(before).length;
 
-    final updated = toggleLooseList(text, line);
+    final updated = SourceEditor.toggleLooseList(text, line);
     if (updated == text) return;
 
     // Follow the caret's *content* line, not its line number: the toggle adds
