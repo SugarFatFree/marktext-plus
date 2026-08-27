@@ -23,9 +23,9 @@ import '../widgets/mermaid_renderer.dart';
 
 class MarkdownRenderer extends ConsumerStatefulWidget {
   final String markdown;
-  final void Function(int lineIndex, bool checked)? onTaskToggle;
 
-  /// Called with the whole updated document when a block is edited in place.
+  /// Called with the whole updated document when the preview edits it —
+  /// a block edited in place, or a task checkbox toggled.
   ///
   /// Leaving this null keeps the preview read-only.
   final ValueChanged<String>? onSourceChanged;
@@ -33,7 +33,6 @@ class MarkdownRenderer extends ConsumerStatefulWidget {
   const MarkdownRenderer({
     super.key,
     required this.markdown,
-    this.onTaskToggle,
     this.onSourceChanged,
   });
 
@@ -277,6 +276,30 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
           ),
         ),
       ),
+    );
+  }
+
+  /// Flips the checkbox marker on one task line and writes the list back.
+  ///
+  /// The parser consumes exactly one source line per list item, so item
+  /// [index] is line [index] of the list's own source.
+  void _toggleTask(md.ListNode node, int index, bool checked) {
+    final onChanged = widget.onSourceChanged;
+    if (onChanged == null) return;
+
+    final lines =
+        md.MarkdownParser.sourceOfBlock(widget.markdown, node).split('\n');
+    if (index < 0 || index >= lines.length) return;
+
+    final line = lines[index];
+    final updated = checked
+        ? line.replaceFirst(RegExp(r'\[\s\]'), '[x]')
+        : line.replaceFirst(RegExp(r'\[[xX]\]'), '[ ]');
+    if (updated == line) return;
+
+    lines[index] = updated;
+    onChanged(
+      md.MarkdownParser.replaceBlock(widget.markdown, node, lines.join('\n')),
     );
   }
 
@@ -573,13 +596,19 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           for (var i = 0; i < node.items.length; i++)
-            _buildListItem(node.items[i], i, node.ordered, theme),
+            _buildListItem(node, node.items[i], i, node.ordered, theme),
         ],
       ),
     );
   }
 
-  Widget _buildListItem(md.ListItem item, int index, bool ordered, ThemeData theme) {
+  Widget _buildListItem(
+    md.ListNode listNode,
+    md.ListItem item,
+    int index,
+    bool ordered,
+    ThemeData theme,
+  ) {
     if (item.isTask) {
       return Padding(
         padding: const EdgeInsets.only(left: 16, bottom: 4),
@@ -588,8 +617,8 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
           children: [
             Checkbox(
               value: item.isChecked,
-              onChanged: widget.onTaskToggle != null
-                  ? (value) => widget.onTaskToggle!(index, value ?? false)
+              onChanged: widget.onSourceChanged != null
+                  ? (value) => _toggleTask(listNode, index, value ?? false)
                   : null,
             ),
             const SizedBox(width: 8),

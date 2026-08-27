@@ -11,16 +11,17 @@
 | BUG-002 | 2026-08-27 | 预览模式为只读 Widget 树，无法所见即所得编辑 | P0 | 阶段一已完成 |
 | BUG-003 | 2026-08-27 | Mermaid `classDiagram` 检测到类型后直接返回 null，无渲染 | P0 | 已修复 |
 | BUG-004 | 2026-08-27 | Mermaid 缺失 erDiagram / journey / gitGraph / mindmap / quadrantChart 等类型 | P1 | 待修复 |
-| BUG-005 | 2026-08-27 | Mermaid `_cleanLines` 粗暴剥离 `%%`，破坏 `%%{init:...}%%` 指令与标签内文本 | P1 | 待修复 |
+| BUG-005 | 2026-08-27 | Mermaid `_cleanLines` 粗暴剥离 `%%`，破坏 `%%{init:...}%%` 指令与标签内文本 | P1 | 已修复 |
 | BUG-006 | 2026-08-27 | Mermaid `graph`/`flowchart` 检测强制要求尾随空格，`graph TD;` 等写法失配 | P1 | 已修复 |
 | BUG-007 | 2026-08-27 | `markdown_renderer` 的 `_diagramLanguages` 与实际支持类型错配 | P2 | 待修复 |
 | BUG-008 | 2026-08-27 | 不支持 PlantUML / Vega-Lite 代码块（源项目支持） | P2 | 待修复 |
 | BUG-009 | 2026-08-27 | Linux 使用 G_APPLICATION_NON_UNIQUE，每打开一个文件就新开一个进程 | P1 | 待修复 |
 | BUG-010 | 2026-08-27 | 启动时弹出「如何打开文件？」模态框，反复出现 | P0 | 已修复 |
 | BUG-011 | 2026-08-27 | `flutter analyze` 在干净树上报 17 个 info，CI 无法作为门禁 | P1 | 已修复 |
-| BUG-012 | 2026-08-27 | 预览模式任务列表复选框不可点击（`onTaskToggle` 从未接线） | P2 | 待修复 |
+| BUG-012 | 2026-08-27 | 预览模式任务列表复选框不可点击（`onTaskToggle` 从未接线） | P2 | 已修复 |
 | BUG-013 | 2026-08-27 | `AppConstants.appVersion` 与 pubspec 版本号不一致，更新检查误报 | P1 | 已修复 |
-| BUG-014 | 2026-08-27 | `widget_test` 对整个 App 调 `pumpAndSettle()`，CI 挂起 20 分钟以上 | P1 | 已修复 |
+| BUG-014 | 2026-08-27 | 测试对含不确定型进度条的界面调 `pumpAndSettle()`，CI 挂起 20 分钟以上 | P1 | 已修复 |
+| BUG-015 | 2026-08-27 | `mermaid_renderer.dart` 工具栏文案硬编码中文，未走 i18n | P2 | 待修复 |
 
 ---
 
@@ -217,3 +218,17 @@
 | 根因分析 | `test/widget_test.dart` 对整个 `MarkTextPlusApp` 调用 `pumpAndSettle()`。HomeScreen 会渲染**不确定型**的 `CircularProgressIndicator`（`home_screen.dart:472` 与 `:613`），其动画永不停止，`pumpAndSettle` 于是一直 pump 到自身超时，而不是快速失败。此外该测试把 `ConfigService` 指向固定路径 `/tmp/marktext-test`，启动时的更新检查会往里写 `lastUpdateCheck`，造成跨次运行的状态泄漏 |
 | 修复方案 | 改用单次 `pump()`（断言只需要首帧即可成立）；配置目录改为每次运行独立的临时目录并注册 tear-down |
 | 涉及文件 | `code/test/widget_test.dart` |
+
+---
+
+## BUG-015 Mermaid 工具栏文案硬编码中文
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P2 |
+| 状态 | 待修复 |
+| 现象 | 项目支持 12 种语言，但 Mermaid 图表工具栏在任何语言下都显示中文 |
+| 根因分析 | `lib/ui/widgets/mermaid_renderer.dart` 直接写死了四处字面量：`'双击图表全屏查看'`(:134)、`'全屏'`(:138)、`'另存为'`(:151)、`'复制源码'`(:164)，没有走 `AppLocalizations`。`test/ui/widgets/mermaid_renderer_test.dart` 也因此用 `find.text('复制源码')` 定位按钮 —— 一旦接入 i18n，该测试需同步改为按 icon 或 Key 定位 |
+| 修复方案 | 在 12 份 `.arb` 中新增 `mermaidFullscreen` / `mermaidSaveAs` / `mermaidCopySource` / `mermaidFullscreenHint`，`mermaid_renderer.dart` 改用 `AppLocalizations.of(context)!`，测试改为按 `Key` 定位 |
+| 涉及文件 | `lib/ui/widgets/mermaid_renderer.dart`、`lib/core/i18n/l10n/*.arb`、`test/ui/widgets/mermaid_renderer_test.dart` |

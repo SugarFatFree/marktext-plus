@@ -23,7 +23,10 @@ void main() {
         ),
       );
 
-      await tester.pumpAndSettle();
+      // Not pumpAndSettle(): MermaidDiagram starts in a loading state that
+      // renders an indeterminate CircularProgressIndicator, whose animation
+      // never stops. The toolbar under test renders on the first frame.
+      await tester.pump();
 
       expect(find.byIcon(Icons.copy_outlined), findsOneWidget);
       expect(find.text('复制源码'), findsOneWidget);
@@ -45,7 +48,7 @@ void main() {
         ),
       );
 
-      await tester.pumpAndSettle();
+      await tester.pump();
       await tester.tap(find.text('复制源码'));
       await tester.pump();
 

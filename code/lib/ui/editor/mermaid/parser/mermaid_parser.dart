@@ -253,20 +253,53 @@ class MermaidParser {
   List<String> _cleanLines(List<String> lines) {
     final result = <String>[];
 
-    for (var line in lines) {
-      // Remove comments
-      final commentIndex = line.indexOf('%%');
-      if (commentIndex != -1) {
-        line = line.substring(0, commentIndex);
+    for (final raw in lines) {
+      final trimmed = raw.trim();
+
+      // `%%{init: {...}}%%` is a directive, not a comment. Dropped for now
+      // rather than truncated at its leading `%%`, which would be the same
+      // outcome today but hides the distinction from whoever implements it.
+      if (trimmed.startsWith('%%{') && trimmed.endsWith('}%%')) {
+        continue;
       }
 
-      // Skip empty lines
+      final line = _stripComment(raw);
       if (line.trim().isNotEmpty) {
         result.add(line);
       }
     }
 
     return result;
+  }
+
+  /// Truncates [line] at a `%%` comment marker.
+  ///
+  /// A bare `indexOf('%%')` would also cut inside node labels — `A["50%% off"]`
+  /// or `B(100%% done)` — so brackets and quotes are tracked and only a marker
+  /// outside both counts.
+  String _stripComment(String line) {
+    var inQuote = false;
+    var depth = 0;
+
+    for (var i = 0; i < line.length - 1; i++) {
+      final c = line[i];
+
+      if (c == '"') {
+        inQuote = !inQuote;
+        continue;
+      }
+      if (inQuote) continue;
+
+      if (c == '[' || c == '(' || c == '{') {
+        depth++;
+      } else if (c == ']' || c == ')' || c == '}') {
+        if (depth > 0) depth--;
+      } else if (c == '%' && line[i + 1] == '%' && depth == 0) {
+        return line.substring(0, i);
+      }
+    }
+
+    return line;
   }
 }
 
