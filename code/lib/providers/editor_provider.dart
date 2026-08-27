@@ -40,6 +40,8 @@ enum FormatAction {
   frontMatter,
   htmlBlock,
   looseList,
+  createParagraph,
+  deleteParagraph,
 }
 
 class EditorState {

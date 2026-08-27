@@ -116,6 +116,8 @@
   "editCopyAsHtml": "Copia come HTML",
   "editSelectAll": "Seleziona tutto",
   "editDuplicateLine": "Duplica riga",
+  "editCreateParagraph": "Crea paragrafo sotto",
+  "editDeleteParagraph": "Elimina paragrafo",
   "formatUnderline": "Sottolineato",
   "formatSuperscript": "Apice",
   "formatSubscript": "Pedice",

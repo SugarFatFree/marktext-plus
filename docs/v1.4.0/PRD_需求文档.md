@@ -13,6 +13,7 @@
 | FEAT-009 | 2026-08-28 | Mermaid 时间线支持 `section` 分组带 | 中 | 中等 | 已实现 |
 | FEAT-010 | 2026-08-28 | 预览里可以编辑 Mermaid 图表的源码 | 高 | 简单 | 已实现 |
 | FEAT-011 | 2026-08-28 | 段落菜单补上「松散列表项」（对齐上游最后一项缺口） | 中 | 中等 | 已实现 |
+| FEAT-012 | 2026-08-28 | 编辑菜单补上「在下方插入段落」与「删除当前段落」 | 中 | 中等 | 已实现 |
 
 ## 详细需求
 
@@ -246,5 +247,23 @@
 | 涉及文件 | `lib/providers/editor_provider.dart`、`lib/ui/editor/source_editor.dart`、`lib/ui/widgets/app_menu_bar.dart`、12 份 `app_*.arb`、11 份 `app_localizations*.dart`、`test/ui/editor/source_editor_prefix_test.dart` |
 | 验收标准 | 紧凑列表切换后项间有一个空行、再切回完全复原；有序/无序/任务列表都成立；嵌套子项不被拉开；项内分段的空行不被吃掉；光标不在列表内或列表只有一项时文档不变；无末尾换行的文档切换后仍然没有 |
 | 验证方式 | **把仓库里的真实实现抽出来在纯 Dart 下跑**，16 条断言全过（含 7 种形态的「切两次回到原样」）；用解析器复核切换结果：`isLoose` 正确翻转、项数不变、块数不变；l10n 五项一致性检查通过；新增 8 条仓库测试 |
+
+---
+
+### FEAT-012 — 编辑菜单补上「在下方插入段落」与「删除当前段落」
+
+| 字段 | 内容 |
+|------|------|
+| 实现日期 | 2026-08-28 |
+| 优先级 | 中 |
+| 难易度 | 中等 |
+| 状态 | 已实现 |
+| 需求来源 | 上游 `main/menu/actions/edit.ts` 的 `editorCreateParagraph` / `editorDeleteParagraph` |
+| 上游语义（读 muya 源码与其单元测试确认） | `insertParagraph` 锚定在**最外层块**上 —— 光标在引用块里时，新段落插在整个引用块之后、位于文档根层，而不是引用块内部；`deleteParagraph` 删掉最外层块，删光时留一个空段落 |
+| 实现方案 | 两个纯文本变换，返回「新文本 + 光标应落的行」：<br>`createParagraphBelow` 在块尾后插入空行，**两侧各留一个空行**（否则打进去的字会和上下块连成一段）；<br>`deleteParagraphAt` 连同其后的一个空行一起删（块在文末时改删它前面的空行），删空则返回空文档 |
+| 一处按语义调整的行为 | 光标已经停在空行上时，`createParagraphBelow` **原样不动** —— 那里本来就能直接写。第一版没做这个判断，会在两个块之间堆出 4 个空行 |
+| 涉及文件 | `lib/providers/editor_provider.dart`、`lib/ui/editor/source_editor.dart`、`lib/ui/widgets/app_menu_bar.dart`、12 份 `app_*.arb`、11 份 `app_localizations*.dart`、`test/ui/editor/source_editor_prefix_test.dart` |
+| 验收标准 | 插入后光标落在新的空行上；引用块/列表等多行块整体处理；删除后不留多余空行；删掉唯一的块得到空文档；光标在空行上时两个动作都不改动文档 |
+| 验证方式 | 沙盘原型 13 组形态；**本机 `dart analyze --fatal-infos` 通过**；**本机 `flutter test` 跑该文件 30 条全过**；l10n 五项一致性检查通过；新增 9 条测试 |
 
 ---

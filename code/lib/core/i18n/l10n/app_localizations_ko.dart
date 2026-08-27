@@ -370,6 +370,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get editDuplicateLine => '줄 복제';
 
   @override
+  String get editCreateParagraph => '아래에 단락 만들기';
+
+  @override
+  String get editDeleteParagraph => '단락 삭제';
+
+  @override
   String get formatUnderline => '밑줄';
 
   @override
@@ -712,8 +718,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get fileOpenBehaviorTitle => '파일을 어떻게 열까요?';
 
   @override
-  String get fileOpenBehaviorMessage =>
-      '앱이 실행 중일 때 파일을 두 번 클릭하면:';
+  String get fileOpenBehaviorMessage => '앱이 실행 중일 때 파일을 두 번 클릭하면:';
 
   @override
   String get fileOpenBehaviorNewWindow => '새 창에서 열기';
@@ -725,8 +730,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get fileOpenBehaviorExistingWindow => '현재 창에서 열기';
 
   @override
-  String get fileOpenBehaviorExistingWindowDesc =>
-      '기존 탭에 추가 (단일 인스턴스)';
+  String get fileOpenBehaviorExistingWindowDesc => '기존 탭에 추가 (단일 인스턴스)';
 
   @override
   String get fileOpenBehaviorNotSet => '설정되지 않음';
@@ -769,6 +773,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get paragraphLooseList => '느슨한 목록 항목';
+
   @override
   String get close => '닫기';
 
@@ -777,8 +782,10 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get mermaidViewerHint => 'Ctrl+스크롤로 확대/축소    드래그로 이동    Esc로 닫기';
+
   @override
   String get statusHighlightOff => '큰 파일이라 구문 강조를 껐습니다';
+
   @override
   String get settingsImageStorage => '끌어다 놓은 이미지 저장 위치';
 
@@ -793,18 +800,22 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get settingsImageFolder => '이미지 폴더';
+
   @override
   String get fileCloseTab => '탭 닫기';
 
   @override
   String get fileClearRecentFiles => '최근 파일 지우기';
+
   @override
   String get viewCommandPalette => '명령 팔레트';
+
   @override
   String get formatFrontMatter => '프런트 매터';
 
   @override
   String get formatHtmlBlock => 'HTML 블록';
+
   @override
   String get updateUpToDate => '최신 버전입니다';
 

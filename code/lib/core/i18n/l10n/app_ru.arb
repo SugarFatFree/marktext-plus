@@ -116,6 +116,8 @@
   "editCopyAsHtml": "Копировать как HTML",
   "editSelectAll": "Выделить всё",
   "editDuplicateLine": "Дублировать строку",
+  "editCreateParagraph": "Создать абзац ниже",
+  "editDeleteParagraph": "Удалить абзац",
   "formatUnderline": "Подчёркнутый",
   "formatSuperscript": "Надстрочный",
   "formatSubscript": "Подстрочный",

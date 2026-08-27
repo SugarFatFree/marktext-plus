@@ -372,6 +372,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get editDuplicateLine => 'Dupliquer la ligne';
 
   @override
+  String get editCreateParagraph => 'Créer un paragraphe en dessous';
+
+  @override
+  String get editDeleteParagraph => 'Supprimer le paragraphe';
+
+  @override
   String get formatUnderline => 'Souligné';
 
   @override
@@ -713,23 +719,25 @@ class AppLocalizationsFr extends AppLocalizations {
   String get welcomeDragHint => 'Déposez des fichiers ici pour les ouvrir';
 
   @override
-  String get fileOpenBehavior => "Comportement à l'ouverture des fichiers";
+  String get fileOpenBehavior => 'Comportement à l\'ouverture des fichiers';
 
   @override
   String get fileOpenBehaviorTitle => 'Comment ouvrir les fichiers ?';
 
   @override
   String get fileOpenBehaviorMessage =>
-      "Lorsque vous double-cliquez sur un fichier alors que l'application est déjà lancée :";
+      'Lorsque vous double-cliquez sur un fichier alors que l\'application est déjà lancée :';
 
   @override
   String get fileOpenBehaviorNewWindow => 'Ouvrir dans une nouvelle fenêtre';
 
   @override
-  String get fileOpenBehaviorNewWindowDesc => "Autoriser plusieurs instances de l'application";
+  String get fileOpenBehaviorNewWindowDesc =>
+      'Autoriser plusieurs instances de l\'application';
 
   @override
-  String get fileOpenBehaviorExistingWindow => 'Ouvrir dans la fenêtre actuelle';
+  String get fileOpenBehaviorExistingWindow =>
+      'Ouvrir dans la fenêtre actuelle';
 
   @override
   String get fileOpenBehaviorExistingWindowDesc =>
@@ -757,7 +765,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get mermaidEditSource => 'Modifier la source';
 
   @override
-  String get mermaidFullscreenHint => "Double-cliquez sur le diagramme pour l'afficher en plein écran";
+  String get mermaidFullscreenHint =>
+      'Double-cliquez sur le diagramme pour l\'afficher en plein écran';
 
   @override
   String get mermaidSaveAsHint => 'Enregistrer le diagramme au format PNG';
@@ -776,6 +785,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get paragraphLooseList => 'Élément de liste espacé';
+
   @override
   String get close => 'Fermer';
 
@@ -783,9 +793,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get mermaidViewerTitle => 'Visionneuse de diagramme Mermaid';
 
   @override
-  String get mermaidViewerHint => 'Ctrl+Molette pour zoomer    Glisser pour déplacer    Échap pour fermer';
+  String get mermaidViewerHint =>
+      'Ctrl+Molette pour zoomer    Glisser pour déplacer    Échap pour fermer';
+
   @override
-  String get statusHighlightOff => 'Coloration syntaxique désactivée (fichier volumineux)';
+  String get statusHighlightOff =>
+      'Coloration syntaxique désactivée (fichier volumineux)';
+
   @override
   String get settingsImageStorage => 'Emplacement des images déposées';
 
@@ -800,18 +814,22 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsImageFolder => 'Dossier d\'images';
+
   @override
   String get fileCloseTab => 'Fermer l\'onglet';
 
   @override
   String get fileClearRecentFiles => 'Effacer les fichiers récents';
+
   @override
   String get viewCommandPalette => 'Palette de commandes';
+
   @override
   String get formatFrontMatter => 'En-tête YAML';
 
   @override
   String get formatHtmlBlock => 'Bloc HTML';
+
   @override
   String get updateUpToDate => 'Vous utilisez la dernière version';
 

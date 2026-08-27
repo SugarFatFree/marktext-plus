@@ -141,4 +141,63 @@ void main() {
       expect(toggle('- a\n- b', 0), '- a\n\n- b');
     });
   });
+
+  group('createParagraphBelow', () {
+    test('opens a blank line below the block, with the caret on it', () {
+      final (text, line) = SourceEditor.createParagraphBelow('# Title\n', 0);
+      expect(text, '# Title\n\n\n');
+      expect(line, 2);
+    });
+
+    test('keeps a blank line either side when content follows', () {
+      // Otherwise what gets typed runs into the block below.
+      final (text, line) =
+          SourceEditor.createParagraphBelow('# Title\n\nbody\n', 0);
+      expect(text, '# Title\n\n\n\nbody\n');
+      expect(line, 2);
+    });
+
+    test('anchors on the outermost block', () {
+      // A caret inside a blockquote gets a paragraph after the whole quote,
+      // not a line inside it — which is what upstream does.
+      final (text, _) =
+          SourceEditor.createParagraphBelow('> quoted\n\nafter\n', 0);
+      expect(text, '> quoted\n\n\n\nafter\n');
+    });
+
+    test('a caret already on a blank line changes nothing', () {
+      const source = 'a\n\nb\n';
+      expect(SourceEditor.createParagraphBelow(source, 1), (source, 1));
+    });
+  });
+
+  group('deleteParagraphAt', () {
+    test('removes the block and the blank line after it', () {
+      final (text, line) =
+          SourceEditor.deleteParagraphAt('# Title\n\nbody\n', 0);
+      expect(text, 'body\n');
+      expect(line, 0);
+    });
+
+    test('removes the blank line before it when the block is last', () {
+      final (text, _) =
+          SourceEditor.deleteParagraphAt('# Title\n\nbody\n', 2);
+      expect(text, '# Title\n');
+    });
+
+    test('deleting the only block leaves an empty document', () {
+      expect(SourceEditor.deleteParagraphAt('only\n', 0), ('', 0));
+    });
+
+    test('a multi-line block goes as a whole', () {
+      final (text, _) =
+          SourceEditor.deleteParagraphAt('> q1\n> q2\n\nafter\n', 1);
+      expect(text, 'after\n');
+    });
+
+    test('a caret on a blank line changes nothing', () {
+      const source = 'a\n\nb\n';
+      expect(SourceEditor.deleteParagraphAt(source, 1), (source, 1));
+    });
+  });
 }

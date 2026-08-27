@@ -372,6 +372,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get editDuplicateLine => 'Duplicar línea';
 
   @override
+  String get editCreateParagraph => 'Crear párrafo debajo';
+
+  @override
+  String get editDeleteParagraph => 'Eliminar párrafo';
+
+  @override
   String get formatUnderline => 'Subrayado';
 
   @override
@@ -725,7 +731,8 @@ class AppLocalizationsEs extends AppLocalizations {
   String get fileOpenBehaviorNewWindow => 'Abrir en una ventana nueva';
 
   @override
-  String get fileOpenBehaviorNewWindowDesc => 'Permitir varias instancias de la aplicación';
+  String get fileOpenBehaviorNewWindowDesc =>
+      'Permitir varias instancias de la aplicación';
 
   @override
   String get fileOpenBehaviorExistingWindow => 'Abrir en la ventana actual';
@@ -756,7 +763,8 @@ class AppLocalizationsEs extends AppLocalizations {
   String get mermaidEditSource => 'Editar código fuente';
 
   @override
-  String get mermaidFullscreenHint => 'Toca dos veces el diagrama para verlo en pantalla completa';
+  String get mermaidFullscreenHint =>
+      'Toca dos veces el diagrama para verlo en pantalla completa';
 
   @override
   String get mermaidSaveAsHint => 'Guardar el diagrama como PNG';
@@ -775,6 +783,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get paragraphLooseList => 'Elemento de lista espaciado';
+
   @override
   String get close => 'Cerrar';
 
@@ -782,9 +791,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get mermaidViewerTitle => 'Visor de diagramas Mermaid';
 
   @override
-  String get mermaidViewerHint => 'Ctrl+Rueda para ampliar    Arrastrar para desplazar    Esc para cerrar';
+  String get mermaidViewerHint =>
+      'Ctrl+Rueda para ampliar    Arrastrar para desplazar    Esc para cerrar';
+
   @override
-  String get statusHighlightOff => 'Resaltado de sintaxis desactivado (archivo grande)';
+  String get statusHighlightOff =>
+      'Resaltado de sintaxis desactivado (archivo grande)';
+
   @override
   String get settingsImageStorage => 'Dónde guardar las imágenes arrastradas';
 
@@ -799,18 +812,22 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get settingsImageFolder => 'Carpeta de imágenes';
+
   @override
   String get fileCloseTab => 'Cerrar pestaña';
 
   @override
   String get fileClearRecentFiles => 'Borrar archivos recientes';
+
   @override
   String get viewCommandPalette => 'Paleta de comandos';
+
   @override
   String get formatFrontMatter => 'Front matter';
 
   @override
   String get formatHtmlBlock => 'Bloque HTML';
+
   @override
   String get updateUpToDate => 'Está usando la última versión';
 

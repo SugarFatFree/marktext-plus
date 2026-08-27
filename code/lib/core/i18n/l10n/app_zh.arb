@@ -118,6 +118,8 @@
   "previewCopyAsHtmlSuccess": "已复制为 HTML 格式，现在可以粘贴到 Word/WPS 并保留格式。",
   "editSelectAll": "全选",
   "editDuplicateLine": "复制行",
+  "editCreateParagraph": "在下方插入段落",
+  "editDeleteParagraph": "删除当前段落",
   "formatUnderline": "下划线",
   "formatSuperscript": "上标",
   "formatSubscript": "下标",

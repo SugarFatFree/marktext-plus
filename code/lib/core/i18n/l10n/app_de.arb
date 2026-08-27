@@ -116,6 +116,8 @@
   "editCopyAsHtml": "Als HTML kopieren",
   "editSelectAll": "Alles auswählen",
   "editDuplicateLine": "Zeile duplizieren",
+  "editCreateParagraph": "Absatz darunter einfügen",
+  "editDeleteParagraph": "Absatz löschen",
   "formatUnderline": "Unterstrichen",
   "formatSuperscript": "Hochgestellt",
   "formatSubscript": "Tiefgestellt",

@@ -116,6 +116,8 @@
   "editCopyAsHtml": "نسخ كـ HTML",
   "editSelectAll": "تحديد الكل",
   "editDuplicateLine": "تكرار السطر",
+  "editCreateParagraph": "إنشاء فقرة بالأسفل",
+  "editDeleteParagraph": "حذف الفقرة",
   "formatUnderline": "تسطير",
   "formatSuperscript": "نص مرتفع",
   "formatSubscript": "نص منخفض",

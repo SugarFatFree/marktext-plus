@@ -128,6 +128,67 @@ class SourceEditor extends ConsumerStatefulWidget {
     );
   }
 
+  /// The outermost block containing [line], or null when [line] is blank
+  /// space between blocks.
+  static md.MarkdownNode? _blockAt(String source, int line) {
+    for (final node in md.MarkdownParser().parse(source)) {
+      if (line >= node.sourceStart && line < node.sourceEnd) return node;
+    }
+    return null;
+  }
+
+  /// Opens an empty paragraph below the block at [line].
+  ///
+  /// Anchored on the *outermost* block, as upstream's "Create Paragraph Below"
+  /// is: a caret inside a blockquote gets a paragraph after the whole quote,
+  /// not a line inside it.
+  ///
+  /// Returns the new text and the line the caret belongs on.
+  @visibleForTesting
+  static (String, int) createParagraphBelow(String source, int line) {
+    final node = _blockAt(source, line);
+    // The caret already sits on a blank line, which is somewhere to write.
+    if (node == null) return (source, line);
+
+    final lines = const LineSplitter().convert(source);
+    final at = node.sourceEnd;
+    // A blank line either side, so what is typed is its own paragraph rather
+    // than a continuation of the block above or the one below.
+    final followedByContent = at < lines.length && lines[at].trim().isNotEmpty;
+    final opened = [...lines]
+      ..insertAll(at, followedByContent ? ['', '', ''] : ['', '']);
+    final trailing = source.endsWith('\n') || source.isEmpty ? '\n' : '';
+    return (opened.join('\n') + trailing, at + 1);
+  }
+
+  /// Removes the outermost block at [line].
+  ///
+  /// Takes one blank line with it so deleting a block does not leave a growing
+  /// gap; an empty document is what upstream leaves behind when the last block
+  /// goes.
+  @visibleForTesting
+  static (String, int) deleteParagraphAt(String source, int line) {
+    final node = _blockAt(source, line);
+    if (node == null) return (source, line);
+
+    final lines = const LineSplitter().convert(source);
+    var start = node.sourceStart;
+    var end = node.sourceEnd;
+    if (end < lines.length && lines[end].trim().isEmpty) {
+      end++;
+    } else if (start > 0 && lines[start - 1].trim().isEmpty) {
+      start--;
+    }
+
+    final remaining = [...lines]..removeRange(start, end);
+    if (remaining.every((line) => line.trim().isEmpty)) return ('', 0);
+    final trailing = source.endsWith('\n') ? '\n' : '';
+    return (
+      remaining.join('\n') + trailing,
+      start.clamp(0, remaining.length - 1),
+    );
+  }
+
   /// Switches the list around [line] between tight and loose.
   ///
   /// A loose list has a blank line between its items, which markdown renders
@@ -745,6 +806,10 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
         _insertAtCursor('<div>\n\n</div>');
       case FormatAction.looseList:
         _toggleLooseList();
+      case FormatAction.createParagraph:
+        _applyBlockEdit(SourceEditor.createParagraphBelow);
+      case FormatAction.deleteParagraph:
+        _applyBlockEdit(SourceEditor.deleteParagraphAt);
       case FormatAction.superscript:
         _wrapSelection('^', '^');
       case FormatAction.subscript:
@@ -1006,6 +1071,28 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     if (end == -1) end = text.length;
 
     return (start, end);
+  }
+
+  /// Runs a block-level edit that reports where the caret should land.
+  void _applyBlockEdit((String, int) Function(String, int) edit) {
+    final text = _controller.text;
+    final caret = _controller.selection.baseOffset.clamp(0, text.length);
+    final line = '\n'.allMatches(text.substring(0, caret)).length;
+
+    final (updated, targetLine) = edit(text, line);
+    if (updated == text) return;
+
+    final lines = updated.split('\n');
+    var offset = 0;
+    for (var i = 0; i < targetLine && i < lines.length; i++) {
+      offset += lines[i].length + 1;
+    }
+    _controller.value = TextEditingValue(
+      text: updated,
+      selection: TextSelection.collapsed(
+        offset: offset.clamp(0, updated.length),
+      ),
+    );
   }
 
   /// Applies [SourceEditor.toggleLooseList] to the document at the caret.

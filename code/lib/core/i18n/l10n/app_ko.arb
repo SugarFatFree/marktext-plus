@@ -116,6 +116,8 @@
   "editCopyAsHtml": "HTML로 복사",
   "editSelectAll": "모두 선택",
   "editDuplicateLine": "줄 복제",
+  "editCreateParagraph": "아래에 단락 만들기",
+  "editDeleteParagraph": "단락 삭제",
   "formatUnderline": "밑줄",
   "formatSuperscript": "위 첨자",
   "formatSubscript": "아래 첨자",

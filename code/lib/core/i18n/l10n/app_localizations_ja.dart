@@ -370,6 +370,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get editDuplicateLine => '行を複製';
 
   @override
+  String get editCreateParagraph => '下に段落を作成';
+
+  @override
+  String get editDeleteParagraph => '段落を削除';
+
+  @override
   String get formatUnderline => '下線';
 
   @override
@@ -712,8 +718,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get fileOpenBehaviorTitle => 'ファイルをどのように開きますか？';
 
   @override
-  String get fileOpenBehaviorMessage =>
-      'アプリの起動中にファイルをダブルクリックしたとき:';
+  String get fileOpenBehaviorMessage => 'アプリの起動中にファイルをダブルクリックしたとき:';
 
   @override
   String get fileOpenBehaviorNewWindow => '新しいウィンドウで開く';
@@ -725,8 +730,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get fileOpenBehaviorExistingWindow => '現在のウィンドウで開く';
 
   @override
-  String get fileOpenBehaviorExistingWindowDesc =>
-      '既存のタブに追加する（単一インスタンス）';
+  String get fileOpenBehaviorExistingWindowDesc => '既存のタブに追加する（単一インスタンス）';
 
   @override
   String get fileOpenBehaviorNotSet => '未設定';
@@ -769,6 +773,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get paragraphLooseList => 'ゆるいリスト項目';
+
   @override
   String get close => '閉じる';
 
@@ -777,8 +782,10 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get mermaidViewerHint => 'Ctrl+スクロールで拡大縮小    ドラッグで移動    Esc で閉じる';
+
   @override
   String get statusHighlightOff => '大きなファイルのため構文ハイライトは無効';
+
   @override
   String get settingsImageStorage => 'ドロップした画像の保存先';
 
@@ -793,18 +800,22 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsImageFolder => '画像フォルダー';
+
   @override
   String get fileCloseTab => 'タブを閉じる';
 
   @override
   String get fileClearRecentFiles => '最近のファイルを消去';
+
   @override
   String get viewCommandPalette => 'コマンドパレット';
+
   @override
   String get formatFrontMatter => 'フロントマター';
 
   @override
   String get formatHtmlBlock => 'HTML ブロック';
+
   @override
   String get updateUpToDate => '最新バージョンです';
 

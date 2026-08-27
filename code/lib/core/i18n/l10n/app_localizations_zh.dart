@@ -369,6 +369,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get editDuplicateLine => '复制行';
 
   @override
+  String get editCreateParagraph => '在下方插入段落';
+
+  @override
+  String get editDeleteParagraph => '删除当前段落';
+
+  @override
   String get formatUnderline => '下划线';
 
   @override
@@ -766,6 +772,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get paragraphLooseList => '松散列表项';
+
   @override
   String get close => '关闭';
 
@@ -774,8 +781,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get mermaidViewerHint => 'Ctrl+滚轮缩放    拖动平移    Esc 关闭';
+
   @override
   String get statusHighlightOff => '大文件已关闭语法高亮';
+
   @override
   String get settingsImageStorage => '拖入的图片保存位置';
 
@@ -790,18 +799,22 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsImageFolder => '图片文件夹';
+
   @override
   String get fileCloseTab => '关闭标签页';
 
   @override
   String get fileClearRecentFiles => '清空最近文件';
+
   @override
   String get viewCommandPalette => '命令面板';
+
   @override
   String get formatFrontMatter => '前置元数据';
 
   @override
   String get formatHtmlBlock => 'HTML 块';
+
   @override
   String get updateUpToDate => '已经是最新版本';
 

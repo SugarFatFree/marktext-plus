@@ -825,6 +825,18 @@ abstract class AppLocalizations {
   /// **'Duplicate Line'**
   String get editDuplicateLine;
 
+  /// Edit menu item that opens an empty paragraph below the current block
+  ///
+  /// In en, this message translates to:
+  /// **'Create Paragraph Below'**
+  String get editCreateParagraph;
+
+  /// Edit menu item that removes the block the caret is in
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Paragraph'**
+  String get editDeleteParagraph;
+
   /// No description provided for @formatUnderline.
   ///
   /// In en, this message translates to:
@@ -1544,16 +1556,19 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Dismiss'**
   String get updateDismiss;
+
   /// No description provided for @mermaidFullscreen.
   ///
   /// In en, this message translates to:
   /// **'Fullscreen'**
   String get mermaidFullscreen;
+
   /// No description provided for @mermaidSaveAs.
   ///
   /// In en, this message translates to:
   /// **'Save As'**
   String get mermaidSaveAs;
+
   /// No description provided for @mermaidCopySource.
   ///
   /// In en, this message translates to:
@@ -1565,6 +1580,7 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Edit Source'**
   String get mermaidEditSource;
+
   /// No description provided for @mermaidFullscreenHint.
   ///
   /// In en, this message translates to:

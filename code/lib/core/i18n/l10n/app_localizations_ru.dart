@@ -371,6 +371,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get editDuplicateLine => 'Дублировать строку';
 
   @override
+  String get editCreateParagraph => 'Создать абзац ниже';
+
+  @override
+  String get editDeleteParagraph => 'Удалить абзац';
+
+  @override
   String get formatUnderline => 'Подчёркнутый';
 
   @override
@@ -723,7 +729,8 @@ class AppLocalizationsRu extends AppLocalizations {
   String get fileOpenBehaviorNewWindow => 'Открывать в новом окне';
 
   @override
-  String get fileOpenBehaviorNewWindowDesc => 'Разрешить несколько экземпляров приложения';
+  String get fileOpenBehaviorNewWindowDesc =>
+      'Разрешить несколько экземпляров приложения';
 
   @override
   String get fileOpenBehaviorExistingWindow => 'Открывать в текущем окне';
@@ -754,7 +761,8 @@ class AppLocalizationsRu extends AppLocalizations {
   String get mermaidEditSource => 'Редактировать исходный код';
 
   @override
-  String get mermaidFullscreenHint => 'Дважды нажмите на диаграмму для полноэкранного просмотра';
+  String get mermaidFullscreenHint =>
+      'Дважды нажмите на диаграмму для полноэкранного просмотра';
 
   @override
   String get mermaidSaveAsHint => 'Сохранить диаграмму в формате PNG';
@@ -773,6 +781,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get paragraphLooseList => 'Разреженный список';
+
   @override
   String get close => 'Закрыть';
 
@@ -780,9 +789,13 @@ class AppLocalizationsRu extends AppLocalizations {
   String get mermaidViewerTitle => 'Просмотр диаграммы Mermaid';
 
   @override
-  String get mermaidViewerHint => 'Ctrl+колесо — масштаб    Перетаскивание — панорама    Esc — закрыть';
+  String get mermaidViewerHint =>
+      'Ctrl+колесо — масштаб    Перетаскивание — панорама    Esc — закрыть';
+
   @override
-  String get statusHighlightOff => 'Подсветка синтаксиса отключена (большой файл)';
+  String get statusHighlightOff =>
+      'Подсветка синтаксиса отключена (большой файл)';
+
   @override
   String get settingsImageStorage => 'Куда помещать перетащенные изображения';
 
@@ -797,18 +810,22 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get settingsImageFolder => 'Папка изображений';
+
   @override
   String get fileCloseTab => 'Закрыть вкладку';
 
   @override
   String get fileClearRecentFiles => 'Очистить недавние файлы';
+
   @override
   String get viewCommandPalette => 'Палитра команд';
+
   @override
   String get formatFrontMatter => 'Front matter';
 
   @override
   String get formatHtmlBlock => 'HTML-блок';
+
   @override
   String get updateUpToDate => 'У вас последняя версия';
 

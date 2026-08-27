@@ -371,6 +371,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get editDuplicateLine => 'تكرار السطر';
 
   @override
+  String get editCreateParagraph => 'إنشاء فقرة بالأسفل';
+
+  @override
+  String get editDeleteParagraph => 'حذف الفقرة';
+
+  @override
   String get formatUnderline => 'تسطير';
 
   @override
@@ -721,7 +727,8 @@ class AppLocalizationsAr extends AppLocalizations {
   String get fileOpenBehaviorNewWindow => 'الفتح في نافذة جديدة';
 
   @override
-  String get fileOpenBehaviorNewWindowDesc => 'السماح بتشغيل عدة نسخ من التطبيق';
+  String get fileOpenBehaviorNewWindowDesc =>
+      'السماح بتشغيل عدة نسخ من التطبيق';
 
   @override
   String get fileOpenBehaviorExistingWindow => 'الفتح في النافذة الحالية';
@@ -752,7 +759,8 @@ class AppLocalizationsAr extends AppLocalizations {
   String get mermaidEditSource => 'تحرير المصدر';
 
   @override
-  String get mermaidFullscreenHint => 'انقر نقرًا مزدوجًا على الرسم التخطيطي لعرضه بملء الشاشة';
+  String get mermaidFullscreenHint =>
+      'انقر نقرًا مزدوجًا على الرسم التخطيطي لعرضه بملء الشاشة';
 
   @override
   String get mermaidSaveAsHint => 'حفظ الرسم التخطيطي بصيغة PNG';
@@ -771,6 +779,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get paragraphLooseList => 'عنصر قائمة متباعد';
+
   @override
   String get close => 'إغلاق';
 
@@ -778,9 +787,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get mermaidViewerTitle => 'عارض مخططات Mermaid';
 
   @override
-  String get mermaidViewerHint => 'Ctrl+عجلة الفأرة للتكبير    السحب للتحريك    Esc للإغلاق';
+  String get mermaidViewerHint =>
+      'Ctrl+عجلة الفأرة للتكبير    السحب للتحريك    Esc للإغلاق';
+
   @override
   String get statusHighlightOff => 'تم إيقاف تلوين البنية (ملف كبير)';
+
   @override
   String get settingsImageStorage => 'مكان حفظ الصور المسحوبة';
 
@@ -795,18 +807,22 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get settingsImageFolder => 'مجلد الصور';
+
   @override
   String get fileCloseTab => 'إغلاق علامة التبويب';
 
   @override
   String get fileClearRecentFiles => 'مسح الملفات الأخيرة';
+
   @override
   String get viewCommandPalette => 'لوحة الأوامر';
+
   @override
   String get formatFrontMatter => 'بيانات المقدمة';
 
   @override
   String get formatHtmlBlock => 'كتلة HTML';
+
   @override
   String get updateUpToDate => 'أنت تستخدم أحدث إصدار';
 

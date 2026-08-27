@@ -372,6 +372,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editDuplicateLine => 'Duplicate Line';
 
   @override
+  String get editCreateParagraph => 'Create Paragraph Below';
+
+  @override
+  String get editDeleteParagraph => 'Delete Paragraph';
+
+  @override
   String get formatUnderline => 'Underline';
 
   @override
@@ -753,7 +759,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mermaidEditSource => 'Edit Source';
 
   @override
-  String get mermaidFullscreenHint => 'Double-tap the diagram to view fullscreen';
+  String get mermaidFullscreenHint =>
+      'Double-tap the diagram to view fullscreen';
 
   @override
   String get mermaidSaveAsHint => 'Save the diagram as PNG';
@@ -772,6 +779,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get paragraphLooseList => 'Loose List Item';
+
   @override
   String get close => 'Close';
 
@@ -779,9 +787,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mermaidViewerTitle => 'Mermaid Diagram Viewer';
 
   @override
-  String get mermaidViewerHint => 'Ctrl+Scroll to zoom    Drag to pan    Esc to close';
+  String get mermaidViewerHint =>
+      'Ctrl+Scroll to zoom    Drag to pan    Esc to close';
+
   @override
   String get statusHighlightOff => 'Syntax highlighting off (large file)';
+
   @override
   String get settingsImageStorage => 'Where to put dropped images';
 
@@ -796,18 +807,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsImageFolder => 'Image folder';
+
   @override
   String get fileCloseTab => 'Close Tab';
 
   @override
   String get fileClearRecentFiles => 'Clear Recent Files';
+
   @override
   String get viewCommandPalette => 'Command Palette';
+
   @override
   String get formatFrontMatter => 'Front Matter';
 
   @override
   String get formatHtmlBlock => 'HTML Block';
+
   @override
   String get updateUpToDate => 'You are on the latest version';
 

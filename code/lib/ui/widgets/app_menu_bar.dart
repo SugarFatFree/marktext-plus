@@ -403,6 +403,19 @@ class AppMenuBar extends ConsumerWidget {
           child: Text(l10n.editDuplicateLine),
           onPressed: () => ref.read(editorProvider.notifier).applyFormat(FormatAction.duplicateLine),
         ),
+        // Beside "duplicate line", which is where upstream puts them.
+        MenuItemButton(
+          child: Text(l10n.editCreateParagraph),
+          onPressed: () => ref
+              .read(editorProvider.notifier)
+              .applyFormat(FormatAction.createParagraph),
+        ),
+        MenuItemButton(
+          child: Text(l10n.editDeleteParagraph),
+          onPressed: () => ref
+              .read(editorProvider.notifier)
+              .applyFormat(FormatAction.deleteParagraph),
+        ),
         const Divider(height: 1),
         MenuItemButton(
           shortcut: _shortcut('find'),

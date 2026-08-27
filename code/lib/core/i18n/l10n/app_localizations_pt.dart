@@ -372,6 +372,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String get editDuplicateLine => 'Duplicar linha';
 
   @override
+  String get editCreateParagraph => 'Criar parágrafo abaixo';
+
+  @override
+  String get editDeleteParagraph => 'Excluir parágrafo';
+
+  @override
   String get formatUnderline => 'Sublinhado';
 
   @override
@@ -725,7 +731,8 @@ class AppLocalizationsPt extends AppLocalizations {
   String get fileOpenBehaviorNewWindow => 'Abrir numa nova janela';
 
   @override
-  String get fileOpenBehaviorNewWindowDesc => 'Permitir várias instâncias da aplicação';
+  String get fileOpenBehaviorNewWindowDesc =>
+      'Permitir várias instâncias da aplicação';
 
   @override
   String get fileOpenBehaviorExistingWindow => 'Abrir na janela atual';
@@ -756,7 +763,8 @@ class AppLocalizationsPt extends AppLocalizations {
   String get mermaidEditSource => 'Editar código-fonte';
 
   @override
-  String get mermaidFullscreenHint => 'Toque duas vezes no diagrama para ver em ecrã inteiro';
+  String get mermaidFullscreenHint =>
+      'Toque duas vezes no diagrama para ver em ecrã inteiro';
 
   @override
   String get mermaidSaveAsHint => 'Guardar o diagrama como PNG';
@@ -775,6 +783,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get paragraphLooseList => 'Item de lista espaçado';
+
   @override
   String get close => 'Fechar';
 
@@ -782,9 +791,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get mermaidViewerTitle => 'Visualizador de diagramas Mermaid';
 
   @override
-  String get mermaidViewerHint => 'Ctrl+Roda para ampliar    Arrastar para deslocar    Esc para fechar';
+  String get mermaidViewerHint =>
+      'Ctrl+Roda para ampliar    Arrastar para deslocar    Esc para fechar';
+
   @override
-  String get statusHighlightOff => 'Realce de sintaxe desativado (ficheiro grande)';
+  String get statusHighlightOff =>
+      'Realce de sintaxe desativado (ficheiro grande)';
+
   @override
   String get settingsImageStorage => 'Onde guardar as imagens arrastadas';
 
@@ -799,18 +812,22 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get settingsImageFolder => 'Pasta de imagens';
+
   @override
   String get fileCloseTab => 'Fechar separador';
 
   @override
   String get fileClearRecentFiles => 'Limpar ficheiros recentes';
+
   @override
   String get viewCommandPalette => 'Paleta de comandos';
+
   @override
   String get formatFrontMatter => 'Front matter';
 
   @override
   String get formatHtmlBlock => 'Bloco HTML';
+
   @override
   String get updateUpToDate => 'Está a usar a versão mais recente';
 
@@ -1176,6 +1193,13 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get editCopyAsHtml => 'Copiar como HTML';
 
   @override
+  String get previewCopyAsHtmlTooltip => 'Copiar como HTML (para Word/WPS)';
+
+  @override
+  String get previewCopyAsHtmlSuccess =>
+      'Copiado como HTML. Agora você pode colar no Word/WPS com formatação.';
+
+  @override
   String get editSelectAll => 'Selecionar tudo';
 
   @override
@@ -1520,6 +1544,39 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get welcomeDragHint => 'Arraste arquivos para cá para abrir';
 
   @override
+  String get fileOpenBehavior => 'Comportamento ao abrir arquivos';
+
+  @override
+  String get fileOpenBehaviorTitle => 'Como abrir os arquivos?';
+
+  @override
+  String get fileOpenBehaviorMessage =>
+      'Ao dar dois cliques em um arquivo com o aplicativo já aberto:';
+
+  @override
+  String get fileOpenBehaviorNewWindow => 'Abrir em uma nova janela';
+
+  @override
+  String get fileOpenBehaviorNewWindowDesc =>
+      'Permitir várias instâncias do aplicativo';
+
+  @override
+  String get fileOpenBehaviorExistingWindow => 'Abrir na janela atual';
+
+  @override
+  String get fileOpenBehaviorExistingWindowDesc =>
+      'Adicionar às abas existentes (instância única)';
+
+  @override
+  String get fileOpenBehaviorNotSet => 'Não configurado';
+
+  @override
+  String get updateAvailable => 'Nova versão disponível';
+
+  @override
+  String get updateDismiss => 'Dispensar';
+
+  @override
   String get mermaidFullscreen => 'Tela cheia';
 
   @override
@@ -1529,7 +1586,11 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get mermaidCopySource => 'Copiar código-fonte';
 
   @override
-  String get mermaidFullscreenHint => 'Toque duas vezes no diagrama para ver em tela cheia';
+  String get mermaidEditSource => 'Editar código-fonte';
+
+  @override
+  String get mermaidFullscreenHint =>
+      'Toque duas vezes no diagrama para ver em tela cheia';
 
   @override
   String get mermaidSaveAsHint => 'Salvar o diagrama como PNG';
@@ -1545,6 +1606,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get paragraphToParagraph => 'Converter em parágrafo';
+
+  @override
+  String get paragraphLooseList => 'Item de lista espaçado';
+
   @override
   String get close => 'Fechar';
 
@@ -1552,9 +1617,13 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get mermaidViewerTitle => 'Visualizador de diagramas Mermaid';
 
   @override
-  String get mermaidViewerHint => 'Ctrl+Roda para ampliar    Arrastar para deslocar    Esc para fechar';
+  String get mermaidViewerHint =>
+      'Ctrl+Roda para ampliar    Arrastar para deslocar    Esc para fechar';
+
   @override
-  String get statusHighlightOff => 'Realce de sintaxe desativado (arquivo grande)';
+  String get statusHighlightOff =>
+      'Realce de sintaxe desativado (arquivo grande)';
+
   @override
   String get settingsImageStorage => 'Onde salvar as imagens arrastadas';
 
@@ -1569,59 +1638,27 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get settingsImageFolder => 'Pasta de imagens';
+
   @override
   String get fileCloseTab => 'Fechar aba';
 
   @override
   String get fileClearRecentFiles => 'Limpar arquivos recentes';
+
   @override
   String get viewCommandPalette => 'Paleta de comandos';
+
   @override
   String get formatFrontMatter => 'Front matter';
 
   @override
   String get formatHtmlBlock => 'Bloco HTML';
+
   @override
   String get updateUpToDate => 'Você está usando a versão mais recente';
 
   @override
   String get updateCheckFailed => 'Não foi possível verificar atualizações';
-
-  @override
-  String get fileOpenBehavior => 'Comportamento ao abrir arquivos';
-
-  @override
-  String get fileOpenBehaviorExistingWindow => 'Abrir na janela atual';
-
-  @override
-  String get fileOpenBehaviorExistingWindowDesc => 'Adicionar às abas existentes (instância única)';
-
-  @override
-  String get fileOpenBehaviorMessage => 'Ao dar dois cliques em um arquivo com o aplicativo já aberto:';
-
-  @override
-  String get fileOpenBehaviorNewWindow => 'Abrir em uma nova janela';
-
-  @override
-  String get fileOpenBehaviorNewWindowDesc => 'Permitir várias instâncias do aplicativo';
-
-  @override
-  String get fileOpenBehaviorNotSet => 'Não configurado';
-
-  @override
-  String get fileOpenBehaviorTitle => 'Como abrir os arquivos?';
-
-  @override
-  String get previewCopyAsHtmlSuccess => 'Copiado como HTML. Agora você pode colar no Word/WPS com formatação.';
-
-  @override
-  String get previewCopyAsHtmlTooltip => 'Copiar como HTML (para Word/WPS)';
-
-  @override
-  String get updateAvailable => 'Nova versão disponível';
-
-  @override
-  String get updateDismiss => 'Dispensar';
 
   @override
   String get linkOpenFailed => 'Não foi possível abrir o link';

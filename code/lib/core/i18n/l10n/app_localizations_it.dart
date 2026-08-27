@@ -371,6 +371,12 @@ class AppLocalizationsIt extends AppLocalizations {
   String get editDuplicateLine => 'Duplica riga';
 
   @override
+  String get editCreateParagraph => 'Crea paragrafo sotto';
+
+  @override
+  String get editDeleteParagraph => 'Elimina paragrafo';
+
+  @override
   String get formatUnderline => 'Sottolineato';
 
   @override
@@ -712,20 +718,21 @@ class AppLocalizationsIt extends AppLocalizations {
   String get welcomeDragHint => 'Trascina i file qui per aprirli';
 
   @override
-  String get fileOpenBehavior => "Comportamento all'apertura dei file";
+  String get fileOpenBehavior => 'Comportamento all\'apertura dei file';
 
   @override
   String get fileOpenBehaviorTitle => 'Come aprire i file?';
 
   @override
   String get fileOpenBehaviorMessage =>
-      "Quando fai doppio clic su un file mentre l'applicazione è già in esecuzione:";
+      'Quando fai doppio clic su un file mentre l\'applicazione è già in esecuzione:';
 
   @override
   String get fileOpenBehaviorNewWindow => 'Apri in una nuova finestra';
 
   @override
-  String get fileOpenBehaviorNewWindowDesc => "Consenti più istanze dell'applicazione";
+  String get fileOpenBehaviorNewWindowDesc =>
+      'Consenti più istanze dell\'applicazione';
 
   @override
   String get fileOpenBehaviorExistingWindow => 'Apri nella finestra corrente';
@@ -756,7 +763,8 @@ class AppLocalizationsIt extends AppLocalizations {
   String get mermaidEditSource => 'Modifica sorgente';
 
   @override
-  String get mermaidFullscreenHint => 'Tocca due volte il diagramma per visualizzarlo a schermo intero';
+  String get mermaidFullscreenHint =>
+      'Tocca due volte il diagramma per visualizzarlo a schermo intero';
 
   @override
   String get mermaidSaveAsHint => 'Salva il diagramma come PNG';
@@ -775,6 +783,7 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get paragraphLooseList => 'Elemento elenco spaziato';
+
   @override
   String get close => 'Chiudi';
 
@@ -782,9 +791,13 @@ class AppLocalizationsIt extends AppLocalizations {
   String get mermaidViewerTitle => 'Visualizzatore diagrammi Mermaid';
 
   @override
-  String get mermaidViewerHint => 'Ctrl+Rotella per zoomare    Trascina per spostare    Esc per chiudere';
+  String get mermaidViewerHint =>
+      'Ctrl+Rotella per zoomare    Trascina per spostare    Esc per chiudere';
+
   @override
-  String get statusHighlightOff => 'Evidenziazione sintassi disattivata (file grande)';
+  String get statusHighlightOff =>
+      'Evidenziazione sintassi disattivata (file grande)';
+
   @override
   String get settingsImageStorage => 'Dove salvare le immagini trascinate';
 
@@ -799,18 +812,22 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get settingsImageFolder => 'Cartella immagini';
+
   @override
   String get fileCloseTab => 'Chiudi scheda';
 
   @override
   String get fileClearRecentFiles => 'Svuota file recenti';
+
   @override
   String get viewCommandPalette => 'Riquadro comandi';
+
   @override
   String get formatFrontMatter => 'Front matter';
 
   @override
   String get formatHtmlBlock => 'Blocco HTML';
+
   @override
   String get updateUpToDate => 'Stai usando l’ultima versione';
 

@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A mermaid timeline groups its periods under `section` bands, drawn above the period titles and coloured per band
 - A diagram can be edited from the preview: its toolbar has an "Edit Source" button, since its own double tap opens fullscreen
 - Paragraph ▸ Loose List Item spaces a list's items apart, or runs them together again — the last entry the upstream paragraph menu had and this one did not
+- Edit ▸ Create Paragraph Below and Delete Paragraph, anchored on the outermost block as upstream anchors them
 
 ### Fixed
 - Clicking a folder-search result now scrolls to the line that matched, instead of opening the file at the top

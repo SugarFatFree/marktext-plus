@@ -142,6 +142,14 @@
   "previewCopyAsHtmlSuccess": "Copied as HTML. You can now paste into Word/WPS with formatting.",
   "editSelectAll": "Select All",
   "editDuplicateLine": "Duplicate Line",
+  "editCreateParagraph": "Create Paragraph Below",
+  "@editCreateParagraph": {
+    "description": "Edit menu item that opens an empty paragraph below the current block"
+  },
+  "editDeleteParagraph": "Delete Paragraph",
+  "@editDeleteParagraph": {
+    "description": "Edit menu item that removes the block the caret is in"
+  },
   "formatUnderline": "Underline",
   "formatSuperscript": "Superscript",
   "formatSubscript": "Subscript",

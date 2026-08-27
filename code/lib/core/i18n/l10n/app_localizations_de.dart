@@ -372,6 +372,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get editDuplicateLine => 'Zeile duplizieren';
 
   @override
+  String get editCreateParagraph => 'Absatz darunter einfügen';
+
+  @override
+  String get editDeleteParagraph => 'Absatz löschen';
+
+  @override
   String get formatUnderline => 'Unterstrichen';
 
   @override
@@ -724,7 +730,8 @@ class AppLocalizationsDe extends AppLocalizations {
   String get fileOpenBehaviorNewWindow => 'In neuem Fenster öffnen';
 
   @override
-  String get fileOpenBehaviorNewWindowDesc => 'Mehrere Instanzen der App zulassen';
+  String get fileOpenBehaviorNewWindowDesc =>
+      'Mehrere Instanzen der App zulassen';
 
   @override
   String get fileOpenBehaviorExistingWindow => 'Im aktuellen Fenster öffnen';
@@ -755,7 +762,8 @@ class AppLocalizationsDe extends AppLocalizations {
   String get mermaidEditSource => 'Quelltext bearbeiten';
 
   @override
-  String get mermaidFullscreenHint => 'Zum Vollbild doppelt auf das Diagramm tippen';
+  String get mermaidFullscreenHint =>
+      'Zum Vollbild doppelt auf das Diagramm tippen';
 
   @override
   String get mermaidSaveAsHint => 'Diagramm als PNG speichern';
@@ -774,6 +782,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get paragraphLooseList => 'Lockerer Listeneintrag';
+
   @override
   String get close => 'Schließen';
 
@@ -781,9 +790,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get mermaidViewerTitle => 'Mermaid-Diagrammansicht';
 
   @override
-  String get mermaidViewerHint => 'Strg+Scrollen zum Zoomen    Ziehen zum Verschieben    Esc zum Schließen';
+  String get mermaidViewerHint =>
+      'Strg+Scrollen zum Zoomen    Ziehen zum Verschieben    Esc zum Schließen';
+
   @override
   String get statusHighlightOff => 'Syntaxhervorhebung aus (große Datei)';
+
   @override
   String get settingsImageStorage => 'Ablageort für abgelegte Bilder';
 
@@ -798,18 +810,22 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsImageFolder => 'Bilderordner';
+
   @override
   String get fileCloseTab => 'Tab schließen';
 
   @override
   String get fileClearRecentFiles => 'Zuletzt verwendete leeren';
+
   @override
   String get viewCommandPalette => 'Befehlspalette';
+
   @override
   String get formatFrontMatter => 'Front Matter';
 
   @override
   String get formatHtmlBlock => 'HTML-Block';
+
   @override
   String get updateUpToDate => 'Sie verwenden die neueste Version';
 

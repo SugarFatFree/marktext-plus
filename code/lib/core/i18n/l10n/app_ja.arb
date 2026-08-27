@@ -116,6 +116,8 @@
   "editCopyAsHtml": "HTMLとしてコピー",
   "editSelectAll": "すべて選択",
   "editDuplicateLine": "行を複製",
+  "editCreateParagraph": "下に段落を作成",
+  "editDeleteParagraph": "段落を削除",
   "formatUnderline": "下線",
   "formatSuperscript": "上付き文字",
   "formatSubscript": "下付き文字",
