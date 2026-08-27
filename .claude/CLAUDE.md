@@ -182,7 +182,7 @@ flutter clean
 ### Mermaid 渲染
 - **复杂图表**: 超大型图表可能性能下降
 - **语法支持**: 部分高级 Mermaid 语法尚未实现
-- **导出**: HTML 导出使用 CDN（v11），PDF 导出不支持 Mermaid
+- **导出**: HTML 导出使用 CDN（v11）；**PDF 与 Word 导出会把图表渲染成 PNG 嵌入**（`app_menu_bar._renderMermaidImages` 先离屏渲染，再交给 `ExportService`），单张渲染失败时跳过该图而不影响整篇
 
 ### 配置迁移
 - **V1.1.3 变更**: 配置目录从 `~/.marktext-plus/` 迁移到系统应用目录

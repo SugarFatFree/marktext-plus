@@ -424,7 +424,11 @@ class TabNotifier extends StateNotifier<TabState> {
           isModified: false,
         );
         addTab(tab);
-      } catch (_) {}
+      } catch (_) {
+        // One unreadable file — deleted since it was last opened, or with no
+        // read permission — must not stop the rest of the session from being
+        // restored. Encoding is no longer a reason to land here.
+      }
     }
   }
 }

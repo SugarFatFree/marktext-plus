@@ -407,7 +407,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
         });
 
         ref.read(settingsProvider.notifier).addRecentFile(path);
-      } catch (_) {}
+      } catch (_) {
+        // A file named on the command line that cannot be opened is skipped;
+        // the others still open. The inner catch above has already removed
+        // the tab that was created for it.
+      }
     }
   }
 

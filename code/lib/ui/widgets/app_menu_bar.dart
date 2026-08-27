@@ -975,7 +975,11 @@ class AppMenuBar extends ConsumerWidget {
           result = byteData.buffer.asUint8List();
         }
       }
-    } catch (_) {}
+    } catch (_) {
+      // A diagram that will not render leaves `result` null, and the caller
+      // simply leaves that one out of the export rather than failing the
+      // whole document.
+    }
 
     entry.remove();
     return result;
