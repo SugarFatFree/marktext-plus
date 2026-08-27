@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
+import '../core/diagnostics/startup_trace.dart';
+
 /// Reports when a file that is open in a tab changes on disk.
 ///
 /// Watches the containing *directories* rather than the files themselves: a
@@ -45,6 +47,7 @@ class OpenDocumentWatcher {
   void _addWatch(String directory) {
     if (!Directory(directory).existsSync()) return;
 
+    final watch = Stopwatch()..start();
     try {
       _subscriptions[directory] = Directory(directory).watch().listen(
         _onEvent,
@@ -56,6 +59,9 @@ class OpenDocumentWatcher {
     } on FileSystemException {
       // Nothing to watch here; the other documents still work.
     }
+    StartupTrace.mark(
+      'directory watch created in ${watch.elapsedMilliseconds} ms',
+    );
   }
 
   void _onEvent(FileSystemEvent event) {
@@ -79,6 +85,8 @@ class OpenDocumentWatcher {
 
   /// Stops watching everything, leaving the stream open.
   void stop() {
+    final watch = Stopwatch()..start();
+    final count = _subscriptions.length;
     for (final timer in _timers.values) {
       timer.cancel();
     }
@@ -88,6 +96,12 @@ class OpenDocumentWatcher {
     }
     _subscriptions.clear();
     _watched = {};
+    if (count > 0) {
+      StartupTrace.mark(
+        'cancelled $count directory watch(es) in '
+        '${watch.elapsedMilliseconds} ms',
+      );
+    }
   }
 
   void dispose() {

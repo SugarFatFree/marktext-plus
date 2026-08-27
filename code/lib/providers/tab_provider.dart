@@ -14,6 +14,8 @@ import 'settings_provider.dart';
 import '../models/file_encoding.dart';
 import '../models/line_ending.dart';
 
+import '../core/diagnostics/startup_trace.dart';
+
 /// Lightweight record of a file shown in the sidebar (no-folder mode).
 class OpenedFileEntry {
   final String filePath;
@@ -128,6 +130,7 @@ class TabNotifier extends StateNotifier<TabState> {
 
   /// Restore opened-file entries from persisted config (no tabs opened).
   void restoreOpenedFiles(List<String> filePaths) {
+    StartupTrace.mark('restoring ${filePaths.length} sidebar entries');
     final entries = <OpenedFileEntry>[];
     for (final path in filePaths) {
       if (File(path).existsSync()) {
@@ -150,8 +153,10 @@ class TabNotifier extends StateNotifier<TabState> {
 
   @override
   void dispose() {
+    StartupTrace.mark('tab notifier dispose begins');
     _diskSubscription?.cancel();
     _diskWatcher.dispose();
+    StartupTrace.mark('disk watcher disposed');
     for (final timer in _autoSaveTimers.values) {
       timer.cancel();
     }
