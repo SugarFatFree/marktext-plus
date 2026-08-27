@@ -21,6 +21,12 @@ class SequenceParser {
   final List<SequenceStep> _steps = [];
   final List<SequenceBlock> _blocks = [];
   final List<_OpenBlock> _openBlocks = [];
+  final List<SequenceGroup> _groups = [];
+  final List<_OpenBox> _openBoxes = [];
+
+  /// Next number to stamp on a message, or null when numbering is off.
+  int? _autoNumber;
+  int _autoNumberStep = 1;
 
   /// Start index of each bar still open, innermost last, per participant.
   final Map<String, List<int>> _openBars = {};
@@ -41,6 +47,10 @@ class SequenceParser {
     _steps.clear();
     _blocks.clear();
     _openBlocks.clear();
+    _groups.clear();
+    _openBoxes.clear();
+    _autoNumber = null;
+    _autoNumberStep = 1;
 
     // Skip the first line (sequenceDiagram declaration)
     for (var i = 1; i < lines.length; i++) {
@@ -68,6 +78,9 @@ class SequenceParser {
     while (_openBlocks.isNotEmpty) {
       _closeBlock();
     }
+    while (_openBoxes.isNotEmpty) {
+      _closeBox();
+    }
     // Innermost frames close first, so the list comes out inside-out.
     _blocks.sort((a, b) {
       final byDepth = a.depth.compareTo(b.depth);
@@ -91,6 +104,7 @@ class SequenceParser {
         steps: List.of(_steps),
         activations: List.of(_activations),
         blocks: List.of(_blocks),
+        groups: List.of(_groups),
       ),
     );
   }
@@ -98,6 +112,22 @@ class SequenceParser {
   void _parseLine(String line) {
     final trimmed = line.trim();
     if (trimmed.isEmpty) return;
+
+    // `autonumber`, optionally `autonumber <start> <step>` or `autonumber off`
+    final auto = _autoNumberPattern.firstMatch(trimmed);
+    if (auto != null) {
+      _setAutoNumber(auto.group(1)?.trim());
+      return;
+    }
+
+    // `box … end` groups participants. It shares the `end` keyword with the
+    // control frames, so it has to be tracked even to keep those nesting
+    // correctly — an unrecognised `box` would leave its `end` closing whatever
+    // frame happened to be open.
+    if (_boxOpenPattern.hasMatch(trimmed)) {
+      _openBox(trimmed.substring(3).trim());
+      return;
+    }
 
     // Parse participant declarations
     if (trimmed.startsWith('participant ') || trimmed.startsWith('actor ')) {
@@ -135,8 +165,15 @@ class SequenceParser {
     //
     // The keyword must be followed by whitespace or nothing at all: a message
     // from a participant called `looper` starts with `loop` too.
+    // `end` closes the innermost thing that is open. A box is only ever open
+    // around participant declarations, before any frame starts, so preferring
+    // the frame is right in both orders.
     if (trimmed.toLowerCase() == 'end') {
-      _closeBlock();
+      if (_openBlocks.isNotEmpty) {
+        _closeBlock();
+      } else {
+        _closeBox();
+      }
       return;
     }
 
@@ -190,6 +227,7 @@ class SequenceParser {
     _participants.add(
       SequenceParticipant(id: id, label: label, participantType: type),
     );
+    _recordInBox(id);
   }
 
   void _parseMessage(String line) {
@@ -256,11 +294,20 @@ class SequenceParser {
     _ensureParticipant(from);
     _ensureParticipant(to);
 
+    // `autonumber` stamps each message with its position. The number goes in
+    // front of the text because that is where mermaid draws it.
+    var label = messageText;
+    final number = _autoNumber;
+    if (number != null) {
+      label = label == null || label.isEmpty ? '$number' : '$number $label';
+      _autoNumber = number + _autoNumberStep;
+    }
+
     _messages.add(
       SequenceMessage(
         from: from,
         to: to,
-        label: messageText,
+        label: label,
         arrowType: arrowType,
         lineType: lineType,
         messageType: messageType,
@@ -416,7 +463,147 @@ class SequenceParser {
   void _ensureParticipant(String id) {
     if (!_participants.any((p) => p.id == id)) {
       _participants.add(SequenceParticipant(id: id, label: _aliases[id] ?? id));
+      _recordInBox(id);
     }
+  }
+
+  /// Files a newly declared participant under the box currently open.
+  void _recordInBox(String id) {
+    if (_openBoxes.isEmpty) return;
+    final box = _openBoxes.last;
+    if (!box.participantIds.contains(id)) box.participantIds.add(id);
+  }
+
+  /// `autonumber`, on its own or with `off`, or with a start and a step.
+  static final _autoNumberPattern = RegExp(
+    r'^autonumber(?:\s+(.*))?$',
+    caseSensitive: false,
+  );
+
+  void _setAutoNumber(String? rest) {
+    if (rest == null || rest.isEmpty) {
+      _autoNumber = 1;
+      _autoNumberStep = 1;
+      return;
+    }
+    if (rest.toLowerCase() == 'off') {
+      _autoNumber = null;
+      return;
+    }
+
+    final numbers = rest
+        .split(RegExp(r'\s+'))
+        .map(int.tryParse)
+        .whereType<int>()
+        .toList();
+    _autoNumber = numbers.isNotEmpty ? numbers.first : 1;
+    _autoNumberStep = numbers.length > 1 ? numbers[1] : 1;
+  }
+
+  /// `box` on its own, or followed by a colour and a name.
+  static final _boxOpenPattern = RegExp(
+    r'^box(?:\s+(.*))?$',
+    caseSensitive: false,
+  );
+
+  /// `rgb(1,2,3)`, `rgba(1,2,3,0.5)` or `#abc` / `#aabbcc` leading a box line.
+  static final _boxRgbPattern = RegExp(
+    r'^(rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(?:,\s*[\d.]+\s*)?\)|#[0-9a-fA-F]{3,8})\s*(.*)$',
+  );
+
+  /// The colour words mermaid's own examples use.
+  ///
+  /// A box line is `box <colour> <name>` with both parts optional, so the only
+  /// way to tell `box Aqua Group` from a group actually called "Aqua Group" is
+  /// to try the first word as a colour — which is what mermaid does too.
+  static const _boxColorNames = <String, int>{
+    'transparent': 0x00000000,
+    'aqua': 0xFF00FFFF,
+    'black': 0xFF000000,
+    'blue': 0xFF0000FF,
+    'fuchsia': 0xFFFF00FF,
+    'gray': 0xFF808080,
+    'grey': 0xFF808080,
+    'green': 0xFF008000,
+    'lightblue': 0xFFADD8E6,
+    'lightgreen': 0xFF90EE90,
+    'lightgrey': 0xFFD3D3D3,
+    'lightyellow': 0xFFFFFFE0,
+    'lime': 0xFF00FF00,
+    'maroon': 0xFF800000,
+    'navy': 0xFF000080,
+    'olive': 0xFF808000,
+    'orange': 0xFFFFA500,
+    'pink': 0xFFFFC0CB,
+    'purple': 0xFF800080,
+    'red': 0xFFFF0000,
+    'silver': 0xFFC0C0C0,
+    'teal': 0xFF008080,
+    'white': 0xFFFFFFFF,
+    'yellow': 0xFFFFFF00,
+  };
+
+  void _openBox(String rest) {
+    int? color;
+    var label = rest;
+
+    final rgb = _boxRgbPattern.firstMatch(rest);
+    if (rgb != null) {
+      color = _parseCssColor(rgb.group(1)!);
+      label = rgb.group(2)!.trim();
+    } else {
+      final space = rest.indexOf(' ');
+      final firstWord = (space == -1 ? rest : rest.substring(0, space))
+          .toLowerCase();
+      final named = _boxColorNames[firstWord];
+      if (named != null) {
+        color = named;
+        label = space == -1 ? '' : rest.substring(space + 1).trim();
+      }
+    }
+
+    _openBoxes.add(_OpenBox(label: label.isEmpty ? null : label, color: color));
+  }
+
+  void _closeBox() {
+    if (_openBoxes.isEmpty) return;
+    final box = _openBoxes.removeLast();
+    _groups.add(
+      SequenceGroup(
+        label: box.label,
+        participantIds: List.of(box.participantIds),
+        color: box.color,
+      ),
+    );
+  }
+
+  /// Turns `rgb(…)`, `rgba(…)` or `#rgb` / `#rrggbb` into ARGB.
+  int? _parseCssColor(String text) {
+    if (text.startsWith('#')) {
+      var hex = text.substring(1);
+      if (hex.length == 3) {
+        hex = hex.split('').map((c) => '$c$c').join();
+      }
+      if (hex.length == 6) hex = 'FF$hex';
+      return int.tryParse(hex, radix: 16);
+    }
+
+    final numbers = RegExp(r'[\d.]+')
+        .allMatches(text)
+        .map((m) => m.group(0)!)
+        .toList();
+    if (numbers.length < 3) return null;
+
+    final r = int.tryParse(numbers[0]) ?? 0;
+    final g = int.tryParse(numbers[1]) ?? 0;
+    final b = int.tryParse(numbers[2]) ?? 0;
+    final a = numbers.length > 3
+        ? ((double.tryParse(numbers[3]) ?? 1) * 255).round()
+        : 255;
+    return (a.clamp(0, 255) << 24) |
+        (r.clamp(0, 255) << 16) |
+        (g.clamp(0, 255) << 8) |
+        b.clamp(0, 255);
   }
 }
 
@@ -439,4 +626,13 @@ class _OpenBlock {
   int start;
 
   final List<SequenceBlockSection> sections = [];
+}
+
+/// A `box` whose `end` has not been read yet.
+class _OpenBox {
+  _OpenBox({required this.label, required this.color});
+
+  final String? label;
+  final int? color;
+  final List<String> participantIds = [];
 }

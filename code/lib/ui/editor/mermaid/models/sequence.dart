@@ -233,6 +233,43 @@ class SequenceBlock {
   int get hashCode => Object.hash(kind, depth, Object.hashAll(sections));
 }
 
+/// A `box … end` grouping of participants.
+class SequenceGroup {
+  /// Creates a participant group.
+  const SequenceGroup({
+    required this.label,
+    required this.participantIds,
+    this.color,
+  });
+
+  /// Name written after the keyword, if any.
+  final String? label;
+
+  /// The participants declared inside the box, in order.
+  final List<String> participantIds;
+
+  /// Background colour as ARGB, when the source named one.
+  final int? color;
+
+  @override
+  bool operator ==(Object other) =>
+      other is SequenceGroup &&
+      other.label == label &&
+      other.color == color &&
+      _sameList(other.participantIds, participantIds);
+
+  @override
+  int get hashCode => Object.hash(label, color, Object.hashAll(participantIds));
+
+  static bool _sameList(List<String> a, List<String> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+}
+
 /// Sequence diagram data that does not fit the generic node/edge model.
 class SequenceDiagramData {
   /// Creates sequence diagram data.
@@ -240,6 +277,7 @@ class SequenceDiagramData {
     required this.steps,
     required this.activations,
     this.blocks = const [],
+    this.groups = const [],
   });
 
   /// Every row of the diagram, in order.
@@ -251,18 +289,23 @@ class SequenceDiagramData {
   /// Framed regions — loop, alt, opt and friends — outermost first.
   final List<SequenceBlock> blocks;
 
+  /// `box … end` groupings of participants.
+  final List<SequenceGroup> groups;
+
   @override
   bool operator ==(Object other) =>
       other is SequenceDiagramData &&
       _sameList(other.steps, steps) &&
       _sameList(other.activations, activations) &&
-      _sameList(other.blocks, blocks);
+      _sameList(other.blocks, blocks) &&
+      _sameList(other.groups, groups);
 
   @override
   int get hashCode => Object.hash(
     Object.hashAll(steps),
     Object.hashAll(activations),
     Object.hashAll(blocks),
+    Object.hashAll(groups),
   );
 
   static bool _sameList<T>(List<T> a, List<T> b) {

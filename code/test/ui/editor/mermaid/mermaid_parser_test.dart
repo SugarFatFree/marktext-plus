@@ -748,6 +748,94 @@ erDiagram
       expect(data.blocks.single.endIndex, 0);
     });
 
+    test('a box groups the participants declared inside it', () {
+      final data = parser
+          .parseWithData(
+            'sequenceDiagram\n'
+            '  box Purple Frontend\n'
+            '    participant A as Page\n'
+            '    participant B as Gateway\n'
+            '  end\n'
+            '  participant C as Database\n'
+            '  A->>B: ask',
+          )!
+          .sequenceData!;
+
+      final group = data.groups.single;
+      expect(group.label, 'Frontend');
+      expect(group.color, 0xFF800080);
+      expect(group.participantIds, ['A', 'B']);
+    });
+
+    test('a box colour may be written as rgb, and may be left out', () {
+      final tinted = parser
+          .parseWithData(
+            'sequenceDiagram\n'
+            '  box rgb(200, 220, 255) Backend\n'
+            '    participant S\n'
+            '  end\n'
+            '  S->>S: check',
+          )!
+          .sequenceData!;
+      expect(tinted.groups.single.color, 0xFFC8DCFF);
+      expect(tinted.groups.single.label, 'Backend');
+
+      final plain = parser
+          .parseWithData(
+            'sequenceDiagram\n  box Team\n    participant A\n  end\n  A->>A: x',
+          )!
+          .sequenceData!;
+      expect(plain.groups.single.color, isNull);
+      expect(plain.groups.single.label, 'Team');
+    });
+
+    test('a box and a frame share the end keyword without confusing it', () {
+      // A box that was not recognised would leave its `end` closing whichever
+      // frame happened to be open.
+      final data = parser
+          .parseWithData(
+            'sequenceDiagram\n'
+            '  box Aqua Team\n'
+            '    participant A\n'
+            '    participant B\n'
+            '  end\n'
+            '  loop thrice\n'
+            '    A->>B: one\n'
+            '  end\n'
+            '  B-->>A: two',
+          )!
+          .sequenceData!;
+
+      expect(data.groups.single.participantIds, ['A', 'B']);
+      expect(data.blocks.single.kind, SequenceBlockKind.loop);
+      expect(data.blocks.single.startIndex, 0);
+      expect(data.blocks.single.endIndex, 0);
+    });
+
+    test('autonumber stamps each message with its position', () {
+      final diagram = diagramOf(
+        'sequenceDiagram\n  autonumber\n  A->>B: one\n  B->>A: two',
+      );
+
+      expect(diagram.edges.map((e) => e.label).toList(), ['1 one', '2 two']);
+    });
+
+    test('autonumber takes a start and a step, and can be turned off', () {
+      final stepped = diagramOf(
+        'sequenceDiagram\n  autonumber 10 5\n  A->>B: one\n  B->>A: two',
+      );
+      expect(stepped.edges.map((e) => e.label).toList(), ['10 one', '15 two']);
+
+      final stopped = diagramOf(
+        'sequenceDiagram\n'
+        '  autonumber\n'
+        '  A->>B: one\n'
+        '  autonumber off\n'
+        '  B->>A: two',
+      );
+      expect(stopped.edges.map((e) => e.label).toList(), ['1 one', 'two']);
+    });
+
     test('a participant whose name starts with a keyword still sends', () {
       // `looper->>B` begins with `loop`, `Andy` with `and`, `optimist` with
       // `opt` — the keyword only counts when whitespace or the line end

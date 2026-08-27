@@ -5,6 +5,11 @@ All notable changes to MarkText Plus will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.4.0] - 2026-08-28
+
+### Added
+- Sequence diagrams honour `box … end` participant groupings and `autonumber`
+
 ## [v1.3.0] - 2026-08-27
 
 ### Added
@@ -15,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `scripts/install-linux-desktop.sh` to register the app as the Markdown handler for a locally built binary
 
 ### Fixed
+- Sequence diagram activation bars, notes and loop/alt/opt/par frames are drawn instead of being dropped
+- A Sankey diagram (`sankey-beta`) renders instead of falling back to showing its source
+- A kanban column written with a Chinese id no longer breaks the whole board
+- The closing `##` of an ATX heading is no longer shown as part of the heading text
 - The "how to open files" dialog no longer appears on launch; opening behaviour is a Settings preference, as it is upstream
 - deb packages now ship a postinst that refreshes the desktop and MIME databases, without which a freshly installed app never became a registered handler
 - deb and rpm packages now ship a shared-mime-info definition, without which `.md` never resolved to `text/markdown` on systems whose database lacked the glob

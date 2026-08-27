@@ -56,6 +56,12 @@ class SequencePainter extends MermaidPainter {
   /// Narrowest a frame is allowed to become through nesting.
   static const double _blockMinWidth = 80;
 
+  /// How far a participant grouping reaches past the participants in it.
+  static const double _groupPadding = 8;
+
+  /// Room above the participant headers for the grouping's name.
+  static const double _groupLabelHeight = 20;
+
   @override
   void paint(Canvas canvas, Size size) {
     if (diagram.nodes.isEmpty) return;
@@ -72,6 +78,9 @@ class SequencePainter extends MermaidPainter {
     final rowCount = steps?.length ?? diagram.edges.length;
     final totalMessagesHeight = rowCount * messageSpacing;
     final bottomY = messageStartY + totalMessagesHeight + 20;
+
+    // Participant groupings go behind the lifelines and the headers alike.
+    _drawGroups(canvas, bottomY);
 
     // Draw participant lifelines (dashed vertical lines)
     for (final node in diagram.nodes) {
@@ -148,6 +157,70 @@ class SequencePainter extends MermaidPainter {
       final rect = Rect.fromLTRB(left, top, left + _activationWidth, bottom);
       canvas.drawRect(rect, fill);
       canvas.drawRect(rect, stroke);
+    }
+  }
+
+  /// Draws the `box` groupings behind everything else.
+  void _drawGroups(Canvas canvas, double bottomY) {
+    final groups = sequenceData?.groups;
+    if (groups == null || groups.isEmpty) return;
+
+    for (final group in groups) {
+      var left = double.infinity;
+      var right = double.negativeInfinity;
+      var height = 0.0;
+      var top = double.infinity;
+      for (final id in group.participantIds) {
+        final node = diagram.getNode(id);
+        if (node == null) continue;
+        left = math.min(left, node.x);
+        right = math.max(right, node.x + node.width);
+        top = math.min(top, node.y);
+        height = math.max(height, node.height);
+      }
+      if (!left.isFinite || !right.isFinite) continue;
+
+      // The box encloses the grouped participants from their header at the
+      // top all the way past the repeated header at the bottom.
+      final rect = Rect.fromLTRB(
+        left - _groupPadding,
+        top - _groupLabelHeight,
+        right + _groupPadding,
+        bottomY + height + 4,
+      );
+
+      canvas.drawRect(
+        rect,
+        Paint()
+          ..color = group.color == null
+              ? const Color(0x11000000)
+              : Color(group.color!).withValues(alpha: 0.18),
+      );
+      canvas.drawRect(
+        rect,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1
+          ..color = const Color(0xFF90A4AE),
+      );
+
+      if (group.label != null) {
+        TextPainter(
+            text: TextSpan(
+              text: group.label,
+              style: const TextStyle(
+                color: Color(0xFF455A64),
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            textDirection: TextDirection.ltr,
+            maxLines: 1,
+            ellipsis: '…',
+          )
+          ..layout(maxWidth: rect.width - 8)
+          ..paint(canvas, Offset(rect.left + 4, rect.top + 3));
+      }
     }
   }
 
