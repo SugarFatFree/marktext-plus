@@ -152,11 +152,22 @@ class AppMenuBar extends ConsumerWidget {
     }
   }
 
+  /// The localisations, when a context is available.
+  ///
+  /// The file picker's title is shown by the operating system, so it has to be
+  /// a string rather than a widget — and these call sites are static, with no
+  /// context of their own. Falls back to English if the navigator has none,
+  /// which is better than showing nothing.
+  static AppLocalizations? get _l10n {
+    final context = navigatorKey.currentContext;
+    return context == null ? null : AppLocalizations.of(context);
+  }
+
   static void _saveFileAs(WidgetRef ref) async {
     final activeTab = ref.read(activeTabProvider);
     if (activeTab == null) return;
     final path = await FilePicker.platform.saveFile(
-      dialogTitle: 'Save As',
+      dialogTitle: _l10n?.fileSaveAs ?? 'Save As',
       fileName: activeTab.fileName,
       type: FileType.custom,
       allowedExtensions: ['md', 'markdown', 'txt'],
@@ -855,7 +866,7 @@ class AppMenuBar extends ConsumerWidget {
     final activeTab = ref.read(activeTabProvider);
     if (activeTab == null) return;
     final path = await FilePicker.platform.saveFile(
-      dialogTitle: 'Export HTML',
+      dialogTitle: _exportTitle(_l10n?.fileExportHtml ?? 'HTML'),
       fileName: '${p.basenameWithoutExtension(activeTab.fileName)}.html',
       type: FileType.custom,
       allowedExtensions: ['html'],
@@ -874,7 +885,7 @@ class AppMenuBar extends ConsumerWidget {
     final activeTab = ref.read(activeTabProvider);
     if (activeTab == null) return;
     final path = await FilePicker.platform.saveFile(
-      dialogTitle: 'Export PDF',
+      dialogTitle: _exportTitle(_l10n?.fileExportPdf ?? 'PDF'),
       fileName: '${p.basenameWithoutExtension(activeTab.fileName)}.pdf',
       type: FileType.custom,
       allowedExtensions: ['pdf'],
@@ -894,7 +905,7 @@ class AppMenuBar extends ConsumerWidget {
     final activeTab = ref.read(activeTabProvider);
     if (activeTab == null) return;
     final path = await FilePicker.platform.saveFile(
-      dialogTitle: 'Export Word',
+      dialogTitle: _exportTitle(_l10n?.fileExportWord ?? 'Word'),
       fileName: '${p.basenameWithoutExtension(activeTab.fileName)}.docx',
       type: FileType.custom,
       allowedExtensions: ['docx'],
@@ -994,6 +1005,15 @@ class AppMenuBar extends ConsumerWidget {
 
   void _launchUrl(String url) async {
     await launchUrl(Uri.parse(url));
+  }
+
+  /// "Export" and the format, in the user's language.
+  ///
+  /// The two halves are separate menu entries already — a submenu labelled
+  /// Export holding HTML, PDF and Word — so no new copy is needed.
+  static String _exportTitle(String format) {
+    final export = _l10n?.fileExport ?? 'Export';
+    return '$export $format';
   }
 
   Widget _buildRecentFilesMenu(AppLocalizations l10n, WidgetRef ref) {

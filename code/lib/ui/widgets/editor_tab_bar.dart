@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
+import '../../app.dart';
 import '../../core/i18n/l10n/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/tab_info.dart';
@@ -86,8 +87,14 @@ class EditorTabBar extends ConsumerWidget {
     var path = tab.filePath;
 
     if (path == null) {
+      // The picker's title is drawn by the operating system, so it takes a
+      // string; this call site is static and reaches the localisations
+      // through the navigator, falling back to English if it has no context.
+      final context = navigatorKey.currentContext;
       path = await FilePicker.platform.saveFile(
-        dialogTitle: 'Save As',
+        dialogTitle: context == null
+            ? 'Save As'
+            : AppLocalizations.of(context)!.fileSaveAs,
         fileName: tab.fileName,
         type: FileType.custom,
         allowedExtensions: ['md', 'markdown', 'txt'],
