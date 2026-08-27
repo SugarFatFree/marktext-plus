@@ -1,5 +1,33 @@
 # MarkText Plus vs 原版 MarkText 功能差距分析
 
+> ## ⚠️ 本文档已过时，抽查发现多处结论错误
+>
+> **原始撰写日期**：2026-04-14　**抽查日期**：2026-08-27
+>
+> v1.1.x～v1.3.0 期间实现了大量功能，但本文档未同步更新。2026-08-27 抽查
+> 了若干条目，**每一条被抽查的「❌ 缺失」都已经实现了**：
+>
+> | 文档标注 | 实际情况（2026-08-27 核实） |
+> |---|---|
+> | ❌ Mermaid 图表 / 序列图 / 流程图 | 已支持 **13 种**图表：flowchart、sequence、classDiagram、stateDiagram、erDiagram、journey、gitGraph、mindmap、pie、gantt、timeline、kanban、radar、xychart |
+> | ❌ 命令面板 | 已实现，`home_screen.dart:323` 调用 `CommandPalette.show` |
+> | ❌ 字数统计 | 已实现，`status_bar.dart:18` 读取 `wordCountProvider` |
+> | ❌ 文件监视 | 已实现，`file_provider.dart:9` 持有 `FileWatcherService` |
+> | ❌ TOC 点击跳转 | 已实现，经 `editorProvider.targetScrollLine` 派发 |
+> | ❌ 源代码语法高亮（称 syntax_highlighter.dart 未使用） | 已使用，`highlighting_controller.dart:61` 调用 `MarkdownSyntaxHighlighter.highlight` |
+> | ❌ 上标 / 下标 / 高亮 / 下划线 / 脚注 | `InlineType` 中均已定义并解析 |
+> | ❌ Front Matter / 脚注定义 / HTML 块 | `NodeType` 中均已定义并解析 |
+> | ❌ 重命名文件 | 已实现（`app_menu_bar.dart` 有 `_renameFile`） |
+> | ❌ 复制行 (Duplicate) | 已实现 |
+>
+> **因此「实现度约 40%」这个结论不成立**，且 App 菜单目前有 65 个菜单项。
+>
+> 抽查中确认**仍然缺失**的：移动文件 (Move To)、打印 (Print)、
+> 粘贴为纯文本、Paragraph 菜单的提升/降低标题、PlantUML、Vega-Lite。
+>
+> **下文其余条目未逐条复核，请勿直接当作待办清单使用。** 当前真实的问题与
+> 需求跟踪见 `docs/v1.3.0/bugfix.md`。
+
 **分析日期**: 2026-04-14  
 **验收标准**: 实现原版 MarkText 的全部功能
 
