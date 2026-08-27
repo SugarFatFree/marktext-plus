@@ -10,6 +10,7 @@ import '../models/pie_chart.dart';
 import '../models/quadrant_chart.dart';
 import '../models/requirement_diagram.dart';
 import '../models/sankey.dart';
+import '../models/sequence.dart';
 import '../models/radar.dart';
 import '../models/timeline.dart';
 import '../models/xy_chart.dart';
@@ -50,6 +51,7 @@ class MermaidParseResult {
     this.journeyData,
     this.gitGraphData,
     this.mindmapData,
+    this.sequenceData,
   });
 
   /// The parsed diagram data
@@ -96,6 +98,9 @@ class MermaidParseResult {
 
   /// Mindmap specific data (only set for mindmaps)
   final MindmapData? mindmapData;
+
+  /// Sequence specific data (only set for sequence diagrams)
+  final SequenceDiagramData? sequenceData;
 }
 
 /// Main parser for Mermaid diagrams
@@ -139,9 +144,12 @@ class MermaidParser {
         }
         return null;
       case DiagramType.sequence:
-        final diagram = SequenceParser().parse(cleanedLines);
-        if (diagram != null) {
-          return MermaidParseResult(diagram: diagram);
+        final result = SequenceParser().parse(cleanedLines);
+        if (result != null) {
+          return MermaidParseResult(
+            diagram: result.$1,
+            sequenceData: result.$2,
+          );
         }
         return null;
       case DiagramType.pieChart:

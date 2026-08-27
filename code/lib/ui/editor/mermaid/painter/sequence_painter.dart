@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../config/responsive_config.dart';
 import '../models/edge.dart';
 import '../models/node.dart';
+import '../models/sequence.dart';
 import '../models/style.dart';
 import 'mermaid_painter.dart';
 
@@ -22,10 +23,20 @@ class SequencePainter extends MermaidPainter {
     required super.diagram,
     required super.style,
     this.deviceConfig,
+    this.sequenceData,
   });
 
   /// Responsive device configuration
   final MermaidDeviceConfig? deviceConfig;
+
+  /// Activation bars, when the source declared any.
+  final SequenceDiagramData? sequenceData;
+
+  /// Width of an activation bar.
+  static const double _activationWidth = 10;
+
+  /// How far each nested bar steps to the right of the one enclosing it.
+  static const double _activationNestOffset = 5;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -50,6 +61,10 @@ class SequencePainter extends MermaidPainter {
       _drawParticipant(canvas, node);
     }
 
+    // Activation bars sit under the messages: a message arrow has to land on
+    // top of the bar it starts, not behind it.
+    _drawActivations(canvas, messageStartY, messageSpacing);
+
     // Draw messages
     var messageY = messageStartY;
     for (final edge in diagram.edges) {
@@ -63,12 +78,55 @@ class SequencePainter extends MermaidPainter {
     }
   }
 
-  void _drawLifeline(Canvas canvas, MermaidNode node, double startY, double endY) {
+  /// Draws the bars showing when each participant is busy.
+  void _drawActivations(
+    Canvas canvas,
+    double messageStartY,
+    double messageSpacing,
+  ) {
+    final activations = sequenceData?.activations;
+    if (activations == null || activations.isEmpty) return;
+
+    final fill = Paint()..color = const Color(0xFFE8EAF6);
+    final stroke = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1
+      ..color = const Color(0xFF5C6BC0);
+
+    for (final bar in activations) {
+      final node = diagram.getNode(bar.participantId);
+      if (node == null) continue;
+
+      final centerX = node.x + node.width / 2;
+      final left =
+          centerX - _activationWidth / 2 + bar.depth * _activationNestOffset;
+
+      final top = messageStartY + bar.startIndex * messageSpacing;
+      // A bar that opens and closes on the same message would be a hairline,
+      // so it is given a readable minimum instead.
+      final bottom = math.max(
+        messageStartY + bar.endIndex * messageSpacing,
+        top + messageSpacing * 0.4,
+      );
+
+      final rect = Rect.fromLTRB(left, top, left + _activationWidth, bottom);
+      canvas.drawRect(rect, fill);
+      canvas.drawRect(rect, stroke);
+    }
+  }
+
+  void _drawLifeline(
+    Canvas canvas,
+    MermaidNode node,
+    double startY,
+    double endY,
+  ) {
     final centerX = node.x + node.width / 2;
 
     final paint = Paint()
-      ..color = Color(style.defaultEdgeStyle.strokeColor ??
-          MermaidColors.defaultEdgeColor)
+      ..color = Color(
+        style.defaultEdgeStyle.strokeColor ?? MermaidColors.defaultEdgeColor,
+      )
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke;
 
@@ -123,10 +181,7 @@ class SequencePainter extends MermaidPainter {
       _drawActor(canvas, rect.center, nodeStyle);
     } else {
       // Regular participant box with rounded corners
-      final rrect = RRect.fromRectAndRadius(
-        rect,
-        const Radius.circular(8.0),
-      );
+      final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(8.0));
       canvas.drawRRect(rrect, fillPaint);
       canvas.drawRRect(rrect, strokePaint);
     }
@@ -159,10 +214,7 @@ class SequencePainter extends MermaidPainter {
       final nodeStyle = style.getNodeStyle(node.className);
       _drawActor(canvas, rect.center, nodeStyle);
     } else {
-      final rrect = RRect.fromRectAndRadius(
-        rect,
-        const Radius.circular(8.0),
-      );
+      final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(8.0));
       canvas.drawRRect(rrect, fillPaint);
       canvas.drawRRect(rrect, strokePaint);
     }
@@ -289,8 +341,10 @@ class SequencePainter extends MermaidPainter {
         var distance = 0.0;
         while (distance < metric.length) {
           final segmentLength = math.min(5.0, metric.length - distance);
-          final extractedPath =
-              metric.extractPath(distance, distance + segmentLength);
+          final extractedPath = metric.extractPath(
+            distance,
+            distance + segmentLength,
+          );
           canvas.drawPath(extractedPath, paint);
           distance += 10.0; // 5 dash + 5 gap
         }

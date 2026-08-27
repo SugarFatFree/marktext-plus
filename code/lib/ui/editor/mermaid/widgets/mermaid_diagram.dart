@@ -20,6 +20,7 @@ import '../models/pie_chart.dart';
 import '../models/quadrant_chart.dart';
 import '../models/requirement_diagram.dart';
 import '../models/sankey.dart';
+import '../models/sequence.dart';
 import '../models/radar.dart';
 import '../models/timeline.dart';
 import '../models/style.dart';
@@ -117,6 +118,7 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
   KanbanChartData? _kanbanChartData;
   QuadrantChartData? _quadrantChartData;
   SankeyChartData? _sankeyChartData;
+  SequenceDiagramData? _sequenceData;
   RequirementDiagramData? _requirementDiagramData;
   RadarChartData? _radarChartData;
   XYChartData? _xyChartData;
@@ -322,6 +324,7 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
       _requirementDiagramData = result.requirementDiagramData;
       _quadrantChartData = result.quadrantChartData;
       _sankeyChartData = result.sankeyChartData;
+      _sequenceData = result.sequenceData;
       _radarChartData = result.radarChartData;
       _xyChartData = result.xyChartData;
       _classDiagramData = result.classDiagramData;
@@ -375,6 +378,7 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
           diagram: diagram,
           style: _style,
           deviceConfig: _deviceConfig,
+          sequenceData: _sequenceData,
         );
       case DiagramType.pieChart:
         if (_pieChartData != null) {
@@ -844,6 +848,7 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
   KanbanChartData? _kanbanChartData;
   QuadrantChartData? _quadrantChartData;
   SankeyChartData? _sankeyChartData;
+  SequenceDiagramData? _sequenceData;
   RequirementDiagramData? _requirementDiagramData;
   RadarChartData? _radarChartData;
   XYChartData? _xyChartData;
@@ -1032,6 +1037,7 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
         _requirementDiagramData = result.requirementDiagramData;
         _quadrantChartData = result.quadrantChartData;
         _sankeyChartData = result.sankeyChartData;
+        _sequenceData = result.sequenceData;
         _radarChartData = result.radarChartData;
         _xyChartData = result.xyChartData;
         _classDiagramData = result.classDiagramData;
@@ -1080,6 +1086,7 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
           diagram: diagram,
           style: _style,
           deviceConfig: _deviceConfig,
+          sequenceData: _sequenceData,
         );
       case DiagramType.pieChart:
         if (_pieChartData != null) {

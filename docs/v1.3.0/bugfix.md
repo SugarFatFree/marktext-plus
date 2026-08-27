@@ -90,6 +90,7 @@
 | BUG-081 | 2026-08-27 | 流程图五种常见写法出错：长箭头、行内标签、双向、`&`、引号标签 | **P0** | 已修复 |
 | BUG-082 | 2026-08-27 | 中文节点名的流程图渲染为空；时序图丢消息 | **P0** | 已修复 |
 | BUG-083 | 2026-08-27 | 看板列用中文 id 时整块看板解析失败 | P1 | 已修复 |
+| BUG-084 | 2026-08-27 | 时序图的激活条（`+`/`-`、activate）从来不画 | P1 | 已修复 |
 
 ---
 
@@ -1368,6 +1369,24 @@
 | 同批核查 | 顺着 BUG-082 的线索把**所有** mermaid 解析器里剩余的 `(\w+)` 逐个过了一遍：`git_graph` 的一处是**选项键名**（`id:`、`tag:`）、`requirement` 的四处分别是**关键字**（`requirement`、`element`）、**字段名**（`id`、`text`）和**关系名**（`satisfies`、`traces`）—— 这些都是英文保留字，ASCII 限定是正确的，不改。另外实测确认 git 图的中文分支名（`branch 开发`）本就正常 |
 | 涉及文件 | `lib/ui/editor/mermaid/parser/kanban_parser.dart`、`test/ui/editor/mermaid/mermaid_parser_test.dart` |
 | 验证方式 | 看板 4 种写法逐一探查；14 种图表的中文探针与 18 种类型探针全量回归 |
+
+---
+
+## BUG-084 时序图的激活条从来不画
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+| 现象 | `A->>+B: 请求` / `B-->>-A: 响应` 在源项目里会在 B 的生命线上画出一条竖直的「忙碌条」，本项目只画箭头，`activate B` / `deactivate B` 两行更是被整行丢弃 |
+| 根因分析 | 解析器里两处 `// TODO: Handle activation`：消息模式虽然认了 `([+-])` 这一组（BUG-082 顺手加的，为的是不让整行匹配失败），但拿到后直接扔掉；`activate` / `deactivate` 独立行则在 `_parseLine` 开头被 return 掉。模型里 `SequenceMessage.activate` / `deactivate` 两个字段早就存在，只是**永远是 false** |
+| 为什么不能只靠 edge 字段 | 一条激活条是「跨越若干条消息的区间」，不是「连接两个参与者的边」。独立的 `activate X` 行更是连消息都没有。所以新增 `SequenceDiagramData`，与看板、象限图等一样从 `MermaidParseResult` 单独带出来 |
+| 修复方案 | 解析阶段用「每个参与者一个开启栈」把标记折算成区间：`+` 在目标身上开条，`-` 在**发送方**身上收条（mermaid 的写法是把 `-` 写在目标前面，语义却作用于发送方）；独立 `activate X` 在**刚刚那条消息**上开条 —— 因为 `A->>B: ask` + `activate B` 是同一张图不用简写时的写法，两者必须等价；栈保证嵌套（同一参与者被再次激活）各自成条并带层号，画的时候逐层右移 |
+| 边界处理 | 只开不关的条画到最后一条消息（与 mermaid 一致）；没有对应开启的 `deactivate` 忽略；开合落在同一条消息上的条给一个可见的最小高度 |
+| 绘制 | 激活条在消息之前画，箭头才会压在条上而不是被条盖住 |
+| 涉及文件 | `lib/ui/editor/mermaid/models/sequence.dart`（新增）、`parser/sequence_parser.dart`、`parser/mermaid_parser.dart`、`painter/sequence_painter.dart`、`widgets/mermaid_diagram.dart`、`test/ui/editor/mermaid/mermaid_parser_test.dart` |
+| 验证方式 | 六种写法本地跑通：`+/-`、独立 activate、嵌套、未闭合、多余 deactivate、中文参与者名；并断言「独立写法与简写产出完全相同的区间」 |
 
 ---
 

@@ -542,7 +542,6 @@ erDiagram
 
     test('activation markers do not stop the message parsing', () {
       // `A->>+B` and `B-->>-A` produced no participants and no messages.
-      // The bar itself is not drawn, but the message must still be read.
       final diagram =
           diagramOf('sequenceDiagram\n  A->>+B: hi\n  B-->>-A: bye');
 
@@ -554,6 +553,83 @@ erDiagram
     test('a message may contain a colon', () {
       final diagram = diagramOf('sequenceDiagram\n  A->>B: ratio 3:1');
       expect(diagram.edges.single.label, 'ratio 3:1');
+    });
+
+    test('a +/- marker opens and closes an activation bar', () {
+      final data = parser
+          .parseWithData(
+            'sequenceDiagram\n'
+            '  Alice->>+John: Hello John\n'
+            '  John-->>-Alice: Hi Alice',
+          )!
+          .sequenceData!;
+
+      // `-` closes the bar on the *sender*, even though it is written in front
+      // of the target.
+      expect(data.activations, hasLength(1));
+      expect(data.activations.single.participantId, 'John');
+      expect(data.activations.single.startIndex, 0);
+      expect(data.activations.single.endIndex, 1);
+    });
+
+    test('explicit activate lines mean the same as the +/- shorthand', () {
+      final shorthand = parser
+          .parseWithData(
+            'sequenceDiagram\n'
+            '  A->>+B: ask\n'
+            '  B-->>-A: answer',
+          )!
+          .sequenceData!;
+
+      final spelled = parser
+          .parseWithData(
+            'sequenceDiagram\n'
+            '  A->>B: ask\n'
+            '  activate B\n'
+            '  B-->>A: answer\n'
+            '  deactivate B',
+          )!
+          .sequenceData!;
+
+      expect(spelled, shorthand);
+    });
+
+    test('a participant activated twice gets nested bars', () {
+      final data = parser
+          .parseWithData(
+            'sequenceDiagram\n'
+            '  A->>+B: one\n'
+            '  A->>+B: two\n'
+            '  B-->>-A: three\n'
+            '  B-->>-A: four',
+          )!
+          .sequenceData!;
+
+      final depths = data.activations.map((a) => a.depth).toList()..sort();
+      expect(depths, [0, 1]);
+      final outer = data.activations.firstWhere((a) => a.depth == 0);
+      expect(outer.startIndex, 0);
+      expect(outer.endIndex, 3);
+    });
+
+    test('a bar left open runs to the end of the diagram', () {
+      final data = parser
+          .parseWithData(
+            'sequenceDiagram\n'
+            '  A->>+B: start\n'
+            '  B->>C: carry on',
+          )!
+          .sequenceData!;
+
+      expect(data.activations.single.endIndex, 1);
+    });
+
+    test('a deactivate with nothing open is ignored', () {
+      final data = parser
+          .parseWithData('sequenceDiagram\n  A->>B: one\n  deactivate B')!
+          .sequenceData!;
+
+      expect(data.activations, isEmpty);
     });
   });
 
