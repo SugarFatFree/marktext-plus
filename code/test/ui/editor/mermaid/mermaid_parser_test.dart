@@ -8,6 +8,7 @@ import 'package:marktext_plus/ui/editor/mermaid/models/requirement_diagram.dart'
 import 'package:marktext_plus/ui/editor/mermaid/models/block_diagram.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/c4_diagram.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/gantt.dart';
+import 'package:marktext_plus/ui/editor/mermaid/models/timeline.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/sankey.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/node.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/sequence.dart';
@@ -1125,6 +1126,38 @@ quadrantChart
 
     test('is offered as a supported type', () {
       expect(MermaidParser.handlesLanguage('quadrantChart'), isTrue);
+    });
+  });
+
+  group('Timelines', () {
+    TimelineChartData timelineOf(String source) =>
+        parser.parseWithData(source)!.timelineChartData!;
+
+    test('several events on one period become several events', () {
+      // Splitting on the first colon only left "Facebook : Google" as a
+      // single box; mermaid draws one box per colon-separated entry.
+      final chart = timelineOf(
+        'timeline\n  title History\n  2004 : Facebook : Google',
+      );
+
+      final period = chart.sections.single;
+      expect(period.title, '2004');
+      expect(period.events.map((e) => e.title).toList(),
+          ['Facebook', 'Google']);
+    });
+
+    test('a continuation line adds to the period above it', () {
+      final chart = timelineOf('timeline\n  2002 : One\n       : Two');
+
+      expect(chart.sections.single.events.map((e) => e.title).toList(),
+          ['One', 'Two']);
+    });
+
+    test('periods stay separate', () {
+      final chart =
+          timelineOf('timeline\n  2002 : LinkedIn\n  2004 : Facebook');
+
+      expect(chart.sections.map((s) => s.title).toList(), ['2002', '2004']);
     });
   });
 

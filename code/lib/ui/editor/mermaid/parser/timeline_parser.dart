@@ -3,6 +3,10 @@ import '../models/timeline.dart';
 
 /// Parser for Mermaid Timeline diagrams
 ///
+/// `section` grouping is not supported: each time period is drawn as its own
+/// column, and a `section` line is ignored rather than banding the periods it
+/// covers.
+///
 /// Parses Timeline syntax like:
 /// ```
 /// timeline
@@ -16,6 +20,19 @@ import '../models/timeline.dart';
 class TimelineParser {
   /// Creates a Timeline parser
   const TimelineParser();
+
+  /// Splits the text after a period into one event per colon.
+  ///
+  /// `2004 : Facebook : Google` is two events on the same period, which
+  /// mermaid draws as two boxes. Splitting on the first colon only left them
+  /// as a single box reading "Facebook : Google".
+  List<TimelineEvent> _eventsFrom(String text, String period) {
+    return [
+      for (final part in text.split(':'))
+        if (part.trim().isNotEmpty)
+          TimelineEvent(title: part.trim(), periods: [period]),
+    ];
+  }
 
   /// Parses Timeline diagram from cleaned lines
   ///
@@ -50,10 +67,7 @@ class TimelineParser {
         if (leftPart.isEmpty && rightPart.isNotEmpty) {
           // Continuation of previous period: "     : Event"
           if (currentPeriod != null && rightPart.isNotEmpty) {
-            currentEvents.add(TimelineEvent(
-              title: rightPart,
-              periods: [currentPeriod],
-            ));
+            currentEvents.addAll(_eventsFrom(rightPart, currentPeriod));
           }
         } else if (leftPart.isNotEmpty && rightPart.isNotEmpty) {
           // New period with event: "2004 : Facebook"
@@ -67,10 +81,7 @@ class TimelineParser {
           }
 
           currentPeriod = leftPart;
-          currentEvents.add(TimelineEvent(
-            title: rightPart,
-            periods: [currentPeriod],
-          ));
+          currentEvents.addAll(_eventsFrom(rightPart, currentPeriod));
         } else if (leftPart.isNotEmpty && rightPart.isEmpty) {
           // Just a period marker: "2004 :"
           // Save previous section if exists
