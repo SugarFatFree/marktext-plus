@@ -765,7 +765,19 @@ class MarkdownParser {
     var i = 0;
 
     // Front matter detection (must be at start of file, with closing ---)
-    if (i < lines.length && _frontMatterRe.hasMatch(lines[i])) {
+    //
+    // The line right after the opening delimiter has to carry something: YAML,
+    // TOML and JSON all reject a leading blank line, so a `---` followed by one
+    // is a thematic break that happens to open the document. Without this, a
+    // document starting with a rule was read as front matter reaching all the
+    // way to the next `---`, and everything in between vanished from the
+    // preview and from all three export paths.
+    // `---` immediately followed by `---` is likewise two thematic breaks
+    // rather than an empty metadata block, which is what upstream reads it as.
+    if (i + 1 < lines.length &&
+        _frontMatterRe.hasMatch(lines[i]) &&
+        lines[i + 1].trim().isNotEmpty &&
+        !_frontMatterRe.hasMatch(lines[i + 1])) {
       // Look ahead for closing ---
       var j = i + 1;
       while (j < lines.length && !_frontMatterRe.hasMatch(lines[j])) {

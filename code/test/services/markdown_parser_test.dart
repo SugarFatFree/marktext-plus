@@ -1778,5 +1778,45 @@ void _sourceSpanTests() {
         '---\ntitle: x\n---',
       );
     });
+
+    test('a rule opening the document is not front matter', () {
+      // The look-ahead ran to the next `---` anywhere in the file, so a
+      // document that began with a thematic break swallowed everything up to
+      // the next one. YAML, TOML and JSON all reject a leading blank line, so
+      // that line tells the two apart.
+      const doc = '---\n\nBody\n\n---\n\nMore\n';
+      final nodes = parser.parse(doc);
+      expect(
+        nodes.map((n) => n.type),
+        [
+          NodeType.horizontalRule,
+          NodeType.paragraph,
+          NodeType.horizontalRule,
+          NodeType.paragraph,
+        ],
+      );
+    });
+
+    test('two delimiters in a row are two rules, not empty front matter', () {
+      final nodes = parser.parse('---\n---\n');
+      expect(
+        nodes.map((n) => n.type),
+        [NodeType.horizontalRule, NodeType.horizontalRule],
+      );
+    });
+
+    test('front matter may still contain a blank line', () {
+      final nodes = parser.parse('---\na: 1\n\nb: 2\n---\n\nBody\n');
+      expect(nodes.first.type, NodeType.frontMatter);
+      expect((nodes.first as FrontMatterNode).content, 'a: 1\n\nb: 2');
+    });
+
+    test('front matter is recognised without a blank line after it', () {
+      final nodes = parser.parse('---\ntitle: x\n---\n# Heading\n');
+      expect(
+        nodes.map((n) => n.type),
+        [NodeType.frontMatter, NodeType.heading],
+      );
+    });
   });
 }
