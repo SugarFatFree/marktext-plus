@@ -2,6 +2,41 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/services/markdown_parser.dart';
 
 void main() {
+  group('Emphasis needs no space just inside the delimiters', () {
+    final parser = MarkdownParser();
+
+    List<InlineSpan> spansOf(String source) =>
+        (parser.parse(source).single as ParagraphNode).inlineSpans;
+
+    test('multiplication is not emphasis', () {
+      // "2 * 3 * 4" used to italicise the 3.
+      final spans = spansOf('2 * 3 * 4');
+      expect(spans, hasLength(1));
+      expect(spans.single.type, InlineType.text);
+      expect(spans.single.text, '2 * 3 * 4');
+    });
+
+    test('a stray asterisk in prose stays literal', () {
+      expect(spansOf('a * b * c').single.type, InlineType.text);
+      expect(spansOf('foo _ bar _ baz').single.type, InlineType.text);
+      expect(spansOf('_ spaced _').single.type, InlineType.text);
+    });
+
+    test('a delimiter closing after a space does not close', () {
+      expect(spansOf('*trailing space *').single.type, InlineType.text);
+    });
+
+    test('ordinary emphasis is unaffected', () {
+      expect(spansOf('*italic*').single.type, InlineType.italic);
+      expect(spansOf('*multi word here*').single.text, 'multi word here');
+      expect(spansOf('_italic_').single.type, InlineType.italic);
+      // A single character between delimiters still counts.
+      expect(spansOf('*a*').single.type, InlineType.italic);
+      // Intraword asterisks are emphasis in CommonMark, unlike underscores.
+      expect(spansOf('a*b*c')[1].type, InlineType.italic);
+    });
+  });
+
   group('Bold italic', () {
     final parser = MarkdownParser();
 

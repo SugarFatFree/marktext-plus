@@ -905,8 +905,11 @@ class MarkdownParser {
       // No spaces inside, or `x^2 and y^3` becomes one long superscript.
       r'|\^([^\s^]+)\^'            // superscript
       r'|(?<!~)~([^\s~]+?)~(?!~)'  // subscript (single ~, not ~~)
-      r'|\*(.+?)\*'                // italic *
-      r'|(?<![a-zA-Z0-9_])_(.+?)_(?![a-zA-Z0-9_])'  // italic _
+      // CommonMark: a delimiter with whitespace just inside it does not open
+      // or close emphasis. Without this, "2 * 3 * 4" italicised the 3 and
+      // ordinary prose with a stray asterisk came out slanted.
+      r'|\*([^\s].*?[^\s]|[^\s])\*'  // italic *
+      r'|(?<![a-zA-Z0-9_])_([^\s].*?[^\s]|[^\s])_(?![a-zA-Z0-9_])'  // italic _
       // Appended rather than inserted: these add groups 19..21, leaving every
       // existing branch's numbering alone.
       r'|<((?:https?|ftp|mailto):[^>\s]+)>'         // 19 autolink
