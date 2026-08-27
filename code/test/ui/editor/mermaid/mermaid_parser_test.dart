@@ -1164,6 +1164,41 @@ quadrantChart
     });
   });
 
+  group('Pie chart titles', () {
+    test('a title on the header line is kept', () {
+      // Mermaid's own documentation opens with `pie title Pets adopted by
+      // volunteers`. Only `showData` was read off that line, so the title
+      // spelling most people copy was silently dropped.
+      final pie = parser
+          .parseWithData('pie title Pets adopted\n  "Dogs" : 386\n')!
+          .pieChartData!;
+      expect(pie.title, 'Pets adopted');
+      expect(pie.slices, hasLength(1));
+    });
+
+    test('showData and a header title compose', () {
+      final pie = parser
+          .parseWithData('pie showData title Counts\n  "Dogs" : 386\n')!
+          .pieChartData!;
+      expect(pie.title, 'Counts');
+      expect(pie.showValuesInLegend, isTrue);
+    });
+
+    test('a title on its own line still wins', () {
+      final pie = parser
+          .parseWithData('pie title Header\n  title Own line\n  "A" : 1\n')!
+          .pieChartData!;
+      expect(pie.title, 'Own line');
+    });
+
+    test('a chart with no title is unaffected', () {
+      final pie =
+          parser.parseWithData('pie\n  "A" : 1\n')!.pieChartData!;
+      expect(pie.title, isNull);
+      expect(pie.showValuesInLegend, isFalse);
+    });
+  });
+
   group('Kanban indentation', () {
     List<String> shapeOf(String source) {
       final board = parser.parseWithData(source)?.kanbanChartData;

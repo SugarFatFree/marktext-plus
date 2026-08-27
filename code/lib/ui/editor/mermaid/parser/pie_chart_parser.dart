@@ -33,10 +33,22 @@ class PieChartParser {
     final slices = <PieSlice>[];
     var showValuesInLegend = false;
 
-    // Parse the first line for options
-    final firstLine = lines.first.trim().toLowerCase();
-    if (firstLine.contains('showdata')) {
+    // Parse the first line for options and for a title written on it.
+    //
+    // Mermaid's own documentation opens with `pie title Pets adopted by
+    // volunteers`; only `showData` was read off this line, so that title —
+    // the spelling most people copy — was silently dropped.
+    var header = lines.first.trim();
+    if (header.toLowerCase().startsWith('pie')) {
+      header = header.substring(3).trimLeft();
+    }
+    if (header.toLowerCase().startsWith('showdata')) {
       showValuesInLegend = true;
+      header = header.substring(8).trimLeft();
+    }
+    if (header.toLowerCase().startsWith('title ')) {
+      final headerTitle = header.substring(6).trim();
+      if (headerTitle.isNotEmpty) title = headerTitle;
     }
 
     // Parse remaining lines
