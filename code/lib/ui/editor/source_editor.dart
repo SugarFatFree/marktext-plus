@@ -230,6 +230,14 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     _controller.removeListener(_onTextChanged);
     _controller.removeListener(_onSelectionChanged);
     _editorScrollController.removeListener(_onEditorScroll);
+
+    // Hand the registration back before disposing, or the provider keeps
+    // pointing at a dead controller — which the find bar reads as "a source
+    // editor is on screen".
+    final notifier = ref.read(editorProvider.notifier);
+    notifier.clearController(_controller);
+    notifier.clearEditorScrollController(_editorScrollController);
+
     _controller.dispose();
     _editorScrollController.dispose();
     _gutterScrollController.dispose();

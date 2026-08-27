@@ -63,6 +63,7 @@
 | BUG-054 | 2026-08-27 | 重绘范围过宽：光标一动就重建命令表，配置一写就重建整个应用 | P1 | 已修复 |
 | BUG-055 | 2026-08-27 | 双栏模式预览是只读的：勾选框点不动、块内编辑失效 | P1 | 已修复 |
 | BUG-056 | 2026-08-27 | 自动保存全局只有一个定时器，切到另一个标签就会漏存 | **P0** | 已修复 |
+| BUG-057 | 2026-08-27 | 源码编辑器销毁后 provider 仍指向已释放的控制器 | P1 | 已修复 |
 
 ---
 
@@ -889,6 +890,23 @@
 | 修复方案 | 定时器改为按 `tabId` 分桶（`Map<String, Timer>`），各标签互不干扰；定时器触发后自行从表中移除；`dispose` 取消全部；关闭标签页时取消它自己的待保存任务，避免对着已不存在的标签触发 |
 | 涉及文件 | `lib/providers/tab_provider.dart` |
 | 相关 | 与 BUG-046（撤销栈全局共享）同源：**本该按文档隔离的状态被做成了全局单例** |
+
+---
+
+## BUG-057 源码编辑器销毁后 provider 仍指向已释放的控制器
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+| 现象 | 从源码模式切到**预览模式**后按 Ctrl+F，查找栏搜的是**切换那一刻的文本快照** —— 之后在预览里改的内容一概搜不到 |
+| 根因分析 | `SourceEditor.initState` 会把自己的 `TextEditingController` 注册进 `editorProvider`，但 `dispose` 只 `dispose()` 控制器，**从不归还注册**。切到预览模式后源码编辑器被销毁，provider 里那个指针依然非空，只是指向一个已释放的对象。而 `HomeScreen` 判断「当前有没有源码编辑器」用的正是「controller 是否为 null」，于是走进了 `FindReplaceBar(textController: controller)` 分支，而不是本该走的 `rawContent` 分支 |
+| 为何以前没崩 | 旧代码只读 `controller.text`，读一个已释放的 `ChangeNotifier` 不会断言，所以表现为「搜到的是旧内容」而不是崩溃。BUG-047 给查找栏加了 `addListener` 之后，同一条路径就会在 debug 下直接断言失败 |
+| 修复方案 | `EditorNotifier` 新增 `clearController` / `clearEditorScrollController`，`SourceEditor.dispose` 在释放前归还注册。两者都做**同一性判断**后再清空 —— 切换模式时新编辑器会先于旧编辑器销毁完成注册，无条件清空反而会把新的抹掉 |
+| 连带修复 | 预览模式下 controller 变回 null，查找栏因此正确走 `rawContent` 分支，搜的是实时内容 |
+| 涉及文件 | `lib/providers/editor_provider.dart`、`lib/ui/editor/source_editor.dart` |
+| 已知遗留 | 预览模式下的编辑（勾选框、块内编辑）走的是 `tabProvider.updateContent`，**不进撤销栈**，因此 Ctrl+Z 撤不回来。要修好需要把撤销历史的载体从「控制器」改成「文档文本」，属于设计调整，留待后续版本 |
 
 ---
 

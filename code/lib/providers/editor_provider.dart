@@ -156,8 +156,29 @@ class EditorNotifier extends StateNotifier<EditorState> {
     _controller = controller;
   }
 
+  /// Drops [controller] if it is still the registered one.
+  ///
+  /// The editor that owns it disposes it, and a stale pointer here is worse
+  /// than none: the find bar treats a non-null controller as "there is a
+  /// source editor on screen", so in preview mode it would attach to a
+  /// disposed controller and search a snapshot frozen at the moment the
+  /// source editor went away.
+  ///
+  /// The identity check matters because the replacement editor registers
+  /// itself before the outgoing one is disposed.
+  void clearController(TextEditingController controller) {
+    if (identical(_controller, controller)) _controller = null;
+  }
+
   void setEditorScrollController(ScrollController controller) {
     _editorScrollController = controller;
+  }
+
+  /// Drops [controller] if it is still the registered one.
+  void clearEditorScrollController(ScrollController controller) {
+    if (identical(_editorScrollController, controller)) {
+      _editorScrollController = null;
+    }
   }
 
   /// Store the actual width available for text rendering inside the TextField.
