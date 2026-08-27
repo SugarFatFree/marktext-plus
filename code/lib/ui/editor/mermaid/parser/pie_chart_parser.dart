@@ -119,7 +119,12 @@ class PieChartParser {
     }
 
     // Try unquoted label: Label : value
-    final unquotedPattern = RegExp(r'([^:]+):\s*([\d.]+)');
+    //
+    // Anchored at the start: a slice is the whole line. Without the anchor the
+    // engine tried every position on a line with no colon, handing `[^:]+`
+    // back one character at a time from each — a 30,000-character line inside
+    // a `pie` block took fourteen seconds.
+    final unquotedPattern = RegExp(r'^([^:]+):\s*([\d.]+)');
     match = unquotedPattern.firstMatch(line);
 
     if (match != null) {

@@ -1220,6 +1220,52 @@ quadrantChart
     });
   });
 
+  group('Diagrams containing a pathological line', () {
+    /// A long line inside a diagram block used to take seconds to reject:
+    /// the pie slice pattern was unanchored, so it tried every position on a
+    /// line with no colon, and the entity alias pattern grew two lazy runs
+    /// against each other. Fourteen and twenty-seven seconds respectively,
+    /// with the preview frozen.
+    void expectFast(String label, String source) {
+      final watch = Stopwatch()..start();
+      parser.parseWithData(source);
+      watch.stop();
+      expect(
+        watch.elapsedMilliseconds,
+        lessThan(2000),
+        reason: '$label took ${watch.elapsedMilliseconds}ms',
+      );
+    }
+
+    test('a pie chart with a line that is not a slice', () {
+      expectFast('no colon', 'pie\n${'a' * 20000}');
+      expectFast('brackets', 'pie\n${'[' * 20000}');
+      expectFast('pipes', 'pie\n${'|' * 20000}');
+    });
+
+    test('an entity diagram with a line that is not an entity', () {
+      expectFast('brackets', 'erDiagram\n${'[' * 20000}');
+      expectFast('mixed', 'erDiagram\n${'[a](b' * 4000}');
+    });
+
+    test('the slice and alias patterns still read ordinary lines', () {
+      final pie = parser
+          .parseWithData('pie\n  "Dogs" : 386\n  Cats : 85\n')!
+          .pieChartData!;
+      expect(
+        pie.slices.map((s) => '${s.label}=${s.value}').toList(),
+        ['Dogs=386.0', 'Cats=85.0'],
+      );
+
+      final er = parser
+          .parseWithData('erDiagram\n  CUSTOMER["顾客"] ||--o{ ORDER : places\n')!
+          .erDiagramData!;
+      final customer = er.entities.firstWhere((e) => e.name == 'CUSTOMER');
+      expect(customer.alias, '顾客');
+      expect(customer.displayName, '顾客');
+    });
+  });
+
   group('Pie chart titles', () {
     test('a title on the header line is kept', () {
       // Mermaid's own documentation opens with `pie title Pets adopted by

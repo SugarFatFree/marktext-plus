@@ -181,7 +181,11 @@ class ErDiagramParser {
     var name = raw.trim();
     String? alias;
 
-    final aliasMatch = RegExp(r'^(.+?)\[\s*"?(.*?)"?\s*\]$').firstMatch(name);
+    // Neither part may hold a bracket. With `(.+?)` and `(.*?)` the two lazy
+    // runs grew against each other, and a line of 30,000 `[` took
+    // twenty-seven seconds to reject.
+    final aliasMatch =
+        RegExp(r'^([^\[\]]+)\[\s*"?([^\]]*?)"?\s*\]$').firstMatch(name);
     if (aliasMatch != null) {
       name = aliasMatch.group(1)!.trim();
       alias = aliasMatch.group(2);
