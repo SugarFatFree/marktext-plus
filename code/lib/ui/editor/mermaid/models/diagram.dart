@@ -37,6 +37,9 @@ enum DiagramType {
   /// User journey diagram
   journey,
 
+  /// Git commit graph
+  gitGraph,
+
   /// Pie chart diagram
   pieChart,
 

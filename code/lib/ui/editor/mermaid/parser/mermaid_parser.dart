@@ -2,6 +2,7 @@ import '../models/class_diagram.dart';
 import '../models/diagram.dart';
 import '../models/er_diagram.dart';
 import '../models/gantt.dart';
+import '../models/git_graph.dart';
 import '../models/journey.dart';
 import '../models/kanban.dart';
 import '../models/pie_chart.dart';
@@ -12,6 +13,7 @@ import 'class_diagram_parser.dart';
 import 'er_diagram_parser.dart';
 import 'flowchart_parser.dart';
 import 'gantt_parser.dart';
+import 'git_graph_parser.dart';
 import 'journey_parser.dart';
 import 'kanban_parser.dart';
 import 'pie_chart_parser.dart';
@@ -35,6 +37,7 @@ class MermaidParseResult {
     this.classDiagramData,
     this.erDiagramData,
     this.journeyData,
+    this.gitGraphData,
   });
 
   /// The parsed diagram data
@@ -66,6 +69,9 @@ class MermaidParseResult {
 
   /// Journey specific data (only set for user journey diagrams)
   final JourneyData? journeyData;
+
+  /// Git graph specific data (only set for git graphs)
+  final GitGraphData? gitGraphData;
 }
 
 /// Main parser for Mermaid diagrams
@@ -177,6 +183,15 @@ class MermaidParser {
           );
         }
         return null;
+      case DiagramType.gitGraph:
+        final result = const GitGraphParser().parse(cleanedLines);
+        if (result != null) {
+          return MermaidParseResult(
+            diagram: result.$1,
+            gitGraphData: result.$2,
+          );
+        }
+        return null;
       case DiagramType.journey:
         final result = const JourneyParser().parse(cleanedLines);
         if (result != null) {
@@ -231,6 +246,7 @@ class MermaidParser {
     'stateDiagram',
     'erDiagram',
     'journey',
+    'gitGraph',
     'pie',
     'gantt',
     'timeline',
@@ -274,6 +290,8 @@ class MermaidParser {
         return 'ER diagram';
       case DiagramType.journey:
         return 'user journey';
+      case DiagramType.gitGraph:
+        return 'git graph';
       case DiagramType.pieChart:
         return 'pie chart';
       case DiagramType.ganttChart:
@@ -350,6 +368,11 @@ class MermaidParser {
     // User journey
     if (firstLine.startsWith('journey')) {
       return DiagramType.journey;
+    }
+
+    // Git graph
+    if (firstLine.startsWith('gitgraph')) {
+      return DiagramType.gitGraph;
     }
 
     // State diagram

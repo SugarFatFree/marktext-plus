@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/class_diagram.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/diagram.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/edge.dart';
+import 'package:marktext_plus/ui/editor/mermaid/models/git_graph.dart';
 import 'package:marktext_plus/ui/editor/mermaid/parser/mermaid_parser.dart';
 
 void main() {
@@ -53,6 +54,83 @@ void main() {
       expect(result, isNotNull);
       expect(result!.diagram.type, DiagramType.flowchart);
       expect(result.diagram.nodes.length, 2);
+    });
+  });
+
+  group('Git graph', () {
+    test('tracks branches, checkout and commit order', () {
+      final result = parser.parseWithData("""
+gitGraph
+  commit
+  commit id: "Alpha"
+  branch develop
+  commit
+  checkout main
+  commit
+""");
+
+      expect(result, isNotNull);
+      expect(result!.diagram.type, DiagramType.gitGraph);
+
+      final data = result.gitGraphData!;
+      expect(data.branches, contains('main'));
+      expect(data.branches, contains('develop'));
+      expect(data.commits.length, 4);
+
+      // `branch develop` checks it out, so the third commit lands there.
+      expect(data.commits[1].id, 'Alpha');
+      expect(data.commits[2].branch, 'develop');
+      expect(data.commits[3].branch, 'main');
+
+      // Columns advance one per commit, in source order.
+      expect(data.commits.map((c) => c.column).toList(), [0, 1, 2, 3]);
+    });
+
+    test('records a merge and where it came from', () {
+      final result = parser.parseWithData("""
+gitGraph
+  commit
+  branch feature
+  commit
+  checkout main
+  merge feature
+""");
+
+      final merge = result!.gitGraphData!.commits.last;
+      expect(merge.type, GitCommitType.merge);
+      expect(merge.branch, 'main');
+      expect(merge.mergedFrom, 'feature');
+    });
+
+    test('reads commit tags and types', () {
+      final result = parser.parseWithData("""
+gitGraph
+  commit tag: "v1.0"
+  commit type: HIGHLIGHT
+  commit type: REVERSE
+""");
+
+      final commits = result!.gitGraphData!.commits;
+      expect(commits[0].tag, 'v1.0');
+      expect(commits[1].type, GitCommitType.highlight);
+      expect(commits[2].type, GitCommitType.reverse);
+    });
+
+    test('finds the source commit a merge should be drawn from', () {
+      final result = parser.parseWithData("""
+gitGraph
+  commit
+  branch feature
+  commit id: "F1"
+  checkout main
+  merge feature
+""");
+
+      final data = result!.gitGraphData!;
+      final merge = data.commits.last;
+      final from = data.lastCommitOn('feature', merge.column);
+      expect(from, isNotNull);
+      expect(from!.id, 'F1');
     });
   });
 

@@ -10,6 +10,7 @@ import '../models/class_diagram.dart';
 import '../models/er_diagram.dart';
 import '../models/diagram.dart';
 import '../models/gantt.dart';
+import '../models/git_graph.dart';
 import '../models/journey.dart';
 import '../models/kanban.dart';
 import '../models/pie_chart.dart';
@@ -21,6 +22,7 @@ import '../painter/class_diagram_painter.dart';
 import '../painter/er_diagram_painter.dart';
 import '../painter/flowchart_painter.dart';
 import '../painter/gantt_painter.dart';
+import '../painter/git_graph_painter.dart';
 import '../painter/journey_painter.dart';
 import '../painter/kanban_painter.dart';
 import '../painter/pie_chart_painter.dart';
@@ -108,6 +110,7 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
   ClassDiagramData? _classDiagramData;
   ErDiagramData? _erDiagramData;
   JourneyData? _journeyData;
+  GitGraphData? _gitGraphData;
   Size _computedSize = Size.zero;
   String? _error;
   bool _isLoading = true;
@@ -207,6 +210,14 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
           _style,
           Size(widget.width ?? availableWidth, widget.height ?? 600),
         );
+      } else if (diagram.type == DiagramType.gitGraph &&
+          result.gitGraphData != null) {
+        final gitLayout = GitGraphLayout(deviceConfig: _deviceConfig);
+        size = gitLayout.computeLayout(
+          result.gitGraphData!,
+          _style,
+          Size(widget.width ?? availableWidth, widget.height ?? 600),
+        );
       } else if (diagram.type == DiagramType.journey &&
           result.journeyData != null) {
         final journeyLayout = JourneyChartLayout(
@@ -262,6 +273,7 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
       _classDiagramData = result.classDiagramData;
       _erDiagramData = result.erDiagramData;
       _journeyData = result.journeyData;
+      _gitGraphData = result.gitGraphData;
       _computedSize = size;
       _error = null;
       _isLoading = false;
@@ -358,6 +370,15 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
         if (_xyChartData != null) {
           return XYChartPainter(
             xyData: _xyChartData!,
+            style: _style,
+            deviceConfig: _deviceConfig,
+          );
+        }
+        return FlowchartPainter(diagram: diagram, style: _style);
+      case DiagramType.gitGraph:
+        if (_gitGraphData != null) {
+          return GitGraphPainter(
+            gitData: _gitGraphData!,
             style: _style,
             deviceConfig: _deviceConfig,
           );
@@ -734,6 +755,7 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
   ClassDiagramData? _classDiagramData;
   ErDiagramData? _erDiagramData;
   JourneyData? _journeyData;
+  GitGraphData? _gitGraphData;
   Size _computedSize = Size.zero;
   String? _error;
   bool _isLoading = true;
@@ -817,6 +839,14 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
           _style,
           widget.viewportSize,
         );
+      } else if (diagram.type == DiagramType.gitGraph &&
+          result.gitGraphData != null) {
+        final gitLayout = GitGraphLayout(deviceConfig: _deviceConfig);
+        size = gitLayout.computeLayout(
+          result.gitGraphData!,
+          _style,
+          widget.viewportSize,
+        );
       } else if (diagram.type == DiagramType.journey &&
           result.journeyData != null) {
         final journeyLayout = JourneyChartLayout(
@@ -873,6 +903,7 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
         _classDiagramData = result.classDiagramData;
         _erDiagramData = result.erDiagramData;
         _journeyData = result.journeyData;
+        _gitGraphData = result.gitGraphData;
         _computedSize = size;
         _error = null;
         _isLoading = false;
@@ -964,6 +995,15 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
         if (_xyChartData != null) {
           return XYChartPainter(
             xyData: _xyChartData!,
+            style: _style,
+            deviceConfig: _deviceConfig,
+          );
+        }
+        return FlowchartPainter(diagram: diagram, style: _style);
+      case DiagramType.gitGraph:
+        if (_gitGraphData != null) {
+          return GitGraphPainter(
+            gitData: _gitGraphData!,
             style: _style,
             deviceConfig: _deviceConfig,
           );

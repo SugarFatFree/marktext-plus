@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import '../config/responsive_config.dart';
+import '../models/git_graph.dart';
 import '../models/journey.dart';
 import '../models/diagram.dart';
 import '../models/kanban.dart';
@@ -370,6 +371,47 @@ class JourneyChartLayout {
         chartHeight +
         labelHeight +
         legend;
+
+    return Size(width, height);
+  }
+}
+
+/// Layout engine for git graphs.
+///
+/// One row per branch, one column per commit in source order.
+class GitGraphLayout {
+  /// Creates a git graph layout engine.
+  const GitGraphLayout({this.deviceConfig});
+
+  /// Responsive device configuration.
+  final MermaidDeviceConfig? deviceConfig;
+
+  /// Horizontal distance between commits.
+  static const double columnWidth = 70.0;
+
+  /// Vertical distance between branch rows.
+  static const double rowHeight = 62.0;
+
+  /// Space on the left for branch name labels.
+  static const double labelGutter = 96.0;
+
+  /// Computes the layout size for a git graph.
+  Size computeLayout(
+    GitGraphData gitData,
+    MermaidStyle style,
+    Size availableSize,
+  ) {
+    if (gitData.commits.isEmpty) return Size.zero;
+
+    final padding = style.padding;
+    final titleHeight = gitData.title != null ? 44.0 : 8.0;
+
+    // A trailing half column keeps a tag on the last commit inside the canvas.
+    final width = padding * 2 +
+        labelGutter +
+        (gitData.lastColumn + 1.5) * columnWidth;
+    final height =
+        padding * 2 + titleHeight + gitData.branches.length * rowHeight;
 
     return Size(width, height);
   }
