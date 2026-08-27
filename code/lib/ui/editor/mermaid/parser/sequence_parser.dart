@@ -93,7 +93,8 @@ class SequenceParser {
     }
 
     // Check for alias: participant A as Alice
-    final asPattern = RegExp(r'^(\w+)\s+as\s+(.+)$');
+    // The identifier may be any script, same as in a message line.
+    final asPattern = RegExp(r'^([^\s]+)\s+as\s+(.+)$');
     final asMatch = asPattern.firstMatch(remaining);
 
     String id;
@@ -126,8 +127,12 @@ class SequenceParser {
     // A-)B: message (solid line, async)
     // A--)B: message (dotted line, async)
 
+    // `\w` covers neither the space before a target (`A-x B`), the activation
+    // markers (`A->>+B`), nor any name outside ASCII — so a diagram written in
+    // Chinese produced no participants and no messages at all.
     final messagePattern = RegExp(
-      r'^(\w+)(--?)(>>?|x|\))?(\w+)(?::\s*(.*))?$',
+      r'^([^\s\->+:]+)\s*(--?)(>>?|x|\))?\s*([+-])?\s*([^\s:]+)'
+      r'\s*(?::\s*(.*))?$',
     );
 
     final match = messagePattern.firstMatch(line);
@@ -136,8 +141,10 @@ class SequenceParser {
     final from = match.group(1)!;
     final lineStyle = match.group(2)!;
     final arrowStyle = match.group(3) ?? '';
-    final to = match.group(4)!;
-    final messageText = match.group(5)?.trim();
+    // Group 4 is the activation marker. Accepted so the message parses;
+    // drawing the activation bar itself is not implemented.
+    final to = match.group(5)!;
+    final messageText = match.group(6)?.trim();
 
     // Determine line type
     final lineType = lineStyle == '--' ? LineType.dotted : LineType.solid;

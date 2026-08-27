@@ -356,3 +356,16 @@ graph LR
   B <--> D((Done))
   A --> E & F
 ```
+
+```mermaid
+graph TD
+  开始 --> 判断{是否继续}
+  判断 -- 是 --> 处理[执行任务]
+  判断 -- 否 --> 结束
+```
+
+```mermaid
+sequenceDiagram
+  用户->>+系统: 登录
+  系统-->>-用户: 成功
+```

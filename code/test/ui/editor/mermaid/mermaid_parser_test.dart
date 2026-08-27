@@ -471,6 +471,72 @@ erDiagram
     });
   });
 
+  group('Diagrams written in other scripts', () {
+    MermaidDiagramData diagramOf(String source) =>
+        parser.parseWithData(source)!.diagram;
+
+    test('a flowchart with Chinese node names has nodes', () {
+      // `\w` is ASCII-only in Dart, so this produced no nodes at all while
+      // still producing an edge between them: an empty diagram.
+      final diagram = diagramOf('graph TD\n  开始 --> 结束');
+
+      expect(diagram.nodes.map((n) => n.id).toList(), ['开始', '结束']);
+      expect(diagram.edges.single.from, '开始');
+      expect(diagram.edges.single.to, '结束');
+    });
+
+    test('shapes work with Chinese ids and labels', () {
+      final diagram = diagramOf('graph TD\n  甲[开始] --> 乙{判断}');
+
+      expect(diagram.nodes.map((n) => n.label).toList(), ['开始', '判断']);
+      expect(diagram.edges.single.to, '乙');
+    });
+
+    test('a sequence diagram in Chinese has participants', () {
+      final diagram = diagramOf('sequenceDiagram\n  用户->>系统: 登录');
+
+      expect(diagram.nodes, hasLength(2));
+      expect(diagram.edges.single.label, '登录');
+    });
+
+    test('a trailing semicolon is not part of the node name', () {
+      // Node ids now accept anything that is not a delimiter, and a statement
+      // may end with a semicolon.
+      final diagram = diagramOf('graph TD;\n  A-->B;');
+
+      expect(diagram.nodes.map((n) => n.id).toList(), ['A', 'B']);
+    });
+  });
+
+  group('Sequence diagram messages', () {
+    MermaidDiagramData diagramOf(String source) =>
+        parser.parseWithData(source)!.diagram;
+
+    test('a space before the target is allowed', () {
+      // `A-x B` matched nothing, so the line was dropped entirely.
+      final diagram = diagramOf('sequenceDiagram\n  A-x B: lost');
+
+      expect(diagram.nodes, hasLength(2));
+      expect(diagram.edges.single.label, 'lost');
+    });
+
+    test('activation markers do not stop the message parsing', () {
+      // `A->>+B` and `B-->>-A` produced no participants and no messages.
+      // The bar itself is not drawn, but the message must still be read.
+      final diagram =
+          diagramOf('sequenceDiagram\n  A->>+B: hi\n  B-->>-A: bye');
+
+      expect(diagram.nodes, hasLength(2));
+      expect(diagram.edges, hasLength(2));
+      expect(diagram.edges.map((e) => e.label).toList(), ['hi', 'bye']);
+    });
+
+    test('a message may contain a colon', () {
+      final diagram = diagramOf('sequenceDiagram\n  A->>B: ratio 3:1');
+      expect(diagram.edges.single.label, 'ratio 3:1');
+    });
+  });
+
   group('Flowchart arrows and labels', () {
     MermaidDiagramData diagramOf(String source) =>
         parser.parseWithData(source)!.diagram;

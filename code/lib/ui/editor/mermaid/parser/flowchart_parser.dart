@@ -99,7 +99,10 @@ class FlowchartParser {
   }
 
   void _parseLine(String line) {
-    final trimmed = line.trim();
+    // A statement may end with a semicolon. Now that a node id accepts any
+    // character that is not a delimiter, `A-->B;` would otherwise name the
+    // target "B;".
+    final trimmed = line.trim().replaceFirst(RegExp(r';\s*$'), '');
     if (trimmed.isEmpty) return;
 
     // Parse classDef
@@ -150,7 +153,7 @@ class FlowchartParser {
 
     // Parse id and label
     // Format can be: "subgraph id" or "subgraph id [label]" or "subgraph label"
-    final bracketMatch = RegExp(r'^(\w+)\s*\[(.+)\]$').firstMatch(trimmed);
+    final bracketMatch = RegExp(r'^([^\s\[\](){}<>|]+)\s*\[(.+)\]$').firstMatch(trimmed);
     if (bracketMatch != null) {
       _currentSubgraphId = bracketMatch.group(1);
       _currentSubgraphLabel = bracketMatch.group(2);
@@ -346,7 +349,7 @@ class FlowchartParser {
 
   /// Extracts just the ID from a node string like "B{label}" -> "B"
   String _extractId(String nodeStr) {
-    final match = RegExp(r'^(\w+)').firstMatch(nodeStr);
+    final match = RegExp(r'^([^\s\[\](){}<>|]+)').firstMatch(nodeStr);
     return match?.group(1) ?? nodeStr;
   }
 
@@ -366,6 +369,10 @@ class FlowchartParser {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return null;
 
+    // Node ids accept any script. `\w` is ASCII-only in Dart, so
+    // `开始 --> 结束` produced no nodes at all while still producing edges
+    // that pointed at them — the diagram came out empty.
+
     // Try to match different node shapes
     // [text] - rectangle
     // (text) - rounded rect
@@ -382,23 +389,23 @@ class FlowchartParser {
     NodeShape shape;
 
     // Double bracket patterns first
-    final doubleCircle = RegExp(r'^(\w+)\(\((.+)\)\)$');
-    final hexagon = RegExp(r'^(\w+)\{\{(.+)\}\}$');
-    final subroutine = RegExp(r'^(\w+)\[\[(.+)\]\]$');
-    final cylinder = RegExp(r'^(\w+)\[\((.+)\)\]$');
-    final stadium = RegExp(r'^(\w+)\(\[(.+)\]\)$');
+    final doubleCircle = RegExp(r'^([^\s\[\](){}<>|]+)\(\((.+)\)\)$');
+    final hexagon = RegExp(r'^([^\s\[\](){}<>|]+)\{\{(.+)\}\}$');
+    final subroutine = RegExp(r'^([^\s\[\](){}<>|]+)\[\[(.+)\]\]$');
+    final cylinder = RegExp(r'^([^\s\[\](){}<>|]+)\[\((.+)\)\]$');
+    final stadium = RegExp(r'^([^\s\[\](){}<>|]+)\(\[(.+)\]\)$');
 
     // Single bracket patterns
-    final rectangle = RegExp(r'^(\w+)\[(.+)\]$');
-    final roundedRect = RegExp(r'^(\w+)\((.+)\)$');
-    final diamond = RegExp(r'^(\w+)\{(.+)\}$');
-    final asymmetric = RegExp(r'^(\w+)>(.+)\]$');
+    final rectangle = RegExp(r'^([^\s\[\](){}<>|]+)\[(.+)\]$');
+    final roundedRect = RegExp(r'^([^\s\[\](){}<>|]+)\((.+)\)$');
+    final diamond = RegExp(r'^([^\s\[\](){}<>|]+)\{(.+)\}$');
+    final asymmetric = RegExp(r'^([^\s\[\](){}<>|]+)>(.+)\]$');
 
     // Parallelogram patterns
-    final parallelogram = RegExp(r'^(\w+)\[/(.+)/\]$');
-    final parallelogramAlt = RegExp(r'^(\w+)\[\\(.+)\\\]$');
-    final trapezoid = RegExp(r'^(\w+)\[/(.+)\\\]$');
-    final trapezoidAlt = RegExp(r'^(\w+)\[\\(.+)/\]$');
+    final parallelogram = RegExp(r'^([^\s\[\](){}<>|]+)\[/(.+)/\]$');
+    final parallelogramAlt = RegExp(r'^([^\s\[\](){}<>|]+)\[\\(.+)\\\]$');
+    final trapezoid = RegExp(r'^([^\s\[\](){}<>|]+)\[/(.+)\\\]$');
+    final trapezoidAlt = RegExp(r'^([^\s\[\](){}<>|]+)\[\\(.+)/\]$');
 
     Match? match;
 
@@ -456,7 +463,7 @@ class FlowchartParser {
       shape = NodeShape.diamond;
     } else {
       // Plain node ID without shape
-      final plainId = RegExp(r'^(\w+)$').firstMatch(trimmed);
+      final plainId = RegExp(r'^([^\s\[\](){}<>|]+)$').firstMatch(trimmed);
       if (plainId != null) {
         id = plainId.group(1)!;
         label = id;
@@ -531,7 +538,7 @@ class FlowchartParser {
 
   void _parseStyle(String line) {
     // style nodeId fill:#f9f,stroke:#333
-    final pattern = RegExp(r'style\s+(\w+)\s+(.+)');
+    final pattern = RegExp(r'style\s+([^\s\[\](){}<>|]+)\s+(.+)');
     final match = pattern.firstMatch(line);
     if (match == null) return;
 
