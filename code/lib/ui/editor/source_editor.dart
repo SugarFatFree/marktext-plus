@@ -39,6 +39,61 @@ class SourceEditor extends ConsumerStatefulWidget {
   ///
   /// Exposed for testing: this is pure string work, and testing it through the
   /// widget would need a whole editor to assert one line.
+  /// Result of toggling an inline wrapper.
+  @visibleForTesting
+  static ({String text, int start, int end}) toggleWrap(
+    String text,
+    int start,
+    int end,
+    String before,
+    String after,
+  ) {
+    final selected = text.substring(start, end);
+
+    // A doubled marker belongs to the longer syntax: `**bold**` must not read
+    // as an italic wrapper whose content happens to begin with `*`. Applying
+    // italic to bold text should nest, giving `***bold***`.
+    final doubled = before == after && selected.startsWith(before + before);
+
+    if (!doubled &&
+        selected.length >= before.length + after.length &&
+        selected.startsWith(before) &&
+        selected.endsWith(after)) {
+      final inner =
+          selected.substring(before.length, selected.length - after.length);
+      return (
+        text: text.substring(0, start) + inner + text.substring(end),
+        start: start,
+        end: start + inner.length,
+      );
+    }
+
+    // The markers may sit just outside the selection, which is what happens
+    // when the user selects the words rather than the syntax.
+    final hasBefore = start >= before.length &&
+        text.substring(start - before.length, start) == before;
+    final hasAfter = end + after.length <= text.length &&
+        text.substring(end, end + after.length) == after;
+
+    if (hasBefore && hasAfter) {
+      final newStart = start - before.length;
+      return (
+        text: text.substring(0, newStart) +
+            selected +
+            text.substring(end + after.length),
+        start: newStart,
+        end: newStart + selected.length,
+      );
+    }
+
+    final replacement = before + selected + after;
+    return (
+      text: text.substring(0, start) + replacement + text.substring(end),
+      start: start + before.length,
+      end: start + before.length + selected.length,
+    );
+  }
+
   @visibleForTesting
   static String applyLinePrefix(String line, String prefix) {
     final family =
@@ -488,25 +543,17 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
   void _wrapSelection(String before, String after) {
     final selection = _controller.selection;
     final text = _controller.text;
+    final start = selection.start.clamp(0, text.length);
+    final end = selection.end.clamp(start, text.length);
 
-    if (selection.isCollapsed) {
-      final offset = selection.baseOffset;
-      final insert = '$before$after';
-      _controller.value = TextEditingValue(
-        text: text.substring(0, offset) + insert + text.substring(offset),
-        selection: TextSelection.collapsed(offset: offset + before.length),
-      );
-    } else {
-      final selected = text.substring(selection.start, selection.end);
-      final replacement = '$before$selected$after';
-      _controller.value = TextEditingValue(
-        text: text.substring(0, selection.start) + replacement + text.substring(selection.end),
-        selection: TextSelection(
-          baseOffset: selection.start + before.length,
-          extentOffset: selection.start + before.length + selected.length,
-        ),
-      );
-    }
+    final result = SourceEditor.toggleWrap(text, start, end, before, after);
+
+    _controller.value = TextEditingValue(
+      text: result.text,
+      selection: result.start == result.end
+          ? TextSelection.collapsed(offset: result.start)
+          : TextSelection(baseOffset: result.start, extentOffset: result.end),
+    );
   }
 
   /// Matches a heading marker at the start of a line.

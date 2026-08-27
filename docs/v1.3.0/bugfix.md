@@ -24,6 +24,7 @@
 | BUG-015 | 2026-08-27 | `mermaid_renderer.dart` 工具栏文案硬编码中文，未走 i18n | P2 | 已修复 |
 | BUG-016 | 2026-08-27 | 预览模式双击编辑的手势识别器使块内复选框延迟约 300ms 才响应 | P2 | 已修复 |
 | BUG-017 | 2026-08-27 | 行前缀无条件叠加：标题、列表、引用格式重复应用都会累积标记 | P1 | 已修复 |
+| BUG-018 | 2026-08-27 | 行内格式无条件包裹：`**bold**` 再点粗体变成 `****bold****` | P1 | 已修复 |
 
 ---
 
@@ -263,3 +264,17 @@
 | 修复方案 | 新增 `_setHeadingLevel(int? level)`：先用 `^(#{1,6})\s+` 剥掉已有标记再写入新级别，`level` 为 null 时还原为普通段落。六个标题动作改为调用它。<br>顺带补上 Paragraph 菜单缺失的三个动作：`promoteHeading`（提升，H2→H1，越过 H1 则还原为段落）、`demoteHeading`（降低，H1→H2，普通段落降级则从 H1 起步，H6 到顶不再变化）、`toParagraph`。默认快捷键 `Ctrl+=` / `Ctrl+-`，并为 `_labelToKey` 补上 `=` 与 `-` 的映射 |
 | 补充修复 | 列表与引用改用 `SourceEditor.applyLinePrefix(line, prefix)`：同前缀切换关闭、同家族替换、保留缩进（缩进承载列表层级）。该函数提为公开静态纯函数以便单测 —— 通过 widget 测一行文本要搭一整个编辑器。<br>验证时抓到一处逻辑错误：`- [x] item` 应用「无序列表」曾得到 `[x] item`，因为它确实以 `- ` 开头而被判为「切换关闭」。改为比较家族匹配到的**完整**标记，`- [x] ` ≠ `- `，于是走替换分支得到 `- item` |
 | 涉及文件 | `lib/ui/editor/source_editor.dart`、`lib/providers/editor_provider.dart`、`lib/ui/widgets/app_menu_bar.dart`、`lib/services/keybinding_service.dart`、`lib/core/i18n/l10n/*`、`test/ui/editor/source_editor_prefix_test.dart` |
+
+---
+
+## BUG-018 行内格式标记无条件叠加
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+| 现象 | 选中已加粗的 `**bold**` 再点「粗体」，得到 `****bold****` 而不是取消加粗 |
+| 根因分析 | 与 BUG-017 同源。`source_editor.dart` 的 `_wrapSelection(before, after)` **无条件**在选区两侧插入标记，从不检查选区是否已被同样的标记包裹。粗体、斜体、删除线、下划线、上标、下标、高亮、行内代码、行内公式共 9 个动作全部走它 |
+| 修复方案 | 新增公开静态纯函数 `SourceEditor.toggleWrap(text, start, end, before, after)`，返回记录 `({String text, int start, int end})`。三种情形：<br>① 选区**包含**标记（用户选了 `**bold**`）→ 剥掉；<br>② 标记紧邻选区**外侧**（用户只选了 `bold`）→ 同样剥掉，这是更常见的选法；<br>③ 其余情况 → 包裹。<br>**关键细节**：对 `**bold**` 应用斜体时，它确实以 `*` 开头结尾，朴素判断会剥掉一层变成 `*bold*`。因此加了「双写标记属于更长语法」的保护 —— `before == after && selected.startsWith(before + before)` 时不走剥离分支，于是得到 `***bold***`（嵌套），与 Typora 行为一致 |
+| 涉及文件 | `lib/ui/editor/source_editor.dart`、`test/ui/editor/source_editor_prefix_test.dart` |
