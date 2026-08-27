@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:docx_creator/docx_creator.dart' hide MarkdownParser;
@@ -108,9 +109,18 @@ class ExportService {
   }
 
   /// Export Markdown to HTML with GitHub-style CSS
-  static Future<void> exportToHtml(String markdown, String savePath) async {
+  /// Writes [markdown] to [savePath] as a standalone HTML file.
+  ///
+  /// [sourcePath] is the document's own location, needed to resolve relative
+  /// image paths; without it local images are left as written.
+  static Future<void> exportToHtml(
+    String markdown,
+    String savePath, {
+    String? sourcePath,
+  }) async {
     final parser = MarkdownParser();
     final ast = parser.parse(markdown);
+    final images = await _collectInlineImages(ast, sourcePath);
 
     final buffer = StringBuffer();
     buffer.writeln('<!DOCTYPE html>');
@@ -141,7 +151,7 @@ class ExportService {
     buffer.writeln('  <div class="markdown-body">');
 
     for (final node in ast) {
-      buffer.writeln(nodeToHtml(node));
+      buffer.writeln(nodeToHtml(node, inlinedImages: images));
     }
 
     buffer.writeln('  </div>');
@@ -440,16 +450,21 @@ class ExportService {
     }).toList();
   }
 
-  static String nodeToHtml(MarkdownNode node) {
+  static String nodeToHtml(
+    MarkdownNode node, {
+    Map<String, String> inlinedImages = const {},
+  }) {
     switch (node.type) {
       case NodeType.heading:
         final heading = node as HeadingNode;
-        final content = _inlineSpansToHtml(heading.inlineSpans);
+        final content =
+            _inlineSpansToHtml(heading.inlineSpans, inlinedImages: inlinedImages);
         return '<h${heading.level}>$content</h${heading.level}>';
 
       case NodeType.paragraph:
         final para = node as ParagraphNode;
-        final content = _inlineSpansToHtml(para.inlineSpans);
+        final content =
+            _inlineSpansToHtml(para.inlineSpans, inlinedImages: inlinedImages);
         return '<p>$content</p>';
 
       case NodeType.codeBlock:
@@ -466,11 +481,12 @@ class ExportService {
 
       case NodeType.orderedList:
       case NodeType.unorderedList:
-        return _listToHtml(node as ListNode);
+        return _listToHtml(node as ListNode, inlinedImages: inlinedImages);
 
       case NodeType.blockquote:
         final quote = node as BlockquoteNode;
-        final content = _inlineSpansToHtml(quote.inlineSpans);
+        final content =
+            _inlineSpansToHtml(quote.inlineSpans, inlinedImages: inlinedImages);
         return '<blockquote>\n<p>$content</p>\n</blockquote>';
 
       case NodeType.horizontalRule:
@@ -523,7 +539,10 @@ class ExportService {
   /// here; a flat run of `<li>` would lose the structure the parser recorded.
   /// Task items get a disabled checkbox, which was otherwise dropped entirely
   /// — the parser strips `[ ]` from the text, so nothing marked them as tasks.
-  static String _listToHtml(ListNode list) {
+  static String _listToHtml(
+    ListNode list, {
+    Map<String, String> inlinedImages = const {},
+  }) {
     final tag = list.ordered ? 'ol' : 'ul';
     final buffer = StringBuffer()..writeln('<$tag>');
     var depth = 0;
@@ -538,7 +557,8 @@ class ExportService {
         depth--;
       }
 
-      final content = _inlineSpansToHtml(item.inlineSpans);
+      final content =
+          _inlineSpansToHtml(item.inlineSpans, inlinedImages: inlinedImages);
       final checkbox = item.isTask
           ? '<input type="checkbox" ${item.isChecked ? 'checked ' : ''}disabled> '
           : '';
@@ -553,7 +573,10 @@ class ExportService {
     return buffer.toString();
   }
 
-  static String _inlineSpansToHtml(List<InlineSpan> spans) {
+  static String _inlineSpansToHtml(
+    List<InlineSpan> spans, {
+    Map<String, String> inlinedImages = const {},
+  }) {
     return spans.map((span) {
       final text = _escapeHtml(span.text);
       switch (span.type) {
@@ -570,7 +593,11 @@ class ExportService {
           final title = span.title != null ? ' title="${_escapeHtml(span.title!)}"' : '';
           return '<a href="$href"$title>$text</a>';
         case InlineType.image:
-          final src = _escapeHtml(span.href ?? '');
+          final original = span.href ?? '';
+          // A data URI is already safe for an attribute and must not be
+          // escaped, or the base64 padding would turn into entities.
+          final inlined = inlinedImages[original];
+          final src = inlined ?? _escapeHtml(original);
           final alt = _escapeHtml(span.text);
           final title = span.title != null ? ' title="${_escapeHtml(span.title!)}"' : '';
           return '<img src="$src" alt="$alt"$title>';
@@ -1044,6 +1071,95 @@ class ExportService {
         .replaceAll('❌', '✗')
         .replaceAll('✔️', '✔')
         .replaceAll('❤️', '♥');
+  }
+
+  /// Largest image inlined as a data URI.
+  ///
+  /// Base64 grows a file by a third, so a very large picture is left as a path
+  /// rather than making the HTML unopenable.
+  static const _maxInlineImageBytes = 8 * 1024 * 1024;
+
+  static const _imageMimeTypes = {
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.gif': 'image/gif',
+    '.webp': 'image/webp',
+    '.bmp': 'image/bmp',
+    '.svg': 'image/svg+xml',
+  };
+
+  /// Reads local images referenced by [ast] and returns data URIs keyed by the
+  /// `src` they were written with.
+  ///
+  /// Exported HTML is normally moved or sent on, where a relative path no
+  /// longer resolves and every image breaks. Inlining keeps the file
+  /// self-contained. Remote URLs are left alone.
+  static Future<Map<String, String>> _collectInlineImages(
+    List<MarkdownNode> ast,
+    String? sourcePath,
+  ) async {
+    final sources = <String>{};
+    void scan(List<InlineSpan> spans) {
+      for (final span in spans) {
+        if (span.type == InlineType.image && span.href != null) {
+          sources.add(span.href!);
+        }
+      }
+    }
+
+    for (final node in ast) {
+      if (node is ParagraphNode) scan(node.inlineSpans);
+      if (node is HeadingNode) scan(node.inlineSpans);
+      if (node is BlockquoteNode) scan(node.inlineSpans);
+      if (node is ListNode) {
+        for (final item in node.items) {
+          scan(item.inlineSpans);
+        }
+      }
+    }
+
+    final inlined = <String, String>{};
+    for (final src in sources) {
+      if (src.startsWith('http://') ||
+          src.startsWith('https://') ||
+          src.startsWith('data:')) {
+        continue;
+      }
+
+      final resolved = _resolveImagePath(src, sourcePath);
+      if (resolved == null) continue;
+
+      try {
+        final file = File(resolved);
+        if (!file.existsSync()) continue;
+        if (await file.length() > _maxInlineImageBytes) continue;
+
+        final extension = _extensionOf(resolved);
+        final mime = _imageMimeTypes[extension];
+        if (mime == null) continue;
+
+        final bytes = await file.readAsBytes();
+        inlined[src] = 'data:$mime;base64,${base64Encode(bytes)}';
+      } catch (_) {
+        // An unreadable image just stays a path.
+      }
+    }
+
+    return inlined;
+  }
+
+  /// Resolves [src] against the document's own directory.
+  static String? _resolveImagePath(String src, String? sourcePath) {
+    if (src.startsWith('/')) return src;
+    if (sourcePath == null) return null;
+    final directory = File(sourcePath).parent.path;
+    return '$directory${Platform.pathSeparator}$src';
+  }
+
+  static String _extensionOf(String path) {
+    final dot = path.lastIndexOf('.');
+    return dot == -1 ? '' : path.substring(dot).toLowerCase();
   }
 
   static String _getGitHubStyleCss() {

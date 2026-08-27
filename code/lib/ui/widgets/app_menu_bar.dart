@@ -810,7 +810,12 @@ class AppMenuBar extends ConsumerWidget {
       allowedExtensions: ['html'],
     );
     if (path == null) return;
-    await ExportService.exportToHtml(activeTab.content, path);
+    // The tab's own path is what relative image references resolve against.
+    await ExportService.exportToHtml(
+      activeTab.content,
+      path,
+      sourcePath: activeTab.filePath,
+    );
   }
 
   void _exportPdf(WidgetRef ref) async {

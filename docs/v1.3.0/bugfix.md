@@ -35,6 +35,7 @@
 | BUG-026 | 2026-08-27 | 不支持 setext 标题与缩进代码块两种 CommonMark 基本语法 | P2 | 已修复 |
 | BUG-027 | 2026-08-27 | 导出时表格单元格丢失行内格式，`**粗体**` 原样输出 | P2 | 已修复 |
 | BUG-028 | 2026-08-27 | 导出的 HTML 不渲染数学公式，代码块无语法高亮 | P2 | 已修复 |
+| BUG-029 | 2026-08-27 | 导出的 HTML 中本地图片全部失效（相对路径不再成立） | P1 | 已修复 |
 
 ---
 
@@ -432,3 +433,17 @@
 | 根因分析 | HTML 模板只引入了 mermaid 的 CDN，没有 KaTeX 与 highlight.js。预览端用 `flutter_math_fork` 渲染公式、用 `flutter_highlight` 着色代码，导出端两者皆无 —— 又一处「预览与导出对同一内容采取不同处理」<br>此外数学块被输出为 `<pre class="math-block">`，而 KaTeX 的 auto-render **刻意跳过 `pre` 与 `code` 元素**，即便引入 KaTeX 也不会渲染 |
 | 修复方案 | 引入 KaTeX（CSS + JS + auto-render）与 highlight.js（CSS + common 包），脚本置于 body 末尾以确保内容已存在；数学块由 `<pre>` 改为 `<div>`。<br>**易错细节**：auto-render 的分隔符在 Dart 中须写作 `'\\['`，生成的 JS 才是 `'\['`。若只写一个反斜杠，JS 中 `\[` 属无效转义会退化为 `[`，分隔符便与实际输出的 `\[ ... \]` 对不上，公式依旧不渲染 |
 | 涉及文件 | `lib/services/export_service.dart` |
+
+---
+
+## BUG-029 导出的 HTML 图片失效
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+| 现象 | 文档中 `![图](assets/pic.png)` 在应用内显示正常，导出 HTML 后把文件移走或发给别人，**所有本地图片裂开** |
+| 根因分析 | `<img src="$src">` 直接沿用原始相对路径，而该路径是相对**原文档目录**的。导出的 HTML 通常会被移动或转发，相对路径随即失效。<br>原文档路径其实是已知的（`activeTab.filePath`），只是 `exportToHtml` 的签名里没有这个参数 |
+| 修复方案 | `exportToHtml` 新增可选的 `sourcePath`，导出前扫描 AST 收集本地图片、读入并转为 `data:` URI 内联，使 HTML 自包含。远程 URL 与已有的 `data:` 保持原样；单张超过 8 MB 的图片不内联（base64 会膨胀约三分之一，避免生成打不开的文件）；文件缺失或不可读时退回原路径，不让导出失败。<br>**细节**：data URI **不可**再经 `_escapeHtml`，否则 base64 尾部的 `=` 会变成实体而损坏图片 |
+| 涉及文件 | `lib/services/export_service.dart`、`lib/ui/widgets/app_menu_bar.dart`、`test/services/export_image_test.dart` |
