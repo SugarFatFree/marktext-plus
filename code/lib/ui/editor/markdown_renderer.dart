@@ -317,6 +317,16 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       return _buildBlockEditor(node);
     }
 
+    // A task list has its own tap targets. Wrapping it in a double-tap
+    // recogniser puts that recogniser in the gesture arena, where it holds on
+    // for the double-tap timeout before conceding — so every checkbox would
+    // sit dead for ~300ms before responding. Ticking a box is the far more
+    // frequent action, so it wins: these blocks stay directly interactive and
+    // are edited from the source pane instead.
+    if (node is md.ListNode && node.items.any((item) => item.isTask)) {
+      return child;
+    }
+
     return GestureDetector(
       behavior: HitTestBehavior.deferToChild,
       onDoubleTap: () => _startEditing(node),

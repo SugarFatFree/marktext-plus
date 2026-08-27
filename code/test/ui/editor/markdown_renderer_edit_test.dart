@@ -52,11 +52,14 @@ void main() {
   }
 
   /// Two taps close enough together to register as a double tap.
+  ///
+  /// The final pump runs out the recogniser's own timer; without it the test
+  /// ends with a pending timer and fails.
   Future<void> doubleTap(WidgetTester tester, Finder finder) async {
     await tester.tap(finder);
     await tester.pump(kDoubleTapMinTime);
     await tester.tap(finder);
-    await tester.pump();
+    await tester.pump(kDoubleTapTimeout);
   }
 
   group('In-place block editing', () {

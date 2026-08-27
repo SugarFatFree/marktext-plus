@@ -22,6 +22,7 @@
 | BUG-013 | 2026-08-27 | `AppConstants.appVersion` 与 pubspec 版本号不一致，更新检查误报 | P1 | 已修复 |
 | BUG-014 | 2026-08-27 | 测试对含不确定型进度条的界面调 `pumpAndSettle()`，CI 挂起 20 分钟以上 | P1 | 已修复 |
 | BUG-015 | 2026-08-27 | `mermaid_renderer.dart` 工具栏文案硬编码中文，未走 i18n | P2 | 已修复 |
+| BUG-016 | 2026-08-27 | 预览模式双击编辑的手势识别器使块内复选框延迟约 300ms 才响应 | P2 | 已修复 |
 
 ---
 
@@ -232,3 +233,17 @@
 | 根因分析 | `lib/ui/widgets/mermaid_renderer.dart` 直接写死了四处字面量：`'双击图表全屏查看'`(:134)、`'全屏'`(:138)、`'另存为'`(:151)、`'复制源码'`(:164)，没有走 `AppLocalizations`。`test/ui/widgets/mermaid_renderer_test.dart` 也因此用 `find.text('复制源码')` 定位按钮 —— 一旦接入 i18n，该测试需同步改为按 icon 或 Key 定位 |
 | 修复方案 | 在 12 份 `.arb` 中新增 5 个 key（实际硬编码有 5 处，`'保存图表为 PNG'` 这条 tooltip 初次排查时漏了），并同步更新生成的 `app_localizations*.dart`。`mermaid_renderer.dart` 改用 `AppLocalizations.of(context)!`，三个按钮加上 `Key`，测试改为按 Key 定位并为测试用 `MaterialApp` 补上 `localizationsDelegates`（否则 `of(context)!` 直接抛异常）。**排查中发现既有欠债**：`updateAvailable` / `updateDismiss` 除中文外的 11 种语言全是英文占位，gen-l10n 回退到了模板 —— 新增的 5 个 key 均提供了真实译文 |
 | 涉及文件 | `lib/ui/widgets/mermaid_renderer.dart`、`lib/core/i18n/l10n/*.arb`、`test/ui/widgets/mermaid_renderer_test.dart` |
+
+---
+
+## BUG-016 双击编辑手势拖慢块内交互元素
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P2 |
+| 状态 | 已修复 |
+| 现象 | 预览模式下点击任务列表的复选框，要等约 300ms 才勾上 |
+| 根因分析 | BUG-002 阶段一给每个块套了 `GestureDetector(onDoubleTap: ...)`。该识别器会进入手势竞技场（gesture arena）并**保持等待**直到双击超时（`kDoubleTapTimeout`，300ms）才让位，块内 `Checkbox` 自己的 tap 识别器因此被推迟。由 `markdown_renderer_edit_test.dart` 的复选框用例暴露 —— 断言处 `onSourceChanged` 仍为 null，正是因为回调尚未触发 |
+| 修复方案 | 含任务项的 `ListNode` 不再包裹双击识别器：勾选复选框远比编辑任务列表源码频繁，前者优先。此类块改从源码窗格编辑。<br>同一批测试还暴露了测试自身的缺陷：`doubleTap` 辅助函数结束时识别器的 40ms 计时器尚未跑完，导致 flutter_test 报 pending timer —— 末尾改 `pump(kDoubleTapTimeout)` 排空 |
+| 涉及文件 | `lib/ui/editor/markdown_renderer.dart`、`test/ui/editor/markdown_renderer_edit_test.dart` |
