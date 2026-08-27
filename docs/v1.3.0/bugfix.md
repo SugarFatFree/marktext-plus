@@ -30,6 +30,7 @@
 | BUG-021 | 2026-08-27 | Kanban 只接受 `id[标题]`，按官方文档写法解析失败 | P1 | 已修复 |
 | BUG-022 | 2026-08-27 | 行内解析四处误判：转义失效、snake_case 变斜体、金额变公式、上标跨空格 | P1 | 已修复 |
 | BUG-023 | 2026-08-27 | 嵌套列表被压平，子列表与父项同级显示 | P1 | 已修复 |
+| BUG-024 | 2026-08-27 | 三条导出路径的列表均丢失层级；PDF/Word 丢格式，HTML 丢任务框 | P1 | 已修复 |
 
 ---
 
@@ -356,3 +357,17 @@
 | 根因分析 | `_ulRe`/`_olRe` 的 `^[\s]*` 能匹配任意缩进，但缩进量随即被丢弃；`ListItem` 也没有承载层级的字段，一个 `ListNode` 的 items 是完全扁平的 |
 | 修复方案 | `ListItem` 新增 `depth`。深度取自**该列表内各缩进宽度的排序位次**，而非固定空格数 —— 作者用 2 空格或 4 空格缩进都会得到 0、1、2，而不是 1、2 与 2、4。两个列表分支合并到共用的 `_buildListItems`，消除了原本重复的任务项解析逻辑 |
 | 涉及文件 | `lib/services/markdown_parser.dart`、`lib/ui/editor/markdown_renderer.dart`、`test/services/markdown_parser_test.dart` |
+
+---
+
+## BUG-024 导出路径的列表缺陷
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+| 现象 | 三条导出路径各有缺失：<br>① HTML —— 所有 `<li>` 平级，嵌套结构消失；任务项的复选框状态**完全丢失**（parser 已剥掉 `[ ]`，导出未补回）；<br>② PDF —— 列表项走 `_inlineSpansToText`，格式全丢且不缩进；<br>③ Word —— 同 PDF，且经 `builder.bullet(List<String>)` 只能传纯字符串 |
+| 根因分析 | BUG-023 让 `ListItem` 有了 `depth`，但只有预览用上了。导出端此前也从未表达过层级 —— HTML 生成的是一段扁平 `<li>`，PDF/Word 则连行内格式都还停留在纯文本（BUG-019 当时只改了标题、段落、引用） |
+| 修复方案 | HTML 改由 `_listToHtml` 按 depth 变化开合嵌套 `<ul>/<ol>`，任务项输出 `<input type="checkbox" disabled>`；PDF 列表项改用 `pw.RichText` + 按 depth 缩进；Word 弃用 `builder.bullet`，改为手工构建带 `indentLeft` 的 `DocxParagraph` 并走 `_inlineSpansToDocxTexts`。<br>有序列表的编号改为**按层级各自计数**，嵌套列表重新从 1 开始，而非沿用父级序号。<br>`_inlineSpansToText` 至此无人调用，已删除 |
+| 涉及文件 | `lib/services/export_service.dart`、`test/fixtures_showcase_test.dart` |

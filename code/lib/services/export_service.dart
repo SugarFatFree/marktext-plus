@@ -265,12 +265,29 @@ class ExportService {
       case NodeType.orderedList:
       case NodeType.unorderedList:
         final list = node as ListNode;
-        final items = list.items.map((item) {
-          final text = _inlineSpansToText(item.inlineSpans);
-          if (item.isTask) return '${item.isChecked ? '☑' : '☐'} $text';
-          return text;
-        }).toList();
-        return list.ordered ? builder.numbered(items) : builder.bullet(items);
+        // Built as indented paragraphs rather than through builder.bullet:
+        // that takes plain strings, which drops both the inline formatting and
+        // the nesting depth.
+        final counters = <int, int>{};
+        var result = builder;
+        for (final item in list.items) {
+          counters[item.depth] = (counters[item.depth] ?? 0) + 1;
+          counters.removeWhere((depth, _) => depth > item.depth);
+
+          final marker = list.ordered
+              ? '${counters[item.depth]}. '
+              : (item.isTask ? (item.isChecked ? '☑ ' : '☐ ') : '• ');
+
+          result = result.add(DocxParagraph(
+            children: [
+              DocxText(marker),
+              ..._inlineSpansToDocxTexts(item.inlineSpans),
+            ],
+            indentLeft: 360 + item.depth * 360,
+            spacingAfter: 60,
+          ));
+        }
+        return result;
 
       case NodeType.blockquote:
         final quote = node as BlockquoteNode;
@@ -407,13 +424,7 @@ class ExportService {
 
       case NodeType.orderedList:
       case NodeType.unorderedList:
-        final list = node as ListNode;
-        final tag = list.ordered ? 'ol' : 'ul';
-        final items = list.items.map((item) {
-          final content = _inlineSpansToHtml(item.inlineSpans);
-          return '  <li>$content</li>';
-        }).join('\n');
-        return '<$tag>\n$items\n</$tag>';
+        return _listToHtml(node as ListNode);
 
       case NodeType.blockquote:
         final quote = node as BlockquoteNode;
@@ -458,6 +469,42 @@ class ExportService {
         final html = node as HtmlBlockNode;
         return html.html;
     }
+  }
+
+  /// Renders a list, opening and closing a nested list as the depth changes.
+  ///
+  /// Items carry a depth rather than being a tree, so the nesting is rebuilt
+  /// here; a flat run of `<li>` would lose the structure the parser recorded.
+  /// Task items get a disabled checkbox, which was otherwise dropped entirely
+  /// — the parser strips `[ ]` from the text, so nothing marked them as tasks.
+  static String _listToHtml(ListNode list) {
+    final tag = list.ordered ? 'ol' : 'ul';
+    final buffer = StringBuffer()..writeln('<$tag>');
+    var depth = 0;
+
+    for (final item in list.items) {
+      while (depth < item.depth) {
+        buffer.writeln('<$tag>');
+        depth++;
+      }
+      while (depth > item.depth) {
+        buffer.writeln('</$tag>');
+        depth--;
+      }
+
+      final content = _inlineSpansToHtml(item.inlineSpans);
+      final checkbox = item.isTask
+          ? '<input type="checkbox" ${item.isChecked ? 'checked ' : ''}disabled> '
+          : '';
+      buffer.writeln('  <li>$checkbox$content</li>');
+    }
+
+    while (depth > 0) {
+      buffer.writeln('</$tag>');
+      depth--;
+    }
+    buffer.write('</$tag>');
+    return buffer.toString();
   }
 
   static String _inlineSpansToHtml(List<InlineSpan> spans) {
@@ -724,13 +771,22 @@ class ExportService {
       case NodeType.unorderedList:
         final list = node as ListNode;
         final items = <pw.Widget>[];
+        // Numbering counts within a level: a nested ordered list starts at 1
+        // again rather than continuing its parent's sequence.
+        final counters = <int, int>{};
         for (var i = 0; i < list.items.length; i++) {
           final item = list.items[i];
-          final marker = list.ordered ? '${i + 1}. ' : '• ';
+          counters[item.depth] = (counters[item.depth] ?? 0) + 1;
+          counters.removeWhere((depth, _) => depth > item.depth);
+          final marker =
+              list.ordered ? '${counters[item.depth]}. ' : '• ';
           final checkbox = item.isTask ? (item.isChecked ? '☑ ' : '☐ ') : '';
           items.add(
             pw.Padding(
-              padding: pw.EdgeInsets.only(left: 20, bottom: _pdfSpaceListItem),
+              padding: pw.EdgeInsets.only(
+                left: 20 + item.depth * 18.0,
+                bottom: _pdfSpaceListItem,
+              ),
               child: pw.Row(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
@@ -744,13 +800,19 @@ class ExportService {
                     ),
                   ),
                   pw.Expanded(
-                    child: pw.Text(
-                      _normalizeForPdf(_inlineSpansToText(item.inlineSpans)),
-                      style: pw.TextStyle(
-                        fontSize: _pdfBodySize,
-                        height: _pdfBodyHeight,
-                        font: primaryFont,
-                        fontFallback: fontFallbacks,
+                    child: pw.RichText(
+                      text: pw.TextSpan(
+                        children: _inlineSpansToPdf(
+                          item.inlineSpans,
+                          baseStyle: pw.TextStyle(
+                            fontSize: _pdfBodySize,
+                            height: _pdfBodyHeight,
+                            font: primaryFont,
+                            fontFallback: fontFallbacks,
+                          ),
+                          primaryFont: primaryFont,
+                          fontFallbacks: fontFallbacks,
+                        ),
                       ),
                     ),
                   ),
@@ -924,10 +986,6 @@ class ExportService {
         .replaceAll('❌', '✗')
         .replaceAll('✔️', '✔')
         .replaceAll('❤️', '♥');
-  }
-
-  static String _inlineSpansToText(List<InlineSpan> spans) {
-    return spans.map((span) => span.text).join();
   }
 
   static String _getGitHubStyleCss() {

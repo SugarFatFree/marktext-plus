@@ -113,6 +113,28 @@ void main() {
     expect(failures, isEmpty, reason: failures.join('; '));
   });
 
+  test('nested lists survive HTML export', () {
+    const doc = '- one\n  - nested\n    - deeper\n- two\n';
+    final list = MarkdownParser().parse(doc).single;
+    final html = ExportService.nodeToHtml(list);
+
+    // A flat run of <li> would lose the structure the parser recorded.
+    expect('<ul>'.allMatches(html).length, 3);
+    expect('</ul>'.allMatches(html).length, 3);
+    expect(html.indexOf('nested'), greaterThan(html.indexOf('one')));
+  });
+
+  test('task items keep their state through HTML export', () {
+    const doc = '- [ ] todo\n- [x] done\n';
+    final list = MarkdownParser().parse(doc).single;
+    final html = ExportService.nodeToHtml(list);
+
+    // The parser strips `[ ]` from the text, so without a checkbox nothing
+    // would mark these as tasks at all.
+    expect(html, contains('<input type="checkbox" disabled>'));
+    expect(html, contains('<input type="checkbox" checked disabled>'));
+  });
+
   test('exports the whole document to HTML without leaking raw markers', () {
     final nodes = parser.parse(markdown);
     final html = nodes.map(ExportService.nodeToHtml).join('\n');
