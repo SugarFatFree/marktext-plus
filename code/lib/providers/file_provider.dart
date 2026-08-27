@@ -33,8 +33,8 @@ class FileNotifier extends StateNotifier<List<FileNode>> {
     state = [await _readNode(path, _displayName(path))];
 
     _watcherSubscription?.cancel();
-    _watcherService.watch(path);
     _watcherSubscription = _watcherService.events.listen((_) => _refreshTree());
+    _watcherService.watch(_expanded);
   }
 
   void closeDirectory() {
@@ -42,6 +42,7 @@ class FileNotifier extends StateNotifier<List<FileNode>> {
     _expanded.clear();
     state = [];
     _watcherSubscription?.cancel();
+    _watcherService.stop();
   }
 
   Future<void> renameNode(String oldPath, String newPath) async {
@@ -83,6 +84,10 @@ class FileNotifier extends StateNotifier<List<FileNode>> {
     // reading; that newer state wins.
     if (_currentDirectory != path) return;
     state = [tree];
+
+    // Expanding or collapsing changes which folders are on screen, and those
+    // are exactly the ones worth watching.
+    _watcherService.watch(_expanded);
   }
 
   /// Reads [path] and, recursively, only those descendants the user has
