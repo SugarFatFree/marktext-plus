@@ -37,6 +37,23 @@ void main() {
   A[Start] --> B[End]
 ''';
 
+      // Reading the clipboard back with Clipboard.getData deadlocks here: the
+      // platform channel round trip needs the event loop to turn, and the test
+      // body is awaiting it with nothing left to pump. Assert on the write
+      // instead.
+      MethodCall? clipboardCall;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') clipboardCall = call;
+          return null;
+        },
+      );
+      addTearDown(() {
+        tester.binding.defaultBinaryMessenger
+            .setMockMethodCallHandler(SystemChannels.platform, null);
+      });
+
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -52,8 +69,8 @@ void main() {
       await tester.tap(find.text('复制源码'));
       await tester.pump();
 
-      final clipboardData = await Clipboard.getData('text/plain');
-      expect(clipboardData?.text, mermaidCode);
+      expect(clipboardCall, isNotNull, reason: 'no clipboard write happened');
+      expect(clipboardCall!.arguments['text'], mermaidCode);
     });
   });
 }
