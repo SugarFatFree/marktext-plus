@@ -1,5 +1,6 @@
 import '../models/diagram.dart';
 import '../models/mindmap.dart';
+import 'indentation.dart';
 
 /// Parser for Mermaid mindmaps (`mindmap`).
 ///
@@ -37,7 +38,7 @@ class MindmapParser {
     for (final raw in body) {
       if (raw.trim().isEmpty) continue;
 
-      final indent = _indentOf(raw);
+      final indent = indentColumns(raw, tabWidth: tabWidth);
       final text = raw.trim();
 
       // Decorations that attach to the previous node rather than making one.
@@ -83,21 +84,6 @@ class MindmapParser {
       ),
       MindmapData(root: root),
     );
-  }
-
-  /// Columns of leading whitespace, counting a tab as up to [tabWidth].
-  int _indentOf(String line) {
-    var columns = 0;
-    for (final rune in line.runes) {
-      if (rune == 0x20) {
-        columns++;
-      } else if (rune == 0x09) {
-        columns += tabWidth - (columns % tabWidth);
-      } else {
-        break;
-      }
-    }
-    return columns;
   }
 
   /// Splits a line into label, shape and css class.

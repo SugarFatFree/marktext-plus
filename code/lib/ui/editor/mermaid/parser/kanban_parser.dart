@@ -3,6 +3,7 @@ library;
 
 import '../models/diagram.dart';
 import '../models/kanban.dart';
+import 'indentation.dart';
 
 /// Parser for Mermaid Kanban diagrams
 class KanbanParser {
@@ -41,6 +42,15 @@ class KanbanParser {
     KanbanColumn? currentColumn;
     final currentTasks = <KanbanTask>[];
 
+    // Indentation of the first content line, which is what a column sits at.
+    // Anything deeper is a task belonging to the column above. Mermaid reads
+    // kanban indentation as relative depth like it does mindmaps, so a board
+    // written with four-space columns and six-space tasks is ordinary; a fixed
+    // "four spaces or more means task" threshold classified every column as a
+    // task, left the board with no columns at all, and the whole diagram
+    // failed to render.
+    int? columnIndent;
+
     var i = 0;
 
     // Step 1: Check for YAML frontmatter config
@@ -69,13 +79,13 @@ class KanbanParser {
         continue;
       }
 
-      // Check if line is indented (potential task)
-      final isIndented = line.startsWith(' ') || line.startsWith('\t');
+      final indent = indentColumns(line);
+      columnIndent ??= indent;
+      final isTask = indent > columnIndent;
 
-      // Parse column heading. Columns are not deeply indented; four spaces or
-      // more marks a task belonging to the column above.
+      // Parse column heading
       final columnMatch = _columnRe.firstMatch(trimmedLine);
-      if (columnMatch != null && !line.startsWith('    ')) {
+      if (columnMatch != null && !isTask) {
         // Save previous column
         if (currentColumn != null) {
           columns.add(currentColumn.copyWith(tasks: List.from(currentTasks)));
@@ -100,8 +110,8 @@ class KanbanParser {
         continue;
       }
 
-      // Parse task (must be deeply indented - 4+ spaces or tabs)
-      if (isIndented && line.startsWith('    ')) {
+      // Parse task (indented deeper than the columns)
+      if (isTask) {
         if (currentColumn == null) continue; // Task without column
 
         final task = _parseTask(trimmedLine);

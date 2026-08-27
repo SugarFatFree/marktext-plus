@@ -1164,6 +1164,53 @@ quadrantChart
     });
   });
 
+  group('Kanban indentation', () {
+    List<String> shapeOf(String source) {
+      final board = parser.parseWithData(source)?.kanbanChartData;
+      if (board == null) return ['(null)'];
+      return board.columns
+          .map((c) => '${c.title}(${c.tasks.length})')
+          .toList();
+    }
+
+    test('columns may be indented four spaces', () {
+      // Mermaid reads kanban indentation as relative depth. A fixed "four
+      // spaces or more is a task" threshold made every column a task, left the
+      // board with no columns, and the diagram failed to render at all.
+      expect(
+        shapeOf('kanban\n    Todo\n      Write it\n    Doing\n      Ship it'),
+        ['Todo(1)', 'Doing(1)'],
+      );
+    });
+
+    test('columns may sit at the left margin', () {
+      expect(
+        shapeOf('kanban\nTodo\n  Write it\nDoing\n  Ship it'),
+        ['Todo(1)', 'Doing(1)'],
+      );
+    });
+
+    test('tabs indent as well as spaces do', () {
+      // The task test asked for four literal spaces, so a tab-indented task
+      // was read as another column.
+      expect(
+        shapeOf('kanban\n\tTodo\n\t\tWrite it\n\tDoing\n\t\tShip it'),
+        ['Todo(1)', 'Doing(1)'],
+      );
+    });
+
+    test('the two-space form still works', () {
+      expect(
+        shapeOf('kanban\n  Todo\n    Write it\n  Doing\n    Ship it'),
+        ['Todo(1)', 'Doing(1)'],
+      );
+    });
+
+    test('a board with no columns is not a diagram', () {
+      expect(parser.parseWithData('kanban\n'), isNull);
+    });
+  });
+
   group('Timelines', () {
     TimelineChartData timelineOf(String source) =>
         parser.parseWithData(source)!.timelineChartData!;
