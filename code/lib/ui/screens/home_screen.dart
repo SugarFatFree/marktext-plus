@@ -28,6 +28,7 @@ import '../widgets/editor_tab_bar.dart';
 import '../editor/source_editor.dart';
 import '../editor/markdown_renderer.dart';
 import '../editor/split_editor.dart';
+import '../../services/keybinding_service.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -423,6 +424,75 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
     }
   }
 
+  /// Runs the window-level action bound to [event], if any.
+  ///
+  /// Flutter's MenuItemButton.shortcut only *displays* a shortcut — "shortcuts
+  /// are not automatically handled", per its own documentation — so every
+  /// shortcut in the menus was decorative. This handles the ones that are not
+  /// about the text: opening, saving, find and replace.
+  ///
+  /// Anything that edits the document is handled inside [SourceEditor]
+  /// instead, so that Ctrl+A and friends still belong to the find bar or a
+  /// settings field when that is where the caret is.
+  bool _runShortcut(KeyEvent event) {
+    final action = KeybindingService()
+        .actionForEvent(event, isMacOS: PlatformUtils.isMacOS);
+
+    switch (action) {
+      case 'find':
+      case 'replace':
+        ref.read(editorProvider.notifier).toggleFindReplace();
+        return true;
+      case 'save':
+        AppMenuBar.saveFile(ref);
+        return true;
+      case 'open':
+        AppMenuBar.openFile(ref);
+        return true;
+    }
+    return false;
+  }
+
+  /// The view shortcuts the menus advertise. These are not user-configurable,
+  /// so they are matched against the same combinations the menu displays.
+  KeyEventResult _runViewShortcut(KeyEvent event, bool isCtrl) {
+    if (!isCtrl) return KeyEventResult.ignored;
+
+    final settings = ref.read(settingsProvider.notifier);
+    final alt = HardwareKeyboard.instance.isAltPressed;
+    final shift = HardwareKeyboard.instance.isShiftPressed;
+
+    if (alt && !shift) {
+      switch (event.logicalKey) {
+        case LogicalKeyboardKey.digit1:
+          settings.setEditMode(EditMode.source);
+          return KeyEventResult.handled;
+        case LogicalKeyboardKey.digit2:
+          settings.setEditMode(EditMode.preview);
+          return KeyEventResult.handled;
+        case LogicalKeyboardKey.digit3:
+          settings.setEditMode(EditMode.split);
+          return KeyEventResult.handled;
+        case LogicalKeyboardKey.keyT:
+          settings.toggleTabBar();
+          return KeyEventResult.handled;
+      }
+    }
+
+    if (shift && !alt) {
+      switch (event.logicalKey) {
+        case LogicalKeyboardKey.keyB:
+          settings.toggleSideBar();
+          return KeyEventResult.handled;
+        case LogicalKeyboardKey.keyF:
+          settings.toggleFocusMode();
+          return KeyEventResult.handled;
+      }
+    }
+
+    return KeyEventResult.ignored;
+  }
+
   @override
   Widget build(BuildContext context) {
     final config = ref.watch(settingsProvider);
@@ -443,21 +513,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
             ? HardwareKeyboard.instance.isMetaPressed
             : HardwareKeyboard.instance.isControlPressed;
 
-        // Ctrl+P / Cmd+P -> command palette
+        // Ctrl+P / Cmd+P -> command palette. Not a configurable binding, so
+        // it stays here rather than in the keybinding table.
         if (event.logicalKey == LogicalKeyboardKey.keyP && isCtrl) {
           CommandPalette.show(context);
-          return KeyEventResult.handled;
-        }
-
-        // Ctrl+F / Cmd+F -> toggle find/replace
-        if (event.logicalKey == LogicalKeyboardKey.keyF && isCtrl) {
-          ref.read(editorProvider.notifier).toggleFindReplace();
-          return KeyEventResult.handled;
-        }
-
-        // Ctrl+H / Cmd+H -> toggle find/replace
-        if (event.logicalKey == LogicalKeyboardKey.keyH && isCtrl) {
-          ref.read(editorProvider.notifier).toggleFindReplace();
           return KeyEventResult.handled;
         }
 
@@ -469,7 +528,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
           ref.read(editorProvider.notifier).hideFindReplace();
           return KeyEventResult.handled;
         }
-        return KeyEventResult.ignored;
+
+        if (_runShortcut(event)) return KeyEventResult.handled;
+        return _runViewShortcut(event, isCtrl);
       },
       child: Scaffold(
         body: DropTarget(

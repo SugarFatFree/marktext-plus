@@ -9,6 +9,8 @@ import '../../providers/settings_provider.dart';
 import '../../providers/tab_provider.dart';
 import '../../services/image_service.dart';
 import 'highlighting_controller.dart';
+import '../../services/keybinding_service.dart';
+import '../../utils/platform_utils.dart';
 
 class SourceEditor extends ConsumerStatefulWidget {
   final String initialContent;
@@ -312,8 +314,46 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     _isSyncingScroll = false;
   }
 
+  /// Applies whatever the user has bound [event] to, if it edits the document.
+  ///
+  /// Undo and redo go to the editor's own history, which is what the Edit
+  /// menu shows and what the toolbar's enabled state reflects. Left to
+  /// Flutter, Ctrl+Z would drive the TextField's private history instead and
+  /// the two would disagree.
+  bool _handleBoundShortcut(KeyEvent event) {
+    final action = KeybindingService()
+        .actionForEvent(event, isMacOS: PlatformUtils.isMacOS);
+    if (action == null) return false;
+
+    final editor = ref.read(editorProvider.notifier);
+    if (action == 'undo') {
+      editor.undo();
+      return true;
+    }
+    if (action == 'redo') {
+      editor.redo();
+      return true;
+    }
+
+    // Everything else that edits text shares its name with a FormatAction.
+    for (final format in FormatAction.values) {
+      if (format.name == action) {
+        _applyFormat(format);
+        return true;
+      }
+    }
+    return false;
+  }
+
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+    // Editing shortcuts live here rather than at the window level so that
+    // Ctrl+A, Ctrl+Z and the rest still belong to the find bar or a settings
+    // field when that is where the caret is. This runs before Flutter's own
+    // text-editing shortcuts, which sit at the app root: key events travel up
+    // from the focused node, so this ancestor sees them first.
+    if (_handleBoundShortcut(event)) return KeyEventResult.handled;
 
     final selection = _controller.selection;
     if (!selection.isValid) return KeyEventResult.ignored;

@@ -28,72 +28,13 @@ import '../editor/mermaid/models/style.dart';
 class AppMenuBar extends ConsumerWidget {
   const AppMenuBar({super.key});
 
-  static SingleActivator? _parseShortcut(String keys) {
-    final parts = keys.split('+');
-    if (parts.isEmpty) return null;
-    bool ctrl = false, shift = false, alt = false, meta = false;
-    String? keyLabel;
-    for (final part in parts) {
-      switch (part.trim()) {
-        case 'Ctrl':
-          if (PlatformUtils.isMacOS) { meta = true; } else { ctrl = true; }
-        case 'Shift':
-          shift = true;
-        case 'Alt':
-          alt = true;
-        case 'Meta':
-          meta = true;
-        default:
-          keyLabel = part.trim();
-      }
-    }
-    if (keyLabel == null) return null;
-    final logicalKey = _labelToKey(keyLabel);
-    if (logicalKey == null) return null;
-    return SingleActivator(logicalKey, control: ctrl, shift: shift, alt: alt, meta: meta);
-  }
-
-  static LogicalKeyboardKey? _labelToKey(String label) {
-    return switch (label) {
-      'A' => LogicalKeyboardKey.keyA,
-      'B' => LogicalKeyboardKey.keyB,
-      'C' => LogicalKeyboardKey.keyC,
-      'D' => LogicalKeyboardKey.keyD,
-      'E' => LogicalKeyboardKey.keyE,
-      'F' => LogicalKeyboardKey.keyF,
-      'G' => LogicalKeyboardKey.keyG,
-      'H' => LogicalKeyboardKey.keyH,
-      'I' => LogicalKeyboardKey.keyI,
-      'J' => LogicalKeyboardKey.keyJ,
-      'K' => LogicalKeyboardKey.keyK,
-      'L' => LogicalKeyboardKey.keyL,
-      'M' => LogicalKeyboardKey.keyM,
-      'N' => LogicalKeyboardKey.keyN,
-      'O' => LogicalKeyboardKey.keyO,
-      'P' => LogicalKeyboardKey.keyP,
-      'Q' => LogicalKeyboardKey.keyQ,
-      'R' => LogicalKeyboardKey.keyR,
-      'S' => LogicalKeyboardKey.keyS,
-      'T' => LogicalKeyboardKey.keyT,
-      'U' => LogicalKeyboardKey.keyU,
-      'V' => LogicalKeyboardKey.keyV,
-      'W' => LogicalKeyboardKey.keyW,
-      'X' => LogicalKeyboardKey.keyX,
-      'Y' => LogicalKeyboardKey.keyY,
-      'Z' => LogicalKeyboardKey.keyZ,
-      '1' => LogicalKeyboardKey.digit1,
-      '2' => LogicalKeyboardKey.digit2,
-      '3' => LogicalKeyboardKey.digit3,
-      '4' => LogicalKeyboardKey.digit4,
-      '5' => LogicalKeyboardKey.digit5,
-      '6' => LogicalKeyboardKey.digit6,
-      '`' => LogicalKeyboardKey.backquote,
-      // Needed by the heading promote/demote bindings.
-      '=' => LogicalKeyboardKey.equal,
-      '-' => LogicalKeyboardKey.minus,
-      _ => null,
-    };
-  }
+  /// The shortcut configured for [action], or null when it has none.
+  ///
+  /// Both the label a menu shows and the key that actually fires now come from
+  /// the same place, so a rebound shortcut cannot display one thing and do
+  /// another.
+  static SingleActivator? _shortcut(String action) =>
+      KeybindingService().activatorFor(action, isMacOS: PlatformUtils.isMacOS);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -150,7 +91,8 @@ class AppMenuBar extends ConsumerWidget {
     ref.read(tabProvider.notifier).addTab(tab);
   }
 
-  void _openFile(WidgetRef ref) async {
+  /// Opens a file through the picker. Shared with the shortcut dispatcher.
+  static void openFile(WidgetRef ref) async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['md', 'markdown', 'txt'],
@@ -178,7 +120,9 @@ class AppMenuBar extends ConsumerWidget {
     );
   }
 
-  void _saveFile(WidgetRef ref) async {
+  /// Writes the active tab back to disk, asking for a location if it has
+  /// none. Shared with the shortcut dispatcher.
+  static void saveFile(WidgetRef ref) async {
     final activeTab = ref.read(activeTabProvider);
     if (activeTab == null) return;
     if (activeTab.filePath != null) {
@@ -189,7 +133,7 @@ class AppMenuBar extends ConsumerWidget {
     }
   }
 
-  void _saveFileAs(WidgetRef ref) async {
+  static void _saveFileAs(WidgetRef ref) async {
     final activeTab = ref.read(activeTabProvider);
     if (activeTab == null) return;
     final path = await FilePicker.platform.saveFile(
@@ -246,12 +190,8 @@ class AppMenuBar extends ConsumerWidget {
         ),
         const Divider(height: 1),
         MenuItemButton(
-          onPressed: () => _openFile(ref),
-          shortcut: SingleActivator(
-            LogicalKeyboardKey.keyO,
-            control: !PlatformUtils.isMacOS,
-            meta: PlatformUtils.isMacOS,
-          ),
+          onPressed: () => openFile(ref),
+          shortcut: _shortcut('open'),
           child: Text(l10n.fileOpen),
         ),
         MenuItemButton(
@@ -261,12 +201,8 @@ class AppMenuBar extends ConsumerWidget {
         _buildRecentFilesMenu(l10n, ref),
         const Divider(height: 1),
         MenuItemButton(
-          onPressed: () => _saveFile(ref),
-          shortcut: SingleActivator(
-            LogicalKeyboardKey.keyS,
-            control: !PlatformUtils.isMacOS,
-            meta: PlatformUtils.isMacOS,
-          ),
+          onPressed: () => saveFile(ref),
+          shortcut: _shortcut('save'),
           child: Text(l10n.fileSave),
         ),
         MenuItemButton(
@@ -341,23 +277,14 @@ class AppMenuBar extends ConsumerWidget {
           onPressed: editorState.canUndo
               ? () => ref.read(editorProvider.notifier).undo()
               : null,
-          shortcut: SingleActivator(
-            LogicalKeyboardKey.keyZ,
-            control: !PlatformUtils.isMacOS,
-            meta: PlatformUtils.isMacOS,
-          ),
+          shortcut: _shortcut('undo'),
           child: Text(l10n.editUndo),
         ),
         MenuItemButton(
           onPressed: editorState.canRedo
               ? () => ref.read(editorProvider.notifier).redo()
               : null,
-          shortcut: SingleActivator(
-            LogicalKeyboardKey.keyZ,
-            control: !PlatformUtils.isMacOS,
-            meta: PlatformUtils.isMacOS,
-            shift: true,
-          ),
+          shortcut: _shortcut('redo'),
           child: Text(l10n.editRedo),
         ),
         const Divider(height: 1),
@@ -417,39 +344,23 @@ class AppMenuBar extends ConsumerWidget {
         ),
         const Divider(height: 1),
         MenuItemButton(
-          shortcut: SingleActivator(
-            LogicalKeyboardKey.keyA,
-            control: !PlatformUtils.isMacOS,
-            meta: PlatformUtils.isMacOS,
-          ),
+          shortcut: _shortcut('selectAll'),
           child: Text(l10n.editSelectAll),
           onPressed: () => ref.read(editorProvider.notifier).applyFormat(FormatAction.selectAll),
         ),
         MenuItemButton(
-          shortcut: SingleActivator(
-            LogicalKeyboardKey.keyD,
-            control: !PlatformUtils.isMacOS,
-            meta: PlatformUtils.isMacOS,
-          ),
+          shortcut: _shortcut('duplicateLine'),
           child: Text(l10n.editDuplicateLine),
           onPressed: () => ref.read(editorProvider.notifier).applyFormat(FormatAction.duplicateLine),
         ),
         const Divider(height: 1),
         MenuItemButton(
-          shortcut: SingleActivator(
-            LogicalKeyboardKey.keyF,
-            control: !PlatformUtils.isMacOS,
-            meta: PlatformUtils.isMacOS,
-          ),
+          shortcut: _shortcut('find'),
           child: Text(l10n.editFind),
           onPressed: () => ref.read(editorProvider.notifier).toggleFindReplace(),
         ),
         MenuItemButton(
-          shortcut: SingleActivator(
-            LogicalKeyboardKey.keyH,
-            control: !PlatformUtils.isMacOS,
-            meta: PlatformUtils.isMacOS,
-          ),
+          shortcut: _shortcut('replace'),
           child: Text(l10n.editReplace),
           onPressed: () => ref.read(editorProvider.notifier).toggleFindReplace(),
         ),
@@ -580,7 +491,6 @@ class AppMenuBar extends ConsumerWidget {
 
   Widget _buildFormatMenu(AppLocalizations l10n, WidgetRef ref) {
     void fmt(FormatAction action) => ref.read(editorProvider.notifier).applyFormat(action);
-    final kb = KeybindingService();
     final headingActions = [
       FormatAction.heading1, FormatAction.heading2, FormatAction.heading3,
       FormatAction.heading4, FormatAction.heading5, FormatAction.heading6,
@@ -591,27 +501,27 @@ class AppMenuBar extends ConsumerWidget {
         SubmenuButton(
           menuChildren: [
             MenuItemButton(
-              shortcut: _parseShortcut(kb.getKeybinding('bold')),
+              shortcut: _shortcut('bold'),
               child: Text(l10n.formatBold),
               onPressed: () => fmt(FormatAction.bold),
             ),
             MenuItemButton(
-              shortcut: _parseShortcut(kb.getKeybinding('italic')),
+              shortcut: _shortcut('italic'),
               child: Text(l10n.formatItalic),
               onPressed: () => fmt(FormatAction.italic),
             ),
             MenuItemButton(
-              shortcut: _parseShortcut(kb.getKeybinding('strikethrough')),
+              shortcut: _shortcut('strikethrough'),
               child: Text(l10n.formatStrikethrough),
               onPressed: () => fmt(FormatAction.strikethrough),
             ),
             MenuItemButton(
-              shortcut: _parseShortcut(kb.getKeybinding('underline')),
+              shortcut: _shortcut('underline'),
               child: Text(l10n.formatUnderline),
               onPressed: () => fmt(FormatAction.underline),
             ),
             MenuItemButton(
-              shortcut: _parseShortcut(kb.getKeybinding('highlight')),
+              shortcut: _shortcut('highlight'),
               child: Text(l10n.formatHighlight),
               onPressed: () => fmt(FormatAction.highlight),
             ),
@@ -626,7 +536,7 @@ class AppMenuBar extends ConsumerWidget {
           menuChildren: List.generate(
             6,
             (i) => MenuItemButton(
-              shortcut: _parseShortcut(kb.getKeybinding(headingKeys[i])),
+              shortcut: _shortcut(headingKeys[i]),
               child: Text(l10n.formatHeading(i + 1)),
               onPressed: () => fmt(headingActions[i]),
             ),
@@ -636,12 +546,12 @@ class AppMenuBar extends ConsumerWidget {
         SubmenuButton(
           menuChildren: [
             MenuItemButton(
-              shortcut: _parseShortcut(kb.getKeybinding('promoteHeading')),
+              shortcut: _shortcut('promoteHeading'),
               child: Text(l10n.paragraphPromoteHeading),
               onPressed: () => fmt(FormatAction.promoteHeading),
             ),
             MenuItemButton(
-              shortcut: _parseShortcut(kb.getKeybinding('demoteHeading')),
+              shortcut: _shortcut('demoteHeading'),
               child: Text(l10n.paragraphDemoteHeading),
               onPressed: () => fmt(FormatAction.demoteHeading),
             ),
@@ -655,22 +565,22 @@ class AppMenuBar extends ConsumerWidget {
         SubmenuButton(
           menuChildren: [
             MenuItemButton(
-              shortcut: _parseShortcut(kb.getKeybinding('orderedList')),
+              shortcut: _shortcut('orderedList'),
               child: Text(l10n.formatOrderedList),
               onPressed: () => fmt(FormatAction.orderedList),
             ),
             MenuItemButton(
-              shortcut: _parseShortcut(kb.getKeybinding('unorderedList')),
+              shortcut: _shortcut('unorderedList'),
               child: Text(l10n.formatUnorderedList),
               onPressed: () => fmt(FormatAction.unorderedList),
             ),
             MenuItemButton(
-              shortcut: _parseShortcut(kb.getKeybinding('taskList')),
+              shortcut: _shortcut('taskList'),
               child: Text(l10n.formatTaskList),
               onPressed: () => fmt(FormatAction.taskList),
             ),
             MenuItemButton(
-              shortcut: _parseShortcut(kb.getKeybinding('quoteBlock')),
+              shortcut: _shortcut('quoteBlock'),
               child: Text(l10n.formatQuoteBlock),
               onPressed: () => fmt(FormatAction.quoteBlock),
             ),
@@ -680,20 +590,22 @@ class AppMenuBar extends ConsumerWidget {
         SubmenuButton(
           menuChildren: [
             MenuItemButton(
-              shortcut: _parseShortcut(kb.getKeybinding('codeBlock')),
+              shortcut: _shortcut('codeBlock'),
               child: Text(l10n.formatCodeBlock),
               onPressed: () => fmt(FormatAction.codeBlock),
             ),
             MenuItemButton(
+              shortcut: _shortcut('mathBlock'),
               child: Text(l10n.formatMathBlock),
               onPressed: () => fmt(FormatAction.mathBlock),
             ),
             MenuItemButton(
-              shortcut: _parseShortcut(kb.getKeybinding('inlineCode')),
+              shortcut: _shortcut('inlineCode'),
               child: Text(l10n.formatInlineCode),
               onPressed: () => fmt(FormatAction.inlineCode),
             ),
             MenuItemButton(
+              shortcut: _shortcut('inlineMath'),
               child: Text(l10n.formatInlineMath),
               onPressed: () => fmt(FormatAction.inlineMath),
             ),
@@ -703,17 +615,17 @@ class AppMenuBar extends ConsumerWidget {
         SubmenuButton(
           menuChildren: [
             MenuItemButton(
-              shortcut: _parseShortcut(kb.getKeybinding('table')),
+              shortcut: _shortcut('table'),
               child: Text(l10n.formatTable),
               onPressed: () => fmt(FormatAction.table),
             ),
             MenuItemButton(
-              shortcut: _parseShortcut(kb.getKeybinding('link')),
+              shortcut: _shortcut('link'),
               child: Text(l10n.formatLink),
               onPressed: () => fmt(FormatAction.link),
             ),
             MenuItemButton(
-              shortcut: _parseShortcut(kb.getKeybinding('image')),
+              shortcut: _shortcut('image'),
               child: Text(l10n.formatImage),
               onPressed: () => fmt(FormatAction.image),
             ),

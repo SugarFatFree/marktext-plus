@@ -66,6 +66,7 @@
 | BUG-057 | 2026-08-27 | 源码编辑器销毁后 provider 仍指向已释放的控制器 | P1 | 已修复 |
 | BUG-058 | 2026-08-27 | 一次拖入多张图片会互相覆盖，只剩最后一张 | P1 | 已修复 |
 | BUG-059 | 2026-08-27 | 「文本方向」设置无效，选了 RTL 也没反应 | P2 | 已修复 |
+| BUG-060 | 2026-08-27 | 菜单里所有快捷键都只是「画上去的」，按了没反应 | **P0** | 已修复 |
 
 ---
 
@@ -940,6 +941,24 @@
 | 修复方案 | 显式选择的 `'rtl'` 优先；未显式选择时仍由语言决定，阿拉伯语默认保持从右往左 |
 | 涉及文件 | `lib/app.dart` |
 | 同批排查结果 | 32 个配置字段逐一比对「声明 vs 读取」，改完后仅剩 `enableHtml` 一项仍未生效 —— 它的「开启」状态需要真正的 HTML 渲染能力，目前没有，属于功能缺失而非接线遗漏，记在 FEAT 待办里 |
+
+---
+
+## BUG-060 菜单里所有快捷键都只是「画上去的」
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | **P0** |
+| 状态 | 已修复 |
+| 现象 | 菜单里每一项后面都标着 Ctrl+B、Ctrl+S、Ctrl+Z…… 但**按下去几乎全都没反应**。只有 Ctrl+P / Ctrl+F / Ctrl+H 是真的，因为它们额外写在 `HomeScreen` 的 `Focus.onKeyEvent` 里；Ctrl+A / Ctrl+C / Ctrl+V / Ctrl+Z 看似能用，那是 Flutter 的 `TextField` **自带的**文本编辑快捷键，与菜单无关 |
+| 根因分析 | 用的是 Material 的 `MenuBar`，其 `MenuItemButton.shortcut` **只负责显示**。Flutter SDK 源码里写得很直白：`menu_anchor.dart` 的 `shortcuts_note` 模板原话是 *"Even though the shortcut labels are displayed in the menu, **shortcuts are not automatically handled**. They must be available in whatever context they are appropriate, and handled via another mechanism."* —— 全项目搜不到任何 `ShortcutRegistry` / `Shortcuts` / `CallbackShortcuts` |
+| 连带问题 | ① 设置页把 `find`/`replace`/`save`/`open`/`undo`/`redo`/`selectAll`/`duplicateLine` 列为可自定义，但菜单里这 8 项的快捷键是**硬编码**的，改了绑定连显示都不变；② 设置页还列了 `heading4/5/6`、`inlineMath`、`mathBlock`，而 `defaultKeybindings` 里**根本没有**这五项，显示为空白；③ 数学公式两个菜单项连 `shortcut:` 都没写 |
+| 修复方案 | ① `KeybindingService` 新增 `activatorFor`（给菜单显示）与 `actionForEvent`（给按键匹配），**两者读同一张表**，从此不可能显示一套、执行另一套；②按作用域拆分处理位置：**编辑类**动作（全部格式化、标题、列表、撤销/重做）放在 `SourceEditor` 自己的 `Focus` 里，**窗口级**动作（打开、保存、查找、替换）放在 `HomeScreen`；这样 Ctrl+A / Ctrl+Z 在查找栏或设置输入框里仍然归那个输入框；③补齐缺失的 5 个默认绑定；④给数学项补上 `shortcut:` |
+| 为什么能抢在 Flutter 前面 | Flutter 自带的文本编辑快捷键挂在 `WidgetsApp` 根部。按键事件是**从获得焦点的节点向上冒泡**的，所以编辑器与主界面上的 `Focus.onKeyEvent` 会**先于**根部的 `DefaultTextEditingShortcuts` 收到事件。这也正是撤销能走编辑器自己的历史、而不是 `TextField` 私有历史的原因 |
+| 自查发现的缺陷 | 反向索引一开始**没有按平台区分缓存**。「Ctrl」在 macOS 上要解析成 Command，而缓存是首次调用时按当时的平台建的。实际运行中平台不会变，所以用户碰不到；是本地对拍时按 mac / 非 mac 各跑一遍才暴露出来的，已改为缓存连同平台标记一起校验 |
+| 涉及文件 | `lib/services/keybinding_service.dart`、`lib/ui/widgets/app_menu_bar.dart`、`lib/ui/screens/home_screen.dart`、`lib/ui/editor/source_editor.dart`、`test/services/keybinding_service_test.dart`（新增） |
+| 验证方式 | 本地用桩类型对**真实服务**跑了 20 条断言：显示格式、mac 下 Ctrl→Command、`Ctrl+S` 与 `Ctrl+Shift+S` 必须区分、`Ctrl+Z` 与 `Ctrl+Shift+Z` 必须区分、裸按键不算快捷键、改绑后索引与菜单同步更新、空绑定与非法键名都安全返回 null。仓库内单测另外断言**默认表无重复组合、每条都能解析** |
 
 ---
 

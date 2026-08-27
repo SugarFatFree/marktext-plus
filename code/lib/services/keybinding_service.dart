@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
+
+import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -36,6 +38,13 @@ class KeybindingService {
     'highlight': 'Ctrl+Shift+H',
     'promoteHeading': 'Ctrl+=',
     'demoteHeading': 'Ctrl+-',
+    // These four were offered in the settings list with no default, so they
+    // showed as blank and nothing could trigger them.
+    'heading4': 'Ctrl+4',
+    'heading5': 'Ctrl+5',
+    'heading6': 'Ctrl+6',
+    'inlineMath': 'Ctrl+M',
+    'mathBlock': 'Ctrl+Shift+M',
   };
 
   Map<String, String> _keybindings = Map.from(defaultKeybindings);
@@ -49,15 +58,121 @@ class KeybindingService {
 
   void setKeybinding(String action, String keys) {
     _keybindings[action] = keys;
+    _index = null;
     _save();
   }
 
   void resetToDefaults() {
     _keybindings = Map.from(defaultKeybindings);
+    _index = null;
     _save();
   }
 
+  /// Key combination to action, built from [keybindings] on demand.
+  ///
+  /// Every keystroke asks which action it triggers, so parsing all thirty-odd
+  /// bindings each time would be wasteful. Rebuilt whenever they change.
+  Map<_Combo, String>? _index;
+
+  /// The platform the cached index was built for. "Ctrl" resolves to a
+  /// different modifier on macOS, so the cache is only valid for one of them.
+  bool? _indexIsMacOS;
+
+  Map<_Combo, String> _reverseIndex(bool isMacOS) {
+    final cached = _index;
+    if (cached != null && _indexIsMacOS == isMacOS) return cached;
+
+    final built = <_Combo, String>{};
+    for (final entry in _keybindings.entries) {
+      final combo = _Combo.parse(entry.value, isMacOS: isMacOS);
+      // First binding wins, so a duplicate cannot shadow an earlier action.
+      if (combo != null) built.putIfAbsent(combo, () => entry.key);
+    }
+    _index = built;
+    _indexIsMacOS = isMacOS;
+    return built;
+  }
+
+  /// The shortcut for [action], for display in a menu.
+  ///
+  /// Null when the action has no binding, which leaves the menu item without a
+  /// shortcut label rather than showing a wrong one.
+  SingleActivator? activatorFor(String action, {required bool isMacOS}) {
+    final combo = _Combo.parse(getKeybinding(action), isMacOS: isMacOS);
+    if (combo == null) return null;
+    return SingleActivator(
+      combo.key,
+      control: combo.control,
+      shift: combo.shift,
+      alt: combo.alt,
+      meta: combo.meta,
+    );
+  }
+
+  /// The action [event] triggers, or null.
+  ///
+  /// Modifiers must match exactly: Ctrl+S and Ctrl+Shift+S are different
+  /// actions, and so are Ctrl+Z and Ctrl+Shift+Z.
+  String? actionForEvent(KeyEvent event, {required bool isMacOS}) {
+    if (event is! KeyDownEvent) return null;
+    final keyboard = HardwareKeyboard.instance;
+    final combo = _Combo(
+      key: event.logicalKey,
+      control: keyboard.isControlPressed,
+      shift: keyboard.isShiftPressed,
+      alt: keyboard.isAltPressed,
+      meta: keyboard.isMetaPressed,
+    );
+    // A bare keypress is never a shortcut; checking here keeps the common
+    // case — ordinary typing — down to one comparison.
+    if (!combo.control && !combo.meta && !combo.alt) return null;
+    return _reverseIndex(isMacOS)[combo];
+  }
+
+  /// Maps the key names used in bindings to logical keys.
+  static LogicalKeyboardKey? keyForLabel(String label) {
+    return switch (label) {
+      'A' => LogicalKeyboardKey.keyA,
+      'B' => LogicalKeyboardKey.keyB,
+      'C' => LogicalKeyboardKey.keyC,
+      'D' => LogicalKeyboardKey.keyD,
+      'E' => LogicalKeyboardKey.keyE,
+      'F' => LogicalKeyboardKey.keyF,
+      'G' => LogicalKeyboardKey.keyG,
+      'H' => LogicalKeyboardKey.keyH,
+      'I' => LogicalKeyboardKey.keyI,
+      'J' => LogicalKeyboardKey.keyJ,
+      'K' => LogicalKeyboardKey.keyK,
+      'L' => LogicalKeyboardKey.keyL,
+      'M' => LogicalKeyboardKey.keyM,
+      'N' => LogicalKeyboardKey.keyN,
+      'O' => LogicalKeyboardKey.keyO,
+      'P' => LogicalKeyboardKey.keyP,
+      'Q' => LogicalKeyboardKey.keyQ,
+      'R' => LogicalKeyboardKey.keyR,
+      'S' => LogicalKeyboardKey.keyS,
+      'T' => LogicalKeyboardKey.keyT,
+      'U' => LogicalKeyboardKey.keyU,
+      'V' => LogicalKeyboardKey.keyV,
+      'W' => LogicalKeyboardKey.keyW,
+      'X' => LogicalKeyboardKey.keyX,
+      'Y' => LogicalKeyboardKey.keyY,
+      'Z' => LogicalKeyboardKey.keyZ,
+      '1' => LogicalKeyboardKey.digit1,
+      '2' => LogicalKeyboardKey.digit2,
+      '3' => LogicalKeyboardKey.digit3,
+      '4' => LogicalKeyboardKey.digit4,
+      '5' => LogicalKeyboardKey.digit5,
+      '6' => LogicalKeyboardKey.digit6,
+      '`' => LogicalKeyboardKey.backquote,
+      '=' => LogicalKeyboardKey.equal,
+      '-' => LogicalKeyboardKey.minus,
+      _ => null,
+    };
+  }
+
   Future<void> load() async {
+    _index = null;
     final file = await _getFile();
     if (await file.exists()) {
       try {
@@ -91,4 +206,79 @@ class KeybindingService {
     final dir = await _getConfigDir();
     return File(p.join(dir, 'keybindings.json'));
   }
+}
+
+/// A key plus the modifiers held with it.
+class _Combo {
+  const _Combo({
+    required this.key,
+    required this.control,
+    required this.shift,
+    required this.alt,
+    required this.meta,
+  });
+
+  final LogicalKeyboardKey key;
+  final bool control;
+  final bool shift;
+  final bool alt;
+  final bool meta;
+
+  /// Parses `Ctrl+Shift+S`.
+  ///
+  /// "Ctrl" means Command on macOS, which is what users of both platforms
+  /// expect from a binding written that way.
+  static _Combo? parse(String binding, {required bool isMacOS}) {
+    if (binding.trim().isEmpty) return null;
+
+    var control = false;
+    var shift = false;
+    var alt = false;
+    var meta = false;
+    String? label;
+
+    for (final raw in binding.split('+')) {
+      final part = raw.trim();
+      switch (part) {
+        case 'Ctrl':
+          if (isMacOS) {
+            meta = true;
+          } else {
+            control = true;
+          }
+        case 'Shift':
+          shift = true;
+        case 'Alt':
+          alt = true;
+        case 'Meta':
+          meta = true;
+        default:
+          label = part;
+      }
+    }
+
+    if (label == null) return null;
+    final key = KeybindingService.keyForLabel(label);
+    if (key == null) return null;
+
+    return _Combo(
+      key: key,
+      control: control,
+      shift: shift,
+      alt: alt,
+      meta: meta,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is _Combo &&
+      other.key == key &&
+      other.control == control &&
+      other.shift == shift &&
+      other.alt == alt &&
+      other.meta == meta;
+
+  @override
+  int get hashCode => Object.hash(key, control, shift, alt, meta);
 }
