@@ -35,8 +35,8 @@ void main() {
     });
 
     test('two badges in a row stay separate', () {
-      final images =
-          spansOf('$badge $badge').where((s) => s.type == InlineType.image);
+      final images = spansOf('$badge $badge')
+          .where((s) => s.type == InlineType.image);
       expect(images, hasLength(2));
     });
 
@@ -196,31 +196,28 @@ void main() {
 
       expect(table.headers, ['a', 'b']);
       expect(table.rows, [
-        ['1', '2']
+        ['1', '2'],
       ]);
     });
 
     test('an escaped pipe stays inside its cell', () {
       // The only way to put a pipe in a cell. Splitting on it broke the cell
       // in two and left the backslash behind.
-      final table = tableOf(r'| a \| b | c |' '\n|---|---|\n| x | y |')!;
+      final table = tableOf(
+        r'| a \| b | c |'
+        '\n|---|---|\n| x | y |',
+      )!;
 
       expect(table.headers, ['a | b', 'c']);
     });
 
     test('rows are padded and truncated to the header width', () {
-      expect(
-        tableOf('| a | b |\n|---|---|\n| 1 |')!.rows,
-        [
-          ['1', '']
-        ],
-      );
-      expect(
-        tableOf('| a | b |\n|---|---|\n| 1 | 2 | 3 |')!.rows,
-        [
-          ['1', '2']
-        ],
-      );
+      expect(tableOf('| a | b |\n|---|---|\n| 1 |')!.rows, [
+        ['1', ''],
+      ]);
+      expect(tableOf('| a | b |\n|---|---|\n| 1 | 2 | 3 |')!.rows, [
+        ['1', '2'],
+      ]);
     });
 
     test('the dashes row must have as many cells as the header', () {
@@ -442,8 +439,9 @@ void main() {
       // GFM treats [x] and [X] alike, and the editor's prefix handling
       // accepted both — only the parser did not, so `- [X] done` rendered as
       // a bullet with the brackets showing.
-      final list = parser.parse('- [X] done\n- [x] also\n- [ ] not yet').single
-          as ListNode;
+      final list =
+          parser.parse('- [X] done\n- [x] also\n- [ ] not yet').single
+              as ListNode;
 
       expect(list.items, hasLength(3));
       expect(list.items[0].isTask, isTrue);
@@ -643,8 +641,7 @@ void main() {
     });
 
     test('an indented fence still counts', () {
-      final outline =
-          MarkdownParser.headingOutline('  ```\n# X\n  ```\n# Y');
+      final outline = MarkdownParser.headingOutline('  ```\n# X\n  ```\n# Y');
       expect(outline.map((h) => h.text).toList(), ['Y']);
     });
 
@@ -797,42 +794,74 @@ void main() {
   group('Inline parsing', () {
     test('parses bold with double asterisks', () {
       final spans = parser.parseInline('**bold**');
-      expect(spans.any((s) => s.type == InlineType.bold && s.text == 'bold'), true);
+      expect(
+        spans.any((s) => s.type == InlineType.bold && s.text == 'bold'),
+        true,
+      );
     });
 
     test('parses bold with double underscores', () {
       final spans = parser.parseInline('__bold__');
-      expect(spans.any((s) => s.type == InlineType.bold && s.text == 'bold'), true);
+      expect(
+        spans.any((s) => s.type == InlineType.bold && s.text == 'bold'),
+        true,
+      );
     });
 
     test('parses italic with single asterisk', () {
       final spans = parser.parseInline('*italic*');
-      expect(spans.any((s) => s.type == InlineType.italic && s.text == 'italic'), true);
+      expect(
+        spans.any((s) => s.type == InlineType.italic && s.text == 'italic'),
+        true,
+      );
     });
 
     test('parses italic with single underscore', () {
       final spans = parser.parseInline('_italic_');
-      expect(spans.any((s) => s.type == InlineType.italic && s.text == 'italic'), true);
+      expect(
+        spans.any((s) => s.type == InlineType.italic && s.text == 'italic'),
+        true,
+      );
     });
 
     test('parses inline code', () {
       final spans = parser.parseInline('`code`');
-      expect(spans.any((s) => s.type == InlineType.code && s.text == 'code'), true);
+      expect(
+        spans.any((s) => s.type == InlineType.code && s.text == 'code'),
+        true,
+      );
     });
 
     test('parses link', () {
       final spans = parser.parseInline('[text](url)');
-      expect(spans.any((s) => s.type == InlineType.link && s.text == 'text' && s.href == 'url'), true);
+      expect(
+        spans.any(
+          (s) =>
+              s.type == InlineType.link && s.text == 'text' && s.href == 'url',
+        ),
+        true,
+      );
     });
 
     test('parses image', () {
       final spans = parser.parseInline('![alt](url)');
-      expect(spans.any((s) => s.type == InlineType.image && s.text == 'alt' && s.href == 'url'), true);
+      expect(
+        spans.any(
+          (s) =>
+              s.type == InlineType.image && s.text == 'alt' && s.href == 'url',
+        ),
+        true,
+      );
     });
 
     test('parses strikethrough', () {
       final spans = parser.parseInline('~~deleted~~');
-      expect(spans.any((s) => s.type == InlineType.strikethrough && s.text == 'deleted'), true);
+      expect(
+        spans.any(
+          (s) => s.type == InlineType.strikethrough && s.text == 'deleted',
+        ),
+        true,
+      );
     });
 
     test('parses mixed inline', () {
@@ -862,7 +891,8 @@ void _htmlBlockTests() {
       // The bug this guards: the opening line was consumed before the search
       // for the closing tag began, so a self-contained tag found no close and
       // swallowed every block after it.
-      const doc = '# Before\n'
+      const doc =
+          '# Before\n'
           '\n'
           '<div class="note">inline</div>\n'
           '\n'
@@ -879,19 +909,53 @@ void _htmlBlockTests() {
       );
     });
 
-    test('a void element ends on its own line', () {
-      const doc = 'text\n\n<br>\n\n# After\n';
+    test('a void block element ends on its own line', () {
+      const doc = 'text\n\n<hr>\n\n# After\n';
       final nodes = parser.parse(doc);
+      expect(nodes.where((n) => n.type == NodeType.htmlBlock).length, 1);
       expect(
         nodes.where((n) => n.type == NodeType.heading).length,
         1,
-        reason: '<br> has no closing tag and must not consume the rest',
+        reason: '<hr> has no closing tag and must not consume the rest',
       );
     });
 
-    test('a self-closing tag ends on its own line', () {
-      const doc = 'text\n\n<img src="a.png" />\n\n# After\n';
+    test('a self-closing block element ends on its own line', () {
+      const doc = 'text\n\n<col />\n\n# After\n';
       final nodes = parser.parse(doc);
+      expect(nodes.where((n) => n.type == NodeType.heading).length, 1);
+    });
+
+    test('an inline tag leaves the line a paragraph', () {
+      // An html block is drawn as a grey monospace box, so a line of
+      // `<kbd>Ctrl</kbd>+<kbd>C</kbd>` came out looking like a code sample.
+      // CommonMark only starts a block on a block-level tag name.
+      for (final line in [
+        '<kbd>Ctrl</kbd>+<kbd>C</kbd>',
+        '<span class="x">text</span>',
+        '<img src="a.png">',
+        '<br>',
+      ]) {
+        final nodes = parser.parse('text\n\n$line\n\n# After\n');
+        expect(
+          nodes.where((n) => n.type == NodeType.htmlBlock),
+          isEmpty,
+          reason: line,
+        );
+        expect(nodes.where((n) => n.type == NodeType.heading).length, 1);
+      }
+    });
+
+    test('a block tag inside a centred wrapper still spans the wrapper', () {
+      // The README shape: a div around an img. The div starts the block, and
+      // the img inside it is carried along rather than ending it.
+      const doc =
+          '<div align="center">\n  <img src="logo.png">\n</div>\n\n# After\n';
+      final nodes = parser.parse(doc);
+      final html = nodes.firstWhere((n) => n.type == NodeType.htmlBlock);
+
+      expect(html.rawContent, contains('<img src="logo.png">'));
+      expect(html.rawContent, contains('</div>'));
       expect(nodes.where((n) => n.type == NodeType.heading).length, 1);
     });
 
@@ -958,8 +1022,10 @@ void _inlineEdgeCaseTests() {
     });
 
     test('real inline maths still parses', () {
-      expect(typesOf(r'math $E = mc^2$ inline'),
-          contains(InlineType.mathInline));
+      expect(
+        typesOf(r'math $E = mc^2$ inline'),
+        contains(InlineType.mathInline),
+      );
     });
 
     test('superscript and subscript do not span spaces', () {
@@ -1032,27 +1098,36 @@ void _nestedListTests() {
     test('records a depth for indented items', () {
       // Indentation used to be matched and then discarded, so a sub-list
       // rendered flush with its parent.
-      const doc = '- one\n'
+      const doc =
+          '- one\n'
           '  - nested\n'
           '    - deeper\n'
           '- two\n';
 
       final list = parser.parse(doc).single as ListNode;
       expect(list.items.map((i) => i.depth).toList(), [0, 1, 2, 0]);
-      expect(list.items.map((i) => i.content).toList(),
-          ['one', 'nested', 'deeper', 'two']);
+      expect(list.items.map((i) => i.content).toList(), [
+        'one',
+        'nested',
+        'deeper',
+        'two',
+      ]);
     });
 
     test('four-space indentation gives the same depths as two-space', () {
       const twoSpace = '- one\n  - nested\n';
       const fourSpace = '- one\n    - nested\n';
 
-      List<int> depths(String doc) =>
-          (parser.parse(doc).single as ListNode).items.map((i) => i.depth).toList();
+      List<int> depths(String doc) => (parser.parse(doc).single as ListNode)
+          .items
+          .map((i) => i.depth)
+          .toList();
 
       expect(depths(twoSpace), [0, 1]);
-      expect(depths(fourSpace), [0, 1],
-          reason: 'depth is the rank among indent widths, not a space count');
+      expect(depths(fourSpace), [
+        0,
+        1,
+      ], reason: 'depth is the rank among indent widths, not a space count');
     });
 
     test('ordered lists nest too', () {
@@ -1065,7 +1140,8 @@ void _nestedListTests() {
     test('a wrapped item stays one item', () {
       // The continuation line used to fall out of the list, splitting it into
       // list / paragraph / list.
-      const doc = '- item that continues\n'
+      const doc =
+          '- item that continues\n'
           '  on the next line\n'
           '- second\n';
 
@@ -1145,8 +1221,9 @@ void _setextAndIndentedCodeTests() {
 
     test('four spaces after a blank line is code', () {
       final nodes = parser.parse('text\n\n    code line\n    more\n\nafter\n');
-      final code = nodes.firstWhere((n) => n.type == NodeType.codeBlock)
-          as CodeBlockNode;
+      final code = nodes.firstWhere(
+        (n) => n.type == NodeType.codeBlock,
+      ) as CodeBlockNode;
       expect(code.code, 'code line\nmore');
       expect(code.language, isEmpty);
       expect(nodes.last.type, NodeType.paragraph);
@@ -1154,8 +1231,9 @@ void _setextAndIndentedCodeTests() {
 
     test('a tab indents code too', () {
       final nodes = parser.parse('text\n\n\tcode\n');
-      final code = nodes.firstWhere((n) => n.type == NodeType.codeBlock)
-          as CodeBlockNode;
+      final code = nodes.firstWhere(
+        (n) => n.type == NodeType.codeBlock,
+      ) as CodeBlockNode;
       expect(code.code, 'code');
     });
 
@@ -1230,8 +1308,8 @@ void _linkSyntaxTests() {
     });
 
     test('a reference link resolves against its definition', () {
-      final span =
-          spansOf('[text][ref]\n\n[ref]: https://example.com\n').single;
+      final span = spansOf('[text][ref]\n\n[ref]: https://example.com\n')
+          .single;
       expect(span.type, InlineType.link);
       expect(span.text, 'text');
       expect(span.href, 'https://example.com');
@@ -1288,7 +1366,8 @@ void _sourceSpanTests() {
     setUp(() => parser = MarkdownParser());
 
     test('records line ranges for consecutive blocks', () {
-      const doc = '# Title\n'
+      const doc =
+          '# Title\n'
           '\n'
           'A paragraph\n'
           'spanning two lines.\n'
@@ -1311,7 +1390,8 @@ void _sourceSpanTests() {
     });
 
     test('spans a fenced code block including both fences', () {
-      const doc = 'intro\n'
+      const doc =
+          'intro\n'
           '\n'
           '```dart\n'
           'void main() {}\n'
@@ -1335,7 +1415,8 @@ void _sourceSpanTests() {
     });
 
     test('replaceBlock swaps only the target block', () {
-      const doc = '# Title\n'
+      const doc =
+          '# Title\n'
           '\n'
           'Old paragraph.\n'
           '\n'
@@ -1351,8 +1432,7 @@ void _sourceSpanTests() {
     test('replaceBlock accepts multi-line replacements', () {
       const doc = 'one\n\ntwo\n';
       final nodes = parser.parse(doc);
-      final updated =
-          MarkdownParser.replaceBlock(doc, nodes.last, 'a\nb\nc');
+      final updated = MarkdownParser.replaceBlock(doc, nodes.last, 'a\nb\nc');
       expect(updated, 'one\n\na\nb\nc\n');
     });
 

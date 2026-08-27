@@ -385,6 +385,27 @@ class MarkdownParser {
   static final _htmlBlockStartRe =
       RegExp(r'^<([a-zA-Z][a-zA-Z0-9-]*)(?=[\s/>])');
 
+  /// Tag names that begin an HTML *block*.
+  ///
+  /// CommonMark's list, and the distinction matters more here than it looks:
+  /// an html block is drawn as a grey monospace box, so treating every leading
+  /// tag as one turned a line of `<kbd>Ctrl</kbd>+<kbd>C</kbd>` — ordinary
+  /// README prose — into a code box. An inline tag leaves the line a
+  /// paragraph, which is where its raw text belongs.
+  static const _blockHtmlTags = <String>{
+    'address', 'article', 'aside', 'base', 'basefont', 'blockquote', 'body',
+    'caption', 'center', 'col', 'colgroup', 'dd', 'details', 'dialog', 'dir',
+    'div', 'dl', 'dt', 'fieldset', 'figcaption', 'figure', 'footer', 'form',
+    'frame', 'frameset', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header',
+    'hr', 'html', 'iframe', 'legend', 'li', 'link', 'main', 'menu', 'menuitem',
+    'nav', 'noframes', 'ol', 'optgroup', 'option', 'p', 'param', 'search',
+    'section', 'summary', 'table', 'tbody', 'td', 'tfoot', 'th', 'thead',
+    'title', 'tr', 'track', 'ul',
+    // Condition 1 of the spec: these hold raw text and end at their own
+    // closing tag rather than at a blank line.
+    'pre', 'script', 'style', 'textarea',
+  };
+
   /// A link reference definition: `[label]: url "title"`.
   static final _linkDefRe = RegExp(
     r'^\s{0,3}\[([^\]]+)\]:\s*(\S+)(?:\s+"([^"]*)")?\s*$',
@@ -707,7 +728,8 @@ class MarkdownParser {
 
       // HTML block
       final htmlMatch = _htmlBlockStartRe.firstMatch(line);
-      if (htmlMatch != null) {
+      if (htmlMatch != null &&
+          _blockHtmlTags.contains(htmlMatch.group(1)!.toLowerCase())) {
         final tag = htmlMatch.group(1)!;
         final htmlLines = <String>[line];
         final closeTag = '</$tag>';
