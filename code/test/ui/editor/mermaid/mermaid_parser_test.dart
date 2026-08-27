@@ -56,6 +56,76 @@ void main() {
     });
   });
 
+  group('ER diagrams', () {
+    test('parses entities, attributes and keys', () {
+      final result = parser.parseWithData("""
+erDiagram
+  CUSTOMER {
+    string name
+    string custNumber PK
+    int age
+  }
+""");
+
+      expect(result, isNotNull);
+      expect(result!.diagram.type, DiagramType.erDiagram);
+
+      final customer = result.erDiagramData!.byId('CUSTOMER')!;
+      expect(customer.attributes.length, 3);
+      expect(customer.attributes[0].type, 'string');
+      expect(customer.attributes[0].name, 'name');
+      expect(customer.attributes[1].keys, ['PK']);
+      expect(customer.attributes[1].displayText, contains('PK'));
+    });
+
+    test('maps every cardinality token to its crow foot', () {
+      final result = parser.parseWithData("""
+erDiagram
+  A ||--o{ B : has
+  C |o--|| D : maybe
+  E }o--o| F : loose
+  G }|--|{ H : strict
+""");
+
+      final edges = result!.diagram.edges;
+      expect(edges.length, 4);
+
+      expect(edges[0].startArrowType, ArrowType.erExactlyOne);
+      expect(edges[0].arrowType, ArrowType.erZeroOrMore);
+
+      expect(edges[1].startArrowType, ArrowType.erZeroOrOne);
+      expect(edges[1].arrowType, ArrowType.erExactlyOne);
+
+      expect(edges[2].startArrowType, ArrowType.erZeroOrMore);
+      expect(edges[2].arrowType, ArrowType.erZeroOrOne);
+
+      expect(edges[3].startArrowType, ArrowType.erOneOrMore);
+      expect(edges[3].arrowType, ArrowType.erOneOrMore);
+    });
+
+    test('reads the relationship label', () {
+      final result =
+          parser.parseWithData('erDiagram\n  CUSTOMER ||--o{ ORDER : places');
+      expect(result!.diagram.edges.single.label, 'places');
+    });
+
+    test('treats .. as a non-identifying, dashed relationship', () {
+      final result =
+          parser.parseWithData('erDiagram\n  A }|..|{ B : uses');
+      expect(result!.diagram.edges.single.lineType, LineType.dotted);
+    });
+
+    test('honours an entity alias', () {
+      final result = parser.parseWithData("""
+erDiagram
+  CUSTOMER["Client record"] ||--o{ ORDER : places
+""");
+
+      final customer = result!.erDiagramData!.byId('CUSTOMER')!;
+      expect(customer.displayName, 'Client record');
+    });
+  });
+
   group('Parse failure diagnosis', () {
     test('names the unrecognised type and lists what is supported', () {
       final message = parser.describeParseFailure('erDiagram\n  A ||--o{ B : has');

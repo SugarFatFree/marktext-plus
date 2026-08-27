@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../config/responsive_config.dart';
 import '../layout/class_diagram_layout.dart';
+import '../layout/er_diagram_layout.dart';
 import '../layout/dagre_layout.dart';
 import '../layout/layout_engine.dart';
 import '../layout/sugiyama_layout.dart';
 import '../models/class_diagram.dart';
+import '../models/er_diagram.dart';
 import '../models/diagram.dart';
 import '../models/gantt.dart';
 import '../models/kanban.dart';
@@ -15,6 +17,7 @@ import '../models/timeline.dart';
 import '../models/style.dart';
 import '../models/xy_chart.dart';
 import '../painter/class_diagram_painter.dart';
+import '../painter/er_diagram_painter.dart';
 import '../painter/flowchart_painter.dart';
 import '../painter/gantt_painter.dart';
 import '../painter/kanban_painter.dart';
@@ -101,6 +104,7 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
   RadarChartData? _radarChartData;
   XYChartData? _xyChartData;
   ClassDiagramData? _classDiagramData;
+  ErDiagramData? _erDiagramData;
   Size _computedSize = Size.zero;
   String? _error;
   bool _isLoading = true;
@@ -200,6 +204,19 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
           _style,
           Size(widget.width ?? availableWidth, widget.height ?? 600),
         );
+      } else if (diagram.type == DiagramType.erDiagram &&
+          result.erDiagramData != null) {
+        // Entity boxes carry a table of attributes, which the generic
+        // single-label node measurement cannot describe.
+        final erLayout = ErDiagramLayout(
+          erData: result.erDiagramData!,
+          deviceConfig: _deviceConfig,
+        );
+        size = erLayout.computeLayout(
+          diagram,
+          _style,
+          Size(widget.width ?? availableWidth, widget.height ?? 600),
+        );
       } else if (diagram.type == DiagramType.classDiagram &&
           result.classDiagramData != null) {
         // Class boxes are three compartments tall, which the generic
@@ -230,6 +247,7 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
       _radarChartData = result.radarChartData;
       _xyChartData = result.xyChartData;
       _classDiagramData = result.classDiagramData;
+      _erDiagramData = result.erDiagramData;
       _computedSize = size;
       _error = null;
       _isLoading = false;
@@ -327,6 +345,16 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
           return XYChartPainter(
             xyData: _xyChartData!,
             style: _style,
+            deviceConfig: _deviceConfig,
+          );
+        }
+        return FlowchartPainter(diagram: diagram, style: _style);
+      case DiagramType.erDiagram:
+        if (_erDiagramData != null) {
+          return ErDiagramPainter(
+            diagram: diagram,
+            style: _style,
+            erData: _erDiagramData!,
             deviceConfig: _deviceConfig,
           );
         }
@@ -681,6 +709,7 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
   RadarChartData? _radarChartData;
   XYChartData? _xyChartData;
   ClassDiagramData? _classDiagramData;
+  ErDiagramData? _erDiagramData;
   Size _computedSize = Size.zero;
   String? _error;
   bool _isLoading = true;
@@ -764,6 +793,19 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
           _style,
           widget.viewportSize,
         );
+      } else if (diagram.type == DiagramType.erDiagram &&
+          result.erDiagramData != null) {
+        // Entity boxes carry a table of attributes, which the generic
+        // single-label node measurement cannot describe.
+        final erLayout = ErDiagramLayout(
+          erData: result.erDiagramData!,
+          deviceConfig: _deviceConfig,
+        );
+        size = erLayout.computeLayout(
+          diagram,
+          _style,
+          widget.viewportSize,
+        );
       } else if (diagram.type == DiagramType.classDiagram &&
           result.classDiagramData != null) {
         // Class boxes are three compartments tall, which the generic
@@ -795,6 +837,7 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
         _radarChartData = result.radarChartData;
         _xyChartData = result.xyChartData;
         _classDiagramData = result.classDiagramData;
+        _erDiagramData = result.erDiagramData;
         _computedSize = size;
         _error = null;
         _isLoading = false;
@@ -887,6 +930,16 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
           return XYChartPainter(
             xyData: _xyChartData!,
             style: _style,
+            deviceConfig: _deviceConfig,
+          );
+        }
+        return FlowchartPainter(diagram: diagram, style: _style);
+      case DiagramType.erDiagram:
+        if (_erDiagramData != null) {
+          return ErDiagramPainter(
+            diagram: diagram,
+            style: _style,
+            erData: _erDiagramData!,
             deviceConfig: _deviceConfig,
           );
         }

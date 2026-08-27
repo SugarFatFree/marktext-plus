@@ -156,10 +156,93 @@ abstract class MermaidPainter extends CustomPainter {
         }
         break;
 
+      case ArrowType.erExactlyOne:
+        _erBar(canvas, position, angle, paint, 9);
+        _erBar(canvas, position, angle, paint, 15);
+        break;
+
+      case ArrowType.erZeroOrOne:
+        _erCircle(canvas, position, angle, paint, 8);
+        _erBar(canvas, position, angle, paint, 17);
+        break;
+
+      case ArrowType.erZeroOrMore:
+        _erCrowFoot(canvas, position, angle, paint);
+        _erCircle(canvas, position, angle, paint, 20);
+        break;
+
+      case ArrowType.erOneOrMore:
+        _erCrowFoot(canvas, position, angle, paint);
+        _erBar(canvas, position, angle, paint, 20);
+        break;
+
       case ArrowType.none:
       case ArrowType.doubleArrow:
         break;
     }
+  }
+
+  /// A short stroke across the line, [distance] back from its end.
+  void _erBar(
+    Canvas canvas,
+    Offset end,
+    double angle,
+    Paint paint,
+    double distance,
+  ) {
+    const halfWidth = 6.0;
+    final dirX = math.cos(angle);
+    final dirY = math.sin(angle);
+    final centreX = end.dx - distance * dirX;
+    final centreY = end.dy - distance * dirY;
+
+    canvas.drawLine(
+      Offset(centreX - halfWidth * -dirY, centreY - halfWidth * dirX),
+      Offset(centreX + halfWidth * -dirY, centreY + halfWidth * dirX),
+      _strokeOf(paint),
+    );
+  }
+
+  /// The "zero" ring, [distance] back from the line's end.
+  void _erCircle(
+    Canvas canvas,
+    Offset end,
+    double angle,
+    Paint paint,
+    double distance,
+  ) {
+    const radius = 4.5;
+    final centre = Offset(
+      end.dx - distance * math.cos(angle),
+      end.dy - distance * math.sin(angle),
+    );
+    canvas.drawCircle(centre, radius, _fillOf(null));
+    canvas.drawCircle(centre, radius, _strokeOf(paint));
+  }
+
+  /// The "many" fork: three strokes meeting at the entity's edge and opening
+  /// back along the line.
+  void _erCrowFoot(Canvas canvas, Offset end, double angle, Paint paint) {
+    const length = 13.0;
+    const halfSpread = 6.0;
+
+    final dirX = math.cos(angle);
+    final dirY = math.sin(angle);
+    final baseX = end.dx - length * dirX;
+    final baseY = end.dy - length * dirY;
+    final stroke = _strokeOf(paint);
+
+    canvas.drawLine(end, Offset(baseX, baseY), stroke);
+    canvas.drawLine(
+      end,
+      Offset(baseX - halfSpread * -dirY, baseY - halfSpread * dirX),
+      stroke,
+    );
+    canvas.drawLine(
+      end,
+      Offset(baseX + halfSpread * -dirY, baseY + halfSpread * dirX),
+      stroke,
+    );
   }
 
   /// Stroke paint mirroring [source]'s colour and width.

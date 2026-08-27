@@ -26,6 +26,18 @@ enum ArrowType {
 
   /// Open V-shaped head without closing stroke (class diagram dependency)
   openArrow,
+
+  /// ER crow's foot notation: zero or one (`|o`).
+  erZeroOrOne,
+
+  /// ER crow's foot notation: exactly one (`||`).
+  erExactlyOne,
+
+  /// ER crow's foot notation: zero or more (`}o`).
+  erZeroOrMore,
+
+  /// ER crow's foot notation: one or more (`}|`).
+  erOneOrMore,
 }
 
 /// Type of line

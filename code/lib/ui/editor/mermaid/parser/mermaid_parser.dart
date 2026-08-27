@@ -1,5 +1,6 @@
 import '../models/class_diagram.dart';
 import '../models/diagram.dart';
+import '../models/er_diagram.dart';
 import '../models/gantt.dart';
 import '../models/kanban.dart';
 import '../models/pie_chart.dart';
@@ -7,6 +8,7 @@ import '../models/radar.dart';
 import '../models/timeline.dart';
 import '../models/xy_chart.dart';
 import 'class_diagram_parser.dart';
+import 'er_diagram_parser.dart';
 import 'flowchart_parser.dart';
 import 'gantt_parser.dart';
 import 'kanban_parser.dart';
@@ -29,6 +31,7 @@ class MermaidParseResult {
     this.radarChartData,
     this.xyChartData,
     this.classDiagramData,
+    this.erDiagramData,
   });
 
   /// The parsed diagram data
@@ -54,6 +57,9 @@ class MermaidParseResult {
 
   /// Class diagram specific data (only set for class diagrams)
   final ClassDiagramData? classDiagramData;
+
+  /// ER diagram specific data (only set for ER diagrams)
+  final ErDiagramData? erDiagramData;
 }
 
 /// Main parser for Mermaid diagrams
@@ -165,6 +171,15 @@ class MermaidParser {
           );
         }
         return null;
+      case DiagramType.erDiagram:
+        final result = ErDiagramParser().parse(cleanedLines);
+        if (result != null) {
+          return MermaidParseResult(
+            diagram: result.$1,
+            erDiagramData: result.$2,
+          );
+        }
+        return null;
       case DiagramType.stateDiagram:
         final result = StateDiagramParser().parse(cleanedLines);
         if (result != null) {
@@ -199,6 +214,7 @@ class MermaidParser {
     'sequenceDiagram',
     'classDiagram',
     'stateDiagram',
+    'erDiagram',
     'pie',
     'gantt',
     'timeline',
@@ -238,6 +254,8 @@ class MermaidParser {
         return 'class diagram';
       case DiagramType.stateDiagram:
         return 'state diagram';
+      case DiagramType.erDiagram:
+        return 'ER diagram';
       case DiagramType.pieChart:
         return 'pie chart';
       case DiagramType.ganttChart:
@@ -304,6 +322,11 @@ class MermaidParser {
     // Class diagram
     if (firstLine.startsWith('classdiagram')) {
       return DiagramType.classDiagram;
+    }
+
+    // Entity-relationship diagram
+    if (firstLine.startsWith('erdiagram')) {
+      return DiagramType.erDiagram;
     }
 
     // State diagram
