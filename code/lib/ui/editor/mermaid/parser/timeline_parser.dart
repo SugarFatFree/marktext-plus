@@ -3,9 +3,9 @@ import '../models/timeline.dart';
 
 /// Parser for Mermaid Timeline diagrams
 ///
-/// `section` grouping is not supported: each time period is drawn as its own
-/// column, and a `section` line is ignored rather than banding the periods it
-/// covers.
+/// A `section` line opens a band grouping the periods that follow it. Each
+/// period is still its own column; [TimelineSection.group] carries the band
+/// name, and the painter draws it above the period titles.
 ///
 /// Parses Timeline syntax like:
 /// ```
@@ -43,6 +43,7 @@ class TimelineParser {
     String? title;
     final sections = <TimelineSection>[];
     String? currentPeriod;
+    String? currentGroup;
     final currentEvents = <TimelineEvent>[];
 
     // Parse all lines (timeline keyword already stripped by caller)
@@ -55,6 +56,30 @@ class TimelineParser {
       // Parse title
       if (lineLower.startsWith('title ')) {
         title = line.substring(6).trim();
+        continue;
+      }
+
+      // Parse a section band
+      //
+      // A `section` line carries no colon, so it used to fall through to the
+      // branch below and be attached as the *description* of whichever event
+      // came last — the band name was drawn as text inside an unrelated event
+      // box.
+      if (lineLower.startsWith('section ')) {
+        final name = line.substring(8).trim();
+        if (name.isNotEmpty) {
+          // The open period belongs to the band that is ending.
+          if (currentPeriod != null && currentEvents.isNotEmpty) {
+            sections.add(TimelineSection(
+              title: currentPeriod,
+              events: List.from(currentEvents),
+              group: currentGroup,
+            ));
+            currentEvents.clear();
+            currentPeriod = null;
+          }
+          currentGroup = name;
+        }
         continue;
       }
 
@@ -76,6 +101,7 @@ class TimelineParser {
             sections.add(TimelineSection(
               title: currentPeriod,
               events: List.from(currentEvents),
+              group: currentGroup,
             ));
             currentEvents.clear();
           }
@@ -89,6 +115,7 @@ class TimelineParser {
             sections.add(TimelineSection(
               title: currentPeriod,
               events: List.from(currentEvents),
+              group: currentGroup,
             ));
             currentEvents.clear();
           }
@@ -111,6 +138,7 @@ class TimelineParser {
       sections.add(TimelineSection(
         title: currentPeriod,
         events: List.from(currentEvents),
+        group: currentGroup,
       ));
     }
 

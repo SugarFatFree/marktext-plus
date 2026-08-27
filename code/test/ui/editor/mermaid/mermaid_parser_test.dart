@@ -1164,6 +1164,62 @@ quadrantChart
     });
   });
 
+  group('Timeline sections', () {
+    List<String> bandsOf(String source) {
+      final timeline = parser.parseWithData(source)!.timelineChartData!;
+      return timeline.sections
+          .map((s) => '${s.group ?? "-"}/${s.title}')
+          .toList();
+    }
+
+    test('a section bands the periods that follow it', () {
+      expect(
+        bandsOf(
+          'timeline\n'
+          '  section Phase one\n'
+          '    2021 : Started\n'
+          '    2022 : Grew\n'
+          '  section Phase two\n'
+          '    2023 : Expanded\n',
+        ),
+        ['Phase one/2021', 'Phase one/2022', 'Phase two/2023'],
+      );
+    });
+
+    test('periods before the first section stay unbanded', () {
+      expect(
+        bandsOf('timeline\n  2020 : Prologue\n  section Main\n    2021 : Go\n'),
+        ['-/2020', 'Main/2021'],
+      );
+    });
+
+    test('a section line is not swallowed as an event description', () {
+      // It carries no colon, so it used to fall through and be attached as the
+      // description of whichever event came last — the band name was drawn as
+      // text inside an unrelated event box.
+      final timeline = parser
+          .parseWithData(
+            'timeline\n  2021 : Started\n  section Phase two\n    2022 : Grew\n',
+          )!
+          .timelineChartData!;
+      expect(timeline.sections.first.events.single.description, isNull);
+    });
+
+    test('a timeline without sections is unbanded', () {
+      expect(
+        bandsOf('timeline\n  2021 : Started\n  2022 : Grew\n'),
+        ['-/2021', '-/2022'],
+      );
+    });
+
+    test('an event description still works', () {
+      final timeline = parser
+          .parseWithData('timeline\n  2021 : Started\n  Some detail\n')!
+          .timelineChartData!;
+      expect(timeline.sections.single.events.single.description, 'Some detail');
+    });
+  });
+
   group('Pie chart titles', () {
     test('a title on the header line is kept', () {
       // Mermaid's own documentation opens with `pie title Pets adopted by

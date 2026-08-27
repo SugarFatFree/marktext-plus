@@ -174,10 +174,18 @@ class TimelineChartLayout {
     final verticalSpacing = isMobile ? 30.0 : 40.0;
     final timelineMargin = 20.0;
 
+    // A `section` band is drawn above the period labels, so it needs its own
+    // strip — and only when the diagram uses sections, which leaves every
+    // timeline written without them exactly the height it was.
+    final hasGroups =
+        timelineData.sections.any((section) => section.group != null);
+    final groupBandHeight = hasGroups ? timelineGroupBandHeight : 0.0;
+
     // Calculate total height
-    // Structure: padding + title + spacing + period labels + timeline + spacing + events + padding
+    // Structure: padding + title + bands + spacing + period labels + timeline + spacing + events + padding
     final totalHeight = padding +
         titleHeight +
+        groupBandHeight +
         verticalSpacing +  // Space for period labels above timeline
         timelineMargin +   // Space around timeline
         verticalSpacing +  // Space before events

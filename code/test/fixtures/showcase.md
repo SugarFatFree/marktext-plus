@@ -262,6 +262,30 @@ timeline
 ```
 
 ```mermaid
+timeline
+  title Banded history
+  section Early
+    2019 : Prototype
+    2021 : Beta
+  section Recent
+    2024 : Rewrite
+```
+
+```mermaid
+pie title Time spent
+  "Reading" : 40
+  "Writing" : 60
+```
+
+```mermaid
+kanban
+    Todo
+      Write it
+    Doing
+      Ship it
+```
+
+```mermaid
 gantt
   title Release plan
   dateFormat YYYY-MM-DD
