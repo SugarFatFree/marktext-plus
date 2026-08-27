@@ -124,6 +124,18 @@ class ExportService {
     buffer.writeln('  </style>');
     buffer.writeln('  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>');
     buffer.writeln('  <script>mermaid.initialize({startOnLoad: true, securityLevel: "strict"});</script>');
+
+    // Maths and code highlighting were rendered in the preview but not in the
+    // export, so a document that looked right in the app arrived as raw LaTeX
+    // and uncoloured code.
+    buffer.writeln(
+      '  <link rel="stylesheet" '
+      'href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">',
+    );
+    buffer.writeln(
+      '  <link rel="stylesheet" '
+      'href="https://cdn.jsdelivr.net/npm/highlight.js@11/styles/github.min.css">',
+    );
     buffer.writeln('</head>');
     buffer.writeln('<body>');
     buffer.writeln('  <div class="markdown-body">');
@@ -133,6 +145,31 @@ class ExportService {
     }
 
     buffer.writeln('  </div>');
+
+    // Loaded at the end of the body so the content exists before they run.
+    buffer.writeln(
+      '  <script src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>',
+    );
+    buffer.writeln(
+      '  <script src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/'
+      'auto-render.min.js"></script>',
+    );
+    buffer.writeln('  <script>');
+    buffer.writeln('    renderMathInElement(document.body, {');
+    buffer.writeln('      delimiters: [');
+    // Doubled for JavaScript: a single backslash before [ is not a valid JS
+    // escape and collapses to a bare [, which would not match the \[ ... \]
+    // the math block is written with.
+    buffer.writeln(r"        {left: '\\[', right: '\\]', display: true},");
+    buffer.writeln(r"        {left: '\\(', right: '\\)', display: false}");
+    buffer.writeln('      ]');
+    buffer.writeln('    });');
+    buffer.writeln('  </script>');
+    buffer.writeln(
+      '  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11/lib/'
+      'common.min.js"></script>',
+    );
+    buffer.writeln('  <script>hljs.highlightAll();</script>');
     buffer.writeln('</body>');
     buffer.writeln('</html>');
 
@@ -462,7 +499,9 @@ class ExportService {
 
       case NodeType.mathBlock:
         final math = node as MathBlockNode;
-        return '<pre class="math-block">\\[${_escapeHtml(math.expression)}\\]</pre>';
+        // A div, not a pre: KaTeX's auto-render deliberately skips pre and
+        // code elements, so a block wrapped in one is never rendered.
+        return '<div class="math-block">\\[${_escapeHtml(math.expression)}\\]</div>';
 
       case NodeType.frontMatter:
         final fm = node as FrontMatterNode;

@@ -34,6 +34,7 @@
 | BUG-025 | 2026-08-27 | 列表项续行被踢出列表；项间空行把一个列表拆成两个 | P1 | 已修复 |
 | BUG-026 | 2026-08-27 | 不支持 setext 标题与缩进代码块两种 CommonMark 基本语法 | P2 | 已修复 |
 | BUG-027 | 2026-08-27 | 导出时表格单元格丢失行内格式，`**粗体**` 原样输出 | P2 | 已修复 |
+| BUG-028 | 2026-08-27 | 导出的 HTML 不渲染数学公式，代码块无语法高亮 | P2 | 已修复 |
 
 ---
 
@@ -417,3 +418,17 @@
 | 根因分析 | `TableNode` 的 `headers`/`rows` 是纯 `List<String>`，不带 `inlineSpans`。预览端 `markdown_renderer` 渲染单元格时会调用 `parseInline`，所以显示正确；导出端却直接把原始字符串交给 `_escapeHtml` / `_normalizeForPdf`，标记原样输出。<br>**预览与导出对同一份数据采取了不同处理**，是这类不一致的典型来源 |
 | 修复方案 | 导出端同样在渲染单元格时解析行内内容（`_cellParser.parseInline`），HTML 走 `_inlineSpansToHtml`（自带转义，不再需要 `_escapeHtml`），PDF 走 `_inlineSpansToPdf` + `pw.RichText` |
 | 涉及文件 | `lib/services/export_service.dart`、`test/fixtures_showcase_test.dart` |
+
+---
+
+## BUG-028 导出的 HTML 缺少公式渲染与代码高亮
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P2 |
+| 状态 | 已修复 |
+| 现象 | 应用内预览正常的文档，导出 HTML 后：数学公式变成原始 LaTeX（如 `\[\int_0^1 x^2 dx\]`），代码块是纯黑白无着色 |
+| 根因分析 | HTML 模板只引入了 mermaid 的 CDN，没有 KaTeX 与 highlight.js。预览端用 `flutter_math_fork` 渲染公式、用 `flutter_highlight` 着色代码，导出端两者皆无 —— 又一处「预览与导出对同一内容采取不同处理」<br>此外数学块被输出为 `<pre class="math-block">`，而 KaTeX 的 auto-render **刻意跳过 `pre` 与 `code` 元素**，即便引入 KaTeX 也不会渲染 |
+| 修复方案 | 引入 KaTeX（CSS + JS + auto-render）与 highlight.js（CSS + common 包），脚本置于 body 末尾以确保内容已存在；数学块由 `<pre>` 改为 `<div>`。<br>**易错细节**：auto-render 的分隔符在 Dart 中须写作 `'\\['`，生成的 JS 才是 `'\['`。若只写一个反斜杠，JS 中 `\[` 属无效转义会退化为 `[`，分隔符便与实际输出的 `\[ ... \]` 对不上，公式依旧不渲染 |
+| 涉及文件 | `lib/services/export_service.dart` |
