@@ -91,12 +91,12 @@ void main() {
 
     expect(
       diagrams.length,
-      22,
+      23,
       reason: 'fence languages found: ${codeBlocks.map((c) => c.language).toList()}',
     );
 
     // Collect every failure before asserting: stopping at the first one means
-    // each CI run reveals a single broken diagram, and there are twenty-two.
+    // each CI run reveals a single broken diagram, and there are twenty-three.
     const mermaid = MermaidParser();
     final failures = <String>[];
 

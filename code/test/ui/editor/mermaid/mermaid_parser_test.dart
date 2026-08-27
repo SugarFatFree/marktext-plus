@@ -471,6 +471,82 @@ erDiagram
     });
   });
 
+  group('Flowchart arrows and labels', () {
+    MermaidDiagramData diagramOf(String source) =>
+        parser.parseWithData(source)!.diagram;
+
+    test('a label between the dashes keeps the source node', () {
+      // `A -- label --> B` had no form in the pattern, so the arrow matched
+      // partway through and node A was lost entirely.
+      final diagram = diagramOf('graph TD\n  A -- yes --> B');
+
+      expect(diagram.nodes.map((n) => n.id).toList(), ['A', 'B']);
+      expect(diagram.edges.single.label, 'yes');
+    });
+
+    test('a dotted arrow can carry a label the same way', () {
+      final diagram = diagramOf('graph TD\n  A -. maybe .-> B');
+
+      expect(diagram.nodes, hasLength(2));
+      expect(diagram.edges.single.label, 'maybe');
+      expect(diagram.edges.single.lineType, LineType.dotted);
+    });
+
+    test('a long arrow is one arrow, not a short one plus text', () {
+      // `---` was listed before `---->`, and alternation prefers the first
+      // branch, so the target came out named "-> B".
+      final diagram = diagramOf('graph TD\n  A ----> B');
+
+      expect(diagram.nodes.map((n) => n.id).toList(), ['A', 'B']);
+      expect(diagram.edges.single.to, 'B');
+    });
+
+    test('a two-headed arrow is marked at both ends', () {
+      final edge = diagramOf('graph TD\n  A <--> B').edges.single;
+
+      expect(edge.bidirectional, isTrue);
+      expect(edge.startArrowType, ArrowType.arrow);
+      expect(edge.arrowType, ArrowType.arrow);
+    });
+
+    test('circle and cross heads are recognised', () {
+      expect(diagramOf('graph TD\n  A --o B').edges.single.arrowType,
+          ArrowType.circle);
+      expect(diagramOf('graph TD\n  A --x B').edges.single.arrowType,
+          ArrowType.cross);
+    });
+
+    test('an ampersand names several nodes at once', () {
+      final diagram = diagramOf('graph TD\n  A --> B & C');
+
+      expect(diagram.nodes.map((n) => n.id).toList(), ['A', 'B', 'C']);
+      expect(diagram.edges, hasLength(2));
+      expect(diagram.edges.map((e) => e.to).toList(), ['B', 'C']);
+    });
+
+    test('an ampersand works on the left as well', () {
+      final diagram = diagramOf('graph TD\n  A & B --> C');
+
+      expect(diagram.edges.map((e) => e.from).toList(), ['A', 'B']);
+      expect(diagram.edges.every((e) => e.to == 'C'), isTrue);
+    });
+
+    test('an ampersand inside a label is part of the label', () {
+      final diagram = diagramOf('graph TD\n  A[Tom & Jerry] --> B');
+
+      expect(diagram.nodes.first.label, 'Tom & Jerry');
+      expect(diagram.edges, hasLength(1));
+    });
+
+    test('quotes around a label are delimiters, not text', () {
+      // How a label containing a bracket or comma is written; the quote marks
+      // were being drawn.
+      final diagram = diagramOf('graph TD\n  A["with space"]');
+
+      expect(diagram.nodes.single.label, 'with space');
+    });
+  });
+
   group('Requirement diagrams', () {
     test('parses requirements, elements and relationships', () {
       final result = parser.parseWithData('''

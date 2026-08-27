@@ -5,8 +5,22 @@ import '../models/style.dart';
 
 /// Helper class for arrow information
 class _ArrowInfo {
-  const _ArrowInfo(this.type, this.label);
-  final String type;
+  const _ArrowInfo({
+    required this.line,
+    required this.head,
+    required this.bidirectional,
+    this.label,
+  });
+
+  /// The dashes, equals signs or dots that make up the line.
+  final String line;
+
+  /// What sits at the far end: `>`, `o`, `x`, or empty for a plain line.
+  final String head;
+
+  /// Whether the near end carries an arrow head as well, as in `A <--> B`.
+  final bool bidirectional;
+
   final String? label;
 }
 
@@ -192,7 +206,20 @@ class FlowchartParser {
   void _parseNodeOrEdge(String line) {
     // Split line by arrows to get individual node-edge pairs
     // Arrows: -->, ==>, ---, -.->
-    final arrowRegex = RegExp(r'\s*(==>|-->|---|\.\.\.|===|-.->|-\.->|---->|====|---)\s*(\|[^|]*\|)?\s*');
+    // An arrow is: an optional head at the near end, a line, an optional
+    // label sitting between two line segments, a head, and an optional
+    // piped label.
+    //
+    // The old alternation listed `---` before `---->`, and alternation
+    // prefers the first branch that matches, so a long arrow was read as a
+    // short one and the rest — `-> B` — became the target's name. It also had
+    // no form for `A -- label --> B` at all, which lost the source node, and
+    // an unescaped dot that matched any single character between dashes.
+    final arrowRegex = RegExp(
+      r'\s*(<)?(-{2,}|={2,}|-\.+-|-\.)'
+      r'(?:\s*([^|>ox\-=.][^|]*?)\s*(-{2,}|={2,}|-\.+-|\.-))?'
+      r'([>ox])?\s*(?:\|([^|]*)\|)?\s*',
+    );
 
     final parts = <String>[];
     final arrows = <_ArrowInfo>[];
@@ -202,12 +229,13 @@ class FlowchartParser {
       if (match.start > lastEnd) {
         parts.add(line.substring(lastEnd, match.start).trim());
       }
-      String? label;
-      if (match.group(2) != null) {
-        final labelStr = match.group(2)!;
-        label = labelStr.substring(1, labelStr.length - 1);
-      }
-      arrows.add(_ArrowInfo(match.group(1)!, label));
+      arrows.add(_ArrowInfo(
+        line: match.group(2)!,
+        head: match.group(5) ?? '',
+        bidirectional: match.group(1) != null,
+        // Either spelling of the label; only one can be present.
+        label: match.group(3) ?? match.group(6),
+      ));
       lastEnd = match.end;
     }
     // Add the last part
@@ -225,44 +253,82 @@ class FlowchartParser {
       return;
     }
 
-    // Process all nodes and edges
-    for (var i = 0; i < parts.length; i++) {
-      final nodeId = _extractId(parts[i]);
+    // One position may name several nodes: `A --> B & C` links A to both, and
+    // `A & B --> C` links both to C. Splitting only on arrows dropped
+    // everything after the ampersand.
+    final groups = parts.map(_splitOnAmpersand).toList();
 
-      // Skip if this is a subgraph ID (don't create node for subgraph reference)
-      if (!_subgraphIds.contains(nodeId)) {
-        final node = _parseNode(parts[i]);
-        if (node != null) {
-          // Only add node if not exists, or update if new one has shape/label info
-          if (!_nodes.containsKey(node.id) || _shouldUpdateNode(_nodes[node.id]!, node)) {
-            _nodes[node.id] = node;
-          }
-          _trackNodeForSubgraph(node.id);
+    // Process all nodes and edges
+    for (var i = 0; i < groups.length; i++) {
+      for (final part in groups[i]) {
+        final nodeId = _extractId(part);
+
+        // Skip if this is a subgraph ID (don't create node for subgraph reference)
+        if (_subgraphIds.contains(nodeId)) continue;
+        final node = _parseNode(part);
+        if (node == null) continue;
+        // Only add node if not exists, or update if new one has shape/label info
+        if (!_nodes.containsKey(node.id) ||
+            _shouldUpdateNode(_nodes[node.id]!, node)) {
+          _nodes[node.id] = node;
+        }
+        _trackNodeForSubgraph(node.id);
+      }
+
+      // Create edges between every node on this side and every node on the
+      // next, which for the ordinary one-to-one case is a single edge.
+      if (i >= arrows.length || i + 1 >= groups.length) continue;
+      final arrow = arrows[i];
+
+      for (final fromPart in groups[i]) {
+        for (final toPart in groups[i + 1]) {
+          final fromId = _extractId(fromPart);
+          final toId = _extractId(toPart);
+
+          // Check if either endpoint is a subgraph
+          final isFromSubgraph = _subgraphIds.contains(fromId);
+          final isToSubgraph = _subgraphIds.contains(toId);
+
+          _edges.add(MermaidEdge(
+            from: fromId,
+            to: toId,
+            label: arrow.label,
+            arrowType: _parseArrowType(arrow.head),
+            lineType: _parseLineType(arrow.line),
+            bidirectional: arrow.bidirectional,
+            // `A <--> B` draws a head at both ends.
+            startArrowType:
+                arrow.bidirectional ? ArrowType.arrow : ArrowType.none,
+            isSubgraphEdge: isFromSubgraph || isToSubgraph,
+          ));
         }
       }
-
-      // Create edge between consecutive nodes/subgraphs
-      if (i < arrows.length && i + 1 < parts.length) {
-        final fromId = _extractId(parts[i]);
-        final toId = _extractId(parts[i + 1]);
-
-        // Check if either endpoint is a subgraph
-        final isFromSubgraph = _subgraphIds.contains(fromId);
-        final isToSubgraph = _subgraphIds.contains(toId);
-
-        // Create edge - the edge system will handle subgraph edges
-        final arrow = arrows[i];
-        final edge = MermaidEdge(
-          from: fromId,
-          to: toId,
-          label: arrow.label,
-          arrowType: _parseArrowType(arrow.type),
-          lineType: _parseLineType(arrow.type),
-          isSubgraphEdge: isFromSubgraph || isToSubgraph,
-        );
-        _edges.add(edge);
-      }
     }
+  }
+
+  /// Splits `B & C` into its node strings.
+  ///
+  /// An ampersand inside a label — `A[Tom & Jerry]` — is content, so only
+  /// ampersands outside brackets separate.
+  static List<String> _splitOnAmpersand(String part) {
+    if (!part.contains('&')) return [part];
+
+    final result = <String>[];
+    final current = StringBuffer();
+    var depth = 0;
+    for (var i = 0; i < part.length; i++) {
+      final char = part[i];
+      if (char == '[' || char == '(' || char == '{') depth++;
+      if (char == ']' || char == ')' || char == '}') depth--;
+      if (char == '&' && depth == 0) {
+        result.add(current.toString().trim());
+        current.clear();
+        continue;
+      }
+      current.write(char);
+    }
+    result.add(current.toString().trim());
+    return result.where((p) => p.isNotEmpty).toList();
   }
 
   /// Determines if a new node should replace an existing node
@@ -282,6 +348,17 @@ class FlowchartParser {
   String _extractId(String nodeStr) {
     final match = RegExp(r'^(\w+)').firstMatch(nodeStr);
     return match?.group(1) ?? nodeStr;
+  }
+
+  /// Strips the quotes mermaid uses to wrap a label.
+  static String _unquoteLabel(String label) {
+    final trimmed = label.trim();
+    if (trimmed.length >= 2 &&
+        ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+            (trimmed.startsWith("'") && trimmed.endsWith("'")))) {
+      return trimmed.substring(1, trimmed.length - 1);
+    }
+    return label;
   }
 
   /// Parses a node definition and returns a MermaidNode
@@ -392,6 +469,11 @@ class FlowchartParser {
     // Handle escaped quotes in labels
     label = label.replaceAll('\\"', '"').replaceAll("\\'", "'");
 
+    // Quotes around a label are delimiters, not content — they are how a
+    // label containing a bracket, comma or space is written. Keeping them
+    // put the quote marks on screen.
+    label = _unquoteLabel(label);
+
     return MermaidNode(
       id: id,
       label: label,
@@ -399,16 +481,22 @@ class FlowchartParser {
     );
   }
 
-  ArrowType _parseArrowType(String arrow) {
-    if (arrow.contains('x')) return ArrowType.cross;
-    if (arrow.contains('o')) return ArrowType.circle;
-    if (arrow.contains('>')) return ArrowType.arrow;
-    return ArrowType.none;
+  ArrowType _parseArrowType(String head) {
+    switch (head) {
+      case 'x':
+        return ArrowType.cross;
+      case 'o':
+        return ArrowType.circle;
+      case '>':
+        return ArrowType.arrow;
+      default:
+        return ArrowType.none;
+    }
   }
 
-  LineType _parseLineType(String arrow) {
-    if (arrow.contains('=')) return LineType.thick;
-    if (arrow.contains('.') || arrow.contains('-.')) return LineType.dotted;
+  LineType _parseLineType(String line) {
+    if (line.contains('=')) return LineType.thick;
+    if (line.contains('.')) return LineType.dotted;
     return LineType.solid;
   }
 

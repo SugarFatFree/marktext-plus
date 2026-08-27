@@ -348,3 +348,11 @@ void main() {}
    2. inside this step
 
 [![build](https://img.shields.io/badge/build-passing-green.svg)](https://ci.example.com)
+
+```mermaid
+graph LR
+  A["Start here"] -- yes --> B{Choice}
+  B -. maybe .-> C[(Store)]
+  B <--> D((Done))
+  A --> E & F
+```
