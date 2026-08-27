@@ -39,6 +39,7 @@ enum FormatAction {
   toParagraph,
   frontMatter,
   htmlBlock,
+  looseList,
 }
 
 class EditorState {

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -51,6 +52,9 @@ class SourceEditor extends ConsumerStatefulWidget {
 
   /// A blockquote marker.
   static final _quotePrefixRe = RegExp(r'^(\s*)>\s?');
+
+  /// A list marker at the start of a line, capturing its indentation.
+  static final _listMarkerRe = RegExp(r'^(\s*)(?:[-*+]|\d+[.)])\s+');
 
   /// Leading whitespace, hoisted like its two siblings above.
   static final _leadingSpaceRe = RegExp(r'^\s*');
@@ -122,6 +126,69 @@ class SourceEditor extends ConsumerStatefulWidget {
       start: start + before.length,
       end: start + before.length + selected.length,
     );
+  }
+
+  /// Switches the list around [line] between tight and loose.
+  ///
+  /// A loose list has a blank line between its items, which markdown renders
+  /// with the items spaced apart; a tight one runs them together. Upstream
+  /// carries this as a checkbox in its Paragraph menu.
+  ///
+  /// Returns [source] unchanged when the caret is not in a list, or the list
+  /// has a single item — there is nothing between one item to space out.
+  @visibleForTesting
+  static String toggleLooseList(String source, int line) {
+    md.ListNode? list;
+    for (final node in md.MarkdownParser().parse(source)) {
+      if (node is md.ListNode &&
+          line >= node.sourceStart &&
+          line < node.sourceEnd) {
+        list = node;
+        break;
+      }
+    }
+    if (list == null) return source;
+
+    final lines = const LineSplitter().convert(source);
+    final block = lines.sublist(list.sourceStart, list.sourceEnd);
+
+    // Only the outermost items are spaced: a nested item sits deeper and
+    // belongs to the item above it.
+    final firstIndent =
+        _listMarkerRe.firstMatch(block.first)?.group(1)?.length ?? 0;
+    final starts = <int>{};
+    for (var i = 0; i < block.length; i++) {
+      final match = _listMarkerRe.firstMatch(block[i]);
+      if (match != null && match.group(1)!.length == firstIndent) starts.add(i);
+    }
+    if (starts.length < 2) return source;
+
+    final rewritten = <String>[];
+    if (list.isLoose) {
+      for (var i = 0; i < block.length; i++) {
+        if (block[i].trim().isEmpty) {
+          // Drop it only when what follows is the next item: a blank line
+          // inside an item separates that item's own paragraphs.
+          var next = i + 1;
+          while (next < block.length && block[next].trim().isEmpty) {
+            next++;
+          }
+          if (next < block.length && starts.contains(next)) continue;
+        }
+        rewritten.add(block[i]);
+      }
+    } else {
+      final first = starts.reduce((a, b) => a < b ? a : b);
+      for (var i = 0; i < block.length; i++) {
+        if (starts.contains(i) && i != first) rewritten.add('');
+        rewritten.add(block[i]);
+      }
+    }
+
+    final updated = [...lines]
+      ..replaceRange(list.sourceStart, list.sourceEnd, rewritten);
+    // LineSplitter drops the final terminator; put it back if it was there.
+    return updated.join('\n') + (source.endsWith('\n') ? '\n' : '');
   }
 
   @visibleForTesting
@@ -676,6 +743,8 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
         _insertFrontMatter();
       case FormatAction.htmlBlock:
         _insertAtCursor('<div>\n\n</div>');
+      case FormatAction.looseList:
+        _toggleLooseList();
       case FormatAction.superscript:
         _wrapSelection('^', '^');
       case FormatAction.subscript:
@@ -937,6 +1006,47 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     if (end == -1) end = text.length;
 
     return (start, end);
+  }
+
+  /// Applies [toggleLooseList] to the document at the caret.
+  void _toggleLooseList() {
+    final text = _controller.text;
+    final caret = _controller.selection.baseOffset.clamp(0, text.length);
+    final before = text.substring(0, caret);
+    final line = '\n'.allMatches(before).length;
+
+    final updated = toggleLooseList(text, line);
+    if (updated == text) return;
+
+    // Follow the caret's *content* line, not its line number: the toggle adds
+    // or removes blank lines above it. Only blank lines change, so counting
+    // non-blank lines identifies the same line in both texts.
+    final oldLines = text.split('\n');
+    final column = caret - (before.lastIndexOf('\n') + 1);
+    var contentIndex = 0;
+    for (var i = 0; i < line && i < oldLines.length; i++) {
+      if (oldLines[i].trim().isNotEmpty) contentIndex++;
+    }
+
+    final newLines = updated.split('\n');
+    var offset = 0;
+    var seen = 0;
+    for (var i = 0; i < newLines.length; i++) {
+      if (newLines[i].trim().isEmpty) {
+        offset += newLines[i].length + 1;
+        continue;
+      }
+      if (seen == contentIndex) break;
+      seen++;
+      offset += newLines[i].length + 1;
+    }
+
+    _controller.value = TextEditingValue(
+      text: updated,
+      selection: TextSelection.collapsed(
+        offset: (offset + column).clamp(0, updated.length),
+      ),
+    );
   }
 
   void _applyLinePrefixAtCursor(String prefix) {

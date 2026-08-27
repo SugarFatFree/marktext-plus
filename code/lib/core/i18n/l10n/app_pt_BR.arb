@@ -257,6 +257,7 @@
   "paragraphPromoteHeading": "Promover título",
   "paragraphDemoteHeading": "Rebaixar título",
   "paragraphToParagraph": "Converter em parágrafo",
+  "paragraphLooseList": "Item de lista espaçado",
   "close": "Fechar",
   "mermaidViewerTitle": "Visualizador de diagramas Mermaid",
   "mermaidViewerHint": "Ctrl+Roda para ampliar    Arrastar para deslocar    Esc para fechar",

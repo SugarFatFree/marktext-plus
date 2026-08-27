@@ -257,6 +257,7 @@
   "paragraphPromoteHeading": "Повысить уровень заголовка",
   "paragraphDemoteHeading": "Понизить уровень заголовка",
   "paragraphToParagraph": "Преобразовать в абзац",
+  "paragraphLooseList": "Разреженный список",
   "close": "Закрыть",
   "mermaidViewerTitle": "Просмотр диаграммы Mermaid",
   "mermaidViewerHint": "Ctrl+колесо — масштаб    Перетаскивание — панорама    Esc — закрыть",

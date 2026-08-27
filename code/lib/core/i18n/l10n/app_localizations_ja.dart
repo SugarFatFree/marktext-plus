@@ -766,6 +766,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get paragraphToParagraph => '段落に変換';
+
+  @override
+  String get paragraphLooseList => 'ゆるいリスト項目';
   @override
   String get close => '閉じる';
 

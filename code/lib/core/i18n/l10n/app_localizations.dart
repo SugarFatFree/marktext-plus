@@ -1601,6 +1601,12 @@ abstract class AppLocalizations {
   /// **'Convert to Paragraph'**
   String get paragraphToParagraph;
 
+  /// Paragraph menu item that spaces a list's items apart or runs them together
+  ///
+  /// In en, this message translates to:
+  /// **'Loose List Item'**
+  String get paragraphLooseList;
+
   /// Generic label for a button that closes a dialog
   ///
   /// In en, this message translates to:

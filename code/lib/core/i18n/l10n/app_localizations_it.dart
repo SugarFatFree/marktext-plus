@@ -772,6 +772,9 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get paragraphToParagraph => 'Converti in paragrafo';
+
+  @override
+  String get paragraphLooseList => 'Elemento elenco spaziato';
   @override
   String get close => 'Chiudi';
 

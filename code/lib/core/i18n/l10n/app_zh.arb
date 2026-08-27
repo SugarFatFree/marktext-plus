@@ -269,6 +269,7 @@
   "paragraphPromoteHeading": "提升标题",
   "paragraphDemoteHeading": "降低标题",
   "paragraphToParagraph": "转为段落",
+  "paragraphLooseList": "松散列表项",
   "close": "关闭",
   "mermaidViewerTitle": "Mermaid 图表查看",
   "mermaidViewerHint": "Ctrl+滚轮缩放    拖动平移    Esc 关闭",

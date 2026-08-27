@@ -257,6 +257,7 @@
   "paragraphPromoteHeading": "Überschrift höherstufen",
   "paragraphDemoteHeading": "Überschrift tieferstufen",
   "paragraphToParagraph": "In Absatz umwandeln",
+  "paragraphLooseList": "Lockerer Listeneintrag",
   "close": "Schließen",
   "mermaidViewerTitle": "Mermaid-Diagrammansicht",
   "mermaidViewerHint": "Strg+Scrollen zum Zoomen    Ziehen zum Verschieben    Esc zum Schließen",

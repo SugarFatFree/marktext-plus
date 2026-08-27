@@ -257,6 +257,7 @@
   "paragraphPromoteHeading": "Subir nivel de título",
   "paragraphDemoteHeading": "Bajar nivel de título",
   "paragraphToParagraph": "Convertir en párrafo",
+  "paragraphLooseList": "Elemento de lista espaciado",
   "close": "Cerrar",
   "mermaidViewerTitle": "Visor de diagramas Mermaid",
   "mermaidViewerHint": "Ctrl+Rueda para ampliar    Arrastrar para desplazar    Esc para cerrar",

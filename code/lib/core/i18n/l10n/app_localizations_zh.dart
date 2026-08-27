@@ -763,6 +763,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get paragraphToParagraph => '转为段落';
+
+  @override
+  String get paragraphLooseList => '松散列表项';
   @override
   String get close => '关闭';
 

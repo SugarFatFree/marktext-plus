@@ -768,6 +768,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get paragraphToParagraph => 'تحويل إلى فقرة';
+
+  @override
+  String get paragraphLooseList => 'عنصر قائمة متباعد';
   @override
   String get close => 'إغلاق';
 

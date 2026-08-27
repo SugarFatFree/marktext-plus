@@ -296,6 +296,10 @@
   "paragraphPromoteHeading": "Promote Heading",
   "paragraphDemoteHeading": "Demote Heading",
   "paragraphToParagraph": "Convert to Paragraph",
+  "paragraphLooseList": "Loose List Item",
+  "@paragraphLooseList": {
+    "description": "Paragraph menu item that spaces a list's items apart or runs them together"
+  },
   "close": "Close",
   "@close": {
     "description": "Generic label for a button that closes a dialog"

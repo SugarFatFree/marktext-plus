@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:marktext_plus/services/markdown_parser.dart';
 import 'package:marktext_plus/ui/editor/source_editor.dart';
 
 void main() {
@@ -84,6 +85,60 @@ void main() {
 
     test('treats quotes and lists as separate families', () {
       expect(SourceEditor.applyLinePrefix('- item', '> '), '> - item');
+    });
+  });
+
+  group('toggleLooseList', () {
+    String toggle(String source, int line) =>
+        SourceEditor.toggleLooseList(source, line);
+
+    test('a tight list gains a blank line between its items', () {
+      expect(toggle('- a\n- b\n- c\n', 0), '- a\n\n- b\n\n- c\n');
+    });
+
+    test('a loose list loses them again', () {
+      expect(toggle('- a\n\n- b\n\n- c\n', 0), '- a\n- b\n- c\n');
+    });
+
+    test('toggling twice returns the document unchanged', () {
+      const cases = <(String, int)>[
+        ('- a\n- b\n', 0),
+        ('1. a\n2. b\n', 0),
+        ('- a\n  - a1\n- b\n', 0),
+        ('- a\n  a continuation\n- b\n', 0),
+        ('- [ ] a\n- [x] b\n', 0),
+        ('before\n\n- a\n- b\n\nafter\n', 2),
+        ('- a\n\n- b\n', 0),
+      ];
+      for (final (source, line) in cases) {
+        expect(toggle(toggle(source, line), line), source, reason: source);
+      }
+    });
+
+    test('a nested item is not spaced out with the outer ones', () {
+      // It belongs to the item above it, not to the list's top level.
+      expect(toggle('- a\n  - a1\n- b\n', 0), '- a\n  - a1\n\n- b\n');
+    });
+
+    test('a caret outside any list changes nothing', () {
+      const source = 'text\n\n- a\n- b\n';
+      expect(toggle(source, 0), source);
+    });
+
+    test('a one-item list has nothing to space out', () {
+      const source = '- only\n';
+      expect(toggle(source, 0), source);
+    });
+
+    test('the list still parses as one list with the same items', () {
+      final loose = toggle('- a\n- b\n- c\n', 0);
+      final list = MarkdownParser().parse(loose).single as ListNode;
+      expect(list.isLoose, isTrue);
+      expect(list.items, hasLength(3));
+    });
+
+    test('a document without a trailing newline keeps not having one', () {
+      expect(toggle('- a\n- b', 0), '- a\n\n- b');
     });
   });
 }

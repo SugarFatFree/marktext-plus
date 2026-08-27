@@ -771,6 +771,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get paragraphToParagraph => 'In Absatz umwandeln';
+
+  @override
+  String get paragraphLooseList => 'Lockerer Listeneintrag';
   @override
   String get close => 'Schließen';
 

@@ -654,6 +654,12 @@ class AppMenuBar extends ConsumerWidget {
               child: Text(l10n.paragraphToParagraph),
               onPressed: () => fmt(FormatAction.toParagraph),
             ),
+            MenuItemButton(
+              // Upstream carries this as a checkbox; a menu here has no state
+              // to check against, so it reads as the action it performs.
+              child: Text(l10n.paragraphLooseList),
+              onPressed: () => fmt(FormatAction.looseList),
+            ),
           ],
           child: Text(l10n.menuParagraph),
         ),

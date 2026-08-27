@@ -766,6 +766,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get paragraphToParagraph => '단락으로 변환';
+
+  @override
+  String get paragraphLooseList => '느슨한 목록 항목';
   @override
   String get close => '닫기';
 

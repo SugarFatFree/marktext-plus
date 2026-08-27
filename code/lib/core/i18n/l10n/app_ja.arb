@@ -257,6 +257,7 @@
   "paragraphPromoteHeading": "見出しレベルを上げる",
   "paragraphDemoteHeading": "見出しレベルを下げる",
   "paragraphToParagraph": "段落に変換",
+  "paragraphLooseList": "ゆるいリスト項目",
   "close": "閉じる",
   "mermaidViewerTitle": "Mermaid ダイアグラムビューア",
   "mermaidViewerHint": "Ctrl+スクロールで拡大縮小    ドラッグで移動    Esc で閉じる",

@@ -257,6 +257,7 @@
   "paragraphPromoteHeading": "رفع مستوى العنوان",
   "paragraphDemoteHeading": "خفض مستوى العنوان",
   "paragraphToParagraph": "تحويل إلى فقرة",
+  "paragraphLooseList": "عنصر قائمة متباعد",
   "close": "إغلاق",
   "mermaidViewerTitle": "عارض مخططات Mermaid",
   "mermaidViewerHint": "Ctrl+عجلة الفأرة للتكبير    السحب للتحريك    Esc للإغلاق",

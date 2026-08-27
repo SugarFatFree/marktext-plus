@@ -770,6 +770,9 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get paragraphToParagraph => 'Преобразовать в абзац';
+
+  @override
+  String get paragraphLooseList => 'Разреженный список';
   @override
   String get close => 'Закрыть';
 
