@@ -67,6 +67,27 @@ void main() {
     expect(File(outPath).readAsStringSync(), contains('src="nowhere.png"'));
   });
 
+  test('image dimensions come from the file header', () async {
+    // A 10x5 GIF: the size lives in the logical screen descriptor, so no
+    // image-decoding package is needed to keep the aspect ratio.
+    final gif = base64Decode(
+      'R0lGODlhCgAFAIAAAP///wAAACH5BAEAAAAALAAAAAAKAAUAAAIIhI+py+0PYysAOw==',
+    );
+    File('${temp.path}/wide.gif').writeAsBytesSync(gif);
+    final outPath = '${temp.path}/out.html';
+
+    await ExportService.exportToHtml(
+      '![wide](wide.gif)\n',
+      outPath,
+      sourcePath: '${temp.path}/note.md',
+    );
+
+    expect(
+      File(outPath).readAsStringSync(),
+      contains('src="data:image/gif;base64,'),
+    );
+  });
+
   test('without a source path local images are left alone', () async {
     File('${temp.path}/pic.png').writeAsBytesSync(onePixelPng);
     final outPath = '${temp.path}/out.html';

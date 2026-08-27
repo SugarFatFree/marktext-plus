@@ -257,9 +257,19 @@ class ExportService {
   }
 
   /// Export Markdown to Word (.docx)
-  static Future<void> exportToDocx(String markdown, String savePath, {Map<String, Uint8List>? mermaidImages}) async {
+  /// Writes [markdown] to [savePath] as a .docx file.
+  ///
+  /// [sourcePath] is the document's own location, needed to resolve relative
+  /// image paths; without it images render as their alt text.
+  static Future<void> exportToDocx(
+    String markdown,
+    String savePath, {
+    Map<String, Uint8List>? mermaidImages,
+    String? sourcePath,
+  }) async {
     final parser = MarkdownParser();
     final ast = parser.parse(markdown);
+    final documentImages = await _readLocalImages(ast, sourcePath);
 
     var builder = docx().section(
       pageSize: DocxPageSize.a4,
@@ -280,14 +290,24 @@ class ExportService {
       if (mermaidKey != null && mermaidImages != null) {
         img = mermaidImages[mermaidKey];
       }
-      builder = _addNodeToDocx(builder, node, mermaidImage: img);
+      builder = _addNodeToDocx(
+        builder,
+        node,
+        mermaidImage: img,
+        documentImages: documentImages,
+      );
     }
 
     final doc = builder.build();
     await DocxExporter().exportToFile(doc, savePath);
   }
 
-  static DocxDocumentBuilder _addNodeToDocx(DocxDocumentBuilder builder, MarkdownNode node, {Uint8List? mermaidImage}) {
+  static DocxDocumentBuilder _addNodeToDocx(
+    DocxDocumentBuilder builder,
+    MarkdownNode node, {
+    Uint8List? mermaidImage,
+    Map<String, ({Uint8List bytes, String mime})> documentImages = const {},
+  }) {
     switch (node.type) {
       case NodeType.heading:
         final heading = node as HeadingNode;
@@ -303,6 +323,26 @@ class ExportService {
 
       case NodeType.paragraph:
         final para = node as ParagraphNode;
+
+        // A paragraph that is nothing but an image renders as the picture.
+        // Images mixed into a sentence stay as alt text, and SVG has no
+        // DrawingML form Word would accept.
+        if (para.inlineSpans.length == 1 &&
+            para.inlineSpans.single.type == InlineType.image) {
+          final span = para.inlineSpans.single;
+          final image = documentImages[span.href];
+          if (image != null && image.mime != 'image/svg+xml') {
+            final size = _fittedImageSize(image.bytes, image.mime);
+            return builder.image(DocxImage(
+              bytes: image.bytes,
+              extension: _extensionOf(span.href ?? '').replaceFirst('.', ''),
+              width: size.width,
+              height: size.height,
+              altText: span.text,
+            ));
+          }
+        }
+
         final children = (para.inlineSpans.length == 1 && para.inlineSpans.first.type == InlineType.text)
             ? [DocxText(para.content)]
             : _inlineSpansToDocxTexts(para.inlineSpans);
@@ -316,7 +356,15 @@ class ExportService {
         final code = node as CodeBlockNode;
         final isMermaid = _isMermaidLanguage(code.language);
         if (isMermaid && mermaidImage != null) {
-          return builder.image(DocxImage(bytes: mermaidImage, extension: 'png', width: 400, height: 300));
+          // Sized from the image rather than a fixed 400x300 box, which
+          // stretched any diagram that was not exactly 4:3.
+          final size = _fittedImageSize(mermaidImage, 'image/png');
+          return builder.image(DocxImage(
+            bytes: mermaidImage,
+            extension: 'png',
+            width: size.width,
+            height: size.height,
+          ));
         }
         if (isMermaid) {
           builder = builder.add(DocxParagraph(
@@ -1135,6 +1183,84 @@ class ExportService {
     '.bmp': 'image/bmp',
     '.svg': 'image/svg+xml',
   };
+
+  /// Pixel dimensions read from an image's header.
+  ///
+  /// Only the first few bytes of each format carry the size, so this avoids
+  /// pulling in an image-decoding package purely to keep pictures from being
+  /// stretched to a fixed box.
+  static ({int width, int height})? _imageSize(Uint8List bytes, String mime) {
+    switch (mime) {
+      case 'image/png':
+        // IHDR is always the first chunk; width and height sit at 16..24.
+        if (bytes.length < 24) return null;
+        return (
+          width: _readUint32BE(bytes, 16),
+          height: _readUint32BE(bytes, 20),
+        );
+      case 'image/gif':
+        // Logical screen descriptor, little-endian.
+        if (bytes.length < 10) return null;
+        return (
+          width: bytes[6] | (bytes[7] << 8),
+          height: bytes[8] | (bytes[9] << 8),
+        );
+      case 'image/jpeg':
+        return _jpegSize(bytes);
+      default:
+        return null;
+    }
+  }
+
+  static int _readUint32BE(Uint8List bytes, int offset) {
+    return (bytes[offset] << 24) |
+        (bytes[offset + 1] << 16) |
+        (bytes[offset + 2] << 8) |
+        bytes[offset + 3];
+  }
+
+  /// Walks JPEG segments to the frame header, which carries the dimensions.
+  static ({int width, int height})? _jpegSize(Uint8List bytes) {
+    var offset = 2; // past the SOI marker
+    while (offset + 9 < bytes.length) {
+      if (bytes[offset] != 0xFF) {
+        offset++;
+        continue;
+      }
+      final marker = bytes[offset + 1];
+      // SOF0..SOF15 hold the frame size, except C4/C8/CC which are tables.
+      if (marker >= 0xC0 &&
+          marker <= 0xCF &&
+          marker != 0xC4 &&
+          marker != 0xC8 &&
+          marker != 0xCC) {
+        return (
+          height: (bytes[offset + 5] << 8) | bytes[offset + 6],
+          width: (bytes[offset + 7] << 8) | bytes[offset + 8],
+        );
+      }
+      final length = (bytes[offset + 2] << 8) | bytes[offset + 3];
+      if (length <= 0) return null;
+      offset += 2 + length;
+    }
+    return null;
+  }
+
+  /// Width and height for a picture placed in a document, keeping its aspect
+  /// ratio and fitting the printable width of an A4 page.
+  static ({double width, double height}) _fittedImageSize(
+    Uint8List bytes,
+    String mime,
+  ) {
+    const maxWidth = 450.0;
+    const fallback = (width: maxWidth, height: 300.0);
+
+    final size = _imageSize(bytes, mime);
+    if (size == null || size.width <= 0 || size.height <= 0) return fallback;
+
+    final width = size.width.toDouble().clamp(1.0, maxWidth);
+    return (width: width, height: width * size.height / size.width);
+  }
 
   /// Data URIs for the local images in [ast], keyed by their original `src`.
   ///

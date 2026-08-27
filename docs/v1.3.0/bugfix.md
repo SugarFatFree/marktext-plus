@@ -37,6 +37,7 @@
 | BUG-028 | 2026-08-27 | 导出的 HTML 不渲染数学公式，代码块无语法高亮 | P2 | 已修复 |
 | BUG-029 | 2026-08-27 | 导出的 HTML 中本地图片全部失效（相对路径不再成立） | P1 | 已修复 |
 | BUG-030 | 2026-08-27 | 导出的 PDF 中图片完全不显示，只剩替代文字 | P1 | 已修复 |
+| BUG-031 | 2026-08-27 | 导出的 Word 中图片不显示；mermaid 图表被拉伸变形 | P1 | 已修复 |
 
 ---
 
@@ -462,3 +463,17 @@
 | 根因分析 | `_inlineSpansToPdf` 的 `InlineType.image` 分支只回传 `pw.TextSpan(text: alt)`。PDF 侧其实**已经具备嵌图能力** —— mermaid 图表正是通过 `pw.Image(pw.MemoryImage(bytes))` 嵌入的，只是文档图片从未接上这条路 |
 | 修复方案 | `exportToPdf` 同样接收 `sourcePath`，复用 BUG-029 新增的图片读取逻辑（抽出 `_readLocalImages` 返回字节与 MIME，HTML 侧再转 data URI，两条导出路径共用同一次文件读取）。段落若**仅含一个图片 span**，整段渲染为 `pw.Image`。<br>**未覆盖**：混在句子中间的行内图片仍显示替代文字 —— pdf 包的富文本无法在行内嵌入 widget；SVG 也跳过，`MemoryImage` 不能解码 |
 | 涉及文件 | `lib/services/export_service.dart`、`lib/ui/widgets/app_menu_bar.dart` |
+
+---
+
+## BUG-031 Word 导出的图片缺失与变形
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+| 现象 | ① 文档图片导出 Word 后不显示，只剩替代文字；② mermaid 图表虽能嵌入，但一律被压成 400×300，**非 4:3 的图全部变形** |
+| 根因分析 | 与 BUG-030 同源：`docx_creator` 的 `DocxImage` 早已在用（mermaid 走的就是它），文档图片却没接上。变形则是因为调用处把 `width: 400, height: 300` 写死 |
+| 修复方案 | `exportToDocx` 接收 `sourcePath`，复用 `_readLocalImages`；仅含一个图片 span 的段落整段渲染为 `DocxImage`。<br>新增 `_imageSize` 从**文件头**读取真实像素尺寸：PNG 取 IHDR（偏移 16..24），GIF 取逻辑屏幕描述符（小端），JPEG 扫描至 SOF 段。如此无需引入图像解码包即可保持宽高比。`_fittedImageSize` 在此基础上限制最大宽度 450pt（A4 可打印宽度），mermaid 图表一并受益 |
+| 涉及文件 | `lib/services/export_service.dart`、`lib/ui/widgets/app_menu_bar.dart`、`test/services/export_image_test.dart` |

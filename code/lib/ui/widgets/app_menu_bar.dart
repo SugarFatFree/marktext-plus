@@ -848,7 +848,12 @@ class AppMenuBar extends ConsumerWidget {
     );
     if (path == null) return;
     final mermaidImages = await _renderMermaidImages(activeTab.content);
-    await ExportService.exportToDocx(activeTab.content, path, mermaidImages: mermaidImages);
+    await ExportService.exportToDocx(
+      activeTab.content,
+      path,
+      mermaidImages: mermaidImages,
+      sourcePath: activeTab.filePath,
+    );
   }
 
   static const _mermaidLanguages = {
