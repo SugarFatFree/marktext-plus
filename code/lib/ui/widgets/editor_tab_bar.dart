@@ -277,7 +277,6 @@ class _TabItemState extends ConsumerState<_TabItem> with SingleTickerProviderSta
     }
   }
 
-  @override
   List<TabInfo> _tabsRightOf(WidgetRef ref, String id) {
     final tabs = ref.read(tabProvider).tabs;
     final index = tabs.indexWhere((t) => t.id == id);
@@ -346,6 +345,7 @@ class _TabItemState extends ConsumerState<_TabItem> with SingleTickerProviderSta
     );
   }
 
+  @override
   Widget build(BuildContext context) {
     return FadeTransition(
       opacity: _fadeAnimation,
