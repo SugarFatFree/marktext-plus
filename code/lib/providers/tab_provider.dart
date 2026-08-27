@@ -231,6 +231,21 @@ class TabNotifier extends StateNotifier<TabState> {
     state = state.copyWith(activeTabId: id);
   }
 
+  /// Changes which line ending [id] is written with.
+  ///
+  /// Marks the document modified: nothing about the text has changed, but
+  /// what would be written to disk has, and leaving it clean would let the
+  /// choice be lost by closing the tab.
+  void setLineEnding(String id, LineEnding lineEnding) {
+    final tabs = state.tabs.map((tab) {
+      if (tab.id == id && tab.lineEnding != lineEnding) {
+        return tab.copyWith(lineEnding: lineEnding, isModified: true);
+      }
+      return tab;
+    }).toList();
+    state = state.copyWith(tabs: tabs);
+  }
+
   void updateContent(String id, String content) {
     final tabs = state.tabs.map((tab) {
       if (tab.id == id) {

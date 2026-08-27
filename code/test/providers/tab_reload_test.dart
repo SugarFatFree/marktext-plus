@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/core/config/app_config.dart';
 import 'package:marktext_plus/core/config/config_service.dart';
+import 'package:marktext_plus/models/line_ending.dart';
 import 'package:marktext_plus/models/tab_info.dart';
 import 'package:marktext_plus/providers/settings_provider.dart';
 import 'package:marktext_plus/providers/tab_provider.dart';
@@ -140,6 +141,28 @@ void main() {
     await settle();
 
     expect(contentOf(), 'two');
+  });
+
+  test('switching the line ending marks the document modified', () async {
+    // Nothing about the text changes, but what would be written to disk does,
+    // and leaving the tab clean would let the choice be lost on close.
+    openDocument();
+
+    container
+        .read(tabProvider.notifier)
+        .setLineEnding('tab-1', LineEnding.crlf);
+
+    final tab = container.read(tabProvider).tabs.single;
+    expect(tab.lineEnding, LineEnding.crlf);
+    expect(tab.isModified, isTrue);
+  });
+
+  test('setting the line ending it already has changes nothing', () async {
+    openDocument();
+
+    container.read(tabProvider.notifier).setLineEnding('tab-1', LineEnding.lf);
+
+    expect(container.read(tabProvider).tabs.single.isModified, isFalse);
   });
 
   test('a file rewritten with the same text changes nothing', () async {
