@@ -45,7 +45,12 @@ class TabState {
 
 class TabNotifier extends StateNotifier<TabState> {
   final Ref _ref;
-  Timer? _autoSaveTimer;
+  /// One pending auto-save per document.
+  ///
+  /// A single shared timer meant that editing a second tab cancelled the first
+  /// tab's pending save and never rescheduled it, so that document silently
+  /// stayed unwritten while auto-save was switched on.
+  final Map<String, Timer> _autoSaveTimers = {};
 
   TabNotifier(this._ref) : super(const TabState());
 
@@ -71,7 +76,10 @@ class TabNotifier extends StateNotifier<TabState> {
 
   @override
   void dispose() {
-    _autoSaveTimer?.cancel();
+    for (final timer in _autoSaveTimers.values) {
+      timer.cancel();
+    }
+    _autoSaveTimers.clear();
     super.dispose();
   }
 
@@ -106,6 +114,8 @@ class TabNotifier extends StateNotifier<TabState> {
     // A closed tab's undo history would otherwise sit in memory for the rest
     // of the session.
     _ref.read(editorProvider.notifier).forgetHistory(id);
+    // Its pending auto-save would fire against a tab that no longer exists.
+    _autoSaveTimers.remove(id)?.cancel();
 
     final tabs = state.tabs.where((t) => t.id != id).toList();
     String? newActiveId = state.activeTabId;
@@ -168,11 +178,13 @@ class TabNotifier extends StateNotifier<TabState> {
   }
 
   void _scheduleAutoSave(String tabId) {
-    _autoSaveTimer?.cancel();
+    _autoSaveTimers.remove(tabId)?.cancel();
     final config = _ref.read(settingsProvider);
     if (!config.autoSave) return;
 
-    _autoSaveTimer = Timer(Duration(milliseconds: config.autoSaveDelay), () {
+    _autoSaveTimers[tabId] =
+        Timer(Duration(milliseconds: config.autoSaveDelay), () {
+      _autoSaveTimers.remove(tabId);
       _performAutoSave(tabId);
     });
   }
