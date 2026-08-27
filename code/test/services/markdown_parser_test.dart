@@ -569,6 +569,26 @@ void _linkSyntaxTests() {
       expect(nodes, isEmpty);
     });
 
+    test('a bare address becomes a link', () {
+      final spans = spansOf('visit https://example.com now\n');
+      final link = spans.firstWhere((s) => s.type == InlineType.link);
+      expect(link.href, 'https://example.com');
+    });
+
+    test('trailing punctuation is not part of a bare address', () {
+      // "see https://example.com." — the full stop ends the sentence.
+      final spans = spansOf('see https://example.com.\n');
+      final link = spans.firstWhere((s) => s.type == InlineType.link);
+      expect(link.href, 'https://example.com');
+      expect(spans.last.text, '.');
+    });
+
+    test('an address already inside a markdown link is not doubled', () {
+      final spans = spansOf('[t](https://x.com)\n');
+      expect(spans.length, 1);
+      expect(spans.single.text, 't');
+    });
+
     test('an unresolved reference stays as written', () {
       final span = spansOf('[t][missing]\n').single;
       expect(span.type, InlineType.text);

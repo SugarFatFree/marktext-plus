@@ -855,6 +855,10 @@ class MarkdownParser {
       // existing branch's numbering alone.
       r'|<((?:https?|ftp|mailto):[^>\s]+)>'         // 19 autolink
       r'|\[([^\]]+)\]\[([^\]]*)\]'                // 20 text, 21 label
+      // A bare address, which GitHub Flavored Markdown links automatically.
+      // Last of all, so an address already inside [](…) or <…> is claimed by
+      // those branches first.
+      r'|((?:https?://|www\.)[^\s<>\[\]()]+)'      // 22 bare url
     );
 
     var lastEnd = 0;
@@ -930,6 +934,18 @@ class MarkdownParser {
         // Autolink: <https://example.com>
         final url = match.group(19)!;
         spans.add(InlineSpan(type: InlineType.link, text: url, href: url));
+      } else if (match.group(22) != null) {
+        // Trailing punctuation ends the sentence, not the address: in
+        // "see https://example.com." the full stop is not part of the link.
+        final raw = match.group(22)!;
+        final url = raw.replaceFirst(RegExp(r'[.,;:!?]+$'), '');
+        spans.add(InlineSpan(type: InlineType.link, text: url, href: url));
+        if (url.length < raw.length) {
+          spans.add(InlineSpan(
+            type: InlineType.text,
+            text: raw.substring(url.length),
+          ));
+        }
       } else if (match.group(20) != null) {
         // Reference link: [text][label], or [text][] where the text is the
         // label. Unresolved references stay as written rather than becoming a
