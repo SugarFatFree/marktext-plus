@@ -683,10 +683,7 @@ class MarkdownParser {
 
     while (i < lines.length) {
       if (_startsListItem(lines[i])) {
-        if (_indentColumns(lines[i]) <= firstIndent &&
-            _olRe.hasMatch(lines[i]) != firstOrdered) {
-          break;
-        }
+        if (_startsAnotherList(lines[i], firstIndent, firstOrdered)) break;
         blocks.add([lines[i]]);
         i++;
         continue;
@@ -697,8 +694,14 @@ class MarkdownParser {
         while (next < lines.length && lines[next].trim().isEmpty) {
           next++;
         }
-        // The list continues only if what follows the gap is another item.
-        if (next < lines.length && _startsListItem(lines[next])) {
+        // The list continues only if what follows the gap is another item of
+        // the same kind. Deciding that here rather than after the jump is what
+        // keeps the blank line out of this list's line range: `i` still points
+        // at it, so the span ends before it and the block can be edited and
+        // put back unchanged.
+        if (next < lines.length &&
+            _startsListItem(lines[next]) &&
+            !_startsAnotherList(lines[next], firstIndent, firstOrdered)) {
           // A gap between two items is what makes the list loose.
           loose = true;
           i = next;
@@ -718,6 +721,15 @@ class MarkdownParser {
 
     return (blocks, i, loose);
   }
+
+  /// Whether [line] begins a list separate from the one being collected.
+  ///
+  /// Changing from numbers to bullets — or back — starts a new list, as
+  /// CommonMark has it. Only at the list's own indentation: a bulleted
+  /// sub-point under a numbered step is a deeper item of the same list.
+  bool _startsAnotherList(String line, int firstIndent, bool firstOrdered) =>
+      _indentColumns(line) <= firstIndent &&
+      _olRe.hasMatch(line) != firstOrdered;
 
   /// Link reference definitions found in the document being parsed.
   ///
