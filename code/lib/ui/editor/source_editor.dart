@@ -435,7 +435,7 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
       case FormatAction.unorderedList:
         // The configured marker, which nothing was reading: choosing * or +
         // in settings still produced a dash.
-        _applyLinePrefixAtCursor('${ref.read(settingsProvider).listMarker} ');
+        _applyLinePrefixAtCursor('${ref.read(settingsProvider).bulletListMarker} ');
       case FormatAction.taskList:
         _applyLinePrefixAtCursor('- [ ] ');
       case FormatAction.quoteBlock:
