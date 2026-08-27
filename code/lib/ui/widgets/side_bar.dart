@@ -8,6 +8,7 @@ import '../../core/i18n/l10n/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/file_node.dart';
 import '../../models/tab_info.dart';
+import '../../models/file_encoding.dart';
 import '../../providers/editor_provider.dart';
 import '../../providers/file_provider.dart';
 import '../../providers/settings_provider.dart';
@@ -551,7 +552,7 @@ class _SideBarState extends ConsumerState<SideBar> {
       final opened = await FileService().readFileWithLineEnding(filePath);
       if (!mounted) return;
       tabNotifier.loadTabContent(tabId, opened.content,
-          lineEnding: opened.lineEnding);
+          lineEnding: opened.lineEnding, encoding: opened.encoding);
       // Requested before the new editor exists; it reads the pending target
       // when it initialises.
       if (line != null) ref.read(editorProvider.notifier).scrollToLine(line);
@@ -795,7 +796,11 @@ class _SideBarState extends ConsumerState<SideBar> {
       }
 
       try {
-        final lines = (await entity.readAsString()).split('\n');
+        // Through the shared decode: `readAsString` throws on anything but
+        // UTF-8, and the catch below then skipped the file entirely — a
+        // legacy document was simply unsearchable.
+        final (text, _) = FileEncoding.decode(await entity.readAsBytes());
+        final lines = text.split('\n');
         for (int i = 0; i < lines.length; i++) {
           if (!lines[i].toLowerCase().contains(lowercaseQuery)) continue;
           results.add(_SearchResult(

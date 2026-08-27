@@ -1,11 +1,17 @@
 import 'dart:io';
 import 'package:path/path.dart' as p;
 import '../models/file_node.dart';
+import '../models/file_encoding.dart';
 import '../models/line_ending.dart';
 
 class FileService {
+  /// Reads [path] as text, normalised to LF.
+  ///
+  /// Goes through the same decode as [readFileWithLineEnding]: two ways of
+  /// reading a document is how one of them ends up unable to open a file the
+  /// other can.
   Future<String> readFile(String path) async {
-    final content = await File(path).readAsString();
+    final (content, _) = FileEncoding.decode(await File(path).readAsBytes());
     return normalizeLineEndings(content);
   }
 
@@ -14,12 +20,17 @@ class FileService {
   /// The editor works in LF throughout, but saving has to put back what the
   /// file had: rewriting a CRLF file as LF turns a one-word edit into a
   /// whole-file diff for anyone on Windows.
-  Future<({String content, LineEnding lineEnding})> readFileWithLineEnding(
-      String path) async {
-    final raw = await File(path).readAsString();
+  Future<({String content, LineEnding lineEnding, FileEncoding encoding})>
+      readFileWithLineEnding(String path) async {
+    // Bytes, not readAsString: that throws on anything but UTF-8, and the tab
+    // then disappeared without a word. It also swallows a UTF-8 byte order
+    // mark, so a file written by Notepad lost it the first time it was saved.
+    final bytes = await File(path).readAsBytes();
+    final (raw, encoding) = FileEncoding.decode(bytes);
     return (
       content: normalizeLineEndings(raw),
       lineEnding: LineEnding.detect(raw),
+      encoding: encoding,
     );
   }
 
@@ -41,8 +52,9 @@ class FileService {
     String path,
     String content, {
     LineEnding lineEnding = LineEnding.lf,
+    FileEncoding encoding = FileEncoding.utf8Encoding,
   }) async {
-    await File(path).writeAsString(lineEnding.apply(content));
+    await File(path).writeAsBytes(encoding.encode(lineEnding.apply(content)));
   }
 
   Future<void> writeFile(String path, String content) async {

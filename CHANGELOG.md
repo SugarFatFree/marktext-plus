@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A kanban task written with an `@{ … }` metadata block appears on the board instead of vanishing
 - Searching the preview for a repeating pattern no longer draws more characters than the document holds, and the preview and the find bar agree on the match count
 - The word count keeps an apostrophe or a hyphen inside the word, so `don't` and `well-known` count as one each
+- A file that is not UTF-8 opens instead of the tab vanishing, and its encoding — including a UTF-8 byte order mark — is written back on save
 - Email addresses are linked, both `<foo@example.com>` and bare ones in prose
 - An open document reloads when the file changes on disk, as long as it has no unsaved edits
 - "Save as" rebinds the tab to the file it wrote, so the title updates and the next save no longer asks again

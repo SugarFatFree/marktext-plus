@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -32,6 +33,7 @@ import '../editor/markdown_renderer.dart';
 import '../editor/split_editor.dart';
 import '../../services/keybinding_service.dart';
 import '../../services/file_service.dart';
+import '../../models/file_encoding.dart';
 import '../../models/line_ending.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -351,6 +353,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
         activeTab.filePath!,
         activeTab.content,
         lineEnding: activeTab.lineEnding,
+        encoding: activeTab.encoding,
       );
     } catch (_) {
       // Left marked as modified: saying it was saved when the write failed is
@@ -388,13 +391,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
         WidgetsBinding.instance.addPostFrameCallback((_) async {
           try {
             // Read file content in isolate for large files
-            final raw = await compute(_readFileInIsolate, path);
+            final bytes = await compute(_readFileInIsolate, path);
+            final (raw, encoding) = FileEncoding.decode(bytes);
             ref
                 .read(tabProvider.notifier)
                 .loadTabContent(
                   tabId,
                   FileService.normalizeLineEndings(raw),
                   lineEnding: LineEnding.detect(raw),
+                  encoding: encoding,
                 );
           } catch (e) {
             // Handle error: remove the loading tab or show error state
@@ -409,11 +414,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
 
   /// Reads [path] off the UI isolate.
   ///
-  /// Returns the bytes as they are: line endings are inspected and normalised
-  /// on the main isolate, where the result is needed anyway, rather than
-  /// sending a record across the boundary.
-  static Future<String> _readFileInIsolate(String path) async {
-    return await File(path).readAsString();
+  /// Returns the bytes as they are: the encoding and the line endings are
+  /// worked out on the main isolate, where the result is needed anyway,
+  /// rather than sending a record across the boundary.
+  ///
+  /// Bytes rather than a string because `readAsString` throws on anything but
+  /// UTF-8, and the catch around this call removes the tab — so a file in any
+  /// other encoding used to open and vanish.
+  static Future<Uint8List> _readFileInIsolate(String path) async {
+    return File(path).readAsBytes();
   }
 
   void _handleDrop(DropDoneDetails details) async {
@@ -453,13 +462,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
         WidgetsBinding.instance.addPostFrameCallback((_) async {
           try {
             // Read file content in isolate for large files
-            final raw = await compute(_readFileInIsolate, path);
+            final bytes = await compute(_readFileInIsolate, path);
+            final (raw, encoding) = FileEncoding.decode(bytes);
             ref
                 .read(tabProvider.notifier)
                 .loadTabContent(
                   tabId,
                   FileService.normalizeLineEndings(raw),
                   lineEnding: LineEnding.detect(raw),
+                  encoding: encoding,
                 );
           } catch (e) {
             ref.read(tabProvider.notifier).removeTab(tabId);

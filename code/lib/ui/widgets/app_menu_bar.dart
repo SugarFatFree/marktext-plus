@@ -117,6 +117,7 @@ class AppMenuBar extends ConsumerWidget {
       fileName: p.basename(path),
       content: opened.content,
       lineEnding: opened.lineEnding,
+      encoding: opened.encoding,
     );
     ref.read(tabProvider.notifier).addTab(tab);
     ref.read(settingsProvider.notifier).addRecentFile(path);
@@ -139,7 +140,7 @@ class AppMenuBar extends ConsumerWidget {
     if (activeTab.filePath != null) {
       try {
         await FileService.saveDocument(activeTab.filePath!, activeTab.content,
-            lineEnding: activeTab.lineEnding);
+            lineEnding: activeTab.lineEnding, encoding: activeTab.encoding);
       } catch (_) {
         // Left marked as modified, so the dot in the tab bar and the close
         // confirmation both keep telling the truth about what is on disk.
@@ -163,7 +164,7 @@ class AppMenuBar extends ConsumerWidget {
     if (path == null) return;
     try {
       await FileService.saveDocument(path, activeTab.content,
-          lineEnding: activeTab.lineEnding);
+          lineEnding: activeTab.lineEnding, encoding: activeTab.encoding);
     } catch (_) {
       return;
     }
@@ -1037,6 +1038,7 @@ class AppMenuBar extends ConsumerWidget {
       fileName: p.basename(filePath),
       content: opened.content,
       lineEnding: opened.lineEnding,
+      encoding: opened.encoding,
     );
     ref.read(tabProvider.notifier).addTab(tab);
     ref.read(settingsProvider.notifier).addRecentFile(filePath);

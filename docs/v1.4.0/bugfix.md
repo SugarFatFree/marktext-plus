@@ -17,6 +17,7 @@
 | BUG-013 | 2026-08-28 | 看板里带元数据的任务整条消失 | P1 | 已修复 |
 | BUG-014 | 2026-08-28 | 预览里搜索重复串会显示出比文档更多的字 | P1 | 已修复 |
 | BUG-015 | 2026-08-28 | 字数统计把 `don't` 算成两个词 | P2 | 已修复 |
+| BUG-016 | 2026-08-28 | 打开非 UTF-8 文件时标签页静默消失；带 BOM 的文件保存后丢 BOM | **P0** | 已修复 |
 
 ## 详细记录
 
@@ -286,5 +287,27 @@
 | 涉及文件 | `lib/services/word_count_service.dart`、`test/services/word_count_service_test.dart` |
 | 验证方式 | 22 种文本本地探查（含中日韩俄、重音、emoji、弯撇号、项目符号、破折号、中文夹连字符、千词长文）；2 组新仓库测试 |
 | 过程记录 | CI 挡下一次：既有测试里有一行 `expect(countWords('a-b c').words, 3)` 正是在断言**被改掉的那个行为**。它写在「按空格分词」那组里，看上去是当时照着实现写下的，而不是深思熟虑的约定 —— 已改成 2 并注明原因。教训：改判定规则前应当先搜一遍测试里有没有钉住旧行为的断言 |
+
+---
+
+### BUG-016 打开非 UTF-8 文件时标签页静默消失；带 BOM 的文件保存后丢 BOM
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-28 |
+| 优先级 | **P0** |
+| 状态 | 已修复 |
+| 现象一（P0） | 打开 GBK、Latin-1 或 UTF-16 编码的 `.md` / `.txt`：标签页闪一下就**消失了**，没有任何提示。对中文用户来说，GBK 的旧文档并不罕见 |
+| 现象二 | 带 UTF-8 BOM 的文件（Windows 记事本、很多国产工具的默认输出）打开再保存，**BOM 没了** —— 一个字没改的文件在 git 里也会显示整行变更 |
+| 根因分析一 | 读取用的是 `File.readAsString()`，它固定按 UTF-8 解码，**遇到非法字节直接抛异常**。三条打开路径的 catch 都是「移除这个标签页」，于是表现为静默消失 |
+| 根因分析二 | Dart 的 `utf8.decode` 会**吞掉 UTF-8 BOM**（实测确认），字符串里根本没有它，保存时自然写不回去。有意思的是 `markdown_parser.replaceBlock` 里有一段专门保留 BOM 的逻辑 —— 对走 FileService 读进来的文档，那段逻辑其实一直是死代码 |
+| 修复方案 | 新增 `FileEncoding` 模型（与既有的 `LineEnding` 同构）：按**字节**读入，依次判定 UTF-16 BOM → UTF-8 BOM → UTF-8 → 回退 Latin-1；标签页记住编码，保存时按同一编码写回 |
+| 为什么用 Latin-1 兜底 | Latin-1 是唯一「任何字节都能解码、且再编码回去完全一致」的编码。GBK 文档会显示成乱码，但**没被编辑的部分逐字节原样保留**，不会像转成 UTF-8 那样把文件毁掉。相比之下「打不开」和「悄悄转码」都更糟 |
+| 边界处理 | 在按 Latin-1 打开的文件里打了中文（Latin-1 写不下）时回退到 UTF-8 写出，而不是抛异常把这次保存丢掉 |
+| 一并收口的读取路径 | 全仓一共四处读文档：`readFileWithLineEnding`、`readFile`、大文件的 isolate 读取（`home_screen`）、侧边栏的文件夹搜索。**四处全部改走同一个解码**。isolate 那条改成「隔离里只读字节、主 isolate 解码」，记录也顺带更新；搜索那条原本 catch 掉异常，效果是**非 UTF-8 文件搜不到**，现在能搜了 |
+| 保存路径 | 五处 `saveDocument` 调用全部带上 `encoding`（与 `lineEnding` 同样处理） |
+| 涉及文件 | `lib/models/file_encoding.dart`（新增）、`lib/services/file_service.dart`、`lib/models/tab_info.dart`、`lib/providers/tab_provider.dart`、`lib/ui/screens/home_screen.dart`、`lib/ui/widgets/side_bar.dart`、`lib/ui/widgets/app_menu_bar.dart`、`lib/ui/widgets/editor_tab_bar.dart`、`lib/ui/editor/markdown_renderer.dart`、`test/models/file_encoding_test.dart`（新增） |
+| 验证方式 | 先用真实的 GBK / Latin-1 / UTF-16 / UTF-8+BOM 文件确认了「现在会抛异常」这一事实，再验证修复后**五种编码全部逐字节原样回写**；7 个仓库测试 |
+| 仍未做 | 没有真正的 GBK 解码（Dart 无内置编解码器，引第三方包对 CI 构建有风险），所以 GBK 文档显示为乱码而非正确中文；状态栏也还没有显示当前编码 |
 
 ---

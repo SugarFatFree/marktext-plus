@@ -97,7 +97,7 @@ class EditorTabBar extends ConsumerWidget {
 
     try {
       await FileService.saveDocument(path, tab.content,
-          lineEnding: tab.lineEnding);
+          lineEnding: tab.lineEnding, encoding: tab.encoding);
     } catch (_) {
       // Closing on a failed write would lose the content the save was meant
       // to protect.

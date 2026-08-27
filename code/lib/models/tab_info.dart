@@ -1,4 +1,5 @@
 import '../core/config/app_config.dart';
+import 'file_encoding.dart';
 import 'line_ending.dart';
 
 class TabInfo {
@@ -24,6 +25,13 @@ class TabInfo {
   /// What this document used on disk, so saving puts the same thing back.
   LineEnding lineEnding;
 
+  /// The byte encoding this document was read in.
+  ///
+  /// Held for the same reason as [lineEnding]: writing a legacy file back as
+  /// UTF-8 corrupts it, and dropping a byte order mark rewrites a file that
+  /// was never edited.
+  FileEncoding encoding;
+
   /// Bumped whenever [content] was replaced by something other than the
   /// editor showing it — a reload after the file changed on disk.
   ///
@@ -47,6 +55,7 @@ class TabInfo {
     this.splitSourceScrollOffset = 0,
     this.editMode = EditMode.preview,
     this.lineEnding = LineEnding.lf,
+    this.encoding = FileEncoding.utf8Encoding,
     this.externalRevision = 0,
   });
 
@@ -64,6 +73,7 @@ class TabInfo {
     double? splitSourceScrollOffset,
     EditMode? editMode,
     LineEnding? lineEnding,
+    FileEncoding? encoding,
     int? externalRevision,
   }) {
     return TabInfo(
@@ -82,6 +92,7 @@ class TabInfo {
           splitSourceScrollOffset ?? this.splitSourceScrollOffset,
       editMode: editMode ?? this.editMode,
       lineEnding: lineEnding ?? this.lineEnding,
+      encoding: encoding ?? this.encoding,
       externalRevision: externalRevision ?? this.externalRevision,
     );
   }

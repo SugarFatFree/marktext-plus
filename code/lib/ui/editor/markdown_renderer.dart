@@ -202,6 +202,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             fileName: p.basename(resolvedPath),
             content: opened.content,
             lineEnding: opened.lineEnding,
+            encoding: opened.encoding,
           ),
         );
   }

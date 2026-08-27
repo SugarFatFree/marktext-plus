@@ -11,6 +11,7 @@ import '../services/open_document_watcher.dart';
 import '../utils/platform_utils.dart';
 import 'editor_provider.dart';
 import 'settings_provider.dart';
+import '../models/file_encoding.dart';
 import '../models/line_ending.dart';
 
 /// Lightweight record of a file shown in the sidebar (no-folder mode).
@@ -110,7 +111,12 @@ class TabNotifier extends StateNotifier<TabState> {
       final current = state.tabs.where((t) => t.id == tab.id).firstOrNull;
       if (current == null || current.isModified) return;
 
-      loadTabContent(tab.id, opened.content, lineEnding: opened.lineEnding);
+      loadTabContent(
+        tab.id,
+        opened.content,
+        lineEnding: opened.lineEnding,
+        encoding: opened.encoding,
+      );
     } catch (_) {
       // The file went away, or was unreadable mid-write. The tab keeps what
       // it has, which is the safe outcome.
@@ -240,7 +246,12 @@ class TabNotifier extends StateNotifier<TabState> {
     _scheduleAutoSave(id);
   }
 
-  void loadTabContent(String id, String content, {LineEnding? lineEnding}) {
+  void loadTabContent(
+    String id,
+    String content, {
+    LineEnding? lineEnding,
+    FileEncoding? encoding,
+  }) {
     final tabs = state.tabs.map((tab) {
       if (tab.id == id) {
         // The revision is what tells the editors this text did not come from
@@ -249,6 +260,7 @@ class TabNotifier extends StateNotifier<TabState> {
           content: content,
           isLoading: false,
           lineEnding: lineEnding,
+          encoding: encoding,
           externalRevision: tab.externalRevision + 1,
         );
       }
@@ -289,6 +301,7 @@ class TabNotifier extends StateNotifier<TabState> {
         tab.filePath!,
         tab.content,
         lineEnding: tab.lineEnding,
+        encoding: tab.encoding,
       );
       markSaved(tabId);
     } catch (_) {
@@ -392,6 +405,7 @@ class TabNotifier extends StateNotifier<TabState> {
           fileName: p.basename(path),
           content: opened.content,
           lineEnding: opened.lineEnding,
+          encoding: opened.encoding,
           isModified: false,
         );
         addTab(tab);
