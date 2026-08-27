@@ -145,7 +145,7 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
       final result = parser.parseWithData(widget.code);
 
       if (result == null) {
-        throw Exception('Unable to parse diagram');
+        throw Exception(parser.describeParseFailure(widget.code));
       }
 
       final diagram = result.diagram;
@@ -234,7 +234,7 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
       _error = null;
       _isLoading = false;
     } catch (e) {
-      final errorMsg = e.toString();
+      final errorMsg = _readableError(e);
       _error = errorMsg;
       _isLoading = false;
       widget.onError?.call(errorMsg);
@@ -497,6 +497,16 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
   }
 }
 
+/// Strips Dart's `Exception: ` prefix so the message reads as prose.
+///
+/// The parser's failure descriptions are written for whoever wrote the
+/// diagram, not for a stack trace.
+String _readableError(Object error) {
+  final text = error.toString();
+  const prefix = 'Exception: ';
+  return text.startsWith(prefix) ? text.substring(prefix.length) : text;
+}
+
 /// An interactive Mermaid diagram with pan and zoom support
 class InteractiveMermaidDiagram extends StatefulWidget {
   /// Creates an interactive Mermaid diagram
@@ -700,7 +710,7 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
       final result = parser.parseWithData(widget.code);
 
       if (result == null) {
-        throw Exception('Unable to parse diagram');
+        throw Exception(parser.describeParseFailure(widget.code));
       }
 
       final diagram = result.diagram;
@@ -796,7 +806,7 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
       });
     } catch (e) {
       setState(() {
-        _error = e.toString();
+        _error = _readableError(e);
         _isLoading = false;
       });
     }

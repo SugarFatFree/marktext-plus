@@ -56,6 +56,29 @@ void main() {
     });
   });
 
+  group('Parse failure diagnosis', () {
+    test('names the unrecognised type and lists what is supported', () {
+      final message = parser.describeParseFailure('erDiagram\n  A ||--o{ B : has');
+
+      expect(message, contains('erdiagram'));
+      expect(message, contains('classDiagram'));
+      expect(message, contains('sequenceDiagram'));
+    });
+
+    test('says the header was fine when only the body failed', () {
+      // A recognised header with nothing under it: the type is known, the
+      // content is not parseable.
+      final message = parser.describeParseFailure('classDiagram');
+
+      expect(message, contains('class diagram'));
+      expect(message, isNot(contains('Unrecognised')));
+    });
+
+    test('reports an empty diagram as empty', () {
+      expect(parser.describeParseFailure('   \n\n'), contains('empty'));
+    });
+  });
+
   group('Class diagrams', () {
     test('parses classes, members and visibility', () {
       final result = parser.parseWithData('''

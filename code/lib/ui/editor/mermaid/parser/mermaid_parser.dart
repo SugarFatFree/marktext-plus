@@ -84,20 +84,7 @@ class MermaidParser {
 
     if (cleanedLines.isEmpty) return null;
 
-    // Skip YAML frontmatter if present (used by some diagram types like Kanban)
-    var firstContentLine = cleanedLines.first.trim().toLowerCase();
-    if (firstContentLine == '---') {
-      // Find the closing --- and get the first line after it
-      for (var i = 1; i < cleanedLines.length; i++) {
-        if (cleanedLines[i].trim() == '---') {
-          if (i + 1 < cleanedLines.length) {
-            firstContentLine = cleanedLines[i + 1].trim().toLowerCase();
-          }
-          break;
-        }
-      }
-    }
-    final firstLine = firstContentLine;
+    final firstLine = _firstContentLine(cleanedLines);
 
     // Detect diagram type
     final type = _detectDiagramType(firstLine);
@@ -186,6 +173,85 @@ class MermaidParser {
         return null;
       case DiagramType.unknown:
         return null;
+    }
+  }
+
+  /// The header line, skipping YAML frontmatter (used by Kanban and others).
+  String _firstContentLine(List<String> cleanedLines) {
+    var first = cleanedLines.first.trim().toLowerCase();
+    if (first != '---') return first;
+
+    for (var i = 1; i < cleanedLines.length; i++) {
+      if (cleanedLines[i].trim() == '---') {
+        if (i + 1 < cleanedLines.length) {
+          first = cleanedLines[i + 1].trim().toLowerCase();
+        }
+        break;
+      }
+    }
+    return first;
+  }
+
+  /// Diagram types this renderer knows how to draw, in the spelling a header
+  /// line uses.
+  static const supportedTypes = <String>[
+    'graph / flowchart',
+    'sequenceDiagram',
+    'classDiagram',
+    'stateDiagram',
+    'pie',
+    'gantt',
+    'timeline',
+    'kanban',
+    'radar-beta',
+    'xychart',
+  ];
+
+  /// Explains why [source] could not be rendered.
+  ///
+  /// Distinguishing "type not supported yet" from "syntax error in a type we
+  /// do support" matters: a bare "unable to parse" leaves the author with no
+  /// idea which of the two they are looking at.
+  String describeParseFailure(String source) {
+    final cleaned = _cleanLines(source.split('\n'));
+    if (cleaned.isEmpty) return 'The diagram is empty.';
+
+    final firstLine = _firstContentLine(cleaned);
+    final type = _detectDiagramType(firstLine);
+
+    if (type == DiagramType.unknown) {
+      return 'Unrecognised diagram type: "$firstLine".\n'
+          'Supported: ${supportedTypes.join(', ')}.';
+    }
+
+    return 'Could not parse this ${_typeLabel(type)}. '
+        'The header is recognised, so check the syntax below it.';
+  }
+
+  String _typeLabel(DiagramType type) {
+    switch (type) {
+      case DiagramType.flowchart:
+        return 'flowchart';
+      case DiagramType.sequence:
+        return 'sequence diagram';
+      case DiagramType.classDiagram:
+        return 'class diagram';
+      case DiagramType.stateDiagram:
+        return 'state diagram';
+      case DiagramType.pieChart:
+        return 'pie chart';
+      case DiagramType.ganttChart:
+        return 'Gantt chart';
+      case DiagramType.timeline:
+        return 'timeline';
+      case DiagramType.kanban:
+        return 'Kanban board';
+      case DiagramType.radar:
+        return 'radar chart';
+      case DiagramType.xyChart:
+        return 'XY chart';
+      case DiagramType.unknown:
+        return 'diagram';
     }
   }
 
