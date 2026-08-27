@@ -7,6 +7,7 @@ import 'package:marktext_plus/ui/editor/mermaid/models/mindmap.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/requirement_diagram.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/block_diagram.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/c4_diagram.dart';
+import 'package:marktext_plus/ui/editor/mermaid/models/gantt.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/sankey.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/node.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/sequence.dart';
@@ -1124,6 +1125,83 @@ quadrantChart
 
     test('is offered as a supported type', () {
       expect(MermaidParser.handlesLanguage('quadrantChart'), isTrue);
+    });
+  });
+
+  group('Gantt charts', () {
+    GanttChartData ganttOf(String source) =>
+        parser.parseWithData(source)!.ganttChartData!;
+
+    test('a task written before any section still appears', () {
+      // The painter draws sections, so a chart with no `section` line at all
+      // came out completely blank.
+      final chart = ganttOf(
+        'gantt\n  dateFormat YYYY-MM-DD\n  First task :2024-01-01, 5d',
+      );
+
+      expect(chart.tasks, hasLength(1));
+      expect(chart.sections.single.tasks.single.name, 'First task');
+    });
+
+    test('several status keywords are all consumed', () {
+      // `crit, active` is ordinary mermaid. Reading only the first left
+      // `active` to be taken as the task's id.
+      final chart = ganttOf(
+        'gantt\n'
+        '  dateFormat YYYY-MM-DD\n'
+        '  section Build\n'
+        '    Coding :crit, active, 2024-02-20, 45d',
+      );
+
+      final task = chart.tasks.single;
+      expect(task.status, GanttTaskStatus.critical);
+      expect(task.id, isNot('active'));
+    });
+
+    test('a task named in another script keeps a usable id', () {
+      // The id was built by stripping everything outside a-z0-9, which left a
+      // Chinese task name as the empty string — so every such task shared one
+      // id and `after <id>` could never find one.
+      final chart = ganttOf(
+        'gantt\n'
+        '  dateFormat YYYY-MM-DD\n'
+        '  section 甲\n'
+        '    需求调研 :2024-01-01, 10d\n'
+        '    原型设计 :after 需求调研, 5d',
+      );
+
+      expect(chart.tasks.first.id, isNotEmpty);
+      // The dependency resolved, so the second task starts after the first
+      // ends rather than at the chart's default date.
+      expect(
+        chart.tasks.last.startDate.isAfter(chart.tasks.first.endDate),
+        isTrue,
+      );
+    });
+
+    test('two tasks with the same name get different ids', () {
+      final chart = ganttOf(
+        'gantt\n'
+        '  dateFormat YYYY-MM-DD\n'
+        '  section 甲\n'
+        '    Review :2024-01-01, 3d\n'
+        '    Review :2024-02-01, 3d',
+      );
+
+      expect(chart.tasks.first.id, isNot(chart.tasks.last.id));
+    });
+
+    test('a milestone keeps zero length', () {
+      final chart = ganttOf(
+        'gantt\n'
+        '  dateFormat YYYY-MM-DD\n'
+        '  section Launch\n'
+        '    Go live :milestone, m1, 2024-05-01, 0d',
+      );
+
+      final task = chart.tasks.single;
+      expect(task.status, GanttTaskStatus.milestone);
+      expect(task.startDate, task.endDate);
     });
   });
 

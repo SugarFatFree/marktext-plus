@@ -87,9 +87,12 @@ class GanttParser {
       final task = _parseTask(line, tasks, defaultStartDate, dateFormat, currentSection);
       if (task != null) {
         tasks.add(task);
-        if (currentSection != null) {
-          sectionTasks[currentSection]!.add(task);
-        }
+        // A task written before any `section` belongs to a default one.
+        // Dropping it left the chart with no sections at all, and the painter
+        // draws sections — so a gantt without a single `section` line came out
+        // completely blank.
+        final bucket = currentSection ?? '';
+        sectionTasks.putIfAbsent(bucket, () => []).add(task);
         // Update default start date based on last task's end date
         defaultStartDate = task.endDate.add(const Duration(days: 1));
       }
@@ -133,6 +136,24 @@ class GanttParser {
   /// - Task name :active, id, 2024-01-01, 30d
   /// - Task name :crit, id, 2024-01-01, 30d
   /// - Task name :milestone, id, 2024-01-01, 0d
+  /// The status a metadata token names, or null when it names something else.
+  GanttTaskStatus? _statusFor(String token) => switch (token) {
+    'done' => GanttTaskStatus.done,
+    'active' => GanttTaskStatus.active,
+    'crit' || 'critical' => GanttTaskStatus.critical,
+    'milestone' => GanttTaskStatus.milestone,
+    _ => null,
+  };
+
+  /// How much a status changes the drawing, used to pick between several.
+  int _statusRank(GanttTaskStatus status) => switch (status) {
+    GanttTaskStatus.milestone => 4,
+    GanttTaskStatus.critical => 3,
+    GanttTaskStatus.done => 2,
+    GanttTaskStatus.active => 1,
+    GanttTaskStatus.normal => 0,
+  };
+
   GanttTask? _parseTask(
     String line,
     List<GanttTask> existingTasks,
@@ -160,19 +181,16 @@ class GanttParser {
     String? durationSpec;
     var partIndex = 0;
 
-    // Check for status keywords
-    final firstPart = parts[partIndex].toLowerCase();
-    if (firstPart == 'done') {
-      status = GanttTaskStatus.done;
-      partIndex++;
-    } else if (firstPart == 'active') {
-      status = GanttTaskStatus.active;
-      partIndex++;
-    } else if (firstPart == 'crit' || firstPart == 'critical') {
-      status = GanttTaskStatus.critical;
-      partIndex++;
-    } else if (firstPart == 'milestone') {
-      status = GanttTaskStatus.milestone;
+    // Status keywords come first and there may be several — `crit, active` is
+    // ordinary mermaid. Consuming only one left the next keyword to be read as
+    // the task's id, which both lost the styling and broke `after <id>`.
+    while (partIndex < parts.length) {
+      final keyword = _statusFor(parts[partIndex].toLowerCase());
+      if (keyword == null) break;
+      // This model holds one status, so the most telling one wins: a
+      // milestone is drawn as a diamond and critical as a red bar, while
+      // done and active are only shading.
+      if (_statusRank(keyword) > _statusRank(status)) status = keyword;
       partIndex++;
     }
 
@@ -186,7 +204,7 @@ class GanttParser {
     if (remainingParts.length == 1) {
       // Just duration: 30d
       durationSpec = remainingParts[0];
-      id = _generateId(name);
+      id = _generateId(name, existingTasks);
     } else if (remainingParts.length == 2) {
       // Could be: id, duration OR start, duration OR after id, duration
       final first = remainingParts[0];
@@ -197,7 +215,7 @@ class GanttParser {
         final afterId = first.substring(6).trim();
         dependencies.add(afterId);
         durationSpec = second;
-        id = _generateId(name);
+        id = _generateId(name, existingTasks);
 
         // Find the referenced task's end date
         final refTask = existingTasks.firstWhere(
@@ -217,7 +235,7 @@ class GanttParser {
         // start, duration
         startSpec = first;
         durationSpec = second;
-        id = _generateId(name);
+        id = _generateId(name, existingTasks);
       } else {
         // id, duration
         id = first;
@@ -281,7 +299,7 @@ class GanttParser {
     }
 
     return GanttTask(
-      id: id ?? _generateId(name),
+      id: id ?? _generateId(name, existingTasks),
       name: name,
       startDate: startDate,
       endDate: endDate,
@@ -291,13 +309,24 @@ class GanttParser {
     );
   }
 
-  /// Generates an ID from the task name
-  String _generateId(String name) {
-    return name
-        .toLowerCase()
-        .replaceAll(RegExp(r'[^a-z0-9]'), '_')
-        .replaceAll(RegExp(r'_+'), '_')
-        .replaceAll(RegExp(r'^_|_$'), '');
+  /// Generates an ID from the task name.
+  ///
+  /// Only whitespace is folded away. Stripping everything outside `a-z0-9`
+  /// turned a task named in Chinese — or in any script but this one — into an
+  /// empty id, so every such task shared it and `after <id>` could never
+  /// reach one. The id is also made unique against [existingTasks]: two tasks
+  /// with the same name would otherwise collide the same way.
+  String _generateId(String name, List<GanttTask> existingTasks) {
+    var base = name.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '_');
+    if (base.isEmpty) base = 'task';
+
+    var candidate = base;
+    var suffix = 2;
+    while (existingTasks.any((task) => task.id == candidate)) {
+      candidate = '${base}_$suffix';
+      suffix++;
+    }
+    return candidate;
   }
 
   /// Checks if a string looks like a date
