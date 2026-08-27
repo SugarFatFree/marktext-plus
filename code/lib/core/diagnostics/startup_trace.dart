@@ -22,7 +22,14 @@ class StartupTrace {
   static String? _logPath;
   static int _last = 0;
 
+  static Timer? _flushTimer;
+
   /// Records that [phase] has just finished.
+  ///
+  /// The line is kept in memory and the file is rewritten on a short timer.
+  /// Writing on every mark would put a synchronous open/write/flush inside the
+  /// very path being measured — eighteen of them, on the startup that is under
+  /// suspicion.
   static void mark(String phase) {
     final now = _since.elapsedMilliseconds;
     final line = '${now.toString().padLeft(6)} ms  '
@@ -30,17 +37,26 @@ class StartupTrace {
     _last = now;
     _lines.add(line);
     debugPrint('[startup] $line');
-    _appendToFile(line);
+    _scheduleFlush();
   }
 
-  /// Where later marks should be written, once the config directory is known.
+  static void _scheduleFlush() {
+    if (_logPath == null || _flushTimer != null) return;
+    _flushTimer = Timer(const Duration(milliseconds: 200), () {
+      _flushTimer = null;
+      flush();
+    });
+  }
+
+  /// Writes everything recorded so far.
   ///
-  /// Everything recorded before this point is flushed now, so the marks from
-  /// before the directory was resolved are not lost.
-  static void useDirectory(String directory) {
-    _logPath = '$directory${Platform.pathSeparator}startup-trace.log';
+  /// Called on a timer, and directly at the end of a run: the window is about
+  /// to be destroyed there, and a pending timer would never fire.
+  static void flush() {
+    final path = _logPath;
+    if (path == null) return;
     try {
-      File(_logPath!).writeAsStringSync(
+      File(path).writeAsStringSync(
         'MarkText Plus startup trace\n'
         '${DateTime.now().toIso8601String()}\n'
         '${_lines.join('\n')}\n',
@@ -51,14 +67,13 @@ class StartupTrace {
     }
   }
 
-  static void _appendToFile(String line) {
-    final path = _logPath;
-    if (path == null) return;
-    try {
-      File(path).writeAsStringSync('$line\n', mode: FileMode.append, flush: true);
-    } catch (_) {
-      // As above.
-    }
+  /// Where later marks should be written, once the config directory is known.
+  ///
+  /// Everything recorded before this point is flushed now, so the marks from
+  /// before the directory was resolved are not lost.
+  static void useDirectory(String directory) {
+    _logPath = '$directory${Platform.pathSeparator}startup-trace.log';
+    flush();
   }
 
   /// Times [body] and records it as [phase].
