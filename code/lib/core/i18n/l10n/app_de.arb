@@ -250,6 +250,7 @@
   "mermaidFullscreen": "Vollbild",
   "mermaidSaveAs": "Speichern unter",
   "mermaidCopySource": "Quelltext kopieren",
+  "mermaidEditSource": "Quelltext bearbeiten",
   "mermaidFullscreenHint": "Zum Vollbild doppelt auf das Diagramm tippen",
   "mermaidSaveAsHint": "Diagramm als PNG speichern",
   "menuParagraph": "Absatz",

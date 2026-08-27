@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Link and image text may contain a bracketed run, as in `[see [1] here](url)`
 - Front matter written as TOML (`+++`) or JSON (`;;;`, `{ … }`) is recognised, not just YAML — a Hugo file no longer shows its metadata as a paragraph of plus signs
 - A mermaid timeline groups its periods under `section` bands, drawn above the period titles and coloured per band
+- A diagram can be edited from the preview: its toolbar has an "Edit Source" button, since its own double tap opens fullscreen
 
 ### Fixed
 - Clicking a folder-search result now scrolls to the line that matched, instead of opening the file at the top

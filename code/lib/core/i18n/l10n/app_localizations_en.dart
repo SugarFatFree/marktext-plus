@@ -750,6 +750,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mermaidCopySource => 'Copy Source';
 
   @override
+  String get mermaidEditSource => 'Edit Source';
+
+  @override
   String get mermaidFullscreenHint => 'Double-tap the diagram to view fullscreen';
 
   @override

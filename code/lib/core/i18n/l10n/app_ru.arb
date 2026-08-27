@@ -250,6 +250,7 @@
   "mermaidFullscreen": "Полноэкранный режим",
   "mermaidSaveAs": "Сохранить как",
   "mermaidCopySource": "Копировать исходный код",
+  "mermaidEditSource": "Редактировать исходный код",
   "mermaidFullscreenHint": "Дважды нажмите на диаграмму для полноэкранного просмотра",
   "mermaidSaveAsHint": "Сохранить диаграмму в формате PNG",
   "menuParagraph": "Абзац",

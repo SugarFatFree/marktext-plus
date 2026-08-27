@@ -250,6 +250,7 @@
   "mermaidFullscreen": "全画面",
   "mermaidSaveAs": "名前を付けて保存",
   "mermaidCopySource": "ソースをコピー",
+  "mermaidEditSource": "ソースを編集",
   "mermaidFullscreenHint": "図をダブルタップで全画面表示",
   "mermaidSaveAsHint": "図を PNG として保存",
   "menuParagraph": "段落",

@@ -262,6 +262,7 @@
   "mermaidFullscreen": "全屏",
   "mermaidSaveAs": "另存为",
   "mermaidCopySource": "复制源码",
+  "mermaidEditSource": "编辑源码",
   "mermaidFullscreenHint": "双击图表全屏查看",
   "mermaidSaveAsHint": "保存图表为 PNG",
   "menuParagraph": "段落",

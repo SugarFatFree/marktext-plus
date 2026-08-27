@@ -250,6 +250,7 @@
   "mermaidFullscreen": "전체 화면",
   "mermaidSaveAs": "다른 이름으로 저장",
   "mermaidCopySource": "소스 복사",
+  "mermaidEditSource": "소스 편집",
   "mermaidFullscreenHint": "다이어그램을 두 번 탭하면 전체 화면으로 표시됩니다",
   "mermaidSaveAsHint": "다이어그램을 PNG로 저장",
   "menuParagraph": "단락",

@@ -747,6 +747,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get mermaidCopySource => '소스 복사';
 
   @override
+  String get mermaidEditSource => '소스 편집';
+
+  @override
   String get mermaidFullscreenHint => '다이어그램을 두 번 탭하면 전체 화면으로 표시됩니다';
 
   @override

@@ -655,6 +655,11 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       return MermaidRenderer(
         code: node.code,
         isDarkMode: theme.brightness == Brightness.dark,
+        // Its own double tap opens fullscreen, so the diagram gets a toolbar
+        // button instead of the gesture every other block is edited by.
+        onEditSource: widget.onSourceChanged == null
+            ? null
+            : () => _startEditing(node),
       );
     }
 

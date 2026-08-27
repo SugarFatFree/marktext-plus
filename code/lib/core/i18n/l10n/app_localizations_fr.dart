@@ -754,6 +754,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get mermaidCopySource => 'Copier la source';
 
   @override
+  String get mermaidEditSource => 'Modifier la source';
+
+  @override
   String get mermaidFullscreenHint => "Double-cliquez sur le diagramme pour l'afficher en plein écran";
 
   @override

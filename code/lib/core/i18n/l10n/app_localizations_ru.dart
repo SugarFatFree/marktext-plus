@@ -751,6 +751,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get mermaidCopySource => 'Копировать исходный код';
 
   @override
+  String get mermaidEditSource => 'Редактировать исходный код';
+
+  @override
   String get mermaidFullscreenHint => 'Дважды нажмите на диаграмму для полноэкранного просмотра';
 
   @override

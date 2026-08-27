@@ -17,10 +17,19 @@ class MermaidRenderer extends StatefulWidget {
   final String code;
   final bool isDarkMode;
 
+  /// Opens this block for editing, when the preview allows it.
+  ///
+  /// A diagram cannot be edited by double tap the way every other block can:
+  /// its own recogniser claims the gesture for fullscreen, and being deeper in
+  /// the tree it wins the arena. Null in a read-only preview, where no block
+  /// is editable.
+  final VoidCallback? onEditSource;
+
   const MermaidRenderer({
     super.key,
     required this.code,
     required this.isDarkMode,
+    this.onEditSource,
   });
 
   @override
@@ -131,46 +140,69 @@ class _MermaidRendererState extends State<MermaidRenderer> {
                   'Mermaid',
                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                 ),
-                const Spacer(),
-                Tooltip(
-                  message: l10n.mermaidFullscreenHint,
-                  child: TextButton.icon(
-                    key: const Key('mermaid-fullscreen'),
-                    onPressed: () => _openFullscreen(context, style),
-                    icon: const Icon(Icons.fullscreen, size: 16),
-                    label: Text(l10n.mermaidFullscreen),
-                    style: TextButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      textStyle: const TextStyle(fontSize: 12),
+                // A Wrap rather than a Spacer and a run of buttons: four of
+                // them no longer fit a narrow preview pane, and a Row that
+                // does not fit overflows rather than reflowing.
+                Expanded(
+                  child: Wrap(
+                    alignment: WrapAlignment.end,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                    Tooltip(
+                      message: l10n.mermaidFullscreenHint,
+                      child: TextButton.icon(
+                        key: const Key('mermaid-fullscreen'),
+                        onPressed: () => _openFullscreen(context, style),
+                        icon: const Icon(Icons.fullscreen, size: 16),
+                        label: Text(l10n.mermaidFullscreen),
+                        style: TextButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          textStyle: const TextStyle(fontSize: 12),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                Tooltip(
-                  message: l10n.mermaidSaveAsHint,
-                  child: TextButton.icon(
-                    key: const Key('mermaid-save-as'),
-                    onPressed: () => _saveAsImage(context),
-                    icon: const Icon(Icons.download_outlined, size: 16),
-                    label: Text(l10n.mermaidSaveAs),
-                    style: TextButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      textStyle: const TextStyle(fontSize: 12),
+                    Tooltip(
+                      message: l10n.mermaidSaveAsHint,
+                      child: TextButton.icon(
+                        key: const Key('mermaid-save-as'),
+                        onPressed: () => _saveAsImage(context),
+                        icon: const Icon(Icons.download_outlined, size: 16),
+                        label: Text(l10n.mermaidSaveAs),
+                        style: TextButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          textStyle: const TextStyle(fontSize: 12),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                TextButton.icon(
-                  key: const Key('mermaid-copy-source'),
-                  onPressed: () async {
-                    await Clipboard.setData(ClipboardData(text: widget.code));
-                  },
-                  icon: const Icon(Icons.copy_outlined, size: 16),
-                  label: Text(l10n.mermaidCopySource),
-                  style: TextButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    textStyle: const TextStyle(fontSize: 12),
+                    if (widget.onEditSource != null)
+                      TextButton.icon(
+                        key: const Key('mermaid-edit-source'),
+                        onPressed: widget.onEditSource,
+                        icon: const Icon(Icons.edit_outlined, size: 16),
+                        label: Text(l10n.mermaidEditSource),
+                        style: TextButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          textStyle: const TextStyle(fontSize: 12),
+                        ),
+                      ),
+                    TextButton.icon(
+                      key: const Key('mermaid-copy-source'),
+                      onPressed: () async {
+                        await Clipboard.setData(ClipboardData(text: widget.code));
+                      },
+                      icon: const Icon(Icons.copy_outlined, size: 16),
+                      label: Text(l10n.mermaidCopySource),
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        textStyle: const TextStyle(fontSize: 12),
+                      ),
+                    ),
+                    ],
                   ),
                 ),
               ],

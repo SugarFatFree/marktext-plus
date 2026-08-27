@@ -286,6 +286,10 @@
   "mermaidFullscreen": "Fullscreen",
   "mermaidSaveAs": "Save As",
   "mermaidCopySource": "Copy Source",
+  "mermaidEditSource": "Edit Source",
+  "@mermaidEditSource": {
+    "description": "Toolbar button that opens a diagram's markdown source for editing"
+  },
   "mermaidFullscreenHint": "Double-tap the diagram to view fullscreen",
   "mermaidSaveAsHint": "Save the diagram as PNG",
   "menuParagraph": "Paragraph",

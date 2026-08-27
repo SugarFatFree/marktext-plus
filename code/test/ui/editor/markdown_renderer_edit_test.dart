@@ -8,6 +8,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/core/config/app_config.dart';
 import 'package:marktext_plus/core/config/config_service.dart';
 import 'package:marktext_plus/providers/settings_provider.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:marktext_plus/core/i18n/l10n/app_localizations.dart';
 import 'package:marktext_plus/ui/editor/markdown_renderer.dart';
 
 void main() {
@@ -37,6 +39,15 @@ void main() {
           ),
         ],
         child: MaterialApp(
+          // A diagram's toolbar reads its labels from here; without the
+          // delegates `AppLocalizations.of` returns null and it throws.
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: MarkdownRenderer(
               markdown: markdown,
@@ -61,6 +72,47 @@ void main() {
     await tester.tap(finder);
     await tester.pump(kDoubleTapTimeout);
   }
+
+  group('Editing a diagram block', () {
+    const diagram = '```mermaid\nflowchart TD\n  A --> B\n```\n';
+
+    testWidgets('a diagram offers an edit button instead of a double tap',
+        (tester) async {
+      // Its own recogniser claims the double tap for fullscreen, and being
+      // deeper in the tree it wins the arena — so a diagram was the one block
+      // the preview could not edit.
+      await pumpRenderer(
+        tester,
+        markdown: diagram,
+        onSourceChanged: (_) {},
+      );
+
+      expect(find.byKey(const Key('mermaid-edit-source')), findsOneWidget);
+    });
+
+    testWidgets('the button opens the block as markdown source',
+        (tester) async {
+      await pumpRenderer(
+        tester,
+        markdown: diagram,
+        onSourceChanged: (_) {},
+      );
+
+      await tester.tap(find.byKey(const Key('mermaid-edit-source')));
+      await tester.pump();
+
+      final field = tester.widget<TextField>(find.byType(TextField));
+      expect(field.controller!.text, '```mermaid\nflowchart TD\n  A --> B\n```');
+    });
+
+    testWidgets('a read-only preview offers no edit button', (tester) async {
+      await pumpRenderer(tester, markdown: diagram);
+
+      expect(find.byKey(const Key('mermaid-edit-source')), findsNothing);
+      // The other diagram buttons are still there.
+      expect(find.byKey(const Key('mermaid-copy-source')), findsOneWidget);
+    });
+  });
 
   group('In-place block editing', () {
     testWidgets('is off when no onSourceChanged is given', (tester) async {

@@ -753,6 +753,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get mermaidCopySource => 'Copiar código-fonte';
 
   @override
+  String get mermaidEditSource => 'Editar código-fonte';
+
+  @override
   String get mermaidFullscreenHint => 'Toque duas vezes no diagrama para ver em ecrã inteiro';
 
   @override

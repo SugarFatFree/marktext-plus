@@ -250,6 +250,7 @@
   "mermaidFullscreen": "Pantalla completa",
   "mermaidSaveAs": "Guardar como",
   "mermaidCopySource": "Copiar código fuente",
+  "mermaidEditSource": "Editar código fuente",
   "mermaidFullscreenHint": "Toca dos veces el diagrama para verlo en pantalla completa",
   "mermaidSaveAsHint": "Guardar el diagrama como PNG",
   "menuParagraph": "Párrafo",

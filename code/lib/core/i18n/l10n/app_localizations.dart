@@ -1559,6 +1559,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Copy Source'**
   String get mermaidCopySource;
+
+  /// Toolbar button that opens a diagram's markdown source for editing
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Source'**
+  String get mermaidEditSource;
   /// No description provided for @mermaidFullscreenHint.
   ///
   /// In en, this message translates to:

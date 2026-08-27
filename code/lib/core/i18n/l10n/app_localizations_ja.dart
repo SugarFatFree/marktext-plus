@@ -747,6 +747,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get mermaidCopySource => 'ソースをコピー';
 
   @override
+  String get mermaidEditSource => 'ソースを編集';
+
+  @override
   String get mermaidFullscreenHint => '図をダブルタップで全画面表示';
 
   @override

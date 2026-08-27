@@ -752,6 +752,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get mermaidCopySource => 'Quelltext kopieren';
 
   @override
+  String get mermaidEditSource => 'Quelltext bearbeiten';
+
+  @override
   String get mermaidFullscreenHint => 'Zum Vollbild doppelt auf das Diagramm tippen';
 
   @override

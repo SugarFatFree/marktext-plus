@@ -744,6 +744,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mermaidCopySource => '复制源码';
 
   @override
+  String get mermaidEditSource => '编辑源码';
+
+  @override
   String get mermaidFullscreenHint => '双击图表全屏查看';
 
   @override

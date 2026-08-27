@@ -749,6 +749,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get mermaidCopySource => 'نسخ المصدر';
 
   @override
+  String get mermaidEditSource => 'تحرير المصدر';
+
+  @override
   String get mermaidFullscreenHint => 'انقر نقرًا مزدوجًا على الرسم التخطيطي لعرضه بملء الشاشة';
 
   @override
