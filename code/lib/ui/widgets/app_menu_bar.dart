@@ -25,6 +25,7 @@ import '../screens/settings_screen.dart';
 import '../editor/mermaid/widgets/mermaid_diagram.dart';
 import '../editor/mermaid/models/style.dart';
 import 'editor_tab_bar.dart';
+import '../editor/mermaid/parser/mermaid_parser.dart';
 
 class AppMenuBar extends ConsumerWidget {
   const AppMenuBar({super.key});
@@ -779,11 +780,6 @@ class AppMenuBar extends ConsumerWidget {
     );
   }
 
-  static const _mermaidLanguages = {
-    'mermaid', 'flowchart', 'sequence', 'gantt', 'classdiagram',
-    'statediagram', 'erdiagram', 'journey', 'gitgraph', 'pie', 'mindmap',
-  };
-
   Future<Map<String, Uint8List>> _renderMermaidImages(String markdown) async {
     final parser = MarkdownParser();
     final ast = parser.parse(markdown);
@@ -791,7 +787,11 @@ class AppMenuBar extends ConsumerWidget {
     int index = 0;
 
     for (final node in ast) {
-      if (node is CodeBlockNode && _mermaidLanguages.contains(node.language.toLowerCase())) {
+      // Must agree with ExportService's own test, which also asks the parser:
+      // the export indexes into this map by counting diagram blocks, so a
+      // disagreement embeds the wrong picture.
+      if (node is CodeBlockNode &&
+          MermaidParser.handlesLanguage(node.language)) {
         final key = 'mermaid_$index';
         index++;
         try {

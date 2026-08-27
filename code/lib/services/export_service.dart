@@ -5,6 +5,7 @@ import 'package:docx_creator/docx_creator.dart' hide MarkdownParser;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'markdown_parser.dart';
+import '../ui/editor/mermaid/parser/mermaid_parser.dart';
 
 class ExportService {
   ExportService._();
@@ -33,23 +34,21 @@ class ExportService {
   /// them. Without this, `**bold**` reached the output with its asterisks.
   static final _cellParser = MarkdownParser();
 
-  static const _mermaidLanguages = {
-    'mermaid',
-    'flowchart',
-    'sequence',
-    'gantt',
-    'classdiagram',
-    'statediagram',
-    'erdiagram',
-    'journey',
-    'gitgraph',
-    'pie',
-    'mindmap',
-  };
-
+  /// Whether a fenced block tagged [lang] is a diagram.
+  ///
+  /// Asks the renderer rather than keeping a list here. There used to be four
+  /// hard-coded copies of that list — two in this file, one in the export menu
+  /// and the real one in the parser — and they had drifted: `graph`,
+  /// `timeline`, `kanban`, `xychart`, `radar-beta` and `quadrantChart` all
+  /// render in the preview but exported as plain code blocks, while `sequence`
+  /// was listed although the tag is `sequenceDiagram`.
+  ///
+  /// Worse than cosmetic: the export walks the document counting diagram
+  /// blocks to index into the rendered images, so if the list that renders the
+  /// images ever disagrees with this one, the wrong diagram is embedded.
   static bool _isMermaidLanguage(String? lang) {
     if (lang == null || lang.isEmpty) return false;
-    return _mermaidLanguages.contains(lang.toLowerCase());
+    return MermaidParser.handlesLanguage(lang);
   }
 
   /// Load system fonts for multi-language support (CJK, Cyrillic, Arabic, etc.)
@@ -540,10 +539,8 @@ class ExportService {
 
       case NodeType.codeBlock:
         final code = node as CodeBlockNode;
-        final lang = code.language.toLowerCase();
-        // Mermaid diagram languages: use <pre class="mermaid"> for CDN rendering
-        const diagramLangs = {'mermaid', 'flowchart', 'sequence', 'gantt', 'classdiagram', 'statediagram', 'erdiagram', 'journey', 'gitgraph', 'pie', 'mindmap'};
-        if (diagramLangs.contains(lang)) {
+        // The mermaid script loaded in the head renders these.
+        if (_isMermaidLanguage(code.language)) {
           return '<pre class="mermaid">${_escapeHtml(code.code)}</pre>';
         }
         final langClass = code.language.isNotEmpty ? ' class="language-${code.language}"' : '';

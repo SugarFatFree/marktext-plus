@@ -113,6 +113,42 @@ void main() {
     expect(failures, isEmpty, reason: failures.join('; '));
   });
 
+  test('every diagram the preview renders also exports as one', () {
+    // The export used to keep its own list of diagram languages, three copies
+    // of it in fact, and they had drifted from the parser's: `graph TD` — the
+    // commonest way to write a flowchart — exported as a plain code block, as
+    // did timeline, kanban, xychart, radar and quadrantChart.
+    //
+    // It matters beyond looks: the export walks the document counting diagram
+    // blocks to index into the pre-rendered images, so a disagreement between
+    // the list that renders them and the list that places them embeds the
+    // wrong picture.
+    final source = File('test/fixtures/showcase.md').readAsStringSync();
+    final blocks = MarkdownParser()
+        .parse(source)
+        .whereType<CodeBlockNode>()
+        .where((c) => MermaidParser.handlesLanguage(c.language))
+        .toList();
+
+    expect(blocks, isNotEmpty);
+    for (final block in blocks) {
+      expect(
+        ExportService.nodeToHtml(block),
+        startsWith('<pre class="mermaid">'),
+        reason: '${block.language} renders in the preview but not on export',
+      );
+    }
+  });
+
+  test('a diagram tag the parser does not know stays a code block', () {
+    final block = MarkdownParser()
+        .parse('```notadiagram\nbody\n```')
+        .whereType<CodeBlockNode>()
+        .single;
+
+    expect(ExportService.nodeToHtml(block), startsWith('<pre><code'));
+  });
+
   test('nested lists survive HTML export', () {
     const doc = '- one\n  - nested\n    - deeper\n- two\n';
     final list = MarkdownParser().parse(doc).single;

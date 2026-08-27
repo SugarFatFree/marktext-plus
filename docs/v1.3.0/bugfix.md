@@ -68,6 +68,7 @@
 | BUG-059 | 2026-08-27 | 「文本方向」设置无效，选了 RTL 也没反应 | P2 | 已修复 |
 | BUG-060 | 2026-08-27 | 菜单里所有快捷键都只是「画上去的」，按了没反应 | **P0** | 已修复 |
 | BUG-061 | 2026-08-27 | 配置非原子写入且可并发，一次崩溃就让全部设置回到默认 | **P0** | 已修复 |
+| BUG-062 | 2026-08-27 | `graph TD` 等 7 种图表导出成纯代码块；四份图表语言清单已互相漂移 | P1 | 已修复 |
 
 ---
 
@@ -978,6 +979,24 @@
 | 平台确认 | 本机实测 `File.rename` 覆盖已存在文件是成功的（POSIX 语义）；Windows 上 Dart 的实现走 `MoveFileEx`，同样允许覆盖 |
 | 涉及文件 | `lib/core/config/config_service.dart`、`test/core/config/config_service_test.dart` |
 | 验证方式 | 本地对真实实现跑：并发发起 20 次保存后，文件仍是**合法 JSON** 且内容为最后一次的值；截断的配置被正确挪到 `.corrupt` 且**内容原样保留**。仓库内单测新增 4 条覆盖同样场景（原有 3 条保留） |
+
+---
+
+## BUG-062 导出时 `graph TD` 等图表退化成纯代码块
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+| 现象 | 预览里显示得好好的图表，导出成 PDF / Word / HTML 后**变成一段纯代码**。其中包括 ```graph TD —— 写流程图**最常见**的写法 |
+| 根因分析 | 「哪些代码块算图表」这件事在项目里有**四份硬编码清单**：`MermaidParser.supportedTypes`（真正的那份，15 项）、`ExportService._mermaidLanguages`（11 项）、`nodeToHtml` 里内联的 `diagramLangs`（11 项）、`AppMenuBar._mermaidLanguages`（11 项）。后三份已经和第一份漂移开了 |
+| 具体差异 | 导出侧**缺** `graph`、`sequenceDiagram`、`timeline`、`kanban`、`radar-beta`、`xychart`、`quadrantChart` 共 7 项；反过来多了一个 `sequence`，而 mermaid 根本没有这个标签 |
+| 比「显示不对」更严重的一层 | 导出流程是**先按顺序把图表渲染成 PNG 存进 `mermaid_0`、`mermaid_1`… 再遍历文档、数到第几个图表就取第几张图**。渲染端和放置端各用一份清单，一旦不一致，**编号就会错位、放进去的是别的图**。目前两份恰好相同所以没出事，但这是随时会踩的雷 |
+| 修复方案 | 删掉全部三份副本，统一调用 `MermaidParser.handlesLanguage` —— 与预览判定的是同一个函数，从此不可能「预览认、导出不认」 |
+| 涉及文件 | `lib/services/export_service.dart`、`lib/ui/widgets/app_menu_bar.dart`、`test/fixtures_showcase_test.dart` |
+| 验证方式 | 新增端到端断言：把 `showcase.md` 里**每一个**预览会渲染的图表块过一遍 `nodeToHtml`，都必须输出 `<pre class="mermaid">`；另断言未知标签仍退回普通代码块。本地另用桩逐个标签对拍了新旧判定，确认变化正是上述 7 增 1 减 |
+| 同源问题 | 与 BUG-007（`markdown_renderer` 的 `_diagramLanguages` 错配）是同一个病根，当时只修了渲染器那一处，没有顺着找出其余三处 |
 
 ---
 
