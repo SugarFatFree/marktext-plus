@@ -6,6 +6,7 @@ void main() {
   setUp(() => parser = MarkdownParser());
 
   _sourceSpanTests();
+  _setextAndIndentedCodeTests();
   _nestedListTests();
   _inlineEdgeCaseTests();
   _htmlBlockTests();
@@ -384,6 +385,77 @@ void _nestedListTests() {
       expect(list.items[1].depth, 1);
       expect(list.items[1].isTask, isTrue);
       expect(list.items[1].isChecked, isTrue);
+    });
+  });
+}
+
+void _setextAndIndentedCodeTests() {
+  group('Setext headings', () {
+    late MarkdownParser parser;
+    setUp(() => parser = MarkdownParser());
+
+    test('=== underlines a level 1 heading', () {
+      final nodes = parser.parse('Title\n=====\n\nbody\n');
+      final heading = nodes.first as HeadingNode;
+      expect(heading.level, 1);
+      expect(heading.content, 'Title');
+      expect(nodes.last.type, NodeType.paragraph);
+    });
+
+    test('--- underlines a level 2 heading when text precedes it', () {
+      final nodes = parser.parse('Subtitle\n---\n');
+      final heading = nodes.single as HeadingNode;
+      expect(heading.level, 2);
+      expect(heading.content, 'Subtitle');
+    });
+
+    test('--- on its own is still a horizontal rule', () {
+      // The ambiguity that matters: only a preceding paragraph line turns
+      // `---` into a heading underline.
+      final nodes = parser.parse('text\n\n---\n\nmore\n');
+      expect(nodes.map((n) => n.type).toList(), [
+        NodeType.paragraph,
+        NodeType.horizontalRule,
+        NodeType.paragraph,
+      ]);
+    });
+
+    test('a list followed by --- keeps both', () {
+      final nodes = parser.parse('- item\n---\n');
+      expect(nodes.first.type, NodeType.unorderedList);
+      expect(nodes.last.type, NodeType.horizontalRule);
+    });
+  });
+
+  group('Indented code blocks', () {
+    late MarkdownParser parser;
+    setUp(() => parser = MarkdownParser());
+
+    test('four spaces after a blank line is code', () {
+      final nodes = parser.parse('text\n\n    code line\n    more\n\nafter\n');
+      final code = nodes.firstWhere((n) => n.type == NodeType.codeBlock)
+          as CodeBlockNode;
+      expect(code.code, 'code line\nmore');
+      expect(code.language, isEmpty);
+      expect(nodes.last.type, NodeType.paragraph);
+    });
+
+    test('a tab indents code too', () {
+      final nodes = parser.parse('text\n\n\tcode\n');
+      final code = nodes.firstWhere((n) => n.type == NodeType.codeBlock)
+          as CodeBlockNode;
+      expect(code.code, 'code');
+    });
+
+    test('an indented line continuing a paragraph is not code', () {
+      // CommonMark: indented code cannot interrupt a paragraph.
+      final nodes = parser.parse('paragraph\n    still the paragraph\n');
+      expect(nodes.single.type, NodeType.paragraph);
+    });
+
+    test('an indented list item is a nested list, not code', () {
+      final nodes = parser.parse('- one\n    - nested\n');
+      expect(nodes.single.type, NodeType.unorderedList);
     });
   });
 }

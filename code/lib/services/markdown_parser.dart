@@ -250,6 +250,9 @@ class MarkdownParser {
   static final _footnoteDefRe = RegExp(r'^\[\^([^\]]+)\]:\s*(.+)$');
   static final _htmlBlockStartRe = RegExp(r'^<(\w+)');
 
+  /// A setext underline: `===` for level 1, `---` for level 2.
+  static final _setextRe = RegExp(r'^\s{0,3}(=+|-+)\s*$');
+
   /// HTML elements that never have a closing tag.
   static const _voidHtmlTags = {
     'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
@@ -313,6 +316,24 @@ class MarkdownParser {
     return (hasBom ? '\uFEFF' : '') +
         joined +
         (endsWithNewline ? newline : '');
+  }
+
+  /// Removes up to [columns] of leading whitespace, tabs counted as four.
+  static String _stripIndent(String line, int columns) {
+    var removed = 0;
+    var index = 0;
+    while (index < line.length && removed < columns) {
+      final rune = line.codeUnitAt(index);
+      if (rune == 0x20) {
+        removed++;
+      } else if (rune == 0x09) {
+        removed += 4 - (removed % 4);
+      } else {
+        break;
+      }
+      index++;
+    }
+    return line.substring(index);
   }
 
   /// Leading whitespace in columns, counting a tab as up to four.
@@ -649,6 +670,54 @@ class MarkdownParser {
         i = next;
         nodes.add(_withSpan(
           ListNode(ordered: true, items: _buildListItems(itemBlocks, _olRe)),
+          blockStart,
+          i,
+        ));
+        continue;
+      }
+
+      // Setext heading: text underlined with === or ---.
+      //
+      // Checked here rather than beside the ATX pattern because it depends on
+      // the *next* line. A bare `---` was handled by the horizontal-rule
+      // branch above; reaching this point means real text precedes it, which
+      // is exactly when CommonMark reads it as a heading.
+      if (i + 1 < lines.length && _setextRe.hasMatch(lines[i + 1])) {
+        final content = line.trim();
+        final level = lines[i + 1].trim().startsWith('=') ? 1 : 2;
+        i += 2;
+        nodes.add(_withSpan(
+          HeadingNode(
+            level: level,
+            content: content,
+            inlineSpans: parseInline(content),
+          ),
+          blockStart,
+          i,
+        ));
+        continue;
+      }
+
+      // Indented code block: four columns of indentation, starting a block
+      // rather than continuing a paragraph.
+      //
+      // List items are matched before this, so an indented `- item` is still a
+      // nested list rather than code.
+      if (_indentColumns(line) >= 4 &&
+          (i == 0 || lines[i - 1].trim().isEmpty)) {
+        final codeLines = <String>[];
+        while (i < lines.length &&
+            (lines[i].trim().isEmpty || _indentColumns(lines[i]) >= 4)) {
+          codeLines.add(_stripIndent(lines[i], 4));
+          i++;
+        }
+        // Blank lines at the end belong to the document, not the code.
+        while (codeLines.isNotEmpty && codeLines.last.trim().isEmpty) {
+          codeLines.removeLast();
+          i--;
+        }
+        nodes.add(_withSpan(
+          CodeBlockNode(language: '', code: codeLines.join('\n')),
           blockStart,
           i,
         ));
