@@ -140,9 +140,12 @@ class AppMenuBar extends ConsumerWidget {
     );
   }
 
-  void _newFile(WidgetRef ref) {
+  void _newFile(WidgetRef ref, AppLocalizations l10n) {
     final tab = TabInfo(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
+      // TabInfo defaults to the English 'Untitled'; it is a model and has no
+      // way to reach the localisations, so the name is passed in here.
+      fileName: l10n.untitled,
     );
     ref.read(tabProvider.notifier).addTab(tab);
   }
@@ -235,7 +238,7 @@ class AppMenuBar extends ConsumerWidget {
       menuChildren: [
         MenuItemButton(
           child: Text(l10n.fileNew),
-          onPressed: () => _newFile(ref),
+          onPressed: () => _newFile(ref, l10n),
         ),
         MenuItemButton(
           child: Text(l10n.fileNewWindow),

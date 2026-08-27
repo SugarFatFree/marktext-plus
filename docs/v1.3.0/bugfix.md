@@ -47,6 +47,7 @@
 | BUG-038 | 2026-08-27 | 关闭未保存标签页无提示，新建文档内容永久丢失 | **P0** | 已修复 |
 | BUG-039 | 2026-08-27 | 「关闭其他/右侧/全部标签页」同样无提示，一次丢失多个文件 | **P0** | 已修复 |
 | BUG-040 | 2026-08-27 | 直接关闭应用窗口，全部未保存内容一并丢失 | **P0** | 已修复 |
+| BUG-041 | 2026-08-27 | 更新提示无法关闭；新建文件名硬编码英文 | P2 | 已修复 |
 
 ---
 
@@ -615,6 +616,22 @@
 | 根因分析 | 代码中**完全没有窗口关闭拦截** —— 既无 `windowManager.setPreventClose`，也无 `WindowListener`。`main.dart` 里 `didChangeAppLifecycleState` 虽处理了 `detached`，但那只保存窗口尺寸，且此刻进程已在退出途中，既无法阻止关闭，也无法弹出对话框。<br>这是三个关闭场景中**影响最大**的一个：单个标签页丢一个文件，批量关闭丢若干个，关窗口丢整个会话 |
 | 修复方案 | 在 `HomeScreen` 混入 `WindowListener` 并 `setPreventClose(true)`，于 `onWindowClose` 中检查全部标签页。<br>**监听器必须放在这里而非 `main.dart` 的 `_AppLifecycleWrapper`**：后者位于 `MaterialApp` 之外，既无 `Navigator` 也无 `Localizations`，无法弹出本地化对话框。<br>确认后调用 `windowManager.destroy()` 真正退出；任一保存被取消则中止退出。`setPreventClose` 包在 try/catch 中 —— 无窗口环境（如测试）下应保持原有行为 |
 | 涉及文件 | `lib/ui/screens/home_screen.dart` |
+
+---
+
+## BUG-041 两处「半截功能」
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P2 |
+| 状态 | 已修复 |
+| 现象 | ① 状态栏的新版本徽标**无法关闭**，只要检测到新版就一直挂着；② 新建文档的标签名恒为英文 `Untitled`，中文等界面下亦然 |
+| 发现方式 | **系统性排查**：BUG-038 暴露出「文案齐全但代码从未引用」这一模式，遂用脚本比对 `app_en.arb` 的 247 个 key 与 `lib/` 中的实际引用，得到 21 个未引用项，逐一核对成因 |
+| 排查结论 | 21 项中：4 项属 BUG-010 移除弹窗后的残留、2 项属 v1.2.0 移除按钮后的残留（均为预期）；`noRecentFiles` / `openRecentFiles` 等与 `fileNoRecentFiles` 等**重复定义**，实际使用的是后者；`editFindInFiles` / `comingSoon` 对应尚未实现的功能；真正的缺陷是本条的两项 |
+| 根因分析 | ① `UpdateNotifier.dismiss()` 与文案 `updateDismiss` 均已就绪，**却没有任何 UI 调用** —— `dismissed` 恒为 false；徽标也只显示版本号，未使用 `updateAvailable` 说明这是什么。② `TabInfo.fileName` 默认值硬编码 `'Untitled'`，而 `TabInfo` 是纯模型、无从获取本地化 |
+| 修复方案 | ① 徽标拆为两个可点区域：版本号跳转下载页（tooltip 用 `updateAvailable`），旁加关闭按钮调用 `dismiss()`（tooltip 用 `updateDismiss`）；② 由持有 `l10n` 的 `_newFile` 传入 `l10n.untitled` |
+| 涉及文件 | `lib/ui/widgets/status_bar.dart`、`lib/ui/widgets/app_menu_bar.dart` |
 
 ---
 

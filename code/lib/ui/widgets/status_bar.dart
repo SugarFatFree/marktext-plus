@@ -41,7 +41,8 @@ class StatusBar extends ConsumerWidget {
           Text(l10n.statusLineFeed, style: style),
           const Spacer(),
           if (updateState.availableUpdate != null && !updateState.dismissed) ...[
-            _buildUpdateIndicator(updateState.availableUpdate!, tokens, ref),
+            _buildUpdateIndicator(
+                updateState.availableUpdate!, tokens, ref, l10n),
             _divider(tokens),
           ],
           Text('${l10n.statusWords}: ${wordCount.words}', style: style),
@@ -54,23 +55,54 @@ class StatusBar extends ConsumerWidget {
     );
   }
 
-  Widget _buildUpdateIndicator(UpdateInfo update, AppThemeTokens tokens, WidgetRef ref) {
-    return InkWell(
-      onTap: () => launchUrl(Uri.parse(update.url)),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-        decoration: BoxDecoration(
-          color: tokens.colorAccent.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.system_update, size: 14, color: tokens.colorAccent),
-            const SizedBox(width: 4),
-            Text('v${update.version}', style: TextStyle(fontSize: 12, color: tokens.colorAccent, fontWeight: FontWeight.w600)),
-          ],
-        ),
+  Widget _buildUpdateIndicator(
+    UpdateInfo update,
+    AppThemeTokens tokens,
+    WidgetRef ref,
+    AppLocalizations l10n,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: tokens.colorAccent.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // A bare version number does not say what it is; the tooltip does.
+          Tooltip(
+            message: l10n.updateAvailable,
+            child: InkWell(
+              onTap: () => launchUrl(Uri.parse(update.url)),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.system_update, size: 14, color: tokens.colorAccent),
+                  const SizedBox(width: 4),
+                  Text(
+                    'v${update.version}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: tokens.colorAccent,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          // UpdateNotifier.dismiss and its label both existed, with nothing
+          // calling them: the badge could not be got rid of.
+          Tooltip(
+            message: l10n.updateDismiss,
+            child: InkWell(
+              onTap: () => ref.read(updateProvider.notifier).dismiss(),
+              child: Icon(Icons.close, size: 12, color: tokens.colorAccent),
+            ),
+          ),
+        ],
       ),
     );
   }
