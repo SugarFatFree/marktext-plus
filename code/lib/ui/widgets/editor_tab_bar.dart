@@ -34,7 +34,7 @@ class EditorTabBar extends ConsumerWidget {
               scrollDirection: Axis.horizontal,
               buildDefaultDragHandles: false,
               itemCount: tabs.length,
-              onReorder: (oldIndex, newIndex) {
+              onReorderItem: (oldIndex, newIndex) {
                 ref.read(tabProvider.notifier).reorderTabs(oldIndex, newIndex);
               },
               itemBuilder: (context, index) {

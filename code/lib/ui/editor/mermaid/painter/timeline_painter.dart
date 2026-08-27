@@ -240,14 +240,14 @@ class TimelinePainter extends CustomPainter {
       );
 
       final boxPaint = Paint()
-        ..color = Color(color).withOpacity(0.15)
+        ..color = Color(color).withValues(alpha: 0.15)
         ..style = PaintingStyle.fill;
 
       canvas.drawRRect(boxRect, boxPaint);
 
       // Draw border
       final borderPaint = Paint()
-        ..color = Color(color).withOpacity(0.5)
+        ..color = Color(color).withValues(alpha: 0.5)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.0;
 
@@ -268,7 +268,7 @@ class TimelinePainter extends CustomPainter {
             text: event.description,
             style: TextStyle(
               fontSize: fontSize - 1,
-              color: Color(TimelineChartColors.textColor).withOpacity(0.7),
+              color: Color(TimelineChartColors.textColor).withValues(alpha: 0.7),
               fontStyle: FontStyle.italic,
               height: 1.2, // Line height for better readability
             ),
@@ -296,7 +296,7 @@ class TimelinePainter extends CustomPainter {
     int color,
   ) {
     final paint = Paint()
-      ..color = Color(color).withOpacity(0.5)
+      ..color = Color(color).withValues(alpha: 0.5)
       ..strokeWidth = 2.0
       ..style = PaintingStyle.stroke;
 

@@ -201,8 +201,12 @@ class TabNotifier extends StateNotifier<TabState> {
     state = state.copyWith(tabs: tabs);
   }
 
+  /// Moves the tab at [oldIndex] so that it ends up at [newIndex].
+  ///
+  /// [newIndex] is the final index after removal, which is what
+  /// `ReorderableListView.onReorderItem` already reports — unlike the
+  /// deprecated `onReorder`, no off-by-one adjustment is needed here.
   void reorderTabs(int oldIndex, int newIndex) {
-    if (oldIndex < newIndex) newIndex--;
     final tabs = List<TabInfo>.from(state.tabs);
     final tab = tabs.removeAt(oldIndex);
     tabs.insert(newIndex, tab);

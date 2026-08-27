@@ -52,6 +52,7 @@
 ///   ''',
 /// )
 /// ```
+library;
 
 export 'config/responsive_config.dart';
 export 'layout/layout_engine.dart';

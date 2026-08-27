@@ -348,7 +348,7 @@ class _MermaidFullscreenViewState extends State<_MermaidFullscreenView> {
                       final dy = focal.dy * (1 - scaleFactor);
                       final m = Matrix4.identity()
                         ..setTranslationRaw(dx, dy, 0)
-                        ..scale(scaleFactor, scaleFactor, 1.0);
+                        ..scaleByDouble(scaleFactor, scaleFactor, 1.0, 1.0);
                       _controller.value = m * _controller.value;
                     }
                   },
