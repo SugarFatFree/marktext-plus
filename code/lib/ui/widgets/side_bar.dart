@@ -13,8 +13,8 @@ import '../../providers/file_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/tab_provider.dart';
 import '../screens/settings_screen.dart';
+import '../../providers/sidebar_provider.dart';
 
-enum SideBarTab { files, search, toc }
 
 class SideBar extends ConsumerStatefulWidget {
   const SideBar({super.key});
@@ -24,7 +24,6 @@ class SideBar extends ConsumerStatefulWidget {
 }
 
 class _SideBarState extends ConsumerState<SideBar> {
-  SideBarTab _selectedTab = SideBarTab.files;
   SideBarTab? _hoveredTab;
   final TextEditingController _searchController = TextEditingController();
   List<_SearchResult> _searchResults = [];
@@ -111,7 +110,7 @@ class _SideBarState extends ConsumerState<SideBar> {
   }
 
   Widget _buildIconButton(IconData icon, SideBarTab tab, String tooltip, AppThemeTokens tokens) {
-    final isSelected = _selectedTab == tab;
+    final isSelected = ref.watch(sideBarTabProvider) == tab;
     final isHovered = _hoveredTab == tab;
     return Tooltip(
       message: tooltip,
@@ -120,7 +119,7 @@ class _SideBarState extends ConsumerState<SideBar> {
         onEnter: (_) => setState(() => _hoveredTab = tab),
         onExit: (_) => setState(() => _hoveredTab = null),
         child: GestureDetector(
-          onTap: () => setState(() => _selectedTab = tab),
+          onTap: () => ref.read(sideBarTabProvider.notifier).state = tab,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 100),
             curve: Curves.easeOut,
@@ -147,6 +146,7 @@ class _SideBarState extends ConsumerState<SideBar> {
   }
 
   Widget _buildContentArea(AppLocalizations l10n) {
+    final selectedTab = ref.watch(sideBarTabProvider);
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 200),
       switchInCurve: Curves.easeInOut,
@@ -155,8 +155,8 @@ class _SideBarState extends ConsumerState<SideBar> {
         return FadeTransition(opacity: animation, child: child);
       },
       child: KeyedSubtree(
-        key: ValueKey(_selectedTab),
-        child: switch (_selectedTab) {
+        key: ValueKey(selectedTab),
+        child: switch (selectedTab) {
           SideBarTab.files => _buildFileTree(l10n),
           SideBarTab.search => _buildSearchPanel(l10n),
           SideBarTab.toc => _buildTocPanel(l10n),

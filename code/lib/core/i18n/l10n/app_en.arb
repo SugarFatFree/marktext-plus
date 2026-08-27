@@ -335,5 +335,9 @@
   "fileClearRecentFiles": "Clear Recent Files",
   "@fileClearRecentFiles": {
     "description": "Menu item that empties the recent files list"
+  },
+  "viewCommandPalette": "Command Palette",
+  "@viewCommandPalette": {
+    "description": "View menu item that opens the command palette"
   }
 }

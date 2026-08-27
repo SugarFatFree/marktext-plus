@@ -796,4 +796,6 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get fileClearRecentFiles => 'Очистить недавние файлы';
+  @override
+  String get viewCommandPalette => 'Палитра команд';
 }

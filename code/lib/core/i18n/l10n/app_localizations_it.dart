@@ -798,4 +798,6 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get fileClearRecentFiles => 'Svuota file recenti';
+  @override
+  String get viewCommandPalette => 'Riquadro comandi';
 }

@@ -797,4 +797,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get fileClearRecentFiles => 'Zuletzt verwendete leeren';
+  @override
+  String get viewCommandPalette => 'Befehlspalette';
 }

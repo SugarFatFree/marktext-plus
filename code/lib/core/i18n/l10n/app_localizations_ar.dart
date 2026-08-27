@@ -794,4 +794,6 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get fileClearRecentFiles => 'مسح الملفات الأخيرة';
+  @override
+  String get viewCommandPalette => 'لوحة الأوامر';
 }

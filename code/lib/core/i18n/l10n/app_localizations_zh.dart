@@ -789,4 +789,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get fileClearRecentFiles => '清空最近文件';
+  @override
+  String get viewCommandPalette => '命令面板';
 }

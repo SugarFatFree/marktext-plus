@@ -266,5 +266,6 @@
   "settingsImageStorageLink": "元の場所を参照する",
   "settingsImageFolder": "画像フォルダー",
   "fileCloseTab": "タブを閉じる",
-  "fileClearRecentFiles": "最近のファイルを消去"
+  "fileClearRecentFiles": "最近のファイルを消去",
+  "viewCommandPalette": "コマンドパレット"
 }

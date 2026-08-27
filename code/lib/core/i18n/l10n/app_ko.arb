@@ -266,5 +266,6 @@
   "settingsImageStorageLink": "복사하지 않고 원래 위치 참조",
   "settingsImageFolder": "이미지 폴더",
   "fileCloseTab": "탭 닫기",
-  "fileClearRecentFiles": "최근 파일 지우기"
+  "fileClearRecentFiles": "최근 파일 지우기",
+  "viewCommandPalette": "명령 팔레트"
 }

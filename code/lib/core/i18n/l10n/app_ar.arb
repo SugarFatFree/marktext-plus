@@ -266,5 +266,6 @@
   "settingsImageStorageLink": "الربط بمكانها الأصلي",
   "settingsImageFolder": "مجلد الصور",
   "fileCloseTab": "إغلاق علامة التبويب",
-  "fileClearRecentFiles": "مسح الملفات الأخيرة"
+  "fileClearRecentFiles": "مسح الملفات الأخيرة",
+  "viewCommandPalette": "لوحة الأوامر"
 }

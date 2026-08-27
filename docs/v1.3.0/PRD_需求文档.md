@@ -18,6 +18,7 @@
 | FEAT-010 | 2026-08-27 | 预览模式内嵌 HTML 渲染（`enableHtml` 的「开」状态） | 低 | 困难 | 待实现 |
 | FEAT-011 | 2026-08-27 | 快捷键真正生效，且与设置页的自定义打通 | 高 | 中等 | 已实现 |
 | FEAT-012 | 2026-08-27 | 补齐文件菜单：关闭标签页、清空最近文件 | 中 | 简单 | 已实现 |
+| FEAT-013 | 2026-08-27 | 补齐视图菜单：命令面板、目录（TOC）入口 | 中 | 简单 | 已实现 |
 
 ## 详细需求
 
@@ -193,3 +194,18 @@
 | 涉及文件 | `lib/ui/widgets/editor_tab_bar.dart`、`lib/ui/widgets/app_menu_bar.dart`、`lib/ui/screens/home_screen.dart`、`lib/ui/screens/settings_screen.dart`、`lib/services/keybinding_service.dart`、`lib/core/i18n/l10n/*` |
 | 验收标准 | Ctrl+W 关闭当前标签页且未保存时会询问；清空后最近文件子菜单显示「无最近文件」 |
 | 仍与源项目有差距 | `import`（需 pandoc）、`moveTo`、`print`、`closeWindow` 尚未实现；`closeWindow` 若绑 Ctrl+Shift+W 会与现有的打字机模式冲突，需先定快捷键方案 |
+
+---
+
+### FEAT-013 — 补齐视图菜单：命令面板、目录入口
+
+| 字段 | 内容 |
+|------|------|
+| 实现日期 | 2026-08-27 |
+| 优先级 | 中 |
+| 难易度 | 简单 |
+| 需求描述 | 对照源项目 `menu/templates/view.ts` 发现两处缺口：① **命令面板**功能已经存在（Ctrl+P）但**菜单里没有任何入口**，用户不看代码就不会知道有这个功能；② **目录（TOC）**只能靠在侧边栏找那个图标进入，菜单里同样没有入口 |
+| 实现方案 | ① 视图菜单加「命令面板」并标出 Ctrl+P；② 加「目录」，点击时若侧边栏是收起的**先展开**再切到 TOC 面板 —— 否则点了看起来毫无反应<br>③ 为此把侧边栏选中的面板从 `_SideBarState` 的局部状态提升为 `sideBarTabProvider`，菜单才能在不侵入其内部状态的前提下切换面板 |
+| 涉及文件 | `lib/providers/sidebar_provider.dart`（新增）、`lib/ui/widgets/side_bar.dart`、`lib/ui/widgets/app_menu_bar.dart`、`lib/core/i18n/l10n/*` |
+| 验收标准 | 视图菜单能打开命令面板；点「目录」后侧边栏展开并停在目录面板 |
+| 未跟进的源项目菜单项 | `reloadImages`、`reloadWindow`、`showDeveloperTools` —— 后两个是 Electron 开发期专用，在 Flutter 桌面端没有对应物；`reloadImages` 价值有限，暂不实现 |

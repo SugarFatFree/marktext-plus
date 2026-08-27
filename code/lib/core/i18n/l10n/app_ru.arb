@@ -266,5 +266,6 @@
   "settingsImageStorageLink": "Ссылаться на исходное место",
   "settingsImageFolder": "Папка изображений",
   "fileCloseTab": "Закрыть вкладку",
-  "fileClearRecentFiles": "Очистить недавние файлы"
+  "fileClearRecentFiles": "Очистить недавние файлы",
+  "viewCommandPalette": "Палитра команд"
 }

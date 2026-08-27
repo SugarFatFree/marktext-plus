@@ -266,5 +266,6 @@
   "settingsImageStorageLink": "Lier à leur emplacement",
   "settingsImageFolder": "Dossier d'images",
   "fileCloseTab": "Fermer l'onglet",
-  "fileClearRecentFiles": "Effacer les fichiers récents"
+  "fileClearRecentFiles": "Effacer les fichiers récents",
+  "viewCommandPalette": "Palette de commandes"
 }

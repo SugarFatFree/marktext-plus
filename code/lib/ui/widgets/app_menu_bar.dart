@@ -26,6 +26,8 @@ import '../editor/mermaid/widgets/mermaid_diagram.dart';
 import '../editor/mermaid/models/style.dart';
 import 'editor_tab_bar.dart';
 import '../editor/mermaid/parser/mermaid_parser.dart';
+import '../../providers/sidebar_provider.dart';
+import 'command_palette.dart';
 
 class AppMenuBar extends ConsumerWidget {
   const AppMenuBar({super.key});
@@ -69,7 +71,7 @@ class AppMenuBar extends ConsumerWidget {
               children: [
                 _buildFileMenu(context, l10n, ref),
                 _buildEditMenu(l10n, ref),
-                _buildViewMenu(l10n, ref),
+                _buildViewMenu(context, l10n, ref),
                 _buildFormatMenu(l10n, ref),
                 _buildWindowMenu(l10n, ref),
                 _buildHelpMenu(l10n, ref),
@@ -378,7 +380,8 @@ class AppMenuBar extends ConsumerWidget {
     );
   }
 
-  Widget _buildViewMenu(AppLocalizations l10n, WidgetRef ref) {
+  Widget _buildViewMenu(
+      BuildContext context, AppLocalizations l10n, WidgetRef ref) {
     final config = ref.watch(settingsProvider);
     final isMac = PlatformUtils.isMacOS;
     return SubmenuButton(
@@ -438,6 +441,26 @@ class AppMenuBar extends ConsumerWidget {
           onPressed: () {
             ref.read(settingsProvider.notifier).toggleTabBar();
           },
+        ),
+        // The table of contents was reachable only by finding its icon in the
+        // sidebar; the command palette had no entry at all.
+        MenuItemButton(
+          child: Text(l10n.sidebarToc),
+          onPressed: () {
+            final settings = ref.read(settingsProvider.notifier);
+            if (!ref.read(settingsProvider).sideBarVisible) {
+              settings.toggleSideBar();
+            }
+            ref.read(sideBarTabProvider.notifier).state = SideBarTab.toc;
+          },
+        ),
+        MenuItemButton(
+          shortcut: SingleActivator(
+            LogicalKeyboardKey.keyP,
+            control: !isMac, meta: isMac,
+          ),
+          child: Text(l10n.viewCommandPalette),
+          onPressed: () => CommandPalette.show(context),
         ),
         const Divider(height: 1),
         MenuItemButton(

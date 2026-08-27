@@ -798,4 +798,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get fileClearRecentFiles => 'Borrar archivos recientes';
+  @override
+  String get viewCommandPalette => 'Paleta de comandos';
 }

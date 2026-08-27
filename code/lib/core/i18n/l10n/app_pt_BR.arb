@@ -266,5 +266,6 @@
   "settingsImageStorageLink": "Vincular onde estão",
   "settingsImageFolder": "Pasta de imagens",
   "fileCloseTab": "Fechar aba",
-  "fileClearRecentFiles": "Limpar arquivos recentes"
+  "fileClearRecentFiles": "Limpar arquivos recentes",
+  "viewCommandPalette": "Paleta de comandos"
 }

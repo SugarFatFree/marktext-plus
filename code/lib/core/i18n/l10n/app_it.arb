@@ -266,5 +266,6 @@
   "settingsImageStorageLink": "Collega dove si trovano",
   "settingsImageFolder": "Cartella immagini",
   "fileCloseTab": "Chiudi scheda",
-  "fileClearRecentFiles": "Svuota file recenti"
+  "fileClearRecentFiles": "Svuota file recenti",
+  "viewCommandPalette": "Riquadro comandi"
 }

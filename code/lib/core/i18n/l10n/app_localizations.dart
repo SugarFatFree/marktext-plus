@@ -1660,6 +1660,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Clear Recent Files'**
   String get fileClearRecentFiles;
+
+  /// View menu item that opens the command palette
+  ///
+  /// In en, this message translates to:
+  /// **'Command Palette'**
+  String get viewCommandPalette;
 }
 
 class _AppLocalizationsDelegate

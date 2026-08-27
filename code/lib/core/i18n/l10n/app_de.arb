@@ -266,5 +266,6 @@
   "settingsImageStorageLink": "Am Originalort verlinken",
   "settingsImageFolder": "Bilderordner",
   "fileCloseTab": "Tab schließen",
-  "fileClearRecentFiles": "Zuletzt verwendete leeren"
+  "fileClearRecentFiles": "Zuletzt verwendete leeren",
+  "viewCommandPalette": "Befehlspalette"
 }
