@@ -317,3 +317,14 @@ requirementDiagram
   test_entity - satisfies -> test_req2
   test_req - traces -> test_req2
 ```
+
+~~~python
+# a tilde fence: the # above is a comment, not a heading
+print("hello")
+~~~
+
+````markdown
+```dart
+void main() {}
+```
+````

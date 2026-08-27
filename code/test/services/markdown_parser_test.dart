@@ -2,6 +2,54 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/services/markdown_parser.dart';
 
 void main() {
+  group('Code fences', () {
+    final parser = MarkdownParser();
+
+    CodeBlockNode codeOf(String source) =>
+        parser.parse(source).first as CodeBlockNode;
+
+    test('tildes open a fence too', () {
+      // CommonMark allows ~~~; matching only backticks left the block as an
+      // ordinary paragraph with the code as prose.
+      expect(codeOf('~~~\nx\n~~~').code, 'x');
+      expect(codeOf('~~~python\nx\n~~~').language, 'python');
+    });
+
+    test('a longer fence can contain a shorter one', () {
+      // This is how a document shows ``` inside a code block. Read as a
+      // three-backtick fence it became two empty blocks and the contents were
+      // lost.
+      expect(codeOf('````\n```\n````').code, '```');
+      expect(codeOf('````\n```\nstill\n````').code, '```\nstill');
+    });
+
+    test('a fence is closed only by its own character', () {
+      expect(codeOf('~~~\n```\nstill\n~~~').code, '```\nstill');
+    });
+
+    test('a closing fence may be longer than the opening one', () {
+      expect(codeOf('```\nx\n`````').code, 'x');
+    });
+
+    test('an info string may contain punctuation', () {
+      expect(codeOf('```objective-c\nx\n```').language, 'objective-c');
+      expect(codeOf('```c++\nx\n```').language, 'c++');
+    });
+
+    test('an unclosed fence takes the rest of the document', () {
+      expect(codeOf('```\nx').code, 'x');
+    });
+
+    test('the outline skips both kinds of fence', () {
+      expect(
+        MarkdownParser.headingOutline('# A\n~~~\n# B\n~~~\n# C')
+            .map((h) => h.text)
+            .toList(),
+        ['A', 'C'],
+      );
+    });
+  });
+
   group('Emphasis needs no space just inside the delimiters', () {
     final parser = MarkdownParser();
 

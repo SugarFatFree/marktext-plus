@@ -252,8 +252,15 @@ class MarkdownParser {
 
   static final _headingRe = RegExp(r'^(#{1,6})\s+(.+)$');
   static final _hrRe = RegExp(r'^(\*{3,}|-{3,}|_{3,})\s*$');
-  static final _codeFenceRe = RegExp(r'^\s*```(\w*)');
-  static final _codeFenceEndRe = RegExp(r'^\s*```\s*$');
+  /// A fence opening a code block.
+  ///
+  /// Three or more backticks or tildes. The length and the character both
+  /// matter: a longer fence is how a document shows ``` inside a code block,
+  /// and CommonMark allows ~~~ as well. Matching only ``` turned a ````
+  /// fence into two empty blocks with the contents lost, and left a ~~~ block
+  /// as an ordinary paragraph.
+  static final _codeFenceRe = RegExp(r'^\s*(`{3,}|~{3,})\s*([^`\s]*)');
+  static final _codeFenceEndRe = RegExp(r'^\s*(`{3,}|~{3,})\s*$');
 
   /// The headings of [source], in document order.
   ///
@@ -294,6 +301,17 @@ class MarkdownParser {
     }
     return headings;
   }
+  /// Whether [line] closes a block opened by [fence].
+  ///
+  /// The closing fence must use the same character and be at least as long,
+  /// so ``` inside a ```` block is content rather than the end of it.
+  static bool _closesFence(String line, String fence) {
+    final match = _codeFenceEndRe.firstMatch(line);
+    if (match == null) return false;
+    final closing = match.group(1)!;
+    return closing[0] == fence[0] && closing.length >= fence.length;
+  }
+
   static final _mathBlockRe = RegExp(r'^\$\$\s*$');
   /// A task marker. GFM treats `[x]` and `[X]` alike, and the editor's own
   /// prefix handling already accepted both — only the parser did not, so a
@@ -658,10 +676,11 @@ class MarkdownParser {
       // Fenced code block
       final codeFenceMatch = _codeFenceRe.firstMatch(line);
       if (codeFenceMatch != null && !_ulRe.hasMatch(line)) {
-        final lang = codeFenceMatch.group(1) ?? '';
+        final fence = codeFenceMatch.group(1)!;
+        final lang = codeFenceMatch.group(2) ?? '';
         final codeLines = <String>[];
         i++;
-        while (i < lines.length && !_codeFenceEndRe.hasMatch(lines[i])) {
+        while (i < lines.length && !_closesFence(lines[i], fence)) {
           codeLines.add(lines[i]);
           i++;
         }
