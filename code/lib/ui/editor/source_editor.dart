@@ -52,6 +52,9 @@ class SourceEditor extends ConsumerStatefulWidget {
   /// A blockquote marker.
   static final _quotePrefixRe = RegExp(r'^(\s*)>\s?');
 
+  /// Leading whitespace, hoisted like its two siblings above.
+  static final _leadingSpaceRe = RegExp(r'^\s*');
+
   /// Applies [prefix] to [line].
   ///
   /// Toggles off when the line already starts with exactly this prefix, and
@@ -127,7 +130,7 @@ class SourceEditor extends ConsumerStatefulWidget {
         ? _quotePrefixRe
         : _listPrefixRe;
 
-    final indent = RegExp(r'^\s*').firstMatch(line)!.group(0)!;
+    final indent = _leadingSpaceRe.firstMatch(line)!.group(0)!;
     final body = line.substring(indent.length);
 
     final existing = family.firstMatch(line);

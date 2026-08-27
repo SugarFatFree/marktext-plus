@@ -87,5 +87,40 @@ void main() {
     test('an empty pattern matches nothing', () {
       expect(TextSearch.matches('abc', ''), isEmpty);
     });
+
+    test('word boundaries are recognised around every ASCII character', () {
+      // The check reads code units now rather than building a pattern each
+      // time; these pin the boundary it draws.
+      for (final inside in ['a', 'Z', '7', '_']) {
+        expect(
+          TextSearch.matches('${inside}foo', 'foo', wholeWord: true),
+          isEmpty,
+          reason: '"$inside" should sit inside a word',
+        );
+      }
+      for (final outside in [' ', '.', '-', '(', '/', '中']) {
+        expect(
+          TextSearch.matches('${outside}foo', 'foo', wholeWord: true),
+          hasLength(1),
+          reason: '"$outside" should end a word',
+        );
+      }
+    });
+
+    test('a whole-word search over a large document stays fast', () {
+      // Asked twice per candidate hit; building a `RegExp` each time cost
+      // 770 ms on this input.
+      final text = 'aaaa' * 200000;
+      final watch = Stopwatch()..start();
+      final hits = TextSearch.matches(text, 'aa', wholeWord: true);
+      watch.stop();
+
+      expect(hits, isEmpty);
+      expect(
+        watch.elapsedMilliseconds,
+        lessThan(2000),
+        reason: 'took ${watch.elapsedMilliseconds}ms',
+      );
+    });
   });
 }
