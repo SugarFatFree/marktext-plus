@@ -27,6 +27,7 @@
 | BUG-018 | 2026-08-27 | 行内格式无条件包裹：`**bold**` 再点粗体变成 `****bold****` | P1 | 已修复 |
 | BUG-019 | 2026-08-27 | PDF 导出直接打印原始 markdown 标记，`**粗体**` 的星号出现在页面上 | P1 | 已修复 |
 | BUG-020 | 2026-08-27 | 单行 HTML 标签吞掉文档剩余全部内容 | **P0** | 已修复 |
+| BUG-021 | 2026-08-27 | Kanban 只接受 `id[标题]`，按官方文档写法解析失败 | P1 | 已修复 |
 
 ---
 
@@ -310,3 +311,18 @@
 | 发现方式 | **端到端 fixture 测试**。此前每个测试只解析独立片段，而这个 bug 需要「HTML 块 + 其后还有内容」的组合才会显形。`showcase.md` 里那行 `<div class="note">…</div>` 之后的 14 个 mermaid 图表全部消失，测试报告 `fence languages found: [dart, ]`，据此定位 |
 | 修复方案 | 三种情形提前判定为「块到此为止」：当前行已含闭标签、行尾是 `/>`、标签属于 void 元素表。其余情况**先扫描**闭标签位置再消费 —— 找不到就只占一行，未闭合的标签代价是一行而非整篇文档 |
 | 涉及文件 | `lib/services/markdown_parser.dart`、`test/services/markdown_parser_test.dart` |
+
+---
+
+## BUG-021 Kanban 仅接受一种列/任务写法
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+| 现象 | 照 mermaid 官方文档写的 kanban 图整个渲染不出来 |
+| 根因分析 | `kanban_parser.dart` 的列正则是 `^(\w+)\[([^\]]+)\]...$`，任务正则是 `^(\w+)\[([^\]]+)\]...$` —— 两者都**强制要求 id 前缀加方括号**。而 mermaid 文档里三种写法混用：裸标题 `Todo`、无 id 的 `[In progress]`、带 id 的 `docs[写博客]`。只要出现前两种，列表为空，`parse` 返回 null，整图不渲染 |
+| 发现方式 | showcase fixture 的 kanban 段落按官方风格书写（裸列名 + 裸任务），BUG-020 修复后测试推进到逐图解析，随即报 `failed to parse: kanban` |
+| 修复方案 | 列与任务正则改为三选一：`id[标题]` / `[标题]` / 裸文本，`wip:N` 与 `@{...}` 元数据后缀保持可选。缺 id 时以标题文本兜底作为 id —— 渲染本就只显示标题 |
+| 涉及文件 | `lib/ui/editor/mermaid/parser/kanban_parser.dart`、`test/ui/editor/mermaid/mermaid_parser_test.dart` |

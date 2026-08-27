@@ -9,6 +9,20 @@ class KanbanParser {
   /// Creates a Kanban parser
   const KanbanParser();
 
+  /// A column heading: `id[Title]`, `[Title]`, or a bare `Title`, each
+  /// optionally followed by `wip:N`.
+  ///
+  /// Mermaid's own documentation uses all three forms; accepting only
+  /// `id[Title]` made a board copied from those docs fail to parse.
+  static final _columnRe =
+      RegExp(r'^(?:(\w+)?\[([^\]]+)\]|([^\[\]]+?))(?:\s+wip:(\d+))?$');
+
+  /// A task: `id[Description]`, `[Description]`, or bare text, optionally
+  /// followed by an `@{ ... }` metadata block.
+  static final _taskRe = RegExp(
+    r'^(?:(\w+)?\[([^\]]+)\]|([^\[\]@]+?))(?:\s+@\{([^}]+)\})?$',
+  );
+
   /// Parses Kanban diagram from cleaned lines
   /// Returns tuple of (MermaidDiagramData, KanbanChartData) or null if invalid
   (MermaidDiagramData, KanbanChartData)? parse(List<String> lines) {
@@ -51,10 +65,9 @@ class KanbanParser {
       // Check if line is indented (potential task)
       final isIndented = line.startsWith(' ') || line.startsWith('\t');
 
-      // Parse column: columnId[Column Title] or columnId[Column Title] wip:N
-      // Columns should NOT be deeply indented (max 2 spaces for formatting)
-      final columnMatch =
-          RegExp(r'^(\w+)\[([^\]]+)\](?:\s+wip:(\d+))?$').firstMatch(trimmedLine);
+      // Parse column heading. Columns are not deeply indented; four spaces or
+      // more marks a task belonging to the column above.
+      final columnMatch = _columnRe.firstMatch(trimmedLine);
       if (columnMatch != null && !line.startsWith('    ')) {
         // Save previous column
         if (currentColumn != null) {
@@ -62,10 +75,14 @@ class KanbanParser {
           currentTasks.clear();
         }
 
-        final columnId = columnMatch.group(1)!;
-        final columnTitle = columnMatch.group(2)!;
-        final wipLimit =
-            columnMatch.group(3) != null ? int.tryParse(columnMatch.group(3)!) : null;
+        final columnTitle =
+            (columnMatch.group(2) ?? columnMatch.group(3) ?? '').trim();
+        if (columnTitle.isEmpty) continue;
+        // Untitled columns still need a stable id for task attribution.
+        final columnId = columnMatch.group(1) ?? columnTitle;
+        final wipLimit = columnMatch.group(4) != null
+            ? int.tryParse(columnMatch.group(4)!)
+            : null;
 
         currentColumn = KanbanColumn(
           id: columnId,
@@ -134,15 +151,15 @@ class KanbanParser {
   /// Parses single task line
   /// Format: taskId[Task Description] @{ assigned: "Name", ticket: "123", priority: "High" }
   KanbanTask? _parseTask(String line) {
-    // Match pattern: taskId[Description] @{ metadata }
-    final taskPattern = RegExp(r'^(\w+)\[([^\]]+)\](?:\s+@\{([^}]+)\})?$');
-
-    final match = taskPattern.firstMatch(line);
+    final match = _taskRe.firstMatch(line);
     if (match == null) return null;
 
-    final id = match.group(1)!;
-    final description = match.group(2)!;
-    final metadataStr = match.group(3);
+    final description = (match.group(2) ?? match.group(3) ?? '').trim();
+    if (description.isEmpty) return null;
+    // Tasks written without an id fall back to their text, which is what the
+    // renderer shows anyway.
+    final id = match.group(1) ?? description;
+    final metadataStr = match.group(4);
 
     // Parse metadata
     String? assigned;

@@ -95,6 +95,54 @@ void main() {
     });
   });
 
+  group('Kanban', () {
+    test('accepts the column forms mermaid documents', () {
+      // Bare titles and untitled brackets both appear in mermaid's own docs;
+      // requiring `id[Title]` made a board copied from there parse to null.
+      final result = parser.parseWithData("""
+kanban
+  Todo
+    [Write docs]
+  [In progress]
+    id6[Fix the renderer]
+  done[Done]
+    Ship it
+""");
+
+      expect(result, isNotNull);
+      expect(result!.diagram.type, DiagramType.kanban);
+
+      final columns = result.kanbanChartData!.columns;
+      expect(columns.map((c) => c.title).toList(),
+          ['Todo', 'In progress', 'Done']);
+      expect(columns[0].tasks.single.description, 'Write docs');
+      expect(columns[1].tasks.single.description, 'Fix the renderer');
+      expect(columns[2].tasks.single.description, 'Ship it');
+    });
+
+    test('reads a wip limit on any column form', () {
+      final result = parser.parseWithData("""
+kanban
+  Doing wip:3
+    [A task]
+""");
+
+      expect(result!.kanbanChartData!.columns.single.wipLimit, 3);
+    });
+
+    test('still reads task metadata', () {
+      final result = parser.parseWithData("""
+kanban
+  Todo
+    id1[Fix it] @{assigned: "sam", priority: "High"}
+""");
+
+      final task = result!.kanbanChartData!.columns.single.tasks.single;
+      expect(task.description, 'Fix it');
+      expect(task.assigned, 'sam');
+    });
+  });
+
   group('Mindmap', () {
     test('builds a tree from indentation', () {
       final result = parser.parseWithData("""
