@@ -88,6 +88,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
         ref.read(tabProvider).tabs.where((t) => t.isModified).toList();
 
     if (unsaved.isEmpty || !mounted) {
+      // The common path: geometry has to be recorded here too, or it would
+      // only ever be saved when something was left unsaved.
+      await _saveWindowGeometry();
       await windowManager.destroy();
       return;
     }
@@ -104,7 +107,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
       }
     }
 
+    await _saveWindowGeometry();
     await windowManager.destroy();
+  }
+
+  /// Records the window's size, position and maximised state for next launch.
+  ///
+  /// Done here because the window still exists; the previous attempt ran on
+  /// AppLifecycleState.detached, by which point position was unreachable — it
+  /// wrote zeros and false over whatever had been stored.
+  Future<void> _saveWindowGeometry() async {
+    try {
+      final maximized = await windowManager.isMaximized();
+      final size = await windowManager.getSize();
+      final position = await windowManager.getPosition();
+
+      await ref.read(settingsProvider.notifier).saveWindowState(
+            width: size.width,
+            height: size.height,
+            x: position.dx,
+            y: position.dy,
+            isMaximized: maximized,
+          );
+    } catch (_) {
+      // Nothing to record without a window; closing continues regardless.
+    }
   }
 
   Future<_ExitChoice?> _askAboutUnsavedOnExit(List<TabInfo> unsaved) {

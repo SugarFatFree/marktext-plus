@@ -48,6 +48,7 @@
 | BUG-039 | 2026-08-27 | 「关闭其他/右侧/全部标签页」同样无提示，一次丢失多个文件 | **P0** | 已修复 |
 | BUG-040 | 2026-08-27 | 直接关闭应用窗口，全部未保存内容一并丢失 | **P0** | 已修复 |
 | BUG-041 | 2026-08-27 | 更新提示无法关闭；新建文件名硬编码英文 | P2 | 已修复 |
+| BUG-042 | 2026-08-27 | 窗口大小/位置存了却从不读取，每次启动都回到默认尺寸 | P1 | 已修复 |
 
 ---
 
@@ -632,6 +633,22 @@
 | 根因分析 | ① `UpdateNotifier.dismiss()` 与文案 `updateDismiss` 均已就绪，**却没有任何 UI 调用** —— `dismissed` 恒为 false；徽标也只显示版本号，未使用 `updateAvailable` 说明这是什么。② `TabInfo.fileName` 默认值硬编码 `'Untitled'`，而 `TabInfo` 是纯模型、无从获取本地化 |
 | 修复方案 | ① 徽标拆为两个可点区域：版本号跳转下载页（tooltip 用 `updateAvailable`），旁加关闭按钮调用 `dismiss()`（tooltip 用 `updateDismiss`）；② 由持有 `l10n` 的 `_newFile` 传入 `l10n.untitled` |
 | 涉及文件 | `lib/ui/widgets/status_bar.dart`、`lib/ui/widgets/app_menu_bar.dart` |
+
+---
+
+## BUG-042 窗口状态持久化名存实亡
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+| 现象 | 调整窗口大小或位置后重启，**每次都回到默认的 1280×720**。`.claude/CLAUDE.md` 中「窗口状态持久化（位置/大小/最大化）」一项与事实不符 |
+| 发现方式 | 延续 BUG-041 的思路，用脚本比对 `AppConfig` 的 33 个字段与 `lib/` 中的读取点，得到 9 个「只写不读」的字段，其中 5 个正是窗口几何 |
+| 根因分析 | **两端都是半截的**：<br>① 启动端 —— `WindowOptions` 写死 `Size(1280, 720)`，从不读取配置；<br>② 保存端 —— `x`/`y` 硬编码 `0`、`isMaximized` 硬编码 `false`，注释称「没有 platform channel 拿不到位置」，然而 `windowManager.getPosition()` 完全可用，该包本就是既有依赖。更糟的是**这些假值会覆盖掉已存的真实值**；<br>③ 时机 —— 保存发生在 `AppLifecycleState.detached`，此时窗口已在销毁途中，本就取不到几何信息 |
+| 修复方案 | 配置加载提前至构造 `WindowOptions` 之前，以保存的尺寸开窗；位置与最大化状态无法经 `WindowOptions` 传递，故在 `waitUntilReadyToShow` 回调中调用 `setPosition` / `maximize` 应用。<br>保存改在 `HomeScreen.onWindowClose`（BUG-040 已引入该拦截）—— 此刻窗口尚存，可取得真实的尺寸、位置与最大化状态。**两条退出路径都要保存**：无未保存内容的那条才是常态，只在有未保存内容时保存等于几乎不保存。<br>`main.dart` 中原有的 `_AppLifecycleWrapper` 唯一职责就是写入这些假值，已整体移除 |
+| 其余「只写不读」字段 | `splitRatio`（分屏比例存而不复原）、`imageStorageMode` / `imageFolder`（图片设置尚未实现）—— 均属未实现功能，另行跟踪 |
+| 涉及文件 | `lib/main.dart`、`lib/ui/screens/home_screen.dart` |
 
 ---
 

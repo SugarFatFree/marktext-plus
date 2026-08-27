@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -64,23 +63,33 @@ void main(List<String> args) async {
   // Initialize window_manager
   await windowManager.ensureInitialized();
 
-  WindowOptions windowOptions = const WindowOptions(
-    size: Size(1280, 720),
-    title: 'MarkText Plus',
-  );
-
-  windowManager.waitUntilReadyToShow(windowOptions, () async {
-    await windowManager.show();
-    await windowManager.focus();
-  });
-
   // Filter startup file arguments
   final startupFiles = _filterStartupFiles(args);
 
+  // Loaded before the window is configured: the saved geometry is what the
+  // window should open with, and it was being written to disk and then never
+  // read, so every launch reverted to the default size.
   final appSupportDir = await getApplicationSupportDirectory();
   final configDir = appSupportDir.path;
   final configService = ConfigService(configDir: configDir);
   final config = await configService.load();
+
+  final windowOptions = WindowOptions(
+    size: Size(config.windowWidth, config.windowHeight),
+    title: 'MarkText Plus',
+  );
+
+  windowManager.waitUntilReadyToShow(windowOptions, () async {
+    // Position and maximised state cannot travel in WindowOptions.
+    if (config.windowX != 0 || config.windowY != 0) {
+      await windowManager.setPosition(Offset(config.windowX, config.windowY));
+    }
+    if (config.isMaximized) {
+      await windowManager.maximize();
+    }
+    await windowManager.show();
+    await windowManager.focus();
+  });
   final initialLocale = LocaleNotifier.parseLocale(config.locale);
 
   final container = ProviderContainer(
@@ -96,70 +105,6 @@ void main(List<String> args) async {
 
   runApp(UncontrolledProviderScope(
     container: container,
-    child: _AppLifecycleWrapper(
-      container: container,
-      child: const MarkTextPlusApp(),
-    ),
+    child: const MarkTextPlusApp(),
   ));
-}
-
-class _AppLifecycleWrapper extends StatefulWidget {
-  final ProviderContainer container;
-  final Widget child;
-
-  const _AppLifecycleWrapper({
-    required this.container,
-    required this.child,
-  });
-
-  @override
-  State<_AppLifecycleWrapper> createState() => _AppLifecycleWrapperState();
-}
-
-class _AppLifecycleWrapperState extends State<_AppLifecycleWrapper> with WidgetsBindingObserver {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  @override
-  Future<bool> didPopRoute() async {
-    await _saveWindowState();
-    return false;
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.detached) {
-      _saveWindowState();
-    }
-  }
-
-  Future<void> _saveWindowState() async {
-    try {
-      final view = ui.PlatformDispatcher.instance.views.first;
-      final size = view.physicalSize / view.devicePixelRatio;
-
-      // Save window state (position not available without platform channel)
-      widget.container.read(settingsProvider.notifier).saveWindowState(
-        width: size.width,
-        height: size.height,
-        x: 0,
-        y: 0,
-        isMaximized: false,
-      );
-    } catch (_) {
-      // Ignore errors during shutdown
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) => widget.child;
 }
