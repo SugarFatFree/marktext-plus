@@ -723,7 +723,8 @@ class ExportService {
 
       case NodeType.frontMatter:
         final fm = node as FrontMatterNode;
-        return '<pre class="front-matter">${_escapeHtml(fm.content)}</pre>';
+        return '<pre class="front-matter" data-lang="${fm.lang}">'
+            '${_escapeHtml(fm.content)}</pre>';
 
       case NodeType.footnoteDefinition:
         final fn = node as FootnoteDefinitionNode;

@@ -258,7 +258,14 @@ class MathBlockNode extends MarkdownNode {
 class FrontMatterNode extends MarkdownNode {
   final String content;
 
-  FrontMatterNode({required this.content});
+  /// `yaml`, `toml` or `json`, from which delimiter opened the block.
+  ///
+  /// Upstream accepts four spellings and remembers which one a document used;
+  /// a Hugo file with `+++` metadata used to render as a paragraph of literal
+  /// plus signs here.
+  final String lang;
+
+  FrontMatterNode({required this.content, this.lang = 'yaml'});
 
   @override
   NodeType get type => NodeType.frontMatter;
@@ -417,7 +424,25 @@ class MarkdownParser {
 
   /// The row of dashes under the header.
   static final _tableSepRe = RegExp(r'^\s*\|?[\s:|-]+\|?\s*$');
-  static final _frontMatterRe = RegExp(r'^---\s*$');
+
+  /// Front matter openers, mapped to their closer and the language inside.
+  ///
+  /// These are the four spellings upstream accepts. `{` closes with `}`, so
+  /// opener and closer are kept apart rather than assumed equal.
+  static const _frontMatterDelimiters =
+      <String, ({String close, String lang})>{
+    '---': (close: '---', lang: 'yaml'),
+    '+++': (close: '+++', lang: 'toml'),
+    ';;;': (close: ';;;', lang: 'json'),
+    '{': (close: '}', lang: 'json'),
+  };
+
+  /// Whether `line` opens a front matter block, in any of the four spellings.
+  ///
+  /// The editor's "Front Matter" command asks this before prepending one, so a
+  /// document that already opens with `+++` does not gain a second block.
+  static bool isFrontMatterOpener(String line) =>
+      _frontMatterDelimiters.containsKey(line.trimRight());
   static final _footnoteDefRe = RegExp(r'^\[\^([^\]]+)\]:\s*(.+)$');
   /// An HTML element opening a block.
   ///
@@ -774,31 +799,34 @@ class MarkdownParser {
     // preview and from all three export paths.
     // `---` immediately followed by `---` is likewise two thematic breaks
     // rather than an empty metadata block, which is what upstream reads it as.
-    if (i + 1 < lines.length &&
-        _frontMatterRe.hasMatch(lines[i]) &&
+    final opener = i < lines.length
+        ? _frontMatterDelimiters[lines[i].trimRight()]
+        : null;
+    if (opener != null &&
+        i + 1 < lines.length &&
         lines[i + 1].trim().isNotEmpty &&
-        !_frontMatterRe.hasMatch(lines[i + 1])) {
-      // Look ahead for closing ---
+        lines[i + 1].trimRight() != opener.close) {
+      // Look ahead for the matching closing delimiter
       var j = i + 1;
-      while (j < lines.length && !_frontMatterRe.hasMatch(lines[j])) {
+      while (j < lines.length && lines[j].trimRight() != opener.close) {
         j++;
       }
       if (j < lines.length) {
-        // Found closing --- → parse as front matter
+        // Found the closer → parse as front matter
         final fmLines = <String>[];
-        i++; // skip opening ---
+        i++; // skip the opening delimiter
         while (i < j) {
           fmLines.add(lines[i]);
           i++;
         }
-        i++; // skip closing ---
+        i++; // skip the closing delimiter
         nodes.add(_withSpan(
-          FrontMatterNode(content: fmLines.join('\n')),
+          FrontMatterNode(content: fmLines.join('\n'), lang: opener.lang),
           0,
           i,
         ));
       }
-      // else: no closing --- found, fall through to normal parsing
+      // else: no closer found, fall through to normal parsing
     }
 
     while (i < lines.length) {

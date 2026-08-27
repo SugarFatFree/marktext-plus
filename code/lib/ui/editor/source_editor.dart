@@ -10,6 +10,7 @@ import '../../providers/editor_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/tab_provider.dart';
 import '../../services/image_service.dart';
+import '../../services/markdown_parser.dart' as md;
 import 'highlighting_controller.dart';
 import '../../services/keybinding_service.dart';
 import '../../utils/platform_utils.dart';
@@ -544,8 +545,12 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     final text = _controller.text;
     final lines = text.split('\n');
 
-    if (lines.isNotEmpty && lines.first.trimRight() == '---') {
-      _controller.selection = const TextSelection.collapsed(offset: 4);
+    if (lines.isNotEmpty &&
+        md.MarkdownParser.isFrontMatterOpener(lines.first)) {
+      // Just past the opening delimiter and its newline. Measured rather than
+      // fixed at 4, since `{` opens a block just as `---` does.
+      final offset = lines.first.trimRight().length + 1;
+      _controller.selection = TextSelection.collapsed(offset: offset);
       return;
     }
 

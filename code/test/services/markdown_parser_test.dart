@@ -1818,5 +1818,47 @@ void _sourceSpanTests() {
         [NodeType.frontMatter, NodeType.heading],
       );
     });
+
+    test('TOML front matter is recognised', () {
+      // A Hugo file opens with `+++`; it used to render as a paragraph of
+      // literal plus signs.
+      final nodes = parser.parse('+++\ntitle = "x"\n+++\n\nBody\n');
+      final fm = nodes.first as FrontMatterNode;
+      expect(fm.lang, 'toml');
+      expect(fm.content, 'title = "x"');
+    });
+
+    test('JSON front matter is recognised in both spellings', () {
+      final semis = parser.parse(';;;\n{"a": 1}\n;;;\n\nBody\n').first;
+      expect((semis as FrontMatterNode).lang, 'json');
+      expect(semis.content, '{"a": 1}');
+
+      final braces = parser.parse('{\n"a": 1\n}\n\nBody\n').first;
+      expect((braces as FrontMatterNode).lang, 'json');
+      expect(braces.content, '"a": 1');
+    });
+
+    test('a brace block closes with a brace, not with itself', () {
+      // `{` opens and `}` closes, so an unterminated brace is just prose.
+      final nodes = parser.parse('{\n"a": 1\n\nBody\n');
+      expect(nodes.every((n) => n.type == NodeType.paragraph), isTrue);
+    });
+
+    test('YAML front matter reports its language', () {
+      final fm = parser.parse('---\na: 1\n---\n').first as FrontMatterNode;
+      expect(fm.lang, 'yaml');
+    });
+
+    test('isFrontMatterOpener knows all four spellings', () {
+      for (final opener in ['---', '+++', ';;;', '{']) {
+        expect(
+          MarkdownParser.isFrontMatterOpener(opener),
+          isTrue,
+          reason: '$opener should open front matter',
+        );
+      }
+      expect(MarkdownParser.isFrontMatterOpener('----'), isFalse);
+      expect(MarkdownParser.isFrontMatterOpener('text'), isFalse);
+    });
   });
 }

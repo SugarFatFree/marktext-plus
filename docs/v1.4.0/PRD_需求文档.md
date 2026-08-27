@@ -9,6 +9,7 @@
 | FEAT-005 | 2026-08-28 | Mermaid 新增 C4 系列（C4Context 等五种） | 中 | 困难 | 已实现 |
 | FEAT-006 | 2026-08-28 | 换行符可切换（状态栏点击） | 中 | 简单 | 已实现 |
 | FEAT-007 | 2026-08-28 | 设置里的「启用 HTML」开关真正生效（行内标签） | 中 | 中等 | 已实现 |
+| FEAT-008 | 2026-08-28 | 前置元数据支持 TOML(`+++`) 与 JSON(`;;;`/`{}`) 三种格式 | 中 | 简单 | 已实现 |
 
 ## 详细需求
 
@@ -157,5 +158,26 @@
 | 未做 | 块级 HTML（`<div>`、`<table>` 等）仍显示原文；带属性的标签（`<span class=…>`）不解释 |
 | 涉及文件 | `lib/services/markdown_parser.dart`、`lib/services/export_service.dart`、`lib/ui/editor/markdown_renderer.dart`、`lib/ui/widgets/app_menu_bar.dart`、`test/services/markdown_parser_test.dart` |
 | 验证方式 | **默认关闭时 61 条语料基线对拍零差异**；19 种写法本地探查（开关两种状态各一轮）；6 组仓库测试；十个历史断言脚本全部通过 |
+
+---
+
+### FEAT-008 — 前置元数据支持 TOML(`+++`) 与 JSON(`;;;` / `{}`) 三种格式
+
+| 字段 | 内容 |
+|------|------|
+| 实现日期 | 2026-08-28 |
+| 优先级 | 中 |
+| 难易度 | 简单 |
+| 状态 | 已实现 |
+| 需求来源 | 对齐上游。上游 muya 的 `FRONT_REG` 认四种开分隔符（`---` YAML、`+++` TOML、`;;;` JSON、`{` JSON），我们只认 `---` |
+| 需求描述 | 四种写法都识别为前置元数据块，并记住用的是哪种语言 |
+| 用户场景 | Hugo 站点的 `.md` 普遍用 `+++` 写 TOML 元数据。在此之前打开这类文件，元数据会渲染成一段字面的 `+++ / title = "x" / +++` 正文 |
+| 实现方案 | 把单条 `^---\s*$` 正则换成开分隔符→(闭分隔符, 语言) 的常量表。`{` 用 `}` 收尾，所以开闭分开存而不是假定相同。`FrontMatterNode` 增加 `lang` 字段（`yaml`/`toml`/`json`） |
+| 连带修正 | 编辑器的「插入前置元数据」命令原先只检查首行是不是 `---`，文档若以 `+++` 开头会再插一个 `---` 块、变成两个。改为调用新增的 `MarkdownParser.isFrontMatterOpener`；光标落点也从写死的 4 改成按分隔符实际长度算（`{` 只有 1 个字符） |
+| 上游对齐 | HTML 导出的 `<pre class="front-matter">` 补上 `data-lang`，与上游 `frontMatterRender` 一致 |
+| 涉及文件 | `lib/services/markdown_parser.dart`、`lib/ui/editor/source_editor.dart`、`lib/services/export_service.dart`、`test/services/markdown_parser_test.dart` |
+| 验收标准 | 四种开分隔符都产出 `frontMatter` 节点且 `lang` 正确；未闭合时整体降级为正文而不吞内容；`+++` 出现在文档中间不触发；`---` 的既有行为一字不变 |
+| 验证方式 | 61 条语料基线对拍**零差异**；10 种写法逐一对照期望；行覆盖不变式（61 条语料 + 8 份真实文档 2194 行）零丢失；块级往返字节一致；新增 5 条测试，断言先用真实源码跑通再落库 |
+| 暂未做（明确记录） | 上游还有一个 `frontmatterType` 偏好项，决定「插入前置元数据」命令写出哪种分隔符。加它要动 AppConfig、设置页和 12 种语言的文案，收益有限，本版**不做**；插入仍固定用 `---` |
 
 ---
