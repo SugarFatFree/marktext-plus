@@ -305,6 +305,31 @@ void _inlineEdgeCaseTests() {
       expect(typesOf('H~2~O'), contains(InlineType.subscript));
     });
 
+    test('a title is separated from the image path', () {
+      // The path used to swallow the title, so an image written with one
+      // never loaded: src became `pic.png "the title"`.
+      final span = parser.parseInline('![alt](pic.png "the title")').single;
+      expect(span.type, InlineType.image);
+      expect(span.href, 'pic.png');
+      expect(span.title, 'the title');
+    });
+
+    test('a link keeps parentheses inside its URL', () {
+      // Wikipedia links routinely end in (disambiguation); `[^)]+` stopped at
+      // the first bracket and truncated them.
+      final span = parser
+          .parseInline('[wiki](https://en.wikipedia.org/wiki/Foo_(bar))')
+          .single;
+      expect(span.type, InlineType.link);
+      expect(span.href, 'https://en.wikipedia.org/wiki/Foo_(bar)');
+    });
+
+    test('a link title is separated from its URL', () {
+      final span = parser.parseInline('[t](https://x.com "hi")').single;
+      expect(span.href, 'https://x.com');
+      expect(span.title, 'hi');
+    });
+
     test('markers inside inline code stay literal', () {
       final spans = parser.parseInline('`code with **bold** inside`');
       expect(spans.single.type, InlineType.code);

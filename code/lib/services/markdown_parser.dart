@@ -793,8 +793,12 @@ class MarkdownParser {
     final spans = <InlineSpan>[];
     // Combined pattern for inline elements, ordered by priority
     final re = RegExp(
-      r'!\[([^\]]*)\]\(([^)]+)\)'  // image
-      r'|\[([^\]]*)\]\(([^)]+)\)'  // link
+      // A URL may contain one level of balanced parentheses — Wikipedia links
+      // routinely do — and an optional quoted title follows it. `[^)]+` used
+      // to stop at the first `)`, truncating such URLs, and swallowed the
+      // title into the path so images with one never loaded.
+      r'!\[([^\]]*)\]\(\s*((?:[^()\s"]|\([^()]*\))+)(?:\s+"([^"]*)")?\s*\)'  // image
+      r'|\[([^\]]*)\]\(\s*((?:[^()\s"]|\([^()]*\))+)(?:\s+"([^"]*)")?\s*\)'  // link
       r'|\[\^([^\]]+)\]'           // footnote ref
       r'|`([^`]+)`'                // inline code
       // Requires non-space at both ends, so `$5 and $10` is money, not maths.
@@ -825,71 +829,65 @@ class MarkdownParser {
         ));
       }
 
-      if (match.group(1) != null || match.group(2) != null) {
-        // Image: ![alt](url)
-        if (match.group(0)!.startsWith('!')) {
-          spans.add(InlineSpan(
-            type: InlineType.image,
-            text: match.group(1) ?? '',
-            href: match.group(2),
-          ));
-        } else {
-          // Link: [text](url)
-          spans.add(InlineSpan(
-            type: InlineType.link,
-            text: match.group(1) ?? '',
-            href: match.group(2),
-          ));
-        }
-      } else if (match.group(3) != null) {
-        // Link
+      // Groups: 1 alt, 2 src, 3 title | 4 text, 5 href, 6 title | 7 footnote...
+      if (match.group(2) != null) {
+        // Image: ![alt](src "title")
         spans.add(InlineSpan(
-          type: InlineType.link,
-          text: match.group(3)!,
-          href: match.group(4),
+          type: InlineType.image,
+          text: match.group(1) ?? '',
+          href: match.group(2),
+          title: match.group(3),
         ));
       } else if (match.group(5) != null) {
+        // Link: [text](href "title")
+        spans.add(InlineSpan(
+          type: InlineType.link,
+          text: match.group(4) ?? '',
+          href: match.group(5),
+          title: match.group(6),
+        ));
+      } else if (match.group(7) != null) {
         // Footnote ref
         spans.add(InlineSpan(
           type: InlineType.footnoteRef,
-          text: match.group(5)!,
+          text: match.group(7)!,
         ));
-      } else if (match.group(6) != null) {
-        // Inline code
-        spans.add(InlineSpan(type: InlineType.code, text: match.group(6)!));
-      } else if (match.group(7) != null) {
-        // Inline math
-        spans.add(InlineSpan(type: InlineType.mathInline, text: match.group(7)!));
       } else if (match.group(8) != null) {
-        // Highlight
-        spans.add(InlineSpan(type: InlineType.highlight, text: match.group(8)!));
+        // Inline code
+        spans.add(InlineSpan(type: InlineType.code, text: match.group(8)!));
       } else if (match.group(9) != null) {
-        // Underline
-        spans.add(InlineSpan(type: InlineType.underline, text: match.group(9)!));
+        // Inline math
+        spans.add(InlineSpan(type: InlineType.mathInline, text: match.group(9)!));
       } else if (match.group(10) != null) {
-        // Bold **
-        spans.add(InlineSpan(type: InlineType.bold, text: match.group(10)!));
+        // Highlight
+        spans.add(InlineSpan(type: InlineType.highlight, text: match.group(10)!));
       } else if (match.group(11) != null) {
-        // Bold __
-        spans.add(InlineSpan(type: InlineType.bold, text: match.group(11)!));
+        // Underline
+        spans.add(InlineSpan(type: InlineType.underline, text: match.group(11)!));
       } else if (match.group(12) != null) {
+        // Bold **
+        spans.add(InlineSpan(type: InlineType.bold, text: match.group(12)!));
+      } else if (match.group(13) != null) {
+        // Bold __
+        spans.add(InlineSpan(type: InlineType.bold, text: match.group(13)!));
+      } else if (match.group(14) != null) {
         // Strikethrough
         spans.add(InlineSpan(
           type: InlineType.strikethrough,
-          text: match.group(12)!,
+          text: match.group(14)!,
         ));
-      } else if (match.group(13) != null) {
-        // Superscript
-        spans.add(InlineSpan(type: InlineType.superscript, text: match.group(13)!));
-      } else if (match.group(14) != null) {
-        // Subscript
-        spans.add(InlineSpan(type: InlineType.subscript, text: match.group(14)!));
       } else if (match.group(15) != null) {
-        // Italic *
-        spans.add(InlineSpan(type: InlineType.italic, text: match.group(15)!));
+        // Superscript
+        spans.add(InlineSpan(type: InlineType.superscript, text: match.group(15)!));
       } else if (match.group(16) != null) {
+        // Subscript
+        spans.add(InlineSpan(type: InlineType.subscript, text: match.group(16)!));
+      } else if (match.group(17) != null) {
+        // Italic *
+        spans.add(InlineSpan(type: InlineType.italic, text: match.group(17)!));
+      } else if (match.group(18) != null) {
         // Italic _
-        spans.add(InlineSpan(type: InlineType.italic, text: match.group(16)!));
+        spans.add(InlineSpan(type: InlineType.italic, text: match.group(18)!));
       }
 
       lastEnd = match.end;

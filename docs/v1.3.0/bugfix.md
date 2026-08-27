@@ -39,6 +39,7 @@
 | BUG-030 | 2026-08-27 | 导出的 PDF 中图片完全不显示，只剩替代文字 | P1 | 已修复 |
 | BUG-031 | 2026-08-27 | 导出的 Word 中图片不显示；mermaid 图表被拉伸变形 | P1 | 已修复 |
 | BUG-032 | 2026-08-27 | 嵌套引用层级丢失，内层 `>` 作为字面文字显示 | P2 | 已修复 |
+| BUG-033 | 2026-08-27 | 图片标题混入路径致图片加载失败；链接 URL 被括号截断 | P1 | 已修复 |
 
 ---
 
@@ -492,3 +493,18 @@
 | 根因分析 | `_blockquoteRe` 为 `^>\s?(.*)$`，只剥一个 `>`，剩下的 `> 内层` 被当作正文；`BlockquoteNode` 也没有承载层级的字段 |
 | 修复方案 | 正则改为 `^(>+)\s?(.*)$` 捕获标记串长度作为层级。连续同层级的行合并为一个 `BlockquoteNode`，层级变化即另起一个节点 —— 完整的递归容器模型改动过大，而按层级切分足以正确表达嵌套且改动可控。预览按 depth 缩进；HTML 导出以**嵌套 `<blockquote>`** 表达（这正是 HTML 表示「引用中的引用」的方式），PDF 与 Word 按 depth 缩进 |
 | 涉及文件 | `lib/services/markdown_parser.dart`、`lib/ui/editor/markdown_renderer.dart`、`lib/services/export_service.dart`、`test/services/markdown_parser_test.dart` |
+
+---
+
+## BUG-033 链接与图片的 URL 解析缺陷
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+| 现象 | ① `![图](pic.png "标题")` 的 `src` 变成 `pic.png "标题"`（含引号），**图片必然加载失败**；② `[wiki](https://en.wikipedia.org/wiki/Foo_(bar))` 的 URL 被截断为 `...Foo_(bar`，链接失效 —— 维基百科等带括号的链接极为常见 |
+| 根因分析 | link/image 的 URL 部分写作 `\(([^)]+)\)`：遇到第一个 `)` 即停止（截断带括号的 URL），且不区分标题（把 `"标题"` 一并吞进路径）|
+| 发现方式 | **本地 `dart run`**。`markdown_parser.dart` 仅依赖 `dart:convert`，无 Flutter 依赖，可直接用 `dart run` 加载并批量试探各种行内语法，无需 `pub get`，亦无需等待 CI |
+| 修复方案 | URL 部分改为 `((?:[^()\s"]|\([^()]*\))+)`（允许一层平衡括号），其后接可选的 `(?:\s+"([^"]*)")?` 标题组。<br>**代价**：link/image 各新增一个捕获组，其后全部 12 个分支的组号整体后移 2 位。批量重排时出错 —— 手工改写的分支开头 `group(7)` 落入替换区间被二次替换，导致「条件用 9、取值用 7」，`$E=mc^2$` 当场空断言崩溃。本地一跑即现原形并修正；若推给 CI，只会得到一条测试失败信息，且要等五分钟 |
+| 涉及文件 | `lib/services/markdown_parser.dart`、`test/services/markdown_parser_test.dart` |
