@@ -959,6 +959,7 @@
 | 为什么能抢在 Flutter 前面 | Flutter 自带的文本编辑快捷键挂在 `WidgetsApp` 根部。按键事件是**从获得焦点的节点向上冒泡**的，所以编辑器与主界面上的 `Focus.onKeyEvent` 会**先于**根部的 `DefaultTextEditingShortcuts` 收到事件。这也正是撤销能走编辑器自己的历史、而不是 `TextField` 私有历史的原因 |
 | 自查发现的缺陷 | 反向索引一开始**没有按平台区分缓存**。「Ctrl」在 macOS 上要解析成 Command，而缓存是首次调用时按当时的平台建的。实际运行中平台不会变，所以用户碰不到；是本地对拍时按 mac / 非 mac 各跑一遍才暴露出来的，已改为缓存连同平台标记一起校验 |
 | 涉及文件 | `lib/services/keybinding_service.dart`、`lib/ui/widgets/app_menu_bar.dart`、`lib/ui/screens/home_screen.dart`、`lib/ui/editor/source_editor.dart`、`test/services/keybinding_service_test.dart`（新增） |
+| 补充加固 | `_save()` 是 fire-and-forget（调用方不 await），写失败会变成**无人接管的异步异常**。已加 try/catch —— 内存里的绑定这一会话内依然正确，不该因为写盘失败而把整个应用带崩。另暴露 `pendingWrite` 供测试等待写入落定，以及 `configDirectory` 供测试改写目标目录，避免跑测试时覆盖开发者自己的键位配置 |
 | 验证方式 | 本地用桩类型对**真实服务**跑了 20 条断言：显示格式、mac 下 Ctrl→Command、`Ctrl+S` 与 `Ctrl+Shift+S` 必须区分、`Ctrl+Z` 与 `Ctrl+Shift+Z` 必须区分、裸按键不算快捷键、改绑后索引与菜单同步更新、空绑定与非法键名都安全返回 null。仓库内单测另外断言**默认表无重复组合、每条都能解析** |
 
 ---

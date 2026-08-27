@@ -1,11 +1,28 @@
+import 'dart:io';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/services/keybinding_service.dart';
 
 void main() {
   final service = KeybindingService();
+  late Directory dir;
 
-  tearDown(service.resetToDefaults);
+  setUp(() {
+    // The service is a singleton that persists to the application support
+    // directory. Point it at a temporary one so running the tests does not
+    // rewrite the developer's own keybindings.
+    dir = Directory.systemTemp.createTempSync('keybinding_test_');
+    service.configDirectory = dir.path;
+  });
+
+  tearDown(() async {
+    service.resetToDefaults();
+    // Let the write finish before the directory goes, or it lands in a
+    // recreated one and litters the temp folder.
+    await service.pendingWrite;
+    if (dir.existsSync()) dir.deleteSync(recursive: true);
+  });
 
   group('activatorFor', () {
     test('describes a binding for the menu to display', () {

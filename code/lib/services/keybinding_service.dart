@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter/services.dart';
 // SingleActivator lives in widgets, not services, alongside LogicalKeyboardKey.
 import 'package:flutter/widgets.dart';
@@ -61,14 +62,23 @@ class KeybindingService {
   void setKeybinding(String action, String keys) {
     _keybindings[action] = keys;
     _index = null;
-    _save();
+    _pendingWrite = _save();
   }
 
   void resetToDefaults() {
     _keybindings = Map.from(defaultKeybindings);
     _index = null;
-    _save();
+    _pendingWrite = _save();
   }
+
+  Future<void>? _pendingWrite;
+
+  /// Completes once the last change has finished being written.
+  ///
+  /// Callers do not wait for the write, which is right for the app but leaves
+  /// a test unable to tell when the file has settled.
+  @visibleForTesting
+  Future<void> get pendingWrite => _pendingWrite ?? Future<void>.value();
 
   /// Key combination to action, built from [keybindings] on demand.
   ///
@@ -191,11 +201,26 @@ class KeybindingService {
     }
   }
 
+  /// Persists the bindings.
+  ///
+  /// Callers do not await this, so an exception here would surface as an
+  /// unhandled asynchronous error rather than at any useful place. The
+  /// bindings stay correct in memory for this session either way.
   Future<void> _save() async {
-    final file = await _getFile();
-    await file.parent.create(recursive: true);
-    await file.writeAsString(const JsonEncoder.withIndent('  ').convert(_keybindings));
+    try {
+      final file = await _getFile();
+      await file.parent.create(recursive: true);
+      await file
+          .writeAsString(const JsonEncoder.withIndent('  ').convert(_keybindings));
+    } catch (_) {
+      // Nothing useful to do: the user's choice still applies until they quit.
+    }
   }
+
+  /// Points persistence at [directory] instead of the application support
+  /// directory, so a test does not write into the developer's real config.
+  @visibleForTesting
+  set configDirectory(String directory) => _configDir = directory;
 
   Future<String> _getConfigDir() async {
     if (_configDir != null) return _configDir!;
