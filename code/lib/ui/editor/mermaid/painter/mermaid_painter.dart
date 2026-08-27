@@ -352,6 +352,11 @@ abstract class MermaidPainter extends CustomPainter {
     final dx = end.dx - start.dx;
     final dy = end.dy - start.dy;
     final length = math.sqrt(dx * dx + dy * dy);
+    // Two coincident points — a self-loop, or a node that laid out on top of
+    // its neighbour — leave nothing to divide by. The loop below happens not
+    // to run in that case, so the NaN never reaches the canvas today; the
+    // guard is here so that stays true if the loop ever changes.
+    if (length == 0) return;
     final unitDx = dx / length;
     final unitDy = dy / length;
 
