@@ -2,6 +2,7 @@ import '../models/diagram.dart';
 import '../models/edge.dart';
 import '../models/er_diagram.dart';
 import '../models/node.dart';
+import 'identifier.dart';
 
 /// Parser for Mermaid entity-relationship diagrams (`erDiagram`).
 ///
@@ -203,7 +204,7 @@ class ErDiagramParser {
   }
 
   String _normalizeId(String raw) {
-    return raw.trim().replaceAll(RegExp(r'[^a-zA-Z0-9_\-一-龥]'), '_');
+    return normalizeMermaidId(raw, keepDash: true);
   }
 }
 

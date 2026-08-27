@@ -1,6 +1,7 @@
 import '../models/diagram.dart';
 import '../models/edge.dart';
 import '../models/node.dart';
+import 'identifier.dart';
 
 /// Parser for Mermaid state diagrams (stateDiagram / stateDiagram-v2)
 ///
@@ -78,8 +79,7 @@ class StateDiagramParser {
   }
 
   String _normalizeId(String raw) {
-    final cleaned = raw.replaceAll(RegExp(r'[\s*]+$'), '').trim();
-    return cleaned.replaceAll(RegExp(r'[^a-zA-Z0-9_一-龥]'), '_');
+    return normalizeMermaidId(raw.replaceAll(RegExp(r'[\s*]+$'), ''));
   }
 }
 

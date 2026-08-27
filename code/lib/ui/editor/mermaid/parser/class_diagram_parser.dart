@@ -2,6 +2,7 @@ import '../models/class_diagram.dart';
 import '../models/diagram.dart';
 import '../models/edge.dart';
 import '../models/node.dart';
+import 'identifier.dart';
 
 /// Parser for Mermaid class diagrams (`classDiagram`).
 ///
@@ -433,9 +434,7 @@ class ClassDiagramParser {
   }
 
   String _normalizeId(String raw) {
-    final withoutGenerics = _stripGenerics(raw);
-    final cleaned = withoutGenerics.trim();
-    return cleaned.replaceAll(RegExp(r'[^a-zA-Z0-9_一-龥]'), '_');
+    return normalizeMermaidId(_stripGenerics(raw));
   }
 }
 

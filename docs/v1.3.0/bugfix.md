@@ -55,6 +55,7 @@
 | BUG-046 | 2026-08-27 | 所有标签页共用一个撤销栈，撤销可能取回另一文件的内容 | **P0** | 已修复 |
 | BUG-047 | 2026-08-27 | 全部替换会吃掉正文：重叠匹配 + 陈旧偏移 | **P0** | 已修复 |
 | BUG-048 | 2026-08-27 | 12 语言应用里存在硬编码中文界面文案 | P2 | 已修复 |
+| BUG-049 | 2026-08-27 | Mermaid 日/韩/俄文节点被合并成同一个节点 | P1 | 已修复 |
 
 ---
 
@@ -750,6 +751,22 @@
 | 保留不改 | `settings_screen.dart` 中的 `'简体中文'`、`'日本語'` —— 语言选择列表**本就应当用各自的语言书写**，不是缺陷 |
 | 涉及文件 | `lib/ui/widgets/app_menu_bar.dart`、`lib/ui/widgets/find_replace_bar.dart`、`lib/ui/widgets/mermaid_renderer.dart`、`lib/core/i18n/l10n/*.arb`、`lib/core/i18n/l10n/app_localizations*.dart` |
 | 验证方式 | 脚本比对 arb 键集合与生成代码：250 个键、244 个无参 getter + 6 个带参方法，11 个语言实现类**无一缺项** |
+
+---
+
+## BUG-049 Mermaid 日/韩/俄文节点被合并成同一个节点
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+| 现象 | 状态图 `[*] --> ひらがな` / `ひらがな --> カタカナ` 只渲染出**一个**状态；类图 `고객 <|-- 주문` 只有**一个**类；`Müller` 和 `Möller` 也会变成同一个节点 |
+| 根因分析 | 三个解析器（类图、状态图、ER 图）各自用 `RegExp(r'[^a-zA-Z0-9_一-龥]')` 把标识符里「不认识」的字符换成 `_`。这个白名单只含 ASCII 和 **CJK 基本汉字区 U+4E00–U+9FA5**，于是**假名、谚文、西里尔、希腊字母、带变音符的拉丁字母全部被换成下划线**。`ひらがな` 和 `カタカナ` 都变成 `____` —— 节点按 id 入表，**第二个直接覆盖第一个** |
+| 影响范围 | 本应用发行 12 种语言，其中就包括日语和韩语；这类图在这两种语言的用户手里必然出错 |
+| 修复方案 | 抽出共用的 `normalizeMermaidId`（`lib/ui/editor/mermaid/parser/identifier.dart`），改用 Unicode 属性类 `[^\p{L}\p{M}\p{N}_]`（`unicode: true`）：**只折叠空白和标点，保留任何文字系统的字母**。ER 图额外保留 `-`，与原行为一致 |
+| 涉及文件 | `lib/ui/editor/mermaid/parser/identifier.dart`（新增）、`class_diagram_parser.dart`、`state_diagram_parser.dart`、`er_diagram_parser.dart`、`test/ui/editor/mermaid/identifier_test.dart`（新增） |
+| 验证方式 | 单测既覆盖净化函数本身（含「5 个不同名字必须得到 5 个不同 id」），也在**解析层**断言日文状态图保留两个状态、韩文类图保留两个类且边的两端 id 正确 |
 
 ---
 
