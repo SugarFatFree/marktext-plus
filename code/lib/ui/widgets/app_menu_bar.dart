@@ -724,7 +724,7 @@ class AppMenuBar extends ConsumerWidget {
           // Was SystemNavigator.pop, which asks the app to leave the current
           // route — on desktop that is a way to quit, not to minimise.
           child: Text(l10n.windowMinimize),
-          onPressed: windowManager.minimize,
+          onPressed: () => windowManager.minimize(),
         ),
         MenuItemButton(
           child: Text(
