@@ -6,6 +6,7 @@ void main() {
   setUp(() => parser = MarkdownParser());
 
   _sourceSpanTests();
+  _htmlBlockTests();
 
   group('Block parsing', () {
     test('parses heading levels 1-6', () {
@@ -181,6 +182,69 @@ void main() {
       expect(spans.length, 1);
       expect(spans.first.type, InlineType.text);
       expect(spans.first.text, 'just text');
+    });
+  });
+}
+
+void _htmlBlockTests() {
+  group('HTML blocks', () {
+    late MarkdownParser parser;
+    setUp(() => parser = MarkdownParser());
+
+    test('a tag opening and closing on one line ends there', () {
+      // The bug this guards: the opening line was consumed before the search
+      // for the closing tag began, so a self-contained tag found no close and
+      // swallowed every block after it.
+      const doc = '# Before\n'
+          '\n'
+          '<div class="note">inline</div>\n'
+          '\n'
+          '# After\n';
+
+      final nodes = parser.parse(doc);
+      final types = nodes.map((n) => n.type).toList();
+
+      expect(types, contains(NodeType.htmlBlock));
+      expect(
+        types.where((t) => t == NodeType.heading).length,
+        2,
+        reason: 'the heading after the html block went missing',
+      );
+    });
+
+    test('a void element ends on its own line', () {
+      const doc = 'text\n\n<br>\n\n# After\n';
+      final nodes = parser.parse(doc);
+      expect(
+        nodes.where((n) => n.type == NodeType.heading).length,
+        1,
+        reason: '<br> has no closing tag and must not consume the rest',
+      );
+    });
+
+    test('a self-closing tag ends on its own line', () {
+      const doc = 'text\n\n<img src="a.png" />\n\n# After\n';
+      final nodes = parser.parse(doc);
+      expect(nodes.where((n) => n.type == NodeType.heading).length, 1);
+    });
+
+    test('an unclosed tag costs one line, not the document', () {
+      const doc = 'text\n\n<div>\n\n# After\n';
+      final nodes = parser.parse(doc);
+      expect(
+        nodes.where((n) => n.type == NodeType.heading).length,
+        1,
+        reason: 'an unclosed tag must not swallow what follows',
+      );
+    });
+
+    test('a genuine multi-line block still spans to its closing tag', () {
+      const doc = '<div>\n  <span>one</span>\n</div>\n\n# After\n';
+      final nodes = parser.parse(doc);
+      final html = nodes.firstWhere((n) => n.type == NodeType.htmlBlock);
+      expect(html.rawContent, contains('<span>one</span>'));
+      expect(html.rawContent, contains('</div>'));
+      expect(nodes.where((n) => n.type == NodeType.heading).length, 1);
     });
   });
 }

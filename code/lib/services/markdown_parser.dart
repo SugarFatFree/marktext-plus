@@ -242,6 +242,12 @@ class MarkdownParser {
   static final _footnoteDefRe = RegExp(r'^\[\^([^\]]+)\]:\s*(.+)$');
   static final _htmlBlockStartRe = RegExp(r'^<(\w+)');
 
+  /// HTML elements that never have a closing tag.
+  static const _voidHtmlTags = {
+    'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
+    'link', 'meta', 'param', 'source', 'track', 'wbr',
+  };
+
   /// Splits [source] the same way [parse] does, so line indices recorded on a
   /// node line up with the returned list.
   static List<String> _sourceLines(String source) {
@@ -370,14 +376,33 @@ class MarkdownParser {
         final htmlLines = <String>[line];
         final closeTag = '</$tag>';
         i++;
-        while (i < lines.length && !lines[i].contains(closeTag)) {
-          htmlLines.add(lines[i]);
-          i++;
+
+        // A tag that closes on its own line, a self-closing tag, or a void
+        // element is the whole block. Scanning ahead for a closing tag that
+        // was already on the opening line used to run to the end of the file
+        // and swallow every block after it.
+        final selfContained = line.contains(closeTag) ||
+            line.trimRight().endsWith('/>') ||
+            _voidHtmlTags.contains(tag.toLowerCase());
+
+        if (!selfContained) {
+          // Look for the close before consuming anything: an unclosed tag
+          // should cost one line, not the rest of the document.
+          var closeIndex = -1;
+          for (var j = i; j < lines.length; j++) {
+            if (lines[j].contains(closeTag)) {
+              closeIndex = j;
+              break;
+            }
+          }
+          if (closeIndex != -1) {
+            while (i <= closeIndex) {
+              htmlLines.add(lines[i]);
+              i++;
+            }
+          }
         }
-        if (i < lines.length) {
-          htmlLines.add(lines[i]);
-          i++;
-        }
+
         nodes.add(_withSpan(
           HtmlBlockNode(html: htmlLines.join('\n')),
           blockStart,

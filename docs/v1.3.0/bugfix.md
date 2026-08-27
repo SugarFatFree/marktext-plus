@@ -26,6 +26,7 @@
 | BUG-017 | 2026-08-27 | 行前缀无条件叠加：标题、列表、引用格式重复应用都会累积标记 | P1 | 已修复 |
 | BUG-018 | 2026-08-27 | 行内格式无条件包裹：`**bold**` 再点粗体变成 `****bold****` | P1 | 已修复 |
 | BUG-019 | 2026-08-27 | PDF 导出直接打印原始 markdown 标记，`**粗体**` 的星号出现在页面上 | P1 | 已修复 |
+| BUG-020 | 2026-08-27 | 单行 HTML 标签吞掉文档剩余全部内容 | **P0** | 已修复 |
 
 ---
 
@@ -294,3 +295,18 @@
 | 修复方案 | 新增 `_inlineSpansToPdf(spans, baseStyle:)` 生成 `List<pw.TextSpan>`，覆盖全部 13 种 `InlineType`；PDF 的标题、段落、引用块改用 `pw.RichText`。DOCX 引用块改走 `_inlineSpansToDocxTexts` —— 代价是丢掉整段的斜体灰，但引用的视觉标识本就由段落级的左边框、缩进与底纹承载。<br>同时补齐 DOCX 行内覆盖：`highlight`（底纹）、`footnoteRef`（上标）、`mathInline`（Cambria Math 斜体）、`image`（保留 alt 文本），并**移除 `default` 分支**使 switch 穷尽 —— 今后新增 `InlineType` 会由编译器报出，而不是静默降级为纯文本 |
 | 已知遗留 | PDF 表格单元格与脚注定义仍走原始文本：`TableNode` 的 `headers`/`rows` 是纯 `String`，没有 `inlineSpans`，需要 parser 先支持单元格内行内解析 |
 | 涉及文件 | `lib/services/export_service.dart` |
+
+---
+
+## BUG-020 单行 HTML 标签吞掉文档剩余内容
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | **P0** |
+| 状态 | 已修复 |
+| 现象 | 文档里只要出现一行 `<div class="x">文字</div>`（开闭标签同行），**该行之后的所有内容在预览中全部消失**。`<br>`、`<img />` 等同理 |
+| 根因分析 | `markdown_parser.dart` 的 HTML 块分支先把当前行收进块、随即 `i++` **跳过它**，然后从下一行开始搜索 `</tag>`。而闭标签就在刚跳过的那一行，于是永远搜不到，循环一路走到文件末尾，把后续所有块并入这一个 `HtmlBlockNode`。<br>void 元素（`<br>`、`<hr>`、`<img>`）和自闭合写法（`<img />`）从来就没有闭标签，同样会吞掉全文；用户漏写闭标签时亦然 |
+| 发现方式 | **端到端 fixture 测试**。此前每个测试只解析独立片段，而这个 bug 需要「HTML 块 + 其后还有内容」的组合才会显形。`showcase.md` 里那行 `<div class="note">…</div>` 之后的 14 个 mermaid 图表全部消失，测试报告 `fence languages found: [dart, ]`，据此定位 |
+| 修复方案 | 三种情形提前判定为「块到此为止」：当前行已含闭标签、行尾是 `/>`、标签属于 void 元素表。其余情况**先扫描**闭标签位置再消费 —— 找不到就只占一行，未闭合的标签代价是一行而非整篇文档 |
+| 涉及文件 | `lib/services/markdown_parser.dart`、`test/services/markdown_parser_test.dart` |
