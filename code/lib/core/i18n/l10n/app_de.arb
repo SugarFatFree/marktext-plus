@@ -267,5 +267,7 @@
   "settingsImageFolder": "Bilderordner",
   "fileCloseTab": "Tab schließen",
   "fileClearRecentFiles": "Zuletzt verwendete leeren",
-  "viewCommandPalette": "Befehlspalette"
+  "viewCommandPalette": "Befehlspalette",
+  "formatFrontMatter": "Front Matter",
+  "formatHtmlBlock": "HTML-Block"
 }

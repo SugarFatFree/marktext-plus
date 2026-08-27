@@ -37,6 +37,8 @@ enum FormatAction {
   promoteHeading,
   demoteHeading,
   toParagraph,
+  frontMatter,
+  htmlBlock,
 }
 
 class EditorState {

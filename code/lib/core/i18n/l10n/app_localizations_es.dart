@@ -800,4 +800,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get fileClearRecentFiles => 'Borrar archivos recientes';
   @override
   String get viewCommandPalette => 'Paleta de comandos';
+  @override
+  String get formatFrontMatter => 'Front matter';
+
+  @override
+  String get formatHtmlBlock => 'Bloque HTML';
 }

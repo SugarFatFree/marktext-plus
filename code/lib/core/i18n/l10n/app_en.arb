@@ -339,5 +339,13 @@
   "viewCommandPalette": "Command Palette",
   "@viewCommandPalette": {
     "description": "View menu item that opens the command palette"
+  },
+  "formatFrontMatter": "Front Matter",
+  "@formatFrontMatter": {
+    "description": "Paragraph menu item that inserts a YAML front matter block"
+  },
+  "formatHtmlBlock": "HTML Block",
+  "@formatHtmlBlock": {
+    "description": "Paragraph menu item that inserts an HTML block"
   }
 }

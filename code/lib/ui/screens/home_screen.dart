@@ -239,6 +239,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
       FormatAction.link: l10n.formatLink,
       FormatAction.image: l10n.formatImage,
       FormatAction.horizontalRule: l10n.formatHorizontalRule,
+      FormatAction.frontMatter: l10n.formatFrontMatter,
+      FormatAction.htmlBlock: l10n.formatHtmlBlock,
     };
 
     for (final entry in formatLabels.entries) {

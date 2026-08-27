@@ -267,5 +267,7 @@
   "settingsImageFolder": "画像フォルダー",
   "fileCloseTab": "タブを閉じる",
   "fileClearRecentFiles": "最近のファイルを消去",
-  "viewCommandPalette": "コマンドパレット"
+  "viewCommandPalette": "コマンドパレット",
+  "formatFrontMatter": "フロントマター",
+  "formatHtmlBlock": "HTML ブロック"
 }

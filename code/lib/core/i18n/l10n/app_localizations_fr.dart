@@ -801,4 +801,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get fileClearRecentFiles => 'Effacer les fichiers récents';
   @override
   String get viewCommandPalette => 'Palette de commandes';
+  @override
+  String get formatFrontMatter => 'En-tête YAML';
+
+  @override
+  String get formatHtmlBlock => 'Bloc HTML';
 }

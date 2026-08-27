@@ -279,5 +279,7 @@
   "settingsImageFolder": "图片文件夹",
   "fileCloseTab": "关闭标签页",
   "fileClearRecentFiles": "清空最近文件",
-  "viewCommandPalette": "命令面板"
+  "viewCommandPalette": "命令面板",
+  "formatFrontMatter": "前置元数据",
+  "formatHtmlBlock": "HTML 块"
 }

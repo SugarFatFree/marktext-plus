@@ -267,5 +267,7 @@
   "settingsImageFolder": "Dossier d'images",
   "fileCloseTab": "Fermer l'onglet",
   "fileClearRecentFiles": "Effacer les fichiers récents",
-  "viewCommandPalette": "Palette de commandes"
+  "viewCommandPalette": "Palette de commandes",
+  "formatFrontMatter": "En-tête YAML",
+  "formatHtmlBlock": "Bloc HTML"
 }

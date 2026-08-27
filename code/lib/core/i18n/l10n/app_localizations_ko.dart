@@ -794,4 +794,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get fileClearRecentFiles => '최근 파일 지우기';
   @override
   String get viewCommandPalette => '명령 팔레트';
+  @override
+  String get formatFrontMatter => '프런트 매터';
+
+  @override
+  String get formatHtmlBlock => 'HTML 블록';
 }

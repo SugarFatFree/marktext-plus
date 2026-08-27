@@ -21,6 +21,7 @@
 | FEAT-013 | 2026-08-27 | 补齐视图菜单：命令面板、目录（TOC）入口 | 中 | 简单 | 已实现 |
 | FEAT-014 | 2026-08-27 | 补齐编辑菜单：查找下一个 / 上一个（F3 / Shift+F3） | 中 | 中等 | 已实现 |
 | FEAT-015 | 2026-08-27 | Mermaid 新增 requirementDiagram（需求图） | 中 | 困难 | 已实现 |
+| FEAT-016 | 2026-08-27 | 补齐段落菜单：插入前置元数据、HTML 块 | 中 | 简单 | 已实现 |
 
 ## 详细需求
 
@@ -242,3 +243,20 @@
 | 涉及文件 | `models/requirement_diagram.dart`、`parser/requirement_parser.dart`、`layout/requirement_diagram_layout.dart`、`painter/requirement_painter.dart`（均为新增）、`models/diagram.dart`、`parser/mermaid_parser.dart`、`widgets/mermaid_diagram.dart`、`test/ui/editor/mermaid/mermaid_parser_test.dart`、`test/fixtures/showcase.md` |
 | 验收标准 | mermaid 官方文档示例能正确解析出需求、元素与关系；未知风险/关系词被丢弃而非猜测；块未闭合仍能收下已读到的字段；只有一行 `requirementDiagram` 时返回 null 以回退显示源码 |
 | 验证方式 | 本地对真实解析器跑了 **30 条断言**（含全部边界）；仓库内单测 8 条，另加入 `showcase.md` 端到端夹具（现共 22 个图表块） |
+
+---
+
+### FEAT-016 — 补齐段落菜单：前置元数据、HTML 块
+
+| 字段 | 内容 |
+|------|------|
+| 实现日期 | 2026-08-27 |
+| 优先级 | 中 |
+| 难易度 | 简单 |
+| 需求描述 | 逐项对照源项目 `menu/templates/paragraph.ts`，本项目段落菜单缺三项：`frontMatter`、`htmlBlock`、`looseListItem`。解析器其实**早就认识** `FrontMatterNode` 与 `HtmlBlockNode`（读得进来），只是没有插入的入口 |
+| 实现方案 | ① **前置元数据只有在文件最开头才算数**，所以这一项**忽略光标位置**，一律插到 offset 0；② 若文档已有前置元数据，则**不再插入**、只把光标移进去 —— 否则会多出一个 `---`，第二个会被解析成水平线，原来的前置元数据反而失效；③ HTML 块插入 `<div></div>` 模板到光标处；④ 两项同时进入段落菜单与命令面板 |
+| 涉及文件 | `lib/providers/editor_provider.dart`、`lib/ui/editor/source_editor.dart`、`lib/ui/widgets/app_menu_bar.dart`、`lib/ui/screens/home_screen.dart`、`lib/core/i18n/l10n/*` |
+| 验收标准 | 空文档、有正文的文档、已有前置元数据的文档三种情形下行为正确；光标落在 `title: ` 之后可直接输入 |
+| 验证方式 | 本地对插入逻辑跑 7 条断言，含「已有前置元数据时不产生第二个 `---` 块」这条关键回归 |
+| 仍未实现 | `looseListItem`（松散/紧凑列表切换）—— 需要把整个列表重新序列化，与另外两项不同类，单独排期 |
+| 顺带核对 | 格式菜单已与源项目**完全对齐**（13 项一一对应）；`FormatAction` 现有 35 项，`_applyFormat` **全部 35 项都有实现**，无「声明了但没实现」的情况 |

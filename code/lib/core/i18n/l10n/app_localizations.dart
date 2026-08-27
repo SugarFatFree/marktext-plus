@@ -1666,6 +1666,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Command Palette'**
   String get viewCommandPalette;
+
+  /// Paragraph menu item that inserts a YAML front matter block
+  ///
+  /// In en, this message translates to:
+  /// **'Front Matter'**
+  String get formatFrontMatter;
+
+  /// Paragraph menu item that inserts an HTML block
+  ///
+  /// In en, this message translates to:
+  /// **'HTML Block'**
+  String get formatHtmlBlock;
 }
 
 class _AppLocalizationsDelegate

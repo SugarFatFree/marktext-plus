@@ -799,4 +799,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get fileClearRecentFiles => 'Zuletzt verwendete leeren';
   @override
   String get viewCommandPalette => 'Befehlspalette';
+  @override
+  String get formatFrontMatter => 'Front Matter';
+
+  @override
+  String get formatHtmlBlock => 'HTML-Block';
 }

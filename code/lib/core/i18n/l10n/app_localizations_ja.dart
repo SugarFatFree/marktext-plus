@@ -794,4 +794,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get fileClearRecentFiles => '最近のファイルを消去';
   @override
   String get viewCommandPalette => 'コマンドパレット';
+  @override
+  String get formatFrontMatter => 'フロントマター';
+
+  @override
+  String get formatHtmlBlock => 'HTML ブロック';
 }

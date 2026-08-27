@@ -492,6 +492,30 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     return '\n'.allMatches(_controller.text).length + 1;
   }
 
+  /// Puts a YAML front matter block at the very top of the document.
+  ///
+  /// Front matter is only front matter when it is the first thing in the
+  /// file, so this ignores where the caret happens to be. A document that
+  /// already starts with one is left alone and the caret moves into it,
+  /// rather than growing a second block that would parse as a horizontal
+  /// rule.
+  void _insertFrontMatter() {
+    final text = _controller.text;
+    final lines = text.split('\n');
+
+    if (lines.isNotEmpty && lines.first.trimRight() == '---') {
+      _controller.selection = const TextSelection.collapsed(offset: 4);
+      return;
+    }
+
+    const block = '---\ntitle: \n---\n\n';
+    _controller.value = TextEditingValue(
+      text: block + text,
+      // Just after "title: ", ready to type.
+      selection: const TextSelection.collapsed(offset: 11),
+    );
+  }
+
   void _applyFormat(FormatAction action) {
     final selection = _controller.selection;
     final text = _controller.text;
@@ -585,6 +609,10 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
         _insertAtCursor('\n---\n');
       case FormatAction.underline:
         _wrapSelection('++', '++');
+      case FormatAction.frontMatter:
+        _insertFrontMatter();
+      case FormatAction.htmlBlock:
+        _insertAtCursor('<div>\n\n</div>');
       case FormatAction.superscript:
         _wrapSelection('^', '^');
       case FormatAction.subscript:

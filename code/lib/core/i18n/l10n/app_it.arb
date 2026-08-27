@@ -267,5 +267,7 @@
   "settingsImageFolder": "Cartella immagini",
   "fileCloseTab": "Chiudi scheda",
   "fileClearRecentFiles": "Svuota file recenti",
-  "viewCommandPalette": "Riquadro comandi"
+  "viewCommandPalette": "Riquadro comandi",
+  "formatFrontMatter": "Front matter",
+  "formatHtmlBlock": "Blocco HTML"
 }

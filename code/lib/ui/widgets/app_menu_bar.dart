@@ -606,6 +606,16 @@ class AppMenuBar extends ConsumerWidget {
               onPressed: () => fmt(FormatAction.demoteHeading),
             ),
             MenuItemButton(
+              // Front matter only counts as front matter at the very top of
+              // the file, so this ignores the caret and inserts there.
+              child: Text(l10n.formatFrontMatter),
+              onPressed: () => fmt(FormatAction.frontMatter),
+            ),
+            MenuItemButton(
+              child: Text(l10n.formatHtmlBlock),
+              onPressed: () => fmt(FormatAction.htmlBlock),
+            ),
+            MenuItemButton(
               child: Text(l10n.paragraphToParagraph),
               onPressed: () => fmt(FormatAction.toParagraph),
             ),

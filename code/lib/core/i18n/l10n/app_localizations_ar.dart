@@ -796,4 +796,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get fileClearRecentFiles => 'مسح الملفات الأخيرة';
   @override
   String get viewCommandPalette => 'لوحة الأوامر';
+  @override
+  String get formatFrontMatter => 'بيانات المقدمة';
+
+  @override
+  String get formatHtmlBlock => 'كتلة HTML';
 }

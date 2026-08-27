@@ -791,4 +791,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get fileClearRecentFiles => '清空最近文件';
   @override
   String get viewCommandPalette => '命令面板';
+  @override
+  String get formatFrontMatter => '前置元数据';
+
+  @override
+  String get formatHtmlBlock => 'HTML 块';
 }

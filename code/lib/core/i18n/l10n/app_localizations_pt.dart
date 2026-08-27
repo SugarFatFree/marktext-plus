@@ -800,6 +800,11 @@ class AppLocalizationsPt extends AppLocalizations {
   String get fileClearRecentFiles => 'Limpar ficheiros recentes';
   @override
   String get viewCommandPalette => 'Paleta de comandos';
+  @override
+  String get formatFrontMatter => 'Front matter';
+
+  @override
+  String get formatHtmlBlock => 'Bloco HTML';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -1557,4 +1562,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get fileClearRecentFiles => 'Limpar arquivos recentes';
   @override
   String get viewCommandPalette => 'Paleta de comandos';
+  @override
+  String get formatFrontMatter => 'Front matter';
+
+  @override
+  String get formatHtmlBlock => 'Bloco HTML';
 }

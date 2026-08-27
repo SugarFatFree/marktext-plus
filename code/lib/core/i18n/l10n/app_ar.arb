@@ -267,5 +267,7 @@
   "settingsImageFolder": "مجلد الصور",
   "fileCloseTab": "إغلاق علامة التبويب",
   "fileClearRecentFiles": "مسح الملفات الأخيرة",
-  "viewCommandPalette": "لوحة الأوامر"
+  "viewCommandPalette": "لوحة الأوامر",
+  "formatFrontMatter": "بيانات المقدمة",
+  "formatHtmlBlock": "كتلة HTML"
 }
