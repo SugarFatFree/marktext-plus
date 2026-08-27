@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:path/path.dart' as p;
+import 'package:window_manager/window_manager.dart';
 import '../../core/config/app_config.dart';
 import '../../core/i18n/l10n/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
@@ -20,10 +21,10 @@ import '../../core/constants.dart';
 import '../../utils/platform_utils.dart';
 import '../widgets/app_menu_bar.dart';
 import '../widgets/side_bar.dart';
-import '../widgets/editor_tab_bar.dart';
 import '../widgets/status_bar.dart';
 import '../widgets/find_replace_bar.dart';
 import '../widgets/command_palette.dart';
+import '../widgets/editor_tab_bar.dart';
 import '../editor/source_editor.dart';
 import '../editor/markdown_renderer.dart';
 import '../editor/split_editor.dart';
@@ -35,7 +36,10 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+/// What the user chose when asked about unsaved work on exit.
+enum _ExitChoice { cancel, discard, save }
+
+class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
   bool _startupFilesProcessed = false;
   bool _updateCheckDone = false;
   bool _sideBarRestored = false;
@@ -43,6 +47,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    // The listener lives here rather than above MaterialApp because closing
+    // has to be able to show a dialog, which needs a Navigator and the
+    // localisations in scope.
+    windowManager.addListener(this);
+    _preventCloseWhileUnsaved();
+
     // Run startup side-effects after the first frame so we don't mutate
     // providers during the widget tree build.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -51,6 +61,81 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       _checkForUpdates();
       _restoreSideBarDirectory();
     });
+  }
+
+  @override
+  void dispose() {
+    windowManager.removeListener(this);
+    super.dispose();
+  }
+
+  Future<void> _preventCloseWhileUnsaved() async {
+    try {
+      await windowManager.setPreventClose(true);
+    } catch (_) {
+      // No window to manage; the app simply closes as before.
+    }
+  }
+
+  /// Intercepts the window's close button.
+  ///
+  /// Closing the window used to end the process outright, discarding every
+  /// modified tab at once — the same loss as closing a tab, over the whole
+  /// session.
+  @override
+  void onWindowClose() async {
+    final unsaved =
+        ref.read(tabProvider).tabs.where((t) => t.isModified).toList();
+
+    if (unsaved.isEmpty || !mounted) {
+      await windowManager.destroy();
+      return;
+    }
+
+    final choice = await _askAboutUnsavedOnExit(unsaved);
+    if (choice == null || choice == _ExitChoice.cancel) return;
+
+    if (choice == _ExitChoice.save) {
+      for (final tab in unsaved) {
+        final saved = await EditorTabBar.saveTab(ref, tab);
+        // Abandoning one save abandons the exit: quitting anyway would lose
+        // exactly the work the user asked to keep.
+        if (!saved) return;
+      }
+    }
+
+    await windowManager.destroy();
+  }
+
+  Future<_ExitChoice?> _askAboutUnsavedOnExit(List<TabInfo> unsaved) {
+    final l10n = AppLocalizations.of(context)!;
+    const maxListed = 5;
+    final names = unsaved.take(maxListed).map((t) => t.fileName).join('\n');
+    final extra =
+        unsaved.length > maxListed ? '\n… ${unsaved.length - maxListed}' : '';
+
+    return showDialog<_ExitChoice>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.unsavedChanges),
+        content: Text('$names$extra\n\n${l10n.unsavedChangesMessage}'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(_ExitChoice.cancel),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(_ExitChoice.discard),
+            child: Text(l10n.dontSave),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(_ExitChoice.save),
+            child: Text(l10n.save),
+          ),
+        ],
+      ),
+    );
   }
 
   void _restoreSideBarDirectory() {
