@@ -33,6 +33,7 @@
 | BUG-024 | 2026-08-27 | 三条导出路径的列表均丢失层级；PDF/Word 丢格式，HTML 丢任务框 | P1 | 已修复 |
 | BUG-025 | 2026-08-27 | 列表项续行被踢出列表；项间空行把一个列表拆成两个 | P1 | 已修复 |
 | BUG-026 | 2026-08-27 | 不支持 setext 标题与缩进代码块两种 CommonMark 基本语法 | P2 | 已修复 |
+| BUG-027 | 2026-08-27 | 导出时表格单元格丢失行内格式，`**粗体**` 原样输出 | P2 | 已修复 |
 
 ---
 
@@ -299,7 +300,7 @@
 | 现象 | 导出 PDF 后，正文里能看到 `**粗体**`、`[链接](url)`、`` `代码` `` 这些标记符号本身，而不是渲染后的格式。Word 导出的引用块同样如此 |
 | 根因分析 | AST 节点同时持有 `content`（**原始 markdown 源码**）与 `inlineSpans`（解析后的行内片段）。HTML 与 DOCX 的正文走 `inlineSpans`（正确），但 PDF 的标题与段落、以及 DOCX 的引用块走的是 `content`，于是标记原样进入输出。沿着 BUG-017/018「共用函数」的线索继续读 `export_service.dart` 时发现 |
 | 修复方案 | 新增 `_inlineSpansToPdf(spans, baseStyle:)` 生成 `List<pw.TextSpan>`，覆盖全部 13 种 `InlineType`；PDF 的标题、段落、引用块改用 `pw.RichText`。DOCX 引用块改走 `_inlineSpansToDocxTexts` —— 代价是丢掉整段的斜体灰，但引用的视觉标识本就由段落级的左边框、缩进与底纹承载。<br>同时补齐 DOCX 行内覆盖：`highlight`（底纹）、`footnoteRef`（上标）、`mathInline`（Cambria Math 斜体）、`image`（保留 alt 文本），并**移除 `default` 分支**使 switch 穷尽 —— 今后新增 `InlineType` 会由编译器报出，而不是静默降级为纯文本 |
-| 已知遗留 | PDF 表格单元格与脚注定义仍走原始文本：`TableNode` 的 `headers`/`rows` 是纯 `String`，没有 `inlineSpans`，需要 parser 先支持单元格内行内解析 |
+| 已知遗留 | 脚注定义仍走原始文本。表格单元格已于 BUG-027 解决 |
 | 涉及文件 | `lib/services/export_service.dart` |
 
 ---
@@ -402,3 +403,17 @@
 | 根因分析 | `_headingRe` 只覆盖 ATX 的 `#` 写法；代码块只有围栏 `_codeFenceRe` 一种。两者都是 CommonMark 基本语法 |
 | 修复方案 | setext 检测放在段落分支之前 —— 它依赖**下一行**，无法与 ATX 写法并列判断。`---` 的歧义由分支顺序自然解决：单独一行的 `---` 已被前面的水平线分支消费，能走到 setext 检测就说明它前面有正文，而这正是 CommonMark 判定为标题下划线的条件。<br>缩进代码块要求前一行为空行或文档开头，因此不会打断段落（符合 CommonMark）；列表分支在其之前，故缩进的 `- item` 仍是嵌套列表而非代码 |
 | 涉及文件 | `lib/services/markdown_parser.dart`、`test/services/markdown_parser_test.dart` |
+
+---
+
+## BUG-027 导出时表格单元格丢失行内格式
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P2 |
+| 状态 | 已修复 |
+| 现象 | 表格里写 `**粗体**` 或 `[链接](url)`，**预览正常**，但导出 HTML/PDF 后变成字面标记 |
+| 根因分析 | `TableNode` 的 `headers`/`rows` 是纯 `List<String>`，不带 `inlineSpans`。预览端 `markdown_renderer` 渲染单元格时会调用 `parseInline`，所以显示正确；导出端却直接把原始字符串交给 `_escapeHtml` / `_normalizeForPdf`，标记原样输出。<br>**预览与导出对同一份数据采取了不同处理**，是这类不一致的典型来源 |
+| 修复方案 | 导出端同样在渲染单元格时解析行内内容（`_cellParser.parseInline`），HTML 走 `_inlineSpansToHtml`（自带转义，不再需要 `_escapeHtml`），PDF 走 `_inlineSpansToPdf` + `pw.RichText` |
+| 涉及文件 | `lib/services/export_service.dart`、`test/fixtures_showcase_test.dart` |

@@ -135,6 +135,21 @@ void main() {
     expect(html, contains('<input type="checkbox" checked disabled>'));
   });
 
+  test('table cells render their inline formatting on export', () {
+    const doc = '| Name | Link |\n'
+        '|------|------|\n'
+        '| **bold** | [site](https://example.com) |\n';
+
+    final table = MarkdownParser().parse(doc).single;
+    final html = ExportService.nodeToHtml(table);
+
+    // Cells are stored as raw strings, so without parsing them at export time
+    // the asterisks and brackets reach the output verbatim.
+    expect(html, contains('<strong>bold</strong>'));
+    expect(html, contains('<a href="https://example.com"'));
+    expect(html, isNot(contains('**bold**')));
+  });
+
   test('exports the whole document to HTML without leaking raw markers', () {
     final nodes = parser.parse(markdown);
     final html = nodes.map(ExportService.nodeToHtml).join('\n');

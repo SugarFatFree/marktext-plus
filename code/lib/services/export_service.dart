@@ -27,6 +27,11 @@ class ExportService {
 
   static List<pw.Font>? _cachedFontFallbacks;
 
+  /// Table cells are stored as raw strings, so their inline content has to be
+  /// parsed at export time — the same thing the preview does when rendering
+  /// them. Without this, `**bold**` reached the output with its asterisks.
+  static final _cellParser = MarkdownParser();
+
   static const _mermaidLanguages = {
     'mermaid',
     'flowchart',
@@ -438,7 +443,8 @@ class ExportService {
         final table = node as TableNode;
         final buffer = StringBuffer('<table>\n<thead>\n<tr>\n');
         for (final header in table.headers) {
-          buffer.write('  <th>${_escapeHtml(header)}</th>\n');
+          final content = _inlineSpansToHtml(_cellParser.parseInline(header));
+          buffer.write('  <th>$content</th>\n');
         }
         buffer.write('</tr>\n</thead>\n<tbody>\n');
         final colCount = table.headers.length;
@@ -446,7 +452,8 @@ class ExportService {
           buffer.write('<tr>\n');
           for (var i = 0; i < colCount; i++) {
             final cell = i < row.length ? row[i] : '';
-            buffer.write('  <td>${_escapeHtml(cell)}</td>\n');
+            final content = _inlineSpansToHtml(_cellParser.parseInline(cell));
+            buffer.write('  <td>$content</td>\n');
           }
           buffer.write('</tr>\n');
         }
@@ -882,13 +889,19 @@ class ExportService {
                   children: table.headers.map((header) {
                     return pw.Padding(
                       padding: const pw.EdgeInsets.all(8),
-                      child: pw.Text(
-                        _normalizeForPdf(header),
-                        style: pw.TextStyle(
-                          fontSize: _pdfBodySize,
-                          fontWeight: pw.FontWeight.bold,
-                          font: primaryFont,
-                          fontFallback: fontFallbacks,
+                      child: pw.RichText(
+                        text: pw.TextSpan(
+                          children: _inlineSpansToPdf(
+                            _cellParser.parseInline(header),
+                            baseStyle: pw.TextStyle(
+                              fontSize: _pdfBodySize,
+                              fontWeight: pw.FontWeight.bold,
+                              font: primaryFont,
+                              fontFallback: fontFallbacks,
+                            ),
+                            primaryFont: primaryFont,
+                            fontFallbacks: fontFallbacks,
+                          ),
                         ),
                       ),
                     );
@@ -903,13 +916,19 @@ class ExportService {
                     children: row.map((cell) {
                       return pw.Padding(
                         padding: const pw.EdgeInsets.all(8),
-                        child: pw.Text(
-                          _normalizeForPdf(cell),
-                          style: pw.TextStyle(
-                            fontSize: _pdfBodySize,
-                            height: 1.3,
-                            font: primaryFont,
-                            fontFallback: fontFallbacks,
+                        child: pw.RichText(
+                          text: pw.TextSpan(
+                            children: _inlineSpansToPdf(
+                              _cellParser.parseInline(cell),
+                              baseStyle: pw.TextStyle(
+                                fontSize: _pdfBodySize,
+                                height: 1.3,
+                                font: primaryFont,
+                                fontFallback: fontFallbacks,
+                              ),
+                              primaryFont: primaryFont,
+                              fontFallbacks: fontFallbacks,
+                            ),
                           ),
                         ),
                       );
