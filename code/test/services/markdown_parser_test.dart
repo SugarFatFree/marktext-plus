@@ -534,6 +534,45 @@ void main() {
     });
   });
 
+  group('Adjacent lists of different kinds', () {
+    final parser = MarkdownParser();
+
+    List<String> shapeOf(String source) => parser
+        .parse(source)
+        .whereType<ListNode>()
+        .map((l) => '${l.ordered ? "ol" : "ul"}:${l.items.length}')
+        .toList();
+
+    test('numbers followed by bullets are two lists', () {
+      // Collected into one node, the bullets ended up inside an <ol> on
+      // export, where a browser draws them as numbers.
+      expect(shapeOf('1. a\n2. b\n\n- c\n- d'), ['ol:2', 'ul:2']);
+    });
+
+    test('bullets followed by numbers are two lists', () {
+      expect(shapeOf('- a\n- b\n\n1. c\n2. d'), ['ul:2', 'ol:2']);
+    });
+
+    test('the change of marker needs no blank line', () {
+      expect(shapeOf('1. a\n- b'), ['ol:1', 'ul:1']);
+    });
+
+    test('the same marker across a blank line stays one list', () {
+      final lists = parser.parse('- a\n\n- b').whereType<ListNode>().toList();
+
+      expect(lists, hasLength(1));
+      expect(lists.single.isLoose, isTrue);
+    });
+
+    test('a bulleted sub-point under a numbered step stays in its list', () {
+      final lists =
+          parser.parse('1. a\n   - sub\n2. b').whereType<ListNode>().toList();
+
+      expect(lists, hasLength(1));
+      expect(lists.single.items, hasLength(3));
+    });
+  });
+
   group('Loose and tight lists', () {
     final parser = MarkdownParser();
 

@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The status bar shows the file's actual encoding, where it used to print the word "UTF-8" whatever the file was
 - Clicking the line ending in the status bar switches the document between LF and CRLF
 - A list written with blank lines between its items is drawn and exported with the spacing that asks for
+- A numbered list followed by a bulleted one is two lists again, so the bullets no longer export inside an `<ol>` and render as numbers
 - The "enable HTML" setting does something: inline tags such as `<kbd>`, `<u>` and `<br>` are rendered, in the preview and in every export
 - Blockquote lines and single-line HTML comments are coloured in the source editor, using the theme colours that were already defined for them
 - Twelve strings that ten of the twelve languages were missing — the file-opening preference among them — are translated instead of falling back to English

@@ -672,8 +672,21 @@ class MarkdownParser {
     var i = start;
     var loose = false;
 
+    // Changing from numbers to bullets — or back — starts a new list, as
+    // CommonMark has it. Collecting them into one node put bullets inside an
+    // `<ol>` on export, where a browser draws them as numbers.
+    //
+    // Only at the list's own indentation: a bulleted sub-point under a
+    // numbered step is a deeper item of the same list, not a new one.
+    final firstIndent = _indentColumns(lines[start]);
+    final firstOrdered = _olRe.hasMatch(lines[start]);
+
     while (i < lines.length) {
       if (_startsListItem(lines[i])) {
+        if (_indentColumns(lines[i]) <= firstIndent &&
+            _olRe.hasMatch(lines[i]) != firstOrdered) {
+          break;
+        }
         blocks.add([lines[i]]);
         i++;
         continue;
