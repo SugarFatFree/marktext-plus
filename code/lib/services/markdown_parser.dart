@@ -330,17 +330,25 @@ class MarkdownParser {
     return columns;
   }
 
-  /// Builds list items, assigning each a nesting depth.
+  /// Builds list items from one block of lines per item.
   ///
   /// The distinct indentation widths in the list are sorted and an item's
   /// depth is its position among them, so two-space and four-space authors
   /// both get 0, 1, 2 rather than 1, 2 and 2, 4.
-  List<ListItem> _buildListItems(List<String> itemLines, RegExp itemRe) {
-    final widths = itemLines.map(_indentColumns).toSet().toList()..sort();
+  ///
+  /// Lines after the first in a block are continuation lines, joined with a
+  /// space — markdown treats a wrapped item as one paragraph.
+  List<ListItem> _buildListItems(List<List<String>> itemBlocks, RegExp itemRe) {
+    final widths =
+        itemBlocks.map((block) => _indentColumns(block.first)).toSet().toList()
+          ..sort();
 
-    return itemLines.map((line) {
-      final content = itemRe.firstMatch(line)!.group(1)!;
-      final depth = widths.indexOf(_indentColumns(line));
+    return itemBlocks.map((block) {
+      final first = itemRe.firstMatch(block.first)!.group(1)!;
+      final content = block.length == 1
+          ? first
+          : [first, ...block.skip(1).map((line) => line.trim())].join(' ');
+      final depth = widths.indexOf(_indentColumns(block.first));
 
       final taskMatch = _taskRe.firstMatch(content);
       if (taskMatch != null) {
@@ -360,6 +368,54 @@ class MarkdownParser {
         depth: depth,
       );
     }).toList();
+  }
+
+  /// Collects the lines of one list, starting at [start].
+  ///
+  /// Returns one block of lines per item and the index just past the list.
+  ///
+  /// Two things end up inside the list that a naive "while the line matches"
+  /// loop would push out of it: a blank line between items, which used to
+  /// split one list into two, and an indented continuation line, which used
+  /// to become a paragraph wedged between them.
+  (List<List<String>>, int) _collectListItems(
+    List<String> lines,
+    int start,
+    RegExp itemRe,
+  ) {
+    final blocks = <List<String>>[];
+    var i = start;
+
+    while (i < lines.length) {
+      if (itemRe.hasMatch(lines[i])) {
+        blocks.add([lines[i]]);
+        i++;
+        continue;
+      }
+
+      if (lines[i].trim().isEmpty) {
+        var next = i + 1;
+        while (next < lines.length && lines[next].trim().isEmpty) {
+          next++;
+        }
+        // The list continues only if what follows the gap is another item.
+        if (next < lines.length && itemRe.hasMatch(lines[next])) {
+          i = next;
+          continue;
+        }
+        break;
+      }
+
+      if (blocks.isNotEmpty && _indentColumns(lines[i]) > 0) {
+        blocks.last.add(lines[i]);
+        i++;
+        continue;
+      }
+
+      break;
+    }
+
+    return (blocks, i);
   }
 
   /// Parse markdown text into a list of block-level nodes.
@@ -577,13 +633,10 @@ class MarkdownParser {
       }
       // Unordered list
       if (_ulRe.hasMatch(line)) {
-        final itemLines = <String>[];
-        while (i < lines.length && _ulRe.hasMatch(lines[i])) {
-          itemLines.add(lines[i]);
-          i++;
-        }
+        final (itemBlocks, next) = _collectListItems(lines, i, _ulRe);
+        i = next;
         nodes.add(_withSpan(
-          ListNode(ordered: false, items: _buildListItems(itemLines, _ulRe)),
+          ListNode(ordered: false, items: _buildListItems(itemBlocks, _ulRe)),
           blockStart,
           i,
         ));
@@ -592,13 +645,10 @@ class MarkdownParser {
 
       // Ordered list
       if (_olRe.hasMatch(line)) {
-        final itemLines = <String>[];
-        while (i < lines.length && _olRe.hasMatch(lines[i])) {
-          itemLines.add(lines[i]);
-          i++;
-        }
+        final (itemBlocks, next) = _collectListItems(lines, i, _olRe);
+        i = next;
         nodes.add(_withSpan(
-          ListNode(ordered: true, items: _buildListItems(itemLines, _olRe)),
+          ListNode(ordered: true, items: _buildListItems(itemBlocks, _olRe)),
           blockStart,
           i,
         ));

@@ -349,6 +349,35 @@ void _nestedListTests() {
       expect(list.items.map((i) => i.depth).toList(), [0, 1, 0]);
     });
 
+    test('a wrapped item stays one item', () {
+      // The continuation line used to fall out of the list, splitting it into
+      // list / paragraph / list.
+      const doc = '- item that continues\n'
+          '  on the next line\n'
+          '- second\n';
+
+      final nodes = parser.parse(doc);
+      expect(nodes.length, 1, reason: 'the list was split up');
+
+      final list = nodes.single as ListNode;
+      expect(list.items.length, 2);
+      expect(list.items.first.content, 'item that continues on the next line');
+    });
+
+    test('a blank line between items does not split the list', () {
+      const doc = '- one\n\n- two\n';
+      final nodes = parser.parse(doc);
+      expect(nodes.length, 1, reason: 'a loose list became two lists');
+      expect((nodes.single as ListNode).items.length, 2);
+    });
+
+    test('a paragraph after the list is still its own block', () {
+      const doc = '- one\n\nA new paragraph.\n';
+      final nodes = parser.parse(doc);
+      expect(nodes.length, 2);
+      expect(nodes.last.type, NodeType.paragraph);
+    });
+
     test('nested task items keep their checkbox state', () {
       const doc = '- [ ] top\n  - [x] nested\n';
       final list = parser.parse(doc).single as ListNode;

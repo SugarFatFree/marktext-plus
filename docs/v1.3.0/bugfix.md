@@ -31,6 +31,7 @@
 | BUG-022 | 2026-08-27 | 行内解析四处误判：转义失效、snake_case 变斜体、金额变公式、上标跨空格 | P1 | 已修复 |
 | BUG-023 | 2026-08-27 | 嵌套列表被压平，子列表与父项同级显示 | P1 | 已修复 |
 | BUG-024 | 2026-08-27 | 三条导出路径的列表均丢失层级；PDF/Word 丢格式，HTML 丢任务框 | P1 | 已修复 |
+| BUG-025 | 2026-08-27 | 列表项续行被踢出列表；项间空行把一个列表拆成两个 | P1 | 已修复 |
 
 ---
 
@@ -371,3 +372,18 @@
 | 根因分析 | BUG-023 让 `ListItem` 有了 `depth`，但只有预览用上了。导出端此前也从未表达过层级 —— HTML 生成的是一段扁平 `<li>`，PDF/Word 则连行内格式都还停留在纯文本（BUG-019 当时只改了标题、段落、引用） |
 | 修复方案 | HTML 改由 `_listToHtml` 按 depth 变化开合嵌套 `<ul>/<ol>`，任务项输出 `<input type="checkbox" disabled>`；PDF 列表项改用 `pw.RichText` + 按 depth 缩进；Word 弃用 `builder.bullet`，改为手工构建带 `indentLeft` 的 `DocxParagraph` 并走 `_inlineSpansToDocxTexts`。<br>有序列表的编号改为**按层级各自计数**，嵌套列表重新从 1 开始，而非沿用父级序号。<br>`_inlineSpansToText` 至此无人调用，已删除 |
 | 涉及文件 | `lib/services/export_service.dart`、`test/fixtures_showcase_test.dart` |
+
+---
+
+## BUG-025 列表被续行与空行拆散
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+| 现象 | ① 列表项换行续写时，续行掉出列表变成独立段落，一个列表被拆成「列表 / 段落 / 列表」三块；② 列表项之间空一行，就变成两个互不相干的列表 |
+| 根因分析 | 收集列表项的循环是 `while (i < lines.length && itemRe.hasMatch(lines[i]))` —— 只要当前行不匹配列表标记就立即停止。续行（缩进但无标记）和项间空行都不匹配，于是都被判为列表结束 |
+| 修复方案 | 抽出 `_collectListItems`，返回「每项一组行」加列表结束位置。空行只有在其后不再有列表项时才结束列表；缩进的无标记行归属上一项。`_buildListItems` 相应改为接收每项的行组，续行以空格拼接（markdown 的软换行渲染为空格） |
+| 验证要点 | 「列表后跟普通段落」必须仍拆成两个块 —— 空行之后不是列表项，列表就该结束。已作为测试固定下来 |
+| 涉及文件 | `lib/services/markdown_parser.dart`、`test/services/markdown_parser_test.dart` |
