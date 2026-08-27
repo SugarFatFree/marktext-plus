@@ -507,9 +507,7 @@ quadrantChart
 
     test('an axis without an arrow names only its low end', () {
       final chart = parser
-          .parseWithData('quadrantChart
-  x-axis Reach
-  A: [0.5, 0.5]')!
+          .parseWithData('quadrantChart\n  x-axis Reach\n  A: [0.5, 0.5]')!
           .quadrantChartData!;
 
       expect(chart.xAxisLeft, 'Reach');
@@ -518,8 +516,7 @@ quadrantChart
 
     test('coordinates outside the plot are clamped to it', () {
       final chart = parser
-          .parseWithData('quadrantChart
-  A: [1.8, -0.4]')!
+          .parseWithData('quadrantChart\n  A: [1.8, -0.4]')!
           .quadrantChartData!;
 
       expect(chart.points.single.x, 1.0);
@@ -528,8 +525,8 @@ quadrantChart
 
     test('accepts quoted labels and short hex colours', () {
       final chart = parser
-          .parseWithData('quadrantChart
-  "Campaign X": [0.1, 0.2] color: #f00')!
+          .parseWithData(
+              'quadrantChart\n  "Campaign X": [0.1, 0.2] color: #f00')!
           .quadrantChartData!;
 
       expect(chart.points.single.label, 'Campaign X');
@@ -538,8 +535,7 @@ quadrantChart
 
     test('an unparseable colour falls back to the default', () {
       final chart = parser
-          .parseWithData('quadrantChart
-  A: [0.1, 0.2] color: #zzz')!
+          .parseWithData('quadrantChart\n  A: [0.1, 0.2] color: #zzz')!
           .quadrantChartData!;
 
       expect(chart.points.single.color, isNull);
@@ -547,8 +543,8 @@ quadrantChart
 
     test('quadrant labels alone still make a chart', () {
       // Axes and regions are worth drawing even before any point is plotted.
-      final result = parser.parseWithData('quadrantChart
-  quadrant-1 Expand');
+      final result =
+          parser.parseWithData('quadrantChart\n  quadrant-1 Expand');
       expect(result?.quadrantChartData?.quadrant1, 'Expand');
     });
 
