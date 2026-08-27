@@ -5,6 +5,8 @@ void main() {
   late MarkdownParser parser;
   setUp(() => parser = MarkdownParser());
 
+  _sourceSpanTests();
+
   group('Block parsing', () {
     test('parses heading levels 1-6', () {
       for (var level = 1; level <= 6; level++) {
@@ -179,6 +181,124 @@ void main() {
       expect(spans.length, 1);
       expect(spans.first.type, InlineType.text);
       expect(spans.first.text, 'just text');
+    });
+  });
+}
+
+void _sourceSpanTests() {
+  group('Source spans', () {
+    late MarkdownParser parser;
+    setUp(() => parser = MarkdownParser());
+
+    test('records line ranges for consecutive blocks', () {
+      const doc = '# Title\n'
+          '\n'
+          'A paragraph\n'
+          'spanning two lines.\n'
+          '\n'
+          '- one\n'
+          '- two\n';
+
+      final nodes = parser.parse(doc);
+      expect(nodes.length, 3);
+
+      // Line 0 is the heading; the blank line 1 belongs to no block.
+      expect(nodes[0].sourceStart, 0);
+      expect(nodes[0].sourceEnd, 1);
+
+      expect(nodes[1].sourceStart, 2);
+      expect(nodes[1].sourceEnd, 4);
+
+      expect(nodes[2].sourceStart, 5);
+      expect(nodes[2].sourceEnd, 7);
+    });
+
+    test('spans a fenced code block including both fences', () {
+      const doc = 'intro\n'
+          '\n'
+          '```dart\n'
+          'void main() {}\n'
+          '```\n';
+
+      final nodes = parser.parse(doc);
+      final code = nodes.firstWhere((n) => n.type == NodeType.codeBlock);
+      expect(code.sourceStart, 2);
+      expect(code.sourceEnd, 5);
+      expect(
+        MarkdownParser.sourceOfBlock(doc, code),
+        '```dart\nvoid main() {}\n```',
+      );
+    });
+
+    test('sourceOfBlock returns markup that rawContent has stripped', () {
+      const doc = '## Heading text\n';
+      final node = parser.parse(doc).single;
+      expect(node.rawContent, 'Heading text');
+      expect(MarkdownParser.sourceOfBlock(doc, node), '## Heading text');
+    });
+
+    test('replaceBlock swaps only the target block', () {
+      const doc = '# Title\n'
+          '\n'
+          'Old paragraph.\n'
+          '\n'
+          '# Trailing\n';
+
+      final nodes = parser.parse(doc);
+      final paragraph = nodes.firstWhere((n) => n.type == NodeType.paragraph);
+      final updated = MarkdownParser.replaceBlock(doc, paragraph, 'New text.');
+
+      expect(updated, '# Title\n\nNew text.\n\n# Trailing\n');
+    });
+
+    test('replaceBlock accepts multi-line replacements', () {
+      const doc = 'one\n\ntwo\n';
+      final nodes = parser.parse(doc);
+      final updated =
+          MarkdownParser.replaceBlock(doc, nodes.last, 'a\nb\nc');
+      expect(updated, 'one\n\na\nb\nc\n');
+    });
+
+    test('replaceBlock with empty text deletes the block', () {
+      const doc = 'keep\n\ndrop\n';
+      final nodes = parser.parse(doc);
+      final updated = MarkdownParser.replaceBlock(doc, nodes.last, '');
+      expect(updated, 'keep\n\n');
+    });
+
+    test('replaceBlock preserves CRLF line endings', () {
+      const doc = '# Title\r\n\r\nBody.\r\n';
+      final nodes = parser.parse(doc);
+      final paragraph = nodes.firstWhere((n) => n.type == NodeType.paragraph);
+      final updated = MarkdownParser.replaceBlock(doc, paragraph, 'Changed.');
+      expect(updated, '# Title\r\n\r\nChanged.\r\n');
+    });
+
+    test('replaceBlock preserves a BOM', () {
+      const doc = '﻿# Title\n\nBody.\n';
+      final nodes = parser.parse(doc);
+      final paragraph = nodes.firstWhere((n) => n.type == NodeType.paragraph);
+      final updated = MarkdownParser.replaceBlock(doc, paragraph, 'Changed.');
+      expect(updated, '﻿# Title\n\nChanged.\n');
+    });
+
+    test('replaceBlock does not add a trailing newline that was absent', () {
+      const doc = 'only paragraph';
+      final node = parser.parse(doc).single;
+      final updated = MarkdownParser.replaceBlock(doc, node, 'replaced');
+      expect(updated, 'replaced');
+    });
+
+    test('front matter spans from the opening delimiter', () {
+      const doc = '---\ntitle: x\n---\n\nBody\n';
+      final nodes = parser.parse(doc);
+      expect(nodes.first.type, NodeType.frontMatter);
+      expect(nodes.first.sourceStart, 0);
+      expect(nodes.first.sourceEnd, 3);
+      expect(
+        MarkdownParser.sourceOfBlock(doc, nodes.first),
+        '---\ntitle: x\n---',
+      );
     });
   });
 }

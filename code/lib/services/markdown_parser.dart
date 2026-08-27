@@ -57,6 +57,25 @@ class InlineSpan {
 abstract class MarkdownNode {
   NodeType get type;
   String get rawContent;
+
+  /// 0-based index of this block's first source line.
+  ///
+  /// Tracked as lines rather than character offsets because the parser is
+  /// line-oriented, and because BOM stripping and \r\n handling would make
+  /// character offsets disagree with the original text while line numbers
+  /// stay correct.
+  int sourceStart = 0;
+
+  /// 0-based index one past this block's last source line.
+  int sourceEnd = 0;
+}
+
+/// Records [node]'s source line range and returns it, so parse sites can stay
+/// single expressions.
+T _withSpan<T extends MarkdownNode>(T node, int start, int end) {
+  node.sourceStart = start;
+  node.sourceEnd = end;
+  return node;
 }
 
 class HeadingNode extends MarkdownNode {
@@ -223,6 +242,65 @@ class MarkdownParser {
   static final _footnoteDefRe = RegExp(r'^\[\^([^\]]+)\]:\s*(.+)$');
   static final _htmlBlockStartRe = RegExp(r'^<(\w+)');
 
+  /// Splits [source] the same way [parse] does, so line indices recorded on a
+  /// node line up with the returned list.
+  static List<String> _sourceLines(String source) {
+    return const LineSplitter().convert(_stripBom(source));
+  }
+
+  static String _stripBom(String source) {
+    return source.isNotEmpty && source.codeUnitAt(0) == 0xFEFF
+        ? source.substring(1)
+        : source;
+  }
+
+  /// The raw markdown that produced [node].
+  ///
+  /// This is not the same as `node.rawContent`, which holds parsed content —
+  /// a heading's `rawContent` has already lost its `#` prefix. Editing needs
+  /// the original text back.
+  static String sourceOfBlock(String source, MarkdownNode node) {
+    final lines = _sourceLines(source);
+    final start = node.sourceStart.clamp(0, lines.length);
+    final end = node.sourceEnd.clamp(start, lines.length);
+    return lines.sublist(start, end).join('\n');
+  }
+
+  /// Returns [source] with [node]'s lines replaced by [replacement].
+  ///
+  /// Preserves the document's line ending style, its BOM, and whether it ended
+  /// with a newline, so a round trip through the editor cannot silently
+  /// rewrite those.
+  static String replaceBlock(
+    String source,
+    MarkdownNode node,
+    String replacement,
+  ) {
+    final hasBom = source.isNotEmpty && source.codeUnitAt(0) == 0xFEFF;
+    final body = _stripBom(source);
+    final newline = body.contains('\r\n') ? '\r\n' : '\n';
+    final endsWithNewline = body.endsWith('\n') || body.endsWith('\r');
+
+    final lines = const LineSplitter().convert(body);
+    final start = node.sourceStart.clamp(0, lines.length);
+    final end = node.sourceEnd.clamp(start, lines.length);
+
+    final replacementLines = replacement.isEmpty
+        ? const <String>[]
+        : const LineSplitter().convert(replacement);
+
+    final result = <String>[
+      ...lines.sublist(0, start),
+      ...replacementLines,
+      ...lines.sublist(end),
+    ];
+
+    final joined = result.join(newline);
+    return (hasBom ? '\uFEFF' : '') +
+        joined +
+        (endsWithNewline ? newline : '');
+  }
+
   /// Parse markdown text into a list of block-level nodes.
   List<MarkdownNode> parse(String markdown) {
     // Strip UTF-8 BOM if present (otherwise heading regex on the first line fails)
@@ -251,13 +329,18 @@ class MarkdownParser {
           i++;
         }
         i++; // skip closing ---
-        nodes.add(FrontMatterNode(content: fmLines.join('\n')));
+        nodes.add(_withSpan(
+          FrontMatterNode(content: fmLines.join('\n')),
+          0,
+          i,
+        ));
       }
       // else: no closing --- found, fall through to normal parsing
     }
 
     while (i < lines.length) {
       final line = lines[i];
+      final blockStart = i;
 
       // Blank line — skip
       if (line.trim().isEmpty) {
@@ -268,9 +351,13 @@ class MarkdownParser {
       // Footnote definition
       final footnoteMatch = _footnoteDefRe.firstMatch(line);
       if (footnoteMatch != null) {
-        nodes.add(FootnoteDefinitionNode(
-          id: footnoteMatch.group(1)!,
-          content: footnoteMatch.group(2)!,
+        nodes.add(_withSpan(
+          FootnoteDefinitionNode(
+            id: footnoteMatch.group(1)!,
+            content: footnoteMatch.group(2)!,
+          ),
+          blockStart,
+          i + 1,
         ));
         i++;
         continue;
@@ -291,7 +378,11 @@ class MarkdownParser {
           htmlLines.add(lines[i]);
           i++;
         }
-        nodes.add(HtmlBlockNode(html: htmlLines.join('\n')));
+        nodes.add(_withSpan(
+          HtmlBlockNode(html: htmlLines.join('\n')),
+          blockStart,
+          i,
+        ));
         continue;
       }
 
@@ -304,7 +395,11 @@ class MarkdownParser {
           i++;
         }
         if (i < lines.length) i++; // skip closing $$
-        nodes.add(MathBlockNode(expression: mathLines.join('\n')));
+        nodes.add(_withSpan(
+          MathBlockNode(expression: mathLines.join('\n')),
+          blockStart,
+          i,
+        ));
         continue;
       }
 
@@ -319,13 +414,17 @@ class MarkdownParser {
           i++;
         }
         if (i < lines.length) i++; // skip closing fence
-        nodes.add(CodeBlockNode(language: lang, code: codeLines.join('\n')));
+        nodes.add(_withSpan(
+          CodeBlockNode(language: lang, code: codeLines.join('\n')),
+          blockStart,
+          i,
+        ));
         continue;
       }
 
       // Horizontal rule
       if (_hrRe.hasMatch(line)) {
-        nodes.add(HorizontalRuleNode());
+        nodes.add(_withSpan(HorizontalRuleNode(), blockStart, i + 1));
         i++;
         continue;
       }
@@ -334,10 +433,14 @@ class MarkdownParser {
       if (headingMatch != null) {
         final level = headingMatch.group(1)!.length;
         final content = headingMatch.group(2)!.trim();
-        nodes.add(HeadingNode(
-          level: level,
-          content: content,
-          inlineSpans: parseInline(content),
+        nodes.add(_withSpan(
+          HeadingNode(
+            level: level,
+            content: content,
+            inlineSpans: parseInline(content),
+          ),
+          blockStart,
+          i + 1,
         ));
         i++;
         continue;
@@ -357,9 +460,13 @@ class MarkdownParser {
           }
         }
         final content = bqLines.join('\n').trim();
-        nodes.add(BlockquoteNode(
-          content: content,
-          inlineSpans: parseInline(content),
+        nodes.add(_withSpan(
+          BlockquoteNode(
+            content: content,
+            inlineSpans: parseInline(content),
+          ),
+          blockStart,
+          i,
         ));
         continue;
       }
@@ -377,10 +484,14 @@ class MarkdownParser {
           rows.add(_parseCells(lines[i]));
           i++;
         }
-        nodes.add(TableNode(
-          headers: headers,
-          rows: rows,
-          alignments: alignments,
+        nodes.add(_withSpan(
+          TableNode(
+            headers: headers,
+            rows: rows,
+            alignments: alignments,
+          ),
+          blockStart,
+          i,
         ));
         continue;
       }
@@ -410,7 +521,11 @@ class MarkdownParser {
           }
           i++;
         }
-        nodes.add(ListNode(ordered: false, items: items));
+        nodes.add(_withSpan(
+          ListNode(ordered: false, items: items),
+          blockStart,
+          i,
+        ));
         continue;
       }
 
@@ -426,7 +541,11 @@ class MarkdownParser {
           ));
           i++;
         }
-        nodes.add(ListNode(ordered: true, items: items));
+        nodes.add(_withSpan(
+          ListNode(ordered: true, items: items),
+          blockStart,
+          i,
+        ));
         continue;
       }
 
@@ -445,9 +564,13 @@ class MarkdownParser {
       }
       if (paraLines.isNotEmpty) {
         final content = paraLines.join('\n');
-        nodes.add(ParagraphNode(
-          content: content,
-          inlineSpans: parseInline(content),
+        nodes.add(_withSpan(
+          ParagraphNode(
+            content: content,
+            inlineSpans: parseInline(content),
+          ),
+          blockStart,
+          i,
         ));
       }
     }
