@@ -22,8 +22,12 @@ class KanbanParser {
 
   /// A task: `id[Description]`, `[Description]`, or bare text, optionally
   /// followed by an `@{ ... }` metadata block.
+  ///
+  /// The space before `@{` is optional. Mermaid writes it without one —
+  /// `Task@{ assigned: "Bob" }` — and requiring it meant a task carrying any
+  /// metadata matched nothing at all and vanished from the board.
   static final _taskRe = RegExp(
-    r'^(?:([^\s\[\]]+)?\[([^\]]+)\]|([^\[\]@]+?))(?:\s+@\{([^}]+)\})?$',
+    r'^(?:([^\s\[\]]+)?\[([^\]]+)\]|([^\[\]@]+?))\s*(?:@\{([^}]+)\})?$',
   );
 
   /// Parses Kanban diagram from cleaned lines

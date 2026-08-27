@@ -1129,6 +1129,41 @@ quadrantChart
     });
   });
 
+  group('Kanban task metadata', () {
+    test('a task carrying metadata is not dropped', () {
+      // Mermaid writes `Task@{ … }` with no space, and requiring one meant
+      // the line matched nothing and the task vanished from the board.
+      final board = parser
+          .parseWithData(
+            'kanban\n  Todo\n    Write it@{assigned: "Bob", priority: "High"}',
+          )!
+          .kanbanChartData!;
+
+      final task = board.columns.single.tasks.single;
+      expect(task.description, 'Write it');
+      expect(task.assigned, 'Bob');
+    });
+
+    test('a space before the metadata is still allowed', () {
+      final board = parser
+          .parseWithData('kanban\n  Todo\n    Write it @{assigned: "Bob"}')!
+          .kanbanChartData!;
+
+      expect(board.columns.single.tasks.single.assigned, 'Bob');
+    });
+
+    test('a task with no metadata is unaffected', () {
+      final board = parser
+          .parseWithData('kanban\n  Todo\n    Write it\n    Ship it')!
+          .kanbanChartData!;
+
+      expect(
+        board.columns.single.tasks.map((t) => t.description).toList(),
+        ['Write it', 'Ship it'],
+      );
+    });
+  });
+
   group('Timelines', () {
     TimelineChartData timelineOf(String source) =>
         parser.parseWithData(source)!.timelineChartData!;
