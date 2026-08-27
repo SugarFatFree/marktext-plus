@@ -74,12 +74,26 @@ void main() {
 
   test('every mermaid block parses to a known diagram type', () {
     final nodes = parser.parse(markdown);
-    final diagrams = nodes
-        .whereType<CodeBlockNode>()
+    final codeBlocks = nodes.whereType<CodeBlockNode>().toList();
+
+    // Report what was actually found: this assertion came back with zero once,
+    // and the message needs to say why rather than just restate the count.
+    expect(
+      codeBlocks,
+      isNotEmpty,
+      reason: 'no code blocks at all in ${nodes.length} nodes; '
+          'types were ${nodes.map((n) => n.type).toSet()}',
+    );
+
+    final diagrams = codeBlocks
         .where((c) => c.language.toLowerCase() == 'mermaid')
         .toList();
 
-    expect(diagrams.length, 14, reason: 'the fixture should cover 14 diagrams');
+    expect(
+      diagrams.length,
+      14,
+      reason: 'fence languages found: ${codeBlocks.map((c) => c.language).toList()}',
+    );
 
     const mermaid = MermaidParser();
     for (final block in diagrams) {
