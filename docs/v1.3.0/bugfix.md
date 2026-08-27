@@ -43,6 +43,7 @@
 | BUG-034 | 2026-08-27 | 不支持自动链接与引用式链接；链接定义行作为正文显示 | P1 | 已修复 |
 | BUG-035 | 2026-08-27 | 裸网址不自动成为链接（GFM 行为） | P2 | 已修复 |
 | BUG-036 | 2026-08-27 | 段落内换行在 HTML 导出后消失 | P2 | 已修复 |
+| BUG-037 | 2026-08-27 | HTML 字符实体不解码，预览显示字面量、导出二次转义 | P2 | 已修复 |
 
 ---
 
@@ -553,6 +554,20 @@
 | 根因分析 | 段落 span 的文本保留 `\n`。预览端 Flutter 的 `Text` 直接渲染换行；Word 端 `docx_creator` 的 `DocxText` 会将 `\n` 输出为 `w:br`；PDF 的 `RichText` 同样保留 —— **唯独 HTML**：`<p>` 中的裸换行符会被浏览器折叠为空格 |
 | 修复方案 | `_inlineSpansToHtml` 中将转义后文本的 `\n` 替换为 `<br>`。行内代码不跨行（`` `[^`]+` `` 不匹配换行），故不受影响 |
 | 涉及文件 | `lib/services/export_service.dart`、`test/fixtures_showcase_test.dart` |
+
+---
+
+## BUG-037 HTML 字符实体不解码
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P2 |
+| 状态 | 已修复 |
+| 现象 | 文档中写 `&amp;`，预览原样显示 `&amp;` 而非 `&`；导出 HTML 时 `_escapeHtml` 又把其中的 `&` 转成 `&amp;`，产生 `&amp;amp;`，浏览器最终显示 `&amp;` —— **二次转义** |
+| 根因分析 | `parseInline` 从不解码字符实体，文本原样进入 span |
+| 修复方案 | 解析末尾对每个 span 解码实体：命名实体覆盖常用一批（`amp`/`lt`/`gt`/`quot`/`nbsp`/`copy`/`mdash` 等），数字实体支持十进制与十六进制。<br>三项边界：超出 Unicode 范围或落在代理区的码点保持原样，不生成非法字符串；未知实体名保持原样；**行内代码内的实体不解码**（CommonMark 规定代码片段逐字保留）。<br>解码后 span 持有真实字符 `&`，各导出端再各自转义一次，恰好正确 |
+| 涉及文件 | `lib/services/markdown_parser.dart`、`test/services/markdown_parser_test.dart` |
 
 ---
 

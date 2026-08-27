@@ -331,6 +331,29 @@ void _inlineEdgeCaseTests() {
       expect(span.title, 'hi');
     });
 
+    test('character entities resolve to their characters', () {
+      // `&amp;` used to show as `&amp;` in the preview, and export escaped the
+      // ampersand a second time into `&amp;amp;`.
+      expect(textOf('A &amp; B'), 'A & B');
+      expect(textOf('x &lt; y &gt; z'), 'x < y > z');
+      expect(textOf('&copy; 2026'), '© 2026');
+      expect(textOf('&#65;&#x42;'), 'AB');
+    });
+
+    test('a lone ampersand and unknown entities are left alone', () {
+      expect(textOf('a & b'), 'a & b');
+      expect(textOf('&notanentity;'), '&notanentity;');
+      // Out of range for Unicode, so not a character at all.
+      expect(textOf('&#999999999;'), '&#999999999;');
+    });
+
+    test('entities inside inline code stay literal', () {
+      // CommonMark treats code spans as verbatim.
+      final span = parser.parseInline('`&amp;`').single;
+      expect(span.type, InlineType.code);
+      expect(span.text, '&amp;');
+    });
+
     test('markers inside inline code stay literal', () {
       final spans = parser.parseInline('`code with **bold** inside`');
       expect(spans.single.type, InlineType.code);

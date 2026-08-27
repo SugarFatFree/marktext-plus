@@ -982,8 +982,73 @@ class MarkdownParser {
       spans.add(InlineSpan(type: InlineType.text, text: text));
     }
 
-    if (escapes.isEmpty) return spans;
-    return spans.map((span) => _restoreEscapes(span, escapes)).toList();
+    return spans.map((span) {
+      final restored =
+          escapes.isEmpty ? span : _restoreEscapes(span, escapes);
+      // Entities inside inline code are literal, per CommonMark.
+      if (restored.type == InlineType.code) return restored;
+      return InlineSpan(
+        type: restored.type,
+        text: _decodeEntities(restored.text),
+        href: restored.href,
+        title: restored.title,
+      );
+    }).toList();
+  }
+
+  /// Character entities markdown documents commonly carry over from HTML.
+  static const _namedEntities = <String, String>{
+    'amp': '&',
+    'lt': '<',
+    'gt': '>',
+    'quot': '"',
+    'apos': "'",
+    'nbsp': '\u00A0',
+    'copy': '©',
+    'reg': '®',
+    'trade': '™',
+    'hellip': '…',
+    'mdash': '—',
+    'ndash': '–',
+    'laquo': '«',
+    'raquo': '»',
+    'deg': '°',
+    'plusmn': '±',
+    'times': '×',
+    'divide': '÷',
+  };
+
+  static final _entityRe =
+      RegExp(r'&(#[0-9]+|#[xX][0-9a-fA-F]+|[a-zA-Z][a-zA-Z0-9]*);');
+
+  /// Resolves character entities to the characters they name.
+  ///
+  /// Without this `&amp;` showed as `&amp;` in the preview, and export escaped
+  /// the ampersand again into `&amp;amp;`. Decoding here means the span holds
+  /// a real `&`, which each output then escapes once, as it should.
+  static String _decodeEntities(String text) {
+    if (!text.contains('&')) return text;
+
+    return text.replaceAllMapped(_entityRe, (match) {
+      final body = match.group(1)!;
+
+      if (body.startsWith('#')) {
+        final isHex = body.length > 1 && (body[1] == 'x' || body[1] == 'X');
+        final digits = body.substring(isHex ? 2 : 1);
+        final code = int.tryParse(digits, radix: isHex ? 16 : 10);
+        // Anything outside Unicode, or a surrogate, is left as written rather
+        // than producing an invalid string.
+        if (code == null ||
+            code < 0 ||
+            code > 0x10FFFF ||
+            (code >= 0xD800 && code <= 0xDFFF)) {
+          return match.group(0)!;
+        }
+        return String.fromCharCode(code);
+      }
+
+      return _namedEntities[body] ?? match.group(0)!;
+    });
   }
 
   /// Puts escaped characters back, minus their backslashes.
