@@ -509,7 +509,11 @@ class FlowchartParser {
 
   void _parseClassDef(String line) {
     // classDef className fill:#f9f,stroke:#333,stroke-width:4px
-    final pattern = RegExp(r'classDef\s+(\w+)\s+(.+)');
+    //
+    // The name is whatever is not whitespace: `\w` is ASCII-only in Dart, so
+    // `classDef 红色 fill:#f96` matched nothing and the style was dropped
+    // silently — as was the `class A 红色` that referred to it.
+    final pattern = RegExp(r'classDef\s+(\S+)\s+(.+)');
     final match = pattern.firstMatch(line);
     if (match == null) return;
 
@@ -524,7 +528,7 @@ class FlowchartParser {
 
   void _parseClassAssignment(String line) {
     // class nodeId1,nodeId2 className
-    final pattern = RegExp(r'class\s+([^\s]+)\s+(\w+)');
+    final pattern = RegExp(r'class\s+([^\s]+)\s+(\S+)');
     final match = pattern.firstMatch(line);
     if (match == null) return;
 

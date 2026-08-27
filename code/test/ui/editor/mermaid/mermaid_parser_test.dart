@@ -1128,6 +1128,34 @@ quadrantChart
     });
   });
 
+  group('Flowchart style classes', () {
+    test('a style class may be named in any script', () {
+      // `\w` is ASCII-only in Dart, so `classDef 红色 …` matched nothing: the
+      // style was dropped and so was the `class A 红色` referring to it.
+      final result = parser.parseWithData(
+        'graph TD\n  A --> B\n  classDef 红色 fill:#f96\n  class A 红色',
+      )!;
+
+      expect(result.diagram.style.classDefs.keys, contains('红色'));
+      expect(
+        result.diagram.nodes.firstWhere((n) => n.id == 'A').className,
+        '红色',
+      );
+    });
+
+    test('an ASCII class name still works', () {
+      final result = parser.parseWithData(
+        'graph TD\n  A --> B\n  classDef red fill:#f96\n  class A,B red',
+      )!;
+
+      expect(result.diagram.style.classDefs.keys, contains('red'));
+      expect(
+        result.diagram.nodes.map((n) => n.className).toList(),
+        ['red', 'red'],
+      );
+    });
+  });
+
   group('Gantt charts', () {
     GanttChartData ganttOf(String source) =>
         parser.parseWithData(source)!.ganttChartData!;
