@@ -1,0 +1,144 @@
+# MarkText Plus V1.3.0 Bug 修复记录
+
+> 本版本目标：对齐源项目 [MarkText](../../../marktext)（Electron + Vue3 + Muya）的全部功能，
+> 重点攻克 **预览页编辑（WYSIWYG）**、**Mermaid 渲染完整性**、**桌面文件关联** 三大块。
+
+## 总览
+
+| 编号 | 日期 | 标题 | 优先级 | 状态 |
+|------|------|------|--------|------|
+| BUG-001 | 2026-08-27 | 双击 .md 文件反复弹出「打开方式」选择（缺少桌面文件关联） | P0 | Linux 已修复 / Win·mac 待修复 |
+| BUG-002 | 2026-08-27 | 预览模式为只读 Widget 树，无法所见即所得编辑 | P0 | 待修复 |
+| BUG-003 | 2026-08-27 | Mermaid `classDiagram` 检测到类型后直接返回 null，无渲染 | P0 | 待修复 |
+| BUG-004 | 2026-08-27 | Mermaid 缺失 erDiagram / journey / gitGraph / mindmap / quadrantChart 等类型 | P1 | 待修复 |
+| BUG-005 | 2026-08-27 | Mermaid `_cleanLines` 粗暴剥离 `%%`，破坏 `%%{init:...}%%` 指令与标签内文本 | P1 | 待修复 |
+| BUG-006 | 2026-08-27 | Mermaid `graph`/`flowchart` 检测强制要求尾随空格，`graph TD;` 等写法失配 | P1 | 待修复 |
+| BUG-007 | 2026-08-27 | `markdown_renderer` 的 `_diagramLanguages` 与实际支持类型错配 | P2 | 待修复 |
+| BUG-008 | 2026-08-27 | 不支持 PlantUML / Vega-Lite 代码块（源项目支持） | P2 | 待修复 |
+| BUG-009 | 2026-08-27 | Linux 使用 G_APPLICATION_NON_UNIQUE，每打开一个文件就新开一个进程 | P1 | 待修复 |
+
+---
+
+## BUG-001 双击 .md 文件反复弹出「打开方式」选择
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P0 |
+| 状态 | 待修复 |
+| 现象 | 在系统文件管理器中双击 `.md` 文件，系统每次都弹出「选择打开方式」对话框，而不是直接用 MarkText Plus 打开 |
+| 根因分析 | `code/linux/` 下只有 `CMakeLists.txt` / `flutter` / `resources` / `runner`，**没有 `.desktop` 文件，也没有 MIME 类型声明**。Linux 桌面环境依赖 `~/.local/share/applications/*.desktop` 中的 `MimeType=text/markdown;` 与 `xdg-mime` 数据库来决定默认程序；缺失时每次打开都会走「打开方式」询问流程。Windows 侧同样没有注册表 / MSIX 文件关联（`.claude/CLAUDE.md` 的「已知问题」已记录）。macOS 侧 `Info.plist` 缺 `CFBundleDocumentTypes` |
+| 修复方案 | 1) 新增 `code/linux/marktext-plus.desktop`，声明 `MimeType=text/markdown;text/x-markdown;text/plain;`、`Exec=marktext_plus %F`；<br>2) 新增 `code/linux/marktext-plus.xml`（shared-mime-info），随包安装到 `/usr/share/mime/packages/`；<br>3) CMakeLists 增加 install 规则；<br>4) macOS `Runner/Info.plist` 补 `CFBundleDocumentTypes`；<br>5) Windows 侧提供 MSIX 配置或 NSIS 安装脚本注册 `HKCR\.md` |
+| 涉及文件 | `code/linux/CMakeLists.txt`、`code/linux/marktext-plus.desktop`(新增)、`code/linux/marktext-plus.xml`(新增)、`code/macos/Runner/Info.plist`、`code/windows/` 打包配置 |
+
+---
+
+## BUG-002 预览模式为只读 Widget 树，无法所见即所得编辑
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P0 |
+| 状态 | 待修复 |
+| 现象 | 源项目 MarkText 的核心卖点是 WYSIWYG（在渲染结果上直接编辑）。本项目 Preview 模式只能看不能改，只有 Source 模式可编辑 |
+| 根因分析 | `lib/ui/editor/markdown_renderer.dart`（920 行）把 AST 渲染成**只读** `Text.rich` / `Container` 组合，没有任何可编辑区域；`lib/ui/editor/source_editor.dart` 才是 `TextField`。二者是完全独立的两套渲染路径，缺少源项目 Muya 那样的「block 内容可编辑 + 光标映射回源码位置」机制 |
+| 修复方案 | 分阶段：<br>**阶段一**（本版本）：块级就地编辑 —— 每个块渲染时记录其在源码中的 `[start,end)` 偏移；点击某块时把该块替换为一个内联 `TextField`（只承载该块源码），失焦/回车时写回全文对应区间。<br>**阶段二**：内联富文本编辑（粗体/斜体等在编辑态显示为标记、非编辑态显示为样式），对齐 Muya 的 `paragraphContent` 行为。<br>需要 `MarkdownParser` 为每个 AST 节点补充 `sourceStart` / `sourceEnd` 字段 |
+| 涉及文件 | `lib/services/markdown_parser.dart`、`lib/ui/editor/markdown_renderer.dart`、`lib/ui/editor/split_editor.dart`、`lib/providers/editor_provider.dart` |
+
+---
+
+## BUG-003 Mermaid classDiagram 无渲染
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P0 |
+| 状态 | 待修复 |
+| 现象 | ` ```mermaid ` 代码块内写 `classDiagram` 时，图表区域空白/报错 |
+| 根因分析 | `lib/ui/editor/mermaid/parser/mermaid_parser.dart:165` 处 `case DiagramType.classDiagram: return null;` —— 类型被正确识别，但**根本没有实现 `ClassDiagramParser`**（`parser/` 目录下无对应文件）。同时缺少 `painter/class_diagram_painter.dart` |
+| 修复方案 | 新增 `parser/class_diagram_parser.dart`（支持 `class A { +int x; +foo() }`、继承 `A <|-- B`、组合 `A *-- B`、聚合 `A o-- B`、关联 `A --> B`、依赖 `A ..> B`、实现 `A <|.. B`、基数标签 `"1" --> "*"`、`<<interface>>` 注解、`note for A "..."`），复用 Dagre 分层布局，新增 `painter/class_diagram_painter.dart` 绘制三段式类框（名称 / 属性 / 方法）与七种关系箭头 |
+| 涉及文件 | `lib/ui/editor/mermaid/parser/class_diagram_parser.dart`(新增)、`lib/ui/editor/mermaid/painter/class_diagram_painter.dart`(新增)、`lib/ui/editor/mermaid/models/class_diagram.dart`(新增)、`lib/ui/editor/mermaid/parser/mermaid_parser.dart` |
+
+---
+
+## BUG-004 Mermaid 缺失多种官方图表类型
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P1 |
+| 状态 | 待修复 |
+| 现象 | 源项目使用 `mermaid@^11.15.0` 全量支持；本项目自研子集只覆盖 flowchart / sequence / pie / gantt / timeline / kanban / radar / xyChart / stateDiagram |
+| 根因分析 | `_detectDiagramType` 未覆盖，且无对应 parser/painter |
+| 修复方案 | 按使用频率排期补齐：erDiagram → journey → gitGraph → mindmap → quadrantChart → requirementDiagram → sankey-beta → block-beta → C4Context |
+| 涉及文件 | `lib/ui/editor/mermaid/parser/`、`lib/ui/editor/mermaid/painter/`、`lib/ui/editor/mermaid/models/` |
+
+---
+
+## BUG-005 Mermaid 注释剥离破坏 init 指令
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P1 |
+| 状态 | 待修复 |
+| 现象 | 图表中写 `%%{init: {'theme':'forest'}}%%` 时该行被整行吞掉，主题指令失效；节点标签内含 `%%` 的文本被截断 |
+| 根因分析 | `mermaid_parser.dart` 的 `_cleanLines()` 直接 `line.indexOf('%%')` 后截断，不区分：<br>1) `%%{...}%%` 是**指令**而非注释；<br>2) `%%` 出现在 `[]` / `()` / `""` 内部时属于标签文本 |
+| 修复方案 | 重写 `_cleanLines()`：先匹配 `^\s*%%\{.*\}%%\s*$` 提取为 directive 并单独解析（至少支持 `theme`）；其余情况扫描时跟踪引号/括号状态，只在「括号外且引号外」的 `%%` 处截断 |
+| 涉及文件 | `lib/ui/editor/mermaid/parser/mermaid_parser.dart` |
+
+---
+
+## BUG-006 flowchart 类型检测过严
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P1 |
+| 状态 | 待修复 |
+| 现象 | `graph TD;`（含分号）、`flowchart-elk LR`、`graph` 单独成行等合法写法无法识别为流程图 |
+| 根因分析 | `_detectDiagramType` 用 `firstLine.startsWith('graph ')` / `startsWith('flowchart ')`，强制要求关键字后紧跟空格 |
+| 修复方案 | 改用正则 `^(graph|flowchart)(-elk)?\b` 匹配，并允许方向标识缺省（默认 `TD`） |
+| 涉及文件 | `lib/ui/editor/mermaid/parser/mermaid_parser.dart` |
+
+---
+
+## BUG-007 代码块语言与图表类型错配
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P2 |
+| 状态 | 待修复 |
+| 现象 | ` ```pie ` / ` ```sequence ` / ` ```mindmap ` 等被当作 Mermaid 交给渲染器，但其中 `mindmap` / `classdiagram` / `erdiagram` / `journey` / `gitgraph` 根本没有 parser，直接白屏；反之源项目支持的 ` ```flowchart `（flowchart.js 语法，非 mermaid）被错误当成 mermaid 解析 |
+| 根因分析 | `lib/ui/editor/markdown_renderer.dart:336` 的 `_diagramLanguages` 集合是硬编码清单，与 `MermaidParser._detectDiagramType` 的真实能力集没有单一事实来源 |
+| 修复方案 | 由 `MermaidParser` 暴露 `static bool canRender(String lang, String code)`，`markdown_renderer` 改为调用它；无法渲染时降级为语法高亮代码块 + 错误提示，而不是空白 |
+| 涉及文件 | `lib/ui/editor/markdown_renderer.dart`、`lib/ui/editor/mermaid/parser/mermaid_parser.dart`、`lib/ui/widgets/mermaid_renderer.dart` |
+
+---
+
+## BUG-008 不支持 PlantUML / Vega-Lite
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P2 |
+| 状态 | 待修复 |
+| 现象 | 源项目 `packages/muya/src/state/markdownToHtml.ts` 支持 ` ```plantuml ` 与 ` ```vega-lite ` 代码块渲染，本项目完全不支持 |
+| 根因分析 | 功能未实现 |
+| 修复方案 | PlantUML：走远端 server 渲染（源项目同样是 `options.plantumlServer`），编码后取 PNG/SVG；Vega-Lite：纯 Dart 实现基础 mark（bar/line/point/area）子集 |
+| 涉及文件 | `lib/ui/editor/markdown_renderer.dart`、新增 `lib/ui/editor/diagram/plantuml_renderer.dart`、`lib/ui/editor/diagram/vega_lite_renderer.dart` |
+
+---
+
+## BUG-009 Linux 无单实例，重复开进程
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P1 |
+| 状态 | 待修复 |
+| 现象 | Linux 下连续打开多个 `.md` 文件会启动多个独立进程/窗口，而不是在已有窗口中新开标签页 |
+| 根因分析 | `code/linux/runner/my_application.cc:147` 使用 `G_APPLICATION_NON_UNIQUE` 创建 GApplication，禁用了 GTK 自带的单实例仲裁。`lib/main.dart` 里的单实例逻辑用的是 `windows_single_instance`，**只在 Windows 生效**（`if (Platform.isWindows)`） |
+| 修复方案 | 改用 `G_APPLICATION_HANDLES_OPEN`，实现 `GApplication::open` 回调把文件路径通过 platform channel 转发给已有的 Flutter 实例；Dart 侧复用 `TabNotifier.openFilesFromSecondInstance()` |
+| 涉及文件 | `code/linux/runner/my_application.cc`、`code/linux/runner/my_application.h`、`lib/main.dart`、`lib/providers/tab_provider.dart` |

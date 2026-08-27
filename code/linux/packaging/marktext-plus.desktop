@@ -1,0 +1,17 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=MarkText Plus
+GenericName=Markdown Editor
+GenericName[zh_CN]=Markdown 编辑器
+Comment=A lightweight Markdown editor built with Flutter
+Comment[zh_CN]=使用 Flutter 构建的轻量级 Markdown 编辑器
+Exec=@EXEC_PATH@ %F
+Icon=com.marktextplus.marktext_plus
+Terminal=false
+Categories=Office;TextEditor;Utility;
+MimeType=text/markdown;text/x-markdown;text/plain;
+StartupNotify=true
+StartupWMClass=marktext_plus
+Keywords=markdown;editor;md;text;
+Keywords[zh_CN]=markdown;编辑器;笔记;
