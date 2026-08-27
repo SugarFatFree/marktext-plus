@@ -19,6 +19,7 @@ import '../models/mindmap.dart';
 import '../models/pie_chart.dart';
 import '../models/quadrant_chart.dart';
 import '../models/requirement_diagram.dart';
+import '../models/sankey.dart';
 import '../models/radar.dart';
 import '../models/timeline.dart';
 import '../models/style.dart';
@@ -34,6 +35,7 @@ import '../painter/mindmap_painter.dart';
 import '../painter/pie_chart_painter.dart';
 import '../painter/quadrant_painter.dart';
 import '../painter/requirement_painter.dart';
+import '../painter/sankey_painter.dart';
 import '../painter/radar_painter.dart';
 import '../painter/sequence_painter.dart';
 import '../painter/timeline_painter.dart';
@@ -114,6 +116,7 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
   TimelineChartData? _timelineChartData;
   KanbanChartData? _kanbanChartData;
   QuadrantChartData? _quadrantChartData;
+  SankeyChartData? _sankeyChartData;
   RequirementDiagramData? _requirementDiagramData;
   RadarChartData? _radarChartData;
   XYChartData? _xyChartData;
@@ -210,6 +213,14 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
         final quadrantLayout = QuadrantChartLayout(deviceConfig: _deviceConfig);
         size = quadrantLayout.computeLayout(
           result.quadrantChartData!,
+          _style,
+          Size(widget.width ?? availableWidth, widget.height ?? 600),
+        );
+      } else if (diagram.type == DiagramType.sankey &&
+          result.sankeyChartData != null) {
+        final sankeyLayout = SankeyChartLayout(deviceConfig: _deviceConfig);
+        size = sankeyLayout.computeLayout(
+          result.sankeyChartData!,
           _style,
           Size(widget.width ?? availableWidth, widget.height ?? 600),
         );
@@ -310,6 +321,7 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
       _kanbanChartData = result.kanbanChartData;
       _requirementDiagramData = result.requirementDiagramData;
       _quadrantChartData = result.quadrantChartData;
+      _sankeyChartData = result.sankeyChartData;
       _radarChartData = result.radarChartData;
       _xyChartData = result.xyChartData;
       _classDiagramData = result.classDiagramData;
@@ -414,6 +426,15 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
         if (_quadrantChartData != null) {
           return QuadrantPainter(
             quadrantData: _quadrantChartData!,
+            style: _style,
+            deviceConfig: _deviceConfig,
+          );
+        }
+        return FlowchartPainter(diagram: diagram, style: _style);
+      case DiagramType.sankey:
+        if (_sankeyChartData != null) {
+          return SankeyPainter(
+            sankeyData: _sankeyChartData!,
             style: _style,
             deviceConfig: _deviceConfig,
           );
@@ -822,6 +843,7 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
   TimelineChartData? _timelineChartData;
   KanbanChartData? _kanbanChartData;
   QuadrantChartData? _quadrantChartData;
+  SankeyChartData? _sankeyChartData;
   RequirementDiagramData? _requirementDiagramData;
   RadarChartData? _radarChartData;
   XYChartData? _xyChartData;
@@ -902,6 +924,14 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
         final quadrantLayout = QuadrantChartLayout(deviceConfig: _deviceConfig);
         size = quadrantLayout.computeLayout(
           result.quadrantChartData!,
+          _style,
+          widget.viewportSize,
+        );
+      } else if (diagram.type == DiagramType.sankey &&
+          result.sankeyChartData != null) {
+        final sankeyLayout = SankeyChartLayout(deviceConfig: _deviceConfig);
+        size = sankeyLayout.computeLayout(
+          result.sankeyChartData!,
           _style,
           widget.viewportSize,
         );
@@ -1001,6 +1031,7 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
         _kanbanChartData = result.kanbanChartData;
         _requirementDiagramData = result.requirementDiagramData;
         _quadrantChartData = result.quadrantChartData;
+        _sankeyChartData = result.sankeyChartData;
         _radarChartData = result.radarChartData;
         _xyChartData = result.xyChartData;
         _classDiagramData = result.classDiagramData;
@@ -1100,6 +1131,15 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
         if (_quadrantChartData != null) {
           return QuadrantPainter(
             quadrantData: _quadrantChartData!,
+            style: _style,
+            deviceConfig: _deviceConfig,
+          );
+        }
+        return FlowchartPainter(diagram: diagram, style: _style);
+      case DiagramType.sankey:
+        if (_sankeyChartData != null) {
+          return SankeyPainter(
+            sankeyData: _sankeyChartData!,
             style: _style,
             deviceConfig: _deviceConfig,
           );

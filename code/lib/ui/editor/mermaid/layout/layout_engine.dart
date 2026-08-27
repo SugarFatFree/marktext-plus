@@ -10,6 +10,7 @@ import '../models/node.dart';
 import '../models/quadrant_chart.dart';
 import '../models/radar.dart';
 import '../models/timeline.dart';
+import '../models/sankey.dart';
 import '../models/style.dart';
 import '../models/xy_chart.dart';
 
@@ -333,6 +334,44 @@ class QuadrantChartLayout {
     return Size(
       side + padding * 2 + axisGutter * 2,
       side + padding * 2 + titleHeight + axisGutter * 2,
+    );
+  }
+}
+
+/// Layout engine for Sankey diagrams
+class SankeyChartLayout {
+  /// Creates a Sankey layout engine
+  const SankeyChartLayout({this.deviceConfig});
+
+  /// Responsive device configuration
+  final MermaidDeviceConfig? deviceConfig;
+
+  /// Computes the size a Sankey diagram needs.
+  ///
+  /// Delegates to [SankeyLayout], the same code the painter runs, so the box
+  /// reserved here always matches what gets drawn into it.
+  Size computeLayout(
+    SankeyChartData sankeyData,
+    MermaidStyle style,
+    Size availableSize,
+  ) {
+    final isMobile = deviceConfig?.deviceType == DeviceType.mobile;
+    final titleHeight =
+        sankeyData.title == null ? 0.0 : (isMobile ? 30.0 : 38.0);
+
+    final layout = SankeyLayout.compute(
+      sankeyData,
+      availableWidth: availableSize.width,
+      bandHeight: isMobile ? 260 : 360,
+      padding: style.padding,
+      titleHeight: titleHeight,
+      labelGutter: isMobile ? 72 : 96,
+    );
+
+    if (layout.nodes.isEmpty) return Size.zero;
+    return Size(
+      math.max(layout.width, availableSize.width),
+      layout.height,
     );
   }
 }

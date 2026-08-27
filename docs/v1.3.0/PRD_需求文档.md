@@ -13,7 +13,7 @@
 | FEAT-005 | 2026-08-27 | 记忆并恢复窗口几何与会话 | 中 | 简单 | 已实现 |
 | FEAT-006 | 2026-08-27 | GitHub Actions 持续集成与 Windows/Linux 构建产物 | 高 | 简单 | 已实现 |
 | FEAT-007 | 2026-08-27 | 大文件与大目录的性能基线 | 高 | 困难 | 已实现 |
-| FEAT-008 | 2026-08-27 | Mermaid 补齐 requirementDiagram / sankey / block / C4 | 中 | 困难 | requirementDiagram 已完成，其余待补 |
+| FEAT-008 | 2026-08-27 | Mermaid 补齐 requirementDiagram / sankey / block / C4 | 中 | 困难 | requirementDiagram、sankey-beta 已完成；block-beta / C4Context 待补 |
 | FEAT-009 | 2026-08-27 | 图片存放策略可配置（旁边 / 统一文件夹 / 不复制） | 中 | 中等 | 已实现 |
 | FEAT-010 | 2026-08-27 | 预览模式内嵌 HTML 渲染（`enableHtml` 的「开」状态） | 低 | 困难 | 待实现 |
 | FEAT-011 | 2026-08-27 | 快捷键真正生效，且与设置页的自定义打通 | 高 | 中等 | 已实现 |
@@ -22,6 +22,7 @@
 | FEAT-014 | 2026-08-27 | 补齐编辑菜单：查找下一个 / 上一个（F3 / Shift+F3） | 中 | 中等 | 已实现 |
 | FEAT-015 | 2026-08-27 | Mermaid 新增 requirementDiagram（需求图） | 中 | 困难 | 已实现 |
 | FEAT-016 | 2026-08-27 | 补齐段落菜单：插入前置元数据、HTML 块 | 中 | 简单 | 已实现 |
+| FEAT-017 | 2026-08-27 | Mermaid 新增 sankey-beta（桑基图） | 中 | 困难 | 已实现 |
 
 ## 详细需求
 
@@ -137,9 +138,9 @@
 | 计划日期 | 待定 |
 | 优先级 | 中 |
 | 难易度 | 困难 |
-| 状态 | **待实现** |
+| 状态 | **部分完成** —— requirementDiagram 见 FEAT-015，sankey-beta 见 FEAT-017；`block-beta`、`C4Context` 仍待补 |
 | 需求描述 | 相对源项目内置的 mermaid v11，本项目仍缺 `requirementDiagram`、`sankey-beta`、`block-beta`、`C4Context` 四类 |
-| 备注 | 这四类各自需要独立的布局算法（尤其 sankey 的流量守恒布局与 block 的网格布局），不适合与其他改动合并推进 |
+| 备注 | 这四类各自需要独立的布局算法，不适合与其他改动合并推进。桑基图的分层流量布局与需求图的表格方框布局都已单独落地，剩下 block 的网格布局与 C4 的嵌套边界框 |
 
 ---
 
@@ -260,3 +261,24 @@
 | 验证方式 | 本地对插入逻辑跑 7 条断言，含「已有前置元数据时不产生第二个 `---` 块」这条关键回归 |
 | 仍未实现 | `looseListItem`（松散/紧凑列表切换）—— 需要把整个列表重新序列化，与另外两项不同类，单独排期 |
 | 顺带核对 | 格式菜单已与源项目**完全对齐**（13 项一一对应）；`FormatAction` 现有 35 项，`_applyFormat` **全部 35 项都有实现**，无「声明了但没实现」的情况 |
+
+---
+
+### FEAT-017 — Mermaid 新增 sankey-beta（桑基图）
+
+| 字段 | 内容 |
+|------|------|
+| 实现日期 | 2026-08-27 |
+| 优先级 | 中 |
+| 难易度 | 困难 |
+| 状态 | 已实现 |
+| 需求描述 | 支持 mermaid 的 `sankey-beta`：把「从哪里流向哪里、流量多大」画成宽度正比于流量的带状图 |
+| 用户场景 | 能源流向、预算分配、转化漏斗、用户来源去向 —— 这些用流程图画不出「量」，用饼图画不出「流」 |
+| 语法特点 | 与其他图表都不同，正文是 **CSV**（`来源,去向,数值`），节点没有声明语句，名字因为被某一行提到才存在；标题只能写在 YAML frontmatter 里 |
+| 实现方案 | 四件套 `models/sankey.dart`（数据 + 布局）、`parser/sankey_parser.dart`、`painter/sankey_painter.dart`、`layout_engine.dart` 的 `SankeyChartLayout`。<br>**分列**：从源点出发取最长路径作为列号，出边为空的节点是汇点、统一贴到最右列（d3-sankey 的 justify 对齐，也是 mermaid 的渲染方式）。<br>**节点流量**：入边之和与出边之和取大者。<br>**缩放**：以流量最大的那一列铺满画布高度定出统一比例，其余列同比例绘制 —— 这正是让全图带宽可横向比较的原因。<br>**减少交叉**：四轮重心排序（forward/backward 交替），按流量加权取相邻列伙伴的平均位置。<br>**带状连接**：一对三次贝塞尔，控制点取两端中点横坐标；粗带先画、细带后画，细带才不会被盖住 |
+| 关键取舍 | 布局全部放在 `SankeyLayout.compute` 这一个纯 Dart 函数里，`SankeyChartLayout`（算尺寸）和 `SankeyPainter`（画）都调它。本版已经因为「同一件事写在多处后各自漂移」记过六次账（BUG-062/063/064/069/070/078），桑基图不再开第七次 |
+| 健壮性 | CSV 字段支持双引号包裹、逗号入名与 `""` 转义（官方示例的 `Agricultural 'waste'` 依赖它）；数值解析失败的行跳过而非整图失败；自环丢弃；**成环的图**用「把实际占用的列号重编为 0,1,2…」收拢 —— 否则最长路径会在环上一直加，三个节点被摊到第 7、8、9 列 |
+| 涉及文件 | `lib/ui/editor/mermaid/models/sankey.dart`、`parser/sankey_parser.dart`、`painter/sankey_painter.dart`、`parser/mermaid_parser.dart`、`models/diagram.dart`、`layout/layout_engine.dart`、`widgets/mermaid_diagram.dart`、`mermaid.dart`、`test/ui/editor/mermaid/mermaid_parser_test.dart`、`test/fixtures/showcase.md` |
+| 验收标准 | CSV 正文解析出节点与流量；带引号逗号的字段不被切开；frontmatter 标题生效；坏行跳过；只有一行 `sankey-beta` 时返回 null 以回退显示源码；分列与柱高比例正确；成环不摊开空列；showcase 夹具 26 个 mermaid 块全部解析成功 |
+
+---

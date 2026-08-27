@@ -369,3 +369,14 @@ sequenceDiagram
   用户->>+系统: 登录
   系统-->>-用户: 成功
 ```
+
+```mermaid
+---
+title: Energy flow
+---
+sankey-beta
+Coal,Electricity,100
+Gas,Electricity,45
+Electricity,Households,80
+Electricity,"Industry, heavy",65
+```

@@ -67,6 +67,9 @@ enum DiagramType {
   /// Requirement diagram
   requirementDiagram,
 
+  /// Sankey flow diagram
+  sankey,
+
   /// Unknown/unsupported type
   unknown,
 }

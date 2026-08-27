@@ -9,6 +9,7 @@ import '../models/mindmap.dart';
 import '../models/pie_chart.dart';
 import '../models/quadrant_chart.dart';
 import '../models/requirement_diagram.dart';
+import '../models/sankey.dart';
 import '../models/radar.dart';
 import '../models/timeline.dart';
 import '../models/xy_chart.dart';
@@ -23,6 +24,7 @@ import 'mindmap_parser.dart';
 import 'pie_chart_parser.dart';
 import 'quadrant_parser.dart';
 import 'requirement_parser.dart';
+import 'sankey_parser.dart';
 import 'radar_parser.dart';
 import 'sequence_parser.dart';
 import 'state_diagram_parser.dart';
@@ -40,6 +42,7 @@ class MermaidParseResult {
     this.kanbanChartData,
     this.quadrantChartData,
     this.requirementDiagramData,
+    this.sankeyChartData,
     this.radarChartData,
     this.xyChartData,
     this.classDiagramData,
@@ -69,6 +72,9 @@ class MermaidParseResult {
 
   /// Requirement diagram specific data (only set for requirement diagrams)
   final RequirementDiagramData? requirementDiagramData;
+
+  /// Sankey specific data (only set for Sankey diagrams)
+  final SankeyChartData? sankeyChartData;
 
   /// Radar chart specific data (only set for Radar charts)
   final RadarChartData? radarChartData;
@@ -192,6 +198,15 @@ class MermaidParser {
           );
         }
         return null;
+      case DiagramType.sankey:
+        final result = const SankeyParser().parse(cleanedLines);
+        if (result != null) {
+          return MermaidParseResult(
+            diagram: result.$1,
+            sankeyChartData: result.$2,
+          );
+        }
+        return null;
       case DiagramType.radar:
         final result = const RadarParser().parse(cleanedLines);
         if (result != null) {
@@ -303,6 +318,7 @@ class MermaidParser {
     'xychart',
     'quadrantChart',
     'requirementDiagram',
+    'sankey-beta',
   ];
 
   /// Whether a fenced code block tagged [language] should be handed to the
@@ -376,6 +392,8 @@ class MermaidParser {
         return 'quadrant chart';
       case DiagramType.requirementDiagram:
         return 'requirement diagram';
+      case DiagramType.sankey:
+        return 'Sankey diagram';
       case DiagramType.radar:
         return 'radar chart';
       case DiagramType.xyChart:
@@ -439,6 +457,11 @@ class MermaidParser {
     // Requirement diagram
     if (firstLine.startsWith('requirementdiagram')) {
       return DiagramType.requirementDiagram;
+    }
+
+    // Sankey
+    if (firstLine.startsWith('sankey')) {
+      return DiagramType.sankey;
     }
 
     // Class diagram

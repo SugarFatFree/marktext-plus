@@ -5,6 +5,7 @@ import 'package:marktext_plus/ui/editor/mermaid/models/edge.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/git_graph.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/mindmap.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/requirement_diagram.dart';
+import 'package:marktext_plus/ui/editor/mermaid/models/sankey.dart';
 import 'package:marktext_plus/ui/editor/mermaid/parser/mermaid_parser.dart';
 
 void main() {
@@ -820,6 +821,80 @@ quadrantChart
 
     test('is offered as a supported type', () {
       expect(MermaidParser.handlesLanguage('quadrantChart'), isTrue);
+    });
+  });
+
+  group('Sankey diagrams', () {
+    test('reads a CSV body into nodes and flows', () {
+      final data = parser
+          .parseWithData('sankey-beta\nA,B,10\nA,C,5\nB,D,10\nC,D,5')!
+          .sankeyChartData!;
+
+      // Nodes are never declared in Sankey source, so first mention is the
+      // only ordering there is.
+      expect(data.nodes, ['A', 'B', 'C', 'D']);
+      expect(data.links, hasLength(4));
+      expect(data.links.first.value, 10);
+    });
+
+    test('a quoted field may contain a comma and an escaped quote', () {
+      final data = parser
+          .parseWithData(
+            'sankey-beta\n"Agricultural ""waste""","Liquid, refined",1.5',
+          )!
+          .sankeyChartData!;
+
+      expect(data.nodes, ['Agricultural "waste"', 'Liquid, refined']);
+      expect(data.links.single.value, 1.5);
+    });
+
+    test('the title comes from YAML frontmatter', () {
+      final result = parser.parseWithData(
+        '---\ntitle: 能源流向\n---\nsankey-beta\n煤炭,发电,100',
+      )!;
+
+      expect(result.diagram.type, DiagramType.sankey);
+      expect(result.sankeyChartData!.title, '能源流向');
+    });
+
+    test('a row with an unparseable value is skipped, not fatal', () {
+      final data =
+          parser.parseWithData('sankey-beta\nA,B,x\nA,B,3')!.sankeyChartData!;
+
+      expect(data.links.single.value, 3);
+    });
+
+    test('a body with no usable row falls back to the source', () {
+      expect(parser.parseWithData('sankey-beta'), isNull);
+    });
+
+    test('layout puts each node in a column and scales bars by value', () {
+      final data = parser
+          .parseWithData('sankey-beta\nA,B,10\nA,C,5\nB,D,10\nC,D,5')!
+          .sankeyChartData!;
+      final layout = SankeyLayout.compute(data, availableWidth: 700);
+
+      final byId = {for (final n in layout.nodes) n.id: n};
+      expect(byId['A']!.layer, 0);
+      expect(byId['B']!.layer, 1);
+      expect(byId['C']!.layer, 1);
+      // D only receives, so it is a sink and lines up on the right edge.
+      expect(byId['D']!.layer, 2);
+
+      // A carries 15 units and B carries 10, so their bars are in that ratio.
+      expect(byId['B']!.height / byId['A']!.height, closeTo(10 / 15, 0.001));
+      expect(layout.links, hasLength(4));
+    });
+
+    test('a cycle does not scatter the diagram across empty columns', () {
+      // Longest-path depth keeps climbing around a cycle until the pass cap
+      // stops it; without renumbering, three nodes landed in columns 7, 8, 9.
+      final data = parser
+          .parseWithData('sankey-beta\nA,B,1\nB,C,1\nC,A,1')!
+          .sankeyChartData!;
+      final layout = SankeyLayout.compute(data, availableWidth: 700);
+
+      expect(layout.nodes.map((n) => n.layer).toSet(), {0, 1, 2});
     });
   });
 
