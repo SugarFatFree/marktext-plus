@@ -7,15 +7,17 @@
 
 | 编号 | 日期 | 标题 | 优先级 | 状态 |
 |------|------|------|--------|------|
-| BUG-001 | 2026-08-27 | 双击 .md 文件反复弹出「打开方式」选择（缺少桌面文件关联） | P0 | Linux 已修复 / Win·mac 待修复 |
+| BUG-001 | 2026-08-27 | 系统级文件关联缺失：deb 无 postinst、两种包均未装 MIME 定义 | P0 | Linux 已修复 / mac 待修复 |
 | BUG-002 | 2026-08-27 | 预览模式为只读 Widget 树，无法所见即所得编辑 | P0 | 待修复 |
-| BUG-003 | 2026-08-27 | Mermaid `classDiagram` 检测到类型后直接返回 null，无渲染 | P0 | 待修复 |
+| BUG-003 | 2026-08-27 | Mermaid `classDiagram` 检测到类型后直接返回 null，无渲染 | P0 | 已修复 |
 | BUG-004 | 2026-08-27 | Mermaid 缺失 erDiagram / journey / gitGraph / mindmap / quadrantChart 等类型 | P1 | 待修复 |
 | BUG-005 | 2026-08-27 | Mermaid `_cleanLines` 粗暴剥离 `%%`，破坏 `%%{init:...}%%` 指令与标签内文本 | P1 | 待修复 |
-| BUG-006 | 2026-08-27 | Mermaid `graph`/`flowchart` 检测强制要求尾随空格，`graph TD;` 等写法失配 | P1 | 待修复 |
+| BUG-006 | 2026-08-27 | Mermaid `graph`/`flowchart` 检测强制要求尾随空格，`graph TD;` 等写法失配 | P1 | 已修复 |
 | BUG-007 | 2026-08-27 | `markdown_renderer` 的 `_diagramLanguages` 与实际支持类型错配 | P2 | 待修复 |
 | BUG-008 | 2026-08-27 | 不支持 PlantUML / Vega-Lite 代码块（源项目支持） | P2 | 待修复 |
 | BUG-009 | 2026-08-27 | Linux 使用 G_APPLICATION_NON_UNIQUE，每打开一个文件就新开一个进程 | P1 | 待修复 |
+| BUG-010 | 2026-08-27 | 启动时弹出「如何打开文件？」模态框，反复出现 | P0 | 已修复 |
+| BUG-011 | 2026-08-27 | `flutter analyze` 在干净树上报 17 个 info，CI 无法作为门禁 | P1 | 已修复 |
 
 ---
 
@@ -142,3 +144,31 @@
 | 根因分析 | `code/linux/runner/my_application.cc:147` 使用 `G_APPLICATION_NON_UNIQUE` 创建 GApplication，禁用了 GTK 自带的单实例仲裁。`lib/main.dart` 里的单实例逻辑用的是 `windows_single_instance`，**只在 Windows 生效**（`if (Platform.isWindows)`） |
 | 修复方案 | 改用 `G_APPLICATION_HANDLES_OPEN`，实现 `GApplication::open` 回调把文件路径通过 platform channel 转发给已有的 Flutter 实例；Dart 侧复用 `TabNotifier.openFilesFromSecondInstance()` |
 | 涉及文件 | `code/linux/runner/my_application.cc`、`code/linux/runner/my_application.h`、`lib/main.dart`、`lib/providers/tab_provider.dart` |
+
+---
+
+## BUG-010 启动时弹出「如何打开文件？」模态框
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P0 |
+| 状态 | 已修复 |
+| 现象 | 双击 `.md` 文件启动应用时，弹出标题为「如何打开文件？」的模态对话框，要求在「在新窗口打开 / 在当前窗口打开」之间选择。用户反馈该框**反复出现**，而非只出现一次 |
+| 根因分析 | `lib/ui/screens/home_screen.dart` 的 `_openStartupFiles()` 在 `config.fileOpenBehavior == FileOpenBehavior.notSet` 时弹出该框并写回配置。**重复出现的根因未能静态定位**：持久化链路 `updateConfig` → `ConfigService.save` → `File.writeAsString` 无防抖、无并发覆盖，`addRecentFile` 等其他写入点也都基于当前 state，看不出保存的选择会在哪里丢失。此外该框在 Linux 上问的问题本身无意义 —— 见 BUG-009，Linux 端根本没有单实例，永远是新进程 |
+| 修复方案 | 不再猜测根因，直接移除该交互：打开方式属于偏好设置，不应以模态框拦截启动。设置页 `settings_screen.dart` 早已存在完整的三选下拉框，`notSet` 现在直接按「在当前窗口打开」处理。上游 MarkText 同样把它作为设置项而非启动询问。副产物：连带移除了 `Radio` 的 `groupValue`/`onChanged` 两处废弃 API 用法 |
+| 涉及文件 | `lib/ui/screens/home_screen.dart` |
+
+---
+
+## BUG-011 analyze 基线不干净，CI 无法作为门禁
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+| 现象 | 新增 CI 后首次运行即失败。`flutter analyze` 在**未经改动的干净树**上就报 17 个 info，退出码非 0 |
+| 根因分析 | 仓库此前只有 tag 触发的 `release.yml`，没有任何 push/PR 级别检查，因此 analyze 的技术债长期无人发现。17 个 info 全部来自既有代码：9 处 `withOpacity`、4 处悬挂库文档注释、`Matrix4.scale`、`Radio.groupValue`/`onChanged`、`ReorderableListView.onReorder` |
+| 修复方案 | 新增 `.github/workflows/ci.yml`（analyze + test + Linux release build），并清空全部 17 个 info：`withOpacity` → `withValues(alpha:)`；补 `library;` 指令；`Matrix4.scale` → `scaleByDouble`；`onReorder` → `onReorderItem`（新回调报告的已是移除后索引，故 `reorderTabs` 去掉 off-by-one 调整，其仅有单一调用点且无测试依赖）；`Radio` 随 BUG-010 一并消失 |
+| 涉及文件 | `.github/workflows/ci.yml`、`code/lib/ui/editor/mermaid/painter/{gantt,timeline}_painter.dart`、`code/lib/ui/editor/mermaid/{mermaid.dart,models/*.dart}`、`code/lib/ui/widgets/{mermaid_renderer,editor_tab_bar}.dart`、`code/lib/providers/tab_provider.dart` |
