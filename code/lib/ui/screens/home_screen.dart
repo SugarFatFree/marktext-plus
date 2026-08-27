@@ -293,18 +293,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
         id: 'file.new',
         label: l10n.commandNewFile,
         description: l10n.commandNewFileDesc,
-        execute: () {
-          final tab = TabInfo(
-            id: DateTime.now().millisecondsSinceEpoch.toString(),
-          );
-          ref.read(tabProvider.notifier).addTab(tab);
-        },
+        execute: () => AppMenuBar.newFile(ref, l10n),
       ),
       Command(
         id: 'file.save',
         label: l10n.commandSave,
         description: l10n.commandSaveDesc,
-        execute: () => _saveCurrentFile(),
+        execute: () => AppMenuBar.saveFile(ref),
       ),
     ]);
 
@@ -359,23 +354,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
     ]);
   }
 
-  void _saveCurrentFile() async {
-    final activeTab = ref.read(activeTabProvider);
-    if (activeTab == null || activeTab.filePath == null) return;
-    try {
-      await FileService.saveDocument(
-        activeTab.filePath!,
-        activeTab.content,
-        lineEnding: activeTab.lineEnding,
-        encoding: activeTab.encoding,
-      );
-    } catch (_) {
-      // Left marked as modified: saying it was saved when the write failed is
-      // how work gets lost at the next close.
-      return;
-    }
-    ref.read(tabProvider.notifier).markSaved(activeTab.id);
-  }
 
   void _openStartupFiles() async {
     if (_startupFilesProcessed) return;

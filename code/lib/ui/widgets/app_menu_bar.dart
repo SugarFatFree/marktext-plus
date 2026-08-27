@@ -91,7 +91,12 @@ class AppMenuBar extends ConsumerWidget {
     );
   }
 
-  void _newFile(WidgetRef ref, AppLocalizations l10n) {
+  /// Opens an empty tab.
+  ///
+  /// Public so the command palette runs this rather than its own copy: that
+  /// copy left the name out, and a new document created from the palette came
+  /// up called "Untitled" whatever language the app was in.
+  static void newFile(WidgetRef ref, AppLocalizations l10n) {
     final tab = TabInfo(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       // TabInfo defaults to the English 'Untitled'; it is a model and has no
@@ -226,7 +231,7 @@ class AppMenuBar extends ConsumerWidget {
       menuChildren: [
         MenuItemButton(
           child: Text(l10n.fileNew),
-          onPressed: () => _newFile(ref, l10n),
+          onPressed: () => newFile(ref, l10n),
         ),
         MenuItemButton(
           child: Text(l10n.fileNewWindow),
