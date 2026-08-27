@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Disposing a source editor no longer throws, so it hands its controller registration back as it was always meant to
 - A line starting with an inline HTML tag, such as `<kbd>Ctrl</kbd>`, is a paragraph again instead of a grey code box
 - An HTML block ends at the first blank line, so a distant closing tag no longer swallows the headings and prose in between — and markdown inside a `<details>` renders as markdown
+- An ordered list written from `3.` is numbered from three, in the preview and in all three export formats
 
 ## [v1.3.0] - 2026-08-27
 

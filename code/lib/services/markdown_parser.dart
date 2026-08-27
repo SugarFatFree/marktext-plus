@@ -147,12 +147,21 @@ class ListItem {
   /// came out numbered.
   final bool ordered;
 
+  /// The number this item was written with, for an ordered item.
+  ///
+  /// A list that starts at 3 is numbered from 3, which is what CommonMark
+  /// says and what a document continuing a numbered sequence across a figure
+  /// or a note relies on. Only the *first* item's number is honoured; the
+  /// rest run on from it however they are written.
+  final int? number;
+
   ListItem({
     required this.content,
     required this.inlineSpans,
     this.isTask = false,
     this.isChecked = false,
     this.depth = 0,
+    this.number,
     this.ordered = false,
   });
 }
@@ -369,6 +378,12 @@ class MarkdownParser {
   /// number, and the editor's own prefix handling already accepted both — only
   /// the parser did not, so `1) one` rendered as an ordinary paragraph.
   static final _olRe = RegExp(r'^[\s]*\d+[.)]\s+(.+)$');
+
+  /// The number an ordered item was written with.
+  ///
+  /// Separate from [_olRe] rather than a group added to it: that pattern's
+  /// group 1 is the item's content and is read in several places.
+  static final _olNumberRe = RegExp(r'^\s*(\d+)[.)]\s');
   /// A table row. GFM makes the outer pipes optional, so `a | b` is a row;
   /// requiring them turned such a table into an ordinary paragraph.
   static final _tableRowRe = RegExp(r'^\s*\|?.*\|.*\|?\s*$');
@@ -555,7 +570,10 @@ class MarkdownParser {
       return '• ';
     }
 
-    final next = (counters[item.depth] ?? 0) + 1;
+    // A level that is not already counting starts at whatever the item was
+    // written with; after that the numbers run on regardless of the source.
+    final running = counters[item.depth];
+    final next = running == null ? (item.number ?? 1) : running + 1;
     counters[item.depth] = next;
     return '$next. ';
   }
@@ -569,6 +587,9 @@ class MarkdownParser {
       // Each item is read with its own marker, not the list's: a bulleted
       // sub-point under a numbered step is still a bullet.
       final ordered = _olRe.hasMatch(block.first);
+      final number = ordered
+          ? int.tryParse(_olNumberRe.firstMatch(block.first)?.group(1) ?? '')
+          : null;
       final marker = ordered ? _olRe : _ulRe;
       final first = marker.firstMatch(block.first)!.group(1)!;
       final content = block.length == 1
@@ -586,6 +607,7 @@ class MarkdownParser {
           isChecked: taskMatch.group(1)!.toLowerCase() == 'x',
           depth: depth,
           ordered: ordered,
+          number: number,
         );
       }
 
@@ -594,6 +616,7 @@ class MarkdownParser {
         inlineSpans: parseInline(content),
         depth: depth,
         ordered: ordered,
+        number: number,
       );
     }).toList();
   }

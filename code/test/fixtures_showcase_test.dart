@@ -49,10 +49,16 @@ void main() {
 
     var previousEnd = 0;
     for (final node in nodes) {
-      expect(node.sourceStart, greaterThanOrEqualTo(previousEnd),
-          reason: '${node.type} starts before the previous block ended');
-      expect(node.sourceEnd, greaterThan(node.sourceStart),
-          reason: '${node.type} has an empty range');
+      expect(
+        node.sourceStart,
+        greaterThanOrEqualTo(previousEnd),
+        reason: '${node.type} starts before the previous block ended',
+      );
+      expect(
+        node.sourceEnd,
+        greaterThan(node.sourceStart),
+        reason: '${node.type} has an empty range',
+      );
       expect(node.sourceEnd, lessThanOrEqualTo(lineCount));
       previousEnd = node.sourceEnd;
     }
@@ -81,7 +87,8 @@ void main() {
     expect(
       codeBlocks,
       isNotEmpty,
-      reason: 'no code blocks at all in ${nodes.length} nodes; '
+      reason:
+          'no code blocks at all in ${nodes.length} nodes; '
           'types were ${nodes.map((n) => n.type).toSet()}',
     );
 
@@ -92,7 +99,8 @@ void main() {
     expect(
       diagrams.length,
       26,
-      reason: 'fence languages found: ${codeBlocks.map((c) => c.language).toList()}',
+      reason:
+          'fence languages found: ${codeBlocks.map((c) => c.language).toList()}',
     );
 
     // Collect every failure before asserting: stopping at the first one means
@@ -160,6 +168,21 @@ void main() {
     expect(html.indexOf('nested'), greaterThan(html.indexOf('one')));
   });
 
+  test('an ordered list exports the number it starts at', () {
+    // `<ol>` alone always restarts at one, so a document that continues a
+    // numbered sequence lost its place on export.
+    final list = MarkdownParser().parse('3. three\n4. four\n').single;
+    final html = ExportService.nodeToHtml(list);
+
+    expect(html, contains('<ol start="3">'));
+    expect(MarkdownParser().parse('1. a\n2. b\n').single, isA<ListNode>());
+    expect(
+      ExportService.nodeToHtml(MarkdownParser().parse('1. a\n2. b\n').single),
+      contains('<ol>'),
+      reason: 'a list starting at one needs no start attribute',
+    );
+  });
+
   test('task items keep their state through HTML export', () {
     const doc = '- [ ] todo\n- [x] done\n';
     final list = MarkdownParser().parse(doc).single;
@@ -172,7 +195,8 @@ void main() {
   });
 
   test('table cells render their inline formatting on export', () {
-    const doc = '| Name | Link |\n'
+    const doc =
+        '| Name | Link |\n'
         '|------|------|\n'
         '| **bold** | [site](https://example.com) |\n';
 

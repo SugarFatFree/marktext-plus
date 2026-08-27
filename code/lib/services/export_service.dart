@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+
 import 'package:docx_creator/docx_creator.dart' hide MarkdownParser;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+
 import 'markdown_parser.dart';
 import '../ui/editor/mermaid/parser/mermaid_parser.dart';
 
@@ -14,7 +16,14 @@ class ExportService {
   static const _pdfBodySize = 12.0;
   static const _pdfBodyHeight = 1.5;
   static const _pdfCodeSize = 11.0;
-  static const _pdfHeadingSizes = <int, double>{1: 24, 2: 20, 3: 18, 4: 16, 5: 14, 6: 12};
+  static const _pdfHeadingSizes = <int, double>{
+    1: 24,
+    2: 20,
+    3: 18,
+    4: 16,
+    5: 14,
+    6: 12,
+  };
   static const _pdfSpaceBefore = 16.0;
   static const _pdfSpaceAfter = 12.0;
   static const _pdfSpaceHeading = 8.0;
@@ -69,7 +78,7 @@ class ExportService {
         '$windir\\Fonts\\arial.ttf',
         '$windir\\Fonts\\tahoma.ttf',
         '$windir\\Fonts\\times.ttf',
-        '$windir\\Fonts\\seguiemj.ttf',    // Segoe UI Emoji (emoji)
+        '$windir\\Fonts\\seguiemj.ttf', // Segoe UI Emoji (emoji)
       ]);
     } else if (Platform.isMacOS) {
       fontPaths.addAll([
@@ -126,13 +135,19 @@ class ExportService {
     buffer.writeln('<html lang="en">');
     buffer.writeln('<head>');
     buffer.writeln('  <meta charset="UTF-8">');
-    buffer.writeln('  <meta name="viewport" content="width=device-width, initial-scale=1.0">');
+    buffer.writeln(
+      '  <meta name="viewport" content="width=device-width, initial-scale=1.0">',
+    );
     buffer.writeln('  <title>Exported Markdown</title>');
     buffer.writeln('  <style>');
     buffer.writeln(_getGitHubStyleCss());
     buffer.writeln('  </style>');
-    buffer.writeln('  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>');
-    buffer.writeln('  <script>mermaid.initialize({startOnLoad: true, securityLevel: "strict"});</script>');
+    buffer.writeln(
+      '  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>',
+    );
+    buffer.writeln(
+      '  <script>mermaid.initialize({startOnLoad: true, securityLevel: "strict"});</script>',
+    );
 
     // Maths and code highlighting were rendered in the preview but not in the
     // export, so a document that looked right in the app arrived as raw LaTeX
@@ -205,10 +220,21 @@ class ExportService {
 
     try {
       final bytes = await _buildPdf(
-          ast, primaryFont, fontFallbacks, mermaidImages, documentImages);
+        ast,
+        primaryFont,
+        fontFallbacks,
+        mermaidImages,
+        documentImages,
+      );
       await File(savePath).writeAsBytes(bytes);
     } catch (e) {
-      final bytes = await _buildPdf(ast, null, [], mermaidImages, documentImages);
+      final bytes = await _buildPdf(
+        ast,
+        null,
+        [],
+        mermaidImages,
+        documentImages,
+      );
       await File(savePath).writeAsBytes(bytes);
     }
   }
@@ -239,13 +265,15 @@ class ExportService {
             if (mermaidKey != null && mermaidImages != null) {
               img = mermaidImages[mermaidKey];
             }
-            widgets.addAll(_nodeToPdfWidgets(
-              node,
-              primaryFont: primaryFont,
-              fontFallbacks: fontFallbacks,
-              mermaidImage: img,
-              documentImages: documentImages,
-            ));
+            widgets.addAll(
+              _nodeToPdfWidgets(
+                node,
+                primaryFont: primaryFont,
+                fontFallbacks: fontFallbacks,
+                mermaidImage: img,
+                documentImages: documentImages,
+              ),
+            );
           }
           return widgets;
         },
@@ -332,24 +360,30 @@ class ExportService {
           final image = documentImages[span.href];
           if (image != null && image.mime != 'image/svg+xml') {
             final size = _fittedImageSize(image.bytes, image.mime);
-            return builder.image(DocxImage(
-              bytes: image.bytes,
-              extension: _extensionOf(span.href ?? '').replaceFirst('.', ''),
-              width: size.width,
-              height: size.height,
-              altText: span.text,
-            ));
+            return builder.image(
+              DocxImage(
+                bytes: image.bytes,
+                extension: _extensionOf(span.href ?? '').replaceFirst('.', ''),
+                width: size.width,
+                height: size.height,
+                altText: span.text,
+              ),
+            );
           }
         }
 
-        final children = (para.inlineSpans.length == 1 && para.inlineSpans.first.type == InlineType.text)
+        final children =
+            (para.inlineSpans.length == 1 &&
+                para.inlineSpans.first.type == InlineType.text)
             ? [DocxText(para.content)]
             : _inlineSpansToDocxTexts(para.inlineSpans);
-        return builder.add(DocxParagraph(
-          children: children,
-          spacingAfter: 240,
-          lineSpacing: 360,
-        ));
+        return builder.add(
+          DocxParagraph(
+            children: children,
+            spacingAfter: 240,
+            lineSpacing: 360,
+          ),
+        );
 
       case NodeType.codeBlock:
         final code = node as CodeBlockNode;
@@ -358,31 +392,47 @@ class ExportService {
           // Sized from the image rather than a fixed 400x300 box, which
           // stretched any diagram that was not exactly 4:3.
           final size = _fittedImageSize(mermaidImage, 'image/png');
-          return builder.image(DocxImage(
-            bytes: mermaidImage,
-            extension: 'png',
-            width: size.width,
-            height: size.height,
-          ));
+          return builder.image(
+            DocxImage(
+              bytes: mermaidImage,
+              extension: 'png',
+              width: size.width,
+              height: size.height,
+            ),
+          );
         }
         if (isMermaid) {
-          builder = builder.add(DocxParagraph(
-            children: [
-              DocxText('Mermaid Diagram (${code.language})', fontSize: 18, fontStyle: DocxFontStyle.italic, color: DocxColor('#6a737d')),
-            ],
-            spacingAfter: 60,
-          ));
+          builder = builder.add(
+            DocxParagraph(
+              children: [
+                DocxText(
+                  'Mermaid Diagram (${code.language})',
+                  fontSize: 18,
+                  fontStyle: DocxFontStyle.italic,
+                  color: DocxColor('#6a737d'),
+                ),
+              ],
+              spacingAfter: 60,
+            ),
+          );
         }
-        return builder.add(DocxParagraph(
-          children: [
-            DocxText(code.code, fontFamily: 'Courier New', fontSize: 20, shadingFill: 'f6f8fa'),
-          ],
-          spacingAfter: 240,
-          spacingBefore: isMermaid ? 0 : 120,
-          indentLeft: 240,
-          indentRight: 240,
-          shadingFill: 'f6f8fa',
-        ));
+        return builder.add(
+          DocxParagraph(
+            children: [
+              DocxText(
+                code.code,
+                fontFamily: 'Courier New',
+                fontSize: 20,
+                shadingFill: 'f6f8fa',
+              ),
+            ],
+            spacingAfter: 240,
+            spacingBefore: isMermaid ? 0 : 120,
+            indentLeft: 240,
+            indentRight: 240,
+            shadingFill: 'f6f8fa',
+          ),
+        );
 
       case NodeType.orderedList:
       case NodeType.unorderedList:
@@ -400,14 +450,16 @@ class ExportService {
               ? (item.isChecked ? '☑ ' : '☐ ')
               : markers[i];
 
-          result = result.add(DocxParagraph(
-            children: [
-              DocxText(marker),
-              ..._inlineSpansToDocxTexts(item.inlineSpans),
-            ],
-            indentLeft: 360 + item.depth * 360,
-            spacingAfter: 60,
-          ));
+          result = result.add(
+            DocxParagraph(
+              children: [
+                DocxText(marker),
+                ..._inlineSpansToDocxTexts(item.inlineSpans),
+              ],
+              indentLeft: 360 + item.depth * 360,
+              spacingAfter: 60,
+            ),
+          );
         }
         return result;
 
@@ -423,18 +475,20 @@ class ExportService {
             // Through the parsed spans, not the raw content: that still
             // carries the markdown syntax, so `**bold**` reached Word with
             // its asterisks showing.
-            quoted = quoted.add(DocxParagraph(
-              children: _inlineSpansToDocxTexts(child.inlineSpans),
-              indentLeft: 720 + quote.depth * 360,
-              spacingAfter: 240,
-              borderLeft: DocxBorderSide(
-                style: DocxBorder.single,
-                color: DocxColor('#dfe2e5'),
-                size: 12,
-                space: 8,
+            quoted = quoted.add(
+              DocxParagraph(
+                children: _inlineSpansToDocxTexts(child.inlineSpans),
+                indentLeft: 720 + quote.depth * 360,
+                spacingAfter: 240,
+                borderLeft: DocxBorderSide(
+                  style: DocxBorder.single,
+                  color: DocxColor('#dfe2e5'),
+                  size: 12,
+                  space: 8,
+                ),
+                shadingFill: 'f9f9f9',
               ),
-              shadingFill: 'f9f9f9',
-            ));
+            );
             continue;
           }
           quoted = _addNodeToDocx(
@@ -456,40 +510,64 @@ class ExportService {
 
       case NodeType.mathBlock:
         final math = node as MathBlockNode;
-        return builder.add(DocxParagraph(
-          children: [DocxText(math.expression, fontFamily: 'Courier New', fontSize: 20)],
-          spacingAfter: 240,
-          shadingFill: 'f6f8fa',
-          indentLeft: 240,
-          indentRight: 240,
-        ));
+        return builder.add(
+          DocxParagraph(
+            children: [
+              DocxText(
+                math.expression,
+                fontFamily: 'Courier New',
+                fontSize: 20,
+              ),
+            ],
+            spacingAfter: 240,
+            shadingFill: 'f6f8fa',
+            indentLeft: 240,
+            indentRight: 240,
+          ),
+        );
 
       case NodeType.frontMatter:
         final fm = node as FrontMatterNode;
-        return builder.add(DocxParagraph(
-          children: [DocxText(fm.content, fontFamily: 'Courier New', fontSize: 20)],
-          spacingAfter: 240,
-          shadingFill: 'f6f8fa',
-          indentLeft: 240,
-          indentRight: 240,
-        ));
+        return builder.add(
+          DocxParagraph(
+            children: [
+              DocxText(fm.content, fontFamily: 'Courier New', fontSize: 20),
+            ],
+            spacingAfter: 240,
+            shadingFill: 'f6f8fa',
+            indentLeft: 240,
+            indentRight: 240,
+          ),
+        );
 
       case NodeType.footnoteDefinition:
         final fn = node as FootnoteDefinitionNode;
-        return builder.add(DocxParagraph(
-          children: [DocxText('[${fn.id}]: ${fn.content}', fontSize: 20, color: DocxColor('#6a737d'))],
-          spacingAfter: 120,
-        ));
+        return builder.add(
+          DocxParagraph(
+            children: [
+              DocxText(
+                '[${fn.id}]: ${fn.content}',
+                fontSize: 20,
+                color: DocxColor('#6a737d'),
+              ),
+            ],
+            spacingAfter: 120,
+          ),
+        );
 
       case NodeType.htmlBlock:
         final html = node as HtmlBlockNode;
-        return builder.add(DocxParagraph(
-          children: [DocxText(html.html, fontFamily: 'Courier New', fontSize: 20)],
-          spacingAfter: 240,
-          shadingFill: 'f6f8fa',
-          indentLeft: 240,
-          indentRight: 240,
-        ));
+        return builder.add(
+          DocxParagraph(
+            children: [
+              DocxText(html.html, fontFamily: 'Courier New', fontSize: 20),
+            ],
+            spacingAfter: 240,
+            shadingFill: 'f6f8fa',
+            indentLeft: 240,
+            indentRight: 240,
+          ),
+        );
     }
   }
 
@@ -507,13 +585,29 @@ class ExportService {
         case InlineType.italic:
           return DocxText(span.text, fontStyle: DocxFontStyle.italic);
         case InlineType.underline:
-          return DocxText(span.text, decorations: [DocxTextDecoration.underline]);
+          return DocxText(
+            span.text,
+            decorations: [DocxTextDecoration.underline],
+          );
         case InlineType.strikethrough:
-          return DocxText(span.text, decorations: [DocxTextDecoration.strikethrough]);
+          return DocxText(
+            span.text,
+            decorations: [DocxTextDecoration.strikethrough],
+          );
         case InlineType.code:
-          return DocxText(span.text, fontFamily: 'Courier New', fontSize: 20, shadingFill: 'f6f8fa');
+          return DocxText(
+            span.text,
+            fontFamily: 'Courier New',
+            fontSize: 20,
+            shadingFill: 'f6f8fa',
+          );
         case InlineType.link:
-          return DocxText(span.text, color: DocxColor('#0366d6'), href: span.href, decorations: [DocxTextDecoration.underline]);
+          return DocxText(
+            span.text,
+            color: DocxColor('#0366d6'),
+            href: span.href,
+            decorations: [DocxTextDecoration.underline],
+          );
         case InlineType.superscript:
           return DocxText(span.text, isSuperscript: true);
         case InlineType.subscript:
@@ -549,14 +643,18 @@ class ExportService {
     switch (node.type) {
       case NodeType.heading:
         final heading = node as HeadingNode;
-        final content =
-            _inlineSpansToHtml(heading.inlineSpans, inlinedImages: inlinedImages);
+        final content = _inlineSpansToHtml(
+          heading.inlineSpans,
+          inlinedImages: inlinedImages,
+        );
         return '<h${heading.level}>$content</h${heading.level}>';
 
       case NodeType.paragraph:
         final para = node as ParagraphNode;
-        final content =
-            _inlineSpansToHtml(para.inlineSpans, inlinedImages: inlinedImages);
+        final content = _inlineSpansToHtml(
+          para.inlineSpans,
+          inlinedImages: inlinedImages,
+        );
         return '<p>$content</p>';
 
       case NodeType.codeBlock:
@@ -565,7 +663,9 @@ class ExportService {
         if (_isMermaidLanguage(code.language)) {
           return '<pre class="mermaid">${_escapeHtml(code.code)}</pre>';
         }
-        final langClass = code.language.isNotEmpty ? ' class="language-${code.language}"' : '';
+        final langClass = code.language.isNotEmpty
+            ? ' class="language-${code.language}"'
+            : '';
         final escaped = _escapeHtml(code.code);
         return '<pre><code$langClass>$escaped</code></pre>';
 
@@ -641,7 +741,11 @@ class ExportService {
     Map<String, String> inlinedImages = const {},
   }) {
     final tag = list.ordered ? 'ol' : 'ul';
-    final buffer = StringBuffer()..writeln('<$tag>');
+    final first = list.items.isEmpty ? null : list.items.first;
+    final buffer = StringBuffer()
+      ..writeln(
+        _openListTag(tag, first != null && first.ordered ? first.number : null),
+      );
     var depth = 0;
     // Each level opens with the tag its own items use: a bulleted sub-list
     // under a numbered step was coming out as <ol>, so the bullets rendered
@@ -651,7 +755,7 @@ class ExportService {
     for (final item in list.items) {
       while (depth < item.depth) {
         final childTag = item.ordered ? 'ol' : 'ul';
-        buffer.writeln('<$childTag>');
+        buffer.writeln(_openListTag(childTag, item.number));
         openTags.add(childTag);
         depth++;
       }
@@ -660,8 +764,10 @@ class ExportService {
         depth--;
       }
 
-      final content =
-          _inlineSpansToHtml(item.inlineSpans, inlinedImages: inlinedImages);
+      final content = _inlineSpansToHtml(
+        item.inlineSpans,
+        inlinedImages: inlinedImages,
+      );
       final checkbox = item.isTask
           ? '<input type="checkbox" ${item.isChecked ? 'checked ' : ''}disabled> '
           : '';
@@ -674,6 +780,15 @@ class ExportService {
     }
     buffer.write('</${openTags.removeLast()}>');
     return buffer.toString();
+  }
+
+  /// Opens a list, carrying the number it starts at.
+  ///
+  /// A document that writes `3.` means three, and `<ol>` on its own always
+  /// restarts at one.
+  static String _openListTag(String tag, int? number) {
+    if (tag != 'ol' || number == null || number == 1) return '<$tag>';
+    return '<ol start="$number">';
   }
 
   static String _inlineSpansToHtml(
@@ -698,7 +813,9 @@ class ExportService {
           return '<code>$text</code>';
         case InlineType.link:
           final href = _escapeHtml(span.href ?? '');
-          final title = span.title != null ? ' title="${_escapeHtml(span.title!)}"' : '';
+          final title = span.title != null
+              ? ' title="${_escapeHtml(span.title!)}"'
+              : '';
           return '<a href="$href"$title>$text</a>';
         case InlineType.image:
           final original = span.href ?? '';
@@ -707,7 +824,9 @@ class ExportService {
           final inlined = inlinedImages[original];
           final src = inlined ?? _escapeHtml(original);
           final alt = _escapeHtml(span.text);
-          final title = span.title != null ? ' title="${_escapeHtml(span.title!)}"' : '';
+          final title = span.title != null
+              ? ' title="${_escapeHtml(span.title!)}"'
+              : '';
           final img = '<img src="$src" alt="$alt"$title>';
           // An image wrapped in a link — a badge — is an anchor around it.
           final linkHref = span.linkHref;
@@ -790,9 +909,7 @@ class ExportService {
         case InlineType.underline:
           return pw.TextSpan(
             text: text,
-            style: baseStyle.copyWith(
-              decoration: pw.TextDecoration.underline,
-            ),
+            style: baseStyle.copyWith(decoration: pw.TextDecoration.underline),
           );
         case InlineType.code:
           return pw.TextSpan(text: text, style: codeStyle);
@@ -850,7 +967,10 @@ class ExportService {
         final hasBottomBorder = heading.level <= 2;
         return [
           pw.Padding(
-            padding: pw.EdgeInsets.only(top: _pdfSpaceBefore, bottom: _pdfSpaceHeading),
+            padding: pw.EdgeInsets.only(
+              top: _pdfSpaceBefore,
+              bottom: _pdfSpaceHeading,
+            ),
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
@@ -1053,9 +1173,16 @@ class ExportService {
               left: quote.depth * 16.0,
               bottom: _pdfSpaceAfter,
             ),
-            padding: const pw.EdgeInsets.only(left: 12, top: 8, bottom: 8, right: 8),
+            padding: const pw.EdgeInsets.only(
+              left: 12,
+              top: 8,
+              bottom: 8,
+              right: 8,
+            ),
             decoration: pw.BoxDecoration(
-              border: pw.Border(left: pw.BorderSide(color: _pdfQuoteBorder, width: 3)),
+              border: pw.Border(
+                left: pw.BorderSide(color: _pdfQuoteBorder, width: 3),
+              ),
               color: _pdfQuoteBg,
             ),
             // The blocks inside, laid out as blocks: a quoted list reached
@@ -1119,7 +1246,9 @@ class ExportService {
                   final row = entry.value;
                   final isEvenRow = rowIndex % 2 == 0;
                   return pw.TableRow(
-                    decoration: isEvenRow ? pw.BoxDecoration(color: _pdfTableAltBg) : null,
+                    decoration: isEvenRow
+                        ? pw.BoxDecoration(color: _pdfTableAltBg)
+                        : null,
                     children: row.map((cell) {
                       return pw.Padding(
                         padding: const pw.EdgeInsets.all(8),
@@ -1158,7 +1287,14 @@ class ExportService {
               border: pw.Border.all(color: _pdfCodeBorder, width: 1),
               borderRadius: pw.BorderRadius.circular(4),
             ),
-            child: pw.Text(_normalizeForPdf(math.expression), style: pw.TextStyle(fontSize: _pdfBodySize, font: primaryFont, fontFallback: fontFallbacks)),
+            child: pw.Text(
+              _normalizeForPdf(math.expression),
+              style: pw.TextStyle(
+                fontSize: _pdfBodySize,
+                font: primaryFont,
+                fontFallback: fontFallbacks,
+              ),
+            ),
           ),
         ];
 
@@ -1172,7 +1308,15 @@ class ExportService {
               color: _pdfCodeBg,
               borderRadius: pw.BorderRadius.circular(4),
             ),
-            child: pw.Text(_normalizeForPdf(fm.content), style: pw.TextStyle(fontSize: _pdfCodeSize, font: primaryFont ?? pw.Font.courier(), fontFallback: [pw.Font.courier(), ...fontFallbacks], height: 1.4)),
+            child: pw.Text(
+              _normalizeForPdf(fm.content),
+              style: pw.TextStyle(
+                fontSize: _pdfCodeSize,
+                font: primaryFont ?? pw.Font.courier(),
+                fontFallback: [pw.Font.courier(), ...fontFallbacks],
+                height: 1.4,
+              ),
+            ),
           ),
         ];
 
@@ -1183,7 +1327,12 @@ class ExportService {
             padding: pw.EdgeInsets.only(bottom: _pdfSpaceListItem),
             child: pw.Text(
               _normalizeForPdf('[${fn.id}]: ${fn.content}'),
-              style: pw.TextStyle(fontSize: 10, font: primaryFont, fontFallback: fontFallbacks, color: PdfColors.grey700),
+              style: pw.TextStyle(
+                fontSize: 10,
+                font: primaryFont,
+                fontFallback: fontFallbacks,
+                color: PdfColors.grey700,
+              ),
             ),
           ),
         ];
@@ -1198,7 +1347,15 @@ class ExportService {
               color: _pdfCodeBg,
               borderRadius: pw.BorderRadius.circular(4),
             ),
-            child: pw.Text(html.html, style: pw.TextStyle(fontSize: _pdfCodeSize, font: primaryFont ?? pw.Font.courier(), fontFallback: [pw.Font.courier(), ...fontFallbacks], height: 1.4)),
+            child: pw.Text(
+              html.html,
+              style: pw.TextStyle(
+                fontSize: _pdfCodeSize,
+                font: primaryFont ?? pw.Font.courier(),
+                fontFallback: [pw.Font.courier(), ...fontFallbacks],
+                height: 1.4,
+              ),
+            ),
           ),
         ];
     }
@@ -1208,7 +1365,7 @@ class ExportService {
   static String _normalizeForPdf(String text) {
     // Keep most emoji as-is, only normalize problematic ones
     return text
-        .replaceAll('✅', '☑')  // Checkmark variants
+        .replaceAll('✅', '☑') // Checkmark variants
         .replaceAll('❌', '✗')
         .replaceAll('✔️', '✔')
         .replaceAll('❤️', '♥');
@@ -1330,8 +1487,7 @@ class ExportService {
   ///
   /// Shared by the HTML and PDF exports, which need the same files in
   /// different forms — a data URI and raw bytes. Remote URLs are left alone.
-  static Future<Map<String, ({Uint8List bytes, String mime})>>
-      _readLocalImages(
+  static Future<Map<String, ({Uint8List bytes, String mime})>> _readLocalImages(
     List<MarkdownNode> ast,
     String? sourcePath,
   ) async {

@@ -470,6 +470,47 @@ void main() {
     });
   });
 
+  group('Ordered list start number', () {
+    final parser = MarkdownParser();
+
+    List<String> markersOf(String source) {
+      final list = parser.parse(source).whereType<ListNode>().first;
+      return MarkdownParser.listMarkers(list.items);
+    }
+
+    test('a list numbered from three is numbered from three', () {
+      expect(markersOf('3. three\n4. four'), ['3. ', '4. ']);
+      expect(markersOf('3) three\n4) four'), ['3. ', '4. ']);
+    });
+
+    test(
+      'after the first item the numbers run on regardless of the source',
+      () {
+        // CommonMark takes only the start from the source; `1. 1. 1.` is the
+        // idiom for "let the renderer number these".
+        expect(markersOf('1. a\n1. b\n1. c'), ['1. ', '2. ', '3. ']);
+        expect(markersOf('5. a\n2. b\n9. c'), ['5. ', '6. ', '7. ']);
+      },
+    );
+
+    test('a nested list keeps its own start', () {
+      expect(markersOf('1. a\n   3. x\n   4. y\n2. b'), [
+        '1. ',
+        '3. ',
+        '4. ',
+        '2. ',
+      ]);
+    });
+
+    test('a numbered task item keeps its number', () {
+      expect(markersOf('3. [ ] todo\n4. [x] done'), ['3. ', '4. ']);
+    });
+
+    test('bullets are unaffected', () {
+      expect(markersOf('- a\n- b'), ['• ', '• ']);
+    });
+  });
+
   group('Bracketed link and image text', () {
     final parser = MarkdownParser();
 
