@@ -104,6 +104,53 @@ void main() {
     expect(container.read(tabProvider).tabs.single.isModified, isTrue);
   });
 
+  test('a change landing right after our own save is still noticed', () async {
+    // The watcher restarts its debounce on every event, so an auto-save
+    // followed within 300ms by a formatter rewriting the file arrives as one
+    // notification. Remembering "we wrote this path" ate it, and the tab was
+    // left on the unformatted text with the next save about to overwrite what
+    // the formatter did.
+    final root = Directory.systemTemp.createTempSync('tab_autosave_');
+    final file = File('${root.path}/note.md')..writeAsStringSync('one');
+    final service = ConfigService(configDir: root.path);
+    final saving = ProviderContainer(
+      overrides: [
+        settingsProvider.overrideWith(
+          (ref) => SettingsNotifier(
+            service,
+            AppConfig(autoSave: true, autoSaveDelay: 100),
+          ),
+        ),
+      ],
+    );
+    addTearDown(() async {
+      saving.dispose();
+      await service.pending;
+      if (root.existsSync()) root.deleteSync(recursive: true);
+    });
+
+    saving.read(tabProvider.notifier).addTab(
+          TabInfo(
+            id: 'tab-1',
+            filePath: file.path,
+            fileName: 'note.md',
+            content: 'one',
+          ),
+        );
+    await Future<void>.delayed(const Duration(milliseconds: 200));
+
+    // Edit, then let the auto-save write it out.
+    saving.read(tabProvider.notifier).updateContent('tab-1', 'mine');
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    expect(file.readAsStringSync(), 'mine', reason: 'auto-save should have run');
+
+    // A formatter rewrites the file while the watcher is still debouncing.
+    file.writeAsStringSync('formatted');
+    await settle();
+
+    expect(saving.read(tabProvider).tabs.single.content, 'formatted');
+  });
+
   test('a closed document is no longer watched', () async {
     openDocument();
     await Future<void>.delayed(const Duration(milliseconds: 200));

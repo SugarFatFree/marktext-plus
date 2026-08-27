@@ -56,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A long line inside a `pie` or `erDiagram` block no longer freezes the preview for fourteen and twenty-seven seconds respectively
 - A whole-word search over a large document is twenty times faster
 - The buttons on a diagram's toolbar answer immediately, where each used to sit dead for a third of a second
+- A change another program makes just after the app saves — a formatter running on save, say — is picked up instead of silently dropped and then overwritten
 - Typing in a large document is faster than before: a keystroke in a 1.4 MiB file costs 45 ms where it used to cost 57
 
 ## [v1.3.0] - 2026-08-27
