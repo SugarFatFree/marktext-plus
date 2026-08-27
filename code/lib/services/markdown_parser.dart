@@ -1018,9 +1018,15 @@ class MarkdownParser {
       // ![...](...) and leave the rest as literal text.
       r'\[!\[([^\]]*)\]\(\s*(?:<([^>]*)>|([^()\s"]+))\s*\)\]'
       r'\(\s*(?:<([^>]*)>|([^()\s"]+))\s*\)'  // 1 alt, 2/3 src, 4/5 href
-      r'|!\[([^\]]*)\]\(\s*(?:<([^>]*)>|((?:[^()\s"]|\([^()]*\))+))'
+      // Same balanced-bracket alt text as the link branch below. Without it
+      // `![alt [x]](img.png)` fell through to that branch, which matched from
+      // the `[` and turned an image into a link with a stray `!` in front.
+      r'|!\[((?:[^\[\]]|\[[^\[\]]*\])*)\]\(\s*(?:<([^>]*)>|((?:[^()\s"]|\([^()]*\))+))'
       r'''(?:\s+(?:"([^"]*)"|'([^']*)'))?\s*\)'''  // 1 alt, 2/3 src, 4/5 title
-      r'''|\[([^\]]*)\]\(\s*(?:<([^>]*)>|((?:[^()\s"]|\([^()]*\))+))'''
+      // The link text may itself hold a bracketed run — `[see [1] here](x)`
+      // is a link, and `[^\]]*` stopped at the inner bracket and left the
+      // whole thing as literal text.
+      r'''|\[((?:[^\[\]]|\[[^\[\]]*\])*)\]\(\s*(?:<([^>]*)>|((?:[^()\s"]|\([^()]*\))+))'''
       r'''(?:\s+(?:"([^"]*)"|'([^']*)'))?\s*\)'''  // 6 text, 7/8 href, 9/10 title
       r'|\[\^([^\]]+)\]'           // footnote ref
       // A code span is delimited by a run of backticks and closed by a run of

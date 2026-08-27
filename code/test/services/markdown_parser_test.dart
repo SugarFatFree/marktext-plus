@@ -472,6 +472,46 @@ void main() {
     });
   });
 
+  group('Bracketed link and image text', () {
+    final parser = MarkdownParser();
+
+    List<InlineSpan> spansOf(String source) =>
+        (parser.parse(source).first as ParagraphNode).inlineSpans;
+
+    test('link text may hold a bracketed run', () {
+      final span = spansOf('[see [1] here](https://x.com)').single;
+
+      expect(span.type, InlineType.link);
+      expect(span.text, 'see [1] here');
+      expect(span.href, 'https://x.com');
+    });
+
+    test('image alt text may hold one too', () {
+      // Without the same rule on the image branch, this fell through to the
+      // link branch, which matched from the `[` and left a stray `!` in front
+      // of what was now a link.
+      final span = spansOf('![alt [x]](img.png)').single;
+
+      expect(span.type, InlineType.image);
+      expect(span.text, 'alt [x]');
+      expect(span.href, 'img.png');
+    });
+
+    test('brackets with no destination after them are still plain text', () {
+      final spans = spansOf('[a [b] c] and (not a link)');
+
+      expect(spans.single.type, InlineType.text);
+    });
+
+    test('a badge still keeps both its image and its link', () {
+      final span = spansOf('[![img](a.png)](https://x.com)').single;
+
+      expect(span.type, InlineType.image);
+      expect(span.href, 'a.png');
+      expect(span.linkHref, 'https://x.com');
+    });
+  });
+
   group('Email autolinks', () {
     final parser = MarkdownParser();
 

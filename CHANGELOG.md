@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Sequence diagrams honour `box … end` participant groupings and `autonumber`
 - Email addresses are linked, both `<foo@example.com>` and bare ones in prose
+- Link and image text may contain a bracketed run, as in `[see [1] here](url)`
 
 ### Fixed
 - Clicking a folder-search result now scrolls to the line that matched, instead of opening the file at the top
