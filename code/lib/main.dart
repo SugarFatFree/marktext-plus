@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -21,6 +22,25 @@ List<String> _filterStartupFiles(List<dynamic> args) {
     final ext = p.extension(arg).toLowerCase();
     return allowedExtensions.contains(ext) && File(arg).existsSync();
   }).cast<String>().toList();
+}
+
+/// Matches kFilesChannel in linux/runner/my_application.cc.
+const _linuxFilesChannel = MethodChannel('com.marktextplus/files');
+
+/// Receives file paths from a second launch on Linux.
+///
+/// GTK forwards them to the process already holding the application ID, which
+/// pushes them over this channel rather than starting another window.
+void _listenForLinuxFileOpens(ProviderContainer container) {
+  if (!Platform.isLinux) return;
+
+  _linuxFilesChannel.setMethodCallHandler((call) async {
+    if (call.method != 'openFiles') return null;
+    final paths = (call.arguments as List?)?.whereType<String>().toList();
+    if (paths == null || paths.isEmpty) return null;
+    await container.read(tabProvider.notifier).openFilesFromSecondInstance(paths);
+    return null;
+  });
 }
 
 void _handleSecondInstance(List<dynamic> newArgs) {
@@ -72,6 +92,7 @@ void main(List<String> args) async {
   );
 
   _globalContainer = container;
+  _listenForLinuxFileOpens(container);
 
   runApp(UncontrolledProviderScope(
     container: container,

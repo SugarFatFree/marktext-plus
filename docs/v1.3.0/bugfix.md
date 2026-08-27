@@ -15,7 +15,7 @@
 | BUG-006 | 2026-08-27 | Mermaid `graph`/`flowchart` 检测强制要求尾随空格，`graph TD;` 等写法失配 | P1 | 已修复 |
 | BUG-007 | 2026-08-27 | `markdown_renderer` 的 `_diagramLanguages` 与实际支持类型错配 | P2 | 待修复 |
 | BUG-008 | 2026-08-27 | 不支持 PlantUML / Vega-Lite 代码块（源项目支持） | P2 | 待修复 |
-| BUG-009 | 2026-08-27 | Linux 使用 G_APPLICATION_NON_UNIQUE，每打开一个文件就新开一个进程 | P1 | 待修复 |
+| BUG-009 | 2026-08-27 | Linux 使用 G_APPLICATION_NON_UNIQUE，每打开一个文件就新开一个进程 | P1 | 已修复（运行时行为待人工验证） |
 | BUG-010 | 2026-08-27 | 启动时弹出「如何打开文件？」模态框，反复出现 | P0 | 已修复 |
 | BUG-011 | 2026-08-27 | `flutter analyze` 在干净树上报 17 个 info，CI 无法作为门禁 | P1 | 已修复 |
 | BUG-012 | 2026-08-27 | 预览模式任务列表复选框不可点击（`onTaskToggle` 从未接线） | P2 | 已修复 |
@@ -146,7 +146,7 @@
 | 状态 | 待修复 |
 | 现象 | Linux 下连续打开多个 `.md` 文件会启动多个独立进程/窗口，而不是在已有窗口中新开标签页 |
 | 根因分析 | `code/linux/runner/my_application.cc:147` 使用 `G_APPLICATION_NON_UNIQUE` 创建 GApplication，禁用了 GTK 自带的单实例仲裁。`lib/main.dart` 里的单实例逻辑用的是 `windows_single_instance`，**只在 Windows 生效**（`if (Platform.isWindows)`） |
-| 修复方案 | 改用 `G_APPLICATION_HANDLES_OPEN`，实现 `GApplication::open` 回调把文件路径通过 platform channel 转发给已有的 Flutter 实例；Dart 侧复用 `TabNotifier.openFilesFromSecondInstance()` |
+| 修复方案 | 改用 `G_APPLICATION_HANDLES_OPEN`；`local_command_line` 把存在的文件参数交给 `g_application_open()` 而非一律 `activate`，GTK 便会把第二次启动转发给已持有 application ID 的进程；`my_application_open` 在该进程内通过 `com.marktextplus/files` channel 下发路径并 `gtk_window_present` 抬起窗口；Dart 侧在 `main.dart` 注册 handler，复用既有的 `TabNotifier.openFilesFromSecondInstance()`。<br>**注意**：CI 只能验证 C++ 能否编译，单实例的运行时行为需要人工在 Linux 桌面上连续双击两个 `.md` 文件确认 |
 | 涉及文件 | `code/linux/runner/my_application.cc`、`code/linux/runner/my_application.h`、`lib/main.dart`、`lib/providers/tab_provider.dart` |
 
 ---

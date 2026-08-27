@@ -17,8 +17,15 @@ class ErDiagramParser {
   /// `LEFT lcard(--|..)rcard RIGHT : label`
   ///
   /// Left tokens are `|o || }o }|`; right tokens mirror them as `o| || o{ |{`.
+  ///
+  /// An entity is an identifier optionally followed by a bracketed alias, and
+  /// that alias may contain spaces — `\S+` would stop at the first one and
+  /// fail the whole line.
   static final _relationRe = RegExp(
-    r'^(\S+)\s+([|}][o|])(--|\.\.)([o|][|{])\s+(\S+)\s*(?::\s*(.*))?$',
+    r'^([^\s\[\]]+(?:\[[^\]]*\])?)'
+    r'\s+([|}][o|])(--|\.\.)([o|][|{])\s+'
+    r'([^\s\[\]]+(?:\[[^\]]*\])?)'
+    r'\s*(?::\s*(.*))?$',
   );
 
   /// `type name [PK[,FK]] ["comment"]`

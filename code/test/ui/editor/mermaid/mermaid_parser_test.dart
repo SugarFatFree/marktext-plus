@@ -128,9 +128,11 @@ erDiagram
 
   group('Parse failure diagnosis', () {
     test('names the unrecognised type and lists what is supported', () {
-      final message = parser.describeParseFailure('erDiagram\n  A ||--o{ B : has');
+      // mindmap is genuinely unsupported; erDiagram used to stand in here and
+      // stopped being a valid example once it was implemented.
+      final message = parser.describeParseFailure('mindmap\n  root((centre))');
 
-      expect(message, contains('erdiagram'));
+      expect(message, contains('mindmap'));
       expect(message, contains('classDiagram'));
       expect(message, contains('sequenceDiagram'));
     });

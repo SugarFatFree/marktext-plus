@@ -10,7 +10,14 @@
 struct _MyApplication {
   GtkApplication parent_instance;
   char** dart_entrypoint_arguments;
+  // Held so a second launch can raise the existing window and hand its file
+  // paths to the running instance instead of starting another process.
+  GtkWindow* window;
+  FlMethodChannel* files_channel;
 };
+
+// Matches the channel name registered in lib/main.dart.
+static constexpr char kFilesChannel[] = "com.marktextplus/files";
 
 G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
 
@@ -22,6 +29,10 @@ static void first_frame_cb(MyApplication* self, FlView* view) {
 // Implements GApplication::activate.
 static void my_application_activate(GApplication* application) {
   MyApplication* self = MY_APPLICATION(application);
+  if (self->window != nullptr) {
+    gtk_window_present(self->window);
+    return;
+  }
   GtkWindow* window =
       GTK_WINDOW(gtk_application_window_new(GTK_APPLICATION(application)));
 
@@ -75,7 +86,45 @@ static void my_application_activate(GApplication* application) {
 
   fl_register_plugins(FL_PLUGIN_REGISTRY(view));
 
+  self->window = window;
+  g_autoptr(FlStandardMethodCodec) codec = fl_standard_method_codec_new();
+  self->files_channel = fl_method_channel_new(
+      fl_engine_get_binary_messenger(fl_view_get_engine(view)), kFilesChannel,
+      FL_METHOD_CODEC(codec));
+
   gtk_widget_grab_focus(GTK_WIDGET(view));
+}
+
+// Implements GApplication::open.
+//
+// With G_APPLICATION_HANDLES_OPEN, GApplication forwards a second launch to
+// the process that already holds the application ID, so this runs inside the
+// running instance.
+static void my_application_open(GApplication* application, GFile** files,
+                                gint n_files, const gchar* hint) {
+  MyApplication* self = MY_APPLICATION(application);
+
+  if (self->window == nullptr) {
+    // First launch: the paths are already in dart_entrypoint_arguments, which
+    // main.dart reads on startup.
+    my_application_activate(application);
+    return;
+  }
+
+  g_autoptr(FlValue) paths = fl_value_new_list();
+  for (gint i = 0; i < n_files; i++) {
+    g_autofree gchar* path = g_file_get_path(files[i]);
+    if (path != nullptr) {
+      fl_value_append_take(paths, fl_value_new_string(path));
+    }
+  }
+
+  if (self->files_channel != nullptr && fl_value_get_length(paths) > 0) {
+    fl_method_channel_invoke_method(self->files_channel, "openFiles", paths,
+                                    nullptr, nullptr, nullptr);
+  }
+
+  gtk_window_present(self->window);
 }
 
 // Implements GApplication::local_command_line.
@@ -93,7 +142,22 @@ static gboolean my_application_local_command_line(GApplication* application,
     return TRUE;
   }
 
-  g_application_activate(application);
+  // Hand any existing file arguments to open(), so a second launch reaches the
+  // running instance rather than starting a new one.
+  g_autoptr(GPtrArray) files = g_ptr_array_new_with_free_func(g_object_unref);
+  for (gchar** arg = *arguments + 1; *arg != nullptr; arg++) {
+    if (g_file_test(*arg, G_FILE_TEST_EXISTS)) {
+      g_ptr_array_add(files, g_file_new_for_commandline_arg(*arg));
+    }
+  }
+
+  if (files->len > 0) {
+    g_application_open(application, reinterpret_cast<GFile**>(files->pdata),
+                       files->len, "");
+  } else {
+    g_application_activate(application);
+  }
+
   *exit_status = 0;
 
   return TRUE;
@@ -121,11 +185,13 @@ static void my_application_shutdown(GApplication* application) {
 static void my_application_dispose(GObject* object) {
   MyApplication* self = MY_APPLICATION(object);
   g_clear_pointer(&self->dart_entrypoint_arguments, g_strfreev);
+  g_clear_object(&self->files_channel);
   G_OBJECT_CLASS(my_application_parent_class)->dispose(object);
 }
 
 static void my_application_class_init(MyApplicationClass* klass) {
   G_APPLICATION_CLASS(klass)->activate = my_application_activate;
+  G_APPLICATION_CLASS(klass)->open = my_application_open;
   G_APPLICATION_CLASS(klass)->local_command_line =
       my_application_local_command_line;
   G_APPLICATION_CLASS(klass)->startup = my_application_startup;
@@ -144,5 +210,5 @@ MyApplication* my_application_new() {
 
   return MY_APPLICATION(g_object_new(my_application_get_type(),
                                      "application-id", APPLICATION_ID, "flags",
-                                     G_APPLICATION_NON_UNIQUE, nullptr));
+                                     G_APPLICATION_HANDLES_OPEN, nullptr));
 }
