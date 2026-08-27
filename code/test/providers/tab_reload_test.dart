@@ -106,6 +106,38 @@ void main() {
     expect(container.read(tabProvider).tabs, isEmpty);
   });
 
+  test('rebinding a tab moves the sidebar entry with it', () async {
+    // "Save as" and rename both land here. The sidebar keeps its own copy of
+    // the path, and a stale one opened a second tab on a file that no longer
+    // existed.
+    openDocument();
+    final moved = '${root.path}/renamed.md';
+
+    container
+        .read(tabProvider.notifier)
+        .updateTabPath('tab-1', moved, 'renamed.md');
+
+    final state = container.read(tabProvider);
+    expect(state.tabs.single.filePath, moved);
+    expect(state.tabs.single.fileName, 'renamed.md');
+    expect(state.openedFiles.single.filePath, moved);
+    expect(state.openedFiles.single.fileName, 'renamed.md');
+  });
+
+  test('a rebound tab is watched at its new path', () async {
+    openDocument();
+    final moved = File('${root.path}/renamed.md')..writeAsStringSync('one');
+    container
+        .read(tabProvider.notifier)
+        .updateTabPath('tab-1', moved.path, 'renamed.md');
+    await Future<void>.delayed(const Duration(milliseconds: 200));
+
+    moved.writeAsStringSync('two');
+    await settle();
+
+    expect(contentOf(), 'two');
+  });
+
   test('a file rewritten with the same text changes nothing', () async {
     openDocument();
     final before = container.read(tabProvider).tabs.single.externalRevision;

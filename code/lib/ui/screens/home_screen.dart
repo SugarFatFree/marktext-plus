@@ -346,11 +346,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
   void _saveCurrentFile() async {
     final activeTab = ref.read(activeTabProvider);
     if (activeTab == null || activeTab.filePath == null) return;
-    await FileService.saveDocument(
-      activeTab.filePath!,
-      activeTab.content,
-      lineEnding: activeTab.lineEnding,
-    );
+    try {
+      await FileService.saveDocument(
+        activeTab.filePath!,
+        activeTab.content,
+        lineEnding: activeTab.lineEnding,
+      );
+    } catch (_) {
+      // Left marked as modified: saying it was saved when the write failed is
+      // how work gets lost at the next close.
+      return;
+    }
     ref.read(tabProvider.notifier).markSaved(activeTab.id);
   }
 

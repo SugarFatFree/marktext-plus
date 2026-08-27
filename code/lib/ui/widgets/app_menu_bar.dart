@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:async';
 import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -8,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:url_launcher/url_launcher.dart';
+
 import '../../app.dart';
 import '../../core/config/app_config.dart';
 import '../../core/i18n/l10n/app_localizations.dart';
@@ -29,7 +31,9 @@ import '../editor/mermaid/parser/mermaid_parser.dart';
 import '../../providers/sidebar_provider.dart';
 import 'command_palette.dart';
 import '../../services/file_service.dart';
+
 import 'package:window_manager/window_manager.dart';
+
 import '../../providers/window_provider.dart';
 import '../../providers/update_provider.dart';
 import '../../services/update_service.dart';
@@ -53,9 +57,7 @@ class AppMenuBar extends ConsumerWidget {
     return Container(
       decoration: BoxDecoration(
         color: tokens.colorSurface,
-        border: Border(
-          bottom: BorderSide(color: tokens.colorBorder, width: 1),
-        ),
+        border: Border(bottom: BorderSide(color: tokens.colorBorder, width: 1)),
         boxShadow: [
           BoxShadow(
             color: tokens.colorBorder.withValues(alpha: 0.3),
@@ -126,9 +128,9 @@ class AppMenuBar extends ConsumerWidget {
     final result = await FilePicker.platform.getDirectoryPath();
     if (result == null) return;
     ref.read(fileProvider.notifier).loadDirectory(result);
-    ref.read(settingsProvider.notifier).updateConfig(
-      (c) => c.copyWith(sideBarDirectory: result),
-    );
+    ref
+        .read(settingsProvider.notifier)
+        .updateConfig((c) => c.copyWith(sideBarDirectory: result));
   }
 
   /// Writes the active tab back to disk, asking for a location if it has
@@ -137,8 +139,17 @@ class AppMenuBar extends ConsumerWidget {
     final activeTab = ref.read(activeTabProvider);
     if (activeTab == null) return;
     if (activeTab.filePath != null) {
-      await FileService.saveDocument(activeTab.filePath!, activeTab.content,
-          lineEnding: activeTab.lineEnding);
+      try {
+        await FileService.saveDocument(
+          activeTab.filePath!,
+          activeTab.content,
+          lineEnding: activeTab.lineEnding,
+        );
+      } catch (_) {
+        // Left marked as modified, so the dot in the tab bar and the close
+        // confirmation both keep telling the truth about what is on disk.
+        return;
+      }
       ref.read(tabProvider.notifier).markSaved(activeTab.id);
     } else {
       _saveFileAs(ref);
@@ -155,9 +166,24 @@ class AppMenuBar extends ConsumerWidget {
       allowedExtensions: ['md', 'markdown', 'txt'],
     );
     if (path == null) return;
-    await FileService.saveDocument(path, activeTab.content,
-        lineEnding: activeTab.lineEnding);
+    try {
+      await FileService.saveDocument(
+        path,
+        activeTab.content,
+        lineEnding: activeTab.lineEnding,
+      );
+    } catch (_) {
+      return;
+    }
+
+    // Rebind the tab to where it was actually written. Without this an
+    // untitled document stayed untitled: the title bar kept saying so, and
+    // the next Ctrl+S asked for a location all over again.
+    ref
+        .read(tabProvider.notifier)
+        .updateTabPath(activeTab.id, path, p.basename(path));
     ref.read(tabProvider.notifier).markSaved(activeTab.id);
+    ref.read(settingsProvider.notifier).addRecentFile(path);
   }
 
   void _renameFile(WidgetRef ref) async {
@@ -179,19 +205,31 @@ class AppMenuBar extends ConsumerWidget {
           onSubmitted: (value) => Navigator.of(dialogCtx).pop(value),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(dialogCtx).pop(), child: Text(l10n.cancel)),
-          TextButton(onPressed: () => Navigator.of(dialogCtx).pop(controller.text), child: Text(l10n.ok)),
+          TextButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(controller.text),
+            child: Text(l10n.ok),
+          ),
         ],
       ),
     );
-    if (newName == null || newName.isEmpty || newName == p.basename(oldPath)) return;
+    if (newName == null || newName.isEmpty || newName == p.basename(oldPath))
+      return;
     final newPath = p.join(p.dirname(oldPath), newName);
     await File(oldPath).rename(newPath);
-    ref.read(tabProvider.notifier).updateTabPath(activeTab.id, newPath, newName);
+    ref
+        .read(tabProvider.notifier)
+        .updateTabPath(activeTab.id, newPath, newName);
   }
 
   Widget _buildFileMenu(
-      BuildContext context, AppLocalizations l10n, WidgetRef ref) {
+    BuildContext context,
+    AppLocalizations l10n,
+    WidgetRef ref,
+  ) {
     return SubmenuButton(
       menuChildren: [
         MenuItemButton(
@@ -259,31 +297,32 @@ class AppMenuBar extends ConsumerWidget {
               PageRouteBuilder(
                 pageBuilder: (context, animation, secondaryAnimation) =>
                     const SettingsScreen(),
-                transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                  return FadeTransition(
-                    opacity: animation,
-                    child: SlideTransition(
-                      position: Tween<Offset>(
-                        begin: const Offset(0, 0.05),
-                        end: Offset.zero,
-                      ).animate(CurvedAnimation(
-                        parent: animation,
-                        curve: Curves.easeOut,
-                      )),
-                      child: child,
-                    ),
-                  );
-                },
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) {
+                      return FadeTransition(
+                        opacity: animation,
+                        child: SlideTransition(
+                          position:
+                              Tween<Offset>(
+                                begin: const Offset(0, 0.05),
+                                end: Offset.zero,
+                              ).animate(
+                                CurvedAnimation(
+                                  parent: animation,
+                                  curve: Curves.easeOut,
+                                ),
+                              ),
+                          child: child,
+                        ),
+                      );
+                    },
                 transitionDuration: const Duration(milliseconds: 300),
               ),
             );
           },
         ),
         const Divider(height: 1),
-        MenuItemButton(
-          child: Text(l10n.fileQuit),
-          onPressed: () => exit(0),
-        ),
+        MenuItemButton(child: Text(l10n.fileQuit), onPressed: () => exit(0)),
       ],
       child: Text(l10n.menuFile, style: const TextStyle(fontSize: 13)),
     );
@@ -356,47 +395,55 @@ class AppMenuBar extends ConsumerWidget {
         const Divider(height: 1),
         MenuItemButton(
           child: Text(l10n.editCopyAsMarkdown),
-          onPressed: () => ref.read(editorProvider.notifier).applyFormat(FormatAction.copyAsMarkdown),
+          onPressed: () => ref
+              .read(editorProvider.notifier)
+              .applyFormat(FormatAction.copyAsMarkdown),
         ),
         MenuItemButton(
           child: Text(l10n.editCopyAsHtml),
-          onPressed: () => ref.read(editorProvider.notifier).applyFormat(FormatAction.copyAsHtml),
+          onPressed: () => ref
+              .read(editorProvider.notifier)
+              .applyFormat(FormatAction.copyAsHtml),
         ),
         const Divider(height: 1),
         MenuItemButton(
           shortcut: _shortcut('selectAll'),
           child: Text(l10n.editSelectAll),
-          onPressed: () => ref.read(editorProvider.notifier).applyFormat(FormatAction.selectAll),
+          onPressed: () => ref
+              .read(editorProvider.notifier)
+              .applyFormat(FormatAction.selectAll),
         ),
         MenuItemButton(
           shortcut: _shortcut('duplicateLine'),
           child: Text(l10n.editDuplicateLine),
-          onPressed: () => ref.read(editorProvider.notifier).applyFormat(FormatAction.duplicateLine),
+          onPressed: () => ref
+              .read(editorProvider.notifier)
+              .applyFormat(FormatAction.duplicateLine),
         ),
         const Divider(height: 1),
         MenuItemButton(
           shortcut: _shortcut('find'),
           child: Text(l10n.editFind),
-          onPressed: () => ref.read(editorProvider.notifier).toggleFindReplace(),
+          onPressed: () =>
+              ref.read(editorProvider.notifier).toggleFindReplace(),
         ),
         MenuItemButton(
           shortcut: _shortcut('findNext'),
           child: Text(l10n.editFindNext),
-          onPressed: () => ref
-              .read(editorProvider.notifier)
-              .stepToFindMatch(forward: true),
+          onPressed: () =>
+              ref.read(editorProvider.notifier).stepToFindMatch(forward: true),
         ),
         MenuItemButton(
           shortcut: _shortcut('findPrevious'),
           child: Text(l10n.editFindPrevious),
-          onPressed: () => ref
-              .read(editorProvider.notifier)
-              .stepToFindMatch(forward: false),
+          onPressed: () =>
+              ref.read(editorProvider.notifier).stepToFindMatch(forward: false),
         ),
         MenuItemButton(
           shortcut: _shortcut('replace'),
           child: Text(l10n.editReplace),
-          onPressed: () => ref.read(editorProvider.notifier).toggleFindReplace(),
+          onPressed: () =>
+              ref.read(editorProvider.notifier).toggleFindReplace(),
         ),
       ],
       child: Text(l10n.menuEdit, style: const TextStyle(fontSize: 13)),
@@ -404,7 +451,10 @@ class AppMenuBar extends ConsumerWidget {
   }
 
   Widget _buildViewMenu(
-      BuildContext context, AppLocalizations l10n, WidgetRef ref) {
+    BuildContext context,
+    AppLocalizations l10n,
+    WidgetRef ref,
+  ) {
     final config = ref.watch(settingsProvider);
     final isMac = PlatformUtils.isMacOS;
     return SubmenuButton(
@@ -414,27 +464,37 @@ class AppMenuBar extends ConsumerWidget {
             MenuItemButton(
               shortcut: SingleActivator(
                 LogicalKeyboardKey.digit1,
-                control: !isMac, meta: isMac, alt: true,
+                control: !isMac,
+                meta: isMac,
+                alt: true,
               ),
               child: Text(l10n.viewSourceCode),
               onPressed: () {
-                ref.read(settingsProvider.notifier).setEditMode(EditMode.source);
+                ref
+                    .read(settingsProvider.notifier)
+                    .setEditMode(EditMode.source);
               },
             ),
             MenuItemButton(
               shortcut: SingleActivator(
                 LogicalKeyboardKey.digit2,
-                control: !isMac, meta: isMac, alt: true,
+                control: !isMac,
+                meta: isMac,
+                alt: true,
               ),
               child: Text(l10n.viewPreview),
               onPressed: () {
-                ref.read(settingsProvider.notifier).setEditMode(EditMode.preview);
+                ref
+                    .read(settingsProvider.notifier)
+                    .setEditMode(EditMode.preview);
               },
             ),
             MenuItemButton(
               shortcut: SingleActivator(
                 LogicalKeyboardKey.digit3,
-                control: !isMac, meta: isMac, alt: true,
+                control: !isMac,
+                meta: isMac,
+                alt: true,
               ),
               child: Text(l10n.viewSplitView),
               onPressed: () {
@@ -448,9 +508,13 @@ class AppMenuBar extends ConsumerWidget {
         MenuItemButton(
           shortcut: SingleActivator(
             LogicalKeyboardKey.keyB,
-            control: !isMac, meta: isMac, shift: true,
+            control: !isMac,
+            meta: isMac,
+            shift: true,
           ),
-          child: Text(config.sideBarVisible ? l10n.viewHideSidebar : l10n.viewShowSidebar),
+          child: Text(
+            config.sideBarVisible ? l10n.viewHideSidebar : l10n.viewShowSidebar,
+          ),
           onPressed: () {
             ref.read(settingsProvider.notifier).toggleSideBar();
           },
@@ -458,9 +522,13 @@ class AppMenuBar extends ConsumerWidget {
         MenuItemButton(
           shortcut: SingleActivator(
             LogicalKeyboardKey.keyT,
-            control: !isMac, meta: isMac, alt: true,
+            control: !isMac,
+            meta: isMac,
+            alt: true,
           ),
-          child: Text(config.tabBarVisible ? l10n.viewHideTabBar : l10n.viewShowTabBar),
+          child: Text(
+            config.tabBarVisible ? l10n.viewHideTabBar : l10n.viewShowTabBar,
+          ),
           onPressed: () {
             ref.read(settingsProvider.notifier).toggleTabBar();
           },
@@ -480,7 +548,8 @@ class AppMenuBar extends ConsumerWidget {
         MenuItemButton(
           shortcut: SingleActivator(
             LogicalKeyboardKey.keyP,
-            control: !isMac, meta: isMac,
+            control: !isMac,
+            meta: isMac,
           ),
           child: Text(l10n.viewCommandPalette),
           onPressed: () => CommandPalette.show(context),
@@ -489,9 +558,15 @@ class AppMenuBar extends ConsumerWidget {
         MenuItemButton(
           shortcut: SingleActivator(
             LogicalKeyboardKey.keyF,
-            control: !isMac, meta: isMac, shift: true,
+            control: !isMac,
+            meta: isMac,
+            shift: true,
           ),
-          child: Text(config.focusMode ? '${l10n.viewFocusMode} \u2713' : l10n.viewFocusMode),
+          child: Text(
+            config.focusMode
+                ? '${l10n.viewFocusMode} \u2713'
+                : l10n.viewFocusMode,
+          ),
           onPressed: () {
             ref.read(settingsProvider.notifier).toggleFocusMode();
           },
@@ -499,9 +574,15 @@ class AppMenuBar extends ConsumerWidget {
         MenuItemButton(
           shortcut: SingleActivator(
             LogicalKeyboardKey.keyW,
-            control: !isMac, meta: isMac, shift: true,
+            control: !isMac,
+            meta: isMac,
+            shift: true,
           ),
-          child: Text(config.typewriterMode ? '${l10n.viewTypewriterMode} \u2713' : l10n.viewTypewriterMode),
+          child: Text(
+            config.typewriterMode
+                ? '${l10n.viewTypewriterMode} \u2713'
+                : l10n.viewTypewriterMode,
+          ),
           onPressed: () {
             ref.read(settingsProvider.notifier).toggleTypewriterMode();
           },
@@ -510,7 +591,8 @@ class AppMenuBar extends ConsumerWidget {
         MenuItemButton(
           shortcut: SingleActivator(
             LogicalKeyboardKey.equal,
-            control: !isMac, meta: isMac,
+            control: !isMac,
+            meta: isMac,
           ),
           child: Text(l10n.viewZoomIn),
           onPressed: () {
@@ -521,7 +603,8 @@ class AppMenuBar extends ConsumerWidget {
         MenuItemButton(
           shortcut: SingleActivator(
             LogicalKeyboardKey.minus,
-            control: !isMac, meta: isMac,
+            control: !isMac,
+            meta: isMac,
           ),
           child: Text(l10n.viewZoomOut),
           onPressed: () {
@@ -532,7 +615,8 @@ class AppMenuBar extends ConsumerWidget {
         MenuItemButton(
           shortcut: SingleActivator(
             LogicalKeyboardKey.digit0,
-            control: !isMac, meta: isMac,
+            control: !isMac,
+            meta: isMac,
           ),
           child: Text(l10n.viewResetZoom),
           onPressed: () {
@@ -545,12 +629,24 @@ class AppMenuBar extends ConsumerWidget {
   }
 
   Widget _buildFormatMenu(AppLocalizations l10n, WidgetRef ref) {
-    void fmt(FormatAction action) => ref.read(editorProvider.notifier).applyFormat(action);
+    void fmt(FormatAction action) =>
+        ref.read(editorProvider.notifier).applyFormat(action);
     final headingActions = [
-      FormatAction.heading1, FormatAction.heading2, FormatAction.heading3,
-      FormatAction.heading4, FormatAction.heading5, FormatAction.heading6,
+      FormatAction.heading1,
+      FormatAction.heading2,
+      FormatAction.heading3,
+      FormatAction.heading4,
+      FormatAction.heading5,
+      FormatAction.heading6,
     ];
-    final headingKeys = ['heading1', 'heading2', 'heading3', 'heading4', 'heading5', 'heading6'];
+    final headingKeys = [
+      'heading1',
+      'heading2',
+      'heading3',
+      'heading4',
+      'heading5',
+      'heading6',
+    ];
     return SubmenuButton(
       menuChildren: [
         SubmenuButton(
@@ -728,7 +824,9 @@ class AppMenuBar extends ConsumerWidget {
         ),
         MenuItemButton(
           child: Text(
-            isFullScreen ? '${l10n.windowFullScreen} \u2713' : l10n.windowFullScreen,
+            isFullScreen
+                ? '${l10n.windowFullScreen} \u2713'
+                : l10n.windowFullScreen,
           ),
           onPressed: () => _toggleFullScreen(ref),
         ),
@@ -782,8 +880,8 @@ class AppMenuBar extends ConsumerWidget {
     final message = !result.reachable
         ? l10n.updateCheckFailed
         : update != null
-            ? '${l10n.updateAvailable}: ${update.version}'
-            : l10n.updateUpToDate;
+        ? '${l10n.updateAvailable}: ${update.version}'
+        : l10n.updateUpToDate;
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
   }
@@ -811,21 +909,28 @@ class AppMenuBar extends ConsumerWidget {
         ),
         MenuItemButton(
           child: Text(l10n.helpChangelog),
-          onPressed: () => _launchUrl('https://github.com/SugarFatFree/marktext-plus/releases'),
+          onPressed: () => _launchUrl(
+            'https://github.com/SugarFatFree/marktext-plus/releases',
+          ),
         ),
         const Divider(height: 1),
         MenuItemButton(
           child: Text(l10n.helpReportBug),
-          onPressed: () => _launchUrl('https://github.com/SugarFatFree/marktext-plus/issues'),
+          onPressed: () => _launchUrl(
+            'https://github.com/SugarFatFree/marktext-plus/issues',
+          ),
         ),
         MenuItemButton(
           child: Text(l10n.helpRequestFeature),
-          onPressed: () => _launchUrl('https://github.com/SugarFatFree/marktext-plus/issues'),
+          onPressed: () => _launchUrl(
+            'https://github.com/SugarFatFree/marktext-plus/issues',
+          ),
         ),
         const Divider(height: 1),
         MenuItemButton(
           child: Text(l10n.helpGitHub),
-          onPressed: () => _launchUrl('https://github.com/SugarFatFree/marktext-plus'),
+          onPressed: () =>
+              _launchUrl('https://github.com/SugarFatFree/marktext-plus'),
         ),
       ],
       child: Text(l10n.menuHelp, style: const TextStyle(fontSize: 13)),
@@ -948,7 +1053,8 @@ class AppMenuBar extends ConsumerWidget {
 
     Uint8List? result;
     try {
-      final boundary = key.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      final boundary =
+          key.currentContext?.findRenderObject() as RenderRepaintBoundary?;
       if (boundary != null && boundary.hasSize && boundary.size.width > 0) {
         final image = await boundary.toImage(pixelRatio: 2.0);
         final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
@@ -981,13 +1087,15 @@ class AppMenuBar extends ConsumerWidget {
               ),
             ]
           : [
-              ...recentFiles.map((filePath) => MenuItemButton(
-                    child: Text(
-                      p.basename(filePath),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    onPressed: () => _openRecentFile(ref, filePath),
-                  )),
+              ...recentFiles.map(
+                (filePath) => MenuItemButton(
+                  child: Text(
+                    p.basename(filePath),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  onPressed: () => _openRecentFile(ref, filePath),
+                ),
+              ),
               const Divider(height: 1),
               // The list only ever grew; there was no way to empty it.
               MenuItemButton(
@@ -1025,7 +1133,10 @@ class AppMenuBar extends ConsumerWidget {
   }
 
   Widget _buildToolbarIcons(
-      WidgetRef ref, AppThemeTokens tokens, AppLocalizations l10n) {
+    WidgetRef ref,
+    AppThemeTokens tokens,
+    AppLocalizations l10n,
+  ) {
     final config = ref.watch(settingsProvider);
 
     return Row(
@@ -1044,14 +1155,17 @@ class AppMenuBar extends ConsumerWidget {
           icon: const Icon(Icons.search),
           iconSize: 18,
           tooltip: l10n.sidebarSearch,
-          onPressed: () => ref.read(editorProvider.notifier).toggleFindReplace(),
+          onPressed: () =>
+              ref.read(editorProvider.notifier).toggleFindReplace(),
         ),
         const SizedBox(width: 4),
         // Sidebar toggle
         IconButton(
           icon: Icon(config.sideBarVisible ? Icons.menu_open : Icons.menu),
           iconSize: 18,
-          tooltip: config.sideBarVisible ? l10n.viewHideSidebar : l10n.viewShowSidebar,
+          tooltip: config.sideBarVisible
+              ? l10n.viewHideSidebar
+              : l10n.viewShowSidebar,
           onPressed: () => ref.read(settingsProvider.notifier).toggleSideBar(),
         ),
         const SizedBox(width: 4),

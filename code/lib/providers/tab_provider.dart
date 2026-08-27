@@ -117,17 +117,6 @@ class TabNotifier extends StateNotifier<TabState> {
     }
   }
 
-  @override
-  void dispose() {
-    _diskSubscription?.cancel();
-    _diskWatcher.dispose();
-    for (final timer in _autoSaveTimers.values) {
-      timer.cancel();
-    }
-    _autoSaveTimers.clear();
-    super.dispose();
-  }
-
   /// Restore opened-file entries from persisted config (no tabs opened).
   void restoreOpenedFiles(List<String> filePaths) {
     final entries = <OpenedFileEntry>[];
@@ -152,6 +141,8 @@ class TabNotifier extends StateNotifier<TabState> {
 
   @override
   void dispose() {
+    _diskSubscription?.cancel();
+    _diskWatcher.dispose();
     for (final timer in _autoSaveTimers.values) {
       timer.cancel();
     }
@@ -317,14 +308,30 @@ class TabNotifier extends StateNotifier<TabState> {
     state = state.copyWith(tabs: tabs);
   }
 
+  /// Rebinds a tab to a different file, after a rename or a "save as".
   void updateTabPath(String id, String newPath, String newName) {
+    final oldPath = state.tabs.where((t) => t.id == id).firstOrNull?.filePath;
+
     final tabs = state.tabs.map((tab) {
       if (tab.id == id) {
         return tab.copyWith(filePath: newPath, fileName: newName);
       }
       return tab;
     }).toList();
-    state = state.copyWith(tabs: tabs);
+
+    // The sidebar's list of opened files, shown when no folder is open, holds
+    // its own copy of the path. Left behind, it pointed at a file that had
+    // been renamed away and opened a second, stale tab when clicked.
+    final openedFiles = state.openedFiles
+        .map(
+          (entry) => entry.filePath == oldPath
+              ? OpenedFileEntry(filePath: newPath, fileName: newName)
+              : entry,
+        )
+        .toList();
+
+    state = state.copyWith(tabs: tabs, openedFiles: openedFiles);
+    if (oldPath != newPath) _persistOpenedFiles();
   }
 
   /// Moves the tab at [oldIndex] so that it ends up at [newIndex].
