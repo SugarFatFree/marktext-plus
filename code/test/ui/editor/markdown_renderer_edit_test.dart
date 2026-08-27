@@ -101,6 +101,10 @@ void main() {
       await tester.tap(find.byKey(const Key('mermaid-edit-source')));
       await tester.pump();
 
+      // The diagram, toolbar and all, is replaced by its source.
+      expect(find.byKey(const Key('mermaid-copy-source')), findsNothing);
+      expect(find.byType(TextField), findsOneWidget);
+
       final field = tester.widget<TextField>(find.byType(TextField));
       expect(field.controller!.text, '```mermaid\nflowchart TD\n  A --> B\n```');
     });

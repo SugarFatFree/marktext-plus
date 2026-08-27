@@ -452,6 +452,13 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   }
 
   void _startEditing(md.MarkdownNode node) {
+    // Whatever holds focus has to give it up first. A double tap comes from a
+    // gesture recogniser, which never takes focus; the diagram's "edit source"
+    // button is a real button and does. Leaving it focused while an editor
+    // that commits on losing focus mounts beside it is asking for the editor
+    // to close the moment focus settles.
+    FocusManager.instance.primaryFocus?.unfocus();
+
     final source = md.MarkdownParser.sourceOfBlock(widget.markdown, node);
     _editController.value = TextEditingValue(
       text: source,
