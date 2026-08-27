@@ -770,4 +770,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mermaidViewerHint => 'Ctrl+滚轮缩放    拖动平移    Esc 关闭';
   @override
   String get statusHighlightOff => '大文件已关闭语法高亮';
+  @override
+  String get settingsImageStorage => '拖入的图片保存位置';
+
+  @override
+  String get settingsImageStorageCopy => '复制到文档旁边';
+
+  @override
+  String get settingsImageStorageFolder => '统一放到一个文件夹';
+
+  @override
+  String get settingsImageStorageLink => '不复制，直接引用原位置';
+
+  @override
+  String get settingsImageFolder => '图片文件夹';
 }

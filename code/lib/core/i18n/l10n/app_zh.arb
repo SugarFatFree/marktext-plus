@@ -271,5 +271,10 @@
   "close": "关闭",
   "mermaidViewerTitle": "Mermaid 图表查看",
   "mermaidViewerHint": "Ctrl+滚轮缩放    拖动平移    Esc 关闭",
-  "statusHighlightOff": "大文件已关闭语法高亮"
+  "statusHighlightOff": "大文件已关闭语法高亮",
+  "settingsImageStorage": "拖入的图片保存位置",
+  "settingsImageStorageCopy": "复制到文档旁边",
+  "settingsImageStorageFolder": "统一放到一个文件夹",
+  "settingsImageStorageLink": "不复制，直接引用原位置",
+  "settingsImageFolder": "图片文件夹"
 }

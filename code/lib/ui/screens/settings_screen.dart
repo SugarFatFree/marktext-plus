@@ -7,6 +7,7 @@ import '../../providers/locale_provider.dart';
 import '../../core/config/app_config.dart';
 import '../../core/theme/app_theme.dart';
 import '../../services/keybinding_service.dart';
+import '../../services/image_service.dart';
 
 enum _Category { general, editor, markdown, theme, keybindings }
 
@@ -334,6 +335,48 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
           ),
         ),
+        _row(
+          l10n.settingsImageStorage,
+          DropdownButton<String>(
+            value: const {'copy', 'folder', 'link'}.contains(config.imageStorageMode)
+                ? config.imageStorageMode
+                : 'copy',
+            items: [
+              DropdownMenuItem(
+                  value: 'copy', child: Text(l10n.settingsImageStorageCopy)),
+              DropdownMenuItem(
+                  value: 'folder', child: Text(l10n.settingsImageStorageFolder)),
+              DropdownMenuItem(
+                  value: 'link', child: Text(l10n.settingsImageStorageLink)),
+            ],
+            onChanged: (v) {
+              if (v == null) return;
+              ref
+                  .read(settingsProvider.notifier)
+                  .updateConfig((c) => c.copyWith(imageStorageMode: v));
+            },
+          ),
+        ),
+        // Only the shared-folder option has a folder to configure.
+        if (config.imageStorageMode == 'folder')
+          _row(
+            l10n.settingsImageFolder,
+            SizedBox(
+              width: 200,
+              child: TextField(
+                controller: TextEditingController(text: config.imageFolder),
+                onSubmitted: (v) {
+                  final folder = v.trim();
+                  ref.read(settingsProvider.notifier).updateConfig(
+                        (c) => c.copyWith(
+                          imageFolder:
+                              folder.isEmpty ? ImageService.defaultFolder : folder,
+                        ),
+                      );
+                },
+              ),
+            ),
+          ),
         _row(
           l10n.settingsTextDirection,
           DropdownButton<String>(

@@ -25,6 +25,8 @@ class MarkTextPlusApp extends ConsumerWidget {
     // entire app whenever any setting was written — the split divider
     // position, the list of open files, the last update check.
     final themeName = ref.watch(settingsProvider.select((c) => c.themeName));
+    final textDirection =
+        ref.watch(settingsProvider.select((c) => c.textDirection));
     final locale = ref.watch(localeProvider);
     final tokens = AppTheme.getTokens(themeName);
 
@@ -50,7 +52,12 @@ class MarkTextPlusApp extends ConsumerWidget {
       ],
       supportedLocales: AppLocalizations.supportedLocales,
       home: Directionality(
-        textDirection: locale.languageCode == 'ar' ? TextDirection.rtl : TextDirection.ltr,
+        // The setting existed but nothing read it, so choosing a direction did
+        // nothing. An explicit 'rtl' now wins; otherwise the language decides,
+        // which keeps Arabic right-to-left by default.
+        textDirection: textDirection == 'rtl' || locale.languageCode == 'ar'
+            ? TextDirection.rtl
+            : TextDirection.ltr,
         child: const HomeScreen(),
       ),
     );

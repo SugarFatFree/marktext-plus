@@ -778,4 +778,18 @@ class AppLocalizationsDe extends AppLocalizations {
   String get mermaidViewerHint => 'Strg+Scrollen zum Zoomen    Ziehen zum Verschieben    Esc zum Schließen';
   @override
   String get statusHighlightOff => 'Syntaxhervorhebung aus (große Datei)';
+  @override
+  String get settingsImageStorage => 'Ablageort für abgelegte Bilder';
+
+  @override
+  String get settingsImageStorageCopy => 'Neben dem Dokument';
+
+  @override
+  String get settingsImageStorageFolder => 'In einem gemeinsamen Ordner';
+
+  @override
+  String get settingsImageStorageLink => 'Am Originalort verlinken';
+
+  @override
+  String get settingsImageFolder => 'Bilderordner';
 }

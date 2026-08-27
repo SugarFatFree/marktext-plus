@@ -259,5 +259,10 @@
   "close": "Cerrar",
   "mermaidViewerTitle": "Visor de diagramas Mermaid",
   "mermaidViewerHint": "Ctrl+Rueda para ampliar    Arrastrar para desplazar    Esc para cerrar",
-  "statusHighlightOff": "Resaltado de sintaxis desactivado (archivo grande)"
+  "statusHighlightOff": "Resaltado de sintaxis desactivado (archivo grande)",
+  "settingsImageStorage": "Dónde guardar las imágenes arrastradas",
+  "settingsImageStorageCopy": "Junto al documento",
+  "settingsImageStorageFolder": "En una carpeta compartida",
+  "settingsImageStorageLink": "Enlazar donde están",
+  "settingsImageFolder": "Carpeta de imágenes"
 }

@@ -776,4 +776,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mermaidViewerHint => 'Ctrl+Scroll to zoom    Drag to pan    Esc to close';
   @override
   String get statusHighlightOff => 'Syntax highlighting off (large file)';
+  @override
+  String get settingsImageStorage => 'Where to put dropped images';
+
+  @override
+  String get settingsImageStorageCopy => 'Beside the document';
+
+  @override
+  String get settingsImageStorageFolder => 'In one shared folder';
+
+  @override
+  String get settingsImageStorageLink => 'Link where they are';
+
+  @override
+  String get settingsImageFolder => 'Image folder';
 }

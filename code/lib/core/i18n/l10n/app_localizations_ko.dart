@@ -773,4 +773,18 @@ class AppLocalizationsKo extends AppLocalizations {
   String get mermaidViewerHint => 'Ctrl+스크롤로 확대/축소    드래그로 이동    Esc로 닫기';
   @override
   String get statusHighlightOff => '큰 파일이라 구문 강조를 껐습니다';
+  @override
+  String get settingsImageStorage => '끌어다 놓은 이미지 저장 위치';
+
+  @override
+  String get settingsImageStorageCopy => '문서 옆에 복사';
+
+  @override
+  String get settingsImageStorageFolder => '공용 폴더 한 곳에';
+
+  @override
+  String get settingsImageStorageLink => '복사하지 않고 원래 위치 참조';
+
+  @override
+  String get settingsImageFolder => '이미지 폴더';
 }

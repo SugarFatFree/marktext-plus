@@ -779,4 +779,18 @@ class AppLocalizationsEs extends AppLocalizations {
   String get mermaidViewerHint => 'Ctrl+Rueda para ampliar    Arrastrar para desplazar    Esc para cerrar';
   @override
   String get statusHighlightOff => 'Resaltado de sintaxis desactivado (archivo grande)';
+  @override
+  String get settingsImageStorage => 'Dónde guardar las imágenes arrastradas';
+
+  @override
+  String get settingsImageStorageCopy => 'Junto al documento';
+
+  @override
+  String get settingsImageStorageFolder => 'En una carpeta compartida';
+
+  @override
+  String get settingsImageStorageLink => 'Enlazar donde están';
+
+  @override
+  String get settingsImageFolder => 'Carpeta de imágenes';
 }

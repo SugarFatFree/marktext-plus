@@ -259,5 +259,10 @@
   "close": "Fermer",
   "mermaidViewerTitle": "Visionneuse de diagramme Mermaid",
   "mermaidViewerHint": "Ctrl+Molette pour zoomer    Glisser pour déplacer    Échap pour fermer",
-  "statusHighlightOff": "Coloration syntaxique désactivée (fichier volumineux)"
+  "statusHighlightOff": "Coloration syntaxique désactivée (fichier volumineux)",
+  "settingsImageStorage": "Emplacement des images déposées",
+  "settingsImageStorageCopy": "À côté du document",
+  "settingsImageStorageFolder": "Dans un dossier commun",
+  "settingsImageStorageLink": "Lier à leur emplacement",
+  "settingsImageFolder": "Dossier d'images"
 }

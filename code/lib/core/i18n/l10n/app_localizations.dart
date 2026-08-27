@@ -1618,6 +1618,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Syntax highlighting off (large file)'**
   String get statusHighlightOff;
+
+  /// Setting that chooses where a dropped or pasted image is stored
+  ///
+  /// In en, this message translates to:
+  /// **'Where to put dropped images'**
+  String get settingsImageStorage;
+
+  /// Image storage option: copy next to the markdown file
+  ///
+  /// In en, this message translates to:
+  /// **'Beside the document'**
+  String get settingsImageStorageCopy;
+
+  /// Image storage option: copy into one configured folder
+  ///
+  /// In en, this message translates to:
+  /// **'In one shared folder'**
+  String get settingsImageStorageFolder;
+
+  /// Image storage option: reference the file in place
+  ///
+  /// In en, this message translates to:
+  /// **'Link where they are'**
+  String get settingsImageStorageLink;
+
+  /// Setting for the folder used by the shared-folder image option
+  ///
+  /// In en, this message translates to:
+  /// **'Image folder'**
+  String get settingsImageFolder;
 }
 
 class _AppLocalizationsDelegate

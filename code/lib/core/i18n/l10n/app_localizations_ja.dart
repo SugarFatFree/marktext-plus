@@ -773,4 +773,18 @@ class AppLocalizationsJa extends AppLocalizations {
   String get mermaidViewerHint => 'Ctrl+スクロールで拡大縮小    ドラッグで移動    Esc で閉じる';
   @override
   String get statusHighlightOff => '大きなファイルのため構文ハイライトは無効';
+  @override
+  String get settingsImageStorage => 'ドロップした画像の保存先';
+
+  @override
+  String get settingsImageStorageCopy => '文書のとなりにコピー';
+
+  @override
+  String get settingsImageStorageFolder => '共通のフォルダーにまとめる';
+
+  @override
+  String get settingsImageStorageLink => '元の場所を参照する';
+
+  @override
+  String get settingsImageFolder => '画像フォルダー';
 }

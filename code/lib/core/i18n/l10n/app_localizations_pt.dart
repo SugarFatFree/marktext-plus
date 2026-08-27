@@ -779,6 +779,20 @@ class AppLocalizationsPt extends AppLocalizations {
   String get mermaidViewerHint => 'Ctrl+Roda para ampliar    Arrastar para deslocar    Esc para fechar';
   @override
   String get statusHighlightOff => 'Realce de sintaxe desativado (ficheiro grande)';
+  @override
+  String get settingsImageStorage => 'Onde guardar as imagens arrastadas';
+
+  @override
+  String get settingsImageStorageCopy => 'Junto ao documento';
+
+  @override
+  String get settingsImageStorageFolder => 'Numa pasta partilhada';
+
+  @override
+  String get settingsImageStorageLink => 'Ligar onde estão';
+
+  @override
+  String get settingsImageFolder => 'Pasta de imagens';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -1515,4 +1529,18 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get mermaidViewerHint => 'Ctrl+Roda para ampliar    Arrastar para deslocar    Esc para fechar';
   @override
   String get statusHighlightOff => 'Realce de sintaxe desativado (arquivo grande)';
+  @override
+  String get settingsImageStorage => 'Onde salvar as imagens arrastadas';
+
+  @override
+  String get settingsImageStorageCopy => 'Junto ao documento';
+
+  @override
+  String get settingsImageStorageFolder => 'Em uma pasta compartilhada';
+
+  @override
+  String get settingsImageStorageLink => 'Vincular onde estão';
+
+  @override
+  String get settingsImageFolder => 'Pasta de imagens';
 }

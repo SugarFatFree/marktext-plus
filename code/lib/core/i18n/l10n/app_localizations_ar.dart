@@ -775,4 +775,18 @@ class AppLocalizationsAr extends AppLocalizations {
   String get mermaidViewerHint => 'Ctrl+عجلة الفأرة للتكبير    السحب للتحريك    Esc للإغلاق';
   @override
   String get statusHighlightOff => 'تم إيقاف تلوين البنية (ملف كبير)';
+  @override
+  String get settingsImageStorage => 'مكان حفظ الصور المسحوبة';
+
+  @override
+  String get settingsImageStorageCopy => 'بجانب المستند';
+
+  @override
+  String get settingsImageStorageFolder => 'في مجلد مشترك واحد';
+
+  @override
+  String get settingsImageStorageLink => 'الربط بمكانها الأصلي';
+
+  @override
+  String get settingsImageFolder => 'مجلد الصور';
 }

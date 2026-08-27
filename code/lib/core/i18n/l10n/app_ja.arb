@@ -259,5 +259,10 @@
   "close": "閉じる",
   "mermaidViewerTitle": "Mermaid ダイアグラムビューア",
   "mermaidViewerHint": "Ctrl+スクロールで拡大縮小    ドラッグで移動    Esc で閉じる",
-  "statusHighlightOff": "大きなファイルのため構文ハイライトは無効"
+  "statusHighlightOff": "大きなファイルのため構文ハイライトは無効",
+  "settingsImageStorage": "ドロップした画像の保存先",
+  "settingsImageStorageCopy": "文書のとなりにコピー",
+  "settingsImageStorageFolder": "共通のフォルダーにまとめる",
+  "settingsImageStorageLink": "元の場所を参照する",
+  "settingsImageFolder": "画像フォルダー"
 }

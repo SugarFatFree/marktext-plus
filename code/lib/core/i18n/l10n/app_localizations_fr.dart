@@ -780,4 +780,18 @@ class AppLocalizationsFr extends AppLocalizations {
   String get mermaidViewerHint => 'Ctrl+Molette pour zoomer    Glisser pour déplacer    Échap pour fermer';
   @override
   String get statusHighlightOff => 'Coloration syntaxique désactivée (fichier volumineux)';
+  @override
+  String get settingsImageStorage => 'Emplacement des images déposées';
+
+  @override
+  String get settingsImageStorageCopy => 'À côté du document';
+
+  @override
+  String get settingsImageStorageFolder => 'Dans un dossier commun';
+
+  @override
+  String get settingsImageStorageLink => 'Lier à leur emplacement';
+
+  @override
+  String get settingsImageFolder => 'Dossier d\'images';
 }

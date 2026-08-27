@@ -259,5 +259,10 @@
   "close": "Закрыть",
   "mermaidViewerTitle": "Просмотр диаграммы Mermaid",
   "mermaidViewerHint": "Ctrl+колесо — масштаб    Перетаскивание — панорама    Esc — закрыть",
-  "statusHighlightOff": "Подсветка синтаксиса отключена (большой файл)"
+  "statusHighlightOff": "Подсветка синтаксиса отключена (большой файл)",
+  "settingsImageStorage": "Куда помещать перетащенные изображения",
+  "settingsImageStorageCopy": "Рядом с документом",
+  "settingsImageStorageFolder": "В одной общей папке",
+  "settingsImageStorageLink": "Ссылаться на исходное место",
+  "settingsImageFolder": "Папка изображений"
 }

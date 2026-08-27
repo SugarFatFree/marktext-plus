@@ -259,5 +259,10 @@
   "close": "Chiudi",
   "mermaidViewerTitle": "Visualizzatore diagrammi Mermaid",
   "mermaidViewerHint": "Ctrl+Rotella per zoomare    Trascina per spostare    Esc per chiudere",
-  "statusHighlightOff": "Evidenziazione sintassi disattivata (file grande)"
+  "statusHighlightOff": "Evidenziazione sintassi disattivata (file grande)",
+  "settingsImageStorage": "Dove salvare le immagini trascinate",
+  "settingsImageStorageCopy": "Accanto al documento",
+  "settingsImageStorageFolder": "In una cartella condivisa",
+  "settingsImageStorageLink": "Collega dove si trovano",
+  "settingsImageFolder": "Cartella immagini"
 }

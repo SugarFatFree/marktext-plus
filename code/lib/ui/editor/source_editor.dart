@@ -409,9 +409,23 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     return KeyEventResult.handled;
   }
 
+  /// The image settings, which used to be stored and then ignored.
+  ({ImageStorageMode mode, String folder}) _imagePreferences() {
+    final config = ref.read(settingsProvider);
+    return (
+      mode: ImageStorageMode.fromConfig(config.imageStorageMode),
+      folder: config.imageFolder,
+    );
+  }
+
   Future<void> _handleImagePaste() async {
     final activeTab = ref.read(activeTabProvider);
-    final imagePath = await ImageService.pasteImageFromClipboard(activeTab?.filePath);
+    final prefs = _imagePreferences();
+    final imagePath = await ImageService.pasteImageFromClipboard(
+      activeTab?.filePath,
+      mode: prefs.mode,
+      folder: prefs.folder,
+    );
     if (imagePath != null && mounted) {
       _insertAtCursor('![image]($imagePath)');
     }
@@ -419,21 +433,18 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
 
   Future<void> _handleImageDrop(DropDoneDetails details) async {
     final activeTab = ref.read(activeTabProvider);
+    final prefs = _imagePreferences();
     for (final file in details.files) {
-      if (ImageService.isImageFile(file.path)) {
-        String relativePath;
-        if (activeTab?.filePath != null) {
-          relativePath = await ImageService.copyImageToProject(
-            file.path,
-            activeTab!.filePath!,
-          );
-        } else {
-          relativePath = file.path;
-        }
-        if (mounted) {
-          _insertAtCursor('![image]($relativePath)');
-        }
-      }
+      if (!ImageService.isImageFile(file.path)) continue;
+
+      final link = await ImageService.storeImage(
+        file.path,
+        activeTab?.filePath,
+        mode: prefs.mode,
+        folder: prefs.folder,
+      );
+      if (!mounted) return;
+      _insertAtCursor('![image]($link)');
     }
   }
 

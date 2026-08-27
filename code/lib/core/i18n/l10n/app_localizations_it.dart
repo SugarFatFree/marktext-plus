@@ -779,4 +779,18 @@ class AppLocalizationsIt extends AppLocalizations {
   String get mermaidViewerHint => 'Ctrl+Rotella per zoomare    Trascina per spostare    Esc per chiudere';
   @override
   String get statusHighlightOff => 'Evidenziazione sintassi disattivata (file grande)';
+  @override
+  String get settingsImageStorage => 'Dove salvare le immagini trascinate';
+
+  @override
+  String get settingsImageStorageCopy => 'Accanto al documento';
+
+  @override
+  String get settingsImageStorageFolder => 'In una cartella condivisa';
+
+  @override
+  String get settingsImageStorageLink => 'Collega dove si trovano';
+
+  @override
+  String get settingsImageFolder => 'Cartella immagini';
 }

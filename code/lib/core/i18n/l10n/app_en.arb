@@ -307,5 +307,25 @@
   "statusHighlightOff": "Syntax highlighting off (large file)",
   "@statusHighlightOff": {
     "description": "Status bar note shown when a document is too large to highlight"
+  },
+  "settingsImageStorage": "Where to put dropped images",
+  "@settingsImageStorage": {
+    "description": "Setting that chooses where a dropped or pasted image is stored"
+  },
+  "settingsImageStorageCopy": "Beside the document",
+  "@settingsImageStorageCopy": {
+    "description": "Image storage option: copy next to the markdown file"
+  },
+  "settingsImageStorageFolder": "In one shared folder",
+  "@settingsImageStorageFolder": {
+    "description": "Image storage option: copy into one configured folder"
+  },
+  "settingsImageStorageLink": "Link where they are",
+  "@settingsImageStorageLink": {
+    "description": "Image storage option: reference the file in place"
+  },
+  "settingsImageFolder": "Image folder",
+  "@settingsImageFolder": {
+    "description": "Setting for the folder used by the shared-folder image option"
   }
 }

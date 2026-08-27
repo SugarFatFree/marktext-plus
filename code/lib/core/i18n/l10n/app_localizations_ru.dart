@@ -777,4 +777,18 @@ class AppLocalizationsRu extends AppLocalizations {
   String get mermaidViewerHint => 'Ctrl+колесо — масштаб    Перетаскивание — панорама    Esc — закрыть';
   @override
   String get statusHighlightOff => 'Подсветка синтаксиса отключена (большой файл)';
+  @override
+  String get settingsImageStorage => 'Куда помещать перетащенные изображения';
+
+  @override
+  String get settingsImageStorageCopy => 'Рядом с документом';
+
+  @override
+  String get settingsImageStorageFolder => 'В одной общей папке';
+
+  @override
+  String get settingsImageStorageLink => 'Ссылаться на исходное место';
+
+  @override
+  String get settingsImageFolder => 'Папка изображений';
 }

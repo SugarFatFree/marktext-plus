@@ -259,5 +259,10 @@
   "close": "Schließen",
   "mermaidViewerTitle": "Mermaid-Diagrammansicht",
   "mermaidViewerHint": "Strg+Scrollen zum Zoomen    Ziehen zum Verschieben    Esc zum Schließen",
-  "statusHighlightOff": "Syntaxhervorhebung aus (große Datei)"
+  "statusHighlightOff": "Syntaxhervorhebung aus (große Datei)",
+  "settingsImageStorage": "Ablageort für abgelegte Bilder",
+  "settingsImageStorageCopy": "Neben dem Dokument",
+  "settingsImageStorageFolder": "In einem gemeinsamen Ordner",
+  "settingsImageStorageLink": "Am Originalort verlinken",
+  "settingsImageFolder": "Bilderordner"
 }
