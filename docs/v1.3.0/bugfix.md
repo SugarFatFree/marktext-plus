@@ -18,6 +18,7 @@
 | BUG-009 | 2026-08-27 | Linux 使用 G_APPLICATION_NON_UNIQUE，每打开一个文件就新开一个进程 | P1 | 待修复 |
 | BUG-010 | 2026-08-27 | 启动时弹出「如何打开文件？」模态框，反复出现 | P0 | 已修复 |
 | BUG-011 | 2026-08-27 | `flutter analyze` 在干净树上报 17 个 info，CI 无法作为门禁 | P1 | 已修复 |
+| BUG-012 | 2026-08-27 | 预览模式任务列表复选框不可点击（`onTaskToggle` 从未接线） | P2 | 待修复 |
 
 ---
 
@@ -172,3 +173,17 @@
 | 根因分析 | 仓库此前只有 tag 触发的 `release.yml`，没有任何 push/PR 级别检查，因此 analyze 的技术债长期无人发现。17 个 info 全部来自既有代码：9 处 `withOpacity`、4 处悬挂库文档注释、`Matrix4.scale`、`Radio.groupValue`/`onChanged`、`ReorderableListView.onReorder` |
 | 修复方案 | 新增 `.github/workflows/ci.yml`（analyze + test + Linux release build），并清空全部 17 个 info：`withOpacity` → `withValues(alpha:)`；补 `library;` 指令；`Matrix4.scale` → `scaleByDouble`；`onReorder` → `onReorderItem`（新回调报告的已是移除后索引，故 `reorderTabs` 去掉 off-by-one 调整，其仅有单一调用点且无测试依赖）；`Radio` 随 BUG-010 一并消失 |
 | 涉及文件 | `.github/workflows/ci.yml`、`code/lib/ui/editor/mermaid/painter/{gantt,timeline}_painter.dart`、`code/lib/ui/editor/mermaid/{mermaid.dart,models/*.dart}`、`code/lib/ui/widgets/{mermaid_renderer,editor_tab_bar}.dart`、`code/lib/providers/tab_provider.dart` |
+
+---
+
+## BUG-012 预览模式任务列表复选框不可点击
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P2 |
+| 状态 | 待修复 |
+| 现象 | 预览模式下渲染出的任务列表 `- [ ] xxx` 复选框是灰的，点不动 |
+| 根因分析 | `MarkdownRenderer` 已经预留了 `onTaskToggle` 回调，`markdown_renderer.dart:465` 也写了 `onChanged: widget.onTaskToggle != null ? ... : null`。但 `home_screen.dart:530` 构造预览模式的 `MarkdownRenderer` 时**根本没有传这个回调**，于是 `onChanged` 恒为 null，Flutter 把 Checkbox 渲染为禁用态。回调签名里的 `lineIndex` 命名也有误导 —— 传入的实际是列表项在 `ListNode.items` 中的下标，不是源码行号 |
+| 修复方案 | 随 BUG-002 一并处理：`MarkdownRenderer` 改为接收统一的 `onSourceChanged(String)` 回调，任务勾选走 `MarkdownParser.replaceBlock` 重写该 `ListNode` 的源码行，不再需要单独的 `onTaskToggle` |
+| 涉及文件 | `lib/ui/editor/markdown_renderer.dart`、`lib/ui/screens/home_screen.dart` |
