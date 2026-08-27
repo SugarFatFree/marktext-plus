@@ -91,18 +91,26 @@ void main() {
 
     expect(
       diagrams.length,
-      14,
+      20,
       reason: 'fence languages found: ${codeBlocks.map((c) => c.language).toList()}',
     );
 
+    // Collect every failure before asserting: stopping at the first one means
+    // each CI run reveals a single broken diagram, and there are fourteen.
     const mermaid = MermaidParser();
+    final failures = <String>[];
+
     for (final block in diagrams) {
-      final result = mermaid.parseWithData(block.code);
       final firstLine = block.code.trim().split('\n').first;
-      expect(result, isNotNull, reason: 'failed to parse: $firstLine');
-      expect(result!.diagram.type, isNot(DiagramType.unknown),
-          reason: 'unknown type for: $firstLine');
+      final result = mermaid.parseWithData(block.code);
+      if (result == null) {
+        failures.add('did not parse: $firstLine');
+      } else if (result.diagram.type == DiagramType.unknown) {
+        failures.add('unknown type: $firstLine');
+      }
     }
+
+    expect(failures, isEmpty, reason: failures.join('; '));
   });
 
   test('exports the whole document to HTML without leaking raw markers', () {

@@ -208,3 +208,75 @@ xychart-beta
   y-axis "Amount" 0 --> 100
   bar [30, 60, 90]
 ```
+
+## Diagram syntax variants
+
+These follow the shapes used in mermaid's own documentation, to check that the
+parsers accept more than the one spelling each was first written against.
+
+```mermaid
+flowchart LR
+  subgraph one[Group one]
+    A[Square] --> B(Rounded)
+    B --> C{{Hexagon}}
+  end
+  subgraph two[Group two]
+    D[(Database)] --> E((Circle))
+  end
+  C -.->|dotted| D
+  A ==>|thick| E
+```
+
+```mermaid
+sequenceDiagram
+  participant Alice
+  participant Bob
+  Alice->>Bob: Ask
+  loop every minute
+    Bob->>Bob: Check
+  end
+  alt is ok
+    Bob-->>Alice: Yes
+  else is not
+    Bob-->>Alice: No
+  end
+  Note over Alice,Bob: Shared note
+```
+
+```mermaid
+pie showData
+  "Reading" : 40
+  "Writing" : 35
+  "Meetings" : 25
+```
+
+```mermaid
+timeline
+  title Product history
+  2019 : Prototype
+  2021 : Beta : Public launch
+  2024 : Rewrite
+```
+
+```mermaid
+gantt
+  title Release plan
+  dateFormat YYYY-MM-DD
+  section Build
+    Spec        :done, spec, 2026-01-01, 10d
+    Implement   :active, impl, after spec, 20d
+    Review      :crit, after impl, 5d
+  section Ship
+    Launch      :milestone, after impl, 0d
+```
+
+```mermaid
+stateDiagram-v2
+  [*] --> Active
+  state Active {
+    [*] --> Idle
+    Idle --> Busy: work
+    Busy --> Idle: done
+  }
+  Active --> [*]: shutdown
+```
