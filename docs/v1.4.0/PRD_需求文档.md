@@ -6,6 +6,7 @@
 | FEAT-002 | 2026-08-28 | 链接与图片的文字里允许成对方括号 | 中 | 简单 | 已实现 |
 | FEAT-003 | 2026-08-28 | 文件在外部被改动时自动重载（仅限无未保存修改） | 高 | 中等 | 已实现 |
 | FEAT-004 | 2026-08-28 | Mermaid 新增 block-beta（块图） | 中 | 中等 | 已实现 |
+| FEAT-005 | 2026-08-28 | Mermaid 新增 C4 系列（C4Context 等五种） | 中 | 困难 | 已实现 |
 
 ## 详细需求
 
@@ -85,5 +86,27 @@
 | 涉及文件 | `lib/ui/editor/mermaid/models/block_diagram.dart`、`parser/block_parser.dart`、`painter/block_painter.dart`、`parser/mermaid_parser.dart`、`models/diagram.dart`、`layout/layout_engine.dart`、`widgets/mermaid_diagram.dart`、`mermaid.dart`、`test/ui/editor/mermaid/mermaid_parser_test.dart`、`test/fixtures/showcase.md` |
 | 验证方式 | 12 种写法本地探查（换行、形状、跨列、空位、三种箭头写法、无 `columns`、含空格标签、中文 id、嵌套组、只有表头）；画布用手写桩类型完整编译并跑通（含自环箭头、指向不存在方块的箭头、空图）；showcase 夹具 27 个 mermaid 块全部解析成功 |
 | 过程记录 | 新建的 `models/block_diagram.dart` 被上一个提交的 `git add -A` 顺带带了出去 —— 当时它还没人引用，编译无碍，但一个半成品文件混进了不相干的提交。**提交前该看一眼 `git status`** |
+
+---
+
+### FEAT-005 — Mermaid 新增 C4 系列（C4Context / C4Container / C4Component / C4Dynamic / C4Deployment）
+
+| 字段 | 内容 |
+|------|------|
+| 实现日期 | 2026-08-28 |
+| 优先级 | 中 |
+| 难易度 | 困难 |
+| 状态 | 已实现 |
+| 需求描述 | 支持 mermaid 的 C4 模型图：人、系统、容器、组件画成方块，用虚线边界框把它们分组，之间连关系箭头。架构文档里的常用图 |
+| 意义 | 这是 v1.3.0 FEAT-008 列出的**最后一类**未实现类型 —— 至此该条需求全部完成 |
+| 语法特点 | 与其他图都不同：正文是一串**函数调用**（`Person(alias, "名字", "描述")`、`Rel(a, b, "使用")`），边界用花括号包住内容 |
+| 实现方案 | 四件套 `models/c4_diagram.dart`（数据 + 布局）、`parser/c4_parser.dart`、`painter/c4_painter.dart`、`layout_engine.dart` 的 `C4DiagramLayout`。布局仍是**一个纯 Dart 函数**，算尺寸和画图都调它 |
+| 参数顺序的坑 | `Person` / `System` 是 `(别名, 名字, 描述)`，而 `Container` / `Component` / `Node` 是 `(别名, 名字, 技术, 描述)`。一视同仁地读会把**技术栈塞进描述里** —— 已按类型分开处理，并有测试盯着 |
+| 参数切分 | 不能按逗号粗暴切分：描述里经常有逗号（`"有两个账户, 都是活期"`）。按引号与括号深度切分 |
+| 边界布局 | 递归：边界独占一行，内容用同一个函数下沉一层排布；边界的宽高由**递归返回后新增的那一段切片**算出（不去列表里回头查找），并**插在自己的索引位**上，保证外层先画、内层后画 |
+| 已支持 | `Person(_Ext)`、`System(Db/Queue)(_Ext)`、`Container(Db/Queue)`、`Component`、`Node`、`Enterprise_/System_/Container_Boundary`、`Rel` / `BiRel` / `Rel_U/D/L/R`、`title`、`UpdateLayoutConfig($c4ShapeInRow)`。`UpdateRelStyle` / `UpdateElementStyle` 识别但忽略（只影响配色微调） |
+| 已知限制 | `Rel_U/D/L/R` 的方向记录下来了但布局尚未据此摆放（仍按文档顺序流式排布）；`C4Dynamic` 的序号未画 |
+| 涉及文件 | `lib/ui/editor/mermaid/models/c4_diagram.dart`、`parser/c4_parser.dart`、`painter/c4_painter.dart`、`parser/mermaid_parser.dart`、`models/diagram.dart`、`layout/layout_engine.dart`、`widgets/mermaid_diagram.dart`、`mermaid.dart`、`test/ui/editor/mermaid/mermaid_parser_test.dart`、`test/fixtures/showcase.md` |
+| 验证方式 | 官方示例、嵌套边界、描述含逗号、`c4ShapeInRow`、缺右花括号、只有表头六种情况本地探查；画布用手写桩类型完整编译并跑通（含自环关系、指向不存在别名的关系、双向箭头、空图）；showcase 夹具 28 个 mermaid 块全部解析成功 |
 
 ---

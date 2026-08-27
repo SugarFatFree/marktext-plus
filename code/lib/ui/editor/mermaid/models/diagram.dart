@@ -73,6 +73,9 @@ enum DiagramType {
   /// Block diagram (`block-beta`)
   blockDiagram,
 
+  /// C4 model diagram (`C4Context` and its siblings)
+  c4Diagram,
+
   /// Unknown/unsupported type
   unknown,
 }

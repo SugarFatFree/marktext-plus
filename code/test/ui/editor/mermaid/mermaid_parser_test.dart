@@ -6,6 +6,7 @@ import 'package:marktext_plus/ui/editor/mermaid/models/git_graph.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/mindmap.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/requirement_diagram.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/block_diagram.dart';
+import 'package:marktext_plus/ui/editor/mermaid/models/c4_diagram.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/sankey.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/node.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/sequence.dart';
@@ -1123,6 +1124,154 @@ quadrantChart
 
     test('is offered as a supported type', () {
       expect(MermaidParser.handlesLanguage('quadrantChart'), isTrue);
+    });
+  });
+
+  group('C4 diagrams', () {
+    test('elements, their kinds and their external flag are read', () {
+      final data = parser
+          .parseWithData(
+            'C4Context\n'
+            '  title Internet Banking\n'
+            '  Person(a, "Customer", "A customer of the bank")\n'
+            '  Person_Ext(b, "Outside customer")\n'
+            '  System(c, "Banking System")\n'
+            '  SystemDb_Ext(d, "Mainframe")',
+          )!
+          .c4DiagramData!;
+
+      expect(data.title, 'Internet Banking');
+      final elements = data.nodes.cast<C4Element>();
+      expect(elements.map((e) => e.kind).toList(), [
+        C4ElementKind.person,
+        C4ElementKind.person,
+        C4ElementKind.system,
+        C4ElementKind.database,
+      ]);
+      expect(elements.map((e) => e.isExternal).toList(),
+          [false, true, false, true]);
+      expect(elements.first.description, 'A customer of the bank');
+    });
+
+    test('a description may contain commas', () {
+      // Splitting the arguments on every comma would cut this in three.
+      final data = parser
+          .parseWithData(
+            'C4Context\n  Person(a, "Customer", "Has two accounts, both current")',
+          )!
+          .c4DiagramData!;
+
+      expect(
+        (data.nodes.single as C4Element).description,
+        'Has two accounts, both current',
+      );
+    });
+
+    test('Container puts its third argument in technology, not description',
+        () {
+      // Person and System take (alias, label, description); Container takes
+      // (alias, label, technology, description).
+      final data = parser
+          .parseWithData(
+            'C4Container\n  Container(w, "Web app", "Java", "Serves pages")',
+          )!
+          .c4DiagramData!;
+
+      final element = data.nodes.single as C4Element;
+      expect(element.technology, 'Java');
+      expect(element.description, 'Serves pages');
+    });
+
+    test('a boundary holds what is written inside its braces', () {
+      final data = parser
+          .parseWithData(
+            'C4Context\n'
+            '  Person(a, "Outside")\n'
+            '  Enterprise_Boundary(b1, "Bank") {\n'
+            '    Person(b, "Inside")\n'
+            '    System(c, "Core")\n'
+            '  }',
+          )!
+          .c4DiagramData!;
+
+      expect(data.nodes, hasLength(2));
+      final boundary = data.nodes.last as C4Boundary;
+      expect(boundary.label, 'Bank');
+      expect(boundary.type, 'Enterprise');
+      expect(boundary.children.map((c) => c.alias).toList(), ['b', 'c']);
+    });
+
+    test('boundaries nest, and the layout draws the outer one first', () {
+      final data = parser
+          .parseWithData(
+            'C4Container\n'
+            '  System_Boundary(outer, "Outer") {\n'
+            '    Container(web, "Web", "Java")\n'
+            '    Container_Boundary(inner, "Inner") {\n'
+            '      ContainerDb(db, "Store", "Postgres")\n'
+            '    }\n'
+            '  }',
+          )!
+          .c4DiagramData!;
+      final layout = C4Layout.compute(data, availableWidth: 900);
+
+      expect(layout.boundaries.map((b) => b.boundary.alias).toList(),
+          ['outer', 'inner']);
+      final outer = layout.boundaries.first;
+      final inner = layout.boundaries.last;
+      expect(inner.left, greaterThan(outer.left));
+      expect(inner.left + inner.width, lessThanOrEqualTo(outer.left + outer.width));
+      expect(layout.find('db')!.left, greaterThan(inner.left));
+    });
+
+    test('relations read their direction and both arrowheads', () {
+      final data = parser
+          .parseWithData(
+            'C4Context\n'
+            '  Person(a, "A")\n'
+            '  System(b, "B")\n'
+            '  Rel(a, b, "Uses", "HTTPS")\n'
+            '  BiRel(a, b, "Talks to")\n'
+            '  Rel_U(b, a, "Answers")',
+          )!
+          .c4DiagramData!;
+
+      expect(data.relations, hasLength(3));
+      expect(data.relations[0].technology, 'HTTPS');
+      expect(data.relations[0].bidirectional, isFalse);
+      expect(data.relations[1].bidirectional, isTrue);
+      expect(data.relations[2].direction, C4RelationDirection.up);
+    });
+
+    test('UpdateLayoutConfig sets how many boxes share a row', () {
+      final data = parser
+          .parseWithData(
+            'C4Context\n'
+            '  UpdateLayoutConfig(\$c4ShapeInRow="2")\n'
+            '  System(a, "A")\n'
+            '  System(b, "B")\n'
+            '  System(c, "C")',
+          )!
+          .c4DiagramData!;
+      final layout = C4Layout.compute(data, availableWidth: 900);
+
+      expect(data.shapesPerRow, 2);
+      expect(layout.find('c')!.top, greaterThan(layout.find('a')!.top));
+      expect(layout.find('c')!.left, layout.find('a')!.left);
+    });
+
+    test('a boundary with no closing brace still keeps its contents', () {
+      final data = parser
+          .parseWithData(
+            'C4Context\n  System_Boundary(b, "Edge") {\n    System(a, "A")',
+          )!
+          .c4DiagramData!;
+
+      expect((data.nodes.single as C4Boundary).children, hasLength(1));
+    });
+
+    test('a header with nothing under it falls back to the source', () {
+      expect(parser.parseWithData('C4Context'), isNull);
     });
   });
 

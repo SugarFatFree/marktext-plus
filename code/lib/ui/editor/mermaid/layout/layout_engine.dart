@@ -11,6 +11,7 @@ import '../models/quadrant_chart.dart';
 import '../models/radar.dart';
 import '../models/timeline.dart';
 import '../models/block_diagram.dart';
+import '../models/c4_diagram.dart';
 import '../models/sankey.dart';
 import '../models/style.dart';
 import '../models/xy_chart.dart';
@@ -336,6 +337,37 @@ class QuadrantChartLayout {
       side + padding * 2 + axisGutter * 2,
       side + padding * 2 + titleHeight + axisGutter * 2,
     );
+  }
+}
+
+/// Layout engine for C4 diagrams
+class C4DiagramLayout {
+  /// Creates a C4 layout engine
+  const C4DiagramLayout({this.deviceConfig});
+
+  /// Responsive device configuration
+  final MermaidDeviceConfig? deviceConfig;
+
+  /// Computes the size a C4 diagram needs.
+  ///
+  /// Delegates to [C4Layout], the same code the painter runs, so the box
+  /// reserved here always matches what gets drawn into it.
+  Size computeLayout(
+    C4DiagramData c4Data,
+    MermaidStyle style,
+    Size availableSize,
+  ) {
+    final isMobile = deviceConfig?.deviceType == DeviceType.mobile;
+    final titleHeight = c4Data.title == null ? 0.0 : (isMobile ? 30.0 : 38.0);
+
+    final layout = C4Layout.compute(
+      c4Data,
+      availableWidth: availableSize.width,
+      padding: style.padding,
+      titleHeight: titleHeight,
+    );
+    if (layout.elements.isEmpty && layout.boundaries.isEmpty) return Size.zero;
+    return Size(math.max(layout.width, availableSize.width), layout.height);
   }
 }
 

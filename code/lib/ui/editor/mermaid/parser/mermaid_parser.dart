@@ -1,4 +1,5 @@
 import '../models/block_diagram.dart';
+import '../models/c4_diagram.dart';
 import '../models/class_diagram.dart';
 import '../models/diagram.dart';
 import '../models/er_diagram.dart';
@@ -16,6 +17,7 @@ import '../models/radar.dart';
 import '../models/timeline.dart';
 import '../models/xy_chart.dart';
 import 'block_parser.dart';
+import 'c4_parser.dart';
 import 'class_diagram_parser.dart';
 import 'er_diagram_parser.dart';
 import 'flowchart_parser.dart';
@@ -47,6 +49,7 @@ class MermaidParseResult {
     this.requirementDiagramData,
     this.sankeyChartData,
     this.blockDiagramData,
+    this.c4DiagramData,
     this.radarChartData,
     this.xyChartData,
     this.classDiagramData,
@@ -83,6 +86,9 @@ class MermaidParseResult {
 
   /// Block diagram specific data (only set for block diagrams)
   final BlockDiagramData? blockDiagramData;
+
+  /// C4 specific data (only set for C4 diagrams)
+  final C4DiagramData? c4DiagramData;
 
   /// Radar chart specific data (only set for Radar charts)
   final RadarChartData? radarChartData;
@@ -230,6 +236,15 @@ class MermaidParser {
           );
         }
         return null;
+      case DiagramType.c4Diagram:
+        final result = const C4Parser().parse(cleanedLines);
+        if (result != null) {
+          return MermaidParseResult(
+            diagram: result.$1,
+            c4DiagramData: result.$2,
+          );
+        }
+        return null;
       case DiagramType.radar:
         final result = const RadarParser().parse(cleanedLines);
         if (result != null) {
@@ -343,6 +358,7 @@ class MermaidParser {
     'requirementDiagram',
     'sankey-beta',
     'block-beta',
+    'C4Context / C4Container / C4Component / C4Dynamic / C4Deployment',
   ];
 
   /// Whether a fenced code block tagged [language] should be handed to the
@@ -420,6 +436,8 @@ class MermaidParser {
         return 'Sankey diagram';
       case DiagramType.blockDiagram:
         return 'block diagram';
+      case DiagramType.c4Diagram:
+        return 'C4 diagram';
       case DiagramType.radar:
         return 'radar chart';
       case DiagramType.xyChart:
@@ -493,6 +511,15 @@ class MermaidParser {
     // Block diagram
     if (firstLine.startsWith('block-beta') || firstLine.startsWith('block ')) {
       return DiagramType.blockDiagram;
+    }
+
+    // C4 model
+    if (firstLine.startsWith('c4context') ||
+        firstLine.startsWith('c4container') ||
+        firstLine.startsWith('c4component') ||
+        firstLine.startsWith('c4dynamic') ||
+        firstLine.startsWith('c4deployment')) {
+      return DiagramType.c4Diagram;
     }
 
     // Class diagram

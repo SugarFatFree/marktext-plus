@@ -394,3 +394,19 @@ block-beta
   frontend --> api
   api -- "reads" --> db
 ```
+
+```mermaid
+C4Context
+  title 网上银行系统上下文
+  Person(customer, "银行客户", "使用网上银行的个人客户")
+  System(banking, "网上银行系统", "查询账户与转账")
+  System_Ext(mainframe, "核心主机系统")
+
+  Enterprise_Boundary(bank, "银行内部") {
+    System(email, "邮件系统")
+  }
+
+  Rel(customer, banking, "使用", "HTTPS")
+  BiRel(banking, mainframe, "读写账户")
+  Rel(banking, email, "发送通知")
+```

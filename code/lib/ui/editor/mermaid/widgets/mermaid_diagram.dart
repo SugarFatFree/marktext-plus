@@ -20,6 +20,7 @@ import '../models/pie_chart.dart';
 import '../models/quadrant_chart.dart';
 import '../models/requirement_diagram.dart';
 import '../models/block_diagram.dart';
+import '../models/c4_diagram.dart';
 import '../models/sankey.dart';
 import '../models/sequence.dart';
 import '../models/radar.dart';
@@ -38,6 +39,7 @@ import '../painter/pie_chart_painter.dart';
 import '../painter/quadrant_painter.dart';
 import '../painter/requirement_painter.dart';
 import '../painter/block_painter.dart';
+import '../painter/c4_painter.dart';
 import '../painter/sankey_painter.dart';
 import '../painter/radar_painter.dart';
 import '../painter/sequence_painter.dart';
@@ -121,6 +123,7 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
   QuadrantChartData? _quadrantChartData;
   SankeyChartData? _sankeyChartData;
   BlockDiagramData? _blockDiagramData;
+  C4DiagramData? _c4DiagramData;
   SequenceDiagramData? _sequenceData;
   RequirementDiagramData? _requirementDiagramData;
   RadarChartData? _radarChartData;
@@ -233,6 +236,14 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
         );
         size = sequenceLayout.computeLayout(
           diagram,
+          _style,
+          Size(widget.width ?? availableWidth, widget.height ?? 600),
+        );
+      } else if (diagram.type == DiagramType.c4Diagram &&
+          result.c4DiagramData != null) {
+        final c4Layout = C4DiagramLayout(deviceConfig: _deviceConfig);
+        size = c4Layout.computeLayout(
+          result.c4DiagramData!,
           _style,
           Size(widget.width ?? availableWidth, widget.height ?? 600),
         );
@@ -351,6 +362,7 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
       _quadrantChartData = result.quadrantChartData;
       _sankeyChartData = result.sankeyChartData;
       _blockDiagramData = result.blockDiagramData;
+      _c4DiagramData = result.c4DiagramData;
       _sequenceData = result.sequenceData;
       _radarChartData = result.radarChartData;
       _xyChartData = result.xyChartData;
@@ -460,6 +472,15 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
         if (_quadrantChartData != null) {
           return QuadrantPainter(
             quadrantData: _quadrantChartData!,
+            style: _style,
+            deviceConfig: _deviceConfig,
+          );
+        }
+        return FlowchartPainter(diagram: diagram, style: _style);
+      case DiagramType.c4Diagram:
+        if (_c4DiagramData != null) {
+          return C4Painter(
+            c4Data: _c4DiagramData!,
             style: _style,
             deviceConfig: _deviceConfig,
           );
@@ -877,6 +898,7 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
   QuadrantChartData? _quadrantChartData;
   SankeyChartData? _sankeyChartData;
   BlockDiagramData? _blockDiagramData;
+  C4DiagramData? _c4DiagramData;
   SequenceDiagramData? _sequenceData;
   RequirementDiagramData? _requirementDiagramData;
   RadarChartData? _radarChartData;
@@ -969,6 +991,14 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
         );
         size = sequenceLayout.computeLayout(
           diagram,
+          _style,
+          widget.viewportSize,
+        );
+      } else if (diagram.type == DiagramType.c4Diagram &&
+          result.c4DiagramData != null) {
+        final c4Layout = C4DiagramLayout(deviceConfig: _deviceConfig);
+        size = c4Layout.computeLayout(
+          result.c4DiagramData!,
           _style,
           widget.viewportSize,
         );
@@ -1072,6 +1102,7 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
         _quadrantChartData = result.quadrantChartData;
         _sankeyChartData = result.sankeyChartData;
         _blockDiagramData = result.blockDiagramData;
+        _c4DiagramData = result.c4DiagramData;
         _sequenceData = result.sequenceData;
         _radarChartData = result.radarChartData;
         _xyChartData = result.xyChartData;
@@ -1173,6 +1204,15 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
         if (_quadrantChartData != null) {
           return QuadrantPainter(
             quadrantData: _quadrantChartData!,
+            style: _style,
+            deviceConfig: _deviceConfig,
+          );
+        }
+        return FlowchartPainter(diagram: diagram, style: _style);
+      case DiagramType.c4Diagram:
+        if (_c4DiagramData != null) {
+          return C4Painter(
+            c4Data: _c4DiagramData!,
             style: _style,
             deviceConfig: _deviceConfig,
           );
