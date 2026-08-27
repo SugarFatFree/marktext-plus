@@ -413,22 +413,38 @@ class ExportService {
 
       case NodeType.blockquote:
         final quote = node as BlockquoteNode;
-        // Through the parsed spans, not quote.content: the raw content still
-        // carries the markdown syntax, so `**bold**` reached Word with its
-        // asterisks showing. The quote still reads as a quote from the
-        // paragraph's border, indent and shading below.
-        return builder.add(DocxParagraph(
-          children: _inlineSpansToDocxTexts(quote.inlineSpans),
-          indentLeft: 720 + quote.depth * 360,
-          spacingAfter: 240,
-          borderLeft: DocxBorderSide(
-            style: DocxBorder.single,
-            color: DocxColor('#dfe2e5'),
-            size: 12,
-            space: 8,
-          ),
-          shadingFill: 'f9f9f9',
-        ));
+        // Word has no container element, so a quote is expressed by styling
+        // the paragraphs inside it. Anything that is not a paragraph — a
+        // quoted list, a quoted heading — is added on its own terms rather
+        // than flattened into text.
+        var quoted = builder;
+        for (final child in quote.children) {
+          if (child is ParagraphNode) {
+            // Through the parsed spans, not the raw content: that still
+            // carries the markdown syntax, so `**bold**` reached Word with
+            // its asterisks showing.
+            quoted = quoted.add(DocxParagraph(
+              children: _inlineSpansToDocxTexts(child.inlineSpans),
+              indentLeft: 720 + quote.depth * 360,
+              spacingAfter: 240,
+              borderLeft: DocxBorderSide(
+                style: DocxBorder.single,
+                color: DocxColor('#dfe2e5'),
+                size: 12,
+                space: 8,
+              ),
+              shadingFill: 'f9f9f9',
+            ));
+            continue;
+          }
+          quoted = _addNodeToDocx(
+            quoted,
+            child,
+            mermaidImage: mermaidImage,
+            documentImages: documentImages,
+          );
+        }
+        return quoted;
 
       case NodeType.horizontalRule:
         return builder.hr();
@@ -559,13 +575,16 @@ class ExportService {
 
       case NodeType.blockquote:
         final quote = node as BlockquoteNode;
-        final content =
-            _inlineSpansToHtml(quote.inlineSpans, inlinedImages: inlinedImages);
+        // The blocks inside, rendered as blocks: a quoted list used to reach
+        // the export as a paragraph reading "- a".
+        final content = quote.children
+            .map((child) => nodeToHtml(child, inlinedImages: inlinedImages))
+            .join('\n');
         // Depth is expressed by nesting, which is how HTML says "a quote
         // inside a quote"; a flat blockquote would lose the level.
         final open = '<blockquote>' * (quote.depth + 1);
         final close = '</blockquote>' * (quote.depth + 1);
-        return '$open\n<p>$content</p>\n$close';
+        return '$open\n$content\n$close';
 
       case NodeType.horizontalRule:
         return '<hr>';
@@ -1032,22 +1051,19 @@ class ExportService {
               border: pw.Border(left: pw.BorderSide(color: _pdfQuoteBorder, width: 3)),
               color: _pdfQuoteBg,
             ),
-            child: pw.RichText(
-              text: pw.TextSpan(
-                children: _inlineSpansToPdf(
-                  quote.inlineSpans,
-                  baseStyle: pw.TextStyle(
-                    fontSize: _pdfBodySize,
-                    height: _pdfBodyHeight,
-                    font: primaryFont,
-                    fontFallback: fontFallbacks,
-                    fontStyle: pw.FontStyle.italic,
-                    color: PdfColors.grey700,
+            // The blocks inside, laid out as blocks: a quoted list reached
+            // the PDF as a line of text reading "- a".
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                for (final child in quote.children)
+                  ..._nodeToPdfWidgets(
+                    child,
+                    primaryFont: primaryFont,
+                    fontFallbacks: fontFallbacks,
+                    documentImages: documentImages,
                   ),
-                  primaryFont: primaryFont,
-                  fontFallbacks: fontFallbacks,
-                ),
-              ),
+              ],
             ),
           ),
         ];

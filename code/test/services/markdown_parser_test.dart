@@ -2,6 +2,53 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/services/markdown_parser.dart';
 
 void main() {
+  group('Blockquotes hold blocks', () {
+    final parser = MarkdownParser();
+
+    BlockquoteNode quoteOf(String source) =>
+        parser.parse(source).whereType<BlockquoteNode>().first;
+
+    test('a quoted list is a list', () {
+      // Rendered from the inline spans alone, this showed the characters
+      // "- a" rather than a bulleted item.
+      final children = quoteOf('> - a\n> - b').children;
+
+      expect(children, hasLength(1));
+      expect(children.single, isA<ListNode>());
+      expect((children.single as ListNode).items, hasLength(2));
+    });
+
+    test('a quoted heading is a heading', () {
+      final children = quoteOf('> # Title').children;
+      expect((children.single as HeadingNode).level, 1);
+    });
+
+    test('a quoted code block keeps its code', () {
+      final children = quoteOf('> ```\n> x\n> ```').children;
+      expect((children.single as CodeBlockNode).code, 'x');
+    });
+
+    test('a quote inside a quote nests', () {
+      final children = quoteOf('> outer\n> > inner').children;
+      expect(children.last, isA<BlockquoteNode>());
+    });
+
+    test('blank quote lines separate paragraphs', () {
+      expect(quoteOf('> one\n>\n> two').children, hasLength(2));
+    });
+
+    test('a plain quote is still one paragraph', () {
+      final children = quoteOf('> just text').children;
+      expect(children.single, isA<ParagraphNode>());
+    });
+
+    test('content and spans are still populated', () {
+      // Anything still reading them keeps working.
+      expect(quoteOf('> just text').content, 'just text');
+      expect(quoteOf('> **bold**').inlineSpans.first.type, InlineType.bold);
+    });
+  });
+
   group('Tables', () {
     final parser = MarkdownParser();
 

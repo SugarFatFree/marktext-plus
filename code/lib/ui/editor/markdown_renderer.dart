@@ -677,6 +677,29 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     );
   }
 
+  /// Renders one block inside a quote.
+  ///
+  /// Deliberately narrower than the top-level switch: a quoted block is not
+  /// separately editable, does not take part in heading scroll targets, and
+  /// cannot be a diagram, so it needs none of that machinery.
+  Widget _buildQuotedNode(
+      md.MarkdownNode node, ThemeData theme, AppThemeTokens tokens) {
+    return switch (node) {
+      md.HeadingNode() => _buildHeading(node, theme, tokens),
+      md.ParagraphNode() => _buildParagraph(node, theme),
+      md.CodeBlockNode() => _buildCodeBlock(node, theme, tokens),
+      md.ListNode() => _buildList(node, theme),
+      md.BlockquoteNode() => _buildBlockquote(node, theme, tokens),
+      md.HorizontalRuleNode() =>
+        Divider(thickness: 1, color: tokens.colorBorder),
+      md.TableNode() => _buildTable(node, theme),
+      md.MathBlockNode() => _buildMathBlock(node, theme),
+      md.FrontMatterNode() => _buildFrontMatter(node, theme),
+      md.FootnoteDefinitionNode() => _buildFootnoteDefinition(node, theme),
+      md.HtmlBlockNode() => _buildHtmlBlock(node, theme),
+    };
+  }
+
   Widget _buildBlockquote(md.BlockquoteNode node, ThemeData theme, AppThemeTokens tokens) {
     return Container(
       // Nested quotes step in, so `>>` reads as being inside `>` rather than
@@ -694,15 +717,15 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         color: tokens.colorAccentMuted.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(4),
       ),
-      child: Text.rich(
-        _buildInlineSpans(node.inlineSpans, theme, _defaultTextStyle),
-        // Use natural line height without forcing strut height to prevent text overlap
-        strutStyle: StrutStyle(
-          fontSize: 16,
-          height: 1.6,
-          leadingDistribution: TextLeadingDistribution.even,
-          fontFamilyFallback: AppTheme.platformFontFallback,
-        ),
+      // A quote holds blocks, not just a run of text: quoting a list or a
+      // heading used to show the source markers as literal characters.
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final child in node.children)
+            _buildQuotedNode(child, theme, tokens),
+        ],
       ),
     );
   }

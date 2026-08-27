@@ -162,9 +162,17 @@ class BlockquoteNode extends MarkdownNode {
   final String content;
   final List<InlineSpan> inlineSpans;
 
+  /// The blocks inside the quote.
+  ///
+  /// A quote can hold a list, a heading, a code block — anything a document
+  /// can. Rendering only [inlineSpans] showed those as their source text:
+  /// `> - a` came out as the characters "- a" rather than a bulleted item.
+  final List<MarkdownNode> children;
+
   BlockquoteNode({
     required this.content,
     required this.inlineSpans,
+    this.children = const [],
     this.depth = 0,
   });
 
@@ -759,6 +767,9 @@ class MarkdownParser {
           BlockquoteNode(
             content: content,
             inlineSpans: parseInline(content),
+            // Parsed again so a list or a heading inside the quote is one.
+            // The spans stay for anything still reading them.
+            children: parse(content),
             // Depth counts from zero for a single `>`.
             depth: depth - 1,
           ),

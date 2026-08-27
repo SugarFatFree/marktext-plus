@@ -328,3 +328,14 @@ print("hello")
 void main() {}
 ```
 ````
+
+> Quoted blocks keep their structure:
+>
+> - a quoted list item
+> - another one
+>
+> ```dart
+> void quoted() {}
+> ```
+>
+> > and a quote inside a quote
