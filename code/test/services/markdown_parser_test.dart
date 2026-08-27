@@ -2,6 +2,46 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/services/markdown_parser.dart';
 
 void main() {
+  group('Code spans', () {
+    final parser = MarkdownParser();
+
+    List<InlineSpan> spansOf(String source) =>
+        (parser.parse(source).single as ParagraphNode).inlineSpans;
+
+    test('a longer delimiter lets the code contain a backtick', () {
+      // Matched as a single pair, this truncated at the inner tick and left
+      // the rest of the line as text.
+      final span = spansOf('``code with ` tick``').single;
+      expect(span.type, InlineType.code);
+      expect(span.text, 'code with ` tick');
+    });
+
+    test('two double-delimited spans do not run together', () {
+      // `([^`]+)` matched a..a, then the text between, then b..b: three spans
+      // where there are two.
+      final spans = spansOf('``a`` and ``b``');
+      final code = spans.where((s) => s.type == InlineType.code).toList();
+
+      expect(code, hasLength(2));
+      expect(code[0].text, 'a');
+      expect(code[1].text, 'b');
+    });
+
+    test('one space each side is dropped, so `` ` `` is a backtick', () {
+      expect(spansOf('`` ` ``').single.text, '`');
+      // Only when both sides have one.
+      expect(spansOf('` x`').single.text, ' x');
+      // And never when that would leave nothing.
+      expect(spansOf('`  `').single.text, '  ');
+    });
+
+    test('ordinary code spans are unaffected', () {
+      expect(spansOf('`code`').single.text, 'code');
+      expect(spansOf('`*not italic*`').single.type, InlineType.code);
+      expect(spansOf('`unclosed').single.type, InlineType.text);
+    });
+  });
+
   group('Code fences', () {
     final parser = MarkdownParser();
 
