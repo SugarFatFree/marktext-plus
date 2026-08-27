@@ -295,3 +295,25 @@ quadrantChart
   Campaign C: [0.57, 0.69] radius: 10, color: #ff0000
   Campaign D: [0.78, 0.34]
 ```
+
+```mermaid
+requirementDiagram
+  requirement test_req {
+    id: 1
+    text: the test text.
+    risk: high
+    verifymethod: test
+  }
+  functionalRequirement test_req2 {
+    id: 1.1
+    text: the second test text.
+    risk: low
+    verifymethod: inspection
+  }
+  element test_entity {
+    type: simulation
+    docref: reference
+  }
+  test_entity - satisfies -> test_req2
+  test_req - traces -> test_req2
+```

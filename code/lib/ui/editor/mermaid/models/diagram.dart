@@ -64,6 +64,9 @@ enum DiagramType {
   /// Quadrant chart diagram
   quadrantChart,
 
+  /// Requirement diagram
+  requirementDiagram,
+
   /// Unknown/unsupported type
   unknown,
 }

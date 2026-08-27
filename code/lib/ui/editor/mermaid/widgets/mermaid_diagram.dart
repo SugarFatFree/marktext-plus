@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../config/responsive_config.dart';
 import '../layout/class_diagram_layout.dart';
+import '../layout/requirement_diagram_layout.dart';
 import '../layout/er_diagram_layout.dart';
 import '../layout/mindmap_layout.dart';
 import '../layout/dagre_layout.dart';
@@ -17,6 +18,7 @@ import '../models/kanban.dart';
 import '../models/mindmap.dart';
 import '../models/pie_chart.dart';
 import '../models/quadrant_chart.dart';
+import '../models/requirement_diagram.dart';
 import '../models/radar.dart';
 import '../models/timeline.dart';
 import '../models/style.dart';
@@ -31,6 +33,7 @@ import '../painter/kanban_painter.dart';
 import '../painter/mindmap_painter.dart';
 import '../painter/pie_chart_painter.dart';
 import '../painter/quadrant_painter.dart';
+import '../painter/requirement_painter.dart';
 import '../painter/radar_painter.dart';
 import '../painter/sequence_painter.dart';
 import '../painter/timeline_painter.dart';
@@ -111,6 +114,7 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
   TimelineChartData? _timelineChartData;
   KanbanChartData? _kanbanChartData;
   QuadrantChartData? _quadrantChartData;
+  RequirementDiagramData? _requirementDiagramData;
   RadarChartData? _radarChartData;
   XYChartData? _xyChartData;
   ClassDiagramData? _classDiagramData;
@@ -264,6 +268,19 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
           _style,
           Size(widget.width ?? availableWidth, widget.height ?? 600),
         );
+      } else if (diagram.type == DiagramType.requirementDiagram &&
+          result.requirementDiagramData != null) {
+        // A requirement box is a header over a table of fields, so it needs
+        // measuring the same way a class box does.
+        final requirementLayout = RequirementDiagramLayout(
+          requirementData: result.requirementDiagramData!,
+          deviceConfig: _deviceConfig,
+        );
+        size = requirementLayout.computeLayout(
+          diagram,
+          _style,
+          Size(widget.width ?? availableWidth, widget.height ?? 600),
+        );
       } else if (diagram.type == DiagramType.classDiagram &&
           result.classDiagramData != null) {
         // Class boxes are three compartments tall, which the generic
@@ -291,6 +308,7 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
       _ganttChartData = result.ganttChartData;
       _timelineChartData = result.timelineChartData;
       _kanbanChartData = result.kanbanChartData;
+      _requirementDiagramData = result.requirementDiagramData;
       _quadrantChartData = result.quadrantChartData;
       _radarChartData = result.radarChartData;
       _xyChartData = result.xyChartData;
@@ -378,6 +396,16 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
           return KanbanPainter(
             kanbanData: _kanbanChartData!,
             style: _style,
+            deviceConfig: _deviceConfig,
+          );
+        }
+        return FlowchartPainter(diagram: diagram, style: _style);
+      case DiagramType.requirementDiagram:
+        if (_requirementDiagramData != null) {
+          return RequirementPainter(
+            diagram: diagram,
+            style: _style,
+            requirementData: _requirementDiagramData!,
             deviceConfig: _deviceConfig,
           );
         }
@@ -794,6 +822,7 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
   TimelineChartData? _timelineChartData;
   KanbanChartData? _kanbanChartData;
   QuadrantChartData? _quadrantChartData;
+  RequirementDiagramData? _requirementDiagramData;
   RadarChartData? _radarChartData;
   XYChartData? _xyChartData;
   ClassDiagramData? _classDiagramData;
@@ -931,6 +960,17 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
           _style,
           widget.viewportSize,
         );
+      } else if (diagram.type == DiagramType.requirementDiagram &&
+          result.requirementDiagramData != null) {
+        final requirementLayout = RequirementDiagramLayout(
+          requirementData: result.requirementDiagramData!,
+          deviceConfig: _deviceConfig,
+        );
+        size = requirementLayout.computeLayout(
+          diagram,
+          _style,
+          widget.viewportSize,
+        );
       } else if (diagram.type == DiagramType.classDiagram &&
           result.classDiagramData != null) {
         // Class boxes are three compartments tall, which the generic
@@ -959,6 +999,7 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
         _ganttChartData = result.ganttChartData;
         _timelineChartData = result.timelineChartData;
         _kanbanChartData = result.kanbanChartData;
+        _requirementDiagramData = result.requirementDiagramData;
         _quadrantChartData = result.quadrantChartData;
         _radarChartData = result.radarChartData;
         _xyChartData = result.xyChartData;
@@ -1041,6 +1082,16 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
           return KanbanPainter(
             kanbanData: _kanbanChartData!,
             style: _style,
+            deviceConfig: _deviceConfig,
+          );
+        }
+        return FlowchartPainter(diagram: diagram, style: _style);
+      case DiagramType.requirementDiagram:
+        if (_requirementDiagramData != null) {
+          return RequirementPainter(
+            diagram: diagram,
+            style: _style,
+            requirementData: _requirementDiagramData!,
             deviceConfig: _deviceConfig,
           );
         }

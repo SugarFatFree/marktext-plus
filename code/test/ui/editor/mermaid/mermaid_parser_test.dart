@@ -4,6 +4,7 @@ import 'package:marktext_plus/ui/editor/mermaid/models/diagram.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/edge.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/git_graph.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/mindmap.dart';
+import 'package:marktext_plus/ui/editor/mermaid/models/requirement_diagram.dart';
 import 'package:marktext_plus/ui/editor/mermaid/parser/mermaid_parser.dart';
 
 void main() {
@@ -467,6 +468,109 @@ erDiagram
 
     test('reports an empty diagram as empty', () {
       expect(parser.describeParseFailure('   \n\n'), contains('empty'));
+    });
+  });
+
+  group('Requirement diagrams', () {
+    test('parses requirements, elements and relationships', () {
+      final result = parser.parseWithData('''
+requirementDiagram
+  requirement test_req {
+    id: 1
+    text: the test text.
+    risk: high
+    verifymethod: test
+  }
+  functionalRequirement test_req2 {
+    id: 1.1
+    text: the second test text.
+    risk: low
+    verifymethod: inspection
+  }
+  element test_entity {
+    type: simulation
+    docref: reference
+  }
+  test_entity - satisfies -> test_req2
+  test_req - traces -> test_req2
+''');
+
+      expect(result, isNotNull);
+      expect(result!.diagram.type, DiagramType.requirementDiagram);
+
+      final data = result.requirementDiagramData!;
+      expect(data.requirements, hasLength(2));
+      expect(data.elements, hasLength(1));
+      expect(data.relations, hasLength(2));
+
+      final first = data.requirementByName('test_req')!;
+      expect(first.kind, RequirementKind.requirement);
+      expect(first.id, '1');
+      expect(first.text, 'the test text.');
+      expect(first.risk, RequirementRisk.high);
+      expect(first.verifyMethod, VerifyMethod.test);
+
+      expect(data.requirementByName('test_req2')!.kind.label,
+          'Functional Requirement');
+      expect(data.elementByName('test_entity')!.type, 'simulation');
+    });
+
+    test('a backwards relationship points from the right-hand name', () {
+      // `a <- derives - b` reads "b derives a".
+      final data = parser
+          .parseWithData('requirementDiagram\n'
+              '  requirement a {\n  }\n'
+              '  requirement b {\n  }\n'
+              '  a <- derives - b')!
+          .requirementDiagramData!;
+
+      expect(data.relations.single.source, 'b');
+      expect(data.relations.single.target, 'a');
+    });
+
+    test('a value may contain a colon', () {
+      final data = parser
+          .parseWithData(
+              'requirementDiagram\n  requirement a {\n    text: see: this\n  }')!
+          .requirementDiagramData!;
+
+      expect(data.requirementByName('a')!.text, 'see: this');
+    });
+
+    test('an unknown risk or relationship is dropped, not guessed', () {
+      final data = parser
+          .parseWithData('requirementDiagram\n'
+              '  requirement a {\n    risk: bogus\n  }\n'
+              '  a - bogus -> a')!
+          .requirementDiagramData!;
+
+      expect(data.requirementByName('a')!.risk, isNull);
+      expect(data.relations, isEmpty);
+    });
+
+    test('an edge to something never declared is not drawn', () {
+      final result = parser.parseWithData('requirementDiagram\n'
+          '  requirement a {\n  }\n'
+          '  a - traces -> ghost');
+
+      expect(result!.diagram.edges, isEmpty);
+    });
+
+    test('a block left unclosed still describes a box', () {
+      final data = parser
+          .parseWithData('requirementDiagram\n  requirement a {\n    id: 9')!
+          .requirementDiagramData!;
+
+      expect(data.requirements, hasLength(1));
+      expect(data.requirementByName('a')!.id, '9');
+    });
+
+    test('a header with nothing under it is not a diagram', () {
+      expect(parser.parseWithData('requirementDiagram'), isNull);
+    });
+
+    test('is offered as a supported type', () {
+      expect(MermaidParser.handlesLanguage('requirementDiagram'), isTrue);
     });
   });
 

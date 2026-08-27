@@ -8,6 +8,7 @@ import '../models/kanban.dart';
 import '../models/mindmap.dart';
 import '../models/pie_chart.dart';
 import '../models/quadrant_chart.dart';
+import '../models/requirement_diagram.dart';
 import '../models/radar.dart';
 import '../models/timeline.dart';
 import '../models/xy_chart.dart';
@@ -21,6 +22,7 @@ import 'kanban_parser.dart';
 import 'mindmap_parser.dart';
 import 'pie_chart_parser.dart';
 import 'quadrant_parser.dart';
+import 'requirement_parser.dart';
 import 'radar_parser.dart';
 import 'sequence_parser.dart';
 import 'state_diagram_parser.dart';
@@ -37,6 +39,7 @@ class MermaidParseResult {
     this.timelineChartData,
     this.kanbanChartData,
     this.quadrantChartData,
+    this.requirementDiagramData,
     this.radarChartData,
     this.xyChartData,
     this.classDiagramData,
@@ -63,6 +66,9 @@ class MermaidParseResult {
 
   /// Quadrant chart specific data (only set for quadrant charts)
   final QuadrantChartData? quadrantChartData;
+
+  /// Requirement diagram specific data (only set for requirement diagrams)
+  final RequirementDiagramData? requirementDiagramData;
 
   /// Radar chart specific data (only set for Radar charts)
   final RadarChartData? radarChartData;
@@ -165,6 +171,15 @@ class MermaidParser {
           return MermaidParseResult(
             diagram: result.$1,
             kanbanChartData: result.$2,
+          );
+        }
+        return null;
+      case DiagramType.requirementDiagram:
+        final result = const RequirementParser().parse(cleanedLines);
+        if (result != null) {
+          return MermaidParseResult(
+            diagram: result.$1,
+            requirementDiagramData: result.$2,
           );
         }
         return null;
@@ -287,6 +302,7 @@ class MermaidParser {
     'radar-beta',
     'xychart',
     'quadrantChart',
+    'requirementDiagram',
   ];
 
   /// Whether a fenced code block tagged [language] should be handed to the
@@ -358,6 +374,8 @@ class MermaidParser {
         return 'Kanban board';
       case DiagramType.quadrantChart:
         return 'quadrant chart';
+      case DiagramType.requirementDiagram:
+        return 'requirement diagram';
       case DiagramType.radar:
         return 'radar chart';
       case DiagramType.xyChart:
@@ -416,6 +434,11 @@ class MermaidParser {
     // Quadrant chart
     if (firstLine.startsWith('quadrantchart')) {
       return DiagramType.quadrantChart;
+    }
+
+    // Requirement diagram
+    if (firstLine.startsWith('requirementdiagram')) {
+      return DiagramType.requirementDiagram;
     }
 
     // Class diagram

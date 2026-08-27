@@ -13,13 +13,14 @@
 | FEAT-005 | 2026-08-27 | 记忆并恢复窗口几何与会话 | 中 | 简单 | 已实现 |
 | FEAT-006 | 2026-08-27 | GitHub Actions 持续集成与 Windows/Linux 构建产物 | 高 | 简单 | 已实现 |
 | FEAT-007 | 2026-08-27 | 大文件与大目录的性能基线 | 高 | 困难 | 已实现 |
-| FEAT-008 | 2026-08-27 | Mermaid 补齐 requirementDiagram / sankey / block / C4 | 中 | 困难 | 待实现 |
+| FEAT-008 | 2026-08-27 | Mermaid 补齐 requirementDiagram / sankey / block / C4 | 中 | 困难 | requirementDiagram 已完成，其余待补 |
 | FEAT-009 | 2026-08-27 | 图片存放策略可配置（旁边 / 统一文件夹 / 不复制） | 中 | 中等 | 已实现 |
 | FEAT-010 | 2026-08-27 | 预览模式内嵌 HTML 渲染（`enableHtml` 的「开」状态） | 低 | 困难 | 待实现 |
 | FEAT-011 | 2026-08-27 | 快捷键真正生效，且与设置页的自定义打通 | 高 | 中等 | 已实现 |
 | FEAT-012 | 2026-08-27 | 补齐文件菜单：关闭标签页、清空最近文件 | 中 | 简单 | 已实现 |
 | FEAT-013 | 2026-08-27 | 补齐视图菜单：命令面板、目录（TOC）入口 | 中 | 简单 | 已实现 |
 | FEAT-014 | 2026-08-27 | 补齐编辑菜单：查找下一个 / 上一个（F3 / Shift+F3） | 中 | 中等 | 已实现 |
+| FEAT-015 | 2026-08-27 | Mermaid 新增 requirementDiagram（需求图） | 中 | 困难 | 已实现 |
 
 ## 详细需求
 
@@ -225,3 +226,19 @@
 | 涉及文件 | `lib/providers/editor_provider.dart`、`lib/ui/widgets/find_replace_bar.dart`、`lib/ui/widgets/app_menu_bar.dart`、`lib/ui/screens/home_screen.dart`、`lib/ui/screens/settings_screen.dart`、`lib/services/keybinding_service.dart`、`test/services/keybinding_service_test.dart` |
 | 验收标准 | F3 / Shift+F3 在查找栏开着或关着时都能跳到下/上一个匹配；两项出现在编辑菜单并标出快捷键；在设置页可改绑 |
 | 自查发现 | 写成 `static const _functionKeys = {LogicalKeyboardKey.f1, ...}` 会**编译不过** —— `LogicalKeyboardKey` 重写了 `==`，没有 primitive equality，不能作为常量集合的元素。本地桩测试先于 CI 暴露了这一点，已改为 `static final` |
+
+---
+
+### FEAT-015 — Mermaid 新增 requirementDiagram（需求图）
+
+| 字段 | 内容 |
+|------|------|
+| 实现日期 | 2026-08-27 |
+| 优先级 | 中 |
+| 难易度 | 困难 |
+| 需求描述 | 支持 mermaid 的 `requirementDiagram`：把需求、实现要素以及两者之间的追溯关系画成带表格的方框图 |
+| 用户场景 | 写规格文档时把需求编号、风险等级、验证方式和它们之间的 satisfies / traces / derives 关系一并画出来 |
+| 实现方案 | 1. 模型：六种需求类型、三档风险、四种验证方式、七种关系，未知取值一律**返回 null 而不是猜**<br>2. 解析：块内字段**只按第一个冒号切分**，因为 `text:` 的内容里可以再有冒号；关系行**先于**字段行匹配，否则块打开时 `a - satisfies -> b` 会被误当成字段<br>3. 反向写法 `a <- derives - b` 读作「b derives a」，箭头从 b 出发 —— 解析时就换好方向，画笔不必再关心<br>4. 布局复用 Dagre，只替换节点测量（沿用类图的做法）：需求盒子是「标题 + 字段表」，单行标签量不出来<br>5. 画笔与布局共用同一份 `RequirementBoxMetrics.measure`，文字不可能溢出为它测量的那个盒子<br>6. 指向未声明节点的关系**不生成边**，避免画出悬空箭头 |
+| 涉及文件 | `models/requirement_diagram.dart`、`parser/requirement_parser.dart`、`layout/requirement_diagram_layout.dart`、`painter/requirement_painter.dart`（均为新增）、`models/diagram.dart`、`parser/mermaid_parser.dart`、`widgets/mermaid_diagram.dart`、`test/ui/editor/mermaid/mermaid_parser_test.dart`、`test/fixtures/showcase.md` |
+| 验收标准 | mermaid 官方文档示例能正确解析出需求、元素与关系；未知风险/关系词被丢弃而非猜测；块未闭合仍能收下已读到的字段；只有一行 `requirementDiagram` 时返回 null 以回退显示源码 |
+| 验证方式 | 本地对真实解析器跑了 **30 条断言**（含全部边界）；仓库内单测 8 条，另加入 `showcase.md` 端到端夹具（现共 22 个图表块） |
