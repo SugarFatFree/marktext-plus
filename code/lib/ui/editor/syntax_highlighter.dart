@@ -9,8 +9,24 @@ class MarkdownSyntaxHighlighter {
   static final List<_Pattern> _inlinePatterns = [
     _Pattern(RegExp(r'\*\*(.+?)\*\*'), _PatternType.bold),
     _Pattern(RegExp(r'`(.+?)`'), _PatternType.code),
-    _Pattern(RegExp(r'!\[([^\]]*)\]\(([^)]+)\)'), _PatternType.link),
-    _Pattern(RegExp(r'\[([^\]]+)\]\(([^)]+)\)'), _PatternType.link),
+    // Both halves allow one nested pair, the same shapes the parser uses, so
+    // the two agree on `[see [1] here](url)` and on a destination containing
+    // brackets such as `…/wiki/A_(b)`.
+    //
+    // It is also what keeps this linear. `[^\]]+` and `[^)\n]*` each gave the
+    // engine a run it had to hand back one character at a time from every
+    // starting position: a line of 60,000 `[` took 46 seconds, and one of
+    // `[a](` repeated took 11 — with the editor frozen throughout.
+    _Pattern(
+      RegExp(r'!\[((?:[^\[\]]|\[[^\[\]]*\])*)\]'
+          r'\(((?:[^()\s]|\([^()]*\))*)\)'),
+      _PatternType.link,
+    ),
+    _Pattern(
+      RegExp(r'\[((?:[^\[\]]|\[[^\[\]]*\])*)\]'
+          r'\(((?:[^()\s]|\([^()]*\))*)\)'),
+      _PatternType.link,
+    ),
     // Before the emphasis patterns: a comment may contain anything, and
     // letting `*` inside one match first would colour half of it as italic.
     _Pattern(RegExp(r'<!--.*?-->'), _PatternType.comment),
@@ -127,25 +143,36 @@ class MarkdownSyntaxHighlighter {
   ) {
     final out = <TextSpan>[];
     for (int i = 0; i < lineSpans.length; i++) {
-      final spans = lineSpans[i];
-      final isLastLine = i == lineSpans.length - 1;
-
-      if (isLastLine) {
-        out.addAll(spans);
-        continue;
+      if (i == lineSpans.length - 1) {
+        out.addAll(lineSpans[i]);
+      } else {
+        out.addAll(withNewline(lineSpans[i], colors));
       }
-
-      if (spans.isEmpty) {
-        out.add(TextSpan(text: '\n', style: TextStyle(color: colors.defaultColor)));
-        continue;
-      }
-
-      for (int j = 0; j < spans.length - 1; j++) {
-        out.add(spans[j]);
-      }
-      final last = spans.last;
-      out.add(TextSpan(text: '${last.text ?? ''}\n', style: last.style));
     }
+    return out;
+  }
+
+  /// One line's spans with its terminating newline attached.
+  ///
+  /// Deliberately independent of where the line sits, so the incremental
+  /// highlighter can cache this per line: rebuilding it for all 85,000 lines
+  /// of a large document cost 32 ms of every keystroke, most of it in
+  /// allocating a new string per line.
+  static List<TextSpan> withNewline(
+    List<TextSpan> spans,
+    HighlightColors colors,
+  ) {
+    if (spans.isEmpty) {
+      return [
+        TextSpan(text: '\n', style: TextStyle(color: colors.defaultColor)),
+      ];
+    }
+    final out = <TextSpan>[];
+    for (int j = 0; j < spans.length - 1; j++) {
+      out.add(spans[j]);
+    }
+    final last = spans.last;
+    out.add(TextSpan(text: '${last.text ?? ''}\n', style: last.style));
     return out;
   }
 
@@ -193,21 +220,41 @@ class MarkdownSyntaxHighlighter {
     final spans = <TextSpan>[];
     int pos = 0;
 
+    // The first match of each pattern at or after `pos`, remembered between
+    // rounds.
+    //
+    // `pos` only moves forward, so a remembered match that still starts at or
+    // after it is still that pattern's first: anything nearer would have been
+    // found in the earlier round too. Re-running every pattern from every
+    // position made a line with many markers quadratic — 60,000 asterisks took
+    // fourteen seconds, and the editor was frozen for all of it.
+    final upcoming = List<Match?>.filled(_inlinePatterns.length, null);
+    final spent = List<bool>.filled(_inlinePatterns.length, false);
+
     while (pos < text.length) {
       Match? earliest;
       _Pattern? matchedPattern;
 
-      for (final pattern in _inlinePatterns) {
-        // allMatches takes a start offset and is lazy, so this finds the first
-        // match at or after `pos` without copying the rest of the line. The
-        // previous code called substring(pos) up to three times per pattern
-        // per position, which made a long paragraph quadratic.
-        final iterator = pattern.regex.allMatches(text, pos).iterator;
-        if (!iterator.moveNext()) continue;
-        final match = iterator.current;
+      for (int k = 0; k < _inlinePatterns.length; k++) {
+        if (spent[k]) continue;
+        var match = upcoming[k];
+        if (match == null || match.start < pos) {
+          // allMatches takes a start offset and is lazy, so this finds the
+          // first match at or after `pos` without copying the rest of the line.
+          final iterator =
+              _inlinePatterns[k].regex.allMatches(text, pos).iterator;
+          if (!iterator.moveNext()) {
+            // No match anywhere ahead; never scan for this one again.
+            spent[k] = true;
+            upcoming[k] = null;
+            continue;
+          }
+          match = iterator.current;
+          upcoming[k] = match;
+        }
         if (earliest == null || match.start < earliest.start) {
           earliest = match;
-          matchedPattern = pattern;
+          matchedPattern = _inlinePatterns[k];
         }
       }
 
@@ -326,6 +373,13 @@ class IncrementalMarkdownHighlighter {
   /// match on both: typing the opening ``` of a fence leaves every line below
   /// textually unchanged while changing how all of them are drawn.
   List<bool> _lineFences = const [];
+
+  /// Each line's spans with its newline already attached.
+  ///
+  /// Cached alongside [_lineSpans] because attaching the newline allocates a
+  /// string per line, and doing that for every line of a large document was
+  /// the single most expensive part of a keystroke.
+  List<List<TextSpan>> _lineFlat = const [];
   HighlightColors? _colors;
   bool _suspended = false;
 
@@ -339,6 +393,7 @@ class IncrementalMarkdownHighlighter {
       _lines = const [];
       _lineSpans = const [];
       _lineFences = const [];
+      _lineFlat = const [];
       _colors = colors;
       return [TextSpan(text: text, style: TextStyle(color: colors.defaultColor))];
     }
@@ -350,6 +405,7 @@ class IncrementalMarkdownHighlighter {
       _lines = const [];
       _lineSpans = const [];
       _lineFences = const [];
+      _lineFlat = const [];
     }
 
     final next = text.split('\n');
@@ -374,25 +430,38 @@ class IncrementalMarkdownHighlighter {
     }
 
     final rebuilt = List<List<TextSpan>>.filled(next.length, const []);
+    final flat = List<List<TextSpan>>.filled(next.length, const []);
     for (int i = 0; i < head; i++) {
       rebuilt[i] = _lineSpans[i];
+      flat[i] = _lineFlat[i];
     }
     for (int i = 0; i < tail; i++) {
       rebuilt[next.length - 1 - i] = _lineSpans[_lines.length - 1 - i];
+      flat[next.length - 1 - i] = _lineFlat[_lines.length - 1 - i];
     }
     for (int i = head; i < next.length - tail; i++) {
-      rebuilt[i] = MarkdownSyntaxHighlighter.highlightLine(
+      final spans = MarkdownSyntaxHighlighter.highlightLine(
         next[i],
         colors,
         inCodeFence: fences[i],
       );
+      rebuilt[i] = spans;
+      flat[i] = MarkdownSyntaxHighlighter.withNewline(spans, colors);
     }
 
     _lines = next;
     _lineSpans = rebuilt;
     _lineFences = fences;
+    _lineFlat = flat;
 
-    return MarkdownSyntaxHighlighter.flatten(rebuilt, colors);
+    // The final line carries no newline, so it is the one place the cached
+    // form cannot be used.
+    final out = <TextSpan>[];
+    for (int i = 0; i < next.length - 1; i++) {
+      out.addAll(flat[i]);
+    }
+    if (next.isNotEmpty) out.addAll(rebuilt[next.length - 1]);
+    return out;
   }
 }
 

@@ -50,6 +50,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A settings write that cannot reach the disk no longer surfaces as an unhandled error far from anything the user did
 - A link in the preview that cannot be opened — a typo'd address, no handler registered for the scheme — says so instead of failing silently
 - Markdown inside a fenced code block is no longer coloured as markdown in the source editor: `**bold**`, `[a](b)`, `# comment` and `> arrow` in a snippet stay code
+- A very long single line — minified JSON, a CSV row, a pasted block — no longer freezes the source editor for tens of seconds; the worst case measured went from 45 seconds to 10 milliseconds
+- Typing in a large document is faster than before: a keystroke in a 1.4 MiB file costs 45 ms where it used to cost 57
 
 ## [v1.3.0] - 2026-08-27
 

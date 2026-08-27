@@ -334,6 +334,83 @@ void main() {
     });
   });
 
+  group('Long lines', () {
+    const headingColor = Colors.blue;
+    const boldColor = Colors.red;
+    const codeColor = Colors.green;
+    const linkColor = Colors.purple;
+    const defaultColor = Colors.black;
+
+    List<TextSpan> spansOf(String source) =>
+        MarkdownSyntaxHighlighter.highlight(
+          source,
+          headingColor: headingColor,
+          boldColor: boldColor,
+          codeColor: codeColor,
+          linkColor: linkColor,
+          defaultColor: defaultColor,
+        ).children!.cast<TextSpan>();
+
+    /// Every one of these used to take seconds — 46 of them for the first —
+    /// with the editor frozen for the whole time. They now run in tens of
+    /// milliseconds; the two-second bar is loose enough not to flake on a
+    /// loaded runner and still fails by two orders of magnitude if the
+    /// quadratic scan or the backtracking comes back.
+    void expectFast(String label, String line) {
+      final watch = Stopwatch()..start();
+      final spans = spansOf(line);
+      watch.stop();
+
+      expect(
+        spans.map((s) => s.text ?? '').join(),
+        line,
+        reason: '$label lost or duplicated text',
+      );
+      expect(
+        watch.elapsedMilliseconds,
+        lessThan(2000),
+        reason: '$label took ${watch.elapsedMilliseconds}ms',
+      );
+    }
+
+    test('a line of unmatched brackets does not hang the editor', () {
+      expectFast('open brackets', '[' * 20000);
+      expectFast('brackets then one close', '${'[' * 20000}]');
+    });
+
+    test('a line of unclosed link destinations does not hang the editor', () {
+      expectFast('open parens', '[a](' * 5000);
+      expectFast('unclosed link', '[a](b' * 5000);
+      expectFast('image flood', '![a](' * 5000);
+    });
+
+    test('a line of emphasis markers does not hang the editor', () {
+      expectFast('asterisks', '*' * 20000);
+      expectFast('alternating asterisks', '*a' * 10000);
+      expectFast('alternating backticks', '`a' * 10000);
+      expectFast('bold flood', '**b** ' * 5000);
+    });
+
+    test('ordinary long lines stay fast', () {
+      expectFast('prose', 'the quick brown fox ' * 2000);
+      expectFast('csv', List.generate(8000, (i) => 'c$i').join(','));
+    });
+
+    test('a link destination may contain a balanced pair of parentheses', () {
+      // The parser reads `…/wiki/A_(b)` as one destination, and the editor
+      // now agrees with it.
+      final spans = spansOf('[W](https://en.wikipedia.org/wiki/A_(b))');
+      final link = spans.firstWhere((s) => s.style?.color == linkColor);
+      expect(link.text, '[W](https://en.wikipedia.org/wiki/A_(b))');
+    });
+
+    test('link text may contain a bracketed run', () {
+      final spans = spansOf('[see [1] here](u)');
+      final link = spans.firstWhere((s) => s.style?.color == linkColor);
+      expect(link.text, '[see [1] here](u)');
+    });
+  });
+
   group('Fenced code blocks', () {
     const headingColor = Colors.blue;
     const boldColor = Colors.red;
@@ -514,6 +591,27 @@ void main() {
 
       // And closing it again puts the styling back.
       expectSameAsFull(highlighter.build(plain, colors), plain);
+    });
+
+    test('the last line has no newline however the document changes size', () {
+      // Each line's spans are cached with the newline already attached, since
+      // allocating one string per line was the most expensive part of a
+      // keystroke on a large document. The final line is the one place that
+      // form cannot be used, and it moves as the document grows and shrinks.
+      final highlighter = IncrementalMarkdownHighlighter();
+      const steps = [
+        '**a**\n**b**\n**c**',
+        '**a**\n**b**\n**c**\n',
+        '**a**\n**b**\n**c**\n**d**',
+        '**a**\n**b**',
+        '**a**',
+        '',
+        '# h',
+        '\n\n\n',
+      ];
+      for (final text in steps) {
+        expectSameAsFull(highlighter.build(text, colors), text);
+      }
     });
 
     test('gives up on documents past the size limit but keeps the text', () {
