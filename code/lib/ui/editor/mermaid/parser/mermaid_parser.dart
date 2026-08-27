@@ -1,3 +1,4 @@
+import '../models/class_diagram.dart';
 import '../models/diagram.dart';
 import '../models/gantt.dart';
 import '../models/kanban.dart';
@@ -5,6 +6,7 @@ import '../models/pie_chart.dart';
 import '../models/radar.dart';
 import '../models/timeline.dart';
 import '../models/xy_chart.dart';
+import 'class_diagram_parser.dart';
 import 'flowchart_parser.dart';
 import 'gantt_parser.dart';
 import 'kanban_parser.dart';
@@ -26,6 +28,7 @@ class MermaidParseResult {
     this.kanbanChartData,
     this.radarChartData,
     this.xyChartData,
+    this.classDiagramData,
   });
 
   /// The parsed diagram data
@@ -48,6 +51,9 @@ class MermaidParseResult {
 
   /// XY chart specific data (only set for XY charts)
   final XYChartData? xyChartData;
+
+  /// Class diagram specific data (only set for class diagrams)
+  final ClassDiagramData? classDiagramData;
 }
 
 /// Main parser for Mermaid diagrams
@@ -164,6 +170,13 @@ class MermaidParser {
         }
         return null;
       case DiagramType.classDiagram:
+        final result = ClassDiagramParser().parse(cleanedLines);
+        if (result != null) {
+          return MermaidParseResult(
+            diagram: result.$1,
+            classDiagramData: result.$2,
+          );
+        }
         return null;
       case DiagramType.stateDiagram:
         final result = StateDiagramParser().parse(cleanedLines);
@@ -178,9 +191,12 @@ class MermaidParser {
 
   /// Detects the diagram type from the first line
   DiagramType _detectDiagramType(String firstLine) {
-    // Flowchart patterns
-    if (firstLine.startsWith('graph ') ||
-        firstLine.startsWith('flowchart ')) {
+    // Flowchart patterns.
+    //
+    // The keyword may be followed by a space, a semicolon (`graph TD;`), or
+    // nothing at all, and mermaid also accepts the `-elk` renderer suffix, so
+    // this cannot be a prefix test against 'graph '.
+    if (RegExp(r'^(graph|flowchart)(-elk)?\b').hasMatch(firstLine)) {
       return DiagramType.flowchart;
     }
 

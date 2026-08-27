@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../config/responsive_config.dart';
+import '../layout/class_diagram_layout.dart';
 import '../layout/dagre_layout.dart';
 import '../layout/layout_engine.dart';
 import '../layout/sugiyama_layout.dart';
+import '../models/class_diagram.dart';
 import '../models/diagram.dart';
 import '../models/gantt.dart';
 import '../models/kanban.dart';
@@ -12,6 +14,7 @@ import '../models/radar.dart';
 import '../models/timeline.dart';
 import '../models/style.dart';
 import '../models/xy_chart.dart';
+import '../painter/class_diagram_painter.dart';
 import '../painter/flowchart_painter.dart';
 import '../painter/gantt_painter.dart';
 import '../painter/kanban_painter.dart';
@@ -97,6 +100,7 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
   KanbanChartData? _kanbanChartData;
   RadarChartData? _radarChartData;
   XYChartData? _xyChartData;
+  ClassDiagramData? _classDiagramData;
   Size _computedSize = Size.zero;
   String? _error;
   bool _isLoading = true;
@@ -196,6 +200,19 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
           _style,
           Size(widget.width ?? availableWidth, widget.height ?? 600),
         );
+      } else if (diagram.type == DiagramType.classDiagram &&
+          result.classDiagramData != null) {
+        // Class boxes are three compartments tall, which the generic
+        // single-label node measurement cannot describe.
+        final classLayout = ClassDiagramLayout(
+          classData: result.classDiagramData!,
+          deviceConfig: _deviceConfig,
+        );
+        size = classLayout.computeLayout(
+          diagram,
+          _style,
+          Size(widget.width ?? availableWidth, widget.height ?? 600),
+        );
       } else {
         final layoutEngine = _getLayoutEngine(diagram.type);
         size = layoutEngine.computeLayout(
@@ -212,6 +229,7 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
       _kanbanChartData = result.kanbanChartData;
       _radarChartData = result.radarChartData;
       _xyChartData = result.xyChartData;
+      _classDiagramData = result.classDiagramData;
       _computedSize = size;
       _error = null;
       _isLoading = false;
@@ -309,6 +327,16 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
           return XYChartPainter(
             xyData: _xyChartData!,
             style: _style,
+            deviceConfig: _deviceConfig,
+          );
+        }
+        return FlowchartPainter(diagram: diagram, style: _style);
+      case DiagramType.classDiagram:
+        if (_classDiagramData != null) {
+          return ClassDiagramPainter(
+            diagram: diagram,
+            style: _style,
+            classData: _classDiagramData!,
             deviceConfig: _deviceConfig,
           );
         }
@@ -642,6 +670,7 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
   KanbanChartData? _kanbanChartData;
   RadarChartData? _radarChartData;
   XYChartData? _xyChartData;
+  ClassDiagramData? _classDiagramData;
   Size _computedSize = Size.zero;
   String? _error;
   bool _isLoading = true;
@@ -725,6 +754,19 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
           _style,
           widget.viewportSize,
         );
+      } else if (diagram.type == DiagramType.classDiagram &&
+          result.classDiagramData != null) {
+        // Class boxes are three compartments tall, which the generic
+        // single-label node measurement cannot describe.
+        final classLayout = ClassDiagramLayout(
+          classData: result.classDiagramData!,
+          deviceConfig: _deviceConfig,
+        );
+        size = classLayout.computeLayout(
+          diagram,
+          _style,
+          widget.viewportSize,
+        );
       } else {
         final layoutEngine = _getLayoutEngine(diagram.type);
         size = layoutEngine.computeLayout(
@@ -742,6 +784,7 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
         _kanbanChartData = result.kanbanChartData;
         _radarChartData = result.radarChartData;
         _xyChartData = result.xyChartData;
+        _classDiagramData = result.classDiagramData;
         _computedSize = size;
         _error = null;
         _isLoading = false;
@@ -834,6 +877,16 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
           return XYChartPainter(
             xyData: _xyChartData!,
             style: _style,
+            deviceConfig: _deviceConfig,
+          );
+        }
+        return FlowchartPainter(diagram: diagram, style: _style);
+      case DiagramType.classDiagram:
+        if (_classDiagramData != null) {
+          return ClassDiagramPainter(
+            diagram: diagram,
+            style: _style,
+            classData: _classDiagramData!,
             deviceConfig: _deviceConfig,
           );
         }
