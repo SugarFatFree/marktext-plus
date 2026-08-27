@@ -36,7 +36,7 @@ class EditorTabBar extends ConsumerWidget {
     if (choice == null || choice == _UnsavedChoice.cancel) return;
 
     if (choice == _UnsavedChoice.save) {
-      final saved = await _saveTab(ref, tab);
+      final saved = await saveTab(ref, tab);
       // Abandoning the save location prompt means abandoning the close too.
       if (!saved) return;
     }
@@ -78,7 +78,7 @@ class EditorTabBar extends ConsumerWidget {
   /// Writes [tab] to disk, prompting for a location if it has never had one.
   ///
   /// Returns false when the user cancels that prompt or the write fails.
-  Future<bool> _saveTab(WidgetRef ref, TabInfo tab) async {
+  static Future<bool> saveTab(WidgetRef ref, TabInfo tab) async {
     var path = tab.filePath;
 
     if (path == null) {
@@ -243,11 +243,20 @@ class _TabItemState extends ConsumerState<_TabItem> with SingleTickerProviderSta
       case 'close':
         widget.onClose();
       case 'close_others':
-        ref.read(tabProvider.notifier).closeOtherTabs(tab.id);
+        await _closeMany(
+          ref.read(tabProvider).tabs.where((t) => t.id != tab.id).toList(),
+          () => ref.read(tabProvider.notifier).closeOtherTabs(tab.id),
+        );
       case 'close_right':
-        ref.read(tabProvider.notifier).closeTabsToRight(tab.id);
+        await _closeMany(
+          _tabsRightOf(ref, tab.id),
+          () => ref.read(tabProvider.notifier).closeTabsToRight(tab.id),
+        );
       case 'close_all':
-        ref.read(tabProvider.notifier).closeAllTabs();
+        await _closeMany(
+          ref.read(tabProvider).tabs.toList(),
+          () => ref.read(tabProvider.notifier).closeAllTabs(),
+        );
       case 'copy_name':
         await Clipboard.setData(ClipboardData(text: tab.fileName));
       case 'copy_path':
@@ -269,6 +278,74 @@ class _TabItemState extends ConsumerState<_TabItem> with SingleTickerProviderSta
   }
 
   @override
+  List<TabInfo> _tabsRightOf(WidgetRef ref, String id) {
+    final tabs = ref.read(tabProvider).tabs;
+    final index = tabs.indexWhere((t) => t.id == id);
+    return index < 0 ? const [] : tabs.sublist(index + 1);
+  }
+
+  /// Runs [close] after asking about any unsaved tabs among [closing].
+  ///
+  /// Closing several tabs at once used to discard all of them without asking,
+  /// which loses more than the single-tab case it mirrors.
+  Future<void> _closeMany(List<TabInfo> closing, void Function() close) async {
+    final unsaved = closing.where((t) => t.isModified).toList();
+    if (unsaved.isEmpty) {
+      close();
+      return;
+    }
+
+    final choice = await _askAboutUnsavedTabs(unsaved);
+    if (choice == null || choice == _UnsavedChoice.cancel) return;
+
+    if (choice == _UnsavedChoice.save) {
+      for (final tab in unsaved) {
+        final saved = await EditorTabBar.saveTab(ref, tab);
+        // Abandoning one save abandons the whole operation: closing the rest
+        // would still lose this tab's work.
+        if (!saved) return;
+      }
+    }
+
+    close();
+  }
+
+  Future<_UnsavedChoice?> _askAboutUnsavedTabs(List<TabInfo> unsaved) {
+    final l10n = AppLocalizations.of(context)!;
+    // Naming the files matters here: with several tabs the user cannot
+    // otherwise tell what they are about to discard.
+    const maxListed = 5;
+    final names = unsaved.take(maxListed).map((t) => t.fileName).join('\n');
+    final extra = unsaved.length > maxListed
+        ? '\n… ${unsaved.length - maxListed}'
+        : '';
+
+    return showDialog<_UnsavedChoice>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.unsavedChanges),
+        content: Text('$names$extra\n\n${l10n.unsavedChangesMessage}'),
+        actions: [
+          TextButton(
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(_UnsavedChoice.cancel),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(_UnsavedChoice.discard),
+            child: Text(l10n.dontSave),
+          ),
+          FilledButton(
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(_UnsavedChoice.save),
+            child: Text(l10n.save),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget build(BuildContext context) {
     return FadeTransition(
       opacity: _fadeAnimation,
