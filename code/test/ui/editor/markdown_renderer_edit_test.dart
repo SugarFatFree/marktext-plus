@@ -90,8 +90,11 @@ void main() {
       expect(find.byKey(const Key('mermaid-edit-source')), findsOneWidget);
     });
 
-    testWidgets('the button opens the block as markdown source',
+    testWidgets('the button opens the block as markdown source at once',
         (tester) async {
+      // A single pump after the tap, deliberately: the diagram used to sit
+      // inside the double-tap recogniser, which held the gesture arena for the
+      // double-tap timeout and left every toolbar button dead for ~300ms.
       await pumpRenderer(
         tester,
         markdown: diagram,

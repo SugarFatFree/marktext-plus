@@ -64,10 +64,6 @@ class TabNotifier extends StateNotifier<TabState> {
   final OpenDocumentWatcher _diskWatcher = OpenDocumentWatcher();
   StreamSubscription<String>? _diskSubscription;
 
-  /// Paths this notifier wrote itself, so its own save does not read back as
-  /// somebody else's change.
-  final Set<String> _selfWritten = {};
-
   TabNotifier(this._ref) : super(const TabState()) {
     _diskSubscription = _diskWatcher.changes.listen(_onDiskChange);
   }
@@ -95,9 +91,16 @@ class TabNotifier extends StateNotifier<TabState> {
   /// A document with unsaved edits is left exactly as it is: silently
   /// replacing what somebody is in the middle of writing would be the worse
   /// of the two failures by a wide margin.
+  /// The app's own writes are recognised by comparing content, not by
+  /// remembering which paths it wrote.
+  ///
+  /// A flag was wrong for a reason worth keeping: the watcher restarts its
+  /// debounce on every event, so a save followed within 300 ms by a formatter
+  /// rewriting the file arrives as *one* notification — and the flag ate it,
+  /// leaving the tab on the unformatted text and the next save overwriting
+  /// what the formatter did. Comparing content skips our own save just as
+  /// effectively (the bytes match) while still noticing that case.
   Future<void> _onDiskChange(String path) async {
-    if (_selfWritten.remove(path)) return;
-
     final tab = state.tabs
         .where((t) => t.filePath == path && !t.isModified && !t.isLoading)
         .firstOrNull;
@@ -311,7 +314,6 @@ class TabNotifier extends StateNotifier<TabState> {
     final tab = state.tabs.where((t) => t.id == tabId).firstOrNull;
     if (tab == null || tab.filePath == null || !tab.isModified) return;
     try {
-      _selfWritten.add(tab.filePath!);
       await FileService.saveDocument(
         tab.filePath!,
         tab.content,

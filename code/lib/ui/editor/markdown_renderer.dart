@@ -444,6 +444,15 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       return child;
     }
 
+    // A diagram is the same story: its toolbar has four buttons, and every one
+    // of them sat dead for the double-tap timeout while the recogniser waited
+    // to see whether a second tap was coming. It carries its own "edit source"
+    // button, so it needs the gesture even less than a task list does.
+    if (node is md.CodeBlockNode &&
+        MermaidParser.handlesLanguage(node.language)) {
+      return child;
+    }
+
     return GestureDetector(
       behavior: HitTestBehavior.deferToChild,
       onDoubleTap: () => _startEditing(node),
