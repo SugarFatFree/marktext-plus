@@ -2,6 +2,7 @@ import '../models/class_diagram.dart';
 import '../models/diagram.dart';
 import '../models/er_diagram.dart';
 import '../models/gantt.dart';
+import '../models/journey.dart';
 import '../models/kanban.dart';
 import '../models/pie_chart.dart';
 import '../models/radar.dart';
@@ -11,6 +12,7 @@ import 'class_diagram_parser.dart';
 import 'er_diagram_parser.dart';
 import 'flowchart_parser.dart';
 import 'gantt_parser.dart';
+import 'journey_parser.dart';
 import 'kanban_parser.dart';
 import 'pie_chart_parser.dart';
 import 'radar_parser.dart';
@@ -32,6 +34,7 @@ class MermaidParseResult {
     this.xyChartData,
     this.classDiagramData,
     this.erDiagramData,
+    this.journeyData,
   });
 
   /// The parsed diagram data
@@ -60,6 +63,9 @@ class MermaidParseResult {
 
   /// ER diagram specific data (only set for ER diagrams)
   final ErDiagramData? erDiagramData;
+
+  /// Journey specific data (only set for user journey diagrams)
+  final JourneyData? journeyData;
 }
 
 /// Main parser for Mermaid diagrams
@@ -171,6 +177,15 @@ class MermaidParser {
           );
         }
         return null;
+      case DiagramType.journey:
+        final result = const JourneyParser().parse(cleanedLines);
+        if (result != null) {
+          return MermaidParseResult(
+            diagram: result.$1,
+            journeyData: result.$2,
+          );
+        }
+        return null;
       case DiagramType.erDiagram:
         final result = ErDiagramParser().parse(cleanedLines);
         if (result != null) {
@@ -215,6 +230,7 @@ class MermaidParser {
     'classDiagram',
     'stateDiagram',
     'erDiagram',
+    'journey',
     'pie',
     'gantt',
     'timeline',
@@ -256,6 +272,8 @@ class MermaidParser {
         return 'state diagram';
       case DiagramType.erDiagram:
         return 'ER diagram';
+      case DiagramType.journey:
+        return 'user journey';
       case DiagramType.pieChart:
         return 'pie chart';
       case DiagramType.ganttChart:
@@ -327,6 +345,11 @@ class MermaidParser {
     // Entity-relationship diagram
     if (firstLine.startsWith('erdiagram')) {
       return DiagramType.erDiagram;
+    }
+
+    // User journey
+    if (firstLine.startsWith('journey')) {
+      return DiagramType.journey;
     }
 
     // State diagram

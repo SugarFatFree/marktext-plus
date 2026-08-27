@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import '../config/responsive_config.dart';
+import '../models/journey.dart';
 import '../models/diagram.dart';
 import '../models/kanban.dart';
 import '../models/node.dart';
@@ -322,3 +323,54 @@ class XYChartLayout {
   }
 }
 
+
+/// Layout engine for user journey diagrams.
+///
+/// A journey is a satisfaction line: tasks run left to right on a fixed
+/// column pitch, and the score puts each marker on one of five rows.
+class JourneyChartLayout {
+  /// Creates a journey layout engine.
+  const JourneyChartLayout({this.deviceConfig});
+
+  /// Responsive device configuration.
+  final MermaidDeviceConfig? deviceConfig;
+
+  /// Width of one task column.
+  static const double taskWidth = 110.0;
+
+  /// Height of the plotted score band.
+  static const double chartHeight = 190.0;
+
+  /// Height of the section header strip.
+  static const double sectionBarHeight = 34.0;
+
+  /// Height reserved under the chart for task labels.
+  static const double labelHeight = 54.0;
+
+  /// Height reserved for the actor legend; zero when nobody is named.
+  static const double legendHeight = 30.0;
+
+  /// Computes the layout size for a journey diagram.
+  Size computeLayout(
+    JourneyData journeyData,
+    MermaidStyle style,
+    Size availableSize,
+  ) {
+    final taskCount = journeyData.allTasks.length;
+    if (taskCount == 0) return Size.zero;
+
+    final padding = style.padding;
+    final titleHeight = journeyData.title != null ? 44.0 : 12.0;
+    final legend = journeyData.actors.isEmpty ? 0.0 : legendHeight;
+
+    final width = padding * 2 + taskCount * taskWidth;
+    final height = padding * 2 +
+        titleHeight +
+        sectionBarHeight +
+        chartHeight +
+        labelHeight +
+        legend;
+
+    return Size(width, height);
+  }
+}

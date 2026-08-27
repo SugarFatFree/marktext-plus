@@ -56,6 +56,72 @@ void main() {
     });
   });
 
+  group('User journey', () {
+    test('parses sections, scores and actors', () {
+      final result = parser.parseWithData("""
+journey
+  title My working day
+  section Go to work
+    Make tea: 5: Me
+    Go upstairs: 3: Me
+    Do work: 1: Me, Cat
+  section Go home
+    Go downstairs: 5: Me
+""");
+
+      expect(result, isNotNull);
+      expect(result!.diagram.type, DiagramType.journey);
+
+      final data = result.journeyData!;
+      expect(data.title, 'My working day');
+      expect(data.sections.length, 2);
+      expect(data.sections[0].name, 'Go to work');
+      expect(data.sections[0].tasks.length, 3);
+      expect(data.sections[1].tasks.single.name, 'Go downstairs');
+
+      final work = data.sections[0].tasks[2];
+      expect(work.score, 1);
+      expect(work.actors, ['Me', 'Cat']);
+    });
+
+    test('accepts a task with no actors', () {
+      final result = parser.parseWithData("""
+journey
+  section Solo
+    Think: 4
+""");
+
+      final task = result!.journeyData!.sections.single.tasks.single;
+      expect(task.score, 4);
+      expect(task.actors, isEmpty);
+    });
+
+    test('collects distinct actors in first-appearance order', () {
+      final result = parser.parseWithData("""
+journey
+  section S
+    A: 3: Bob, Alice
+    B: 4: Alice
+    C: 5: Carol, Bob
+""");
+
+      expect(result!.journeyData!.actors, ['Bob', 'Alice', 'Carol']);
+    });
+
+    test('clamps an out-of-range score into 1..5', () {
+      final result = parser.parseWithData("""
+journey
+  section S
+    Way too good: 9
+    Way too bad: 0
+""");
+
+      final tasks = result!.journeyData!.sections.single.tasks;
+      expect(tasks[0].clampedScore, 5);
+      expect(tasks[1].clampedScore, 1);
+    });
+  });
+
   group('ER diagrams', () {
     test('parses entities, attributes and keys', () {
       final result = parser.parseWithData("""

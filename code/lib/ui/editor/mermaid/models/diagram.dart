@@ -34,6 +34,9 @@ enum DiagramType {
   /// Entity-relationship diagram
   erDiagram,
 
+  /// User journey diagram
+  journey,
+
   /// Pie chart diagram
   pieChart,
 

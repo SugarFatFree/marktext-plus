@@ -10,6 +10,7 @@ import '../models/class_diagram.dart';
 import '../models/er_diagram.dart';
 import '../models/diagram.dart';
 import '../models/gantt.dart';
+import '../models/journey.dart';
 import '../models/kanban.dart';
 import '../models/pie_chart.dart';
 import '../models/radar.dart';
@@ -20,6 +21,7 @@ import '../painter/class_diagram_painter.dart';
 import '../painter/er_diagram_painter.dart';
 import '../painter/flowchart_painter.dart';
 import '../painter/gantt_painter.dart';
+import '../painter/journey_painter.dart';
 import '../painter/kanban_painter.dart';
 import '../painter/pie_chart_painter.dart';
 import '../painter/radar_painter.dart';
@@ -105,6 +107,7 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
   XYChartData? _xyChartData;
   ClassDiagramData? _classDiagramData;
   ErDiagramData? _erDiagramData;
+  JourneyData? _journeyData;
   Size _computedSize = Size.zero;
   String? _error;
   bool _isLoading = true;
@@ -204,6 +207,16 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
           _style,
           Size(widget.width ?? availableWidth, widget.height ?? 600),
         );
+      } else if (diagram.type == DiagramType.journey &&
+          result.journeyData != null) {
+        final journeyLayout = JourneyChartLayout(
+          deviceConfig: _deviceConfig,
+        );
+        size = journeyLayout.computeLayout(
+          result.journeyData!,
+          _style,
+          Size(widget.width ?? availableWidth, widget.height ?? 600),
+        );
       } else if (diagram.type == DiagramType.erDiagram &&
           result.erDiagramData != null) {
         // Entity boxes carry a table of attributes, which the generic
@@ -248,6 +261,7 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
       _xyChartData = result.xyChartData;
       _classDiagramData = result.classDiagramData;
       _erDiagramData = result.erDiagramData;
+      _journeyData = result.journeyData;
       _computedSize = size;
       _error = null;
       _isLoading = false;
@@ -344,6 +358,15 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
         if (_xyChartData != null) {
           return XYChartPainter(
             xyData: _xyChartData!,
+            style: _style,
+            deviceConfig: _deviceConfig,
+          );
+        }
+        return FlowchartPainter(diagram: diagram, style: _style);
+      case DiagramType.journey:
+        if (_journeyData != null) {
+          return JourneyPainter(
+            journeyData: _journeyData!,
             style: _style,
             deviceConfig: _deviceConfig,
           );
@@ -710,6 +733,7 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
   XYChartData? _xyChartData;
   ClassDiagramData? _classDiagramData;
   ErDiagramData? _erDiagramData;
+  JourneyData? _journeyData;
   Size _computedSize = Size.zero;
   String? _error;
   bool _isLoading = true;
@@ -793,6 +817,16 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
           _style,
           widget.viewportSize,
         );
+      } else if (diagram.type == DiagramType.journey &&
+          result.journeyData != null) {
+        final journeyLayout = JourneyChartLayout(
+          deviceConfig: _deviceConfig,
+        );
+        size = journeyLayout.computeLayout(
+          result.journeyData!,
+          _style,
+          widget.viewportSize,
+        );
       } else if (diagram.type == DiagramType.erDiagram &&
           result.erDiagramData != null) {
         // Entity boxes carry a table of attributes, which the generic
@@ -838,6 +872,7 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
         _xyChartData = result.xyChartData;
         _classDiagramData = result.classDiagramData;
         _erDiagramData = result.erDiagramData;
+        _journeyData = result.journeyData;
         _computedSize = size;
         _error = null;
         _isLoading = false;
@@ -929,6 +964,15 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
         if (_xyChartData != null) {
           return XYChartPainter(
             xyData: _xyChartData!,
+            style: _style,
+            deviceConfig: _deviceConfig,
+          );
+        }
+        return FlowchartPainter(diagram: diagram, style: _style);
+      case DiagramType.journey:
+        if (_journeyData != null) {
+          return JourneyPainter(
+            journeyData: _journeyData!,
             style: _style,
             deviceConfig: _deviceConfig,
           );
