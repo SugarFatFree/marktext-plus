@@ -199,31 +199,42 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
       _isInitialized = true;
 
       // Listen for TOC scroll-to-line requests
-      ref.listenManual(editorProvider.select((s) => s.targetScrollLine), (prev, next) {
-        if (next != null && _editorScrollController.hasClients) {
-          final config = ref.read(settingsProvider);
-          final lineHeight = config.fontSize * config.lineHeight;
-          final targetOffset = ((next - 1) * lineHeight).clamp(
-            0.0,
-            _editorScrollController.position.maxScrollExtent,
-          );
+      ref.listenManual(
+        editorProvider.select((s) => s.targetScrollLine),
+        (prev, next) => _scrollToTargetLine(next),
+      );
 
-          final currentOffset = _editorScrollController.offset;
-          final viewportHeight = _editorScrollController.position.viewportDimension;
-          final distance = (targetOffset - currentOffset).abs();
-          final duration = distance > viewportHeight * 2
-              ? const Duration(milliseconds: 400)
-              : const Duration(milliseconds: 200);
-
-          _editorScrollController.animateTo(
-            targetOffset,
-            duration: duration,
-            curve: Curves.easeOut,
-          );
-          ref.read(editorProvider.notifier).clearScrollTarget();
-        }
-      });
+      // A search hit opens the file and asks for its line in one breath, so
+      // the request lands before this editor exists and the listener above
+      // never sees it change. Honour whatever is already pending.
+      _scrollToTargetLine(ref.read(editorProvider).targetScrollLine);
     });
+  }
+
+  /// Scrolls so that [line] — 1-based — is at the top of the viewport.
+  void _scrollToTargetLine(int? line) {
+    if (line == null || !_editorScrollController.hasClients) return;
+
+    final config = ref.read(settingsProvider);
+    final lineHeight = config.fontSize * config.lineHeight;
+    final targetOffset = ((line - 1) * lineHeight).clamp(
+      0.0,
+      _editorScrollController.position.maxScrollExtent,
+    );
+
+    final currentOffset = _editorScrollController.offset;
+    final viewportHeight = _editorScrollController.position.viewportDimension;
+    final distance = (targetOffset - currentOffset).abs();
+    final duration = distance > viewportHeight * 2
+        ? const Duration(milliseconds: 400)
+        : const Duration(milliseconds: 200);
+
+    _editorScrollController.animateTo(
+      targetOffset,
+      duration: duration,
+      curve: Curves.easeOut,
+    );
+    ref.read(editorProvider.notifier).clearScrollTarget();
   }
 
   @override

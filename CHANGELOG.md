@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Sequence diagrams honour `box … end` participant groupings and `autonumber`
 
+### Fixed
+- Clicking a folder-search result now scrolls to the line that matched, instead of opening the file at the top
+
 ## [v1.3.0] - 2026-08-27
 
 ### Added

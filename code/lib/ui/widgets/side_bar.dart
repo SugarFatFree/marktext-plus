@@ -512,7 +512,12 @@ class _SideBarState extends ConsumerState<SideBar> {
     }
   }
 
-  void _openFileInTab(String filePath) async {
+  /// Opens [filePath] in a tab, optionally scrolling to [line].
+  ///
+  /// [line] is 1-based. A search result knows which line it matched, and
+  /// dropping that on the way to the editor left the reader at the top of the
+  /// file with no idea where the hit was.
+  void _openFileInTab(String filePath, {int? line}) async {
     final tabNotifier = ref.read(tabProvider.notifier);
     final currentTabs = ref.read(tabProvider);
 
@@ -522,6 +527,7 @@ class _SideBarState extends ConsumerState<SideBar> {
     ).firstOrNull;
     if (existing != null) {
       tabNotifier.setActiveTab(existing.id);
+      if (line != null) ref.read(editorProvider.notifier).scrollToLine(line);
       return;
     }
 
@@ -546,6 +552,9 @@ class _SideBarState extends ConsumerState<SideBar> {
       if (!mounted) return;
       tabNotifier.loadTabContent(tabId, opened.content,
           lineEnding: opened.lineEnding);
+      // Requested before the new editor exists; it reads the pending target
+      // when it initialises.
+      if (line != null) ref.read(editorProvider.notifier).scrollToLine(line);
     } catch (_) {
       // Read failed – remove the loading tab
       if (!mounted) return;
@@ -657,7 +666,10 @@ class _SideBarState extends ConsumerState<SideBar> {
                   itemBuilder: (context, index) {
                     final result = _searchResults[index];
                     return InkWell(
-                      onTap: () => _openFileInTab(result.filePath),
+                      onTap: () => _openFileInTab(
+                        result.filePath,
+                        line: result.lineNumber,
+                      ),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         child: Column(

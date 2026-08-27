@@ -3,6 +3,7 @@
 | 编号 | 日期 | 标题 | 优先级 | 状态 |
 |------|------|------|--------|------|
 | BUG-001 | 2026-08-28 | 时序图的 `box` 分组与 `autonumber` 被丢弃，且 `box` 的 `end` 会错关控制框 | P1 | 已修复 |
+| BUG-002 | 2026-08-28 | 点击文件夹搜索结果只打开文件，不跳到命中行 | P1 | 已修复 |
 
 ## 详细记录
 
@@ -21,5 +22,23 @@
 | 关键字边界 | 与 BUG-086 同一条规矩：关键字后面必须是空白或行尾，所以 `boxes->>B` 和 `autonumbers->>B` 仍是普通消息 |
 | 涉及文件 | `lib/ui/editor/mermaid/models/sequence.dart`、`parser/sequence_parser.dart`、`painter/sequence_painter.dart`、`test/ui/editor/mermaid/mermaid_parser_test.dart` |
 | 验证方式 | 命名颜色 / rgb / 无颜色 / 无标签 / 盒与框共用 end / 盒缺 end / `boxes` 前缀 七种情况本地跑通；autonumber 六种情况跑通；画布用桩类型完整编译并跑通含分组（含成员缺席的分组）的绘制 |
+
+---
+
+### BUG-002 点击文件夹搜索结果只打开文件，不跳到命中行
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-28 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+| 现象 | 侧边栏搜索出一堆结果，点进去只是把文件打开在**第一行**。文件几百行时，等于让用户自己再找一遍 |
+| 根因分析 | 两半都已经有了，中间断了一节：`_SearchResult` 记着 `lineNumber`，编辑器也早有 `scrollToLine`（目录面板就在用），可是 `onTap` 调的是 `_openFileInTab(result.filePath)` —— 行号在这一步被丢掉 |
+| 隐藏的第二个问题 | 光把行号传下去还不够。新开标签页时，`scrollToLine` 发生在**这个文件的编辑器还没建出来**之前，而编辑器用的是 `listenManual`，只在值**变化**时触发 —— 它错过了这次请求，滚动依然不会发生 |
+| 修复方案 | 编辑器初始化（post-frame）注册监听之后，**再主动读一次当前挂起的目标**并认领。滚动逻辑抽成 `_scrollToTargetLine`，监听回调和初始认领共用一份 |
+| 已开标签页的情况 | 走 `setActiveTab` 后直接 `scrollToLine`，编辑器已存在，监听正常触发 |
+| 预览模式的限制 | 预览只对**标题行**建了 key，命中普通正文行时预览不会滚动（源码模式正常）。属已知限制，未在本次处理 |
+| 涉及文件 | `lib/ui/widgets/side_bar.dart`、`lib/ui/editor/source_editor.dart`、`test/ui/editor/source_editor_scroll_test.dart`（新增） |
+| 验证方式 | 新增三个 widget 测试：目标在编辑器建出来之前就挂起、目标在之后才发出、完全没有目标。判据是「目标被清空」—— 清空只在处理函数内部发生，所以它就是「确实执行了滚动」的证据 |
 
 ---
