@@ -530,6 +530,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             builder: () => MarkdownRenderer(
               key: ValueKey('preview_inner_${activeTab.id}'),
               markdown: content,
+              onSourceChanged: onContentChanged,
             ),
           ),
           // EditMode.split (index 2)

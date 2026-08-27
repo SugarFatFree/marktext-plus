@@ -8,7 +8,7 @@
 | 编号 | 日期 | 标题 | 优先级 | 状态 |
 |------|------|------|--------|------|
 | BUG-001 | 2026-08-27 | 系统级文件关联缺失：deb 无 postinst、两种包均未装 MIME 定义 | P0 | Linux 已修复 / mac 待修复 |
-| BUG-002 | 2026-08-27 | 预览模式为只读 Widget 树，无法所见即所得编辑 | P0 | 待修复 |
+| BUG-002 | 2026-08-27 | 预览模式为只读 Widget 树，无法所见即所得编辑 | P0 | 阶段一已完成 |
 | BUG-003 | 2026-08-27 | Mermaid `classDiagram` 检测到类型后直接返回 null，无渲染 | P0 | 已修复 |
 | BUG-004 | 2026-08-27 | Mermaid 缺失 erDiagram / journey / gitGraph / mindmap / quadrantChart 等类型 | P1 | 待修复 |
 | BUG-005 | 2026-08-27 | Mermaid `_cleanLines` 粗暴剥离 `%%`，破坏 `%%{init:...}%%` 指令与标签内文本 | P1 | 待修复 |
@@ -19,6 +19,8 @@
 | BUG-010 | 2026-08-27 | 启动时弹出「如何打开文件？」模态框，反复出现 | P0 | 已修复 |
 | BUG-011 | 2026-08-27 | `flutter analyze` 在干净树上报 17 个 info，CI 无法作为门禁 | P1 | 已修复 |
 | BUG-012 | 2026-08-27 | 预览模式任务列表复选框不可点击（`onTaskToggle` 从未接线） | P2 | 待修复 |
+| BUG-013 | 2026-08-27 | `AppConstants.appVersion` 与 pubspec 版本号不一致，更新检查误报 | P1 | 已修复 |
+| BUG-014 | 2026-08-27 | `widget_test` 对整个 App 调 `pumpAndSettle()`，CI 挂起 20 分钟以上 | P1 | 已修复 |
 
 ---
 
@@ -187,3 +189,31 @@
 | 根因分析 | `MarkdownRenderer` 已经预留了 `onTaskToggle` 回调，`markdown_renderer.dart:465` 也写了 `onChanged: widget.onTaskToggle != null ? ... : null`。但 `home_screen.dart:530` 构造预览模式的 `MarkdownRenderer` 时**根本没有传这个回调**，于是 `onChanged` 恒为 null，Flutter 把 Checkbox 渲染为禁用态。回调签名里的 `lineIndex` 命名也有误导 —— 传入的实际是列表项在 `ListNode.items` 中的下标，不是源码行号 |
 | 修复方案 | 随 BUG-002 一并处理：`MarkdownRenderer` 改为接收统一的 `onSourceChanged(String)` 回调，任务勾选走 `MarkdownParser.replaceBlock` 重写该 `ListNode` 的源码行，不再需要单独的 `onTaskToggle` |
 | 涉及文件 | `lib/ui/editor/markdown_renderer.dart`、`lib/ui/screens/home_screen.dart` |
+
+---
+
+## BUG-013 版本号不一致导致更新检查误报
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+| 现象 | 已经在用 v1.2.3 的用户，启动后仍被提示「有新版本 1.2.3 可用」 |
+| 根因分析 | `code/lib/core/constants.dart` 的 `AppConstants.appVersion` 停留在 `'1.2.2'`，而 `code/pubspec.yaml` 已是 `1.2.3+1`。`home_screen.dart:86` 用 `AppConstants.appVersion` 去和 GitHub Releases 的最新 tag 比对，于是把用户当前已装的版本判定为「更新」。两处版本号没有单一事实来源，发布流程只改了 pubspec |
+| 修复方案 | 本次统一升至 `1.3.0`。**后续每次发版必须同时改这两处** —— 更彻底的做法是让 `appVersion` 从 `PackageInfo` 读取而不是硬编码，已列入待办 |
+| 涉及文件 | `code/lib/core/constants.dart`、`code/pubspec.yaml` |
+
+---
+
+## BUG-014 widget_test 挂起 CI
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+| 现象 | CI 的 `flutter test` 步骤持续 20 分钟以上不结束 |
+| 根因分析 | `test/widget_test.dart` 对整个 `MarkTextPlusApp` 调用 `pumpAndSettle()`。HomeScreen 会渲染**不确定型**的 `CircularProgressIndicator`（`home_screen.dart:472` 与 `:613`），其动画永不停止，`pumpAndSettle` 于是一直 pump 到自身超时，而不是快速失败。此外该测试把 `ConfigService` 指向固定路径 `/tmp/marktext-test`，启动时的更新检查会往里写 `lastUpdateCheck`，造成跨次运行的状态泄漏 |
+| 修复方案 | 改用单次 `pump()`（断言只需要首帧即可成立）；配置目录改为每次运行独立的临时目录并注册 tear-down |
+| 涉及文件 | `code/test/widget_test.dart` |

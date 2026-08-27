@@ -25,10 +25,16 @@ class MarkdownRenderer extends ConsumerStatefulWidget {
   final String markdown;
   final void Function(int lineIndex, bool checked)? onTaskToggle;
 
+  /// Called with the whole updated document when a block is edited in place.
+  ///
+  /// Leaving this null keeps the preview read-only.
+  final ValueChanged<String>? onSourceChanged;
+
   const MarkdownRenderer({
     super.key,
     required this.markdown,
     this.onTaskToggle,
+    this.onSourceChanged,
   });
 
   @override
@@ -47,6 +53,11 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   String? _cachedMarkdown;
   List<md.MarkdownNode>? _cachedNodes;
   List<int>? _cachedHeadingLines;
+
+  // In-place block editing state. Null means nothing is being edited.
+  md.MarkdownNode? _editingNode;
+  final _editController = TextEditingController();
+  late final FocusNode _editFocusNode;
 
   // Progressive rendering state
   int _renderedNodeCount = 0;
@@ -72,6 +83,20 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   @override
   void initState() {
     super.initState();
+    _editFocusNode = FocusNode(
+      onKeyEvent: (node, event) {
+        if (event is KeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.escape) {
+          _cancelEdit();
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+    );
+    // Clicking away commits, matching how the source editor behaves.
+    _editFocusNode.addListener(() {
+      if (!_editFocusNode.hasFocus) _commitEdit();
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.listenManual(
         editorProvider.select((s) => s.targetScrollLine),
@@ -97,6 +122,8 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     for (final recognizer in _recognizers) {
       recognizer.dispose();
     }
+    _editController.dispose();
+    _editFocusNode.dispose();
     super.dispose();
   }
 
@@ -147,6 +174,9 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       _cachedNodes = parser.parse(widget.markdown);
       _cachedHeadingLines = _findHeadingLines(widget.markdown);
       _renderedNodeCount = 0; // Reset progressive rendering on content change
+      // The node being edited belonged to the previous parse and its line
+      // range no longer describes this document.
+      _editingNode = null;
     }
     final nodes = _cachedNodes!;
     final headingLines = _cachedHeadingLines!;
@@ -180,27 +210,30 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
           if (lineNum > 0) {
             _headingKeys.putIfAbsent(lineNum, () => key);
           }
-          widgets.add(_buildHeading(node, theme, tokens, key: key));
+          widgets.add(_wrapEditable(node, _buildHeading(node, theme, tokens, key: key)));
         case md.ParagraphNode():
-          widgets.add(_buildParagraph(node, theme));
+          widgets.add(_wrapEditable(node, _buildParagraph(node, theme)));
         case md.CodeBlockNode():
-          widgets.add(_buildCodeBlock(node, theme, tokens));
+          widgets.add(_wrapEditable(node, _buildCodeBlock(node, theme, tokens)));
         case md.ListNode():
-          widgets.add(_buildList(node, theme));
+          widgets.add(_wrapEditable(node, _buildList(node, theme)));
         case md.BlockquoteNode():
-          widgets.add(_buildBlockquote(node, theme, tokens));
+          widgets.add(_wrapEditable(node, _buildBlockquote(node, theme, tokens)));
         case md.HorizontalRuleNode():
-          widgets.add(Divider(thickness: 1, color: tokens.colorBorder));
+          widgets.add(_wrapEditable(
+            node,
+            Divider(thickness: 1, color: tokens.colorBorder),
+          ));
         case md.TableNode():
-          widgets.add(_buildTable(node, theme));
+          widgets.add(_wrapEditable(node, _buildTable(node, theme)));
         case md.MathBlockNode():
-          widgets.add(_buildMathBlock(node, theme));
+          widgets.add(_wrapEditable(node, _buildMathBlock(node, theme)));
         case md.FrontMatterNode():
-          widgets.add(_buildFrontMatter(node, theme));
+          widgets.add(_wrapEditable(node, _buildFrontMatter(node, theme)));
         case md.FootnoteDefinitionNode():
-          widgets.add(_buildFootnoteDefinition(node, theme));
+          widgets.add(_wrapEditable(node, _buildFootnoteDefinition(node, theme)));
         case md.HtmlBlockNode():
-          widgets.add(_buildHtmlBlock(node, theme));
+          widgets.add(_wrapEditable(node, _buildHtmlBlock(node, theme)));
       }
     }
 
@@ -242,6 +275,99 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  // ------------------------------------------------------- in-place editing
+
+  /// Wraps a rendered block so a double tap swaps it for its markdown source.
+  ///
+  /// Double tap rather than single: the preview sits inside a SelectionArea,
+  /// and a single tap would fight text selection and link taps.
+  Widget _wrapEditable(md.MarkdownNode node, Widget child) {
+    if (widget.onSourceChanged == null) return child;
+
+    if (identical(_editingNode, node)) {
+      return _buildBlockEditor(node);
+    }
+
+    return GestureDetector(
+      behavior: HitTestBehavior.deferToChild,
+      onDoubleTap: () => _startEditing(node),
+      child: child,
+    );
+  }
+
+  void _startEditing(md.MarkdownNode node) {
+    final source = md.MarkdownParser.sourceOfBlock(widget.markdown, node);
+    _editController.value = TextEditingValue(
+      text: source,
+      selection: TextSelection.collapsed(offset: source.length),
+    );
+    setState(() => _editingNode = node);
+    // Focus after the editor exists in the tree.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _editFocusNode.requestFocus();
+    });
+  }
+
+  /// Writes the edited text back into the document.
+  ///
+  /// Clearing [_editingNode] before unfocusing is what stops [_cancelEdit]
+  /// from committing through the focus listener.
+  void _commitEdit() {
+    final node = _editingNode;
+    if (node == null) return;
+    _editingNode = null;
+
+    final updated = md.MarkdownParser.replaceBlock(
+      widget.markdown,
+      node,
+      _editController.text,
+    );
+
+    if (updated == widget.markdown) {
+      if (mounted) setState(() {});
+      return;
+    }
+    widget.onSourceChanged?.call(updated);
+  }
+
+  void _cancelEdit() {
+    if (_editingNode == null) return;
+    setState(() => _editingNode = null);
+    _editFocusNode.unfocus();
+  }
+
+  Widget _buildBlockEditor(md.MarkdownNode node) {
+    final config = ref.read(settingsProvider);
+    final tokens = AppTheme.getTokens(config.themeName);
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      decoration: BoxDecoration(
+        color: tokens.colorSurface,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: tokens.colorAccent),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      child: TextField(
+        controller: _editController,
+        focusNode: _editFocusNode,
+        maxLines: null,
+        autofocus: true,
+        style: TextStyle(
+          fontFamily: 'monospace',
+          fontSize: config.fontSize,
+          height: config.lineHeight,
+          color: tokens.colorText,
+        ),
+        decoration: const InputDecoration(
+          isDense: true,
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.zero,
         ),
       ),
     );

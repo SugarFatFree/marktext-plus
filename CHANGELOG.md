@@ -5,6 +5,26 @@ All notable changes to MarkText Plus will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.3.0] - 2026-08-27
+
+### Added
+- Edit blocks directly in preview mode: double-tap a block to swap it for its markdown source, click away to commit, Esc to cancel
+- Mermaid `classDiagram` rendering — three compartments, `<<stereotype>>` annotations, all eight relationship kinds, cardinality labels
+- AST nodes carry their source line range, with `sourceOfBlock` / `replaceBlock` helpers that preserve line endings, BOM, and trailing newline
+- CI workflow running analyze, test, and a Linux release build on every push and pull request
+- `scripts/install-linux-desktop.sh` to register the app as the Markdown handler for a locally built binary
+
+### Fixed
+- The "how to open files" dialog no longer appears on launch; opening behaviour is a Settings preference, as it is upstream
+- deb packages now ship a postinst that refreshes the desktop and MIME databases, without which a freshly installed app never became a registered handler
+- deb and rpm packages now ship a shared-mime-info definition, without which `.md` never resolved to `text/markdown` on systems whose database lacked the glob
+- `AppConstants.appVersion` was stuck at 1.2.2 while the app shipped as 1.2.3, so the update check offered users the version they already had
+- Mermaid flowcharts written as `graph TD;`, a bare `graph`, or `flowchart-elk LR` rendered nothing
+- The app widget test hung CI for over 20 minutes by calling `pumpAndSettle()` on a screen with an indeterminate progress indicator
+
+### Changed
+- Cleared the analyzer baseline: `withOpacity` → `withValues`, dangling library doc comments, `Matrix4.scale`, `Radio.groupValue`, `ReorderableListView.onReorder`
+
 ## [v1.2.3] - 2026-06-02
 
 ### Added
