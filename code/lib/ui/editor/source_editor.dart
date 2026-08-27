@@ -20,10 +20,19 @@ class SourceEditor extends ConsumerStatefulWidget {
   /// stack across every open document.
   final String tabId;
 
+  /// Bumped by the owner when [initialContent] was changed by something other
+  /// than this editor — a checkbox ticked in the split preview, say.
+  ///
+  /// The content alone cannot be used as the signal: the owner's copy lags the
+  /// controller by one keystroke while typing, and adopting it then would eat
+  /// the character just typed.
+  final int externalRevision;
+
   const SourceEditor({
     super.key,
     required this.tabId,
     this.initialContent = '',
+    this.externalRevision = 0,
     this.onChanged,
   });
 
@@ -144,6 +153,22 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
   };
 
   TextEditingController get controller => _controller;
+
+  @override
+  void didUpdateWidget(SourceEditor oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.externalRevision == oldWidget.externalRevision) return;
+    if (widget.initialContent == _controller.text) return;
+
+    // Keep the caret where it was, as far as the new text allows.
+    final offset = _controller.selection.baseOffset;
+    _controller.value = TextEditingValue(
+      text: widget.initialContent,
+      selection: TextSelection.collapsed(
+        offset: offset < 0 ? 0 : offset.clamp(0, widget.initialContent.length),
+      ),
+    );
+  }
 
   @override
   void initState() {

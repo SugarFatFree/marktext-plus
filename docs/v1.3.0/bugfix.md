@@ -61,6 +61,7 @@
 | BUG-052 | 2026-08-27 | 字数统计：日/韩/俄文一律统计为 0，且 1MB 文档卡 280ms | P1 | 已修复 |
 | BUG-053 | 2026-08-27 | 预览渐进渲染呈二次方增长，双栏模式下每次按键重放一轮 | **P0** | 已修复 |
 | BUG-054 | 2026-08-27 | 重绘范围过宽：光标一动就重建命令表，配置一写就重建整个应用 | P1 | 已修复 |
+| BUG-055 | 2026-08-27 | 双栏模式预览是只读的：勾选框点不动、块内编辑失效 | P1 | 已修复 |
 
 ---
 
@@ -855,6 +856,22 @@
 | 修复方案 | ① `HomeScreen` 改用 `editorProvider.select((s) => s.showFindReplace)`；② 命令表按 `AppLocalizations` 实例身份缓存，只在切换语言时重建；③ 应用根改用 `settingsProvider.select((c) => c.themeName)`；④ `AppTheme.getTheme` 按主题名缓存 `ThemeData`（共 8 个且不可变）；⑤ 亮度只在真正变化时才下发 |
 | 顺带优化 | 换行归一化先判断有没有 `\r` 再动手 —— 替换会复制出两份完整文档，而多数文件根本没有回车符。5 MB 文档：30 → **4.6 ms**，而且这件事在打开文件时会做**两遍**（`FileService` 一次、`HighlightingController` 一次） |
 | 涉及文件 | `lib/app.dart`、`lib/core/theme/app_theme.dart`、`lib/ui/screens/home_screen.dart`、`lib/services/file_service.dart`、`lib/ui/editor/highlighting_controller.dart` |
+
+---
+
+## BUG-055 双栏模式预览是只读的
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+| 现象 | 单独的预览模式里点任务列表的勾选框、双击块内编辑都正常；一切到**双栏模式**，右侧预览就完全点不动 |
+| 根因分析 | `SplitEditor` 构造 `MarkdownRenderer` 时**没有传 `onSourceChanged`**。`_toggleTask` 与 `_commitEdit` 一开头就 `if (onChanged == null) return;`，于是静默失效 —— 不报错、不提示，看起来就是「点了没反应」 |
+| 为何不能直接补上回调 | 回写要让左侧源码面板同步。但 `SourceEditor` 只在 `initState` 读一次 `initialContent`，之后不再理会。而**不能拿内容本身当同步信号**：打字时父组件持有的副本总比编辑器控制器**慢一个按键**，若据此覆盖控制器，正好会吃掉刚敲进去的那个字符 |
+| 修复方案 | 给 `SourceEditor` 加一个 `externalRevision` 计数器：只有**预览侧发起**的改写才递增它，`didUpdateWidget` 仅在该计数变化时才采纳新内容，并把光标位置按新长度做钳制保留。打字回显路径计数不变，因此完全不受影响 |
+| 顺带修复 | `_onContentChanged` 原本每个按键都 `setState`，只为把刚产生的文本再喂回 `SourceEditor.initialContent` —— 而该字段根本不会被二次读取。去掉这次 `setState`，每个按键少重建一整个源码编辑器 |
+| 涉及文件 | `lib/ui/editor/split_editor.dart`、`lib/ui/editor/source_editor.dart` |
 
 ---
 

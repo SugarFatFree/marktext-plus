@@ -27,6 +27,10 @@ class SplitEditor extends ConsumerStatefulWidget {
 class _SplitEditorState extends ConsumerState<SplitEditor> {
   late String _content;
   late String _renderedContent;
+
+  /// Incremented whenever the preview pane rewrites the source, so the source
+  /// pane knows to adopt it.
+  int _externalRevision = 0;
   /// Filled from settings in initState; 0.5 only until then.
   double _splitRatio = 0.5;
   Timer? _splitPersistTimer;
@@ -51,17 +55,32 @@ class _SplitEditorState extends ConsumerState<SplitEditor> {
   }
 
   void _onContentChanged(String newContent) {
-    setState(() {
-      _content = newContent;
-    });
+    // No setState: _content only feeds SourceEditor.initialContent, which the
+    // editor reads once. Rebuilding the whole editor on every keystroke to
+    // hand it back the text it just produced was wasted work.
+    _content = newContent;
 
     if (_debounce?.isActive ?? false) _debounce!.cancel();
     _debounce = Timer(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
       setState(() {
         _renderedContent = newContent;
       });
       widget.onChanged?.call(newContent);
     });
+  }
+
+  /// An edit made in the preview pane — a ticked checkbox, a block edited in
+  /// place. The source pane has to be told, which is what [_externalRevision]
+  /// is for.
+  void _onPreviewEdited(String newContent) {
+    _debounce?.cancel();
+    setState(() {
+      _content = newContent;
+      _renderedContent = newContent;
+      _externalRevision++;
+    });
+    widget.onChanged?.call(newContent);
   }
 
   void _onDragUpdate(DragUpdateDetails details, BoxConstraints constraints) {
@@ -99,6 +118,7 @@ class _SplitEditorState extends ConsumerState<SplitEditor> {
               child: SourceEditor(
                 tabId: widget.tabId,
                 initialContent: _content,
+                externalRevision: _externalRevision,
                 onChanged: _onContentChanged,
               ),
             ),
@@ -136,7 +156,13 @@ class _SplitEditorState extends ConsumerState<SplitEditor> {
               width: rightWidth - 4,
               child: Container(
                 color: theme.scaffoldBackgroundColor,
-                child: MarkdownRenderer(markdown: _renderedContent),
+                // Without this the preview pane was read-only in split
+                // mode: task-list checkboxes did nothing and a block could
+                // not be edited in place, unlike in preview mode.
+                child: MarkdownRenderer(
+                  markdown: _renderedContent,
+                  onSourceChanged: _onPreviewEdited,
+                ),
               ),
             ),
           ],
