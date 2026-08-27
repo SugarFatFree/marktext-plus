@@ -150,5 +150,6 @@
 | 未做 | 保存失败时没有弹提示。提示需要 12 种语言的文案，本次不扩大范围；保留「已修改」标记至少让标签页上的圆点和关闭确认说的是实话 |
 | 涉及文件 | `lib/providers/tab_provider.dart`、`lib/ui/widgets/app_menu_bar.dart`、`lib/ui/screens/home_screen.dart`、`test/providers/tab_reload_test.dart` |
 | 验证方式 | 两个新测试：重绑定后标签页与侧边栏条目同时更新；**重绑定后按新路径继续监视**（与 FEAT-003 的自动重载串起来） |
+| 过程记录 | 第一版提交被 CI 的 `flutter analyze` 挡下：我对 `app_menu_bar.dart` 整个文件跑了 `dart format`，它把一处**原本就存在**的长单行 `if (...) return;` 折成两行，立刻触发 `curly_braces_in_flow_control_structures`（本项目 analyze 把 info 也当失败）。而且两行的改动变成了 289 行的 diff，真正的修改被淹没。已回退格式化、只保留实际改动。**教训：只对本次新建的文件跑 `dart format`** |
 
 ---
