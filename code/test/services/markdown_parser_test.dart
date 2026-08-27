@@ -6,6 +6,7 @@ void main() {
   setUp(() => parser = MarkdownParser());
 
   _sourceSpanTests();
+  _nestedListTests();
   _inlineEdgeCaseTests();
   _htmlBlockTests();
 
@@ -270,7 +271,16 @@ void _inlineEdgeCaseTests() {
     test('underscores inside a word are not emphasis', () {
       // snake_case identifiers and file names are ordinary text.
       expect(typesOf('a snake_case_name stays plain'), [InlineType.text]);
+      // The boundary has to exclude `_` too: here the second underscore of
+      // the pair is not alphanumeric, so a looser check let `_me_` through.
       expect(typesOf('read__me__now'), [InlineType.text]);
+    });
+
+    test('a leading double underscore is emphasis, as CommonMark says', () {
+      // `__init__ method` renders as bold on GitHub and in Typora: the run
+      // starts at a boundary and ends before a space. Deliberately not
+      // special-cased for dunder names.
+      expect(typesOf('__init__ method'), contains(InlineType.bold));
     });
 
     test('underscores around a word still are', () {
@@ -297,6 +307,54 @@ void _inlineEdgeCaseTests() {
       final spans = parser.parseInline('`code with **bold** inside`');
       expect(spans.single.type, InlineType.code);
       expect(spans.single.text, 'code with **bold** inside');
+    });
+  });
+}
+
+void _nestedListTests() {
+  group('Nested lists', () {
+    late MarkdownParser parser;
+    setUp(() => parser = MarkdownParser());
+
+    test('records a depth for indented items', () {
+      // Indentation used to be matched and then discarded, so a sub-list
+      // rendered flush with its parent.
+      const doc = '- one\n'
+          '  - nested\n'
+          '    - deeper\n'
+          '- two\n';
+
+      final list = parser.parse(doc).single as ListNode;
+      expect(list.items.map((i) => i.depth).toList(), [0, 1, 2, 0]);
+      expect(list.items.map((i) => i.content).toList(),
+          ['one', 'nested', 'deeper', 'two']);
+    });
+
+    test('four-space indentation gives the same depths as two-space', () {
+      const twoSpace = '- one\n  - nested\n';
+      const fourSpace = '- one\n    - nested\n';
+
+      List<int> depths(String doc) =>
+          (parser.parse(doc).single as ListNode).items.map((i) => i.depth).toList();
+
+      expect(depths(twoSpace), [0, 1]);
+      expect(depths(fourSpace), [0, 1],
+          reason: 'depth is the rank among indent widths, not a space count');
+    });
+
+    test('ordered lists nest too', () {
+      const doc = '1. one\n  2. nested\n3. two\n';
+      final list = parser.parse(doc).single as ListNode;
+      expect(list.ordered, isTrue);
+      expect(list.items.map((i) => i.depth).toList(), [0, 1, 0]);
+    });
+
+    test('nested task items keep their checkbox state', () {
+      const doc = '- [ ] top\n  - [x] nested\n';
+      final list = parser.parse(doc).single as ListNode;
+      expect(list.items[1].depth, 1);
+      expect(list.items[1].isTask, isTrue);
+      expect(list.items[1].isChecked, isTrue);
     });
   });
 }

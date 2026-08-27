@@ -124,11 +124,19 @@ class ListItem {
   final bool isTask;
   final bool isChecked;
 
+  /// Nesting level, 0 for a top-level item.
+  ///
+  /// Derived from the ordering of indentation widths within one list rather
+  /// than from a fixed number of spaces, since authors indent by two or four
+  /// and only the relative depth matters.
+  final int depth;
+
   ListItem({
     required this.content,
     required this.inlineSpans,
     this.isTask = false,
     this.isChecked = false,
+    this.depth = 0,
   });
 }
 
@@ -305,6 +313,53 @@ class MarkdownParser {
     return (hasBom ? '\uFEFF' : '') +
         joined +
         (endsWithNewline ? newline : '');
+  }
+
+  /// Leading whitespace in columns, counting a tab as up to four.
+  static int _indentColumns(String line) {
+    var columns = 0;
+    for (final rune in line.runes) {
+      if (rune == 0x20) {
+        columns++;
+      } else if (rune == 0x09) {
+        columns += 4 - (columns % 4);
+      } else {
+        break;
+      }
+    }
+    return columns;
+  }
+
+  /// Builds list items, assigning each a nesting depth.
+  ///
+  /// The distinct indentation widths in the list are sorted and an item's
+  /// depth is its position among them, so two-space and four-space authors
+  /// both get 0, 1, 2 rather than 1, 2 and 2, 4.
+  List<ListItem> _buildListItems(List<String> itemLines, RegExp itemRe) {
+    final widths = itemLines.map(_indentColumns).toSet().toList()..sort();
+
+    return itemLines.map((line) {
+      final content = itemRe.firstMatch(line)!.group(1)!;
+      final depth = widths.indexOf(_indentColumns(line));
+
+      final taskMatch = _taskRe.firstMatch(content);
+      if (taskMatch != null) {
+        final taskContent = taskMatch.group(2)!;
+        return ListItem(
+          content: taskContent,
+          inlineSpans: parseInline(taskContent),
+          isTask: true,
+          isChecked: taskMatch.group(1) == 'x',
+          depth: depth,
+        );
+      }
+
+      return ListItem(
+        content: content,
+        inlineSpans: parseInline(content),
+        depth: depth,
+      );
+    }).toList();
   }
 
   /// Parse markdown text into a list of block-level nodes.
@@ -522,32 +577,13 @@ class MarkdownParser {
       }
       // Unordered list
       if (_ulRe.hasMatch(line)) {
-        final items = <ListItem>[];
+        final itemLines = <String>[];
         while (i < lines.length && _ulRe.hasMatch(lines[i])) {
-          final m = _ulRe.firstMatch(lines[i])!;
-          final content = m.group(1)!;
-
-          // Check for task list syntax: [ ] or [x]
-          final taskMatch = _taskRe.firstMatch(content);
-          if (taskMatch != null) {
-            final isChecked = taskMatch.group(1) == 'x';
-            final taskContent = taskMatch.group(2)!;
-            items.add(ListItem(
-              content: taskContent,
-              inlineSpans: parseInline(taskContent),
-              isTask: true,
-              isChecked: isChecked,
-            ));
-          } else {
-            items.add(ListItem(
-              content: content,
-              inlineSpans: parseInline(content),
-            ));
-          }
+          itemLines.add(lines[i]);
           i++;
         }
         nodes.add(_withSpan(
-          ListNode(ordered: false, items: items),
+          ListNode(ordered: false, items: _buildListItems(itemLines, _ulRe)),
           blockStart,
           i,
         ));
@@ -556,18 +592,13 @@ class MarkdownParser {
 
       // Ordered list
       if (_olRe.hasMatch(line)) {
-        final items = <ListItem>[];
+        final itemLines = <String>[];
         while (i < lines.length && _olRe.hasMatch(lines[i])) {
-          final m = _olRe.firstMatch(lines[i])!;
-          final content = m.group(1)!;
-          items.add(ListItem(
-            content: content,
-            inlineSpans: parseInline(content),
-          ));
+          itemLines.add(lines[i]);
           i++;
         }
         nodes.add(_withSpan(
-          ListNode(ordered: true, items: items),
+          ListNode(ordered: true, items: _buildListItems(itemLines, _olRe)),
           blockStart,
           i,
         ));
@@ -637,13 +668,16 @@ class MarkdownParser {
       r'|\+\+(.+?)\+\+'            // underline
       r'|\*\*(.+?)\*\*'            // bold **
       // `_` must not sit inside a word, or snake_case_names read as emphasis.
-      r'|(?<![a-zA-Z0-9])__(.+?)__(?![a-zA-Z0-9])'  // bold __
+      // The boundary excludes `_` itself as well: in `read__me__now` the
+      // second underscore of the pair is not alphanumeric, so without it the
+      // inner `_me_` still matched.
+      r'|(?<![a-zA-Z0-9_])__(.+?)__(?![a-zA-Z0-9_])'  // bold __
       r'|~~(.+?)~~'                // strikethrough
       // No spaces inside, or `x^2 and y^3` becomes one long superscript.
       r'|\^([^\s^]+)\^'            // superscript
       r'|(?<!~)~([^\s~]+?)~(?!~)'  // subscript (single ~, not ~~)
       r'|\*(.+?)\*'                // italic *
-      r'|(?<![a-zA-Z0-9])_(.+?)_(?![a-zA-Z0-9])'  // italic _
+      r'|(?<![a-zA-Z0-9_])_(.+?)_(?![a-zA-Z0-9_])'  // italic _
     );
 
     var lastEnd = 0;

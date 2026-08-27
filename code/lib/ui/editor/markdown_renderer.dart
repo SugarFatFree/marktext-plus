@@ -609,7 +609,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   ) {
     if (item.isTask) {
       return Padding(
-        padding: const EdgeInsets.only(left: 16, bottom: 4),
+        padding: EdgeInsets.only(left: 16 + item.depth * 20.0, bottom: 4),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -632,7 +632,9 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     }
 
     return Padding(
-      padding: const EdgeInsets.only(left: 24, bottom: 4),
+      // Nested items step in; without this a sub-list rendered flush with its
+      // parent and the structure was invisible.
+      padding: EdgeInsets.only(left: 24 + item.depth * 20.0, bottom: 4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
