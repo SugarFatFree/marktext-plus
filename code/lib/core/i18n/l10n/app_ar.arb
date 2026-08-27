@@ -271,5 +271,17 @@
   "formatFrontMatter": "بيانات المقدمة",
   "formatHtmlBlock": "كتلة HTML",
   "updateUpToDate": "أنت تستخدم أحدث إصدار",
-  "updateCheckFailed": "تعذّر التحقق من التحديثات"
+  "updateCheckFailed": "تعذّر التحقق من التحديثات",
+  "fileOpenBehavior": "سلوك فتح الملفات",
+  "fileOpenBehaviorExistingWindow": "الفتح في النافذة الحالية",
+  "fileOpenBehaviorExistingWindowDesc": "الإضافة إلى علامات التبويب الحالية (نسخة واحدة)",
+  "fileOpenBehaviorMessage": "عند النقر المزدوج على ملف والتطبيق قيد التشغيل:",
+  "fileOpenBehaviorNewWindow": "الفتح في نافذة جديدة",
+  "fileOpenBehaviorNewWindowDesc": "السماح بتشغيل عدة نسخ من التطبيق",
+  "fileOpenBehaviorNotSet": "غير مُهيَّأ",
+  "fileOpenBehaviorTitle": "كيف تريد فتح الملفات؟",
+  "previewCopyAsHtmlSuccess": "تم النسخ بصيغة HTML. يمكنك الآن اللصق في Word/WPS مع الحفاظ على التنسيق.",
+  "previewCopyAsHtmlTooltip": "نسخ بصيغة HTML (لـ Word/WPS)",
+  "updateAvailable": "يتوفر إصدار جديد",
+  "updateDismiss": "تجاهل"
 }

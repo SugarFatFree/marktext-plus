@@ -271,5 +271,17 @@
   "formatFrontMatter": "Front matter",
   "formatHtmlBlock": "Bloco HTML",
   "updateUpToDate": "Está a usar a versão mais recente",
-  "updateCheckFailed": "Não foi possível procurar atualizações"
+  "updateCheckFailed": "Não foi possível procurar atualizações",
+  "fileOpenBehavior": "Comportamento ao abrir ficheiros",
+  "fileOpenBehaviorExistingWindow": "Abrir na janela atual",
+  "fileOpenBehaviorExistingWindowDesc": "Adicionar aos separadores existentes (instância única)",
+  "fileOpenBehaviorMessage": "Ao fazer duplo clique num ficheiro com a aplicação já aberta:",
+  "fileOpenBehaviorNewWindow": "Abrir numa nova janela",
+  "fileOpenBehaviorNewWindowDesc": "Permitir várias instâncias da aplicação",
+  "fileOpenBehaviorNotSet": "Não configurado",
+  "fileOpenBehaviorTitle": "Como abrir os ficheiros?",
+  "previewCopyAsHtmlSuccess": "Copiado como HTML. Já pode colar no Word/WPS com formatação.",
+  "previewCopyAsHtmlTooltip": "Copiar como HTML (para Word/WPS)",
+  "updateAvailable": "Nova versão disponível",
+  "updateDismiss": "Dispensar"
 }

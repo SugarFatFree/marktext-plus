@@ -357,11 +357,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get editCopyAsHtml => 'HTMLとしてコピー';
 
   @override
-  String get previewCopyAsHtmlTooltip => 'Copy as HTML (for Word/WPS)';
+  String get previewCopyAsHtmlTooltip => 'HTML としてコピー（Word/WPS 用）';
 
   @override
   String get previewCopyAsHtmlSuccess =>
-      'Copied as HTML. You can now paste into Word/WPS with formatting.';
+      'HTML としてコピーしました。Word/WPS に書式付きで貼り付けられます。';
 
   @override
   String get editSelectAll => 'すべて選択';
@@ -706,36 +706,36 @@ class AppLocalizationsJa extends AppLocalizations {
   String get welcomeDragHint => 'ファイルをここにドロップして開く';
 
   @override
-  String get fileOpenBehavior => 'File Opening Behavior';
+  String get fileOpenBehavior => 'ファイルを開くときの動作';
 
   @override
-  String get fileOpenBehaviorTitle => 'How to Open Files?';
+  String get fileOpenBehaviorTitle => 'ファイルをどのように開きますか？';
 
   @override
   String get fileOpenBehaviorMessage =>
-      'When you double-click a file while the app is already running:';
+      'アプリの起動中にファイルをダブルクリックしたとき:';
 
   @override
-  String get fileOpenBehaviorNewWindow => 'Open in New Window';
+  String get fileOpenBehaviorNewWindow => '新しいウィンドウで開く';
 
   @override
-  String get fileOpenBehaviorNewWindowDesc => 'Allow multiple app instances';
+  String get fileOpenBehaviorNewWindowDesc => 'アプリの複数起動を許可する';
 
   @override
-  String get fileOpenBehaviorExistingWindow => 'Open in Current Window';
+  String get fileOpenBehaviorExistingWindow => '現在のウィンドウで開く';
 
   @override
   String get fileOpenBehaviorExistingWindowDesc =>
-      'Add to existing tabs (single instance)';
+      '既存のタブに追加する（単一インスタンス）';
 
   @override
-  String get fileOpenBehaviorNotSet => 'Not configured';
+  String get fileOpenBehaviorNotSet => '未設定';
 
   @override
-  String get updateAvailable => 'New version available';
+  String get updateAvailable => '新しいバージョンがあります';
 
   @override
-  String get updateDismiss => 'Dismiss';
+  String get updateDismiss => '閉じる';
 
   @override
   String get mermaidFullscreen => '全画面';

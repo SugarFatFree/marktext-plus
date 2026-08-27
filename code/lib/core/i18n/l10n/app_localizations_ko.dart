@@ -357,11 +357,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get editCopyAsHtml => 'HTML로 복사';
 
   @override
-  String get previewCopyAsHtmlTooltip => 'Copy as HTML (for Word/WPS)';
+  String get previewCopyAsHtmlTooltip => 'HTML로 복사 (Word/WPS용)';
 
   @override
   String get previewCopyAsHtmlSuccess =>
-      'Copied as HTML. You can now paste into Word/WPS with formatting.';
+      'HTML로 복사했습니다. 이제 Word/WPS에 서식을 유지한 채 붙여넣을 수 있습니다.';
 
   @override
   String get editSelectAll => '모두 선택';
@@ -706,36 +706,36 @@ class AppLocalizationsKo extends AppLocalizations {
   String get welcomeDragHint => '파일을 여기에 드롭하여 열기';
 
   @override
-  String get fileOpenBehavior => 'File Opening Behavior';
+  String get fileOpenBehavior => '파일 열기 동작';
 
   @override
-  String get fileOpenBehaviorTitle => 'How to Open Files?';
+  String get fileOpenBehaviorTitle => '파일을 어떻게 열까요?';
 
   @override
   String get fileOpenBehaviorMessage =>
-      'When you double-click a file while the app is already running:';
+      '앱이 실행 중일 때 파일을 두 번 클릭하면:';
 
   @override
-  String get fileOpenBehaviorNewWindow => 'Open in New Window';
+  String get fileOpenBehaviorNewWindow => '새 창에서 열기';
 
   @override
-  String get fileOpenBehaviorNewWindowDesc => 'Allow multiple app instances';
+  String get fileOpenBehaviorNewWindowDesc => '앱 다중 실행 허용';
 
   @override
-  String get fileOpenBehaviorExistingWindow => 'Open in Current Window';
+  String get fileOpenBehaviorExistingWindow => '현재 창에서 열기';
 
   @override
   String get fileOpenBehaviorExistingWindowDesc =>
-      'Add to existing tabs (single instance)';
+      '기존 탭에 추가 (단일 인스턴스)';
 
   @override
-  String get fileOpenBehaviorNotSet => 'Not configured';
+  String get fileOpenBehaviorNotSet => '설정되지 않음';
 
   @override
-  String get updateAvailable => 'New version available';
+  String get updateAvailable => '새 버전이 있습니다';
 
   @override
-  String get updateDismiss => 'Dismiss';
+  String get updateDismiss => '닫기';
 
   @override
   String get mermaidFullscreen => '전체 화면';

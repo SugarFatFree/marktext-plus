@@ -359,11 +359,11 @@ class AppLocalizationsEs extends AppLocalizations {
   String get editCopyAsHtml => 'Copiar como HTML';
 
   @override
-  String get previewCopyAsHtmlTooltip => 'Copy as HTML (for Word/WPS)';
+  String get previewCopyAsHtmlTooltip => 'Copiar como HTML (para Word/WPS)';
 
   @override
   String get previewCopyAsHtmlSuccess =>
-      'Copied as HTML. You can now paste into Word/WPS with formatting.';
+      'Copiado como HTML. Ya puede pegarlo en Word/WPS con formato.';
 
   @override
   String get editSelectAll => 'Seleccionar todo';
@@ -712,36 +712,36 @@ class AppLocalizationsEs extends AppLocalizations {
   String get welcomeDragHint => 'Arrastra archivos aquí para abrirlos';
 
   @override
-  String get fileOpenBehavior => 'File Opening Behavior';
+  String get fileOpenBehavior => 'Comportamiento al abrir archivos';
 
   @override
-  String get fileOpenBehaviorTitle => 'How to Open Files?';
+  String get fileOpenBehaviorTitle => '¿Cómo abrir los archivos?';
 
   @override
   String get fileOpenBehaviorMessage =>
-      'When you double-click a file while the app is already running:';
+      'Cuando haga doble clic en un archivo con la aplicación ya abierta:';
 
   @override
-  String get fileOpenBehaviorNewWindow => 'Open in New Window';
+  String get fileOpenBehaviorNewWindow => 'Abrir en una ventana nueva';
 
   @override
-  String get fileOpenBehaviorNewWindowDesc => 'Allow multiple app instances';
+  String get fileOpenBehaviorNewWindowDesc => 'Permitir varias instancias de la aplicación';
 
   @override
-  String get fileOpenBehaviorExistingWindow => 'Open in Current Window';
+  String get fileOpenBehaviorExistingWindow => 'Abrir en la ventana actual';
 
   @override
   String get fileOpenBehaviorExistingWindowDesc =>
-      'Add to existing tabs (single instance)';
+      'Añadir a las pestañas existentes (instancia única)';
 
   @override
-  String get fileOpenBehaviorNotSet => 'Not configured';
+  String get fileOpenBehaviorNotSet => 'Sin configurar';
 
   @override
-  String get updateAvailable => 'New version available';
+  String get updateAvailable => 'Nueva versión disponible';
 
   @override
-  String get updateDismiss => 'Dismiss';
+  String get updateDismiss => 'Descartar';
 
   @override
   String get mermaidFullscreen => 'Pantalla completa';

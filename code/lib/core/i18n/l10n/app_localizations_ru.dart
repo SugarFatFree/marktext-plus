@@ -358,11 +358,11 @@ class AppLocalizationsRu extends AppLocalizations {
   String get editCopyAsHtml => 'Копировать как HTML';
 
   @override
-  String get previewCopyAsHtmlTooltip => 'Copy as HTML (for Word/WPS)';
+  String get previewCopyAsHtmlTooltip => 'Копировать как HTML (для Word/WPS)';
 
   @override
   String get previewCopyAsHtmlSuccess =>
-      'Copied as HTML. You can now paste into Word/WPS with formatting.';
+      'Скопировано как HTML. Теперь можно вставить в Word/WPS с форматированием.';
 
   @override
   String get editSelectAll => 'Выделить всё';
@@ -710,36 +710,36 @@ class AppLocalizationsRu extends AppLocalizations {
   String get welcomeDragHint => 'Перетащите файлы сюда для открытия';
 
   @override
-  String get fileOpenBehavior => 'File Opening Behavior';
+  String get fileOpenBehavior => 'Поведение при открытии файлов';
 
   @override
-  String get fileOpenBehaviorTitle => 'How to Open Files?';
+  String get fileOpenBehaviorTitle => 'Как открывать файлы?';
 
   @override
   String get fileOpenBehaviorMessage =>
-      'When you double-click a file while the app is already running:';
+      'При двойном щелчке по файлу, когда приложение уже запущено:';
 
   @override
-  String get fileOpenBehaviorNewWindow => 'Open in New Window';
+  String get fileOpenBehaviorNewWindow => 'Открывать в новом окне';
 
   @override
-  String get fileOpenBehaviorNewWindowDesc => 'Allow multiple app instances';
+  String get fileOpenBehaviorNewWindowDesc => 'Разрешить несколько экземпляров приложения';
 
   @override
-  String get fileOpenBehaviorExistingWindow => 'Open in Current Window';
+  String get fileOpenBehaviorExistingWindow => 'Открывать в текущем окне';
 
   @override
   String get fileOpenBehaviorExistingWindowDesc =>
-      'Add to existing tabs (single instance)';
+      'Добавлять к существующим вкладкам (один экземпляр)';
 
   @override
-  String get fileOpenBehaviorNotSet => 'Not configured';
+  String get fileOpenBehaviorNotSet => 'Не настроено';
 
   @override
-  String get updateAvailable => 'New version available';
+  String get updateAvailable => 'Доступна новая версия';
 
   @override
-  String get updateDismiss => 'Dismiss';
+  String get updateDismiss => 'Скрыть';
 
   @override
   String get mermaidFullscreen => 'Полноэкранный режим';

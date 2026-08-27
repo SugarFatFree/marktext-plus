@@ -271,5 +271,17 @@
   "formatFrontMatter": "프런트 매터",
   "formatHtmlBlock": "HTML 블록",
   "updateUpToDate": "최신 버전입니다",
-  "updateCheckFailed": "업데이트를 확인하지 못했습니다"
+  "updateCheckFailed": "업데이트를 확인하지 못했습니다",
+  "fileOpenBehavior": "파일 열기 동작",
+  "fileOpenBehaviorExistingWindow": "현재 창에서 열기",
+  "fileOpenBehaviorExistingWindowDesc": "기존 탭에 추가 (단일 인스턴스)",
+  "fileOpenBehaviorMessage": "앱이 실행 중일 때 파일을 두 번 클릭하면:",
+  "fileOpenBehaviorNewWindow": "새 창에서 열기",
+  "fileOpenBehaviorNewWindowDesc": "앱 다중 실행 허용",
+  "fileOpenBehaviorNotSet": "설정되지 않음",
+  "fileOpenBehaviorTitle": "파일을 어떻게 열까요?",
+  "previewCopyAsHtmlSuccess": "HTML로 복사했습니다. 이제 Word/WPS에 서식을 유지한 채 붙여넣을 수 있습니다.",
+  "previewCopyAsHtmlTooltip": "HTML로 복사 (Word/WPS용)",
+  "updateAvailable": "새 버전이 있습니다",
+  "updateDismiss": "닫기"
 }

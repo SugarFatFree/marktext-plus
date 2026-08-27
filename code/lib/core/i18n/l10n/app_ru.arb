@@ -271,5 +271,17 @@
   "formatFrontMatter": "Front matter",
   "formatHtmlBlock": "HTML-блок",
   "updateUpToDate": "У вас последняя версия",
-  "updateCheckFailed": "Не удалось проверить обновления"
+  "updateCheckFailed": "Не удалось проверить обновления",
+  "fileOpenBehavior": "Поведение при открытии файлов",
+  "fileOpenBehaviorExistingWindow": "Открывать в текущем окне",
+  "fileOpenBehaviorExistingWindowDesc": "Добавлять к существующим вкладкам (один экземпляр)",
+  "fileOpenBehaviorMessage": "При двойном щелчке по файлу, когда приложение уже запущено:",
+  "fileOpenBehaviorNewWindow": "Открывать в новом окне",
+  "fileOpenBehaviorNewWindowDesc": "Разрешить несколько экземпляров приложения",
+  "fileOpenBehaviorNotSet": "Не настроено",
+  "fileOpenBehaviorTitle": "Как открывать файлы?",
+  "previewCopyAsHtmlSuccess": "Скопировано как HTML. Теперь можно вставить в Word/WPS с форматированием.",
+  "previewCopyAsHtmlTooltip": "Копировать как HTML (для Word/WPS)",
+  "updateAvailable": "Доступна новая версия",
+  "updateDismiss": "Скрыть"
 }

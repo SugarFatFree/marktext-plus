@@ -359,11 +359,11 @@ class AppLocalizationsPt extends AppLocalizations {
   String get editCopyAsHtml => 'Copiar como HTML';
 
   @override
-  String get previewCopyAsHtmlTooltip => 'Copy as HTML (for Word/WPS)';
+  String get previewCopyAsHtmlTooltip => 'Copiar como HTML (para Word/WPS)';
 
   @override
   String get previewCopyAsHtmlSuccess =>
-      'Copied as HTML. You can now paste into Word/WPS with formatting.';
+      'Copiado como HTML. Já pode colar no Word/WPS com formatação.';
 
   @override
   String get editSelectAll => 'Selecionar tudo';
@@ -712,36 +712,36 @@ class AppLocalizationsPt extends AppLocalizations {
   String get welcomeDragHint => 'Arraste ficheiros para aqui para abrir';
 
   @override
-  String get fileOpenBehavior => 'File Opening Behavior';
+  String get fileOpenBehavior => 'Comportamento ao abrir ficheiros';
 
   @override
-  String get fileOpenBehaviorTitle => 'How to Open Files?';
+  String get fileOpenBehaviorTitle => 'Como abrir os ficheiros?';
 
   @override
   String get fileOpenBehaviorMessage =>
-      'When you double-click a file while the app is already running:';
+      'Ao fazer duplo clique num ficheiro com a aplicação já aberta:';
 
   @override
-  String get fileOpenBehaviorNewWindow => 'Open in New Window';
+  String get fileOpenBehaviorNewWindow => 'Abrir numa nova janela';
 
   @override
-  String get fileOpenBehaviorNewWindowDesc => 'Allow multiple app instances';
+  String get fileOpenBehaviorNewWindowDesc => 'Permitir várias instâncias da aplicação';
 
   @override
-  String get fileOpenBehaviorExistingWindow => 'Open in Current Window';
+  String get fileOpenBehaviorExistingWindow => 'Abrir na janela atual';
 
   @override
   String get fileOpenBehaviorExistingWindowDesc =>
-      'Add to existing tabs (single instance)';
+      'Adicionar aos separadores existentes (instância única)';
 
   @override
-  String get fileOpenBehaviorNotSet => 'Not configured';
+  String get fileOpenBehaviorNotSet => 'Não configurado';
 
   @override
-  String get updateAvailable => 'New version available';
+  String get updateAvailable => 'Nova versão disponível';
 
   @override
-  String get updateDismiss => 'Dismiss';
+  String get updateDismiss => 'Dispensar';
 
   @override
   String get mermaidFullscreen => 'Ecrã inteiro';
@@ -1577,4 +1577,40 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get updateCheckFailed => 'Não foi possível verificar atualizações';
+
+  @override
+  String get fileOpenBehavior => 'Comportamento ao abrir arquivos';
+
+  @override
+  String get fileOpenBehaviorExistingWindow => 'Abrir na janela atual';
+
+  @override
+  String get fileOpenBehaviorExistingWindowDesc => 'Adicionar às abas existentes (instância única)';
+
+  @override
+  String get fileOpenBehaviorMessage => 'Ao dar dois cliques em um arquivo com o aplicativo já aberto:';
+
+  @override
+  String get fileOpenBehaviorNewWindow => 'Abrir em uma nova janela';
+
+  @override
+  String get fileOpenBehaviorNewWindowDesc => 'Permitir várias instâncias do aplicativo';
+
+  @override
+  String get fileOpenBehaviorNotSet => 'Não configurado';
+
+  @override
+  String get fileOpenBehaviorTitle => 'Como abrir os arquivos?';
+
+  @override
+  String get previewCopyAsHtmlSuccess => 'Copiado como HTML. Agora você pode colar no Word/WPS com formatação.';
+
+  @override
+  String get previewCopyAsHtmlTooltip => 'Copiar como HTML (para Word/WPS)';
+
+  @override
+  String get updateAvailable => 'Nova versão disponível';
+
+  @override
+  String get updateDismiss => 'Dispensar';
 }

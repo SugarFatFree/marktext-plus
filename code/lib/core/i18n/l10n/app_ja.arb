@@ -271,5 +271,17 @@
   "formatFrontMatter": "フロントマター",
   "formatHtmlBlock": "HTML ブロック",
   "updateUpToDate": "最新バージョンです",
-  "updateCheckFailed": "更新を確認できませんでした"
+  "updateCheckFailed": "更新を確認できませんでした",
+  "fileOpenBehavior": "ファイルを開くときの動作",
+  "fileOpenBehaviorExistingWindow": "現在のウィンドウで開く",
+  "fileOpenBehaviorExistingWindowDesc": "既存のタブに追加する（単一インスタンス）",
+  "fileOpenBehaviorMessage": "アプリの起動中にファイルをダブルクリックしたとき:",
+  "fileOpenBehaviorNewWindow": "新しいウィンドウで開く",
+  "fileOpenBehaviorNewWindowDesc": "アプリの複数起動を許可する",
+  "fileOpenBehaviorNotSet": "未設定",
+  "fileOpenBehaviorTitle": "ファイルをどのように開きますか？",
+  "previewCopyAsHtmlSuccess": "HTML としてコピーしました。Word/WPS に書式付きで貼り付けられます。",
+  "previewCopyAsHtmlTooltip": "HTML としてコピー（Word/WPS 用）",
+  "updateAvailable": "新しいバージョンがあります",
+  "updateDismiss": "閉じる"
 }

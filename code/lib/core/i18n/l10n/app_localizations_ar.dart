@@ -358,11 +358,11 @@ class AppLocalizationsAr extends AppLocalizations {
   String get editCopyAsHtml => 'نسخ كـ HTML';
 
   @override
-  String get previewCopyAsHtmlTooltip => 'Copy as HTML (for Word/WPS)';
+  String get previewCopyAsHtmlTooltip => 'نسخ بصيغة HTML (لـ Word/WPS)';
 
   @override
   String get previewCopyAsHtmlSuccess =>
-      'Copied as HTML. You can now paste into Word/WPS with formatting.';
+      'تم النسخ بصيغة HTML. يمكنك الآن اللصق في Word/WPS مع الحفاظ على التنسيق.';
 
   @override
   String get editSelectAll => 'تحديد الكل';
@@ -708,36 +708,36 @@ class AppLocalizationsAr extends AppLocalizations {
   String get welcomeDragHint => 'اسحب الملفات هنا لفتحها';
 
   @override
-  String get fileOpenBehavior => 'File Opening Behavior';
+  String get fileOpenBehavior => 'سلوك فتح الملفات';
 
   @override
-  String get fileOpenBehaviorTitle => 'How to Open Files?';
+  String get fileOpenBehaviorTitle => 'كيف تريد فتح الملفات؟';
 
   @override
   String get fileOpenBehaviorMessage =>
-      'When you double-click a file while the app is already running:';
+      'عند النقر المزدوج على ملف والتطبيق قيد التشغيل:';
 
   @override
-  String get fileOpenBehaviorNewWindow => 'Open in New Window';
+  String get fileOpenBehaviorNewWindow => 'الفتح في نافذة جديدة';
 
   @override
-  String get fileOpenBehaviorNewWindowDesc => 'Allow multiple app instances';
+  String get fileOpenBehaviorNewWindowDesc => 'السماح بتشغيل عدة نسخ من التطبيق';
 
   @override
-  String get fileOpenBehaviorExistingWindow => 'Open in Current Window';
+  String get fileOpenBehaviorExistingWindow => 'الفتح في النافذة الحالية';
 
   @override
   String get fileOpenBehaviorExistingWindowDesc =>
-      'Add to existing tabs (single instance)';
+      'الإضافة إلى علامات التبويب الحالية (نسخة واحدة)';
 
   @override
-  String get fileOpenBehaviorNotSet => 'Not configured';
+  String get fileOpenBehaviorNotSet => 'غير مُهيَّأ';
 
   @override
-  String get updateAvailable => 'New version available';
+  String get updateAvailable => 'يتوفر إصدار جديد';
 
   @override
-  String get updateDismiss => 'Dismiss';
+  String get updateDismiss => 'تجاهل';
 
   @override
   String get mermaidFullscreen => 'ملء الشاشة';

@@ -271,5 +271,17 @@
   "formatFrontMatter": "En-tête YAML",
   "formatHtmlBlock": "Bloc HTML",
   "updateUpToDate": "Vous utilisez la dernière version",
-  "updateCheckFailed": "Impossible de vérifier les mises à jour"
+  "updateCheckFailed": "Impossible de vérifier les mises à jour",
+  "fileOpenBehavior": "Comportement à l'ouverture des fichiers",
+  "fileOpenBehaviorExistingWindow": "Ouvrir dans la fenêtre actuelle",
+  "fileOpenBehaviorExistingWindowDesc": "Ajouter aux onglets existants (instance unique)",
+  "fileOpenBehaviorMessage": "Lorsque vous double-cliquez sur un fichier alors que l'application est déjà lancée :",
+  "fileOpenBehaviorNewWindow": "Ouvrir dans une nouvelle fenêtre",
+  "fileOpenBehaviorNewWindowDesc": "Autoriser plusieurs instances de l'application",
+  "fileOpenBehaviorNotSet": "Non configuré",
+  "fileOpenBehaviorTitle": "Comment ouvrir les fichiers ?",
+  "previewCopyAsHtmlSuccess": "Copié en HTML. Vous pouvez maintenant coller dans Word/WPS en conservant la mise en forme.",
+  "previewCopyAsHtmlTooltip": "Copier en HTML (pour Word/WPS)",
+  "updateAvailable": "Nouvelle version disponible",
+  "updateDismiss": "Ignorer"
 }

@@ -359,11 +359,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get editCopyAsHtml => 'Copier en HTML';
 
   @override
-  String get previewCopyAsHtmlTooltip => 'Copy as HTML (for Word/WPS)';
+  String get previewCopyAsHtmlTooltip => 'Copier en HTML (pour Word/WPS)';
 
   @override
   String get previewCopyAsHtmlSuccess =>
-      'Copied as HTML. You can now paste into Word/WPS with formatting.';
+      'Copié en HTML. Vous pouvez maintenant coller dans Word/WPS en conservant la mise en forme.';
 
   @override
   String get editSelectAll => 'Tout sélectionner';
@@ -713,36 +713,36 @@ class AppLocalizationsFr extends AppLocalizations {
   String get welcomeDragHint => 'Déposez des fichiers ici pour les ouvrir';
 
   @override
-  String get fileOpenBehavior => 'File Opening Behavior';
+  String get fileOpenBehavior => "Comportement à l'ouverture des fichiers";
 
   @override
-  String get fileOpenBehaviorTitle => 'How to Open Files?';
+  String get fileOpenBehaviorTitle => 'Comment ouvrir les fichiers ?';
 
   @override
   String get fileOpenBehaviorMessage =>
-      'When you double-click a file while the app is already running:';
+      "Lorsque vous double-cliquez sur un fichier alors que l'application est déjà lancée :";
 
   @override
-  String get fileOpenBehaviorNewWindow => 'Open in New Window';
+  String get fileOpenBehaviorNewWindow => 'Ouvrir dans une nouvelle fenêtre';
 
   @override
-  String get fileOpenBehaviorNewWindowDesc => 'Allow multiple app instances';
+  String get fileOpenBehaviorNewWindowDesc => "Autoriser plusieurs instances de l'application";
 
   @override
-  String get fileOpenBehaviorExistingWindow => 'Open in Current Window';
+  String get fileOpenBehaviorExistingWindow => 'Ouvrir dans la fenêtre actuelle';
 
   @override
   String get fileOpenBehaviorExistingWindowDesc =>
-      'Add to existing tabs (single instance)';
+      'Ajouter aux onglets existants (instance unique)';
 
   @override
-  String get fileOpenBehaviorNotSet => 'Not configured';
+  String get fileOpenBehaviorNotSet => 'Non configuré';
 
   @override
-  String get updateAvailable => 'New version available';
+  String get updateAvailable => 'Nouvelle version disponible';
 
   @override
-  String get updateDismiss => 'Dismiss';
+  String get updateDismiss => 'Ignorer';
 
   @override
   String get mermaidFullscreen => 'Plein écran';
