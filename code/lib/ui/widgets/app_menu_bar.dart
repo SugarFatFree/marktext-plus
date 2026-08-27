@@ -29,6 +29,11 @@ import '../editor/mermaid/parser/mermaid_parser.dart';
 import '../../providers/sidebar_provider.dart';
 import 'command_palette.dart';
 import '../../services/file_service.dart';
+import 'package:window_manager/window_manager.dart';
+import '../../providers/window_provider.dart';
+import '../../providers/update_provider.dart';
+import '../../services/update_service.dart';
+import '../../core/constants.dart';
 
 class AppMenuBar extends ConsumerWidget {
   const AppMenuBar({super.key});
@@ -710,27 +715,77 @@ class AppMenuBar extends ConsumerWidget {
   }
 
   Widget _buildWindowMenu(AppLocalizations l10n, WidgetRef ref) {
+    final isFullScreen = ref.watch(fullScreenProvider);
+    final isAlwaysOnTop = ref.watch(alwaysOnTopProvider);
+
     return SubmenuButton(
       menuChildren: [
         MenuItemButton(
+          // Was SystemNavigator.pop, which asks the app to leave the current
+          // route — on desktop that is a way to quit, not to minimise.
           child: Text(l10n.windowMinimize),
-          onPressed: () => SystemChannels.platform.invokeMethod('SystemNavigator.pop'),
+          onPressed: windowManager.minimize,
         ),
         MenuItemButton(
-          child: Text(l10n.windowFullScreen),
-          onPressed: () {
-            // Full screen toggle not available without window_manager
-          },
+          child: Text(
+            isFullScreen ? '${l10n.windowFullScreen} \u2713' : l10n.windowFullScreen,
+          ),
+          onPressed: () => _toggleFullScreen(ref),
         ),
         MenuItemButton(
-          child: Text(l10n.windowAlwaysOnTop),
-          onPressed: () {
-            // Always on top not available without window_manager
-          },
+          child: Text(
+            isAlwaysOnTop
+                ? '${l10n.windowAlwaysOnTop} \u2713'
+                : l10n.windowAlwaysOnTop,
+          ),
+          onPressed: () => _toggleAlwaysOnTop(ref),
         ),
       ],
       child: Text(l10n.menuWindow, style: const TextStyle(fontSize: 13)),
     );
+  }
+
+  /// Both toggles ask the window what it is doing before flipping it, so a
+  /// change made outside the menu cannot leave them inverted.
+  static Future<void> _toggleFullScreen(WidgetRef ref) async {
+    final next = !await windowManager.isFullScreen();
+    await windowManager.setFullScreen(next);
+    ref.read(fullScreenProvider.notifier).state = next;
+  }
+
+  static Future<void> _toggleAlwaysOnTop(WidgetRef ref) async {
+    final next = !await windowManager.isAlwaysOnTop();
+    await windowManager.setAlwaysOnTop(next);
+    ref.read(alwaysOnTopProvider.notifier).state = next;
+  }
+
+  /// Asks GitHub whether there is a newer release and says what it found.
+  ///
+  /// A check that reports nothing looks like a menu item that does nothing,
+  /// so all three outcomes — newer version, up to date, could not reach the
+  /// server — are shown.
+  static Future<void> _checkForUpdatesNow(
+    WidgetRef ref,
+    AppLocalizations l10n,
+  ) async {
+    final result = await UpdateService.checkForUpdate(AppConstants.appVersion);
+    final update = result.update;
+
+    if (update != null) {
+      // The status bar indicator is the app's existing way of saying this.
+      ref.read(updateProvider.notifier).setUpdate(update);
+    }
+
+    final context = navigatorKey.currentContext;
+    if (context == null || !context.mounted) return;
+
+    final message = !result.reachable
+        ? l10n.updateCheckFailed
+        : update != null
+            ? '${l10n.updateAvailable}: ${update.version}'
+            : l10n.updateUpToDate;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   Widget _buildHelpMenu(AppLocalizations l10n, WidgetRef ref) {
@@ -749,8 +804,10 @@ class AppMenuBar extends ConsumerWidget {
         ),
         const Divider(height: 1),
         MenuItemButton(
+          // Was a link to the releases page: an item called "Check for
+          // Updates" that checks nothing. The app already knows how to ask.
           child: Text(l10n.helpCheckUpdates),
-          onPressed: () => _launchUrl('https://github.com/SugarFatFree/marktext-plus/releases'),
+          onPressed: () => _checkForUpdatesNow(ref, l10n),
         ),
         MenuItemButton(
           child: Text(l10n.helpChangelog),

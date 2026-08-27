@@ -198,7 +198,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
       (c) => c.copyWith(lastUpdateCheck: now.toIso8601String()),
     );
 
-    final update = await UpdateService.checkForUpdate(AppConstants.appVersion);
+    // The automatic check stays quiet when it cannot reach GitHub; only a
+    // check the user asked for reports that.
+    final update =
+        (await UpdateService.checkForUpdate(AppConstants.appVersion)).update;
     if (update != null && update.version != config.skipVersion) {
       ref.read(updateProvider.notifier).setUpdate(update);
     }

@@ -799,4 +799,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get formatHtmlBlock => 'HTML ブロック';
+  @override
+  String get updateUpToDate => '最新バージョンです';
+
+  @override
+  String get updateCheckFailed => '更新を確認できませんでした';
 }

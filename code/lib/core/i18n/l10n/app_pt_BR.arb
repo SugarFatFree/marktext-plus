@@ -269,5 +269,7 @@
   "fileClearRecentFiles": "Limpar arquivos recentes",
   "viewCommandPalette": "Paleta de comandos",
   "formatFrontMatter": "Front matter",
-  "formatHtmlBlock": "Bloco HTML"
+  "formatHtmlBlock": "Bloco HTML",
+  "updateUpToDate": "Você está usando a versão mais recente",
+  "updateCheckFailed": "Não foi possível verificar atualizações"
 }

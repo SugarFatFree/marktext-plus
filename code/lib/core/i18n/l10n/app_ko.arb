@@ -269,5 +269,7 @@
   "fileClearRecentFiles": "최근 파일 지우기",
   "viewCommandPalette": "명령 팔레트",
   "formatFrontMatter": "프런트 매터",
-  "formatHtmlBlock": "HTML 블록"
+  "formatHtmlBlock": "HTML 블록",
+  "updateUpToDate": "최신 버전입니다",
+  "updateCheckFailed": "업데이트를 확인하지 못했습니다"
 }

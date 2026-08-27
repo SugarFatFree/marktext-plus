@@ -801,4 +801,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get formatHtmlBlock => 'كتلة HTML';
+  @override
+  String get updateUpToDate => 'أنت تستخدم أحدث إصدار';
+
+  @override
+  String get updateCheckFailed => 'تعذّر التحقق من التحديثات';
 }

@@ -802,4 +802,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get formatHtmlBlock => 'HTML Block';
+  @override
+  String get updateUpToDate => 'You are on the latest version';
+
+  @override
+  String get updateCheckFailed => 'Could not check for updates';
 }

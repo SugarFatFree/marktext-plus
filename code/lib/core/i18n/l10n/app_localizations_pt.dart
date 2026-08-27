@@ -805,6 +805,11 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get formatHtmlBlock => 'Bloco HTML';
+  @override
+  String get updateUpToDate => 'Está a usar a versão mais recente';
+
+  @override
+  String get updateCheckFailed => 'Não foi possível procurar atualizações';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -1567,4 +1572,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get formatHtmlBlock => 'Bloco HTML';
+  @override
+  String get updateUpToDate => 'Você está usando a versão mais recente';
+
+  @override
+  String get updateCheckFailed => 'Não foi possível verificar atualizações';
 }

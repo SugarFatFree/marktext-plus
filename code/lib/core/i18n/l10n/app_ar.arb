@@ -269,5 +269,7 @@
   "fileClearRecentFiles": "مسح الملفات الأخيرة",
   "viewCommandPalette": "لوحة الأوامر",
   "formatFrontMatter": "بيانات المقدمة",
-  "formatHtmlBlock": "كتلة HTML"
+  "formatHtmlBlock": "كتلة HTML",
+  "updateUpToDate": "أنت تستخدم أحدث إصدار",
+  "updateCheckFailed": "تعذّر التحقق من التحديثات"
 }

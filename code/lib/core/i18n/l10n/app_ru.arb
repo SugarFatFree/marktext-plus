@@ -269,5 +269,7 @@
   "fileClearRecentFiles": "Очистить недавние файлы",
   "viewCommandPalette": "Палитра команд",
   "formatFrontMatter": "Front matter",
-  "formatHtmlBlock": "HTML-блок"
+  "formatHtmlBlock": "HTML-блок",
+  "updateUpToDate": "У вас последняя версия",
+  "updateCheckFailed": "Не удалось проверить обновления"
 }

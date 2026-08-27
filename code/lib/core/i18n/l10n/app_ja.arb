@@ -269,5 +269,7 @@
   "fileClearRecentFiles": "最近のファイルを消去",
   "viewCommandPalette": "コマンドパレット",
   "formatFrontMatter": "フロントマター",
-  "formatHtmlBlock": "HTML ブロック"
+  "formatHtmlBlock": "HTML ブロック",
+  "updateUpToDate": "最新バージョンです",
+  "updateCheckFailed": "更新を確認できませんでした"
 }

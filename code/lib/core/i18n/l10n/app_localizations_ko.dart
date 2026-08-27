@@ -799,4 +799,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get formatHtmlBlock => 'HTML 블록';
+  @override
+  String get updateUpToDate => '최신 버전입니다';
+
+  @override
+  String get updateCheckFailed => '업데이트를 확인하지 못했습니다';
 }

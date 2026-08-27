@@ -804,4 +804,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get formatHtmlBlock => 'HTML-Block';
+  @override
+  String get updateUpToDate => 'Sie verwenden die neueste Version';
+
+  @override
+  String get updateCheckFailed => 'Suche nach Updates fehlgeschlagen';
 }

@@ -803,4 +803,9 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get formatHtmlBlock => 'HTML-блок';
+  @override
+  String get updateUpToDate => 'У вас последняя версия';
+
+  @override
+  String get updateCheckFailed => 'Не удалось проверить обновления';
 }

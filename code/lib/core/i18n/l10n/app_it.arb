@@ -269,5 +269,7 @@
   "fileClearRecentFiles": "Svuota file recenti",
   "viewCommandPalette": "Riquadro comandi",
   "formatFrontMatter": "Front matter",
-  "formatHtmlBlock": "Blocco HTML"
+  "formatHtmlBlock": "Blocco HTML",
+  "updateUpToDate": "Stai usando l’ultima versione",
+  "updateCheckFailed": "Impossibile verificare gli aggiornamenti"
 }

@@ -796,4 +796,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get formatHtmlBlock => 'HTML 块';
+  @override
+  String get updateUpToDate => '已经是最新版本';
+
+  @override
+  String get updateCheckFailed => '检查更新失败';
 }

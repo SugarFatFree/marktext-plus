@@ -269,5 +269,7 @@
   "fileClearRecentFiles": "Effacer les fichiers récents",
   "viewCommandPalette": "Palette de commandes",
   "formatFrontMatter": "En-tête YAML",
-  "formatHtmlBlock": "Bloc HTML"
+  "formatHtmlBlock": "Bloc HTML",
+  "updateUpToDate": "Vous utilisez la dernière version",
+  "updateCheckFailed": "Impossible de vérifier les mises à jour"
 }

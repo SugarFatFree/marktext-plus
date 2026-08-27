@@ -269,5 +269,7 @@
   "fileClearRecentFiles": "Zuletzt verwendete leeren",
   "viewCommandPalette": "Befehlspalette",
   "formatFrontMatter": "Front Matter",
-  "formatHtmlBlock": "HTML-Block"
+  "formatHtmlBlock": "HTML-Block",
+  "updateUpToDate": "Sie verwenden die neueste Version",
+  "updateCheckFailed": "Suche nach Updates fehlgeschlagen"
 }

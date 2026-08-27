@@ -347,5 +347,13 @@
   "formatHtmlBlock": "HTML Block",
   "@formatHtmlBlock": {
     "description": "Paragraph menu item that inserts an HTML block"
+  },
+  "updateUpToDate": "You are on the latest version",
+  "@updateUpToDate": {
+    "description": "Shown when a manual update check finds nothing newer"
+  },
+  "updateCheckFailed": "Could not check for updates",
+  "@updateCheckFailed": {
+    "description": "Shown when a manual update check could not reach the server"
   }
 }

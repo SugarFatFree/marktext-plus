@@ -806,4 +806,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get formatHtmlBlock => 'Bloc HTML';
+  @override
+  String get updateUpToDate => 'Vous utilisez la dernière version';
+
+  @override
+  String get updateCheckFailed => 'Impossible de vérifier les mises à jour';
 }

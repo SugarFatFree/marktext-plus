@@ -1678,6 +1678,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'HTML Block'**
   String get formatHtmlBlock;
+
+  /// Shown when a manual update check finds nothing newer
+  ///
+  /// In en, this message translates to:
+  /// **'You are on the latest version'**
+  String get updateUpToDate;
+
+  /// Shown when a manual update check could not reach the server
+  ///
+  /// In en, this message translates to:
+  /// **'Could not check for updates'**
+  String get updateCheckFailed;
 }
 
 class _AppLocalizationsDelegate
