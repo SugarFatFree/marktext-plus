@@ -14,6 +14,7 @@ import '../../providers/settings_provider.dart';
 import '../../providers/tab_provider.dart';
 import '../screens/settings_screen.dart';
 import '../../providers/sidebar_provider.dart';
+import '../../services/file_service.dart';
 
 
 class SideBar extends ConsumerStatefulWidget {
@@ -537,9 +538,13 @@ class _SideBarState extends ConsumerState<SideBar> {
 
     // Load file content asynchronously
     try {
-      final content = await File(filePath).readAsString();
+      // Through FileService so CRLF is normalised and remembered; reading
+      // the file directly left \r\n in the document, which breaks Markdown
+      // syntax in the preview and in every export.
+      final opened = await FileService().readFileWithLineEnding(filePath);
       if (!mounted) return;
-      tabNotifier.loadTabContent(tabId, content);
+      tabNotifier.loadTabContent(tabId, opened.content,
+          lineEnding: opened.lineEnding);
     } catch (_) {
       // Read failed – remove the loading tab
       if (!mounted) return;

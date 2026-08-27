@@ -21,6 +21,7 @@ import '../../services/export_service.dart';
 import '../../services/clipboard_service.dart';
 import 'mermaid/parser/mermaid_parser.dart';
 import '../widgets/mermaid_renderer.dart';
+import '../../services/file_service.dart';
 
 class MarkdownRenderer extends ConsumerStatefulWidget {
   final String markdown;
@@ -162,13 +163,14 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     final file = File(resolvedPath);
     if (!file.existsSync()) return;
 
-    final content = await file.readAsString();
+    final opened = await FileService().readFileWithLineEnding(resolvedPath);
     ref.read(tabProvider.notifier).addTab(
       TabInfo(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         filePath: resolvedPath,
         fileName: p.basename(resolvedPath),
-        content: content,
+        content: opened.content,
+        lineEnding: opened.lineEnding,
       ),
     );
   }

@@ -1,11 +1,26 @@
 import 'dart:io';
 import 'package:path/path.dart' as p;
 import '../models/file_node.dart';
+import '../models/line_ending.dart';
 
 class FileService {
   Future<String> readFile(String path) async {
     final content = await File(path).readAsString();
     return normalizeLineEndings(content);
+  }
+
+  /// Reads [path] and reports which line ending it used.
+  ///
+  /// The editor works in LF throughout, but saving has to put back what the
+  /// file had: rewriting a CRLF file as LF turns a one-word edit into a
+  /// whole-file diff for anyone on Windows.
+  Future<({String content, LineEnding lineEnding})> readFileWithLineEnding(
+      String path) async {
+    final raw = await File(path).readAsString();
+    return (
+      content: normalizeLineEndings(raw),
+      lineEnding: LineEnding.detect(raw),
+    );
   }
 
   /// Converts CRLF and lone CR to LF.
@@ -16,6 +31,18 @@ class FileService {
   static String normalizeLineEndings(String text) {
     if (!text.contains('\r')) return text;
     return text.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
+  }
+
+  /// Writes [content], which is held in LF, using [lineEnding].
+  ///
+  /// Every path that saves a document goes through here, so the choice cannot
+  /// be honoured in one place and forgotten in another.
+  static Future<void> saveDocument(
+    String path,
+    String content, {
+    LineEnding lineEnding = LineEnding.lf,
+  }) async {
+    await File(path).writeAsString(lineEnding.apply(content));
   }
 
   Future<void> writeFile(String path, String content) async {

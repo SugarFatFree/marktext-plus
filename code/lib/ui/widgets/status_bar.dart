@@ -10,6 +10,7 @@ import '../../providers/update_provider.dart';
 import '../../providers/word_count_provider.dart';
 import '../../services/update_service.dart';
 import '../editor/syntax_highlighter.dart';
+import '../../models/line_ending.dart';
 
 class StatusBar extends ConsumerWidget {
   const StatusBar({super.key});
@@ -23,6 +24,8 @@ class StatusBar extends ConsumerWidget {
     final highlightOff = ref.watch(activeTabProvider.select((tab) =>
         (tab?.content.length ?? 0) >
             IncrementalMarkdownHighlighter.maxHighlightedLength));
+    final lineEnding = ref.watch(
+        activeTabProvider.select((tab) => tab?.lineEnding ?? LineEnding.lf));
     final updateState = ref.watch(updateProvider);
     final l10n = AppLocalizations.of(context)!;
     final tokens = AppTheme.getTokens(ref.watch(settingsProvider).themeName);
@@ -45,7 +48,8 @@ class StatusBar extends ConsumerWidget {
           _divider(tokens),
           Text(l10n.statusMarkdown, style: style),
           _divider(tokens),
-          Text(l10n.statusLineFeed, style: style),
+          // Was the literal "LF" regardless of what the file actually used.
+          Text(lineEnding.label, style: style),
           if (highlightOff) ...[
             _divider(tokens),
             Text(l10n.statusHighlightOff, style: style),

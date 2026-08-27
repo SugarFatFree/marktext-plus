@@ -1,4 +1,5 @@
 import '../core/config/app_config.dart';
+import 'line_ending.dart';
 
 class TabInfo {
   final String id;
@@ -18,6 +19,9 @@ class TabInfo {
   double splitSourceScrollOffset;
   EditMode editMode;
 
+  /// What this document used on disk, so saving puts the same thing back.
+  LineEnding lineEnding;
+
   TabInfo({
     required this.id,
     this.filePath,
@@ -32,6 +36,7 @@ class TabInfo {
     this.splitScrollOffset = 0,
     this.splitSourceScrollOffset = 0,
     this.editMode = EditMode.preview,
+    this.lineEnding = LineEnding.lf,
   });
 
   TabInfo copyWith({
@@ -47,6 +52,7 @@ class TabInfo {
     double? splitScrollOffset,
     double? splitSourceScrollOffset,
     EditMode? editMode,
+    LineEnding? lineEnding,
   }) {
     return TabInfo(
       id: id,
@@ -62,6 +68,7 @@ class TabInfo {
       splitScrollOffset: splitScrollOffset ?? this.splitScrollOffset,
       splitSourceScrollOffset: splitSourceScrollOffset ?? this.splitSourceScrollOffset,
       editMode: editMode ?? this.editMode,
+      lineEnding: lineEnding ?? this.lineEnding,
     );
   }
 }

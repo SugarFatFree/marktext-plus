@@ -9,6 +9,7 @@ import '../../core/theme/app_theme.dart';
 import '../../models/tab_info.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/tab_provider.dart';
+import '../../services/file_service.dart';
 
 /// What the user chose when asked about unsaved work.
 enum _UnsavedChoice { cancel, discard, save }
@@ -95,7 +96,8 @@ class EditorTabBar extends ConsumerWidget {
     }
 
     try {
-      await File(path).writeAsString(tab.content);
+      await FileService.saveDocument(path, tab.content,
+          lineEnding: tab.lineEnding);
     } catch (_) {
       // Closing on a failed write would lose the content the save was meant
       // to protect.

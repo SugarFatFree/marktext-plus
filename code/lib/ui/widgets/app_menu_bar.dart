@@ -28,6 +28,7 @@ import 'editor_tab_bar.dart';
 import '../editor/mermaid/parser/mermaid_parser.dart';
 import '../../providers/sidebar_provider.dart';
 import 'command_palette.dart';
+import '../../services/file_service.dart';
 
 class AppMenuBar extends ConsumerWidget {
   const AppMenuBar({super.key});
@@ -104,12 +105,13 @@ class AppMenuBar extends ConsumerWidget {
     if (result == null || result.files.isEmpty) return;
     final path = result.files.single.path;
     if (path == null) return;
-    final content = await File(path).readAsString();
+    final opened = await FileService().readFileWithLineEnding(path);
     final tab = TabInfo(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       filePath: path,
       fileName: p.basename(path),
-      content: content,
+      content: opened.content,
+      lineEnding: opened.lineEnding,
     );
     ref.read(tabProvider.notifier).addTab(tab);
     ref.read(settingsProvider.notifier).addRecentFile(path);
@@ -130,7 +132,8 @@ class AppMenuBar extends ConsumerWidget {
     final activeTab = ref.read(activeTabProvider);
     if (activeTab == null) return;
     if (activeTab.filePath != null) {
-      await File(activeTab.filePath!).writeAsString(activeTab.content);
+      await FileService.saveDocument(activeTab.filePath!, activeTab.content,
+          lineEnding: activeTab.lineEnding);
       ref.read(tabProvider.notifier).markSaved(activeTab.id);
     } else {
       _saveFileAs(ref);
@@ -147,7 +150,8 @@ class AppMenuBar extends ConsumerWidget {
       allowedExtensions: ['md', 'markdown', 'txt'],
     );
     if (path == null) return;
-    await File(path).writeAsString(activeTab.content);
+    await FileService.saveDocument(path, activeTab.content,
+        lineEnding: activeTab.lineEnding);
     ref.read(tabProvider.notifier).markSaved(activeTab.id);
   }
 
@@ -927,12 +931,13 @@ class AppMenuBar extends ConsumerWidget {
   void _openRecentFile(WidgetRef ref, String filePath) async {
     final file = File(filePath);
     if (!await file.exists()) return;
-    final content = await file.readAsString();
+    final opened = await FileService().readFileWithLineEnding(filePath);
     final tab = TabInfo(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       filePath: filePath,
       fileName: p.basename(filePath),
-      content: content,
+      content: opened.content,
+      lineEnding: opened.lineEnding,
     );
     ref.read(tabProvider.notifier).addTab(tab);
     ref.read(settingsProvider.notifier).addRecentFile(filePath);

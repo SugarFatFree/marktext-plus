@@ -8,6 +8,7 @@ import '../services/file_service.dart';
 import '../utils/platform_utils.dart';
 import 'editor_provider.dart';
 import 'settings_provider.dart';
+import '../models/line_ending.dart';
 
 /// Lightweight record of a file shown in the sidebar (no-folder mode).
 class OpenedFileEntry {
@@ -158,10 +159,14 @@ class TabNotifier extends StateNotifier<TabState> {
     _scheduleAutoSave(id);
   }
 
-  void loadTabContent(String id, String content) {
+  void loadTabContent(String id, String content, {LineEnding? lineEnding}) {
     final tabs = state.tabs.map((tab) {
       if (tab.id == id) {
-        return tab.copyWith(content: content, isLoading: false);
+        return tab.copyWith(
+          content: content,
+          isLoading: false,
+          lineEnding: lineEnding,
+        );
       }
       return tab;
     }).toList();
@@ -193,7 +198,8 @@ class TabNotifier extends StateNotifier<TabState> {
     final tab = state.tabs.where((t) => t.id == tabId).firstOrNull;
     if (tab == null || tab.filePath == null || !tab.isModified) return;
     try {
-      await File(tab.filePath!).writeAsString(tab.content);
+      await FileService.saveDocument(tab.filePath!, tab.content,
+          lineEnding: tab.lineEnding);
       markSaved(tabId);
     } catch (_) {
       // Left marked as modified so the close confirmation still fires and the
@@ -273,12 +279,13 @@ class TabNotifier extends StateNotifier<TabState> {
         continue;
       }
       try {
-        final content = await fileService.readFile(path);
+        final opened = await fileService.readFileWithLineEnding(path);
         final tab = TabInfo(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
           filePath: path,
           fileName: p.basename(path),
-          content: content,
+          content: opened.content,
+          lineEnding: opened.lineEnding,
           isModified: false,
         );
         addTab(tab);

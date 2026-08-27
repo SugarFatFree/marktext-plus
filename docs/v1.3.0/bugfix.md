@@ -69,6 +69,8 @@
 | BUG-060 | 2026-08-27 | 菜单里所有快捷键都只是「画上去的」，按了没反应 | **P0** | 已修复 |
 | BUG-061 | 2026-08-27 | 配置非原子写入且可并发，一次崩溃就让全部设置回到默认 | **P0** | 已修复 |
 | BUG-062 | 2026-08-27 | `graph TD` 等 7 种图表导出成纯代码块；四份图表语言清单已互相漂移 | P1 | 已修复 |
+| BUG-063 | 2026-08-27 | 保存会把 CRLF 文件整篇改写成 LF；状态栏恒显示「LF」 | **P0** | 已修复 |
+| BUG-064 | 2026-08-27 | 五条打开路径绕过换行归一化；拖入/启动打开的文件立刻被标记为已修改 | P1 | 已修复 |
 
 ---
 
@@ -997,6 +999,38 @@
 | 涉及文件 | `lib/services/export_service.dart`、`lib/ui/widgets/app_menu_bar.dart`、`test/fixtures_showcase_test.dart` |
 | 验证方式 | 新增端到端断言：把 `showcase.md` 里**每一个**预览会渲染的图表块过一遍 `nodeToHtml`，都必须输出 `<pre class="mermaid">`；另断言未知标签仍退回普通代码块。本地另用桩逐个标签对拍了新旧判定，确认变化正是上述 7 增 1 减 |
 | 同源问题 | 与 BUG-007（`markdown_renderer` 的 `_diagramLanguages` 错配）是同一个病根，当时只修了渲染器那一处，没有顺着找出其余三处 |
+
+---
+
+## BUG-063 保存会把 CRLF 文件整篇改写成 LF
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | **P0** |
+| 状态 | 已修复 |
+| 现象 | 打开一个 Windows 风格（CRLF）的 Markdown 文件，只改一个字保存 —— `git diff` 显示**整个文件每一行都变了**。状态栏则不论文件实际用什么，**永远显示「LF」** |
+| 根因分析 | 读入时把 CRLF 归一化成 LF（这是对的，编辑器内部统一用 LF 才好处理），但**保存时直接把归一化后的内容写回**，等于悄悄替用户改写了整个文件的行尾。状态栏那个「LF」则根本是 arb 里的一个**字面量**，不是从文件读出来的 |
+| 影响 | 对使用 Windows、或仓库里 `.gitattributes` 规定 CRLF 的用户，每次保存都会制造出一个全文件 diff，代码评审时几乎无法阅读。这属于**未经请求就改动用户文件** |
+| 修复方案 | ① 新增 `LineEnding` 模型：读入时 `detect`，随 `TabInfo` 记住，保存时 `apply` 还原；② 文档保存**六处分散实现**（`editor_tab_bar`、`app_menu_bar` ×2、`home_screen`、`tab_provider`）统一收敛到 `FileService.saveDocument`，行尾选择不可能在一处生效、在另一处遗漏；③ 状态栏改为显示 `tab.lineEnding.label`；④ 新建文档默认 LF |
+| 涉及文件 | `lib/models/line_ending.dart`（新增）、`lib/models/tab_info.dart`、`lib/services/file_service.dart`、`lib/providers/tab_provider.dart`、`lib/ui/widgets/{editor_tab_bar,app_menu_bar,status_bar}.dart`、`lib/ui/screens/home_screen.dart`、`test/models/line_ending_test.dart`（新增）、`test/services/file_service_test.dart` |
+| 验证方式 | 单测断言 **CRLF 文件读入再存回逐字节一致**、LF 文件同样、CRLF 展开不会产生 `\r\r\n`；本地对真实模型跑了 12 条断言全部通过 |
+
+---
+
+## BUG-064 五条打开路径绕过换行归一化
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+| 现象 | CLAUDE.md 里记着「已修复 `\r\n` 导致 Markdown 语法失效的问题」，但实际只在**一条**打开路径上生效 |
+| 根因分析 | 打开文档共有六条路径，其中**五条**直接 `File(path).readAsString()`，完全绕过 `FileService.readFile`：侧边栏点文件、文件→打开、最近文件、拖放/启动打开、预览里点本地 md 链接。只有「第二个实例转发过来的文件」走了 `FileService`。之所以看起来没问题，是因为 `HighlightingController` 在文本进入编辑器时又归一化了一次 —— 但 `tab.content` 里仍是 CRLF，而**预览和导出读的正是 `tab.content`**，所以在动手编辑之前，预览与导出看到的都是带 `\r` 的内容 |
+| 同批发现 | 拖放与启动打开这两条路径读完内容后调的是 `updateContent`，而它会把 `isModified` 置为 **true** —— 于是**刚打开的文件立刻就是「已修改」状态**：关闭时会弹未保存确认，自动保存也会无谓地重写一遍文件 |
+| 修复方案 | 五条路径统一改走 `FileService.readFileWithLineEnding`（隔离读取那两条因为要跨 isolate，改为在主 isolate 侧归一化）；`loadTabContent` 增加行尾参数，且它**不会**把标签置为已修改 |
+| 涉及文件 | `lib/ui/widgets/side_bar.dart`、`lib/ui/widgets/app_menu_bar.dart`、`lib/ui/screens/home_screen.dart`、`lib/ui/editor/markdown_renderer.dart`、`lib/providers/tab_provider.dart` |
+| 教训 | 与 BUG-062 同型：**同一件事有多份实现时，修好一份不等于修好了这件事**。这次直接把出口收敛成一个函数，而不是逐个打补丁 |
 
 ---
 

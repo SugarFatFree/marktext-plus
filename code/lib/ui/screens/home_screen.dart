@@ -29,6 +29,8 @@ import '../editor/source_editor.dart';
 import '../editor/markdown_renderer.dart';
 import '../editor/split_editor.dart';
 import '../../services/keybinding_service.dart';
+import '../../services/file_service.dart';
+import '../../models/line_ending.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -323,7 +325,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
   void _saveCurrentFile() async {
     final activeTab = ref.read(activeTabProvider);
     if (activeTab == null || activeTab.filePath == null) return;
-    await File(activeTab.filePath!).writeAsString(activeTab.content);
+    await FileService.saveDocument(activeTab.filePath!, activeTab.content,
+        lineEnding: activeTab.lineEnding);
     ref.read(tabProvider.notifier).markSaved(activeTab.id);
   }
 
@@ -355,8 +358,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
         WidgetsBinding.instance.addPostFrameCallback((_) async {
           try {
             // Read file content in isolate for large files
-            final content = await compute(_readFileInIsolate, path);
-            ref.read(tabProvider.notifier).updateContent(tabId, content);
+            final raw = await compute(_readFileInIsolate, path);
+            ref.read(tabProvider.notifier).loadTabContent(
+                  tabId,
+                  FileService.normalizeLineEndings(raw),
+                  lineEnding: LineEnding.detect(raw),
+                );
           } catch (e) {
             // Handle error: remove the loading tab or show error state
             ref.read(tabProvider.notifier).removeTab(tabId);
@@ -368,7 +375,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
     }
   }
 
-  // Top-level or static function for compute isolate
+  /// Reads [path] off the UI isolate.
+  ///
+  /// Returns the bytes as they are: line endings are inspected and normalised
+  /// on the main isolate, where the result is needed anyway, rather than
+  /// sending a record across the boundary.
   static Future<String> _readFileInIsolate(String path) async {
     return await File(path).readAsString();
   }
@@ -410,8 +421,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
         WidgetsBinding.instance.addPostFrameCallback((_) async {
           try {
             // Read file content in isolate for large files
-            final content = await compute(_readFileInIsolate, path);
-            ref.read(tabProvider.notifier).updateContent(tabId, content);
+            final raw = await compute(_readFileInIsolate, path);
+            ref.read(tabProvider.notifier).loadTabContent(
+                  tabId,
+                  FileService.normalizeLineEndings(raw),
+                  lineEnding: LineEnding.detect(raw),
+                );
           } catch (e) {
             ref.read(tabProvider.notifier).removeTab(tabId);
           }
