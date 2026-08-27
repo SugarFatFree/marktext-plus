@@ -23,7 +23,7 @@
 | BUG-014 | 2026-08-27 | 测试对含不确定型进度条的界面调 `pumpAndSettle()`，CI 挂起 20 分钟以上 | P1 | 已修复 |
 | BUG-015 | 2026-08-27 | `mermaid_renderer.dart` 工具栏文案硬编码中文，未走 i18n | P2 | 已修复 |
 | BUG-016 | 2026-08-27 | 预览模式双击编辑的手势识别器使块内复选框延迟约 300ms 才响应 | P2 | 已修复 |
-| BUG-017 | 2026-08-27 | 对已有标题再次应用标题格式会叠加 `#`，`# Title` 变成 `## # Title` | P1 | 已修复 |
+| BUG-017 | 2026-08-27 | 行前缀无条件叠加：标题、列表、引用格式重复应用都会累积标记 | P1 | 已修复 |
 
 ---
 
@@ -258,7 +258,8 @@
 | 发现日期 | 2026-08-27 |
 | 优先级 | P1 |
 | 状态 | 已修复 |
-| 现象 | 光标停在 `# Title` 上，再点「标题 2」，结果变成 `## # Title` 而不是 `## Title` |
-| 根因分析 | `source_editor.dart` 的六个标题动作统一调用 `_insertLinePrefix('## ')`，该函数**无条件**在行首插入前缀，从不检查行上是否已有标题标记。在实现 Paragraph 菜单、阅读这段代码时发现 |
+| 现象 | 光标停在 `# Title` 上再点「标题 2」得到 `## # Title`；`- item` 再点「无序列表」得到 `- - item`；`> quote` 再点「引用」得到 `> > quote`；`1. item` 点「无序列表」得到 `- 1. item` |
+| 根因分析 | `source_editor.dart` 的 `_insertLinePrefix` **无条件**在行首插入前缀，从不检查行上已有什么。六个标题动作、有序/无序/任务列表、引用块共 10 个动作全部走它。实现 Paragraph 菜单、阅读这段代码时发现，先只注意到标题，随后核对调用点才发现列表与引用同样受影响 |
 | 修复方案 | 新增 `_setHeadingLevel(int? level)`：先用 `^(#{1,6})\s+` 剥掉已有标记再写入新级别，`level` 为 null 时还原为普通段落。六个标题动作改为调用它。<br>顺带补上 Paragraph 菜单缺失的三个动作：`promoteHeading`（提升，H2→H1，越过 H1 则还原为段落）、`demoteHeading`（降低，H1→H2，普通段落降级则从 H1 起步，H6 到顶不再变化）、`toParagraph`。默认快捷键 `Ctrl+=` / `Ctrl+-`，并为 `_labelToKey` 补上 `=` 与 `-` 的映射 |
-| 涉及文件 | `lib/ui/editor/source_editor.dart`、`lib/providers/editor_provider.dart`、`lib/ui/widgets/app_menu_bar.dart`、`lib/services/keybinding_service.dart`、`lib/core/i18n/l10n/*` |
+| 补充修复 | 列表与引用改用 `SourceEditor.applyLinePrefix(line, prefix)`：同前缀切换关闭、同家族替换、保留缩进（缩进承载列表层级）。该函数提为公开静态纯函数以便单测 —— 通过 widget 测一行文本要搭一整个编辑器。<br>验证时抓到一处逻辑错误：`- [x] item` 应用「无序列表」曾得到 `[x] item`，因为它确实以 `- ` 开头而被判为「切换关闭」。改为比较家族匹配到的**完整**标记，`- [x] ` ≠ `- `，于是走替换分支得到 `- item` |
+| 涉及文件 | `lib/ui/editor/source_editor.dart`、`lib/providers/editor_provider.dart`、`lib/ui/widgets/app_menu_bar.dart`、`lib/services/keybinding_service.dart`、`lib/core/i18n/l10n/*`、`test/ui/editor/source_editor_prefix_test.dart` |

@@ -22,6 +22,44 @@ class SourceEditor extends ConsumerStatefulWidget {
 
   @override
   ConsumerState<SourceEditor> createState() => _SourceEditorState();
+
+  /// Any list marker, ordered or not, with an optional task box.
+  static final _listPrefixRe =
+      RegExp(r'^(\s*)(?:[-*+]\s+(?:\[[ xX]\]\s+)?|\d+[.)]\s+)');
+
+  /// A blockquote marker.
+  static final _quotePrefixRe = RegExp(r'^(\s*)>\s?');
+
+  /// Applies [prefix] to [line].
+  ///
+  /// Toggles off when the line already starts with exactly this prefix, and
+  /// replaces a prefix of the same family otherwise — so applying "bullet
+  /// list" to `1. item` gives `- item`, not `- 1. item`. Leading indentation
+  /// is preserved, since it carries list nesting.
+  ///
+  /// Exposed for testing: this is pure string work, and testing it through the
+  /// widget would need a whole editor to assert one line.
+  @visibleForTesting
+  static String applyLinePrefix(String line, String prefix) {
+    final family =
+        prefix.trimLeft().startsWith('>') ? _quotePrefixRe : _listPrefixRe;
+
+    final indent = RegExp(r'^\s*').firstMatch(line)!.group(0)!;
+    final body = line.substring(indent.length);
+
+    final existing = family.firstMatch(line);
+    if (existing == null) return indent + prefix + body;
+
+    // Compare against the whole marker the family matched, not just the
+    // string's start: `- [x] item` begins with `- `, but applying "bullet
+    // list" to it should drop the task box, not leave `[x] item` behind.
+    final existingPrefix = line.substring(indent.length, existing.end);
+    if (existingPrefix == prefix) {
+      return indent + line.substring(existing.end);
+    }
+
+    return indent + prefix + line.substring(existing.end);
+  }
 }
 
 class _SourceEditorState extends ConsumerState<SourceEditor> {
@@ -322,13 +360,13 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
       case FormatAction.toParagraph:
         _setHeadingLevel(null);
       case FormatAction.orderedList:
-        _insertLinePrefix('1. ');
+        _applyLinePrefixAtCursor('1. ');
       case FormatAction.unorderedList:
-        _insertLinePrefix('- ');
+        _applyLinePrefixAtCursor('- ');
       case FormatAction.taskList:
-        _insertLinePrefix('- [ ] ');
+        _applyLinePrefixAtCursor('- [ ] ');
       case FormatAction.quoteBlock:
-        _insertLinePrefix('> ');
+        _applyLinePrefixAtCursor('> ');
       case FormatAction.codeBlock:
         _insertBlock('```\n', '\n```');
       case FormatAction.mathBlock:
@@ -541,18 +579,28 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     }
   }
 
-  void _insertLinePrefix(String prefix) {
+  void _applyLinePrefixAtCursor(String prefix) {
     final selection = _controller.selection;
     final text = _controller.text;
     final offset = selection.baseOffset.clamp(0, text.length);
 
-    // Find the start of the current line
-    int lineStart = text.lastIndexOf('\n', offset > 0 ? offset - 1 : 0);
+    var lineStart = text.lastIndexOf('\n', offset > 0 ? offset - 1 : 0);
     lineStart = lineStart == -1 ? 0 : lineStart + 1;
+    var lineEnd = text.indexOf('\n', lineStart);
+    if (lineEnd == -1) lineEnd = text.length;
+
+    final line = text.substring(lineStart, lineEnd);
+    final replacement = SourceEditor.applyLinePrefix(line, prefix);
+    final delta = replacement.length - line.length;
 
     _controller.value = TextEditingValue(
-      text: text.substring(0, lineStart) + prefix + text.substring(lineStart),
-      selection: TextSelection.collapsed(offset: offset + prefix.length),
+      text: text.substring(0, lineStart) +
+          replacement +
+          text.substring(lineEnd),
+      selection: TextSelection.collapsed(
+        offset:
+            (offset + delta).clamp(lineStart, lineStart + replacement.length),
+      ),
     );
   }
 
