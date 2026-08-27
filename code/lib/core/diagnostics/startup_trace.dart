@@ -48,22 +48,25 @@ class StartupTrace {
     });
   }
 
-  /// Writes everything recorded so far.
+  /// Writes everything recorded so far. Returns whether it landed.
   ///
   /// Called on a timer, and directly at the end of a run: the window is about
   /// to be destroyed there, and a pending timer would never fire.
-  static void flush() {
+  static bool flush() {
     final path = _logPath;
-    if (path == null) return;
+    if (path == null) return false;
     try {
       File(path).writeAsStringSync(
         'MarkText Plus startup trace\n'
         '${DateTime.now().toIso8601String()}\n'
+        'log: $path\n'
         '${_lines.join('\n')}\n',
         flush: true,
       );
+      return true;
     } catch (_) {
       // Diagnostics must never be the reason the app fails to start.
+      return false;
     }
   }
 
@@ -71,9 +74,25 @@ class StartupTrace {
   ///
   /// Everything recorded before this point is flushed now, so the marks from
   /// before the directory was resolved are not lost.
+  ///
+  /// Beside the executable when that folder can be written to, and only then
+  /// the config directory. Someone running a build from an unzipped folder
+  /// finds the log next to the program; hunting through `%APPDATA%` for it is
+  /// its own small ordeal, and one the person reporting a slow start should
+  /// not have to go through.
   static void useDirectory(String directory) {
-    _logPath = '$directory${Platform.pathSeparator}startup-trace.log';
-    flush();
+    for (final candidate in [_beside(Platform.resolvedExecutable), directory]) {
+      if (candidate == null) continue;
+      _logPath = '$candidate${Platform.pathSeparator}startup-trace.log';
+      if (flush()) return;
+    }
+    _logPath = null;
+  }
+
+  /// The directory holding [executable], or null if it cannot be determined.
+  static String? _beside(String executable) {
+    final cut = executable.lastIndexOf(Platform.pathSeparator);
+    return cut <= 0 ? null : executable.substring(0, cut);
   }
 
   /// Times [body] and records it as [phase].
