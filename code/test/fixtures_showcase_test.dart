@@ -168,6 +168,16 @@ void main() {
     expect(html.indexOf('nested'), greaterThan(html.indexOf('one')));
   });
 
+  test('a loose list exports its items as paragraphs', () {
+    // Blank lines between items make the list loose, and the paragraph is
+    // what a browser turns into space between them.
+    final loose = MarkdownParser().parse('- one\n\n- two\n').single;
+    expect(ExportService.nodeToHtml(loose), contains('<li><p>one</p></li>'));
+
+    final tight = MarkdownParser().parse('- one\n- two\n').single;
+    expect(ExportService.nodeToHtml(tight), contains('<li>one</li>'));
+  });
+
   test('an ordered list exports the number it starts at', () {
     // `<ol>` alone always restarts at one, so a document that continues a
     // numbered sequence lost its place on export.

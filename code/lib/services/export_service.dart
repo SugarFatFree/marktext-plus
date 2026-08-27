@@ -771,7 +771,12 @@ class ExportService {
       final checkbox = item.isTask
           ? '<input type="checkbox" ${item.isChecked ? 'checked ' : ''}disabled> '
           : '';
-      buffer.writeln('  <li>$checkbox$content</li>');
+      // A loose list wraps each item in a paragraph, which is what a browser
+      // turns into space between the items. Without it a list the author
+      // wrote with blank lines exported as tight as one written without.
+      final body =
+          list.isLoose ? '<p>$checkbox$content</p>' : '$checkbox$content';
+      buffer.writeln('  <li>$body</li>');
     }
 
     while (depth > 0) {

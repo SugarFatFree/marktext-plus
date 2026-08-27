@@ -470,6 +470,39 @@ void main() {
     });
   });
 
+  group('Loose and tight lists', () {
+    final parser = MarkdownParser();
+
+    ListNode listOf(String source) =>
+        parser.parse(source).whereType<ListNode>().first;
+
+    test('a blank line between items makes the list loose', () {
+      expect(listOf('- a\n\n- b\n\n- c').isLoose, isTrue);
+      expect(listOf('- a\n- b\n- c').isLoose, isFalse);
+    });
+
+    test('one gap anywhere is enough', () {
+      expect(listOf('- a\n- b\n\n- c').isLoose, isTrue);
+    });
+
+    test('a continuation line is not a gap', () {
+      // `- first` wrapping onto the next line keeps the list tight.
+      expect(listOf('- first\n  continued\n- second').isLoose, isFalse);
+    });
+
+    test('ordered and task lists report it too', () {
+      expect(listOf('1. a\n\n2. b').isLoose, isTrue);
+      expect(listOf('- [ ] a\n\n- [x] b').isLoose, isTrue);
+    });
+
+    test('the items themselves are unchanged either way', () {
+      expect(listOf('- a\n\n- b').items.map((i) => i.content).toList(), [
+        'a',
+        'b',
+      ]);
+    });
+  });
+
   group('Indented fenced code blocks', () {
     final parser = MarkdownParser();
 

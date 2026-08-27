@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A file that is not UTF-8 opens instead of the tab vanishing, and its encoding — including a UTF-8 byte order mark — is written back on save
 - The status bar shows the file's actual encoding, where it used to print the word "UTF-8" whatever the file was
 - Clicking the line ending in the status bar switches the document between LF and CRLF
+- A list written with blank lines between its items is drawn and exported with the spacing that asks for
 - Email addresses are linked, both `<foo@example.com>` and bare ones in prose
 - An open document reloads when the file changes on disk, as long as it has no unsaved edits
 - "Save as" rebinds the tab to the file it wrote, so the title updates and the next save no longer asks again

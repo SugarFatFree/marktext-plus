@@ -170,7 +170,19 @@ class ListNode extends MarkdownNode {
   final bool ordered;
   final List<ListItem> items;
 
-  ListNode({required this.ordered, required this.items});
+  /// Whether any two items were separated by a blank line.
+  ///
+  /// CommonMark calls such a list loose and renders each item as a paragraph,
+  /// which is what puts space between them. A list written with gaps was
+  /// coming out as tight as one written without, so the spacing the author
+  /// asked for was silently dropped.
+  final bool isLoose;
+
+  ListNode({
+    required this.ordered,
+    required this.items,
+    this.isLoose = false,
+  });
 
   @override
   NodeType get type => ordered ? NodeType.orderedList : NodeType.unorderedList;
@@ -637,9 +649,13 @@ class MarkdownParser {
   static bool _startsListItem(String line) =>
       _ulRe.hasMatch(line) || _olRe.hasMatch(line);
 
-  (List<List<String>>, int) _collectListItems(List<String> lines, int start) {
+  (List<List<String>>, int, bool) _collectListItems(
+    List<String> lines,
+    int start,
+  ) {
     final blocks = <List<String>>[];
     var i = start;
+    var loose = false;
 
     while (i < lines.length) {
       if (_startsListItem(lines[i])) {
@@ -655,6 +671,8 @@ class MarkdownParser {
         }
         // The list continues only if what follows the gap is another item.
         if (next < lines.length && _startsListItem(lines[next])) {
+          // A gap between two items is what makes the list loose.
+          loose = true;
           i = next;
           continue;
         }
@@ -670,7 +688,7 @@ class MarkdownParser {
       break;
     }
 
-    return (blocks, i);
+    return (blocks, i, loose);
   }
 
   /// Link reference definitions found in the document being parsed.
@@ -951,10 +969,14 @@ class MarkdownParser {
       }
       // Unordered list
       if (_ulRe.hasMatch(line)) {
-        final (itemBlocks, next) = _collectListItems(lines, i);
+        final (itemBlocks, next, loose) = _collectListItems(lines, i);
         i = next;
         nodes.add(_withSpan(
-          ListNode(ordered: false, items: _buildListItems(itemBlocks)),
+          ListNode(
+            ordered: false,
+            items: _buildListItems(itemBlocks),
+            isLoose: loose,
+          ),
           blockStart,
           i,
         ));
@@ -963,10 +985,14 @@ class MarkdownParser {
 
       // Ordered list
       if (_olRe.hasMatch(line)) {
-        final (itemBlocks, next) = _collectListItems(lines, i);
+        final (itemBlocks, next, loose) = _collectListItems(lines, i);
         i = next;
         nodes.add(_withSpan(
-          ListNode(ordered: true, items: _buildListItems(itemBlocks)),
+          ListNode(
+            ordered: true,
+            items: _buildListItems(itemBlocks),
+            isLoose: loose,
+          ),
           blockStart,
           i,
         ));

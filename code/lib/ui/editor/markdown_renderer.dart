@@ -732,6 +732,14 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     );
   }
 
+  /// Space under one item.
+  ///
+  /// A list whose items are separated by blank lines is loose, and CommonMark
+  /// renders each item as a paragraph — which is what puts air between them.
+  /// Drawing it as tight as a list written without gaps threw away spacing
+  /// the author asked for.
+  double _itemGap(md.ListNode node) => node.isLoose ? 12 : 4;
+
   Widget _buildListItem(
     md.ListNode listNode,
     md.ListItem item,
@@ -741,7 +749,10 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   ) {
     if (item.isTask) {
       return Padding(
-        padding: EdgeInsets.only(left: 16 + item.depth * 20.0, bottom: 4),
+        padding: EdgeInsets.only(
+          left: 16 + item.depth * 20.0,
+          bottom: _itemGap(listNode),
+        ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -766,7 +777,10 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     return Padding(
       // Nested items step in; without this a sub-list rendered flush with its
       // parent and the structure was invisible.
-      padding: EdgeInsets.only(left: 24 + item.depth * 20.0, bottom: 4),
+      padding: EdgeInsets.only(
+        left: 24 + item.depth * 20.0,
+        bottom: _itemGap(listNode),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
