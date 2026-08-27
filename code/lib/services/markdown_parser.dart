@@ -274,7 +274,13 @@ class MarkdownParser {
   ///
   /// [line] is 1-based, matching what the editor and the scroll targets use.
 
-  static final _headingRe = RegExp(r'^(#{1,6})\s+(.+)$');
+  /// One ATX heading.
+  ///
+  /// The optional run of #s at the end is a closing sequence, not content:
+  /// CommonMark drops it, and `## Section ##` was showing the trailing hashes
+  /// in the outline and in the rendered heading alike. Whitespace has to
+  /// precede it, so `# C#` keeps its hash.
+  static final _headingRe = RegExp(r'^(#{1,6})\s+(.+?)(?:\s+#+)?\s*$');
   static final _hrRe = RegExp(r'^(\*{3,}|-{3,}|_{3,})\s*$');
   /// A fence opening a code block.
   ///

@@ -472,6 +472,37 @@ void main() {
     });
   });
 
+  group('ATX heading closing sequence', () {
+    final parser = MarkdownParser();
+
+    test('trailing hashes are a closing sequence, not content', () {
+      for (final source in ['# Title #', '## Title ##', '### Title ###   ']) {
+        final heading = parser.parse(source).first as HeadingNode;
+        expect(heading.content, 'Title', reason: source);
+      }
+    });
+
+    test('a hash with no space before it stays in the text', () {
+      // `# C#` is a heading about C#, not a heading called C with a closing
+      // sequence — CommonMark requires whitespace in front of the run.
+      expect((parser.parse('# C#').first as HeadingNode).content, 'C#');
+      expect((parser.parse('# foo#').first as HeadingNode).content, 'foo#');
+    });
+
+    test('only a run at the very end closes the heading', () {
+      expect((parser.parse('# a # b').first as HeadingNode).content, 'a # b');
+      expect((parser.parse('# a # b #').first as HeadingNode).content, 'a # b');
+    });
+
+    test('the outline drops the closing sequence too', () {
+      // The outline and the rendered heading read the same regex, so this is
+      // the assertion that keeps them from drifting apart again.
+      final outline = MarkdownParser.headingOutline('# A #\n## B ##\n');
+
+      expect(outline.map((h) => h.text).toList(), ['A', 'B']);
+    });
+  });
+
   group('MarkdownParser.headingOutline', () {
     test('reports level, text and 1-based line', () {
       final outline = MarkdownParser.headingOutline('# One\n\n## Two\n');
