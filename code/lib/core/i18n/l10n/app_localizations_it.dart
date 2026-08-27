@@ -757,4 +757,16 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get mermaidSaveAsHint => 'Salva il diagramma come PNG';
+
+  @override
+  String get menuParagraph => 'Paragrafo';
+
+  @override
+  String get paragraphPromoteHeading => 'Alza livello del titolo';
+
+  @override
+  String get paragraphDemoteHeading => 'Abbassa livello del titolo';
+
+  @override
+  String get paragraphToParagraph => 'Converti in paragrafo';
 }

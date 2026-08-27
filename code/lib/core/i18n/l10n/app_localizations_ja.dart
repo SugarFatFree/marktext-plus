@@ -751,4 +751,16 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get mermaidSaveAsHint => '図を PNG として保存';
+
+  @override
+  String get menuParagraph => '段落';
+
+  @override
+  String get paragraphPromoteHeading => '見出しレベルを上げる';
+
+  @override
+  String get paragraphDemoteHeading => '見出しレベルを下げる';
+
+  @override
+  String get paragraphToParagraph => '段落に変換';
 }

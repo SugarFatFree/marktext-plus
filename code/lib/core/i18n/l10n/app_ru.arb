@@ -251,5 +251,9 @@
   "mermaidSaveAs": "Сохранить как",
   "mermaidCopySource": "Копировать исходный код",
   "mermaidFullscreenHint": "Дважды нажмите на диаграмму для полноэкранного просмотра",
-  "mermaidSaveAsHint": "Сохранить диаграмму в формате PNG"
+  "mermaidSaveAsHint": "Сохранить диаграмму в формате PNG",
+  "menuParagraph": "Абзац",
+  "paragraphPromoteHeading": "Повысить уровень заголовка",
+  "paragraphDemoteHeading": "Понизить уровень заголовка",
+  "paragraphToParagraph": "Преобразовать в абзац"
 }

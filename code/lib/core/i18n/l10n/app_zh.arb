@@ -263,5 +263,9 @@
   "mermaidSaveAs": "另存为",
   "mermaidCopySource": "复制源码",
   "mermaidFullscreenHint": "双击图表全屏查看",
-  "mermaidSaveAsHint": "保存图表为 PNG"
+  "mermaidSaveAsHint": "保存图表为 PNG",
+  "menuParagraph": "段落",
+  "paragraphPromoteHeading": "提升标题",
+  "paragraphDemoteHeading": "降低标题",
+  "paragraphToParagraph": "转为段落"
 }

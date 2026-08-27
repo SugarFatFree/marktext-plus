@@ -754,4 +754,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mermaidSaveAsHint => 'Save the diagram as PNG';
+
+  @override
+  String get menuParagraph => 'Paragraph';
+
+  @override
+  String get paragraphPromoteHeading => 'Promote Heading';
+
+  @override
+  String get paragraphDemoteHeading => 'Demote Heading';
+
+  @override
+  String get paragraphToParagraph => 'Convert to Paragraph';
 }

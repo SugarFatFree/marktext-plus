@@ -251,5 +251,9 @@
   "mermaidSaveAs": "Enregistrer sous",
   "mermaidCopySource": "Copier la source",
   "mermaidFullscreenHint": "Double-cliquez sur le diagramme pour l'afficher en plein écran",
-  "mermaidSaveAsHint": "Enregistrer le diagramme au format PNG"
+  "mermaidSaveAsHint": "Enregistrer le diagramme au format PNG",
+  "menuParagraph": "Paragraphe",
+  "paragraphPromoteHeading": "Promouvoir le titre",
+  "paragraphDemoteHeading": "Rétrograder le titre",
+  "paragraphToParagraph": "Convertir en paragraphe"
 }

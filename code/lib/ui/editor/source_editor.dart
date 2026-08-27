@@ -304,17 +304,23 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
       case FormatAction.strikethrough:
         _wrapSelection('~~', '~~');
       case FormatAction.heading1:
-        _insertLinePrefix('# ');
+        _setHeadingLevel(1);
       case FormatAction.heading2:
-        _insertLinePrefix('## ');
+        _setHeadingLevel(2);
       case FormatAction.heading3:
-        _insertLinePrefix('### ');
+        _setHeadingLevel(3);
       case FormatAction.heading4:
-        _insertLinePrefix('#### ');
+        _setHeadingLevel(4);
       case FormatAction.heading5:
-        _insertLinePrefix('##### ');
+        _setHeadingLevel(5);
       case FormatAction.heading6:
-        _insertLinePrefix('###### ');
+        _setHeadingLevel(6);
+      case FormatAction.promoteHeading:
+        _shiftHeadingLevel(-1);
+      case FormatAction.demoteHeading:
+        _shiftHeadingLevel(1);
+      case FormatAction.toParagraph:
+        _setHeadingLevel(null);
       case FormatAction.orderedList:
         _insertLinePrefix('1. ');
       case FormatAction.unorderedList:
@@ -462,6 +468,76 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
           extentOffset: selection.start + before.length + selected.length,
         ),
       );
+    }
+  }
+
+  /// Matches a heading marker at the start of a line.
+  static final _headingPrefixRe = RegExp(r'^(#{1,6})\s+');
+
+  /// Sets the current line's heading level, or clears it when [level] is null.
+  ///
+  /// Replaces any marker already there. Prepending unconditionally — which is
+  /// what the heading actions used to do — turned `# Title` into `## # Title`
+  /// rather than changing its level.
+  void _setHeadingLevel(int? level) {
+    final selection = _controller.selection;
+    final text = _controller.text;
+    final offset = selection.baseOffset.clamp(0, text.length);
+
+    var lineStart = text.lastIndexOf('\n', offset > 0 ? offset - 1 : 0);
+    lineStart = lineStart == -1 ? 0 : lineStart + 1;
+    var lineEnd = text.indexOf('\n', lineStart);
+    if (lineEnd == -1) lineEnd = text.length;
+
+    final line = text.substring(lineStart, lineEnd);
+    final existing = _headingPrefixRe.firstMatch(line);
+    final body = existing == null ? line : line.substring(existing.end);
+
+    final replacement = level == null ? body : '${'#' * level} $body';
+    final delta = replacement.length - line.length;
+
+    _controller.value = TextEditingValue(
+      text: text.substring(0, lineStart) +
+          replacement +
+          text.substring(lineEnd),
+      selection: TextSelection.collapsed(
+        offset: (offset + delta).clamp(lineStart, lineStart + replacement.length),
+      ),
+    );
+  }
+
+  /// Current line's heading level, or 0 when it is not a heading.
+  int _currentHeadingLevel() {
+    final text = _controller.text;
+    final offset = _controller.selection.baseOffset.clamp(0, text.length);
+
+    var lineStart = text.lastIndexOf('\n', offset > 0 ? offset - 1 : 0);
+    lineStart = lineStart == -1 ? 0 : lineStart + 1;
+    var lineEnd = text.indexOf('\n', lineStart);
+    if (lineEnd == -1) lineEnd = text.length;
+
+    final match = _headingPrefixRe.firstMatch(text.substring(lineStart, lineEnd));
+    return match == null ? 0 : match.group(1)!.length;
+  }
+
+  /// Moves the current line up or down the heading scale.
+  ///
+  /// Promoting (negative [delta]) past H1 turns the line back into a
+  /// paragraph; demoting a paragraph starts it at H1. Demoting past H6 does
+  /// nothing, since there is no deeper level to reach.
+  void _shiftHeadingLevel(int delta) {
+    final current = _currentHeadingLevel();
+
+    if (current == 0) {
+      if (delta > 0) _setHeadingLevel(1);
+      return;
+    }
+
+    final next = current + delta;
+    if (next < 1) {
+      _setHeadingLevel(null);
+    } else if (next <= 6) {
+      _setHeadingLevel(next);
     }
   }
 

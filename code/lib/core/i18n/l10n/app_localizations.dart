@@ -1570,6 +1570,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Save the diagram as PNG'**
   String get mermaidSaveAsHint;
+
+  /// No description provided for @menuParagraph.
+  ///
+  /// In en, this message translates to:
+  /// **'Paragraph'**
+  String get menuParagraph;
+
+  /// No description provided for @paragraphPromoteHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Promote Heading'**
+  String get paragraphPromoteHeading;
+
+  /// No description provided for @paragraphDemoteHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Demote Heading'**
+  String get paragraphDemoteHeading;
+
+  /// No description provided for @paragraphToParagraph.
+  ///
+  /// In en, this message translates to:
+  /// **'Convert to Paragraph'**
+  String get paragraphToParagraph;
 }
 
 class _AppLocalizationsDelegate

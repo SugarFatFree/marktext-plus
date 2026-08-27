@@ -251,5 +251,9 @@
   "mermaidSaveAs": "다른 이름으로 저장",
   "mermaidCopySource": "소스 복사",
   "mermaidFullscreenHint": "다이어그램을 두 번 탭하면 전체 화면으로 표시됩니다",
-  "mermaidSaveAsHint": "다이어그램을 PNG로 저장"
+  "mermaidSaveAsHint": "다이어그램을 PNG로 저장",
+  "menuParagraph": "단락",
+  "paragraphPromoteHeading": "제목 수준 올리기",
+  "paragraphDemoteHeading": "제목 수준 내리기",
+  "paragraphToParagraph": "단락으로 변환"
 }

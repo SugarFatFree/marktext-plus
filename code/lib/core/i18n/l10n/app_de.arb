@@ -251,5 +251,9 @@
   "mermaidSaveAs": "Speichern unter",
   "mermaidCopySource": "Quelltext kopieren",
   "mermaidFullscreenHint": "Zum Vollbild doppelt auf das Diagramm tippen",
-  "mermaidSaveAsHint": "Diagramm als PNG speichern"
+  "mermaidSaveAsHint": "Diagramm als PNG speichern",
+  "menuParagraph": "Absatz",
+  "paragraphPromoteHeading": "Überschrift höherstufen",
+  "paragraphDemoteHeading": "Überschrift tieferstufen",
+  "paragraphToParagraph": "In Absatz umwandeln"
 }

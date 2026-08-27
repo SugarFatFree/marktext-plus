@@ -34,6 +34,8 @@ class KeybindingService {
     'selectAll': 'Ctrl+A',
     'duplicateLine': 'Ctrl+D',
     'highlight': 'Ctrl+Shift+H',
+    'promoteHeading': 'Ctrl+=',
+    'demoteHeading': 'Ctrl+-',
   };
 
   Map<String, String> _keybindings = Map.from(defaultKeybindings);

@@ -748,4 +748,16 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get mermaidSaveAsHint => '保存图表为 PNG';
+
+  @override
+  String get menuParagraph => '段落';
+
+  @override
+  String get paragraphPromoteHeading => '提升标题';
+
+  @override
+  String get paragraphDemoteHeading => '降低标题';
+
+  @override
+  String get paragraphToParagraph => '转为段落';
 }

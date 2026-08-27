@@ -251,5 +251,9 @@
   "mermaidSaveAs": "Salvar como",
   "mermaidCopySource": "Copiar código-fonte",
   "mermaidFullscreenHint": "Toque duas vezes no diagrama para ver em tela cheia",
-  "mermaidSaveAsHint": "Salvar o diagrama como PNG"
+  "mermaidSaveAsHint": "Salvar o diagrama como PNG",
+  "menuParagraph": "Parágrafo",
+  "paragraphPromoteHeading": "Promover título",
+  "paragraphDemoteHeading": "Rebaixar título",
+  "paragraphToParagraph": "Converter em parágrafo"
 }

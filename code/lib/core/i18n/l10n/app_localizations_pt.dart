@@ -757,6 +757,18 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get mermaidSaveAsHint => 'Guardar o diagrama como PNG';
+
+  @override
+  String get menuParagraph => 'Parágrafo';
+
+  @override
+  String get paragraphPromoteHeading => 'Promover título';
+
+  @override
+  String get paragraphDemoteHeading => 'Rebaixar título';
+
+  @override
+  String get paragraphToParagraph => 'Converter em parágrafo';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -1471,4 +1483,16 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get mermaidSaveAsHint => 'Salvar o diagrama como PNG';
+
+  @override
+  String get menuParagraph => 'Parágrafo';
+
+  @override
+  String get paragraphPromoteHeading => 'Promover título';
+
+  @override
+  String get paragraphDemoteHeading => 'Rebaixar título';
+
+  @override
+  String get paragraphToParagraph => 'Converter em parágrafo';
 }

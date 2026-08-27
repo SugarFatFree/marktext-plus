@@ -251,5 +251,9 @@
   "mermaidSaveAs": "名前を付けて保存",
   "mermaidCopySource": "ソースをコピー",
   "mermaidFullscreenHint": "図をダブルタップで全画面表示",
-  "mermaidSaveAsHint": "図を PNG として保存"
+  "mermaidSaveAsHint": "図を PNG として保存",
+  "menuParagraph": "段落",
+  "paragraphPromoteHeading": "見出しレベルを上げる",
+  "paragraphDemoteHeading": "見出しレベルを下げる",
+  "paragraphToParagraph": "段落に変換"
 }

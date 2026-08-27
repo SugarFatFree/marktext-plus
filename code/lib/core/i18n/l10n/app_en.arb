@@ -287,5 +287,9 @@
   "mermaidSaveAs": "Save As",
   "mermaidCopySource": "Copy Source",
   "mermaidFullscreenHint": "Double-tap the diagram to view fullscreen",
-  "mermaidSaveAsHint": "Save the diagram as PNG"
+  "mermaidSaveAsHint": "Save the diagram as PNG",
+  "menuParagraph": "Paragraph",
+  "paragraphPromoteHeading": "Promote Heading",
+  "paragraphDemoteHeading": "Demote Heading",
+  "paragraphToParagraph": "Convert to Paragraph"
 }

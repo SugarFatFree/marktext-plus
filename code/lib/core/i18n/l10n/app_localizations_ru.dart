@@ -755,4 +755,16 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get mermaidSaveAsHint => 'Сохранить диаграмму в формате PNG';
+
+  @override
+  String get menuParagraph => 'Абзац';
+
+  @override
+  String get paragraphPromoteHeading => 'Повысить уровень заголовка';
+
+  @override
+  String get paragraphDemoteHeading => 'Понизить уровень заголовка';
+
+  @override
+  String get paragraphToParagraph => 'Преобразовать в абзац';
 }

@@ -753,4 +753,16 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get mermaidSaveAsHint => 'حفظ الرسم التخطيطي بصيغة PNG';
+
+  @override
+  String get menuParagraph => 'فقرة';
+
+  @override
+  String get paragraphPromoteHeading => 'رفع مستوى العنوان';
+
+  @override
+  String get paragraphDemoteHeading => 'خفض مستوى العنوان';
+
+  @override
+  String get paragraphToParagraph => 'تحويل إلى فقرة';
 }

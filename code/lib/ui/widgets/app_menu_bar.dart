@@ -88,6 +88,9 @@ class AppMenuBar extends ConsumerWidget {
       '5' => LogicalKeyboardKey.digit5,
       '6' => LogicalKeyboardKey.digit6,
       '`' => LogicalKeyboardKey.backquote,
+      // Needed by the heading promote/demote bindings.
+      '=' => LogicalKeyboardKey.equal,
+      '-' => LogicalKeyboardKey.minus,
       _ => null,
     };
   }
@@ -626,6 +629,25 @@ class AppMenuBar extends ConsumerWidget {
             ),
           ),
           child: Text(l10n.formatHeadingSubmenu),
+        ),
+        SubmenuButton(
+          menuChildren: [
+            MenuItemButton(
+              shortcut: _parseShortcut(kb.getKeybinding('promoteHeading')),
+              child: Text(l10n.paragraphPromoteHeading),
+              onPressed: () => fmt(FormatAction.promoteHeading),
+            ),
+            MenuItemButton(
+              shortcut: _parseShortcut(kb.getKeybinding('demoteHeading')),
+              child: Text(l10n.paragraphDemoteHeading),
+              onPressed: () => fmt(FormatAction.demoteHeading),
+            ),
+            MenuItemButton(
+              child: Text(l10n.paragraphToParagraph),
+              onPressed: () => fmt(FormatAction.toParagraph),
+            ),
+          ],
+          child: Text(l10n.menuParagraph),
         ),
         SubmenuButton(
           menuChildren: [

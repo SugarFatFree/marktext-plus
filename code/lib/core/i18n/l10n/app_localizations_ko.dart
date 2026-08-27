@@ -751,4 +751,16 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get mermaidSaveAsHint => '다이어그램을 PNG로 저장';
+
+  @override
+  String get menuParagraph => '단락';
+
+  @override
+  String get paragraphPromoteHeading => '제목 수준 올리기';
+
+  @override
+  String get paragraphDemoteHeading => '제목 수준 내리기';
+
+  @override
+  String get paragraphToParagraph => '단락으로 변환';
 }

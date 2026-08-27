@@ -34,6 +34,9 @@ enum FormatAction {
   copyAsHtml,
   selectAll,
   duplicateLine,
+  promoteHeading,
+  demoteHeading,
+  toParagraph,
 }
 
 class EditorState {
