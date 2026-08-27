@@ -15,7 +15,10 @@ void main() {
     test('counts space-separated words', () {
       expect(service.countWords('hello world').words, 2);
       expect(service.countWords('  spaced   out  ').words, 2);
-      expect(service.countWords('a-b c').words, 3);
+      // `a-b` is one word: a hyphen between two letters joins them, the way
+      // `well-known` is one word. This line asserted the older behaviour of
+      // splitting on it.
+      expect(service.countWords('a-b c').words, 2);
     });
 
     test('counts CJK per character', () {
