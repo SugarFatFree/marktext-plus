@@ -14,8 +14,15 @@ class SourceEditor extends ConsumerStatefulWidget {
   final String initialContent;
   final ValueChanged<String>? onChanged;
 
+  /// Which tab this editor is showing.
+  ///
+  /// Undo history is kept per tab; without this the editor would share one
+  /// stack across every open document.
+  final String tabId;
+
   const SourceEditor({
     super.key,
+    required this.tabId,
     this.initialContent = '',
     this.onChanged,
   });
@@ -159,7 +166,9 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(editorProvider.notifier).setController(_controller);
       ref.read(editorProvider.notifier).setEditorScrollController(_editorScrollController);
-      ref.read(editorProvider.notifier).pushHistory(widget.initialContent);
+      ref.read(editorProvider.notifier)
+        ..setHistoryTab(widget.tabId)
+        ..pushHistory(widget.initialContent);
       _isInitialized = true;
 
       // Listen for TOC scroll-to-line requests

@@ -52,6 +52,7 @@
 | BUG-043 | 2026-08-27 | Tab 键不缩进；Tab 大小与列表标记两项设置形同虚设 | P1 | 已修复 |
 | BUG-044 | 2026-08-27 | 代码字体设置无效；分屏比例存了不恢复 | P2 | 已修复 |
 | BUG-045 | 2026-08-27 | 「在新窗口打开」设置无效，选了仍在当前窗口打开 | P2 | 已修复 |
+| BUG-046 | 2026-08-27 | 所有标签页共用一个撤销栈，撤销可能取回另一文件的内容 | **P0** | 已修复 |
 
 ---
 
@@ -699,6 +700,21 @@
 | 修复方案 | 启动逻辑提取为 `PlatformUtils.launchNewWindow({String? filePath})` 供菜单与本处共用（macOS 需 `open -n`，直接执行可执行文件只会激活既有实例）。`openFilesFromSecondInstance` 开头检查配置，为 `newWindow` 时逐个文件启动新进程后返回 |
 | 提交前自查 | `FileOpenBehavior` 定义于 `app_config.dart`，而 `tab_provider.dart` 仅 import 了 `settings_provider.dart` —— Dart 的 import **不传递**，该枚举实际不可见。此问题在推送前经可见性检查发现并补齐 import，未流入 CI |
 | 涉及文件 | `lib/utils/platform_utils.dart`、`lib/providers/tab_provider.dart`、`lib/ui/widgets/app_menu_bar.dart` |
+
+---
+
+## BUG-046 撤销历史在标签页之间串用
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | **P0** |
+| 状态 | 已修复 |
+| 现象 | 在标签页 A 编辑后切到标签页 B 按 Ctrl+Z，**B 的内容被替换为 A 的历史快照** —— 属内容损坏而非单纯的功能失效 |
+| 根因分析 | `editorProvider` 是全局单例，`_undoStack` / `_redoStack` 各只有一份。切换标签时 `SourceEditor` 因 key 变化而重建，`initState` 把新文档压入**同一个栈**，于是栈中混杂多个文件的快照。撤销时自然可能取回另一个文件的内容 |
+| 附带问题 | 撤销栈**无上限**。每 300ms 防抖压入一份**完整文档副本**，长时间编辑大文件会持续累积，内存只增不减 |
+| 修复方案 | 历史改为按 `tabId` 分桶（`Map<String, List<String>>`）；`SourceEditor` / `SplitEditor` 新增必传的 `tabId`，`initState` 中先 `setHistoryTab` 再 `pushHistory`。栈上限 200 条，超出时**从最旧一端裁剪** —— 撤销针对的是近期操作。标签关闭时 `removeTab` 调用 `forgetHistory` 释放该桶 |
+| 涉及文件 | `lib/providers/editor_provider.dart`、`lib/providers/tab_provider.dart`、`lib/ui/editor/source_editor.dart`、`lib/ui/editor/split_editor.dart`、`lib/ui/screens/home_screen.dart` |
 
 ---
 

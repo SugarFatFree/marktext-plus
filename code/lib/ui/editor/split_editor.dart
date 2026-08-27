@@ -9,8 +9,13 @@ class SplitEditor extends ConsumerStatefulWidget {
   final String initialContent;
   final ValueChanged<String>? onChanged;
 
+  /// Which tab this editor is showing; forwarded so undo history stays
+  /// separate per document.
+  final String tabId;
+
   const SplitEditor({
     super.key,
+    required this.tabId,
     this.initialContent = '',
     this.onChanged,
   });
@@ -92,6 +97,7 @@ class _SplitEditorState extends ConsumerState<SplitEditor> {
             SizedBox(
               width: leftWidth - 4,
               child: SourceEditor(
+                tabId: widget.tabId,
                 initialContent: _content,
                 onChanged: _onContentChanged,
               ),

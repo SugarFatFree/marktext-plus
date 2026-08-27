@@ -6,6 +6,7 @@ import '../core/config/app_config.dart';
 import '../models/tab_info.dart';
 import '../services/file_service.dart';
 import '../utils/platform_utils.dart';
+import 'editor_provider.dart';
 import 'settings_provider.dart';
 
 /// Lightweight record of a file shown in the sidebar (no-folder mode).
@@ -102,6 +103,10 @@ class TabNotifier extends StateNotifier<TabState> {
   }
 
   void removeTab(String id) {
+    // A closed tab's undo history would otherwise sit in memory for the rest
+    // of the session.
+    _ref.read(editorProvider.notifier).forgetHistory(id);
+
     final tabs = state.tabs.where((t) => t.id != id).toList();
     String? newActiveId = state.activeTabId;
     if (state.activeTabId == id) {

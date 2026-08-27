@@ -116,8 +116,36 @@ class EditorState {
 class EditorNotifier extends StateNotifier<EditorState> {
   EditorNotifier() : super(const EditorState());
 
-  final List<String> _undoStack = [];
-  final List<String> _redoStack = [];
+  /// Undo history, kept per tab.
+  ///
+  /// A single shared stack meant switching tabs carried the previous file's
+  /// history along: pressing undo in one document could replace it with a
+  /// snapshot of another.
+  final Map<String, List<String>> _undoStacks = {};
+  final Map<String, List<String>> _redoStacks = {};
+  String _historyKey = '';
+
+  /// Snapshots kept per tab.
+  ///
+  /// Each entry is a whole copy of the document, pushed on a 300ms debounce,
+  /// so an unbounded stack would grow without limit over a long session.
+  static const _maxHistory = 200;
+
+  List<String> get _undoStack => _undoStacks.putIfAbsent(_historyKey, () => []);
+  List<String> get _redoStack => _redoStacks.putIfAbsent(_historyKey, () => []);
+
+  /// Points history at [tabId]; call before the editor for that tab is used.
+  void setHistoryTab(String tabId) {
+    if (_historyKey == tabId) return;
+    _historyKey = tabId;
+    _updateUndoRedoState();
+  }
+
+  /// Drops a closed tab's history so it does not accumulate.
+  void forgetHistory(String tabId) {
+    _undoStacks.remove(tabId);
+    _redoStacks.remove(tabId);
+  }
   TextEditingController? _controller;
   ScrollController? _editorScrollController;
   double _editorTextFieldWidth = 0;
@@ -215,11 +243,16 @@ class EditorNotifier extends StateNotifier<EditorState> {
   }
 
   void pushHistory(String content) {
-    if (_undoStack.isEmpty || _undoStack.last != content) {
-      _undoStack.add(content);
-      _redoStack.clear();
-      _updateUndoRedoState();
+    final stack = _undoStack;
+    if (stack.isNotEmpty && stack.last == content) return;
+
+    stack.add(content);
+    if (stack.length > _maxHistory) {
+      // Oldest first: the recent past is what undo is for.
+      stack.removeRange(0, stack.length - _maxHistory);
     }
+    _redoStack.clear();
+    _updateUndoRedoState();
   }
 
   void undo() {

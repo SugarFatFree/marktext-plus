@@ -631,6 +631,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
             shouldBuild: currentIndex == 0,
             builder: () => SourceEditor(
               key: ValueKey('source_inner_${activeTab.id}'),
+              tabId: activeTab.id,
               initialContent: content,
               onChanged: onContentChanged,
             ),
@@ -651,6 +652,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
             shouldBuild: currentIndex == 2,
             builder: () => SplitEditor(
               key: ValueKey('split_inner_${activeTab.id}'),
+              tabId: activeTab.id,
               initialContent: content,
               onChanged: onContentChanged,
             ),
