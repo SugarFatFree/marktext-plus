@@ -38,8 +38,12 @@ void main() {
     );
   });
 
-  tearDown(() {
+  tearDown(() async {
     container.dispose();
+    // Opening a tab persists the sidebar's file list, and that write is
+    // asynchronous. Deleting the directory out from under it made a test that
+    // had already passed fail afterwards with a PathNotFoundException.
+    await Future<void>.delayed(const Duration(milliseconds: 200));
     if (root.existsSync()) root.deleteSync(recursive: true);
   });
 
