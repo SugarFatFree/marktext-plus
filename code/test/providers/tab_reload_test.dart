@@ -21,16 +21,18 @@ void main() {
 
   late Directory root;
   late File document;
+  late ConfigService configService;
   late ProviderContainer container;
 
   setUp(() {
     root = Directory.systemTemp.createTempSync('tab_reload_');
     document = File('${root.path}/note.md')..writeAsStringSync('one');
+    configService = ConfigService(configDir: root.path);
     container = ProviderContainer(
       overrides: [
         settingsProvider.overrideWith(
           (ref) => SettingsNotifier(
-            ConfigService(configDir: root.path),
+            configService,
             // Auto-save would write the tab back over the change under test.
             AppConfig(autoSave: false),
           ),
@@ -43,8 +45,10 @@ void main() {
     container.dispose();
     // Opening a tab persists the sidebar's file list, and that write is
     // asynchronous. Deleting the directory out from under it made a test that
-    // had already passed fail afterwards with a PathNotFoundException.
-    await Future<void>.delayed(const Duration(milliseconds: 200));
+    // had already passed fail afterwards with a PathNotFoundException — and a
+    // fixed delay was not enough on a loaded CI runner, so wait on the write
+    // itself.
+    await configService.pending;
     if (root.existsSync()) root.deleteSync(recursive: true);
   });
 

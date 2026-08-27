@@ -58,12 +58,36 @@ class ConfigService {
     return future;
   }
 
+  /// Completes when no write is outstanding.
+  ///
+  /// Nearly every caller updates a setting and moves on without awaiting, so
+  /// this is the only way to know the file on disk has caught up — which a
+  /// test tearing down its temp directory needs to know.
+  Future<void> get pending => _writing ?? Future<void>.value();
+
+  /// The last write failure, or null if the most recent write succeeded.
+  ///
+  /// A save that cannot reach the disk must not take the caller down with it:
+  /// `updateConfig` is called and dropped in a dozen places (a settings toggle,
+  /// the split ratio, the sidebar's file list), so a throw here surfaced as an
+  /// unhandled asynchronous error far from anything the user did. It is kept
+  /// rather than discarded so the failure is inspectable.
+  Object? lastSaveError;
+
   Future<void> _drain() async {
     try {
       while (_queued != null) {
         final next = _queued!;
         _queued = null;
-        await _write(next);
+        try {
+          await _write(next);
+          lastSaveError = null;
+        } catch (error) {
+          // The directory can vanish under us, the disk can fill, and on
+          // Windows a scanner can hold the temporary file open. The next save
+          // queues a fresh attempt, so one failure is not permanent.
+          lastSaveError = error;
+        }
       }
     } finally {
       _writing = null;

@@ -87,5 +87,32 @@ void main() {
       await service.save(AppConfig(fontSize: 22.0));
       expect((await service.load()).fontSize, 22.0);
     });
+
+    test('a save that cannot reach the disk does not throw', () async {
+      // `updateConfig` is called and dropped in a dozen places — a settings
+      // toggle, the split ratio, the sidebar's file list — so a throw here
+      // surfaced as an unhandled asynchronous error far from anything the
+      // user did.
+      final blocked = ConfigService(configDir: '${tempDir.path}/blocked');
+      // A file where the directory should be: creating the directory fails.
+      File('${tempDir.path}/blocked').writeAsStringSync('not a directory');
+
+      await expectLater(blocked.save(AppConfig(fontSize: 21.0)), completes);
+      expect(blocked.lastSaveError, isNotNull);
+    });
+
+    test('a later save clears the recorded failure', () async {
+      await service.save(AppConfig(fontSize: 23.0));
+      expect(service.lastSaveError, isNull);
+    });
+
+    test('pending completes once the queued write has landed', () async {
+      // Nothing awaits `save` in the app, so this is the only way to know the
+      // file on disk has caught up.
+      final write = service.save(AppConfig(fontSize: 24.0));
+      await service.pending;
+      expect((await service.load()).fontSize, 24.0);
+      await write;
+    });
   });
 }
