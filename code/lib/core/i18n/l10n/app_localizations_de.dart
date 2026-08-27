@@ -792,4 +792,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsImageFolder => 'Bilderordner';
+  @override
+  String get fileCloseTab => 'Tab schließen';
+
+  @override
+  String get fileClearRecentFiles => 'Zuletzt verwendete leeren';
 }

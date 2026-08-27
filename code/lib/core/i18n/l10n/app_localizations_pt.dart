@@ -793,6 +793,11 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get settingsImageFolder => 'Pasta de imagens';
+  @override
+  String get fileCloseTab => 'Fechar separador';
+
+  @override
+  String get fileClearRecentFiles => 'Limpar ficheiros recentes';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -1543,4 +1548,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get settingsImageFolder => 'Pasta de imagens';
+  @override
+  String get fileCloseTab => 'Fechar aba';
+
+  @override
+  String get fileClearRecentFiles => 'Limpar arquivos recentes';
 }

@@ -5,6 +5,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/services/keybinding_service.dart';
 
 void main() {
+  // actionForEvent reads the held modifiers from HardwareKeyboard, whose
+  // instance getter needs the services binding.
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   final service = KeybindingService();
   late Directory dir;
 

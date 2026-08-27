@@ -787,4 +787,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsImageFolder => '画像フォルダー';
+  @override
+  String get fileCloseTab => 'タブを閉じる';
+
+  @override
+  String get fileClearRecentFiles => '最近のファイルを消去';
 }

@@ -790,4 +790,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsImageFolder => 'Image folder';
+  @override
+  String get fileCloseTab => 'Close Tab';
+
+  @override
+  String get fileClearRecentFiles => 'Clear Recent Files';
 }

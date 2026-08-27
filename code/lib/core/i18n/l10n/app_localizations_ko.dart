@@ -787,4 +787,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get settingsImageFolder => '이미지 폴더';
+  @override
+  String get fileCloseTab => '탭 닫기';
+
+  @override
+  String get fileClearRecentFiles => '최근 파일 지우기';
 }

@@ -264,5 +264,7 @@
   "settingsImageStorageCopy": "Junto ao documento",
   "settingsImageStorageFolder": "Em uma pasta compartilhada",
   "settingsImageStorageLink": "Vincular onde estão",
-  "settingsImageFolder": "Pasta de imagens"
+  "settingsImageFolder": "Pasta de imagens",
+  "fileCloseTab": "Fechar aba",
+  "fileClearRecentFiles": "Limpar arquivos recentes"
 }

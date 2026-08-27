@@ -264,5 +264,7 @@
   "settingsImageStorageCopy": "Рядом с документом",
   "settingsImageStorageFolder": "В одной общей папке",
   "settingsImageStorageLink": "Ссылаться на исходное место",
-  "settingsImageFolder": "Папка изображений"
+  "settingsImageFolder": "Папка изображений",
+  "fileCloseTab": "Закрыть вкладку",
+  "fileClearRecentFiles": "Очистить недавние файлы"
 }

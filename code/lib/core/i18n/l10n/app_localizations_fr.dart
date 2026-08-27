@@ -794,4 +794,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsImageFolder => 'Dossier d\'images';
+  @override
+  String get fileCloseTab => 'Fermer l\'onglet';
+
+  @override
+  String get fileClearRecentFiles => 'Effacer les fichiers récents';
 }

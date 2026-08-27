@@ -793,4 +793,9 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get settingsImageFolder => 'Cartella immagini';
+  @override
+  String get fileCloseTab => 'Chiudi scheda';
+
+  @override
+  String get fileClearRecentFiles => 'Svuota file recenti';
 }

@@ -793,4 +793,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get settingsImageFolder => 'Carpeta de imágenes';
+  @override
+  String get fileCloseTab => 'Cerrar pestaña';
+
+  @override
+  String get fileClearRecentFiles => 'Borrar archivos recientes';
 }

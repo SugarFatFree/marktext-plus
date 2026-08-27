@@ -264,5 +264,7 @@
   "settingsImageStorageCopy": "文書のとなりにコピー",
   "settingsImageStorageFolder": "共通のフォルダーにまとめる",
   "settingsImageStorageLink": "元の場所を参照する",
-  "settingsImageFolder": "画像フォルダー"
+  "settingsImageFolder": "画像フォルダー",
+  "fileCloseTab": "タブを閉じる",
+  "fileClearRecentFiles": "最近のファイルを消去"
 }

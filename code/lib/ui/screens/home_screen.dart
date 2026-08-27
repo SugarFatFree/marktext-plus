@@ -449,6 +449,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
       case 'open':
         AppMenuBar.openFile(ref);
         return true;
+      case 'closeTab':
+        final tab = ref.read(activeTabProvider);
+        if (tab != null) EditorTabBar.closeTab(context, ref, tab);
+        return true;
     }
     return false;
   }

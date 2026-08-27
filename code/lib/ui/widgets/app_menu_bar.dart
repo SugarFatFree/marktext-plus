@@ -24,6 +24,7 @@ import '../../utils/platform_utils.dart';
 import '../screens/settings_screen.dart';
 import '../editor/mermaid/widgets/mermaid_diagram.dart';
 import '../editor/mermaid/models/style.dart';
+import 'editor_tab_bar.dart';
 
 class AppMenuBar extends ConsumerWidget {
   const AppMenuBar({super.key});
@@ -212,6 +213,12 @@ class AppMenuBar extends ConsumerWidget {
         MenuItemButton(
           child: Text(l10n.fileRename),
           onPressed: () => _renameFile(ref),
+        ),
+        const Divider(height: 1),
+        MenuItemButton(
+          shortcut: _shortcut('closeTab'),
+          child: Text(l10n.fileCloseTab),
+          onPressed: () => _closeActiveTab(context, ref),
         ),
         const Divider(height: 1),
         SubmenuButton(
@@ -864,17 +871,33 @@ class AppMenuBar extends ConsumerWidget {
                 child: Text(l10n.fileNoRecentFiles),
               ),
             ]
-          : recentFiles
-              .map((filePath) => MenuItemButton(
+          : [
+              ...recentFiles.map((filePath) => MenuItemButton(
                     child: Text(
                       p.basename(filePath),
                       overflow: TextOverflow.ellipsis,
                     ),
                     onPressed: () => _openRecentFile(ref, filePath),
-                  ))
-              .toList(),
+                  )),
+              const Divider(height: 1),
+              // The list only ever grew; there was no way to empty it.
+              MenuItemButton(
+                child: Text(l10n.fileClearRecentFiles),
+                onPressed: () => ref
+                    .read(settingsProvider.notifier)
+                    .updateConfig((c) => c.copyWith(recentFiles: const [])),
+              ),
+            ],
       child: Text(l10n.fileRecentFiles),
     );
+  }
+
+  /// Closes the active tab through the tab bar's confirmation, so an unsaved
+  /// document is not discarded without asking.
+  static void _closeActiveTab(BuildContext context, WidgetRef ref) {
+    final tab = ref.read(activeTabProvider);
+    if (tab == null) return;
+    EditorTabBar.closeTab(context, ref, tab);
   }
 
   void _openRecentFile(WidgetRef ref, String filePath) async {

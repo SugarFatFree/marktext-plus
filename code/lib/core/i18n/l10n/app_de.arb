@@ -264,5 +264,7 @@
   "settingsImageStorageCopy": "Neben dem Dokument",
   "settingsImageStorageFolder": "In einem gemeinsamen Ordner",
   "settingsImageStorageLink": "Am Originalort verlinken",
-  "settingsImageFolder": "Bilderordner"
+  "settingsImageFolder": "Bilderordner",
+  "fileCloseTab": "Tab schließen",
+  "fileClearRecentFiles": "Zuletzt verwendete leeren"
 }

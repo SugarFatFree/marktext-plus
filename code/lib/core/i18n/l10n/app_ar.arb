@@ -264,5 +264,7 @@
   "settingsImageStorageCopy": "بجانب المستند",
   "settingsImageStorageFolder": "في مجلد مشترك واحد",
   "settingsImageStorageLink": "الربط بمكانها الأصلي",
-  "settingsImageFolder": "مجلد الصور"
+  "settingsImageFolder": "مجلد الصور",
+  "fileCloseTab": "إغلاق علامة التبويب",
+  "fileClearRecentFiles": "مسح الملفات الأخيرة"
 }

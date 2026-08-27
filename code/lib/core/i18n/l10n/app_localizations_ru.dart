@@ -791,4 +791,9 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get settingsImageFolder => 'Папка изображений';
+  @override
+  String get fileCloseTab => 'Закрыть вкладку';
+
+  @override
+  String get fileClearRecentFiles => 'Очистить недавние файлы';
 }

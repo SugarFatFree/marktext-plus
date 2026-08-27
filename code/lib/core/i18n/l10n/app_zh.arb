@@ -276,5 +276,7 @@
   "settingsImageStorageCopy": "复制到文档旁边",
   "settingsImageStorageFolder": "统一放到一个文件夹",
   "settingsImageStorageLink": "不复制，直接引用原位置",
-  "settingsImageFolder": "图片文件夹"
+  "settingsImageFolder": "图片文件夹",
+  "fileCloseTab": "关闭标签页",
+  "fileClearRecentFiles": "清空最近文件"
 }

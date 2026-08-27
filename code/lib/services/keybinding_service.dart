@@ -47,6 +47,7 @@ class KeybindingService {
     'heading6': 'Ctrl+6',
     'inlineMath': 'Ctrl+M',
     'mathBlock': 'Ctrl+Shift+M',
+    'closeTab': 'Ctrl+W',
   };
 
   Map<String, String> _keybindings = Map.from(defaultKeybindings);

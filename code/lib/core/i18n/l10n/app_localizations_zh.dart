@@ -784,4 +784,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsImageFolder => '图片文件夹';
+  @override
+  String get fileCloseTab => '关闭标签页';
+
+  @override
+  String get fileClearRecentFiles => '清空最近文件';
 }

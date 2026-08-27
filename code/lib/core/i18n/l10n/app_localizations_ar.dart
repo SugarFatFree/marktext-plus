@@ -789,4 +789,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get settingsImageFolder => 'مجلد الصور';
+  @override
+  String get fileCloseTab => 'إغلاق علامة التبويب';
+
+  @override
+  String get fileClearRecentFiles => 'مسح الملفات الأخيرة';
 }

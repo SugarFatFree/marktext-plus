@@ -22,7 +22,10 @@ class EditorTabBar extends ConsumerWidget {
   /// on disk, which auto-save has usually written by then, but a new document
   /// has no path — auto-save skips it entirely — so its contents were lost for
   /// good with nothing asked and nothing said.
-  Future<void> _closeTab(
+  ///
+  /// Static so the File menu's Close Tab can go through the same confirmation
+  /// rather than growing a second, subtly different copy of it.
+  static Future<void> closeTab(
     BuildContext context,
     WidgetRef ref,
     TabInfo tab,
@@ -44,7 +47,7 @@ class EditorTabBar extends ConsumerWidget {
     ref.read(tabProvider.notifier).removeTab(tab.id);
   }
 
-  Future<_UnsavedChoice?> _askAboutUnsavedChanges(
+  static Future<_UnsavedChoice?> _askAboutUnsavedChanges(
     BuildContext context,
     TabInfo tab,
   ) {
@@ -139,7 +142,7 @@ class EditorTabBar extends ConsumerWidget {
                     isActive: isActive,
                     tokens: tokens,
                     onTap: () => ref.read(tabProvider.notifier).setActiveTab(tab.id),
-                    onClose: () => _closeTab(context, ref, tab),
+                    onClose: () => closeTab(context, ref, tab),
                   ),
                 );
               },

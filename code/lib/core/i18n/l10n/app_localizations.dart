@@ -1648,6 +1648,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Image folder'**
   String get settingsImageFolder;
+
+  /// File menu item that closes the active tab
+  ///
+  /// In en, this message translates to:
+  /// **'Close Tab'**
+  String get fileCloseTab;
+
+  /// Menu item that empties the recent files list
+  ///
+  /// In en, this message translates to:
+  /// **'Clear Recent Files'**
+  String get fileClearRecentFiles;
 }
 
 class _AppLocalizationsDelegate

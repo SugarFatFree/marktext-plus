@@ -327,5 +327,13 @@
   "settingsImageFolder": "Image folder",
   "@settingsImageFolder": {
     "description": "Setting for the folder used by the shared-folder image option"
+  },
+  "fileCloseTab": "Close Tab",
+  "@fileCloseTab": {
+    "description": "File menu item that closes the active tab"
+  },
+  "fileClearRecentFiles": "Clear Recent Files",
+  "@fileClearRecentFiles": {
+    "description": "Menu item that empties the recent files list"
   }
 }

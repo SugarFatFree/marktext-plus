@@ -560,6 +560,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       'selectAll' => l10n.keybindingSelectAll,
       'duplicateLine' => l10n.keybindingDuplicateLine,
       'highlight' => l10n.keybindingHighlight,
+      'closeTab' => l10n.fileCloseTab,
       _ => action,
     };
   }
