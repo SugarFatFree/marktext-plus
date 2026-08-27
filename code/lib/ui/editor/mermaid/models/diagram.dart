@@ -40,6 +40,9 @@ enum DiagramType {
   /// Git commit graph
   gitGraph,
 
+  /// Mindmap
+  mindmap,
+
   /// Pie chart diagram
   pieChart,
 

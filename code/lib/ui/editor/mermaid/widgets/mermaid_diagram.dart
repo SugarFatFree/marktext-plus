@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../config/responsive_config.dart';
 import '../layout/class_diagram_layout.dart';
 import '../layout/er_diagram_layout.dart';
+import '../layout/mindmap_layout.dart';
 import '../layout/dagre_layout.dart';
 import '../layout/layout_engine.dart';
 import '../layout/sugiyama_layout.dart';
@@ -13,6 +14,7 @@ import '../models/gantt.dart';
 import '../models/git_graph.dart';
 import '../models/journey.dart';
 import '../models/kanban.dart';
+import '../models/mindmap.dart';
 import '../models/pie_chart.dart';
 import '../models/radar.dart';
 import '../models/timeline.dart';
@@ -25,6 +27,7 @@ import '../painter/gantt_painter.dart';
 import '../painter/git_graph_painter.dart';
 import '../painter/journey_painter.dart';
 import '../painter/kanban_painter.dart';
+import '../painter/mindmap_painter.dart';
 import '../painter/pie_chart_painter.dart';
 import '../painter/radar_painter.dart';
 import '../painter/sequence_painter.dart';
@@ -111,6 +114,7 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
   ErDiagramData? _erDiagramData;
   JourneyData? _journeyData;
   GitGraphData? _gitGraphData;
+  MindmapData? _mindmapData;
   Size _computedSize = Size.zero;
   String? _error;
   bool _isLoading = true;
@@ -210,6 +214,14 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
           _style,
           Size(widget.width ?? availableWidth, widget.height ?? 600),
         );
+      } else if (diagram.type == DiagramType.mindmap &&
+          result.mindmapData != null) {
+        final mindmapLayout = MindmapLayout(deviceConfig: _deviceConfig);
+        size = mindmapLayout.computeLayout(
+          result.mindmapData!,
+          _style,
+          Size(widget.width ?? availableWidth, widget.height ?? 600),
+        );
       } else if (diagram.type == DiagramType.gitGraph &&
           result.gitGraphData != null) {
         final gitLayout = GitGraphLayout(deviceConfig: _deviceConfig);
@@ -274,6 +286,7 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
       _erDiagramData = result.erDiagramData;
       _journeyData = result.journeyData;
       _gitGraphData = result.gitGraphData;
+      _mindmapData = result.mindmapData;
       _computedSize = size;
       _error = null;
       _isLoading = false;
@@ -370,6 +383,15 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
         if (_xyChartData != null) {
           return XYChartPainter(
             xyData: _xyChartData!,
+            style: _style,
+            deviceConfig: _deviceConfig,
+          );
+        }
+        return FlowchartPainter(diagram: diagram, style: _style);
+      case DiagramType.mindmap:
+        if (_mindmapData != null) {
+          return MindmapPainter(
+            mindmapData: _mindmapData!,
             style: _style,
             deviceConfig: _deviceConfig,
           );
@@ -756,6 +778,7 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
   ErDiagramData? _erDiagramData;
   JourneyData? _journeyData;
   GitGraphData? _gitGraphData;
+  MindmapData? _mindmapData;
   Size _computedSize = Size.zero;
   String? _error;
   bool _isLoading = true;
@@ -839,6 +862,14 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
           _style,
           widget.viewportSize,
         );
+      } else if (diagram.type == DiagramType.mindmap &&
+          result.mindmapData != null) {
+        final mindmapLayout = MindmapLayout(deviceConfig: _deviceConfig);
+        size = mindmapLayout.computeLayout(
+          result.mindmapData!,
+          _style,
+          widget.viewportSize,
+        );
       } else if (diagram.type == DiagramType.gitGraph &&
           result.gitGraphData != null) {
         final gitLayout = GitGraphLayout(deviceConfig: _deviceConfig);
@@ -904,6 +935,7 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
         _erDiagramData = result.erDiagramData;
         _journeyData = result.journeyData;
         _gitGraphData = result.gitGraphData;
+        _mindmapData = result.mindmapData;
         _computedSize = size;
         _error = null;
         _isLoading = false;
@@ -995,6 +1027,15 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
         if (_xyChartData != null) {
           return XYChartPainter(
             xyData: _xyChartData!,
+            style: _style,
+            deviceConfig: _deviceConfig,
+          );
+        }
+        return FlowchartPainter(diagram: diagram, style: _style);
+      case DiagramType.mindmap:
+        if (_mindmapData != null) {
+          return MindmapPainter(
+            mindmapData: _mindmapData!,
             style: _style,
             deviceConfig: _deviceConfig,
           );

@@ -10,7 +10,7 @@
 | BUG-001 | 2026-08-27 | 系统级文件关联缺失：deb 无 postinst、两种包均未装 MIME 定义 | P0 | Linux 已修复 / mac 待修复 |
 | BUG-002 | 2026-08-27 | 预览模式为只读 Widget 树，无法所见即所得编辑 | P0 | 阶段一已完成 |
 | BUG-003 | 2026-08-27 | Mermaid `classDiagram` 检测到类型后直接返回 null，无渲染 | P0 | 已修复 |
-| BUG-004 | 2026-08-27 | Mermaid 缺失 erDiagram / journey / gitGraph / mindmap / quadrantChart 等类型 | P1 | erDiagram、journey、gitGraph 已完成，其余待补 |
+| BUG-004 | 2026-08-27 | Mermaid 缺失 erDiagram / journey / gitGraph / mindmap / quadrantChart 等类型 | P1 | erDiagram、journey、gitGraph、mindmap 已完成，其余待补 |
 | BUG-005 | 2026-08-27 | Mermaid `_cleanLines` 粗暴剥离 `%%`，破坏 `%%{init:...}%%` 指令与标签内文本 | P1 | 已修复 |
 | BUG-006 | 2026-08-27 | Mermaid `graph`/`flowchart` 检测强制要求尾随空格，`graph TD;` 等写法失配 | P1 | 已修复 |
 | BUG-007 | 2026-08-27 | `markdown_renderer` 的 `_diagramLanguages` 与实际支持类型错配 | P2 | 待修复 |
@@ -76,7 +76,7 @@
 | 状态 | 待修复 |
 | 现象 | 源项目使用 `mermaid@^11.15.0` 全量支持；本项目自研子集只覆盖 flowchart / sequence / pie / gantt / timeline / kanban / radar / xyChart / stateDiagram |
 | 根因分析 | `_detectDiagramType` 未覆盖，且无对应 parser/painter |
-| 修复方案 | 按使用频率排期补齐：**erDiagram（已完成）** → **journey（已完成）** → **gitGraph（已完成）** → mindmap → quadrantChart → requirementDiagram → sankey-beta → block-beta → C4Context。<br>erDiagram 实现要点：`ArrowType` 新增四个 crow's foot 记号（`erZeroOrOne` / `erExactlyOne` / `erZeroOrMore` / `erOneOrMore`），十六种基数组合由左右两个两字符 token 分别映射；`ErDiagramLayout` 与类图同法继承 `DagreLayout` 只覆写节点测量，因为实体框高度取决于属性行数 |
+| 修复方案 | 按使用频率排期补齐：**erDiagram（已完成）** → **journey（已完成）** → **gitGraph（已完成）** → **mindmap（已完成）** → quadrantChart → requirementDiagram → sankey-beta → block-beta → C4Context。<br>erDiagram 实现要点：`ArrowType` 新增四个 crow's foot 记号（`erZeroOrOne` / `erExactlyOne` / `erZeroOrMore` / `erOneOrMore`），十六种基数组合由左右两个两字符 token 分别映射；`ErDiagramLayout` 与类图同法继承 `DagreLayout` 只覆写节点测量，因为实体框高度取决于属性行数 |
 | 涉及文件 | `lib/ui/editor/mermaid/parser/`、`lib/ui/editor/mermaid/painter/`、`lib/ui/editor/mermaid/models/` |
 
 ---

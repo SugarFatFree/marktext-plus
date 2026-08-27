@@ -3,6 +3,7 @@ import 'package:marktext_plus/ui/editor/mermaid/models/class_diagram.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/diagram.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/edge.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/git_graph.dart';
+import 'package:marktext_plus/ui/editor/mermaid/models/mindmap.dart';
 import 'package:marktext_plus/ui/editor/mermaid/parser/mermaid_parser.dart';
 
 void main() {
@@ -54,6 +55,91 @@ void main() {
       expect(result, isNotNull);
       expect(result!.diagram.type, DiagramType.flowchart);
       expect(result.diagram.nodes.length, 2);
+    });
+  });
+
+  group('Mindmap', () {
+    test('builds a tree from indentation', () {
+      final result = parser.parseWithData("""
+mindmap
+  root((Origins))
+    History
+      Long history
+    Research
+      Effectiveness
+""");
+
+      expect(result, isNotNull);
+      expect(result!.diagram.type, DiagramType.mindmap);
+
+      final root = result.mindmapData!.root;
+      expect(root.label, 'Origins');
+      expect(root.shape, MindmapShape.circle);
+      expect(root.children.length, 2);
+      expect(root.children[0].label, 'History');
+      expect(root.children[0].children.single.label, 'Long history');
+      expect(root.children[1].children.single.label, 'Effectiveness');
+    });
+
+    test('returns to the right parent when indentation drops', () {
+      final result = parser.parseWithData("""
+mindmap
+  root
+    A
+      A1
+        A2
+    B
+""");
+
+      final root = result!.mindmapData!.root;
+      expect(root.children.map((c) => c.label).toList(), ['A', 'B']);
+      expect(root.children[0].children.single.label, 'A1');
+      expect(root.children[0].children.single.children.single.label, 'A2');
+    });
+
+    test('reads each node shape', () {
+      final result = parser.parseWithData("""
+mindmap
+  root
+    [Square]
+    (Rounded)
+    ((Circle))
+    {{Hexagon}}
+""");
+
+      final shapes =
+          result!.mindmapData!.root.children.map((c) => c.shape).toList();
+      expect(shapes, [
+        MindmapShape.square,
+        MindmapShape.rounded,
+        MindmapShape.circle,
+        MindmapShape.hexagon,
+      ]);
+    });
+
+    test('records depth for every node', () {
+      final result = parser.parseWithData("""
+mindmap
+  root
+    A
+      A1
+""");
+
+      final root = result!.mindmapData!.root;
+      expect(root.depth, 0);
+      expect(root.children.single.depth, 1);
+      expect(root.children.single.children.single.depth, 2);
+    });
+
+    test('skips icon and class decoration lines', () {
+      final result = parser.parseWithData("""
+mindmap
+  root
+    Origins
+    ::icon(fa fa-book)
+""");
+
+      expect(result!.mindmapData!.root.children.length, 1);
     });
   });
 
@@ -272,11 +358,14 @@ erDiagram
 
   group('Parse failure diagnosis', () {
     test('names the unrecognised type and lists what is supported', () {
-      // mindmap is genuinely unsupported; erDiagram used to stand in here and
-      // stopped being a valid example once it was implemented.
-      final message = parser.describeParseFailure('mindmap\n  root((centre))');
+      // This example keeps going stale as types get implemented — erDiagram,
+      // then mindmap. quadrantChart is far enough down the list to hold for
+      // now; whoever implements it needs to change this line too.
+      final message = parser.describeParseFailure(
+        'quadrantChart\n  title Reach and engagement',
+      );
 
-      expect(message, contains('mindmap'));
+      expect(message, contains('quadrantchart'));
       expect(message, contains('classDiagram'));
       expect(message, contains('sequenceDiagram'));
     });

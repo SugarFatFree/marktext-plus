@@ -5,6 +5,7 @@ import '../models/gantt.dart';
 import '../models/git_graph.dart';
 import '../models/journey.dart';
 import '../models/kanban.dart';
+import '../models/mindmap.dart';
 import '../models/pie_chart.dart';
 import '../models/radar.dart';
 import '../models/timeline.dart';
@@ -16,6 +17,7 @@ import 'gantt_parser.dart';
 import 'git_graph_parser.dart';
 import 'journey_parser.dart';
 import 'kanban_parser.dart';
+import 'mindmap_parser.dart';
 import 'pie_chart_parser.dart';
 import 'radar_parser.dart';
 import 'sequence_parser.dart';
@@ -38,6 +40,7 @@ class MermaidParseResult {
     this.erDiagramData,
     this.journeyData,
     this.gitGraphData,
+    this.mindmapData,
   });
 
   /// The parsed diagram data
@@ -72,6 +75,9 @@ class MermaidParseResult {
 
   /// Git graph specific data (only set for git graphs)
   final GitGraphData? gitGraphData;
+
+  /// Mindmap specific data (only set for mindmaps)
+  final MindmapData? mindmapData;
 }
 
 /// Main parser for Mermaid diagrams
@@ -183,6 +189,17 @@ class MermaidParser {
           );
         }
         return null;
+      case DiagramType.mindmap:
+        // Mindmaps are structured by indentation, so this parser gets the
+        // lines with their leading whitespace intact.
+        final result = const MindmapParser().parse(cleanedLines);
+        if (result != null) {
+          return MermaidParseResult(
+            diagram: result.$1,
+            mindmapData: result.$2,
+          );
+        }
+        return null;
       case DiagramType.gitGraph:
         final result = const GitGraphParser().parse(cleanedLines);
         if (result != null) {
@@ -247,6 +264,7 @@ class MermaidParser {
     'erDiagram',
     'journey',
     'gitGraph',
+    'mindmap',
     'pie',
     'gantt',
     'timeline',
@@ -292,6 +310,8 @@ class MermaidParser {
         return 'user journey';
       case DiagramType.gitGraph:
         return 'git graph';
+      case DiagramType.mindmap:
+        return 'mindmap';
       case DiagramType.pieChart:
         return 'pie chart';
       case DiagramType.ganttChart:
@@ -373,6 +393,11 @@ class MermaidParser {
     // Git graph
     if (firstLine.startsWith('gitgraph')) {
       return DiagramType.gitGraph;
+    }
+
+    // Mindmap
+    if (firstLine.startsWith('mindmap')) {
+      return DiagramType.mindmap;
     }
 
     // State diagram
