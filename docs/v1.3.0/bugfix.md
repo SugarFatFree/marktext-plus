@@ -67,6 +67,7 @@
 | BUG-058 | 2026-08-27 | 一次拖入多张图片会互相覆盖，只剩最后一张 | P1 | 已修复 |
 | BUG-059 | 2026-08-27 | 「文本方向」设置无效，选了 RTL 也没反应 | P2 | 已修复 |
 | BUG-060 | 2026-08-27 | 菜单里所有快捷键都只是「画上去的」，按了没反应 | **P0** | 已修复 |
+| BUG-061 | 2026-08-27 | 配置非原子写入且可并发，一次崩溃就让全部设置回到默认 | **P0** | 已修复 |
 
 ---
 
@@ -188,7 +189,7 @@
 |------|------|
 | 发现日期 | 2026-08-27 |
 | 优先级 | P1 |
-| 状态 | 待修复 |
+| 状态 | 已修复（运行时行为待人工验证） |
 | 现象 | Linux 下连续打开多个 `.md` 文件会启动多个独立进程/窗口，而不是在已有窗口中新开标签页 |
 | 根因分析 | `code/linux/runner/my_application.cc:147` 使用 `G_APPLICATION_NON_UNIQUE` 创建 GApplication，禁用了 GTK 自带的单实例仲裁。`lib/main.dart` 里的单实例逻辑用的是 `windows_single_instance`，**只在 Windows 生效**（`if (Platform.isWindows)`） |
 | 修复方案 | 改用 `G_APPLICATION_HANDLES_OPEN`；`local_command_line` 把存在的文件参数交给 `g_application_open()` 而非一律 `activate`，GTK 便会把第二次启动转发给已持有 application ID 的进程；`my_application_open` 在该进程内通过 `com.marktextplus/files` channel 下发路径并 `gtk_window_present` 抬起窗口；Dart 侧在 `main.dart` 注册 handler，复用既有的 `TabNotifier.openFilesFromSecondInstance()`。<br>**注意**：CI 只能验证 C++ 能否编译，单实例的运行时行为需要人工在 Linux 桌面上连续双击两个 `.md` 文件确认 |
@@ -959,6 +960,23 @@
 | 自查发现的缺陷 | 反向索引一开始**没有按平台区分缓存**。「Ctrl」在 macOS 上要解析成 Command，而缓存是首次调用时按当时的平台建的。实际运行中平台不会变，所以用户碰不到；是本地对拍时按 mac / 非 mac 各跑一遍才暴露出来的，已改为缓存连同平台标记一起校验 |
 | 涉及文件 | `lib/services/keybinding_service.dart`、`lib/ui/widgets/app_menu_bar.dart`、`lib/ui/screens/home_screen.dart`、`lib/ui/editor/source_editor.dart`、`test/services/keybinding_service_test.dart`（新增） |
 | 验证方式 | 本地用桩类型对**真实服务**跑了 20 条断言：显示格式、mac 下 Ctrl→Command、`Ctrl+S` 与 `Ctrl+Shift+S` 必须区分、`Ctrl+Z` 与 `Ctrl+Shift+Z` 必须区分、裸按键不算快捷键、改绑后索引与菜单同步更新、空绑定与非法键名都安全返回 null。仓库内单测另外断言**默认表无重复组合、每条都能解析** |
+
+---
+
+## BUG-061 配置非原子写入，一次崩溃就让全部设置回到默认
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | **P0** |
+| 状态 | 已修复 |
+| 现象 | 主题、语言、字号、窗口尺寸等**全部设置突然一起回到默认值**，没有任何提示。这也是 BUG-010 里那句「该框反复出现，根因未能静态定位」最可能的解释 |
+| 根因分析 | `ConfigService.save` 直接 `File.writeAsString` **就地覆盖**：进程若在写到一半时被结束，磁盘上留下的是一个**被截断的 JSON**。`load` 解析失败后 `catch (_)` 返回 `AppConfig()` —— 于是所有设置静默归零，连坏掉的文件都会被下一次保存**覆盖掉**，用户既失去设置也失去了恢复的可能 |
+| 第二个根因 | `save` 可以并发。`updateConfig` 是异步的，而拖动分栏条、打开文件、记录最近文件、关闭时写窗口几何都会调它，多次 `writeAsString` 指向同一个路径时可以**交错**，同样会写出半截文件 |
+| 修复方案 | ① 先写 `config.json.tmp`（带 `flush: true`）再 `rename` 覆盖 —— rename 是原子的，磁盘上任何时刻要么是旧配置要么是新配置，不存在中间态；② 保存串行化：正在写时把新配置**排队**，只保留最后一份（每次保存携带的都是完整配置，中间态没有意义），返回同一个 future；③ 解析失败时把坏文件改名为 `config.json.corrupt` 留档，而不是让它被下一次保存悄悄覆盖 |
+| 平台确认 | 本机实测 `File.rename` 覆盖已存在文件是成功的（POSIX 语义）；Windows 上 Dart 的实现走 `MoveFileEx`，同样允许覆盖 |
+| 涉及文件 | `lib/core/config/config_service.dart`、`test/core/config/config_service_test.dart` |
+| 验证方式 | 本地对真实实现跑：并发发起 20 次保存后，文件仍是**合法 JSON** 且内容为最后一次的值；截断的配置被正确挪到 `.corrupt` 且**内容原样保留**。仓库内单测新增 4 条覆盖同样场景（原有 3 条保留） |
 
 ---
 
