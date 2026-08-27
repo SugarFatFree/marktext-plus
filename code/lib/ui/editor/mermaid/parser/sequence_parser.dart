@@ -19,6 +19,8 @@ class SequenceParser {
   final Map<String, String> _aliases = {};
   final List<SequenceActivation> _activations = [];
   final List<SequenceStep> _steps = [];
+  final List<SequenceBlock> _blocks = [];
+  final List<_OpenBlock> _openBlocks = [];
 
   /// Start index of each bar still open, innermost last, per participant.
   final Map<String, List<int>> _openBars = {};
@@ -37,6 +39,8 @@ class SequenceParser {
     _activations.clear();
     _openBars.clear();
     _steps.clear();
+    _blocks.clear();
+    _openBlocks.clear();
 
     // Skip the first line (sequenceDiagram declaration)
     for (var i = 1; i < lines.length; i++) {
@@ -59,6 +63,17 @@ class SequenceParser {
     }
     _openBars.clear();
 
+    // A frame left open — a missing `end` — closes at the last row, the same
+    // way an unclosed activation does.
+    while (_openBlocks.isNotEmpty) {
+      _closeBlock();
+    }
+    // Innermost frames close first, so the list comes out inside-out.
+    _blocks.sort((a, b) {
+      final byDepth = a.depth.compareTo(b.depth);
+      return byDepth != 0 ? byDepth : a.startIndex.compareTo(b.startIndex);
+    });
+
     // Create nodes from participants
     final nodes = _participants.map((p) => p as MermaidNode).toList();
 
@@ -75,6 +90,7 @@ class SequenceParser {
       SequenceDiagramData(
         steps: List.of(_steps),
         activations: List.of(_activations),
+        blocks: List.of(_blocks),
       ),
     );
   }
@@ -116,13 +132,26 @@ class SequenceParser {
     }
 
     // Parse loop/alt/opt/par blocks
-    if (trimmed.startsWith('loop ') ||
-        trimmed.startsWith('alt ') ||
-        trimmed.startsWith('opt ') ||
-        trimmed.startsWith('par ') ||
-        trimmed == 'end' ||
-        trimmed.startsWith('else ')) {
-      // TODO: Handle control structures
+    //
+    // The keyword must be followed by whitespace or nothing at all: a message
+    // from a participant called `looper` starts with `loop` too.
+    if (trimmed.toLowerCase() == 'end') {
+      _closeBlock();
+      return;
+    }
+
+    final section = _blockSectionPattern.firstMatch(trimmed);
+    if (section != null && _openBlocks.isNotEmpty) {
+      _startSection(section.group(2)?.trim());
+      return;
+    }
+
+    final opening = _blockOpenPattern.firstMatch(trimmed);
+    if (opening != null) {
+      _openBlock(
+        _blockKindFor(opening.group(1)!.toLowerCase()),
+        opening.group(2)?.trim(),
+      );
       return;
     }
 
@@ -249,6 +278,72 @@ class SequenceParser {
     }
   }
 
+  /// The keyword opening a framed region, and the condition after it.
+  static final _blockOpenPattern = RegExp(
+    r'^(loop|alt|opt|par|critical|break|rect)(?:\s+(.*))?$',
+    caseSensitive: false,
+  );
+
+  /// The keyword starting another branch of the frame already open.
+  static final _blockSectionPattern = RegExp(
+    r'^(else|and|option)(?:\s+(.*))?$',
+    caseSensitive: false,
+  );
+
+  SequenceBlockKind _blockKindFor(String keyword) => switch (keyword) {
+    'alt' => SequenceBlockKind.alt,
+    'opt' => SequenceBlockKind.opt,
+    'par' => SequenceBlockKind.par,
+    'critical' => SequenceBlockKind.critical,
+    'break' => SequenceBlockKind.breakBlock,
+    'rect' => SequenceBlockKind.rect,
+    _ => SequenceBlockKind.loop,
+  };
+
+  void _openBlock(SequenceBlockKind kind, String? label) {
+    _openBlocks.add(
+      _OpenBlock(
+        kind: kind,
+        depth: _openBlocks.length,
+        label: label == null || label.isEmpty ? null : label,
+        start: _steps.length,
+      ),
+    );
+  }
+
+  void _startSection(String? label) {
+    final open = _openBlocks.last;
+    open.sections.add(
+      SequenceBlockSection(
+        label: open.label,
+        startIndex: open.start,
+        endIndex: _steps.length - 1,
+      ),
+    );
+    open.label = label == null || label.isEmpty ? null : label;
+    open.start = _steps.length;
+  }
+
+  void _closeBlock() {
+    if (_openBlocks.isEmpty) return;
+
+    final open = _openBlocks.removeLast();
+    open.sections.add(
+      SequenceBlockSection(
+        label: open.label,
+        startIndex: open.start,
+        endIndex: _steps.length - 1,
+      ),
+    );
+    _blocks.add(
+      SequenceBlock(
+        kind: open.kind,
+        depth: open.depth,
+        sections: List.of(open.sections),
+      ),
+    );
+  }
+
   /// `Note`, the placement, the participants, then the text after the colon.
   static final _notePattern = RegExp(
     r'^note\s+(left of|right of|over)\s+([^:]+?)\s*(?::\s*(.*))?$',
@@ -323,4 +418,25 @@ class SequenceParser {
       _participants.add(SequenceParticipant(id: id, label: _aliases[id] ?? id));
     }
   }
+}
+
+/// A frame whose `end` has not been read yet.
+class _OpenBlock {
+  _OpenBlock({
+    required this.kind,
+    required this.depth,
+    required this.label,
+    required this.start,
+  });
+
+  final SequenceBlockKind kind;
+  final int depth;
+
+  /// Condition of the branch currently being read.
+  String? label;
+
+  /// First row of the branch currently being read.
+  int start;
+
+  final List<SequenceBlockSection> sections = [];
 }

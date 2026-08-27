@@ -47,6 +47,15 @@ class SequencePainter extends MermaidPainter {
   /// Gap between a note box and the lifeline it hangs off.
   static const double _noteGap = 12;
 
+  /// How far a frame reaches past the outermost participants.
+  static const double _blockMargin = 12;
+
+  /// How far a nested frame is drawn inside the one enclosing it.
+  static const double _blockNestInset = 9;
+
+  /// Narrowest a frame is allowed to become through nesting.
+  static const double _blockMinWidth = 80;
+
   @override
   void paint(Canvas canvas, Size size) {
     if (diagram.nodes.isEmpty) return;
@@ -74,8 +83,9 @@ class SequencePainter extends MermaidPainter {
       _drawParticipant(canvas, node);
     }
 
-    // Activation bars sit under the messages: a message arrow has to land on
-    // top of the bar it starts, not behind it.
+    // Frames go behind everything, then activation bars: a message arrow has
+    // to land on top of the bar it starts, not behind it.
+    _drawBlocks(canvas, size, messageStartY, messageSpacing);
     _drawActivations(canvas, messageStartY, messageSpacing);
 
     // Draw messages and notes, one row each
@@ -138,6 +148,143 @@ class SequencePainter extends MermaidPainter {
       final rect = Rect.fromLTRB(left, top, left + _activationWidth, bottom);
       canvas.drawRect(rect, fill);
       canvas.drawRect(rect, stroke);
+    }
+  }
+
+  /// Draws the loop/alt/opt frames behind everything else.
+  void _drawBlocks(
+    Canvas canvas,
+    Size size,
+    double messageStartY,
+    double messageSpacing,
+  ) {
+    final blocks = sequenceData?.blocks;
+    if (blocks == null || blocks.isEmpty) return;
+
+    var minLeft = double.infinity;
+    var maxRight = double.negativeInfinity;
+    for (final node in diagram.nodes) {
+      minLeft = math.min(minLeft, node.x);
+      maxRight = math.max(maxRight, node.x + node.width);
+    }
+    if (!minLeft.isFinite || !maxRight.isFinite) return;
+
+    final border = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1
+      ..color = const Color(0xFF9E9E9E);
+
+    for (final block in blocks) {
+      // A nested frame is drawn inside its parent, but only while there is
+      // room; past that the inset would turn the frame inside out.
+      final inset = math.min(
+        block.depth * _blockNestInset,
+        math.max((maxRight - minLeft) / 2 - _blockMinWidth / 2, 0),
+      );
+      // The frame reaches past the outermost participants, but never past the
+      // canvas — the padding around the diagram can be narrower than that.
+      final left = math.max(minLeft - _blockMargin + inset, 2.0);
+      final right = math.min(maxRight + _blockMargin - inset, size.width - 2);
+
+      final top =
+          messageStartY +
+          block.startIndex * messageSpacing -
+          messageSpacing * 0.62;
+      // An empty frame — `opt x` immediately followed by `end` — has its last
+      // row before its first, and still needs a visible box.
+      final bottom = block.endIndex < block.startIndex
+          ? top + messageSpacing * 0.6
+          : messageStartY +
+                block.endIndex * messageSpacing +
+                messageSpacing * 0.38;
+
+      canvas.drawRect(Rect.fromLTRB(left, top, right, bottom), border);
+
+      final tagWidth = _drawBlockTag(canvas, block.kind.tag, left, top);
+      final first = block.sections.first;
+      if (first.label != null) {
+        _drawBlockLabel(canvas, '[${first.label}]', left + tagWidth + 8, top);
+      }
+
+      // Every branch after the first is separated by a dashed rule, with its
+      // own condition beside it.
+      for (var i = 1; i < block.sections.length; i++) {
+        final section = block.sections[i];
+        final dividerY =
+            messageStartY +
+            section.startIndex * messageSpacing -
+            messageSpacing * 0.62;
+        if (dividerY <= top || dividerY >= bottom) continue;
+
+        _drawDashedRule(canvas, left, right, dividerY, border);
+        if (section.label != null) {
+          _drawBlockLabel(canvas, '[${section.label}]', left + 8, dividerY);
+        }
+      }
+    }
+  }
+
+  /// Draws the corner tag naming the frame, and returns its width.
+  double _drawBlockTag(Canvas canvas, String tag, double left, double top) {
+    final text = TextPainter(
+      text: TextSpan(
+        text: tag,
+        style: const TextStyle(
+          color: Color(0xFF37474F),
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+
+    final width = text.width + 12;
+    final rect = Rect.fromLTWH(left, top, width, text.height + 6);
+    canvas.drawRect(rect, Paint()..color = const Color(0xFFECEFF1));
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..color = const Color(0xFF9E9E9E),
+    );
+    text.paint(canvas, Offset(left + 6, top + 3));
+    return width;
+  }
+
+  void _drawBlockLabel(Canvas canvas, String label, double x, double y) {
+    TextPainter(
+        text: TextSpan(
+          text: label,
+          style: const TextStyle(color: Color(0xFF546E7A), fontSize: 11),
+        ),
+        textDirection: TextDirection.ltr,
+        maxLines: 1,
+        ellipsis: '…',
+      )
+      ..layout(maxWidth: 200)
+      ..paint(canvas, Offset(x, y + 3));
+  }
+
+  /// Named apart from the base class's own dashed-line helper, which draws a
+  /// lifeline segment and takes a different set of arguments.
+  void _drawDashedRule(
+    Canvas canvas,
+    double left,
+    double right,
+    double y,
+    Paint paint,
+  ) {
+    const dash = 6.0;
+    const gap = 4.0;
+    var x = left;
+    while (x < right) {
+      canvas.drawLine(
+        Offset(x, y),
+        Offset(math.min(x + dash, right), y),
+        paint,
+      );
+      x += dash + gap;
     }
   }
 

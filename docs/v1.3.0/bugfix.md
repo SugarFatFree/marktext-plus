@@ -92,6 +92,7 @@
 | BUG-083 | 2026-08-27 | 看板列用中文 id 时整块看板解析失败 | P1 | 已修复 |
 | BUG-084 | 2026-08-27 | 时序图的激活条（`+`/`-`、activate）从来不画 | P1 | 已修复 |
 | BUG-085 | 2026-08-27 | 时序图的 Note（便签）整行被丢弃 | P1 | 已修复 |
+| BUG-086 | 2026-08-27 | 时序图的 loop / alt / opt / par 控制块整段被丢弃 | P1 | 已修复 |
 
 ---
 
@@ -1404,6 +1405,23 @@
 | 便签绘制 | `over` 单参与者：框居中压在生命线上；`over A,B`：在两条生命线之间横跨，同时保证不窄于自身文字；`left of` / `right of`：贴着生命线左右挂出去。样式取 mermaid 的浅黄底（`#FFF5AD`）加橄榄色边 |
 | 涉及文件 | `lib/ui/editor/mermaid/models/sequence.dart`、`parser/sequence_parser.dart`、`painter/sequence_painter.dart`、`layout/sugiyama_layout.dart`、`widgets/mermaid_diagram.dart`、`test/ui/editor/mermaid/mermaid_parser_test.dart`、`test/fixtures/showcase.md` |
 | 验证方式 | 三种位置混排、便签与激活条混排、小写 `note`、无冒号写法本地逐一跑通；断言「夹了便签的激活条终点落在第 2 行而不是第 1 行」 |
+
+---
+
+## BUG-086 时序图的 loop / alt / opt / par 控制块整段被丢弃
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+| 现象 | `loop 每一分钟 … end`、`alt 命中 … else 未命中 … end` 在源项目里画成带角标的方框，本项目里这些关键字行连同 `end` 一起被 `// TODO: Handle control structures` 丢掉。更糟的是框没了、里面的消息还在，读者完全看不出哪几条消息是「条件分支」 |
+| 根因分析 | 与 BUG-085 同一处死代码区。另有一个隐藏问题：原来的判断是 `trimmed.startsWith('loop ')` 这类前缀匹配，一旦真去实现，参与者叫 `looper`、`Andy`、`optimist` 的消息行就会被误当成关键字 |
+| 修复方案 | 关键字用 `^(loop\|alt\|opt\|par\|critical\|break\|rect)(?:\s+(.*))?$` 匹配 —— **关键字后面必须是空白或行尾**，`looper->>B` 因此不匹配。用一个开启栈把 `else` / `and` / `option` 折成同一个框的多个分支，每个分支记录起止行；`end` 收框并记下嵌套层号 |
+| 边界处理 | 缺 `end` 的框收到最后一行（与未闭合的激活条一致）；空框（`opt x` 紧跟 `end`）末行小于首行，画的时候给一个可见的最小高度；多余的 `else` 在没有开启框时忽略 |
+| 绘制 | 框画在最底层，横跨全部参与者并按嵌套层号向内收，收到最小宽度为止；左上角画关键字角标，右侧画 `[条件]`；第二个及以后的分支用虚线横隔，并在虚线下写自己的条件 |
+| 涉及文件 | `lib/ui/editor/mermaid/models/sequence.dart`、`parser/sequence_parser.dart`、`painter/sequence_painter.dart`、`test/ui/editor/mermaid/mermaid_parser_test.dart`、`test/fixtures/showcase.md` |
+| 验证方式 | loop、alt/else、par 内嵌 loop、缺 end、空框、关键字前缀参与者名六种情况本地跑通；画布用手写桩类型完整编译并跑通「完整图 / 三种便签位置 / 缺席参与者 / 无时序数据回退」四条路径 |
 
 ---
 

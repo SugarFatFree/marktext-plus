@@ -126,10 +126,121 @@ class SequenceStep {
   int get hashCode => Object.hash(messageIndex, note);
 }
 
+/// The kinds of framed region a sequence diagram can carry.
+enum SequenceBlockKind {
+  /// `loop … end`
+  loop,
+
+  /// `alt … else … end`
+  alt,
+
+  /// `opt … end`
+  opt,
+
+  /// `par … and … end`
+  par,
+
+  /// `critical … option … end`
+  critical,
+
+  /// `break … end`. Named for the Dart keyword it collides with.
+  breakBlock,
+
+  /// `rect … end`, a plain coloured region.
+  rect;
+
+  /// The word drawn in the frame's corner tag.
+  String get tag => switch (this) {
+    SequenceBlockKind.loop => 'loop',
+    SequenceBlockKind.alt => 'alt',
+    SequenceBlockKind.opt => 'opt',
+    SequenceBlockKind.par => 'par',
+    SequenceBlockKind.critical => 'critical',
+    SequenceBlockKind.breakBlock => 'break',
+    SequenceBlockKind.rect => 'rect',
+  };
+}
+
+/// One branch of a framed region.
+///
+/// A `loop` or `opt` has exactly one; an `alt` has one per `else`, a `par` one
+/// per `and`, a `critical` one per `option`.
+class SequenceBlockSection {
+  /// Creates a section.
+  const SequenceBlockSection({
+    required this.label,
+    required this.startIndex,
+    required this.endIndex,
+  });
+
+  /// The condition written after the keyword, if any.
+  final String? label;
+
+  /// First row of the section.
+  final int startIndex;
+
+  /// Last row of the section. Less than [startIndex] when the section is
+  /// empty, which the painter treats as nothing to frame.
+  final int endIndex;
+
+  @override
+  bool operator ==(Object other) =>
+      other is SequenceBlockSection &&
+      other.label == label &&
+      other.startIndex == startIndex &&
+      other.endIndex == endIndex;
+
+  @override
+  int get hashCode => Object.hash(label, startIndex, endIndex);
+}
+
+/// A framed region of the diagram.
+class SequenceBlock {
+  /// Creates a block.
+  const SequenceBlock({
+    required this.kind,
+    required this.depth,
+    required this.sections,
+  });
+
+  /// What kind of frame this is.
+  final SequenceBlockKind kind;
+
+  /// Nesting level, zero for a frame not inside another.
+  final int depth;
+
+  /// The branches, in source order. Never empty.
+  final List<SequenceBlockSection> sections;
+
+  /// First row inside the frame.
+  int get startIndex => sections.first.startIndex;
+
+  /// Last row inside the frame.
+  int get endIndex => sections.last.endIndex;
+
+  @override
+  bool operator ==(Object other) {
+    if (other is! SequenceBlock) return false;
+    if (other.kind != kind || other.depth != depth) return false;
+    if (other.sections.length != sections.length) return false;
+    for (var i = 0; i < sections.length; i++) {
+      if (other.sections[i] != sections[i]) return false;
+    }
+    return true;
+  }
+
+  @override
+  int get hashCode => Object.hash(kind, depth, Object.hashAll(sections));
+}
+
 /// Sequence diagram data that does not fit the generic node/edge model.
 class SequenceDiagramData {
   /// Creates sequence diagram data.
-  const SequenceDiagramData({required this.steps, required this.activations});
+  const SequenceDiagramData({
+    required this.steps,
+    required this.activations,
+    this.blocks = const [],
+  });
 
   /// Every row of the diagram, in order.
   final List<SequenceStep> steps;
@@ -137,15 +248,22 @@ class SequenceDiagramData {
   /// Activation bars, in the order they open. Indices count steps.
   final List<SequenceActivation> activations;
 
+  /// Framed regions — loop, alt, opt and friends — outermost first.
+  final List<SequenceBlock> blocks;
+
   @override
   bool operator ==(Object other) =>
       other is SequenceDiagramData &&
       _sameList(other.steps, steps) &&
-      _sameList(other.activations, activations);
+      _sameList(other.activations, activations) &&
+      _sameList(other.blocks, blocks);
 
   @override
-  int get hashCode =>
-      Object.hash(Object.hashAll(steps), Object.hashAll(activations));
+  int get hashCode => Object.hash(
+    Object.hashAll(steps),
+    Object.hashAll(activations),
+    Object.hashAll(blocks),
+  );
 
   static bool _sameList<T>(List<T> a, List<T> b) {
     if (a.length != b.length) return false;

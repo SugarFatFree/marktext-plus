@@ -368,7 +368,11 @@ graph TD
 sequenceDiagram
   用户->>+系统: 登录
   Note over 用户,系统: 认证流程
-  系统-->>-用户: 成功
+  alt 凭证正确
+    系统-->>-用户: 成功
+  else 凭证错误
+    系统-->>用户: 请重试
+  end
 ```
 
 ```mermaid

@@ -678,6 +678,94 @@ erDiagram
 
       expect(data.steps.last.note!.text, 'fine');
     });
+    test('a loop frames the rows between it and its end', () {
+      final data = parser
+          .parseWithData(
+            'sequenceDiagram\n'
+            '  A->>B: start\n'
+            '  loop every minute\n'
+            '    B->>B: beat\n'
+            '  end\n'
+            '  B-->>A: done',
+          )!
+          .sequenceData!;
+
+      final block = data.blocks.single;
+      expect(block.kind, SequenceBlockKind.loop);
+      expect(block.sections.single.label, 'every minute');
+      expect(block.startIndex, 1);
+      expect(block.endIndex, 1);
+    });
+
+    test('alt splits into one section per else', () {
+      final data = parser
+          .parseWithData(
+            'sequenceDiagram\n'
+            '  A->>B: query\n'
+            '  alt hit\n'
+            '    B-->>A: data\n'
+            '  else miss\n'
+            '    B-->>A: nothing\n'
+            '  end',
+          )!
+          .sequenceData!;
+
+      final block = data.blocks.single;
+      expect(block.kind, SequenceBlockKind.alt);
+      expect(block.sections.map((s) => s.label).toList(), ['hit', 'miss']);
+      expect(block.sections.first.startIndex, 1);
+      expect(block.sections.first.endIndex, 1);
+      expect(block.sections.last.startIndex, 2);
+      expect(block.sections.last.endIndex, 2);
+    });
+
+    test('frames nest, and the inner one records its depth', () {
+      final data = parser
+          .parseWithData(
+            'sequenceDiagram\n'
+            '  par first\n'
+            '    A->>B: one\n'
+            '    loop thrice\n'
+            '      B->>C: two\n'
+            '    end\n'
+            '  and second\n'
+            '    A->>C: three\n'
+            '  end',
+          )!
+          .sequenceData!;
+
+      expect(data.blocks.map((b) => b.depth).toList(), [0, 1]);
+      expect(data.blocks.first.kind, SequenceBlockKind.par);
+      expect(data.blocks.last.kind, SequenceBlockKind.loop);
+      expect(data.blocks.last.startIndex, 1);
+    });
+
+    test('a frame with no end closes at the last row', () {
+      final data = parser
+          .parseWithData('sequenceDiagram\n  opt maybe\n    A->>B: one')!
+          .sequenceData!;
+
+      expect(data.blocks.single.endIndex, 0);
+    });
+
+    test('a participant whose name starts with a keyword still sends', () {
+      // `looper->>B` begins with `loop`, `Andy` with `and`, `optimist` with
+      // `opt` — the keyword only counts when whitespace or the line end
+      // follows it.
+      final diagram = diagramOf(
+        'sequenceDiagram\n'
+        '  looper->>B: one\n'
+        '  Andy->>B: two\n'
+        '  optimist->>B: three',
+      );
+
+      expect(diagram.edges, hasLength(3));
+      expect(
+        diagram.edges.map((e) => e.from).toList(),
+        ['looper', 'Andy', 'optimist'],
+      );
+    });
+
 
   });
 
