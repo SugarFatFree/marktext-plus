@@ -83,17 +83,9 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   /// Parse raw markdown to find heading line numbers (1-based),
   /// matching the same logic used by the TOC panel.
   List<int> _findHeadingLines(String markdown) {
-    final source = markdown.isNotEmpty && markdown.codeUnitAt(0) == 0xFEFF
-        ? markdown.substring(1)
-        : markdown;
-    final lines = source.split('\n');
-    final result = <int>[];
-    for (int i = 0; i < lines.length; i++) {
-      if (RegExp(r'^#{1,6}\s+.+$').hasMatch(lines[i])) {
-        result.add(i + 1);
-      }
-    }
-    return result;
+    return md.MarkdownParser.headingOutline(markdown)
+        .map((heading) => heading.line)
+        .toList();
   }
 
   @override

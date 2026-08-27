@@ -2,6 +2,63 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/services/markdown_parser.dart';
 
 void main() {
+  group('MarkdownParser.headingOutline', () {
+    test('reports level, text and 1-based line', () {
+      final outline = MarkdownParser.headingOutline('# One\n\n## Two\n');
+
+      expect(outline, hasLength(2));
+      expect(outline[0].level, 1);
+      expect(outline[0].text, 'One');
+      expect(outline[0].line, 1);
+      expect(outline[1].level, 2);
+      expect(outline[1].line, 3);
+    });
+
+    test('a # inside a fenced block is not a heading', () {
+      // "# install deps" in a shell snippet is a comment. Counting it filled
+      // the outline with entries that scrolled somewhere unrelated — and,
+      // because the preview maps its Nth heading to the Nth entry, pushed
+      // every later entry onto the wrong line.
+      final outline = MarkdownParser.headingOutline('''
+# Title
+
+```bash
+# install deps
+```
+
+## Section
+''');
+
+      expect(outline.map((h) => h.text).toList(), ['Title', 'Section']);
+    });
+
+    test('a fence left unclosed swallows the rest', () {
+      final outline = MarkdownParser.headingOutline('# A\n```\n# B\n');
+      expect(outline.map((h) => h.text).toList(), ['A']);
+    });
+
+    test('an indented fence still counts', () {
+      final outline =
+          MarkdownParser.headingOutline('  ```\n# X\n  ```\n# Y');
+      expect(outline.map((h) => h.text).toList(), ['Y']);
+    });
+
+    test('a byte order mark does not hide the first heading', () {
+      // The outline panel read the raw text and the preview stripped the BOM,
+      // so they disagreed about whether the file started with a heading.
+      expect(MarkdownParser.headingOutline('\uFEFF# Title'), hasLength(1));
+    });
+
+    test('trailing spaces are trimmed from the text', () {
+      expect(MarkdownParser.headingOutline('#  Title   ').single.text, 'Title');
+    });
+
+    test('a document with no headings has an empty outline', () {
+      expect(MarkdownParser.headingOutline(''), isEmpty);
+      expect(MarkdownParser.headingOutline('plain text'), isEmpty);
+    });
+  });
+
   late MarkdownParser parser;
   setUp(() => parser = MarkdownParser());
 

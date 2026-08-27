@@ -15,6 +15,7 @@ import '../../providers/tab_provider.dart';
 import '../screens/settings_screen.dart';
 import '../../providers/sidebar_provider.dart';
 import '../../services/file_service.dart';
+import '../../services/markdown_parser.dart';
 
 
 class SideBar extends ConsumerStatefulWidget {
@@ -804,18 +805,17 @@ class _SideBarState extends ConsumerState<SideBar> {
     final activeTab = ref.watch(activeTabProvider);
     final content = activeTab?.content ?? '';
 
-    final headings = <_TocEntry>[];
-    final lines = content.split('\n');
-    for (int i = 0; i < lines.length; i++) {
-      final match = RegExp(r'^(#{1,6})\s+(.+)$').firstMatch(lines[i]);
-      if (match != null) {
-        headings.add(_TocEntry(
-          level: match.group(1)!.length,
-          text: match.group(2)!,
-          lineNumber: i + 1,
-        ));
-      }
-    }
+    // Shared with the preview, which maps its Nth heading widget to the Nth
+    // entry here: two readings of the same document would put every entry
+    // after the first disagreement on the wrong line.
+    final headings = [
+      for (final heading in MarkdownParser.headingOutline(content))
+        _TocEntry(
+          level: heading.level,
+          text: heading.text,
+          lineNumber: heading.line,
+        ),
+    ];
 
     if (headings.isEmpty) {
       return Center(

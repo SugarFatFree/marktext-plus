@@ -245,10 +245,54 @@ class HtmlBlockNode extends MarkdownNode {
 // -- Parser --
 
 class MarkdownParser {
+  /// One heading, as the outline sees it.
+  ///
+  /// [line] is 1-based, matching what the editor and the scroll targets use.
+
   static final _headingRe = RegExp(r'^(#{1,6})\s+(.+)$');
   static final _hrRe = RegExp(r'^(\*{3,}|-{3,}|_{3,})\s*$');
   static final _codeFenceRe = RegExp(r'^\s*```(\w*)');
   static final _codeFenceEndRe = RegExp(r'^\s*```\s*$');
+
+  /// The headings of [source], in document order.
+  ///
+  /// The outline panel and the preview's scroll targets both need this and
+  /// have to agree exactly: the preview maps its Nth heading widget to the
+  /// Nth entry here, so one list seeing a heading the other does not puts
+  /// every later entry on the wrong line.
+  ///
+  /// Lines inside a fenced code block are not headings. `# install deps` in a
+  /// shell snippet is a comment, and counting it filled the outline with
+  /// entries that scrolled somewhere unrelated.
+  static List<({int line, int level, String text})> headingOutline(
+      String source) {
+    // A byte order mark would sit in front of the first '#' and stop it
+    // matching, so the two callers disagreed about the first heading.
+    final text = source.isNotEmpty && source.codeUnitAt(0) == 0xFEFF
+        ? source.substring(1)
+        : source;
+
+    final headings = <({int line, int level, String text})>[];
+    final lines = text.split('\n');
+    var inFence = false;
+
+    for (var i = 0; i < lines.length; i++) {
+      if (_codeFenceRe.hasMatch(lines[i])) {
+        inFence = !inFence;
+        continue;
+      }
+      if (inFence) continue;
+
+      final match = _headingRe.firstMatch(lines[i]);
+      if (match == null) continue;
+      headings.add((
+        line: i + 1,
+        level: match.group(1)!.length,
+        text: match.group(2)!.trim(),
+      ));
+    }
+    return headings;
+  }
   static final _mathBlockRe = RegExp(r'^\$\$\s*$');
   static final _taskRe = RegExp(r'^\[( |x)\]\s+(.+)$');
   static final _blockquoteRe = RegExp(r'^(>+)\s?(.*)$');
