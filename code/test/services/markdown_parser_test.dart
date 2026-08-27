@@ -2,6 +2,47 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/services/markdown_parser.dart';
 
 void main() {
+  group('Link destinations and titles', () {
+    final parser = MarkdownParser();
+
+    InlineSpan spanOf(String source) =>
+        (parser.parse(source).single as ParagraphNode).inlineSpans.single;
+
+    test('a destination may be wrapped in angle brackets', () {
+      // The way to write a path containing a space, which matters for a
+      // local editor: [doc](<my file.md>). It fell apart into literal text.
+      final span = spanOf('[a](<http://x.com/a b>)');
+
+      expect(span.type, InlineType.link);
+      expect(span.href, 'http://x.com/a b');
+    });
+
+    test('a title may use single quotes', () {
+      expect(spanOf("[a](http://x.com 't')").title, 't');
+      expect(spanOf('[a](http://x.com "t")').title, 't');
+    });
+
+    test('images take both forms too', () {
+      expect(spanOf('![alt](<my file.png>)').href, 'my file.png');
+      expect(spanOf("![alt](i.png 'cap')").title, 'cap');
+    });
+
+    test('the plain forms are unchanged', () {
+      expect(spanOf('[a](http://x.com)').href, 'http://x.com');
+      expect(spanOf('[a](./doc.md)').href, './doc.md');
+      expect(spanOf('[a](#section)').href, '#section');
+      // A URL may still contain one level of balanced parentheses.
+      expect(spanOf('[a](http://x.com/a_(b))').href, 'http://x.com/a_(b)');
+    });
+
+    test('a code span still closes on its own run of backticks', () {
+      // The code span closes with a backreference by absolute group number,
+      // which moves whenever a group is added ahead of it.
+      expect(spanOf('`code`').text, 'code');
+      expect(spanOf('``code with ` tick``').text, 'code with ` tick');
+    });
+  });
+
   group('Mixed and nested lists', () {
     final parser = MarkdownParser();
 

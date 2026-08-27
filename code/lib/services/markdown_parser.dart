@@ -995,14 +995,22 @@ class MarkdownParser {
       // routinely do — and an optional quoted title follows it. `[^)]+` used
       // to stop at the first `)`, truncating such URLs, and swallowed the
       // title into the path so images with one never loaded.
-      r'!\[([^\]]*)\]\(\s*((?:[^()\s"]|\([^()]*\))+)(?:\s+"([^"]*)")?\s*\)'  // image
-      r'|\[([^\]]*)\]\(\s*((?:[^()\s"]|\([^()]*\))+)(?:\s+"([^"]*)")?\s*\)'  // link
+      // The destination may be wrapped in angle brackets, which is how a path
+      // containing a space is written — `[doc](<my file.md>)` — and the title
+      // may be quoted with either kind of quote. Neither was accepted, and
+      // both fell apart into literal text.
+      r'!\[([^\]]*)\]\(\s*(?:<([^>]*)>|((?:[^()\s"]|\([^()]*\))+))'
+      r'''(?:\s+(?:"([^"]*)"|'([^']*)'))?\s*\)'''  // 1 alt, 2/3 src, 4/5 title
+      r'''|\[([^\]]*)\]\(\s*(?:<([^>]*)>|((?:[^()\s"]|\([^()]*\))+))'''
+      r'''(?:\s+(?:"([^"]*)"|'([^']*)'))?\s*\)'''  // 6 text, 7/8 href, 9/10 title
       r'|\[\^([^\]]+)\]'           // footnote ref
       // A code span is delimited by a run of backticks and closed by a run of
       // the same length, which is how a document writes code that itself
       // contains a backtick. Matching a single pair mangled ``a`` into three
       // spans and truncated `` `x` `` at the first inner tick.
-      r'|(`+)([^`]|[^`].*?[^`]|`+?)\8(?!`)'  // inline code
+      // The backreference is by absolute group number, so it moves whenever a
+      // group is added ahead of it — as the angle-bracket destinations did.
+      r'|(`+)([^`]|[^`].*?[^`]|`+?)\12(?!`)'  // inline code
       // Requires non-space at both ends, so `$5 and $10` is money, not maths.
       r'|\$(?!\s)([^$\n]+?)(?<!\s)\$'  // inline math
       r'|==(.+?)=='                // highlight
@@ -1047,34 +1055,39 @@ class MarkdownParser {
         ));
       }
 
-      // Groups: 1 alt, 2 src, 3 title | 4 text, 5 href, 6 title | 7 footnote...
-      if (match.group(2) != null) {
+      // Groups: 1 alt, 2/3 src, 4/5 title | 6 text, 7/8 href, 9/10 title |
+      // 11 footnote... Destination and title each have two forms, so each
+      // contributes two groups of which one is null.
+      final imageSrc = match.group(2) ?? match.group(3);
+      final linkHref = match.group(7) ?? match.group(8);
+
+      if (imageSrc != null) {
         // Image: ![alt](src "title")
         spans.add(InlineSpan(
           type: InlineType.image,
           text: match.group(1) ?? '',
-          href: match.group(2),
-          title: match.group(3),
+          href: imageSrc,
+          title: match.group(4) ?? match.group(5),
         ));
-      } else if (match.group(5) != null) {
+      } else if (linkHref != null) {
         // Link: [text](href "title")
         spans.add(InlineSpan(
           type: InlineType.link,
-          text: match.group(4) ?? '',
-          href: match.group(5),
-          title: match.group(6),
+          text: match.group(6) ?? '',
+          href: linkHref,
+          title: match.group(9) ?? match.group(10),
         ));
-      } else if (match.group(7) != null) {
+      } else if (match.group(11) != null) {
         // Footnote ref
         spans.add(InlineSpan(
           type: InlineType.footnoteRef,
-          text: match.group(7)!,
+          text: match.group(11)!,
         ));
-      } else if (match.group(8) != null) {
+      } else if (match.group(12) != null) {
         // Inline code. CommonMark drops one leading and one trailing space
         // when both are present, so `` ` `` is a single backtick rather than
         // a padded one.
-        var code = match.group(9)!;
+        var code = match.group(13)!;
         if (code.length >= 2 &&
             code.startsWith(' ') &&
             code.endsWith(' ') &&
@@ -1082,55 +1095,55 @@ class MarkdownParser {
           code = code.substring(1, code.length - 1);
         }
         spans.add(InlineSpan(type: InlineType.code, text: code));
-      } else if (match.group(10) != null) {
+      } else if (match.group(14) != null) {
         // Inline math
-        spans.add(InlineSpan(type: InlineType.mathInline, text: match.group(10)!));
-      } else if (match.group(11) != null) {
+        spans.add(InlineSpan(type: InlineType.mathInline, text: match.group(14)!));
+      } else if (match.group(15) != null) {
         // Highlight
-        spans.add(InlineSpan(type: InlineType.highlight, text: match.group(11)!));
-      } else if (match.group(12) != null) {
+        spans.add(InlineSpan(type: InlineType.highlight, text: match.group(15)!));
+      } else if (match.group(16) != null) {
         // Underline
-        spans.add(InlineSpan(type: InlineType.underline, text: match.group(12)!));
-      } else if (match.group(13) != null) {
+        spans.add(InlineSpan(type: InlineType.underline, text: match.group(16)!));
+      } else if (match.group(17) != null) {
         // Bold italic ***
         spans.add(
-            InlineSpan(type: InlineType.boldItalic, text: match.group(13)!));
-      } else if (match.group(14) != null) {
+            InlineSpan(type: InlineType.boldItalic, text: match.group(17)!));
+      } else if (match.group(18) != null) {
         // Bold **
-        spans.add(InlineSpan(type: InlineType.bold, text: match.group(14)!));
-      } else if (match.group(15) != null) {
+        spans.add(InlineSpan(type: InlineType.bold, text: match.group(18)!));
+      } else if (match.group(19) != null) {
         // Bold italic ___
         spans.add(
-            InlineSpan(type: InlineType.boldItalic, text: match.group(15)!));
-      } else if (match.group(16) != null) {
+            InlineSpan(type: InlineType.boldItalic, text: match.group(19)!));
+      } else if (match.group(20) != null) {
         // Bold __
-        spans.add(InlineSpan(type: InlineType.bold, text: match.group(16)!));
-      } else if (match.group(17) != null) {
+        spans.add(InlineSpan(type: InlineType.bold, text: match.group(20)!));
+      } else if (match.group(21) != null) {
         // Strikethrough
         spans.add(InlineSpan(
           type: InlineType.strikethrough,
-          text: match.group(17)!,
+          text: match.group(21)!,
         ));
-      } else if (match.group(18) != null) {
-        // Superscript
-        spans.add(InlineSpan(type: InlineType.superscript, text: match.group(18)!));
-      } else if (match.group(19) != null) {
-        // Subscript
-        spans.add(InlineSpan(type: InlineType.subscript, text: match.group(19)!));
-      } else if (match.group(20) != null) {
-        // Italic *
-        spans.add(InlineSpan(type: InlineType.italic, text: match.group(20)!));
-      } else if (match.group(21) != null) {
-        // Italic _
-        spans.add(InlineSpan(type: InlineType.italic, text: match.group(21)!));
       } else if (match.group(22) != null) {
-        // Autolink: <https://example.com>
-        final url = match.group(22)!;
-        spans.add(InlineSpan(type: InlineType.link, text: url, href: url));
+        // Superscript
+        spans.add(InlineSpan(type: InlineType.superscript, text: match.group(22)!));
+      } else if (match.group(23) != null) {
+        // Subscript
+        spans.add(InlineSpan(type: InlineType.subscript, text: match.group(23)!));
+      } else if (match.group(24) != null) {
+        // Italic *
+        spans.add(InlineSpan(type: InlineType.italic, text: match.group(24)!));
       } else if (match.group(25) != null) {
+        // Italic _
+        spans.add(InlineSpan(type: InlineType.italic, text: match.group(25)!));
+      } else if (match.group(26) != null) {
+        // Autolink: <https://example.com>
+        final url = match.group(26)!;
+        spans.add(InlineSpan(type: InlineType.link, text: url, href: url));
+      } else if (match.group(29) != null) {
         // Trailing punctuation ends the sentence, not the address: in
         // "see https://example.com." the full stop is not part of the link.
-        final raw = match.group(25)!;
+        final raw = match.group(29)!;
         final url = raw.replaceFirst(RegExp(r'[.,;:!?]+$'), '');
         spans.add(InlineSpan(type: InlineType.link, text: url, href: url));
         if (url.length < raw.length) {
@@ -1139,20 +1152,20 @@ class MarkdownParser {
             text: raw.substring(url.length),
           ));
         }
-      } else if (match.group(23) != null) {
+      } else if (match.group(27) != null) {
         // Reference link: [text][label], or [text][] where the text is the
         // label. Unresolved references stay as written rather than becoming a
         // link to nowhere.
-        final label = match.group(24)!.isEmpty
-            ? match.group(23)!
-            : match.group(24)!;
+        final label = match.group(28)!.isEmpty
+            ? match.group(27)!
+            : match.group(28)!;
         final definition = _linkDefinitions[label.toLowerCase()];
         if (definition == null) {
           spans.add(InlineSpan(type: InlineType.text, text: match.group(0)!));
         } else {
           spans.add(InlineSpan(
             type: InlineType.link,
-            text: match.group(23)!,
+            text: match.group(27)!,
             href: definition.url,
             title: definition.title,
           ));
