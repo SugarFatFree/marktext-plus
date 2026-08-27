@@ -15,12 +15,15 @@ class KanbanParser {
   /// Mermaid's own documentation uses all three forms; accepting only
   /// `id[Title]` made a board copied from those docs fail to parse.
   static final _columnRe =
-      RegExp(r'^(?:(\w+)?\[([^\]]+)\]|([^\[\]]+?))(?:\s+wip:(\d+))?$');
+      // The id accepts any script: `\w` is ASCII-only in Dart, so a column
+      // written `待办栏[待办事项]` matched neither branch and the whole board
+      // failed to parse.
+      RegExp(r'^(?:([^\s\[\]]+)?\[([^\]]+)\]|([^\[\]]+?))(?:\s+wip:(\d+))?$');
 
   /// A task: `id[Description]`, `[Description]`, or bare text, optionally
   /// followed by an `@{ ... }` metadata block.
   static final _taskRe = RegExp(
-    r'^(?:(\w+)?\[([^\]]+)\]|([^\[\]@]+?))(?:\s+@\{([^}]+)\})?$',
+    r'^(?:([^\s\[\]]+)?\[([^\]]+)\]|([^\[\]@]+?))(?:\s+@\{([^}]+)\})?$',
   );
 
   /// Parses Kanban diagram from cleaned lines

@@ -499,6 +499,25 @@ erDiagram
       expect(diagram.edges.single.label, '登录');
     });
 
+    test('a kanban column may be named in Chinese with an id', () {
+      // Neither branch of the column pattern matched, so the whole board
+      // failed to parse rather than just that column.
+      final board = parser
+          .parseWithData('kanban\n  待办栏[待办事项]\n    任务一')!
+          .kanbanChartData!;
+
+      expect(board.columns.single.title, '待办事项');
+      expect(board.columns.single.tasks, hasLength(1));
+    });
+
+    test('a git branch may be named in Chinese', () {
+      final graph = parser
+          .parseWithData('gitGraph\n  commit\n  branch 开发\n  commit')!
+          .gitGraphData!;
+
+      expect(graph.branches, contains('开发'));
+    });
+
     test('a trailing semicolon is not part of the node name', () {
       // Node ids now accept anything that is not a delimiter, and a statement
       // may end with a semicolon.
