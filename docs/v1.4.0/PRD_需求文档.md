@@ -5,6 +5,7 @@
 | FEAT-001 | 2026-08-28 | 邮箱地址自动变成可点链接 | 中 | 简单 | 已实现 |
 | FEAT-002 | 2026-08-28 | 链接与图片的文字里允许成对方括号 | 中 | 简单 | 已实现 |
 | FEAT-003 | 2026-08-28 | 文件在外部被改动时自动重载（仅限无未保存修改） | 高 | 中等 | 已实现 |
+| FEAT-004 | 2026-08-28 | Mermaid 新增 block-beta（块图） | 中 | 中等 | 已实现 |
 
 ## 详细需求
 
@@ -63,5 +64,26 @@
 | 尚未做 | 有未保存修改时不提示「磁盘上的版本变了，要重新加载吗」。提示需要 12 种语言的文案，本次不扩大范围；当前行为是安全的（保留用户的内容） |
 | 涉及文件 | `lib/services/open_document_watcher.dart`（新增）、`lib/models/tab_info.dart`、`lib/providers/tab_provider.dart`、`lib/ui/editor/split_editor.dart`、`lib/ui/screens/home_screen.dart`、`test/services/open_document_watcher_test.dart`（新增）、`test/providers/tab_reload_test.dart`（新增） |
 | 验证方式 | 监视器 5 个单元测试（普通改动、同目录未打开的文件不报、**改名覆盖式保存**、连写五次只报一次、取消监视）；provider 5 个测试（干净文档重载、修订号递增、**有未保存修改时不动**、关掉的文档不再监视、内容相同不触发）。另用纯 Dart 复刻 `state_notifier` 的受保护设置器形状，确认「只重写设置器」这一写法成立 |
+
+---
+
+### FEAT-004 — Mermaid 新增 block-beta（块图）
+
+| 字段 | 内容 |
+|------|------|
+| 实现日期 | 2026-08-28 |
+| 优先级 | 中 |
+| 难易度 | 中等 |
+| 状态 | 已实现 |
+| 需求描述 | 支持 mermaid 的 `block-beta`：用网格摆放若干带标签的方块，方块之间可以连箭头。常用于画系统组成、分层架构 |
+| 语法特点 | 它是**网格**而不是图：`columns n` 定宽，之后每一行列出这一行的方块，排满自动换行。`space` 占位不画，`:n` 跨列 |
+| 实现方案 | 四件套 `models/block_diagram.dart`（数据 + 布局）、`parser/block_parser.dart`、`painter/block_painter.dart`、`layout_engine.dart` 的 `BlockDiagramLayout`。布局仍是**一个纯 Dart 函数**，算尺寸和画图都调它 |
+| 形状 | `[方]`、`(圆角)`、`((圆))`、`{菱形}`、`{{六边}}`、`[[子程序]]`、`([体育场])`、`[(圆柱)]`、`>斜边]`（mermaid 称之为 asymmetric，本项目按平行四边形画，形状可辨但不完全一致）。两字符括号在正则里**排在单字符前面** —— 交替取第一个匹配的分支，`[[` 写在 `[` 后面就永远轮不到，`f[["x"]]` 会剩一个括号 |
+| 分行 | 一行不能按空格粗暴切分：`a["两 个 词"] b` 是两个方块。按括号深度与引号切分 |
+| 箭头 | `a --> b`、`a -- "标签" --> b`、`a -->|标签| b` 三种写法。线从**方块边缘**出发而不是中心，否则箭头会被方块盖住；箭头标签底下垫一层背景色，否则线会从字中间穿过 |
+| 已知限制 | 嵌套的 `block:组 … end` 尚未做成子网格 —— 组内的方块会被摆进外层网格，而不是被丢弃。`style` / `classDef` 行忽略 |
+| 涉及文件 | `lib/ui/editor/mermaid/models/block_diagram.dart`、`parser/block_parser.dart`、`painter/block_painter.dart`、`parser/mermaid_parser.dart`、`models/diagram.dart`、`layout/layout_engine.dart`、`widgets/mermaid_diagram.dart`、`mermaid.dart`、`test/ui/editor/mermaid/mermaid_parser_test.dart`、`test/fixtures/showcase.md` |
+| 验证方式 | 12 种写法本地探查（换行、形状、跨列、空位、三种箭头写法、无 `columns`、含空格标签、中文 id、嵌套组、只有表头）；画布用手写桩类型完整编译并跑通（含自环箭头、指向不存在方块的箭头、空图）；showcase 夹具 27 个 mermaid 块全部解析成功 |
+| 过程记录 | 新建的 `models/block_diagram.dart` 被上一个提交的 `git add -A` 顺带带了出去 —— 当时它还没人引用，编译无碍，但一个半成品文件混进了不相干的提交。**提交前该看一眼 `git status`** |
 
 ---

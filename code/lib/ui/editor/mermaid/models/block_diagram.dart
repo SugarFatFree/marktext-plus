@@ -193,8 +193,10 @@ class BlockLayout {
 
     final columns = math.max(data.columns, 1);
     final usable = math.max(availableWidth - padding * 2, minCellWidth);
-    final cellWidth =
-        math.max((usable - gap * (columns - 1)) / columns, minCellWidth);
+    final cellWidth = math.max(
+      (usable - gap * (columns - 1)) / columns,
+      minCellWidth,
+    );
 
     final blocks = <BlockPlacement>[];
     var row = 0;
@@ -231,7 +233,8 @@ class BlockLayout {
     final rows = column == 0 ? row : row + 1;
     return BlockLayoutResult(
       width: padding * 2 + cellWidth * columns + gap * (columns - 1),
-      height: padding * 2 +
+      height:
+          padding * 2 +
           titleHeight +
           math.max(rows, 1) * rowHeight +
           math.max(rows - 1, 0) * gap,

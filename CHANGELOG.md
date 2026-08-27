@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Sequence diagrams honour `box … end` participant groupings and `autonumber`
+- Mermaid `block-beta` diagrams render: a wrapping grid of shaped blocks with arrows between them
 - Email addresses are linked, both `<foo@example.com>` and bare ones in prose
 - An open document reloads when the file changes on disk, as long as it has no unsaved edits
 - "Save as" rebinds the tab to the file it wrote, so the title updates and the next save no longer asks again

@@ -10,6 +10,7 @@ import '../models/node.dart';
 import '../models/quadrant_chart.dart';
 import '../models/radar.dart';
 import '../models/timeline.dart';
+import '../models/block_diagram.dart';
 import '../models/sankey.dart';
 import '../models/style.dart';
 import '../models/xy_chart.dart';
@@ -335,6 +336,33 @@ class QuadrantChartLayout {
       side + padding * 2 + axisGutter * 2,
       side + padding * 2 + titleHeight + axisGutter * 2,
     );
+  }
+}
+
+/// Layout engine for block diagrams
+class BlockDiagramLayout {
+  /// Creates a block diagram layout engine
+  const BlockDiagramLayout({this.deviceConfig});
+
+  /// Responsive device configuration
+  final MermaidDeviceConfig? deviceConfig;
+
+  /// Computes the size a block diagram needs.
+  ///
+  /// Delegates to [BlockLayout], the same code the painter runs, so the box
+  /// reserved here always matches what gets drawn into it.
+  Size computeLayout(
+    BlockDiagramData blockData,
+    MermaidStyle style,
+    Size availableSize,
+  ) {
+    final layout = BlockLayout.compute(
+      blockData,
+      availableWidth: availableSize.width,
+      padding: style.padding,
+    );
+    if (layout.blocks.isEmpty) return Size.zero;
+    return Size(math.max(layout.width, availableSize.width), layout.height);
   }
 }
 

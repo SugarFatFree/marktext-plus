@@ -5,7 +5,9 @@ import 'package:marktext_plus/ui/editor/mermaid/models/edge.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/git_graph.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/mindmap.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/requirement_diagram.dart';
+import 'package:marktext_plus/ui/editor/mermaid/models/block_diagram.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/sankey.dart';
+import 'package:marktext_plus/ui/editor/mermaid/models/node.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/sequence.dart';
 import 'package:marktext_plus/ui/editor/mermaid/parser/mermaid_parser.dart';
 
@@ -1121,6 +1123,121 @@ quadrantChart
 
     test('is offered as a supported type', () {
       expect(MermaidParser.handlesLanguage('quadrantChart'), isTrue);
+    });
+  });
+
+  group('Block diagrams', () {
+    test('columns set the grid width and the rows wrap', () {
+      final data = parser
+          .parseWithData('block-beta\n  columns 3\n  a b c\n  d')!
+          .blockDiagramData!;
+      final layout = BlockLayout.compute(data, availableWidth: 600);
+
+      expect(data.columns, 3);
+      expect(layout.blocks, hasLength(4));
+      // The fourth block wrapped, so it shares a left edge with the first and
+      // sits a row lower.
+      expect(layout.find('d')!.left, layout.find('a')!.left);
+      expect(layout.find('d')!.top, greaterThan(layout.find('a')!.top));
+    });
+
+    test('a bracketed label and its shape are read', () {
+      final data = parser
+          .parseWithData(
+            'block-beta\n'
+            '  columns 3\n'
+            '  a["Square"] b("Round") c(("Circle"))\n'
+            '  d{"Diamond"} e{{"Hexagon"}} f[["Sub"]]\n'
+            '  g(["Stadium"]) h[("Store")]',
+          )!
+          .blockDiagramData!;
+
+      expect(data.items.map((i) => i.label).toList(), [
+        'Square',
+        'Round',
+        'Circle',
+        'Diamond',
+        'Hexagon',
+        'Sub',
+        'Stadium',
+        'Store',
+      ]);
+      expect(data.items.map((i) => i.shape).toList(), [
+        NodeShape.rectangle,
+        NodeShape.roundedRect,
+        NodeShape.circle,
+        NodeShape.diamond,
+        NodeShape.hexagon,
+        NodeShape.subroutine,
+        NodeShape.stadium,
+        NodeShape.cylinder,
+      ]);
+    });
+
+    test('a label may contain spaces', () {
+      // Splitting the row on every space would make three blocks of this one.
+      final data = parser
+          .parseWithData('block-beta\n  columns 2\n  a["two words"] b')!
+          .blockDiagramData!;
+
+      expect(data.items.map((i) => i.label).toList(), ['two words', 'b']);
+    });
+
+    test('a span makes a block wider and pushes the rest along', () {
+      final data = parser
+          .parseWithData('block-beta\n  columns 3\n  a["wide"]:2 b\n  c')!
+          .blockDiagramData!;
+      final layout = BlockLayout.compute(data, availableWidth: 600);
+
+      expect(layout.find('a')!.width, greaterThan(layout.find('b')!.width));
+      expect(layout.find('c')!.top, greaterThan(layout.find('a')!.top));
+    });
+
+    test('space reserves cells and draws nothing', () {
+      final data = parser
+          .parseWithData('block-beta\n  columns 3\n  a space b')!
+          .blockDiagramData!;
+      final layout = BlockLayout.compute(data, availableWidth: 600);
+
+      expect(data.items, hasLength(3));
+      expect(layout.blocks.map((b) => b.item.id).toList(), ['a', 'b']);
+      // `b` sits in the third column, not the second.
+      expect(layout.find('b')!.left, greaterThan(layout.find('a')!.left + 200));
+    });
+
+    test('arrows are read in both label spellings', () {
+      final quoted = parser
+          .parseWithData('block-beta\n  columns 2\n  a b\n  a -- "go" --> b')!
+          .blockDiagramData!;
+      expect(quoted.arrows.single.label, 'go');
+
+      final piped = parser
+          .parseWithData('block-beta\n  columns 2\n  a b\n  a -->|go| b')!
+          .blockDiagramData!;
+      expect(piped.arrows.single.from, 'a');
+      expect(piped.arrows.single.to, 'b');
+      expect(piped.arrows.single.label, 'go');
+    });
+
+    test('block ids may be written in any script', () {
+      final data = parser
+          .parseWithData('block-beta\n  columns 2\n  开始 结束\n  开始 --> 结束')!
+          .blockDiagramData!;
+
+      expect(data.items.map((i) => i.id).toList(), ['开始', '结束']);
+      expect(data.arrows.single.to, '结束');
+    });
+
+    test('without columns everything sits on one row', () {
+      final data =
+          parser.parseWithData('block-beta\n  a b c')!.blockDiagramData!;
+      final layout = BlockLayout.compute(data, availableWidth: 600);
+
+      expect(layout.blocks.map((b) => b.top).toSet(), hasLength(1));
+    });
+
+    test('a header with no blocks falls back to the source', () {
+      expect(parser.parseWithData('block-beta'), isNull);
     });
   });
 

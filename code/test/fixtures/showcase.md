@@ -385,3 +385,12 @@ Gas,Electricity,45
 Electricity,Households,80
 Electricity,"Industry, heavy",65
 ```
+
+```mermaid
+block-beta
+  columns 3
+  frontend["Web UI"] api("Gateway") db[("Storage")]
+  space:2 cache{{"Cache"}}
+  frontend --> api
+  api -- "reads" --> db
+```

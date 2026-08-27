@@ -13,7 +13,7 @@
 | FEAT-005 | 2026-08-27 | 记忆并恢复窗口几何与会话 | 中 | 简单 | 已实现 |
 | FEAT-006 | 2026-08-27 | GitHub Actions 持续集成与 Windows/Linux 构建产物 | 高 | 简单 | 已实现 |
 | FEAT-007 | 2026-08-27 | 大文件与大目录的性能基线 | 高 | 困难 | 已实现 |
-| FEAT-008 | 2026-08-27 | Mermaid 补齐 requirementDiagram / sankey / block / C4 | 中 | 困难 | requirementDiagram、sankey-beta 已完成；block-beta / C4Context 待补 |
+| FEAT-008 | 2026-08-27 | Mermaid 补齐 requirementDiagram / sankey / block / C4 | 中 | 困难 | requirementDiagram、sankey-beta 已完成；block-beta 见 v1.4.0 FEAT-004；仅剩 C4Context |
 | FEAT-009 | 2026-08-27 | 图片存放策略可配置（旁边 / 统一文件夹 / 不复制） | 中 | 中等 | 已实现 |
 | FEAT-010 | 2026-08-27 | 预览模式内嵌 HTML 渲染（`enableHtml` 的「开」状态） | 低 | 困难 | 待实现 |
 | FEAT-011 | 2026-08-27 | 快捷键真正生效，且与设置页的自定义打通 | 高 | 中等 | 已实现 |
@@ -138,7 +138,7 @@
 | 计划日期 | 待定 |
 | 优先级 | 中 |
 | 难易度 | 困难 |
-| 状态 | **部分完成** —— requirementDiagram 见 FEAT-015，sankey-beta 见 FEAT-017；`block-beta`、`C4Context` 仍待补 |
+| 状态 | **部分完成** —— requirementDiagram 见 FEAT-015，sankey-beta 见 FEAT-017，block-beta 见 v1.4.0 的 FEAT-004；仅剩 `C4Context` |
 | 需求描述 | 相对源项目内置的 mermaid v11，本项目仍缺 `requirementDiagram`、`sankey-beta`、`block-beta`、`C4Context` 四类 |
 | 备注 | 这四类各自需要独立的布局算法，不适合与其他改动合并推进。桑基图的分层流量布局与需求图的表格方框布局都已单独落地，剩下 block 的网格布局与 C4 的嵌套边界框 |
 

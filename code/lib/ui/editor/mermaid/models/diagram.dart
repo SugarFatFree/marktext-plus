@@ -70,6 +70,9 @@ enum DiagramType {
   /// Sankey flow diagram
   sankey,
 
+  /// Block diagram (`block-beta`)
+  blockDiagram,
+
   /// Unknown/unsupported type
   unknown,
 }
