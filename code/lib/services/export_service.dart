@@ -653,7 +653,10 @@ class ExportService {
     Map<String, String> inlinedImages = const {},
   }) {
     return spans.map((span) {
-      final text = _escapeHtml(span.text);
+      // A line break inside a paragraph is a break in the preview and in Word
+      // (DocxText emits w:br), but HTML folds a bare newline into a space, so
+      // it needs an explicit <br> to match.
+      final text = _escapeHtml(span.text).replaceAll('\n', '<br>\n');
       switch (span.type) {
         case InlineType.text:
           return text;

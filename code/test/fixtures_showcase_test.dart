@@ -150,6 +150,13 @@ void main() {
     expect(html, isNot(contains('**bold**')));
   });
 
+  test('a line break inside a paragraph survives HTML export', () {
+    // The preview and Word both break here; HTML folds a bare newline into a
+    // space, so the break has to be explicit.
+    final para = MarkdownParser().parse('line one\nline two\n').single;
+    expect(ExportService.nodeToHtml(para), contains('<br>'));
+  });
+
   test('exports the whole document to HTML without leaking raw markers', () {
     final nodes = parser.parse(markdown);
     final html = nodes.map(ExportService.nodeToHtml).join('\n');
