@@ -272,6 +272,7 @@
   "fileCloseTab": "Chiudi scheda",
   "fileClearRecentFiles": "Svuota file recenti",
   "viewCommandPalette": "Riquadro comandi",
+  "viewReloadImages": "Ricarica immagini",
   "formatFrontMatter": "Front matter",
   "formatHtmlBlock": "Blocco HTML",
   "updateUpToDate": "Stai usando l’ultima versione",

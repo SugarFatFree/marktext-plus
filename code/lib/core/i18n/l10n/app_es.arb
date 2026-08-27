@@ -272,6 +272,7 @@
   "fileCloseTab": "Cerrar pestaña",
   "fileClearRecentFiles": "Borrar archivos recientes",
   "viewCommandPalette": "Paleta de comandos",
+  "viewReloadImages": "Recargar imágenes",
   "formatFrontMatter": "Front matter",
   "formatHtmlBlock": "Bloque HTML",
   "updateUpToDate": "Está usando la última versión",

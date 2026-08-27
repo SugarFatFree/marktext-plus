@@ -823,6 +823,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get viewCommandPalette => 'Paleta de comandos';
 
   @override
+  String get viewReloadImages => 'Recargar imágenes';
+
+  @override
   String get formatFrontMatter => 'Front matter';
 
   @override

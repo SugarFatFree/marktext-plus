@@ -272,6 +272,7 @@
   "fileCloseTab": "إغلاق علامة التبويب",
   "fileClearRecentFiles": "مسح الملفات الأخيرة",
   "viewCommandPalette": "لوحة الأوامر",
+  "viewReloadImages": "إعادة تحميل الصور",
   "formatFrontMatter": "بيانات المقدمة",
   "formatHtmlBlock": "كتلة HTML",
   "updateUpToDate": "أنت تستخدم أحدث إصدار",

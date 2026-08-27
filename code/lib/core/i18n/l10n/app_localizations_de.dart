@@ -821,6 +821,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get viewCommandPalette => 'Befehlspalette';
 
   @override
+  String get viewReloadImages => 'Bilder neu laden';
+
+  @override
   String get formatFrontMatter => 'Front Matter';
 
   @override

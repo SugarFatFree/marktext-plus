@@ -821,6 +821,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get viewCommandPalette => 'Палитра команд';
 
   @override
+  String get viewReloadImages => 'Перезагрузить изображения';
+
+  @override
   String get formatFrontMatter => 'Front matter';
 
   @override

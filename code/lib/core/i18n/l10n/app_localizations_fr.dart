@@ -825,6 +825,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get viewCommandPalette => 'Palette de commandes';
 
   @override
+  String get viewReloadImages => 'Recharger les images';
+
+  @override
   String get formatFrontMatter => 'En-tête YAML';
 
   @override

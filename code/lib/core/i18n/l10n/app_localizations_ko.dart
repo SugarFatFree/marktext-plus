@@ -811,6 +811,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get viewCommandPalette => '명령 팔레트';
 
   @override
+  String get viewReloadImages => '이미지 다시 불러오기';
+
+  @override
   String get formatFrontMatter => '프런트 매터';
 
   @override

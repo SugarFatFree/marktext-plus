@@ -68,6 +68,14 @@ class EditorState {
   /// that has to act on this.
   final int findStepRequest;
 
+  /// Bumped when the user asks for images to be read from disk again.
+  ///
+  /// Flutter caches a decoded image against its file path, so a picture edited
+  /// outside the app keeps showing the old bitmap. The renderer folds this
+  /// into each image's key, which is what makes the widget resolve afresh
+  /// after the cache is emptied.
+  final int imageRevision;
+
   /// Which way the last [findStepRequest] wants to go.
   final bool findStepForward;
 
@@ -88,6 +96,7 @@ class EditorState {
     this.previewSearchUseRegex = false,
     this.previewCurrentMatchIndex = -1,
     this.findStepRequest = 0,
+    this.imageRevision = 0,
     this.findStepForward = true,
   });
 
@@ -110,6 +119,7 @@ class EditorState {
     bool? previewSearchUseRegex,
     int? previewCurrentMatchIndex,
     int? findStepRequest,
+    int? imageRevision,
     bool? findStepForward,
   }) {
     return EditorState(
@@ -129,6 +139,7 @@ class EditorState {
       previewSearchUseRegex: previewSearchUseRegex ?? this.previewSearchUseRegex,
       previewCurrentMatchIndex: previewCurrentMatchIndex ?? this.previewCurrentMatchIndex,
       findStepRequest: findStepRequest ?? this.findStepRequest,
+      imageRevision: imageRevision ?? this.imageRevision,
       findStepForward: findStepForward ?? this.findStepForward,
     );
   }
@@ -358,6 +369,18 @@ class EditorNotifier extends StateNotifier<EditorState> {
 
   void scrollToLine(int line) {
     state = state.copyWith(targetScrollLine: line);
+  }
+
+  /// Drops every decoded image and asks the preview to read them again.
+  ///
+  /// Emptying the cache alone is not enough: a picture already on screen is
+  /// held live, and the widget showing it would not resolve again. Bumping the
+  /// revision changes each image's key, which is what forces that.
+  void reloadImages() {
+    PaintingBinding.instance.imageCache
+      ..clear()
+      ..clearLiveImages();
+    state = state.copyWith(imageRevision: state.imageRevision + 1);
   }
 
   void clearScrollTarget() {

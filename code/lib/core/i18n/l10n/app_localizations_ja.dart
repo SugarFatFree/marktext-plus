@@ -811,6 +811,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get viewCommandPalette => 'コマンドパレット';
 
   @override
+  String get viewReloadImages => '画像を再読み込み';
+
+  @override
   String get formatFrontMatter => 'フロントマター';
 
   @override

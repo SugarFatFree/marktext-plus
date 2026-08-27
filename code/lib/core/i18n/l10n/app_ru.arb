@@ -272,6 +272,7 @@
   "fileCloseTab": "Закрыть вкладку",
   "fileClearRecentFiles": "Очистить недавние файлы",
   "viewCommandPalette": "Палитра команд",
+  "viewReloadImages": "Перезагрузить изображения",
   "formatFrontMatter": "Front matter",
   "formatHtmlBlock": "HTML-блок",
   "updateUpToDate": "У вас последняя версия",

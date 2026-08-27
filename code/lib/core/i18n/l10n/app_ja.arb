@@ -272,6 +272,7 @@
   "fileCloseTab": "タブを閉じる",
   "fileClearRecentFiles": "最近のファイルを消去",
   "viewCommandPalette": "コマンドパレット",
+  "viewReloadImages": "画像を再読み込み",
   "formatFrontMatter": "フロントマター",
   "formatHtmlBlock": "HTML ブロック",
   "updateUpToDate": "最新バージョンです",

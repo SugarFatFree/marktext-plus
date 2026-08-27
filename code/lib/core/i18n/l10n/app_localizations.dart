@@ -1695,6 +1695,12 @@ abstract class AppLocalizations {
   /// **'Command Palette'**
   String get viewCommandPalette;
 
+  /// View menu item that drops cached images so pictures edited outside the app are read from disk again
+  ///
+  /// In en, this message translates to:
+  /// **'Reload Images'**
+  String get viewReloadImages;
+
   /// Paragraph menu item that inserts a YAML front matter block
   ///
   /// In en, this message translates to:

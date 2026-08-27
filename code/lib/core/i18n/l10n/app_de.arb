@@ -272,6 +272,7 @@
   "fileCloseTab": "Tab schließen",
   "fileClearRecentFiles": "Zuletzt verwendete leeren",
   "viewCommandPalette": "Befehlspalette",
+  "viewReloadImages": "Bilder neu laden",
   "formatFrontMatter": "Front Matter",
   "formatHtmlBlock": "HTML-Block",
   "updateUpToDate": "Sie verwenden die neueste Version",

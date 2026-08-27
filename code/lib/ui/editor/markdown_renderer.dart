@@ -1289,10 +1289,18 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       );
     }
 
+    // Folded into the key so "reload images" makes the widget resolve again:
+    // emptying the cache does not by itself disturb a picture already on
+    // screen.
+    final revision = ref.watch(
+      editorProvider.select((state) => state.imageRevision),
+    );
+
     Widget imageWidget;
     if (href.startsWith('http://') || href.startsWith('https://')) {
       imageWidget = Image.network(
         href,
+        key: ValueKey('image:$revision:$href'),
         errorBuilder: (context, error, stackTrace) => Text(
           '[${span.text}]',
           style: TextStyle(color: theme.colorScheme.error),
@@ -1302,6 +1310,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       final file = File(href);
       imageWidget = Image.file(
         file,
+        key: ValueKey('image:$revision:$href'),
         errorBuilder: (context, error, stackTrace) => Text(
           '[${span.text}]',
           style: TextStyle(color: theme.colorScheme.error),

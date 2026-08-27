@@ -818,6 +818,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get viewCommandPalette => 'لوحة الأوامر';
 
   @override
+  String get viewReloadImages => 'إعادة تحميل الصور';
+
+  @override
   String get formatFrontMatter => 'بيانات المقدمة';
 
   @override

@@ -272,6 +272,7 @@
   "fileCloseTab": "Fermer l'onglet",
   "fileClearRecentFiles": "Effacer les fichiers récents",
   "viewCommandPalette": "Palette de commandes",
+  "viewReloadImages": "Recharger les images",
   "formatFrontMatter": "En-tête YAML",
   "formatHtmlBlock": "Bloc HTML",
   "updateUpToDate": "Vous utilisez la dernière version",

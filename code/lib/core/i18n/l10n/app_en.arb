@@ -353,6 +353,10 @@
     "description": "Menu item that empties the recent files list"
   },
   "viewCommandPalette": "Command Palette",
+  "viewReloadImages": "Reload Images",
+  "@viewReloadImages": {
+    "description": "View menu item that drops cached images so pictures edited outside the app are read from disk again"
+  },
   "@viewCommandPalette": {
     "description": "View menu item that opens the command palette"
   },

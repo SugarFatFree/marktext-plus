@@ -818,6 +818,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get viewCommandPalette => 'Command Palette';
 
   @override
+  String get viewReloadImages => 'Reload Images';
+
+  @override
   String get formatFrontMatter => 'Front Matter';
 
   @override

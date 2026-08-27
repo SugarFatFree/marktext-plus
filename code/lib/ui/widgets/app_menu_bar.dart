@@ -511,6 +511,12 @@ class AppMenuBar extends ConsumerWidget {
         // The table of contents was reachable only by finding its icon in the
         // sidebar; the command palette had no entry at all.
         MenuItemButton(
+          // A picture edited outside the app kept showing its old self:
+          // Flutter caches a decoded image against its path.
+          child: Text(l10n.viewReloadImages),
+          onPressed: () => ref.read(editorProvider.notifier).reloadImages(),
+        ),
+        MenuItemButton(
           child: Text(l10n.sidebarToc),
           onPressed: () {
             final settings = ref.read(settingsProvider.notifier);
