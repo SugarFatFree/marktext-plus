@@ -616,7 +616,11 @@ class _SideBarState extends ConsumerState<SideBar> {
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                l10n.searchResultCount(_searchResults.length),
+                // The list is capped; saying "500 results" when there are
+                // more would be a quiet lie about what was searched.
+                _searchResults.length >= _maxSearchResults
+                    ? '${l10n.searchResultCount(_searchResults.length)}+'
+                    : l10n.searchResultCount(_searchResults.length),
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
@@ -684,6 +688,30 @@ class _SideBarState extends ConsumerState<SideBar> {
     );
   }
 
+  /// Documents worth searching.
+  static const _searchableExtensions = {'.md', '.markdown', '.txt'};
+
+  /// Directories that are never the user's own notes and can hold tens of
+  /// thousands of files.
+  static const _skippedDirectories = {
+    'node_modules',
+    'vendor',
+    'build',
+    'dist',
+    'target',
+  };
+
+  /// Beyond this the result list stops being useful and starts being a
+  /// memory problem: a common word across a large folder runs to tens of
+  /// thousands of hits, each one a string in a list widget.
+  static const _maxSearchResults = 500;
+
+  /// Distinguishes one search from the next.
+  ///
+  /// Starting a second search while the first is still walking the tree used
+  /// to let the slower one finish last and overwrite the newer results.
+  int _searchGeneration = 0;
+
   void _performSearch() async {
     final query = _searchController.text.trim();
     if (query.isEmpty) return;
@@ -691,52 +719,83 @@ class _SideBarState extends ConsumerState<SideBar> {
     final rootPath = ref.read(fileProvider.notifier).currentDirectory;
     if (rootPath == null) return;
 
+    final generation = ++_searchGeneration;
     setState(() {
       _isSearching = true;
       _searchResults = [];
     });
 
     final results = <_SearchResult>[];
-    await _searchInDirectory(Directory(rootPath), query, results);
+    await _searchInDirectory(
+      Directory(rootPath),
+      query.toLowerCase(),
+      results,
+      generation,
+    );
 
-    if (mounted) {
-      setState(() {
-        _searchResults = results;
-        _isSearching = false;
-      });
-    }
+    if (!mounted || generation != _searchGeneration) return;
+    setState(() {
+      _searchResults = results;
+      _isSearching = false;
+    });
   }
 
+  /// Walks [dir] collecting matches for [lowercaseQuery].
+  ///
+  /// The query arrives already lowercased: it used to be lowercased again for
+  /// every line of every file.
   Future<void> _searchInDirectory(
-      Directory dir, String query, List<_SearchResult> results) async {
+    Directory dir,
+    String lowercaseQuery,
+    List<_SearchResult> results,
+    int generation,
+  ) async {
+    if (results.length >= _maxSearchResults) return;
+    if (generation != _searchGeneration) return;
+
+    List<FileSystemEntity> entities;
     try {
-      final entities = dir.listSync();
-      for (final entity in entities) {
-        if (entity is File) {
-          final ext = p.extension(entity.path).toLowerCase();
-          if (ext == '.md' || ext == '.markdown' || ext == '.txt') {
-            try {
-              final content = await entity.readAsString();
-              final lines = content.split('\n');
-              for (int i = 0; i < lines.length; i++) {
-                if (lines[i].toLowerCase().contains(query.toLowerCase())) {
-                  results.add(_SearchResult(
-                    filePath: entity.path,
-                    lineNumber: i + 1,
-                    matchLine: lines[i].trim(),
-                  ));
-                }
-              }
-            } catch (_) {}
-          }
-        } else if (entity is Directory) {
-          final name = p.basename(entity.path);
-          if (!name.startsWith('.')) {
-            await _searchInDirectory(entity, query, results);
-          }
+      // Asynchronous: listSync walked the whole tree on the UI isolate, so a
+      // large folder froze the window until the search finished.
+      entities = await dir.list(followLinks: false).toList();
+    } catch (_) {
+      return;
+    }
+
+    for (final entity in entities) {
+      if (results.length >= _maxSearchResults) return;
+      if (generation != _searchGeneration) return;
+
+      if (entity is Directory) {
+        final name = p.basename(entity.path);
+        if (name.startsWith('.') || _skippedDirectories.contains(name)) {
+          continue;
         }
+        await _searchInDirectory(entity, lowercaseQuery, results, generation);
+        continue;
       }
-    } catch (_) {}
+
+      if (entity is! File) continue;
+      if (!_searchableExtensions
+          .contains(p.extension(entity.path).toLowerCase())) {
+        continue;
+      }
+
+      try {
+        final lines = (await entity.readAsString()).split('\n');
+        for (int i = 0; i < lines.length; i++) {
+          if (!lines[i].toLowerCase().contains(lowercaseQuery)) continue;
+          results.add(_SearchResult(
+            filePath: entity.path,
+            lineNumber: i + 1,
+            matchLine: lines[i].trim(),
+          ));
+          if (results.length >= _maxSearchResults) return;
+        }
+      } catch (_) {
+        // Unreadable or not text; nothing to search.
+      }
+    }
   }
 
   // -- TOC Panel --
