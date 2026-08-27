@@ -191,7 +191,7 @@ flutter clean
 ## 最近更新（V1.2.0）
 
 ### 新增功能
-- 预览模式富文本复制（Ctrl+C 自动写入 HTML 格式到剪贴板，粘贴到 Word 保留格式）
+- 预览模式富文本复制（Ctrl+C 自动写入 HTML 格式到剪贴板，粘贴到 Word 保留格式）—— **仅 Windows**：走 user32/kernel32 的 FFI 写 `HTML Format`，macOS / Linux 降级为纯文本（见 v1.2.0 FEAT-001）
 - 导出为 Word (.docx)（使用 `docx_creator` 包，支持标题/列表/表格/内联格式）
 
 ### 修复
