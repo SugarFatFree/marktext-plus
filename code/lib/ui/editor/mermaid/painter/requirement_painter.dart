@@ -7,7 +7,6 @@ import '../layout/requirement_diagram_layout.dart';
 import '../models/edge.dart';
 import '../models/node.dart';
 import '../models/requirement_diagram.dart';
-import '../models/style.dart';
 import 'mermaid_painter.dart';
 
 /// Paints requirement diagrams.
