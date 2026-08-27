@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/i18n/l10n/app_localizations.dart';
 import '../../providers/editor_provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../services/text_search_service.dart';
 import '../editor/highlighting_controller.dart';
 
 class FindReplaceBar extends ConsumerStatefulWidget {
@@ -18,8 +19,11 @@ class FindReplaceBar extends ConsumerStatefulWidget {
   }) : assert(textController != null || rawContent != null, 'Either textController or rawContent must be provided');
 
   /// Scans [text] for [pattern], returning non-overlapping ranges in document
-  /// order. Exposed for testing because the ranges are spliced back into the
-  /// document by replace-all, where an off-by-one costs the user text.
+  /// order.
+  ///
+  /// Delegates to [TextSearch]: the preview's highlighter needs the same
+  /// answer, and when each had its own copy they disagreed about overlapping
+  /// hits. Kept here because the existing tests address it by this name.
   @visibleForTesting
   static List<TextRange> findMatches(
     String text,
@@ -27,50 +31,14 @@ class FindReplaceBar extends ConsumerStatefulWidget {
     bool caseSensitive = false,
     bool wholeWord = false,
     bool useRegex = false,
-  }) {
-    final matches = <TextRange>[];
-    if (pattern.isEmpty) return matches;
-
-    if (useRegex) {
-      try {
-        final regex = RegExp(pattern, caseSensitive: caseSensitive);
-        for (final match in regex.allMatches(text)) {
-          matches.add(TextRange(start: match.start, end: match.end));
-        }
-      } catch (_) {
-        // Invalid regex: report nothing rather than a partial scan.
-      }
-      return matches;
-    }
-
-    final searchText = caseSensitive ? text : text.toLowerCase();
-    final searchPattern = caseSensitive ? pattern : pattern.toLowerCase();
-
-    int index = 0;
-    while (index < searchText.length) {
-      final pos = searchText.indexOf(searchPattern, index);
-      if (pos == -1) break;
-
-      if (!wholeWord) {
-        matches.add(TextRange(start: pos, end: pos + pattern.length));
-      } else {
-        final isWordStart = pos == 0 || !_isWordChar(text[pos - 1]);
-        final isWordEnd = pos + pattern.length >= text.length ||
-            !_isWordChar(text[pos + pattern.length]);
-        if (isWordStart && isWordEnd) {
-          matches.add(TextRange(start: pos, end: pos + pattern.length));
-        }
-      }
-
-      // Advance past the match, not by one character. Overlapping hits ("aa"
-      // in "aaaa") inflate the counter and make replace-all splice ranges that
-      // overlap, which destroys text instead of replacing it.
-      index = pos + pattern.length;
-    }
-    return matches;
-  }
-
-  static bool _isWordChar(String char) => RegExp(r'[a-zA-Z0-9_]').hasMatch(char);
+  }) =>
+      TextSearch.matches(
+        text,
+        pattern,
+        caseSensitive: caseSensitive,
+        wholeWord: wholeWord,
+        useRegex: useRegex,
+      );
 
   @override
   ConsumerState<FindReplaceBar> createState() => _FindReplaceBarState();

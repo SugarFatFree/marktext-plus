@@ -15,6 +15,7 @@ import '../../core/theme/app_theme.dart';
 import '../../models/tab_info.dart';
 import '../../providers/editor_provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../services/text_search_service.dart';
 import '../../providers/tab_provider.dart';
 import '../../services/markdown_parser.dart' as md;
 import '../../services/export_service.dart';
@@ -1001,45 +1002,18 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       return [TextSpan(text: text, style: style)];
     }
 
-    final matchRanges = <TextRange>[];
-    try {
-      if (editorState.previewSearchUseRegex) {
-        final regex = RegExp(
-          query,
-          caseSensitive: editorState.previewSearchCaseSensitive,
-        );
-        for (final m in regex.allMatches(text)) {
-          matchRanges.add(TextRange(start: m.start, end: m.end));
-        }
-      } else {
-        String searchText = text;
-        String searchPattern = query;
-        if (!editorState.previewSearchCaseSensitive) {
-          searchText = text.toLowerCase();
-          searchPattern = query.toLowerCase();
-        }
-        int index = 0;
-        while (index < searchText.length) {
-          final pos = searchText.indexOf(searchPattern, index);
-          if (pos == -1) break;
-          if (editorState.previewSearchWholeWord) {
-            final isWordStart =
-                pos == 0 || !RegExp(r'[a-zA-Z0-9_]').hasMatch(text[pos - 1]);
-            final isWordEnd =
-                pos + query.length >= text.length ||
-                !RegExp(r'[a-zA-Z0-9_]').hasMatch(text[pos + query.length]);
-            if (isWordStart && isWordEnd) {
-              matchRanges.add(TextRange(start: pos, end: pos + query.length));
-            }
-          } else {
-            matchRanges.add(TextRange(start: pos, end: pos + query.length));
-          }
-          index = pos + 1;
-        }
-      }
-    } catch (_) {
-      return [TextSpan(text: text, style: style)];
-    }
+    // One scanner for the app: the find bar counts the matches and this
+    // highlights them, and when each had its own the two disagreed about
+    // overlapping hits — `aa` in `aaaa` was two there and three here, and the
+    // overlapping ranges spliced below drew six characters where there are
+    // four.
+    final matchRanges = TextSearch.matches(
+      text,
+      query,
+      caseSensitive: editorState.previewSearchCaseSensitive,
+      wholeWord: editorState.previewSearchWholeWord,
+      useRegex: editorState.previewSearchUseRegex,
+    );
 
     if (matchRanges.isEmpty) {
       return [TextSpan(text: text, style: style)];
@@ -1050,6 +1024,9 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     final currentIdx = editorState.previewCurrentMatchIndex;
 
     for (final range in matchRanges) {
+      // Belt and braces: an overlapping range would re-emit text already
+      // written and the paragraph would show more characters than it has.
+      if (range.start < lastEnd) continue;
       if (range.start > lastEnd) {
         result.add(
           TextSpan(text: text.substring(lastEnd, range.start), style: style),
