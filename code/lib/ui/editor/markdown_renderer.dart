@@ -108,21 +108,49 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.listenManual(
         editorProvider.select((s) => s.targetScrollLine),
-        (prev, next) {
-          if (next != null) {
-            final key = _headingKeys[next];
-            if (key?.currentContext != null) {
-              Scrollable.ensureVisible(
-                key!.currentContext!,
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-              );
-            }
-            ref.read(editorProvider.notifier).clearScrollTarget();
-          }
-        },
+        (prev, next) => _scrollToTargetLine(next),
       );
+
+      // A request made before this widget existed — the search panel opening a
+      // file and asking for its line in one breath — never reaches the
+      // listener above, which only fires on a change.
+      _scrollToTargetLine(ref.read(editorProvider).targetScrollLine);
     });
+  }
+
+  void _scrollToTargetLine(int? line) {
+    if (line == null) return;
+
+    final key = _keyForLine(line);
+    if (key?.currentContext != null) {
+      Scrollable.ensureVisible(
+        key!.currentContext!,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+    ref.read(editorProvider.notifier).clearScrollTarget();
+  }
+
+  /// The key of the block the preview should scroll to for source [line].
+  ///
+  /// Only headings carry a key — giving every block one would mean a GlobalKey
+  /// per node, which is exactly the per-node cost the progressive renderer
+  /// exists to avoid. A search hit lands on an ordinary line, so it falls back
+  /// to the heading above it: near enough to read from, and free.
+  GlobalKey? _keyForLine(int line) {
+    final exact = _headingKeys[line];
+    if (exact != null) return exact;
+
+    var best = -1;
+    GlobalKey? bestKey;
+    for (final entry in _headingKeys.entries) {
+      if (entry.key <= line && entry.key > best) {
+        best = entry.key;
+        bestKey = entry.value;
+      }
+    }
+    return bestKey;
   }
 
   @override
@@ -149,22 +177,32 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     }
 
     final activeTabId = ref.read(tabProvider).activeTabId;
-    final activeTab = ref.read(tabProvider).tabs.where((tab) => tab.id == activeTabId).firstOrNull;
-    final baseDir = activeTab?.filePath != null ? p.dirname(activeTab!.filePath!) : null;
-    final resolvedPath = baseDir != null ? p.normalize(p.join(baseDir, href)) : p.normalize(href);
+    final activeTab = ref
+        .read(tabProvider)
+        .tabs
+        .where((tab) => tab.id == activeTabId)
+        .firstOrNull;
+    final baseDir = activeTab?.filePath != null
+        ? p.dirname(activeTab!.filePath!)
+        : null;
+    final resolvedPath = baseDir != null
+        ? p.normalize(p.join(baseDir, href))
+        : p.normalize(href);
     final file = File(resolvedPath);
     if (!file.existsSync()) return;
 
     final opened = await FileService().readFileWithLineEnding(resolvedPath);
-    ref.read(tabProvider.notifier).addTab(
-      TabInfo(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        filePath: resolvedPath,
-        fileName: p.basename(resolvedPath),
-        content: opened.content,
-        lineEnding: opened.lineEnding,
-      ),
-    );
+    ref
+        .read(tabProvider.notifier)
+        .addTab(
+          TabInfo(
+            id: DateTime.now().millisecondsSinceEpoch.toString(),
+            filePath: resolvedPath,
+            fileName: p.basename(resolvedPath),
+            content: opened.content,
+            lineEnding: opened.lineEnding,
+          ),
+        );
   }
 
   @override
@@ -195,8 +233,9 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
 
     // Progressive rendering: show the first blocks immediately, then fill in.
     if (_renderedNodeCount == 0) {
-      _renderedNodeCount =
-          nodes.length > _initialBatchSize ? _initialBatchSize : nodes.length;
+      _renderedNodeCount = nodes.length > _initialBatchSize
+          ? _initialBatchSize
+          : nodes.length;
     }
     if (_renderedNodeCount < nodes.length) {
       _scheduleNextBatch(nodes.length);
@@ -220,24 +259,34 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
           // Always allocate a fresh key for each heading; only the first
           // heading at a given lineNum is registered for scroll targeting.
           final key = _headingKeysByIndex.putIfAbsent(
-              headingIndex - 1, () => GlobalKey());
+            headingIndex - 1,
+            () => GlobalKey(),
+          );
           if (lineNum > 0) {
             _headingKeys.putIfAbsent(lineNum, () => key);
           }
-          widgets.add(_wrapEditable(node, _buildHeading(node, theme, tokens, key: key)));
+          widgets.add(
+            _wrapEditable(node, _buildHeading(node, theme, tokens, key: key)),
+          );
         case md.ParagraphNode():
           widgets.add(_wrapEditable(node, _buildParagraph(node, theme)));
         case md.CodeBlockNode():
-          widgets.add(_wrapEditable(node, _buildCodeBlock(node, theme, tokens)));
+          widgets.add(
+            _wrapEditable(node, _buildCodeBlock(node, theme, tokens)),
+          );
         case md.ListNode():
           widgets.add(_wrapEditable(node, _buildList(node, theme)));
         case md.BlockquoteNode():
-          widgets.add(_wrapEditable(node, _buildBlockquote(node, theme, tokens)));
+          widgets.add(
+            _wrapEditable(node, _buildBlockquote(node, theme, tokens)),
+          );
         case md.HorizontalRuleNode():
-          widgets.add(_wrapEditable(
-            node,
-            Divider(thickness: 1, color: tokens.colorBorder),
-          ));
+          widgets.add(
+            _wrapEditable(
+              node,
+              Divider(thickness: 1, color: tokens.colorBorder),
+            ),
+          );
         case md.TableNode():
           widgets.add(_wrapEditable(node, _buildTable(node, theme)));
         case md.MathBlockNode():
@@ -245,7 +294,9 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         case md.FrontMatterNode():
           widgets.add(_wrapEditable(node, _buildFrontMatter(node, theme)));
         case md.FootnoteDefinitionNode():
-          widgets.add(_wrapEditable(node, _buildFootnoteDefinition(node, theme)));
+          widgets.add(
+            _wrapEditable(node, _buildFootnoteDefinition(node, theme)),
+          );
         case md.HtmlBlockNode():
           widgets.add(_wrapEditable(node, _buildHtmlBlock(node, theme)));
       }
@@ -253,25 +304,31 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
 
     // Add loading indicator if more nodes are pending
     if (_renderedNodeCount < nodes.length) {
-      widgets.add(const Padding(
-        padding: EdgeInsets.all(16),
-        child: Center(
-          child: SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2),
+      widgets.add(
+        const Padding(
+          padding: EdgeInsets.all(16),
+          child: Center(
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
           ),
         ),
-      ));
+      );
     }
 
     return Focus(
       onKeyEvent: (node, event) {
         if (event is KeyDownEvent &&
             event.logicalKey == LogicalKeyboardKey.keyC &&
-            (HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed)) {
+            (HardwareKeyboard.instance.isControlPressed ||
+                HardwareKeyboard.instance.isMetaPressed)) {
           // Let SelectionArea handle the copy first, then enhance with HTML format
-          Future.delayed(const Duration(milliseconds: 100), () => _enhanceClipboardWithHtml());
+          Future.delayed(
+            const Duration(milliseconds: 100),
+            () => _enhanceClipboardWithHtml(),
+          );
         }
         return KeyEventResult.ignored;
       },
@@ -279,9 +336,14 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         child: SelectionArea(
           child: Center(
             child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: config.editorMaxWidth.toDouble()),
+              constraints: BoxConstraints(
+                maxWidth: config.editorMaxWidth.toDouble(),
+              ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 24,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: widgets,
@@ -302,8 +364,10 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     final onChanged = widget.onSourceChanged;
     if (onChanged == null) return;
 
-    final lines =
-        md.MarkdownParser.sourceOfBlock(widget.markdown, node).split('\n');
+    final lines = md.MarkdownParser.sourceOfBlock(
+      widget.markdown,
+      node,
+    ).split('\n');
     if (index < 0 || index >= lines.length) return;
 
     final line = lines[index];
@@ -458,12 +522,33 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     });
   }
 
-  Widget _buildHeading(md.HeadingNode node, ThemeData theme, AppThemeTokens tokens, {Key? key}) {
+  Widget _buildHeading(
+    md.HeadingNode node,
+    ThemeData theme,
+    AppThemeTokens tokens, {
+    Key? key,
+  }) {
     final style = switch (node.level) {
-      1 => TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: tokens.colorText),
-      2 => TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: tokens.colorText),
-      3 => TextStyle(fontSize: 21, fontWeight: FontWeight.w600, color: tokens.colorText),
-      _ => TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: tokens.colorTextMuted),
+      1 => TextStyle(
+        fontSize: 28,
+        fontWeight: FontWeight.w700,
+        color: tokens.colorText,
+      ),
+      2 => TextStyle(
+        fontSize: 24,
+        fontWeight: FontWeight.w600,
+        color: tokens.colorText,
+      ),
+      3 => TextStyle(
+        fontSize: 21,
+        fontWeight: FontWeight.w600,
+        color: tokens.colorText,
+      ),
+      _ => TextStyle(
+        fontSize: 17,
+        fontWeight: FontWeight.w600,
+        color: tokens.colorTextMuted,
+      ),
     };
 
     return Padding(
@@ -475,12 +560,20 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
           Text.rich(
             _buildInlineSpans(node.inlineSpans, theme, style),
             style: style,
-            strutStyle: StrutStyle(fontSize: style.fontSize, height: style.height ?? 1.4, forceStrutHeight: true),
+            strutStyle: StrutStyle(
+              fontSize: style.fontSize,
+              height: style.height ?? 1.4,
+              forceStrutHeight: true,
+            ),
           ),
           if (node.level == 1)
             Padding(
               padding: const EdgeInsets.only(top: 8),
-              child: Divider(height: 1, thickness: 1, color: tokens.colorBorder),
+              child: Divider(
+                height: 1,
+                thickness: 1,
+                color: tokens.colorBorder,
+              ),
             ),
         ],
       ),
@@ -511,7 +604,11 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     );
   }
 
-  Widget _buildCodeBlock(md.CodeBlockNode node, ThemeData theme, AppThemeTokens tokens) {
+  Widget _buildCodeBlock(
+    md.CodeBlockNode node,
+    ThemeData theme,
+    AppThemeTokens tokens,
+  ) {
     final lang = node.language.toLowerCase();
     // Asks the parser what it can draw rather than keeping a second list here,
     // which drifted out of step with the parser as types were implemented.
@@ -547,10 +644,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
                 children: _buildHighlightedCodeSpans(node.code, node.language),
               ),
             )
-          : Text(
-              node.code,
-              style: baseCodeStyle,
-            ),
+          : Text(node.code, style: baseCodeStyle),
     );
   }
 
@@ -560,15 +654,24 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     );
   }
 
-  List<TextSpan> _buildHighlightedCodeSpans(String source, String language, {int tabSize = 8}) {
-    final nodes = highlight.parse(source.replaceAll('\t', ' ' * tabSize), language: language).nodes;
+  List<TextSpan> _buildHighlightedCodeSpans(
+    String source,
+    String language, {
+    int tabSize = 8,
+  }) {
+    final nodes = highlight
+        .parse(source.replaceAll('\t', ' ' * tabSize), language: language)
+        .nodes;
     if (nodes == null || nodes.isEmpty) {
       return [TextSpan(text: source)];
     }
     return _convertHighlightNodes(nodes, githubTheme);
   }
 
-  List<TextSpan> _convertHighlightNodes(List<Node> nodes, Map<String, TextStyle> theme) {
+  List<TextSpan> _convertHighlightNodes(
+    List<Node> nodes,
+    Map<String, TextStyle> theme,
+  ) {
     final spans = <TextSpan>[];
     var currentSpans = spans;
     final stack = <List<TextSpan>>[];
@@ -593,7 +696,9 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       }
 
       final nestedSpans = <TextSpan>[];
-      currentSpans.add(TextSpan(children: nestedSpans, style: theme[node.className!]));
+      currentSpans.add(
+        TextSpan(children: nestedSpans, style: theme[node.className!]),
+      );
       stack.add(currentSpans);
       currentSpans = nestedSpans;
 
@@ -681,15 +786,20 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   /// separately editable, does not take part in heading scroll targets, and
   /// cannot be a diagram, so it needs none of that machinery.
   Widget _buildQuotedNode(
-      md.MarkdownNode node, ThemeData theme, AppThemeTokens tokens) {
+    md.MarkdownNode node,
+    ThemeData theme,
+    AppThemeTokens tokens,
+  ) {
     return switch (node) {
       md.HeadingNode() => _buildHeading(node, theme, tokens),
       md.ParagraphNode() => _buildParagraph(node, theme),
       md.CodeBlockNode() => _buildCodeBlock(node, theme, tokens),
       md.ListNode() => _buildList(node, theme),
       md.BlockquoteNode() => _buildBlockquote(node, theme, tokens),
-      md.HorizontalRuleNode() =>
-        Divider(thickness: 1, color: tokens.colorBorder),
+      md.HorizontalRuleNode() => Divider(
+        thickness: 1,
+        color: tokens.colorBorder,
+      ),
       md.TableNode() => _buildTable(node, theme),
       md.MathBlockNode() => _buildMathBlock(node, theme),
       md.FrontMatterNode() => _buildFrontMatter(node, theme),
@@ -702,20 +812,18 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     };
   }
 
-  Widget _buildBlockquote(md.BlockquoteNode node, ThemeData theme, AppThemeTokens tokens) {
+  Widget _buildBlockquote(
+    md.BlockquoteNode node,
+    ThemeData theme,
+    AppThemeTokens tokens,
+  ) {
     return Container(
       // Nested quotes step in, so `>>` reads as being inside `>` rather than
       // sitting beside it.
-      margin: EdgeInsets.only(
-        left: node.depth * 20.0,
-        top: 8,
-        bottom: 8,
-      ),
+      margin: EdgeInsets.only(left: node.depth * 20.0, top: 8, bottom: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        border: Border(
-          left: BorderSide(color: tokens.colorAccent, width: 3),
-        ),
+        border: Border(left: BorderSide(color: tokens.colorAccent, width: 3)),
         color: tokens.colorAccentMuted.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(4),
       ),
@@ -824,10 +932,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       margin: const EdgeInsets.symmetric(vertical: 8),
       padding: const EdgeInsets.all(12),
       child: Center(
-        child: Math.tex(
-          node.expression,
-          textStyle: theme.textTheme.bodyLarge,
-        ),
+        child: Math.tex(node.expression, textStyle: theme.textTheme.bodyLarge),
       ),
     );
   }
@@ -848,7 +953,10 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     );
   }
 
-  Widget _buildFootnoteDefinition(md.FootnoteDefinitionNode node, ThemeData theme) {
+  Widget _buildFootnoteDefinition(
+    md.FootnoteDefinitionNode node,
+    ThemeData theme,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
@@ -861,9 +969,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
               fontWeight: FontWeight.bold,
             ),
           ),
-          Expanded(
-            child: Text(node.content, style: theme.textTheme.bodySmall),
-          ),
+          Expanded(child: Text(node.content, style: theme.textTheme.bodySmall)),
         ],
       ),
     );
@@ -885,7 +991,11 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   }
 
   /// Split a text span into segments with search highlighting applied.
-  List<InlineSpan> _applySearchHighlight(String text, TextStyle? style, EditorState editorState) {
+  List<InlineSpan> _applySearchHighlight(
+    String text,
+    TextStyle? style,
+    EditorState editorState,
+  ) {
     final query = editorState.previewSearchQuery;
     if (query.isEmpty || text.isEmpty) {
       return [TextSpan(text: text, style: style)];
@@ -894,7 +1004,10 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     final matchRanges = <TextRange>[];
     try {
       if (editorState.previewSearchUseRegex) {
-        final regex = RegExp(query, caseSensitive: editorState.previewSearchCaseSensitive);
+        final regex = RegExp(
+          query,
+          caseSensitive: editorState.previewSearchCaseSensitive,
+        );
         for (final m in regex.allMatches(text)) {
           matchRanges.add(TextRange(start: m.start, end: m.end));
         }
@@ -910,8 +1023,10 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
           final pos = searchText.indexOf(searchPattern, index);
           if (pos == -1) break;
           if (editorState.previewSearchWholeWord) {
-            final isWordStart = pos == 0 || !RegExp(r'[a-zA-Z0-9_]').hasMatch(text[pos - 1]);
-            final isWordEnd = pos + query.length >= text.length ||
+            final isWordStart =
+                pos == 0 || !RegExp(r'[a-zA-Z0-9_]').hasMatch(text[pos - 1]);
+            final isWordEnd =
+                pos + query.length >= text.length ||
                 !RegExp(r'[a-zA-Z0-9_]').hasMatch(text[pos + query.length]);
             if (isWordStart && isWordEnd) {
               matchRanges.add(TextRange(start: pos, end: pos + query.length));
@@ -936,17 +1051,21 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
 
     for (final range in matchRanges) {
       if (range.start > lastEnd) {
-        result.add(TextSpan(text: text.substring(lastEnd, range.start), style: style));
+        result.add(
+          TextSpan(text: text.substring(lastEnd, range.start), style: style),
+        );
       }
       final isCurrent = _matchCounter == currentIdx;
-      result.add(TextSpan(
-        text: text.substring(range.start, range.end),
-        style: style?.copyWith(
-          backgroundColor: isCurrent
-              ? Colors.orange.withValues(alpha: 0.6)
-              : Colors.yellow.withValues(alpha: 0.4),
+      result.add(
+        TextSpan(
+          text: text.substring(range.start, range.end),
+          style: style?.copyWith(
+            backgroundColor: isCurrent
+                ? Colors.orange.withValues(alpha: 0.6)
+                : Colors.yellow.withValues(alpha: 0.4),
+          ),
         ),
-      ));
+      );
       _matchCounter++;
       lastEnd = range.end;
     }
@@ -1002,7 +1121,8 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             fontFamily: 'monospace',
             fontSize: (baseStyle.fontSize ?? 16) * 0.9,
             height: baseStyle.height,
-            backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
+            backgroundColor: theme.colorScheme.surfaceContainerHighest
+                .withValues(alpha: 0.6),
           );
           if (hasSearch) {
             children.addAll(_applySearchHighlight(span.text, s, es));
@@ -1020,7 +1140,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             ..onTap = () {
               if (span.href != null &&
                   (HardwareKeyboard.instance.isControlPressed ||
-                   HardwareKeyboard.instance.isMetaPressed)) {
+                      HardwareKeyboard.instance.isMetaPressed)) {
                 _openLink(span.href!);
               }
             };
@@ -1028,7 +1148,9 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
           if (hasSearch) {
             children.addAll(_applySearchHighlight(span.text, s, es));
           } else {
-            children.add(TextSpan(text: span.text, style: s, recognizer: recognizer));
+            children.add(
+              TextSpan(text: span.text, style: s, recognizer: recognizer),
+            );
           }
         case md.InlineType.image:
           children.add(_buildImageSpan(span, theme));
@@ -1040,12 +1162,9 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             children.add(TextSpan(text: span.text, style: s));
           }
         case md.InlineType.mathInline:
-          children.add(WidgetSpan(
-            child: Math.tex(
-              span.text,
-              textStyle: baseStyle,
-            ),
-          ));
+          children.add(
+            WidgetSpan(child: Math.tex(span.text, textStyle: baseStyle)),
+          );
         case md.InlineType.highlight:
           final s = baseStyle?.copyWith(
             backgroundColor: Colors.yellow.withValues(alpha: 0.4),
@@ -1056,27 +1175,35 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             children.add(TextSpan(text: span.text, style: s));
           }
         case md.InlineType.superscript:
-          children.add(WidgetSpan(
-            alignment: PlaceholderAlignment.middle,
-            child: Transform.translate(
-              offset: const Offset(0, -4),
-              child: Text(
-                span.text,
-                style: baseStyle?.copyWith(fontSize: (baseStyle.fontSize ?? 14) * 0.75),
+          children.add(
+            WidgetSpan(
+              alignment: PlaceholderAlignment.middle,
+              child: Transform.translate(
+                offset: const Offset(0, -4),
+                child: Text(
+                  span.text,
+                  style: baseStyle?.copyWith(
+                    fontSize: (baseStyle.fontSize ?? 14) * 0.75,
+                  ),
+                ),
               ),
             ),
-          ));
+          );
         case md.InlineType.subscript:
-          children.add(WidgetSpan(
-            alignment: PlaceholderAlignment.middle,
-            child: Transform.translate(
-              offset: const Offset(0, 4),
-              child: Text(
-                span.text,
-                style: baseStyle?.copyWith(fontSize: (baseStyle.fontSize ?? 14) * 0.75),
+          children.add(
+            WidgetSpan(
+              alignment: PlaceholderAlignment.middle,
+              child: Transform.translate(
+                offset: const Offset(0, 4),
+                child: Text(
+                  span.text,
+                  style: baseStyle?.copyWith(
+                    fontSize: (baseStyle.fontSize ?? 14) * 0.75,
+                  ),
+                ),
               ),
             ),
-          ));
+          );
         case md.InlineType.underline:
           final s = baseStyle?.copyWith(decoration: TextDecoration.underline);
           if (hasSearch) {
@@ -1085,16 +1212,18 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             children.add(TextSpan(text: span.text, style: s));
           }
         case md.InlineType.footnoteRef:
-          children.add(WidgetSpan(
-            alignment: PlaceholderAlignment.top,
-            child: Text(
-              '[${span.text}]',
-              style: baseStyle?.copyWith(
-                color: theme.colorScheme.primary,
-                fontSize: (baseStyle.fontSize ?? 14) * 0.75,
+          children.add(
+            WidgetSpan(
+              alignment: PlaceholderAlignment.top,
+              child: Text(
+                '[${span.text}]',
+                style: baseStyle?.copyWith(
+                  color: theme.colorScheme.primary,
+                  fontSize: (baseStyle.fontSize ?? 14) * 0.75,
+                ),
               ),
             ),
-          ));
+          );
       }
     }
 

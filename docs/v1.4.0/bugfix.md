@@ -37,8 +37,8 @@
 | 隐藏的第二个问题 | 光把行号传下去还不够。新开标签页时，`scrollToLine` 发生在**这个文件的编辑器还没建出来**之前，而编辑器用的是 `listenManual`，只在值**变化**时触发 —— 它错过了这次请求，滚动依然不会发生 |
 | 修复方案 | 编辑器初始化（post-frame）注册监听之后，**再主动读一次当前挂起的目标**并认领。滚动逻辑抽成 `_scrollToTargetLine`，监听回调和初始认领共用一份 |
 | 已开标签页的情况 | 走 `setActiveTab` 后直接 `scrollToLine`，编辑器已存在，监听正常触发 |
-| 预览模式的限制 | 预览只对**标题行**建了 key，命中普通正文行时预览不会滚动（源码模式正常）。属已知限制，未在本次处理 |
-| 涉及文件 | `lib/ui/widgets/side_bar.dart`、`lib/ui/editor/source_editor.dart`、`test/ui/editor/source_editor_scroll_test.dart`（新增） |
-| 验证方式 | 新增三个 widget 测试：目标在编辑器建出来之前就挂起、目标在之后才发出、完全没有目标。判据是「目标被清空」—— 清空只在处理函数内部发生，所以它就是「确实执行了滚动」的证据 |
+| 预览模式 | 预览同样有「监听注册得太晚」的问题，一并按同样办法认领挂起目标。另外预览只对**标题行**建了 key，命中普通正文行时原本什么都不做 —— 改成回落到**该行上方最近的标题**。没有给每个块都建 key：那等于每个节点一个 GlobalKey，正是渐进渲染要避免的逐节点开销，而「滚到上一个标题」已经足够读者接上下文，且不花一分钱 |
+| 涉及文件 | `lib/ui/widgets/side_bar.dart`、`lib/ui/editor/source_editor.dart`、`lib/ui/editor/markdown_renderer.dart`、`test/ui/editor/source_editor_scroll_test.dart`（新增）、`test/ui/editor/markdown_renderer_scroll_test.dart`（新增） |
+| 验证方式 | 源码编辑器三个 widget 测试：目标在编辑器建出来之前就挂起、目标在之后才发出、完全没有目标；预览三个：提前挂起、普通正文行回落、比所有标题都靠前的行。判据都是「目标被清空」—— 清空只在处理函数内部发生，所以它就是「确实执行了滚动」的证据 |
 
 ---
