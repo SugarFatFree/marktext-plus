@@ -470,6 +470,70 @@ void main() {
     });
   });
 
+  group('Inline HTML, when the setting is on', () {
+    final off = MarkdownParser();
+    final on = MarkdownParser(enableHtml: true);
+
+    List<InlineType> typesOf(MarkdownParser parser, String source) =>
+        parser.parseInline(source).map((s) => s.type).toList();
+
+    test('the setting is off by default and changes nothing', () {
+      final spans = off.parseInline('press <kbd>Ctrl</kbd> now');
+
+      expect(spans.single.type, InlineType.text);
+      expect(spans.single.text, 'press <kbd>Ctrl</kbd> now');
+    });
+
+    test('the supported tags become real formatting', () {
+      expect(typesOf(on, '<b>a</b>'), [InlineType.bold]);
+      expect(typesOf(on, '<strong>a</strong>'), [InlineType.bold]);
+      expect(typesOf(on, '<em>a</em>'), [InlineType.italic]);
+      expect(typesOf(on, '<u>a</u>'), [InlineType.underline]);
+      expect(typesOf(on, '<mark>a</mark>'), [InlineType.highlight]);
+      expect(typesOf(on, '<kbd>a</kbd>'), [InlineType.code]);
+      expect(typesOf(on, '<del>a</del>'), [InlineType.strikethrough]);
+      expect(typesOf(on, '<sub>a</sub>'), [InlineType.subscript]);
+      expect(typesOf(on, '<sup>a</sup>'), [InlineType.superscript]);
+    });
+
+    test('a tag may be written in capitals', () {
+      expect(typesOf(on, '<B>a</B>'), [InlineType.bold]);
+    });
+
+    test('br becomes a line break', () {
+      final spans = on.parseInline('first<br>second');
+
+      expect(spans.map((s) => s.text).join(), 'first\nsecond');
+      expect(spans.every((s) => s.type == InlineType.text), isTrue);
+    });
+
+    test('anything else is left exactly as written', () {
+      for (final source in [
+        'a <b>unclosed',
+        '<div>block</div>',
+        '5 < 6 and 7 > 6',
+        r'\<b>escaped\</b>',
+        '&lt;b&gt;entity&lt;/b&gt;',
+      ]) {
+        final spans = on.parseInline(source);
+        expect(
+          spans.every((s) => s.type == InlineType.text),
+          isTrue,
+          reason: source,
+        );
+      }
+    });
+
+    test('a tag wrapping other markup is left alone', () {
+      // Reading that needs a real HTML parser, and guessing would be worse
+      // than showing what the author wrote.
+      final spans = on.parseInline('<b>a *b* c</b>');
+
+      expect(spans.first.text, contains('<b>'));
+      expect(spans.last.text, contains('</b>'));
+    });
+  });
+
   group('Loose and tight lists', () {
     final parser = MarkdownParser();
 

@@ -866,6 +866,7 @@ class AppMenuBar extends ConsumerWidget {
       activeTab.content,
       path,
       sourcePath: activeTab.filePath,
+      enableHtml: ref.read(settingsProvider).enableHtml,
     );
   }
 
@@ -885,6 +886,7 @@ class AppMenuBar extends ConsumerWidget {
       path,
       mermaidImages: mermaidImages,
       sourcePath: activeTab.filePath,
+      enableHtml: ref.read(settingsProvider).enableHtml,
     );
   }
 
@@ -904,6 +906,7 @@ class AppMenuBar extends ConsumerWidget {
       path,
       mermaidImages: mermaidImages,
       sourcePath: activeTab.filePath,
+      enableHtml: ref.read(settingsProvider).enableHtml,
     );
   }
 

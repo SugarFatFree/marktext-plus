@@ -49,7 +49,9 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   final _headingKeys = <int, GlobalKey>{};
   int _matchCounter = 0;
   final _recognizers = <TapGestureRecognizer>[];
-  final _inlineParser = md.MarkdownParser();
+  /// Rebuilt when the inline-HTML setting changes, which is the only thing
+  /// that alters how a parser reads the same text.
+  md.MarkdownParser _inlineParser = md.MarkdownParser();
 
   // AST cache — only re-parse when markdown content changes
   String? _cachedMarkdown;
@@ -216,10 +218,18 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     // Watch editorProvider to rebuild when search state changes
     ref.watch(editorProvider);
 
+    // Also when the inline-HTML setting changes: the text is the same but the
+    // parse is not, and without this the preview kept the old rendering until
+    // the next keystroke.
+    if (_inlineParser.enableHtml != config.enableHtml) {
+      _inlineParser = md.MarkdownParser(enableHtml: config.enableHtml);
+      _cachedMarkdown = null;
+    }
+
     // Only re-parse when markdown content actually changes
     if (_cachedMarkdown != widget.markdown) {
       _cachedMarkdown = widget.markdown;
-      final parser = md.MarkdownParser();
+      final parser = md.MarkdownParser(enableHtml: config.enableHtml);
       _cachedNodes = parser.parse(widget.markdown);
       _cachedHeadingLines = _findHeadingLines(widget.markdown);
       // Keep what is already on screen. Restarting from the first batch made

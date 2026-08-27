@@ -291,6 +291,21 @@ class HtmlBlockNode extends MarkdownNode {
 // -- Parser --
 
 class MarkdownParser {
+  /// Creates a parser.
+  ///
+  /// [enableHtml] turns on the inline HTML the settings switch offers. It is
+  /// off by default, which is what every existing caller wants and what keeps
+  /// a document with a stray `<` in it reading the same as before.
+  MarkdownParser({this.enableHtml = false});
+
+  /// Whether a handful of inline HTML tags are rendered rather than shown.
+  ///
+  /// Deliberately a small, closed set — `<b>`, `<kbd>`, `<br>` and their
+  /// like, with no attributes and no markup inside. Block-level HTML is not
+  /// touched. That covers what markdown documents actually contain without
+  /// pulling in an HTML engine.
+  final bool enableHtml;
+
   /// One heading, as the outline sees it.
   ///
   /// [line] is 1-based, matching what the editor and the scroll targets use.
@@ -1348,7 +1363,12 @@ class MarkdownParser {
       spans.add(InlineSpan(type: InlineType.text, text: text));
     }
 
-    return spans.map((span) {
+    // Before escapes are restored and entities decoded, so `\<b>` and
+    // `&lt;b&gt;` both stay literal text — they are how a document writes a
+    // tag it does not want interpreted.
+    final expanded = enableHtml ? _expandInlineHtml(spans) : spans;
+
+    return expanded.map((span) {
       final restored =
           escapes.isEmpty ? span : _restoreEscapes(span, escapes);
       // Entities inside inline code are literal, per CommonMark.
@@ -1361,6 +1381,81 @@ class MarkdownParser {
         linkHref: restored.linkHref,
       );
     }).toList();
+  }
+
+  /// The inline tags [enableHtml] understands, and what each becomes.
+  static const _inlineHtmlTypes = <String, InlineType>{
+    'b': InlineType.bold,
+    'strong': InlineType.bold,
+    'i': InlineType.italic,
+    'em': InlineType.italic,
+    'u': InlineType.underline,
+    'mark': InlineType.highlight,
+    'code': InlineType.code,
+    'kbd': InlineType.code,
+    'del': InlineType.strikethrough,
+    's': InlineType.strikethrough,
+    'strike': InlineType.strikethrough,
+    'sub': InlineType.subscript,
+    'sup': InlineType.superscript,
+  };
+
+  /// A supported tag pair with plain content, or a line break.
+  ///
+  /// The content may not itself contain `<` or `>`: a tag wrapping other
+  /// markup needs a real HTML parser, and guessing at it would be worse than
+  /// leaving it as written.
+  static final _inlineHtmlRe = RegExp(
+    r'<(b|strong|i|em|u|mark|code|kbd|del|s|strike|sub|sup)>([^<>]*)</\1>'
+    r'|<br\s*/?>',
+    caseSensitive: false,
+  );
+
+  /// Rewrites supported inline tags inside text spans as real formatting.
+  static List<InlineSpan> _expandInlineHtml(List<InlineSpan> spans) {
+    final result = <InlineSpan>[];
+
+    for (final span in spans) {
+      if (span.type != InlineType.text || !span.text.contains('<')) {
+        result.add(span);
+        continue;
+      }
+
+      final text = span.text;
+      var last = 0;
+      for (final match in _inlineHtmlRe.allMatches(text)) {
+        if (match.start > last) {
+          result.add(InlineSpan(
+            type: InlineType.text,
+            text: text.substring(last, match.start),
+          ));
+        }
+
+        final tag = match.group(1)?.toLowerCase();
+        if (tag == null) {
+          // `<br>`: a line break inside the paragraph, which is what the
+          // renderer already makes of a newline.
+          result.add(const InlineSpan(type: InlineType.text, text: '\n'));
+        } else {
+          result.add(InlineSpan(
+            type: _inlineHtmlTypes[tag]!,
+            text: match.group(2) ?? '',
+          ));
+        }
+        last = match.end;
+      }
+
+      if (last == 0) {
+        result.add(span);
+      } else if (last < text.length) {
+        result.add(InlineSpan(
+          type: InlineType.text,
+          text: text.substring(last),
+        ));
+      }
+    }
+
+    return result;
   }
 
   /// Character entities markdown documents commonly carry over from HTML.

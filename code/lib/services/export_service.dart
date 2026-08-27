@@ -125,8 +125,11 @@ class ExportService {
     String markdown,
     String savePath, {
     String? sourcePath,
+    bool enableHtml = false,
   }) async {
-    final parser = MarkdownParser();
+    // Threaded through so the export reads the document the same way the
+    // preview does; two different readings of one file is how they drift.
+    final parser = MarkdownParser(enableHtml: enableHtml);
     final ast = parser.parse(markdown);
     final images = await _collectInlineImages(ast, sourcePath);
 
@@ -210,8 +213,9 @@ class ExportService {
     String savePath, {
     Map<String, Uint8List>? mermaidImages,
     String? sourcePath,
+    bool enableHtml = false,
   }) async {
-    final parser = MarkdownParser();
+    final parser = MarkdownParser(enableHtml: enableHtml);
     final ast = parser.parse(markdown);
 
     final documentImages = await _readLocalImages(ast, sourcePath);
@@ -293,8 +297,9 @@ class ExportService {
     String savePath, {
     Map<String, Uint8List>? mermaidImages,
     String? sourcePath,
+    bool enableHtml = false,
   }) async {
-    final parser = MarkdownParser();
+    final parser = MarkdownParser(enableHtml: enableHtml);
     final ast = parser.parse(markdown);
     final documentImages = await _readLocalImages(ast, sourcePath);
 
