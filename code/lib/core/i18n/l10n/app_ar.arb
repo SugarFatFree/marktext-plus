@@ -180,7 +180,13 @@
   "copyFilePath": "نسخ مسار الملف",
   "deleteFile": "حذف الملف",
   "confirmDeleteFile": "هل أنت متأكد من حذف \"{fileName}\"؟",
-  "@confirmDeleteFile": { "placeholders": { "fileName": { "type": "String" } } },
+  "@confirmDeleteFile": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
   "newFolder": "مجلد جديد",
   "rename": "إعادة تسمية",
   "delete": "حذف",
@@ -205,9 +211,21 @@
   "settingsTextDirectionLtr": "من اليسار لليمين",
   "settingsTextDirectionRtl": "من اليمين لليسار",
   "commandFormatLabel": "تنسيق: {action}",
-  "@commandFormatLabel": { "placeholders": { "action": { "type": "String" } } },
+  "@commandFormatLabel": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
   "commandFormatDesc": "تطبيق تنسيق {action}",
-  "@commandFormatDesc": { "placeholders": { "action": { "type": "String" } } },
+  "@commandFormatDesc": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
   "commandNewFile": "ملف جديد",
   "commandNewFileDesc": "إنشاء ملف جديد بدون عنوان",
   "commandSave": "حفظ",
@@ -226,8 +244,12 @@
   "commandToggleSidebarDesc": "إظهار أو إخفاء الشريط الجانبي",
   "commandToggleTabBar": "تبديل شريط التبويب",
   "commandToggleTabBarDesc": "إظهار أو إخفاء شريط التبويب",
-
   "welcomeNewFile": "ملف جديد",
   "welcomeOpenFile": "فتح ملف",
-  "welcomeDragHint": "اسحب الملفات هنا لفتحها"
+  "welcomeDragHint": "اسحب الملفات هنا لفتحها",
+  "mermaidFullscreen": "ملء الشاشة",
+  "mermaidSaveAs": "حفظ باسم",
+  "mermaidCopySource": "نسخ المصدر",
+  "mermaidFullscreenHint": "انقر نقرًا مزدوجًا على الرسم التخطيطي لعرضه بملء الشاشة",
+  "mermaidSaveAsHint": "حفظ الرسم التخطيطي بصيغة PNG"
 }

@@ -6,6 +6,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
+import '../../core/i18n/l10n/app_localizations.dart';
 import '../editor/mermaid/widgets/mermaid_diagram.dart';
 import '../editor/mermaid/models/style.dart';
 import '../editor/mermaid/models/node.dart' show NodeStyle;
@@ -105,6 +106,7 @@ class _MermaidRendererState extends State<MermaidRenderer> {
   @override
   Widget build(BuildContext context) {
     final style = _buildStyle();
+    final l10n = AppLocalizations.of(context)!;
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
@@ -131,11 +133,12 @@ class _MermaidRendererState extends State<MermaidRenderer> {
                 ),
                 const Spacer(),
                 Tooltip(
-                  message: '双击图表全屏查看',
+                  message: l10n.mermaidFullscreenHint,
                   child: TextButton.icon(
+                    key: const Key('mermaid-fullscreen'),
                     onPressed: () => _openFullscreen(context, style),
                     icon: const Icon(Icons.fullscreen, size: 16),
-                    label: const Text('全屏'),
+                    label: Text(l10n.mermaidFullscreen),
                     style: TextButton.styleFrom(
                       visualDensity: VisualDensity.compact,
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -144,11 +147,12 @@ class _MermaidRendererState extends State<MermaidRenderer> {
                   ),
                 ),
                 Tooltip(
-                  message: '保存图表为 PNG',
+                  message: l10n.mermaidSaveAsHint,
                   child: TextButton.icon(
+                    key: const Key('mermaid-save-as'),
                     onPressed: () => _saveAsImage(context),
                     icon: const Icon(Icons.download_outlined, size: 16),
-                    label: const Text('另存为'),
+                    label: Text(l10n.mermaidSaveAs),
                     style: TextButton.styleFrom(
                       visualDensity: VisualDensity.compact,
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -157,11 +161,12 @@ class _MermaidRendererState extends State<MermaidRenderer> {
                   ),
                 ),
                 TextButton.icon(
+                  key: const Key('mermaid-copy-source'),
                   onPressed: () async {
                     await Clipboard.setData(ClipboardData(text: widget.code));
                   },
                   icon: const Icon(Icons.copy_outlined, size: 16),
-                  label: const Text('复制源码'),
+                  label: Text(l10n.mermaidCopySource),
                   style: TextButton.styleFrom(
                     visualDensity: VisualDensity.compact,
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

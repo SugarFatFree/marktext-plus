@@ -736,4 +736,19 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get updateDismiss => 'Dismiss';
+
+  @override
+  String get mermaidFullscreen => '전체 화면';
+
+  @override
+  String get mermaidSaveAs => '다른 이름으로 저장';
+
+  @override
+  String get mermaidCopySource => '소스 복사';
+
+  @override
+  String get mermaidFullscreenHint => '다이어그램을 두 번 탭하면 전체 화면으로 표시됩니다';
+
+  @override
+  String get mermaidSaveAsHint => '다이어그램을 PNG로 저장';
 }

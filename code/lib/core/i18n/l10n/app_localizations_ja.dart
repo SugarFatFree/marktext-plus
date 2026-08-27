@@ -736,4 +736,19 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get updateDismiss => 'Dismiss';
+
+  @override
+  String get mermaidFullscreen => '全画面';
+
+  @override
+  String get mermaidSaveAs => '名前を付けて保存';
+
+  @override
+  String get mermaidCopySource => 'ソースをコピー';
+
+  @override
+  String get mermaidFullscreenHint => '図をダブルタップで全画面表示';
+
+  @override
+  String get mermaidSaveAsHint => '図を PNG として保存';
 }

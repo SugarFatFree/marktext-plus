@@ -742,6 +742,21 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get updateDismiss => 'Dismiss';
+
+  @override
+  String get mermaidFullscreen => 'Ecrã inteiro';
+
+  @override
+  String get mermaidSaveAs => 'Guardar como';
+
+  @override
+  String get mermaidCopySource => 'Copiar código-fonte';
+
+  @override
+  String get mermaidFullscreenHint => 'Toque duas vezes no diagrama para ver em ecrã inteiro';
+
+  @override
+  String get mermaidSaveAsHint => 'Guardar o diagrama como PNG';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -1441,4 +1456,19 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get welcomeDragHint => 'Arraste arquivos para cá para abrir';
+
+  @override
+  String get mermaidFullscreen => 'Tela cheia';
+
+  @override
+  String get mermaidSaveAs => 'Salvar como';
+
+  @override
+  String get mermaidCopySource => 'Copiar código-fonte';
+
+  @override
+  String get mermaidFullscreenHint => 'Toque duas vezes no diagrama para ver em tela cheia';
+
+  @override
+  String get mermaidSaveAsHint => 'Salvar o diagrama como PNG';
 }

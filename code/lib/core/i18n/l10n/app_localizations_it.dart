@@ -742,4 +742,19 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get updateDismiss => 'Dismiss';
+
+  @override
+  String get mermaidFullscreen => 'Schermo intero';
+
+  @override
+  String get mermaidSaveAs => 'Salva con nome';
+
+  @override
+  String get mermaidCopySource => 'Copia sorgente';
+
+  @override
+  String get mermaidFullscreenHint => 'Tocca due volte il diagramma per visualizzarlo a schermo intero';
+
+  @override
+  String get mermaidSaveAsHint => 'Salva il diagramma come PNG';
 }

@@ -46,7 +46,13 @@
   "formatItalic": "Italic",
   "formatStrikethrough": "Strikethrough",
   "formatHeading": "Heading {level}",
-  "@formatHeading": { "placeholders": { "level": { "type": "int" } } },
+  "@formatHeading": {
+    "placeholders": {
+      "level": {
+        "type": "int"
+      }
+    }
+  },
   "formatOrderedList": "Ordered List",
   "formatUnorderedList": "Unordered List",
   "formatTaskList": "Task List",
@@ -80,7 +86,16 @@
   "settingsEnableHtml": "Enable HTML",
   "settingsResetDefaults": "Reset to Defaults",
   "statusLine": "Ln {line}, Col {col}",
-  "@statusLine": { "placeholders": { "line": { "type": "int" }, "col": { "type": "int" } } },
+  "@statusLine": {
+    "placeholders": {
+      "line": {
+        "type": "int"
+      },
+      "col": {
+        "type": "int"
+      }
+    }
+  },
   "statusEncoding": "UTF-8",
   "statusMarkdown": "Markdown",
   "unsavedChanges": "Unsaved Changes",
@@ -107,7 +122,13 @@
   "searchPlaceholder": "Search in files...",
   "searchNoResults": "No results found",
   "searchResultCount": "{count} results found",
-  "@searchResultCount": { "placeholders": { "count": { "type": "int" } } },
+  "@searchResultCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "tocEmpty": "No headings found",
   "editFindNext": "Find Next",
   "editFindPrevious": "Find Previous",
@@ -185,7 +206,13 @@
   "copyFilePath": "Copy File Path",
   "deleteFile": "Delete File",
   "confirmDeleteFile": "Are you sure you want to delete \"{fileName}\"?",
-  "@confirmDeleteFile": { "placeholders": { "fileName": { "type": "String" } } },
+  "@confirmDeleteFile": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
   "newFolder": "New Folder",
   "rename": "Rename",
   "delete": "Delete",
@@ -210,9 +237,21 @@
   "settingsTextDirectionLtr": "LTR",
   "settingsTextDirectionRtl": "RTL",
   "commandFormatLabel": "Format: {action}",
-  "@commandFormatLabel": { "placeholders": { "action": { "type": "String" } } },
+  "@commandFormatLabel": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
   "commandFormatDesc": "Apply {action} formatting",
-  "@commandFormatDesc": { "placeholders": { "action": { "type": "String" } } },
+  "@commandFormatDesc": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
   "commandNewFile": "New File",
   "commandNewFileDesc": "Create a new untitled file",
   "commandSave": "Save",
@@ -231,11 +270,9 @@
   "commandToggleSidebarDesc": "Show or hide the sidebar",
   "commandToggleTabBar": "Toggle Tab Bar",
   "commandToggleTabBarDesc": "Show or hide the tab bar",
-
   "welcomeNewFile": "New File",
   "welcomeOpenFile": "Open File",
   "welcomeDragHint": "Drop files here to open",
-
   "fileOpenBehavior": "File Opening Behavior",
   "fileOpenBehaviorTitle": "How to Open Files?",
   "fileOpenBehaviorMessage": "When you double-click a file while the app is already running:",
@@ -245,5 +282,10 @@
   "fileOpenBehaviorExistingWindowDesc": "Add to existing tabs (single instance)",
   "fileOpenBehaviorNotSet": "Not configured",
   "updateAvailable": "New version available",
-  "updateDismiss": "Dismiss"
+  "updateDismiss": "Dismiss",
+  "mermaidFullscreen": "Fullscreen",
+  "mermaidSaveAs": "Save As",
+  "mermaidCopySource": "Copy Source",
+  "mermaidFullscreenHint": "Double-tap the diagram to view fullscreen",
+  "mermaidSaveAsHint": "Save the diagram as PNG"
 }

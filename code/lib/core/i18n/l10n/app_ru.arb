@@ -180,7 +180,13 @@
   "copyFilePath": "Копировать путь к файлу",
   "deleteFile": "Удалить файл",
   "confirmDeleteFile": "Вы уверены, что хотите удалить \"{fileName}\"?",
-  "@confirmDeleteFile": { "placeholders": { "fileName": { "type": "String" } } },
+  "@confirmDeleteFile": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
   "newFolder": "Новая папка",
   "rename": "Переименовать",
   "delete": "Удалить",
@@ -205,9 +211,21 @@
   "settingsTextDirectionLtr": "Слева направо",
   "settingsTextDirectionRtl": "Справа налево",
   "commandFormatLabel": "Формат: {action}",
-  "@commandFormatLabel": { "placeholders": { "action": { "type": "String" } } },
+  "@commandFormatLabel": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
   "commandFormatDesc": "Применить форматирование {action}",
-  "@commandFormatDesc": { "placeholders": { "action": { "type": "String" } } },
+  "@commandFormatDesc": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
   "commandNewFile": "Новый файл",
   "commandNewFileDesc": "Создать новый файл без названия",
   "commandSave": "Сохранить",
@@ -226,8 +244,12 @@
   "commandToggleSidebarDesc": "Показать или скрыть боковую панель",
   "commandToggleTabBar": "Панель вкладок",
   "commandToggleTabBarDesc": "Показать или скрыть панель вкладок",
-
   "welcomeNewFile": "Новый файл",
   "welcomeOpenFile": "Открыть файл",
-  "welcomeDragHint": "Перетащите файлы сюда для открытия"
+  "welcomeDragHint": "Перетащите файлы сюда для открытия",
+  "mermaidFullscreen": "Полноэкранный режим",
+  "mermaidSaveAs": "Сохранить как",
+  "mermaidCopySource": "Копировать исходный код",
+  "mermaidFullscreenHint": "Дважды нажмите на диаграмму для полноэкранного просмотра",
+  "mermaidSaveAsHint": "Сохранить диаграмму в формате PNG"
 }

@@ -180,7 +180,13 @@
   "copyFilePath": "Dateipfad kopieren",
   "deleteFile": "Datei löschen",
   "confirmDeleteFile": "Sind Sie sicher, dass Sie \"{fileName}\" löschen möchten?",
-  "@confirmDeleteFile": { "placeholders": { "fileName": { "type": "String" } } },
+  "@confirmDeleteFile": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
   "newFolder": "Neuer Ordner",
   "rename": "Umbenennen",
   "delete": "Löschen",
@@ -205,9 +211,21 @@
   "settingsTextDirectionLtr": "Links nach rechts",
   "settingsTextDirectionRtl": "Rechts nach links",
   "commandFormatLabel": "Format: {action}",
-  "@commandFormatLabel": { "placeholders": { "action": { "type": "String" } } },
+  "@commandFormatLabel": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
   "commandFormatDesc": "{action}-Formatierung anwenden",
-  "@commandFormatDesc": { "placeholders": { "action": { "type": "String" } } },
+  "@commandFormatDesc": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
   "commandNewFile": "Neue Datei",
   "commandNewFileDesc": "Neue unbenannte Datei erstellen",
   "commandSave": "Speichern",
@@ -226,8 +244,12 @@
   "commandToggleSidebarDesc": "Seitenleiste ein-/ausblenden",
   "commandToggleTabBar": "Tab-Leiste umschalten",
   "commandToggleTabBarDesc": "Tab-Leiste ein-/ausblenden",
-
   "welcomeNewFile": "Neue Datei",
   "welcomeOpenFile": "Datei öffnen",
-  "welcomeDragHint": "Dateien hierher ziehen zum Öffnen"
+  "welcomeDragHint": "Dateien hierher ziehen zum Öffnen",
+  "mermaidFullscreen": "Vollbild",
+  "mermaidSaveAs": "Speichern unter",
+  "mermaidCopySource": "Quelltext kopieren",
+  "mermaidFullscreenHint": "Zum Vollbild doppelt auf das Diagramm tippen",
+  "mermaidSaveAsHint": "Diagramm als PNG speichern"
 }

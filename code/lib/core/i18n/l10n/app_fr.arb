@@ -180,7 +180,13 @@
   "copyFilePath": "Copier le chemin du fichier",
   "deleteFile": "Supprimer le fichier",
   "confirmDeleteFile": "Êtes-vous sûr de vouloir supprimer \"{fileName}\" ?",
-  "@confirmDeleteFile": { "placeholders": { "fileName": { "type": "String" } } },
+  "@confirmDeleteFile": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
   "newFolder": "Nouveau dossier",
   "rename": "Renommer",
   "delete": "Supprimer",
@@ -205,9 +211,21 @@
   "settingsTextDirectionLtr": "Gauche à droite",
   "settingsTextDirectionRtl": "Droite à gauche",
   "commandFormatLabel": "Format : {action}",
-  "@commandFormatLabel": { "placeholders": { "action": { "type": "String" } } },
+  "@commandFormatLabel": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
   "commandFormatDesc": "Appliquer le formatage {action}",
-  "@commandFormatDesc": { "placeholders": { "action": { "type": "String" } } },
+  "@commandFormatDesc": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
   "commandNewFile": "Nouveau fichier",
   "commandNewFileDesc": "Créer un nouveau fichier sans titre",
   "commandSave": "Enregistrer",
@@ -226,8 +244,12 @@
   "commandToggleSidebarDesc": "Afficher ou masquer la barre latérale",
   "commandToggleTabBar": "Basculer la barre d'onglets",
   "commandToggleTabBarDesc": "Afficher ou masquer la barre d'onglets",
-
   "welcomeNewFile": "Nouveau fichier",
   "welcomeOpenFile": "Ouvrir un fichier",
-  "welcomeDragHint": "Déposez des fichiers ici pour les ouvrir"
+  "welcomeDragHint": "Déposez des fichiers ici pour les ouvrir",
+  "mermaidFullscreen": "Plein écran",
+  "mermaidSaveAs": "Enregistrer sous",
+  "mermaidCopySource": "Copier la source",
+  "mermaidFullscreenHint": "Double-cliquez sur le diagramme pour l'afficher en plein écran",
+  "mermaidSaveAsHint": "Enregistrer le diagramme au format PNG"
 }

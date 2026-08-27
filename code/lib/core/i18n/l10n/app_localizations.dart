@@ -1544,6 +1544,32 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Dismiss'**
   String get updateDismiss;
+  /// No description provided for @mermaidFullscreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Fullscreen'**
+  String get mermaidFullscreen;
+  /// No description provided for @mermaidSaveAs.
+  ///
+  /// In en, this message translates to:
+  /// **'Save As'**
+  String get mermaidSaveAs;
+  /// No description provided for @mermaidCopySource.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy Source'**
+  String get mermaidCopySource;
+  /// No description provided for @mermaidFullscreenHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Double-tap the diagram to view fullscreen'**
+  String get mermaidFullscreenHint;
+
+  /// No description provided for @mermaidSaveAsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Save the diagram as PNG'**
+  String get mermaidSaveAsHint;
 }
 
 class _AppLocalizationsDelegate

@@ -733,4 +733,19 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get updateDismiss => '忽略';
+
+  @override
+  String get mermaidFullscreen => '全屏';
+
+  @override
+  String get mermaidSaveAs => '另存为';
+
+  @override
+  String get mermaidCopySource => '复制源码';
+
+  @override
+  String get mermaidFullscreenHint => '双击图表全屏查看';
+
+  @override
+  String get mermaidSaveAsHint => '保存图表为 PNG';
 }

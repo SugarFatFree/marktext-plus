@@ -180,7 +180,13 @@
   "copyFilePath": "Copiar caminho do arquivo",
   "deleteFile": "Excluir arquivo",
   "confirmDeleteFile": "Tem certeza de que deseja excluir \"{fileName}\"?",
-  "@confirmDeleteFile": { "placeholders": { "fileName": { "type": "String" } } },
+  "@confirmDeleteFile": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
   "newFolder": "Nova pasta",
   "rename": "Renomear",
   "delete": "Excluir",
@@ -205,9 +211,21 @@
   "settingsTextDirectionLtr": "Esquerda para direita",
   "settingsTextDirectionRtl": "Direita para esquerda",
   "commandFormatLabel": "Formatar: {action}",
-  "@commandFormatLabel": { "placeholders": { "action": { "type": "String" } } },
+  "@commandFormatLabel": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
   "commandFormatDesc": "Aplicar formatação {action}",
-  "@commandFormatDesc": { "placeholders": { "action": { "type": "String" } } },
+  "@commandFormatDesc": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
   "commandNewFile": "Novo arquivo",
   "commandNewFileDesc": "Criar um novo arquivo sem título",
   "commandSave": "Salvar",
@@ -226,8 +244,12 @@
   "commandToggleSidebarDesc": "Mostrar ou ocultar a barra lateral",
   "commandToggleTabBar": "Alternar barra de abas",
   "commandToggleTabBarDesc": "Mostrar ou ocultar a barra de abas",
-
   "welcomeNewFile": "Novo arquivo",
   "welcomeOpenFile": "Abrir arquivo",
-  "welcomeDragHint": "Arraste arquivos para cá para abrir"
+  "welcomeDragHint": "Arraste arquivos para cá para abrir",
+  "mermaidFullscreen": "Tela cheia",
+  "mermaidSaveAs": "Salvar como",
+  "mermaidCopySource": "Copiar código-fonte",
+  "mermaidFullscreenHint": "Toque duas vezes no diagrama para ver em tela cheia",
+  "mermaidSaveAsHint": "Salvar o diagrama como PNG"
 }

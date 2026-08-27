@@ -743,4 +743,19 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get updateDismiss => 'Dismiss';
+
+  @override
+  String get mermaidFullscreen => 'Plein écran';
+
+  @override
+  String get mermaidSaveAs => 'Enregistrer sous';
+
+  @override
+  String get mermaidCopySource => 'Copier la source';
+
+  @override
+  String get mermaidFullscreenHint => "Double-cliquez sur le diagramme pour l'afficher en plein écran";
+
+  @override
+  String get mermaidSaveAsHint => 'Enregistrer le diagramme au format PNG';
 }

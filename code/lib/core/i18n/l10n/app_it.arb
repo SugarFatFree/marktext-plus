@@ -180,7 +180,13 @@
   "copyFilePath": "Copia percorso file",
   "deleteFile": "Elimina file",
   "confirmDeleteFile": "Sei sicuro di voler eliminare \"{fileName}\"?",
-  "@confirmDeleteFile": { "placeholders": { "fileName": { "type": "String" } } },
+  "@confirmDeleteFile": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
   "newFolder": "Nuova cartella",
   "rename": "Rinomina",
   "delete": "Elimina",
@@ -205,9 +211,21 @@
   "settingsTextDirectionLtr": "Da sinistra a destra",
   "settingsTextDirectionRtl": "Da destra a sinistra",
   "commandFormatLabel": "Formato: {action}",
-  "@commandFormatLabel": { "placeholders": { "action": { "type": "String" } } },
+  "@commandFormatLabel": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
   "commandFormatDesc": "Applica formattazione {action}",
-  "@commandFormatDesc": { "placeholders": { "action": { "type": "String" } } },
+  "@commandFormatDesc": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
   "commandNewFile": "Nuovo file",
   "commandNewFileDesc": "Crea un nuovo file senza titolo",
   "commandSave": "Salva",
@@ -226,8 +244,12 @@
   "commandToggleSidebarDesc": "Mostra o nascondi la barra laterale",
   "commandToggleTabBar": "Attiva/disattiva barra schede",
   "commandToggleTabBarDesc": "Mostra o nascondi la barra delle schede",
-
   "welcomeNewFile": "Nuovo file",
   "welcomeOpenFile": "Apri file",
-  "welcomeDragHint": "Trascina i file qui per aprirli"
+  "welcomeDragHint": "Trascina i file qui per aprirli",
+  "mermaidFullscreen": "Schermo intero",
+  "mermaidSaveAs": "Salva con nome",
+  "mermaidCopySource": "Copia sorgente",
+  "mermaidFullscreenHint": "Tocca due volte il diagramma per visualizzarlo a schermo intero",
+  "mermaidSaveAsHint": "Salva il diagramma come PNG"
 }

@@ -180,7 +180,13 @@
   "copyFilePath": "ファイルパスをコピー",
   "deleteFile": "ファイルを削除",
   "confirmDeleteFile": "\"{fileName}\" を削除してもよろしいですか？",
-  "@confirmDeleteFile": { "placeholders": { "fileName": { "type": "String" } } },
+  "@confirmDeleteFile": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
   "newFolder": "新しいフォルダ",
   "rename": "名前を変更",
   "delete": "削除",
@@ -205,9 +211,21 @@
   "settingsTextDirectionLtr": "左から右",
   "settingsTextDirectionRtl": "右から左",
   "commandFormatLabel": "書式：{action}",
-  "@commandFormatLabel": { "placeholders": { "action": { "type": "String" } } },
+  "@commandFormatLabel": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
   "commandFormatDesc": "{action}書式を適用",
-  "@commandFormatDesc": { "placeholders": { "action": { "type": "String" } } },
+  "@commandFormatDesc": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
   "commandNewFile": "新規ファイル",
   "commandNewFileDesc": "新しい無題ファイルを作成",
   "commandSave": "保存",
@@ -226,8 +244,12 @@
   "commandToggleSidebarDesc": "サイドバーの表示/非表示を切り替え",
   "commandToggleTabBar": "タブバー切替",
   "commandToggleTabBarDesc": "タブバーの表示/非表示を切り替え",
-
   "welcomeNewFile": "新規ファイル",
   "welcomeOpenFile": "ファイルを開く",
-  "welcomeDragHint": "ファイルをここにドロップして開く"
+  "welcomeDragHint": "ファイルをここにドロップして開く",
+  "mermaidFullscreen": "全画面",
+  "mermaidSaveAs": "名前を付けて保存",
+  "mermaidCopySource": "ソースをコピー",
+  "mermaidFullscreenHint": "図をダブルタップで全画面表示",
+  "mermaidSaveAsHint": "図を PNG として保存"
 }

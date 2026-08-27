@@ -740,4 +740,19 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get updateDismiss => 'Dismiss';
+
+  @override
+  String get mermaidFullscreen => 'Полноэкранный режим';
+
+  @override
+  String get mermaidSaveAs => 'Сохранить как';
+
+  @override
+  String get mermaidCopySource => 'Копировать исходный код';
+
+  @override
+  String get mermaidFullscreenHint => 'Дважды нажмите на диаграмму для полноэкранного просмотра';
+
+  @override
+  String get mermaidSaveAsHint => 'Сохранить диаграмму в формате PNG';
 }

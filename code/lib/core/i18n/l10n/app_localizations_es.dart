@@ -742,4 +742,19 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get updateDismiss => 'Dismiss';
+
+  @override
+  String get mermaidFullscreen => 'Pantalla completa';
+
+  @override
+  String get mermaidSaveAs => 'Guardar como';
+
+  @override
+  String get mermaidCopySource => 'Copiar código fuente';
+
+  @override
+  String get mermaidFullscreenHint => 'Toca dos veces el diagrama para verlo en pantalla completa';
+
+  @override
+  String get mermaidSaveAsHint => 'Guardar el diagrama como PNG';
 }

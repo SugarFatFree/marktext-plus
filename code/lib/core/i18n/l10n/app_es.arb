@@ -180,7 +180,13 @@
   "copyFilePath": "Copiar ruta de archivo",
   "deleteFile": "Eliminar archivo",
   "confirmDeleteFile": "¿Está seguro de que desea eliminar \"{fileName}\"?",
-  "@confirmDeleteFile": { "placeholders": { "fileName": { "type": "String" } } },
+  "@confirmDeleteFile": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
   "newFolder": "Nueva carpeta",
   "rename": "Renombrar",
   "delete": "Eliminar",
@@ -205,9 +211,21 @@
   "settingsTextDirectionLtr": "Izquierda a derecha",
   "settingsTextDirectionRtl": "Derecha a izquierda",
   "commandFormatLabel": "Formato: {action}",
-  "@commandFormatLabel": { "placeholders": { "action": { "type": "String" } } },
+  "@commandFormatLabel": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
   "commandFormatDesc": "Aplicar formato {action}",
-  "@commandFormatDesc": { "placeholders": { "action": { "type": "String" } } },
+  "@commandFormatDesc": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
   "commandNewFile": "Nuevo archivo",
   "commandNewFileDesc": "Crear un nuevo archivo sin título",
   "commandSave": "Guardar",
@@ -226,8 +244,12 @@
   "commandToggleSidebarDesc": "Mostrar u ocultar la barra lateral",
   "commandToggleTabBar": "Alternar barra de pestañas",
   "commandToggleTabBarDesc": "Mostrar u ocultar la barra de pestañas",
-
   "welcomeNewFile": "Nuevo archivo",
   "welcomeOpenFile": "Abrir archivo",
-  "welcomeDragHint": "Arrastra archivos aquí para abrirlos"
+  "welcomeDragHint": "Arrastra archivos aquí para abrirlos",
+  "mermaidFullscreen": "Pantalla completa",
+  "mermaidSaveAs": "Guardar como",
+  "mermaidCopySource": "Copiar código fuente",
+  "mermaidFullscreenHint": "Toca dos veces el diagrama para verlo en pantalla completa",
+  "mermaidSaveAsHint": "Guardar el diagrama como PNG"
 }

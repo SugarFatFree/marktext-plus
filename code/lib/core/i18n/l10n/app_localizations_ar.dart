@@ -738,4 +738,19 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get updateDismiss => 'Dismiss';
+
+  @override
+  String get mermaidFullscreen => 'ملء الشاشة';
+
+  @override
+  String get mermaidSaveAs => 'حفظ باسم';
+
+  @override
+  String get mermaidCopySource => 'نسخ المصدر';
+
+  @override
+  String get mermaidFullscreenHint => 'انقر نقرًا مزدوجًا على الرسم التخطيطي لعرضه بملء الشاشة';
+
+  @override
+  String get mermaidSaveAsHint => 'حفظ الرسم التخطيطي بصيغة PNG';
 }

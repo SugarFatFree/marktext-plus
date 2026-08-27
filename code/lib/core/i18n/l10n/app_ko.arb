@@ -180,7 +180,13 @@
   "copyFilePath": "파일 경로 복사",
   "deleteFile": "파일 삭제",
   "confirmDeleteFile": "\"{fileName}\"을(를) 삭제하시겠습니까?",
-  "@confirmDeleteFile": { "placeholders": { "fileName": { "type": "String" } } },
+  "@confirmDeleteFile": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
   "newFolder": "새 폴더",
   "rename": "이름 변경",
   "delete": "삭제",
@@ -205,9 +211,21 @@
   "settingsTextDirectionLtr": "왼쪽에서 오른쪽",
   "settingsTextDirectionRtl": "오른쪽에서 왼쪽",
   "commandFormatLabel": "서식: {action}",
-  "@commandFormatLabel": { "placeholders": { "action": { "type": "String" } } },
+  "@commandFormatLabel": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
   "commandFormatDesc": "{action} 서식 적용",
-  "@commandFormatDesc": { "placeholders": { "action": { "type": "String" } } },
+  "@commandFormatDesc": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
   "commandNewFile": "새 파일",
   "commandNewFileDesc": "새 제목 없는 파일 만들기",
   "commandSave": "저장",
@@ -226,8 +244,12 @@
   "commandToggleSidebarDesc": "사이드바 표시/숨기기",
   "commandToggleTabBar": "탭 바 전환",
   "commandToggleTabBarDesc": "탭 바 표시/숨기기",
-
   "welcomeNewFile": "새 파일",
   "welcomeOpenFile": "파일 열기",
-  "welcomeDragHint": "파일을 여기에 드롭하여 열기"
+  "welcomeDragHint": "파일을 여기에 드롭하여 열기",
+  "mermaidFullscreen": "전체 화면",
+  "mermaidSaveAs": "다른 이름으로 저장",
+  "mermaidCopySource": "소스 복사",
+  "mermaidFullscreenHint": "다이어그램을 두 번 탭하면 전체 화면으로 표시됩니다",
+  "mermaidSaveAsHint": "다이어그램을 PNG로 저장"
 }
