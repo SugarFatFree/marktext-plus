@@ -40,6 +40,8 @@
 | BUG-036 | 2026-08-28 | 保存后 300 毫秒内的外部改动会被静默丢弃 | **P1** | 已修复 |
 | BUG-037 | 2026-08-28 | 打开小文件也要先起一个 isolate，白等一次快照加载 | P2 | 已修复 |
 | BUG-038 | 2026-08-28 | 正则「全部替换」会改动界面从未显示为匹配的位置，毁坏文字 | **P0** | 已修复 |
+| BUG-039 | 2026-08-28 | 关闭窗口后进程卡住不退（目录监视线程未停） | P1 | 已修复 |
+| BUG-040 | 2026-08-28 | 菜单「退出」直接杀进程，未保存的修改全部丢失 | **P0** | 已修复 |
 
 ## 详细记录
 
@@ -748,5 +750,39 @@
 | 涉及文件 | `lib/ui/widgets/find_replace_bar.dart`、`test/ui/widgets/find_replace_bar_test.dart` |
 | 验证方式 | 7 种模式在两条路径上逐一对拍（先证实差异存在，再证实修复后一致）；本机 `dart analyze --fatal-infos lib test` 通过；本机 `flutter test` 该文件 13 条全过；新增 4 组测试 |
 | 本地分析又当场抓到一处 | 抽出静态方法后，State 里的调用漏了类名限定 —— 与今天早些时候松散列表那次是同一个坑。本地 27 秒发现，没赔 CI |
+
+---
+
+### BUG-039 关闭窗口后进程卡住不退（目录监视线程未停）
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-28 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+| 怎么发现的 | 用户反馈「关闭窗口还会卡一段时间才关」。加了启动/关闭埋点后拿到日志 |
+| 日志给出的定位 | `close requested` → `window geometry saved`（+47 ms）→ `window destroyed`（+9 ms）。**Dart 侧关闭处理总共只有 56 ms**，卡顿发生在 `destroy()` 之后的原生退出阶段 |
+| 关键线索是「缺了什么」 | 日志里**没有** `tab notifier dispose begins`。也就是说 Riverpod 在窗口销毁时根本不会拆卸 provider —— 进程直接结束。于是目录监视一直活到退出，Windows 上 `ReadDirectoryChangesW` 的监视线程在 VM 关闭时才被拆，把退出拖住 |
+| 修复方案 | 新增 `TabNotifier.stopWatchingFiles()`，在 `windowManager.destroy()` **之前**显式调用：取消磁盘事件订阅、dispose 监视器、取消所有自动保存定时器 |
+| 涉及文件 | `lib/providers/tab_provider.dart`、`lib/ui/screens/home_screen.dart` |
+| 验证方式 | 本机 `dart analyze --fatal-infos lib test` 通过。**最终确认要看用户在 Windows 上的复现**：修复后日志应出现 `stopping file watches` / `file watches stopped` 两行，且关窗后进程立即退出 |
+
+---
+
+### BUG-040 菜单「退出」直接杀进程，未保存的修改全部丢失
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-28 |
+| 优先级 | **P0**（直接丢失用户尚未保存的工作） |
+| 状态 | 已修复 |
+| 怎么发现的 | 修 BUG-039 时顺手核对「所有退出路径是否都停了监视」，`grep` 出四处，其中一处是 `exit(0)` |
+| 现象 | 点标题栏的 ✕ 会弹出「有未保存的修改」并让人选择；点**文件 ▸ 退出**则是 `exit(0)`，进程当场结束 —— 不提示、不保存、修改全丢 |
+| 连带丢失的还有 | 窗口几何（大小/位置/最大化状态）不会被记录，下次启动回到默认；BUG-039 新加的停监视也被绕过 |
+| 根因分析 | 两条退出路径各写各的。`onWindowClose` 那条做了完整的收尾，菜单那条只有一句 `exit(0)` |
+| 修复方案 | 菜单改为 `windowManager.close()`。窗口已经设了 `setPreventClose(true)`，所以这一句会走到与 ✕ **同一个** `onWindowClose` 处理器 |
+| 与本会话主线的关系 | 又一次「同一件事有两条路径，其中一条没跟上」 |
+| 涉及文件 | `lib/ui/widgets/app_menu_bar.dart` |
+| 验证方式 | 本机 `dart analyze --fatal-infos lib` 通过；确认 `dart:io` 仍有 21 处使用，不会变成多余导入 |
 
 ---

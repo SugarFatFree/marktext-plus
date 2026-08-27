@@ -311,8 +311,13 @@ class AppMenuBar extends ConsumerWidget {
         ),
         const Divider(height: 1),
         MenuItemButton(
+          // `close`, not `exit(0)`: the window is set to prevent closing, so
+          // this reaches the same handler the title bar's close button does —
+          // which asks about unsaved work and records the window geometry.
+          // Quitting from the menu used to end the process outright, losing
+          // every modified tab without a word.
           child: Text(l10n.fileQuit),
-          onPressed: () => exit(0),
+          onPressed: () => windowManager.close(),
         ),
       ],
       child: Text(l10n.menuFile, style: const TextStyle(fontSize: 13)),

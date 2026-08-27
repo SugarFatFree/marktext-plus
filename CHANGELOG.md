@@ -57,6 +57,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The same kind of line no longer freezes the preview either: parsing 60,000 unmatched brackets went from 51 seconds to 55 milliseconds
 - A long line inside a `pie` or `erDiagram` block no longer freezes the preview for fourteen and twenty-seven seconds respectively
 - A whole-word search over a large document is twenty times faster
+- Quitting from the File menu asks about unsaved work and records the window's geometry, as closing from the title bar already did; it used to end the process outright
+- Closing the window no longer leaves the process lingering: the directory watches are stopped before it goes
 - Replace-all with a regular expression writes only the matches it counted and highlighted; a pattern that can match nothing — `x*`, `.*` — used to rewrite the document at every position
 - Opening a document no longer starts an isolate to read it unless it is over half a megabyte; the first one in a process has to load the app snapshot, and that was happening while the user waited for their file
 - The buttons on a diagram's toolbar answer immediately, where each used to sit dead for a third of a second
