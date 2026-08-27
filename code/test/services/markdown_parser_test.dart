@@ -2,6 +2,63 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/services/markdown_parser.dart';
 
 void main() {
+  group('Tables', () {
+    final parser = MarkdownParser();
+
+    TableNode? tableOf(String source) =>
+        parser.parse(source).whereType<TableNode>().firstOrNull;
+
+    test('the outer pipes are optional', () {
+      // GFM makes them optional; requiring them turned the table into a
+      // paragraph.
+      final table = tableOf('a | b\n--- | ---\n1 | 2')!;
+
+      expect(table.headers, ['a', 'b']);
+      expect(table.rows, [
+        ['1', '2']
+      ]);
+    });
+
+    test('an escaped pipe stays inside its cell', () {
+      // The only way to put a pipe in a cell. Splitting on it broke the cell
+      // in two and left the backslash behind.
+      final table = tableOf(r'| a \| b | c |' '\n|---|---|\n| x | y |')!;
+
+      expect(table.headers, ['a | b', 'c']);
+    });
+
+    test('rows are padded and truncated to the header width', () {
+      expect(
+        tableOf('| a | b |\n|---|---|\n| 1 |')!.rows,
+        [
+          ['1', '']
+        ],
+      );
+      expect(
+        tableOf('| a | b |\n|---|---|\n| 1 | 2 | 3 |')!.rows,
+        [
+          ['1', '2']
+        ],
+      );
+    });
+
+    test('the dashes row must have as many cells as the header', () {
+      // Otherwise, with the outer pipes optional, a line of prose containing
+      // a pipe followed by a horizontal rule reads as a one-column table.
+      expect(tableOf('a | b\n---\nmore'), isNull);
+      expect(tableOf('| a | b | c |\n|---|---|\n| 1 | 2 | 3 |'), isNull);
+    });
+
+    test('alignment markers are read', () {
+      final table = tableOf('| a | b | c |\n|:--|:-:|--:|\n| 1 | 2 | 3 |')!;
+      expect(table.alignments, ['left', 'center', 'right']);
+    });
+
+    test('a line of prose with a pipe is not a table', () {
+      expect(tableOf('see a | b in prose'), isNull);
+    });
+  });
+
   group('Hard line breaks', () {
     final parser = MarkdownParser();
 

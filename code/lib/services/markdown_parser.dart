@@ -339,8 +339,12 @@ class MarkdownParser {
   /// number, and the editor's own prefix handling already accepted both — only
   /// the parser did not, so `1) one` rendered as an ordinary paragraph.
   static final _olRe = RegExp(r'^[\s]*\d+[.)]\s+(.+)$');
-  static final _tableRowRe = RegExp(r'^\|(.+)\|$');
-  static final _tableSepRe = RegExp(r'^\|[\s:|-]+\|$');
+  /// A table row. GFM makes the outer pipes optional, so `a | b` is a row;
+  /// requiring them turned such a table into an ordinary paragraph.
+  static final _tableRowRe = RegExp(r'^\s*\|?.*\|.*\|?\s*$');
+
+  /// The row of dashes under the header.
+  static final _tableSepRe = RegExp(r'^\s*\|?[\s:|-]+\|?\s*$');
   static final _frontMatterRe = RegExp(r'^---\s*$');
   static final _footnoteDefRe = RegExp(r'^\[\^([^\]]+)\]:\s*(.+)$');
   /// An HTML element opening a block.
@@ -767,14 +771,28 @@ class MarkdownParser {
       // Table (GFM)
       if (_tableRowRe.hasMatch(line) &&
           i + 1 < lines.length &&
-          _tableSepRe.hasMatch(lines[i + 1])) {
+          _tableSepRe.hasMatch(lines[i + 1]) &&
+          // GFM requires the dashes row to have as many cells as the header.
+          // Without this, now that the outer pipes are optional, a line of
+          // prose containing a pipe followed by a horizontal rule became a
+          // one-column table.
+          _parseCells(lines[i + 1]).length == _parseCells(line).length) {
         final headers = _parseCells(line);
         final sepLine = lines[i + 1];
         final alignments = _parseAlignments(sepLine);
         final rows = <List<String>>[];
         i += 2;
         while (i < lines.length && _tableRowRe.hasMatch(lines[i])) {
-          rows.add(_parseCells(lines[i]));
+          // GFM pads a short row and drops the extra cells of a long one, so
+          // every row has as many cells as the header has columns.
+          final cells = _parseCells(lines[i]);
+          if (cells.length < headers.length) {
+            cells.addAll(
+                List.filled(headers.length - cells.length, ''));
+          } else if (cells.length > headers.length) {
+            cells.removeRange(headers.length, cells.length);
+          }
+          rows.add(cells);
           i++;
         }
         nodes.add(_withSpan(
@@ -1187,12 +1205,36 @@ class MarkdownParser {
 
   // -- Helpers --
 
+  /// Splits a table row into cells.
+  ///
+  /// A pipe may be escaped with a backslash, which is the only way to put one
+  /// in a cell. Splitting on every pipe broke the cell in two and left the
+  /// backslash behind.
   List<String> _parseCells(String line) {
-    return line
-        .replaceAll(RegExp(r'^\||\|$'), '')
-        .split('|')
-        .map((c) => c.trim())
-        .toList();
+    var text = line.trim();
+    if (text.startsWith('|')) text = text.substring(1);
+    if (text.endsWith('|') && !text.endsWith(r'\|')) {
+      text = text.substring(0, text.length - 1);
+    }
+
+    final cells = <String>[];
+    final cell = StringBuffer();
+    for (var i = 0; i < text.length; i++) {
+      final char = text[i];
+      if (char == r'\' && i + 1 < text.length && text[i + 1] == '|') {
+        cell.write('|');
+        i++;
+        continue;
+      }
+      if (char == '|') {
+        cells.add(cell.toString().trim());
+        cell.clear();
+        continue;
+      }
+      cell.write(char);
+    }
+    cells.add(cell.toString().trim());
+    return cells;
   }
 
   List<String> _parseAlignments(String line) {
