@@ -2,6 +2,41 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/services/markdown_parser.dart';
 
 void main() {
+  group('Hard line breaks', () {
+    final parser = MarkdownParser();
+
+    String contentOf(String source) =>
+        (parser.parse(source).single as ParagraphNode).content;
+
+    test('trailing spaces do not survive into the text', () {
+      // Every newline already breaks the line here, so the marker is not
+      // needed — and it travelled into the copied text and every export.
+      expect(contentOf('line one  \nline two'), 'line one\nline two');
+    });
+
+    test('a trailing backslash does not survive into the text', () {
+      // This one was visible: a stray backslash at the end of the line.
+      expect(contentOf('line one\\\nline two'), 'line one\nline two');
+    });
+
+    test('a plain newline is unchanged', () {
+      expect(contentOf('line one\nline two'), 'line one\nline two');
+    });
+
+    test('the last line keeps its trailing characters', () {
+      // Nothing follows it, so there is no break being asked for.
+      expect(contentOf('line one\nline two  '), 'line one\nline two  ');
+    });
+
+    test('the source keeps the markers, so editing round-trips', () {
+      // Block editing reads the source through sourceOfBlock, not the parsed
+      // content, so what the user typed is what they get back.
+      const source = 'line one  \nline two';
+      final node = parser.parse(source).single;
+      expect(MarkdownParser.sourceOfBlock(source, node), source);
+    });
+  });
+
   group('Code spans', () {
     final parser = MarkdownParser();
 

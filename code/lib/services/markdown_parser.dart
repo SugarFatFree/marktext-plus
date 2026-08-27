@@ -301,6 +301,22 @@ class MarkdownParser {
     }
     return headings;
   }
+  /// Removes the markers that force a line break inside a paragraph.
+  ///
+  /// Two trailing spaces, or a trailing backslash, ask for a break — which
+  /// this parser gives every newline anyway. Left in place the backslash
+  /// showed up as a stray character at the end of the line, and the spaces
+  /// travelled into every export.
+  static List<String> _stripHardBreakMarkers(List<String> lines) {
+    return [
+      for (var i = 0; i < lines.length; i++)
+        // The last line ends the paragraph, so nothing there is a break.
+        i == lines.length - 1
+            ? lines[i]
+            : lines[i].replaceFirst(RegExp(r'(\s{2,}|\\)$'), ''),
+    ];
+  }
+
   /// Whether [line] closes a block opened by [fence].
   ///
   /// The closing fence must use the same character and be at least as long,
@@ -858,7 +874,7 @@ class MarkdownParser {
         i++;
       }
       if (paraLines.isNotEmpty) {
-        final content = paraLines.join('\n');
+        final content = _stripHardBreakMarkers(paraLines).join('\n');
         nodes.add(_withSpan(
           ParagraphNode(
             content: content,
