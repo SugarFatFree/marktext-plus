@@ -2,6 +2,43 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/services/markdown_parser.dart';
 
 void main() {
+  group('List syntax the editor already accepted', () {
+    final parser = MarkdownParser();
+
+    test('a task written with a capital X is a task', () {
+      // GFM treats [x] and [X] alike, and the editor's prefix handling
+      // accepted both — only the parser did not, so `- [X] done` rendered as
+      // a bullet with the brackets showing.
+      final list = parser.parse('- [X] done\n- [x] also\n- [ ] not yet').single
+          as ListNode;
+
+      expect(list.items, hasLength(3));
+      expect(list.items[0].isTask, isTrue);
+      expect(list.items[0].isChecked, isTrue);
+      expect(list.items[0].content, 'done');
+      expect(list.items[1].isChecked, isTrue);
+      expect(list.items[2].isTask, isTrue);
+      expect(list.items[2].isChecked, isFalse);
+    });
+
+    test('a bracket that is not a task marker stays text', () {
+      final list = parser.parse('- [y] nope').single as ListNode;
+      expect(list.items.single.isTask, isFalse);
+    });
+
+    test('an ordered list may use ) as well as .', () {
+      // CommonMark allows both; the editor's prefix handling already did.
+      final list = parser.parse('1) one\n2) two').single as ListNode;
+
+      expect(list.ordered, isTrue);
+      expect(list.items.map((i) => i.content).toList(), ['one', 'two']);
+    });
+
+    test('a number without a space is not a list', () {
+      expect(parser.parse('1.no space').single, isA<ParagraphNode>());
+    });
+  });
+
   group('MarkdownParser.headingOutline', () {
     test('reports level, text and 1-based line', () {
       final outline = MarkdownParser.headingOutline('# One\n\n## Two\n');

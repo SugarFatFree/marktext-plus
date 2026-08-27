@@ -294,10 +294,16 @@ class MarkdownParser {
     return headings;
   }
   static final _mathBlockRe = RegExp(r'^\$\$\s*$');
-  static final _taskRe = RegExp(r'^\[( |x)\]\s+(.+)$');
+  /// A task marker. GFM treats `[x]` and `[X]` alike, and the editor's own
+  /// prefix handling already accepted both — only the parser did not, so a
+  /// list written with `[X]` rendered as a bullet with the brackets showing.
+  static final _taskRe = RegExp(r'^\[([ xX])\]\s+(.+)$');
   static final _blockquoteRe = RegExp(r'^(>+)\s?(.*)$');
   static final _ulRe = RegExp(r'^[\s]*[-*+]\s+(.+)$');
-  static final _olRe = RegExp(r'^[\s]*\d+\.\s+(.+)$');
+  /// An ordered list item. CommonMark allows `)` as well as `.` after the
+  /// number, and the editor's own prefix handling already accepted both — only
+  /// the parser did not, so `1) one` rendered as an ordinary paragraph.
+  static final _olRe = RegExp(r'^[\s]*\d+[.)]\s+(.+)$');
   static final _tableRowRe = RegExp(r'^\|(.+)\|$');
   static final _tableSepRe = RegExp(r'^\|[\s:|-]+\|$');
   static final _frontMatterRe = RegExp(r'^---\s*$');
@@ -443,7 +449,7 @@ class MarkdownParser {
           content: taskContent,
           inlineSpans: parseInline(taskContent),
           isTask: true,
-          isChecked: taskMatch.group(1) == 'x',
+          isChecked: taskMatch.group(1)!.toLowerCase() == 'x',
           depth: depth,
         );
       }
