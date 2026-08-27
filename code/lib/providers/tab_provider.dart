@@ -151,6 +151,25 @@ class TabNotifier extends StateNotifier<TabState> {
         .updateConfig((c) => c.copyWith(sideBarOpenedFiles: paths));
   }
 
+  /// Stops watching the filesystem, before the process starts shutting down.
+  ///
+  /// `dispose` never runs on the way out — the window is destroyed and the
+  /// process ends without Riverpod tearing anything down, which the startup
+  /// trace showed by the absence of its marks. That left the directory watches
+  /// live at exit, and on Windows a `ReadDirectoryChangesW` thread holds the
+  /// VM back while it is unwound: the window vanished and the process lingered.
+  void stopWatchingFiles() {
+    StartupTrace.mark('stopping file watches');
+    _diskSubscription?.cancel();
+    _diskSubscription = null;
+    _diskWatcher.dispose();
+    for (final timer in _autoSaveTimers.values) {
+      timer.cancel();
+    }
+    _autoSaveTimers.clear();
+    StartupTrace.mark('file watches stopped');
+  }
+
   @override
   void dispose() {
     StartupTrace.mark('tab notifier dispose begins');
