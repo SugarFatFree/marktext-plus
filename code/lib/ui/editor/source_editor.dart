@@ -1,8 +1,10 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:desktop_drop/desktop_drop.dart';
+
 import '../../core/theme/app_theme.dart';
 import '../../providers/editor_provider.dart';
 import '../../providers/settings_provider.dart';
@@ -42,8 +44,9 @@ class SourceEditor extends ConsumerStatefulWidget {
   ConsumerState<SourceEditor> createState() => _SourceEditorState();
 
   /// Any list marker, ordered or not, with an optional task box.
-  static final _listPrefixRe =
-      RegExp(r'^(\s*)(?:[-*+]\s+(?:\[[ xX]\]\s+)?|\d+[.)]\s+)');
+  static final _listPrefixRe = RegExp(
+    r'^(\s*)(?:[-*+]\s+(?:\[[ xX]\]\s+)?|\d+[.)]\s+)',
+  );
 
   /// A blockquote marker.
   static final _quotePrefixRe = RegExp(r'^(\s*)>\s?');
@@ -77,8 +80,10 @@ class SourceEditor extends ConsumerStatefulWidget {
         selected.length >= before.length + after.length &&
         selected.startsWith(before) &&
         selected.endsWith(after)) {
-      final inner =
-          selected.substring(before.length, selected.length - after.length);
+      final inner = selected.substring(
+        before.length,
+        selected.length - after.length,
+      );
       return (
         text: text.substring(0, start) + inner + text.substring(end),
         start: start,
@@ -88,15 +93,18 @@ class SourceEditor extends ConsumerStatefulWidget {
 
     // The markers may sit just outside the selection, which is what happens
     // when the user selects the words rather than the syntax.
-    final hasBefore = start >= before.length &&
+    final hasBefore =
+        start >= before.length &&
         text.substring(start - before.length, start) == before;
-    final hasAfter = end + after.length <= text.length &&
+    final hasAfter =
+        end + after.length <= text.length &&
         text.substring(end, end + after.length) == after;
 
     if (hasBefore && hasAfter) {
       final newStart = start - before.length;
       return (
-        text: text.substring(0, newStart) +
+        text:
+            text.substring(0, newStart) +
             selected +
             text.substring(end + after.length),
         start: newStart,
@@ -114,8 +122,9 @@ class SourceEditor extends ConsumerStatefulWidget {
 
   @visibleForTesting
   static String applyLinePrefix(String line, String prefix) {
-    final family =
-        prefix.trimLeft().startsWith('>') ? _quotePrefixRe : _listPrefixRe;
+    final family = prefix.trimLeft().startsWith('>')
+        ? _quotePrefixRe
+        : _listPrefixRe;
 
     final indent = RegExp(r'^\s*').firstMatch(line)!.group(0)!;
     final body = line.substring(indent.length);
@@ -142,6 +151,14 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
   Timer? _debounce;
   bool _isSyncingScroll = false;
   bool _isInitialized = false;
+
+  /// Held from [initState] so [dispose] can still reach it.
+  ///
+  /// `ref` is off limits by the time dispose runs — riverpod marks the element
+  /// disposed before the framework calls it — and reaching for it there threw
+  /// a StateError that the framework swallowed, which meant the handback below
+  /// never happened at all.
+  late final EditorNotifier _editorNotifier;
 
   static const _autoPairs = <String, String>{
     '(': ')',
@@ -175,6 +192,7 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
   @override
   void initState() {
     super.initState();
+    _editorNotifier = ref.read(editorProvider.notifier);
     _controller = HighlightingController(
       text: widget.initialContent,
       headingColor: Colors.orange,
@@ -192,7 +210,9 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     // Register controller with editor provider and push initial history
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(editorProvider.notifier).setController(_controller);
-      ref.read(editorProvider.notifier).setEditorScrollController(_editorScrollController);
+      ref
+          .read(editorProvider.notifier)
+          .setEditorScrollController(_editorScrollController);
       ref.read(editorProvider.notifier)
         ..setHistoryTab(widget.tabId)
         ..pushHistory(widget.initialContent);
@@ -247,9 +267,8 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     // Hand the registration back before disposing, or the provider keeps
     // pointing at a dead controller — which the find bar reads as "a source
     // editor is on screen".
-    final notifier = ref.read(editorProvider.notifier);
-    notifier.clearController(_controller);
-    notifier.clearEditorScrollController(_editorScrollController);
+    _editorNotifier.clearController(_controller);
+    _editorNotifier.clearEditorScrollController(_editorScrollController);
 
     _controller.dispose();
     _editorScrollController.dispose();
@@ -285,7 +304,9 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     } else {
       final start = selection.start.clamp(0, text.length);
       final end = selection.end.clamp(0, text.length);
-      ref.read(editorProvider.notifier).updateSelection(text.substring(start, end));
+      ref
+          .read(editorProvider.notifier)
+          .updateSelection(text.substring(start, end));
     }
 
     _scrollToTypewriterPosition(line);
@@ -298,7 +319,8 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
 
     final lineHeight = config.fontSize * config.lineHeight;
     final viewportHeight = _editorScrollController.position.viewportDimension;
-    final targetOffset = (line * lineHeight) - (viewportHeight / 2) + (lineHeight / 2);
+    final targetOffset =
+        (line * lineHeight) - (viewportHeight / 2) + (lineHeight / 2);
     final clampedOffset = targetOffset.clamp(
       0.0,
       _editorScrollController.position.maxScrollExtent,
@@ -332,8 +354,10 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
   /// Flutter, Ctrl+Z would drive the TextField's private history instead and
   /// the two would disagree.
   bool _handleBoundShortcut(KeyEvent event) {
-    final action = KeybindingService()
-        .actionForEvent(event, isMacOS: PlatformUtils.isMacOS);
+    final action = KeybindingService().actionForEvent(
+      event,
+      isMacOS: PlatformUtils.isMacOS,
+    );
     if (action == null) return false;
 
     final editor = ref.read(editorProvider.notifier);
@@ -441,7 +465,8 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
       // Insert pair and place cursor in the middle
       final offset = selection.baseOffset;
       _controller.value = TextEditingValue(
-        text: text.substring(0, offset) + char + closing + text.substring(offset),
+        text:
+            text.substring(0, offset) + char + closing + text.substring(offset),
         selection: TextSelection.collapsed(offset: offset + char.length),
       );
     } else {
@@ -450,7 +475,12 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
       final end = selection.end;
       final selected = text.substring(start, end);
       _controller.value = TextEditingValue(
-        text: text.substring(0, start) + char + selected + closing + text.substring(end),
+        text:
+            text.substring(0, start) +
+            char +
+            selected +
+            closing +
+            text.substring(end),
         selection: TextSelection(
           baseOffset: start + char.length,
           extentOffset: start + char.length + selected.length,
@@ -563,7 +593,9 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
       case FormatAction.unorderedList:
         // The configured marker, which nothing was reading: choosing * or +
         // in settings still produced a dash.
-        _applyLinePrefixAtCursor('${ref.read(settingsProvider).bulletListMarker} ');
+        _applyLinePrefixAtCursor(
+          '${ref.read(settingsProvider).bulletListMarker} ',
+        );
       case FormatAction.taskList:
         _applyLinePrefixAtCursor('- [ ] ');
       case FormatAction.quoteBlock:
@@ -584,13 +616,19 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
           const insert = '[text](url)';
           _controller.value = TextEditingValue(
             text: text.substring(0, offset) + insert + text.substring(offset),
-            selection: TextSelection(baseOffset: offset + 1, extentOffset: offset + 5),
+            selection: TextSelection(
+              baseOffset: offset + 1,
+              extentOffset: offset + 5,
+            ),
           );
         } else {
           final selected = text.substring(selection.start, selection.end);
           final replacement = '[$selected](url)';
           _controller.value = TextEditingValue(
-            text: text.substring(0, selection.start) + replacement + text.substring(selection.end),
+            text:
+                text.substring(0, selection.start) +
+                replacement +
+                text.substring(selection.end),
             selection: TextSelection(
               baseOffset: selection.start + selected.length + 3,
               extentOffset: selection.start + selected.length + 6,
@@ -603,13 +641,19 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
           const insert = '![alt](url)';
           _controller.value = TextEditingValue(
             text: text.substring(0, offset) + insert + text.substring(offset),
-            selection: TextSelection(baseOffset: offset + 2, extentOffset: offset + 5),
+            selection: TextSelection(
+              baseOffset: offset + 2,
+              extentOffset: offset + 5,
+            ),
           );
         } else {
           final selected = text.substring(selection.start, selection.end);
           final replacement = '![$selected](url)';
           _controller.value = TextEditingValue(
-            text: text.substring(0, selection.start) + replacement + text.substring(selection.end),
+            text:
+                text.substring(0, selection.start) +
+                replacement +
+                text.substring(selection.end),
             selection: TextSelection(
               baseOffset: selection.start + selected.length + 4,
               extentOffset: selection.start + selected.length + 7,
@@ -641,7 +685,10 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
               .replaceAll(RegExp(r'\*{1,3}|~~|`|==|\+\+|\^|~|\$'), '')
               .replaceAll(RegExp(r'^#{1,6}\s+', multiLine: true), '');
           _controller.value = TextEditingValue(
-            text: text.substring(0, selection.start) + cleaned + text.substring(selection.end),
+            text:
+                text.substring(0, selection.start) +
+                cleaned +
+                text.substring(selection.end),
             selection: TextSelection(
               baseOffset: selection.start,
               extentOffset: selection.start + cleaned.length,
@@ -657,16 +704,46 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
         if (!selection.isCollapsed) {
           final selected = text.substring(selection.start, selection.end);
           var html = selected;
-          html = html.replaceAllMapped(RegExp(r'\*\*(.+?)\*\*'), (m) => '<strong>${m[1]}</strong>');
-          html = html.replaceAllMapped(RegExp(r'\*(.+?)\*'), (m) => '<em>${m[1]}</em>');
-          html = html.replaceAllMapped(RegExp(r'~~(.+?)~~'), (m) => '<del>${m[1]}</del>');
-          html = html.replaceAllMapped(RegExp(r'`(.+?)`'), (m) => '<code>${m[1]}</code>');
-          html = html.replaceAllMapped(RegExp(r'^#{6}\s+(.+)$', multiLine: true), (m) => '<h6>${m[1]}</h6>');
-          html = html.replaceAllMapped(RegExp(r'^#{5}\s+(.+)$', multiLine: true), (m) => '<h5>${m[1]}</h5>');
-          html = html.replaceAllMapped(RegExp(r'^#{4}\s+(.+)$', multiLine: true), (m) => '<h4>${m[1]}</h4>');
-          html = html.replaceAllMapped(RegExp(r'^#{3}\s+(.+)$', multiLine: true), (m) => '<h3>${m[1]}</h3>');
-          html = html.replaceAllMapped(RegExp(r'^#{2}\s+(.+)$', multiLine: true), (m) => '<h2>${m[1]}</h2>');
-          html = html.replaceAllMapped(RegExp(r'^#\s+(.+)$', multiLine: true), (m) => '<h1>${m[1]}</h1>');
+          html = html.replaceAllMapped(
+            RegExp(r'\*\*(.+?)\*\*'),
+            (m) => '<strong>${m[1]}</strong>',
+          );
+          html = html.replaceAllMapped(
+            RegExp(r'\*(.+?)\*'),
+            (m) => '<em>${m[1]}</em>',
+          );
+          html = html.replaceAllMapped(
+            RegExp(r'~~(.+?)~~'),
+            (m) => '<del>${m[1]}</del>',
+          );
+          html = html.replaceAllMapped(
+            RegExp(r'`(.+?)`'),
+            (m) => '<code>${m[1]}</code>',
+          );
+          html = html.replaceAllMapped(
+            RegExp(r'^#{6}\s+(.+)$', multiLine: true),
+            (m) => '<h6>${m[1]}</h6>',
+          );
+          html = html.replaceAllMapped(
+            RegExp(r'^#{5}\s+(.+)$', multiLine: true),
+            (m) => '<h5>${m[1]}</h5>',
+          );
+          html = html.replaceAllMapped(
+            RegExp(r'^#{4}\s+(.+)$', multiLine: true),
+            (m) => '<h4>${m[1]}</h4>',
+          );
+          html = html.replaceAllMapped(
+            RegExp(r'^#{3}\s+(.+)$', multiLine: true),
+            (m) => '<h3>${m[1]}</h3>',
+          );
+          html = html.replaceAllMapped(
+            RegExp(r'^#{2}\s+(.+)$', multiLine: true),
+            (m) => '<h2>${m[1]}</h2>',
+          );
+          html = html.replaceAllMapped(
+            RegExp(r'^#\s+(.+)$', multiLine: true),
+            (m) => '<h1>${m[1]}</h1>',
+          );
           Clipboard.setData(ClipboardData(text: html));
         }
       case FormatAction.selectAll:
@@ -682,8 +759,11 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
         lineEnd = lineEnd == -1 ? text.length : lineEnd;
         final currentLine = text.substring(lineStart, lineEnd);
         _controller.value = TextEditingValue(
-          text: '${text.substring(0, lineEnd)}\n$currentLine${text.substring(lineEnd)}',
-          selection: TextSelection.collapsed(offset: lineEnd + 1 + currentLine.length),
+          text:
+              '${text.substring(0, lineEnd)}\n$currentLine${text.substring(lineEnd)}',
+          selection: TextSelection.collapsed(
+            offset: lineEnd + 1 + currentLine.length,
+          ),
         );
     }
 
@@ -732,11 +812,13 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     final delta = replacement.length - line.length;
 
     _controller.value = TextEditingValue(
-      text: text.substring(0, lineStart) +
-          replacement +
-          text.substring(lineEnd),
+      text:
+          text.substring(0, lineStart) + replacement + text.substring(lineEnd),
       selection: TextSelection.collapsed(
-        offset: (offset + delta).clamp(lineStart, lineStart + replacement.length),
+        offset: (offset + delta).clamp(
+          lineStart,
+          lineStart + replacement.length,
+        ),
       ),
     );
   }
@@ -751,7 +833,9 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     var lineEnd = text.indexOf('\n', lineStart);
     if (lineEnd == -1) lineEnd = text.length;
 
-    final match = _headingPrefixRe.firstMatch(text.substring(lineStart, lineEnd));
+    final match = _headingPrefixRe.firstMatch(
+      text.substring(lineStart, lineEnd),
+    );
     return match == null ? 0 : match.group(1)!.length;
   }
 
@@ -809,15 +893,17 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     final (start, end) = _selectedLineBounds();
     final lines = text.substring(start, end).split('\n');
 
-    final replacement = lines.map((line) {
-      var removed = 0;
-      var index = 0;
-      while (index < line.length && removed < width && line[index] == ' ') {
-        removed++;
-        index++;
-      }
-      return line.substring(index);
-    }).join('\n');
+    final replacement = lines
+        .map((line) {
+          var removed = 0;
+          var index = 0;
+          while (index < line.length && removed < width && line[index] == ' ') {
+            removed++;
+            index++;
+          }
+          return line.substring(index);
+        })
+        .join('\n');
 
     _controller.value = TextEditingValue(
       text: text.substring(0, start) + replacement + text.substring(end),
@@ -833,7 +919,10 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     final selection = _controller.selection;
     final text = _controller.text;
 
-    var start = text.lastIndexOf('\n', selection.start > 0 ? selection.start - 1 : 0);
+    var start = text.lastIndexOf(
+      '\n',
+      selection.start > 0 ? selection.start - 1 : 0,
+    );
     start = start == -1 ? 0 : start + 1;
 
     var end = text.indexOf('\n', selection.end);
@@ -857,12 +946,13 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     final delta = replacement.length - line.length;
 
     _controller.value = TextEditingValue(
-      text: text.substring(0, lineStart) +
-          replacement +
-          text.substring(lineEnd),
+      text:
+          text.substring(0, lineStart) + replacement + text.substring(lineEnd),
       selection: TextSelection.collapsed(
-        offset:
-            (offset + delta).clamp(lineStart, lineStart + replacement.length),
+        offset: (offset + delta).clamp(
+          lineStart,
+          lineStart + replacement.length,
+        ),
       ),
     );
   }
@@ -882,7 +972,10 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
       final selected = text.substring(selection.start, selection.end);
       final replacement = '$before$selected$after';
       _controller.value = TextEditingValue(
-        text: text.substring(0, selection.start) + replacement + text.substring(selection.end),
+        text:
+            text.substring(0, selection.start) +
+            replacement +
+            text.substring(selection.end),
         selection: TextSelection(
           baseOffset: selection.start + before.length,
           extentOffset: selection.start + before.length + selected.length,
@@ -909,7 +1002,9 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     final tokens = AppTheme.getTokens(config.themeName);
 
     // Watch only fields used by build to avoid unrelated rebuilds during scroll
-    final pendingFormat = ref.watch(editorProvider.select((s) => s.pendingFormat));
+    final pendingFormat = ref.watch(
+      editorProvider.select((s) => s.pendingFormat),
+    );
     if (pendingFormat != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _applyFormat(pendingFormat);
@@ -931,7 +1026,9 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     _controller.defaultColor = tokens.colorText;
 
     // Dynamic gutter width
-    final digits = lineCount < 10 ? 1 : (lineCount < 100 ? 2 : (lineCount < 1000 ? 3 : 4));
+    final digits = lineCount < 10
+        ? 1
+        : (lineCount < 100 ? 2 : (lineCount < 1000 ? 3 : 4));
     final gutterWidth = (digits * 10.0 + 20).clamp(50.0, 70.0);
 
     // Current line for highlighting
@@ -963,7 +1060,9 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
                 child: Text(
                   '${index + 1}',
                   style: TextStyle(
-                    color: index == currentLine ? tokens.colorText : tokens.colorTextMuted,
+                    color: index == currentLine
+                        ? tokens.colorText
+                        : tokens.colorTextMuted,
                     fontFamily: config.fontFamily,
                     fontSize: 12,
                     height: config.lineHeight,
@@ -978,9 +1077,9 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
             builder: (context, constraints) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (mounted) {
-                  ref.read(editorProvider.notifier).setEditorTextFieldWidth(
-                    constraints.maxWidth,
-                  );
+                  ref
+                      .read(editorProvider.notifier)
+                      .setEditorTextFieldWidth(constraints.maxWidth);
                 }
               });
 

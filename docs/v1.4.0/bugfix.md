@@ -4,6 +4,7 @@
 |------|------|------|--------|------|
 | BUG-001 | 2026-08-28 | 时序图的 `box` 分组与 `autonumber` 被丢弃，且 `box` 的 `end` 会错关控制框 | P1 | 已修复 |
 | BUG-002 | 2026-08-28 | 点击文件夹搜索结果只打开文件，不跳到命中行 | P1 | 已修复 |
+| BUG-003 | 2026-08-28 | 源码编辑器销毁时抛异常，清理逻辑其实从未执行 | **P0** | 已修复 |
 
 ## 详细记录
 
@@ -40,5 +41,22 @@
 | 预览模式 | 预览同样有「监听注册得太晚」的问题，一并按同样办法认领挂起目标。另外预览只对**标题行**建了 key，命中普通正文行时原本什么都不做 —— 改成回落到**该行上方最近的标题**。没有给每个块都建 key：那等于每个节点一个 GlobalKey，正是渐进渲染要避免的逐节点开销，而「滚到上一个标题」已经足够读者接上下文，且不花一分钱 |
 | 涉及文件 | `lib/ui/widgets/side_bar.dart`、`lib/ui/editor/source_editor.dart`、`lib/ui/editor/markdown_renderer.dart`、`test/ui/editor/source_editor_scroll_test.dart`（新增）、`test/ui/editor/markdown_renderer_scroll_test.dart`（新增） |
 | 验证方式 | 源码编辑器三个 widget 测试：目标在编辑器建出来之前就挂起、目标在之后才发出、完全没有目标；预览三个：提前挂起、普通正文行回落、比所有标题都靠前的行。判据都是「目标被清空」—— 清空只在处理函数内部发生，所以它就是「确实执行了滚动」的证据 |
+
+---
+
+### BUG-003 源码编辑器销毁时抛异常，清理逻辑其实从未执行
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-28 |
+| 优先级 | **P0** |
+| 状态 | 已修复 |
+| 现象 | 每次销毁一个 `SourceEditor`（关标签页、切编辑模式、关窗口）都会抛 `Bad state: Cannot use "ref" after the widget was disposed`。异常被 Flutter 框架接住，界面不崩，所以**一直没人发现** |
+| 后果 | `dispose()` 里那段「把 controller 的注册交还给 provider」在抛异常的那一行就中断了 —— 也就是说这段清理**一次都没跑成功过**。provider 里一直留着已销毁的 controller，而查找栏正是靠它判断「当前有没有源码编辑器」 |
+| 根因分析 | `dispose()` 里写了 `ref.read(editorProvider.notifier)`。riverpod 的 `ConsumerStatefulElement.unmount` 会**先**把元素标记为已释放，**再**调用 `State.dispose()`，所以到 dispose 时 `ref` 已经不能用了 |
+| 修复方案 | 在 `initState` 里就把 notifier 取出来存成字段，`dispose` 用字段而不碰 `ref` |
+| 怎么发现的 | 为 BUG-002 写的 widget 测试在拆树时把它暴露了出来 —— 真实运行中异常被框架吞掉，只有测试会把「finalizing the widget tree 时抛异常」判为失败。全仓扫了一遍 `dispose()` 里用 `ref` 的地方，只有这一处 |
+| 涉及文件 | `lib/ui/editor/source_editor.dart` |
+| 验证方式 | 三个源码编辑器滚动 widget 测试从「拆树抛异常」变为通过 |
 
 ---
