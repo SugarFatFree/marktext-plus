@@ -1413,6 +1413,94 @@ quadrantChart
       );
     });
 
+    test('after may name several tasks', () {
+      // `after a1 a2` starts once both have finished. The whole remainder was
+      // taken as one id, so it matched no task and the start silently fell
+      // back to "right after whatever came before me in the source".
+      final chart = ganttOf(
+        'gantt\n'
+        '  dateFormat YYYY-MM-DD\n'
+        '  section Build\n'
+        '    A :a1, 2026-01-01, 5d\n'
+        '    B :a2, 2026-01-10, 5d\n'
+        '    C :after a1 a2, 3d',
+      );
+
+      final c = chart.tasks.last;
+      expect(c.dependencies, ['a1', 'a2']);
+      // The later of the two ends on the 14th, so C starts on the 15th.
+      expect(c.startDate, DateTime(2026, 1, 15));
+    });
+
+    test('after resolves against the named task, not the previous one', () {
+      final chart = ganttOf(
+        'gantt\n'
+        '  dateFormat YYYY-MM-DD\n'
+        '  section Build\n'
+        '    A :a1, 2026-01-01, 5d\n'
+        '    B :a2, 2026-02-01, 5d\n'
+        '    C :after a1, 3d',
+      );
+
+      expect(chart.tasks.last.startDate, DateTime(2026, 1, 6));
+    });
+
+    test('until ends a task where the referenced one begins', () {
+      // `until` landed in the duration slot, parsed as no duration at all and
+      // drew a zero-length bar.
+      final chart = ganttOf(
+        'gantt\n'
+        '  dateFormat YYYY-MM-DD\n'
+        '  section Build\n'
+        '    A :a1, 2026-01-20, 5d\n'
+        '    B :b1, 2026-01-01, until a1',
+      );
+
+      final b = chart.tasks.last;
+      expect(b.startDate, DateTime(2026, 1, 1));
+      // Day ranges are inclusive, so the bar stops the day before.
+      expect(b.endDate, DateTime(2026, 1, 19));
+      expect(b.dependencies, ['a1']);
+    });
+
+    test('after and until compose', () {
+      final chart = ganttOf(
+        'gantt\n'
+        '  dateFormat YYYY-MM-DD\n'
+        '  section Build\n'
+        '    A :a1, 2026-01-01, 5d\n'
+        '    C :c1, 2026-02-01, 3d\n'
+        '    B :after a1, until c1',
+      );
+
+      final b = chart.tasks.last;
+      expect(b.startDate, DateTime(2026, 1, 6));
+      expect(b.endDate, DateTime(2026, 1, 31));
+    });
+
+    test('until against an unknown id does not collapse the chart', () {
+      final chart = ganttOf(
+        'gantt\n'
+        '  dateFormat YYYY-MM-DD\n'
+        '  section Build\n'
+        '    A :a1, 2026-01-01, until nosuchtask',
+      );
+
+      final a = chart.tasks.single;
+      expect(a.endDate.isBefore(a.startDate), isFalse);
+    });
+
+    test('a plain duration is unaffected', () {
+      final chart = ganttOf(
+        'gantt\n'
+        '  dateFormat YYYY-MM-DD\n'
+        '  section Build\n'
+        '    A :a1, 2026-01-01, 30d',
+      );
+
+      expect(chart.tasks.single.endDate, DateTime(2026, 1, 30));
+    });
+
     test('two tasks with the same name get different ids', () {
       final chart = ganttOf(
         'gantt\n'

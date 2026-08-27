@@ -211,24 +211,15 @@ class GanttParser {
       final second = remainingParts[1];
 
       if (first.toLowerCase().startsWith('after ')) {
-        // after id, duration
-        final afterId = first.substring(6).trim();
-        dependencies.add(afterId);
+        // after id…, duration
+        final afterIds = _referencedIds(first, 'after');
+        dependencies.addAll(afterIds);
         durationSpec = second;
         id = _generateId(name, existingTasks);
 
-        // Find the referenced task's end date
-        final refTask = existingTasks.firstWhere(
-          (t) => t.id == afterId,
-          orElse: () => GanttTask(
-            id: '',
-            name: '',
-            startDate: defaultStartDate,
-            endDate: defaultStartDate,
-          ),
-        );
-        if (refTask.id.isNotEmpty) {
-          defaultStartDate = refTask.endDate.add(const Duration(days: 1));
+        final latest = _latestEnd(afterIds, existingTasks);
+        if (latest != null) {
+          defaultStartDate = latest.add(const Duration(days: 1));
         }
         startSpec = null;
       } else if (_isDate(first, dateFormat)) {
@@ -247,21 +238,13 @@ class GanttParser {
 
       final second = remainingParts[1];
       if (second.toLowerCase().startsWith('after ')) {
-        final afterId = second.substring(6).trim();
-        dependencies.add(afterId);
+        final afterIds = _referencedIds(second, 'after');
+        dependencies.addAll(afterIds);
         durationSpec = remainingParts[2];
 
-        final refTask = existingTasks.firstWhere(
-          (t) => t.id == afterId,
-          orElse: () => GanttTask(
-            id: '',
-            name: '',
-            startDate: defaultStartDate,
-            endDate: defaultStartDate,
-          ),
-        );
-        if (refTask.id.isNotEmpty) {
-          defaultStartDate = refTask.endDate.add(const Duration(days: 1));
+        final latest = _latestEnd(afterIds, existingTasks);
+        if (latest != null) {
+          defaultStartDate = latest.add(const Duration(days: 1));
         }
       } else {
         startSpec = second;
@@ -278,8 +261,23 @@ class GanttParser {
     }
 
     // Parse end date/duration
+    //
+    // `until id…` ends the task where the referenced work begins, which is the
+    // counterpart to `after`. It used to land in the duration slot, parse as no
+    // duration at all, and draw a zero-length bar.
     DateTime endDate;
-    if (durationSpec != null) {
+    final untilIds = durationSpec == null
+        ? const <String>[]
+        : _referencedIds(durationSpec, 'until');
+    if (untilIds.isNotEmpty) {
+      dependencies.addAll(untilIds);
+      final earliest = _earliestStart(untilIds, existingTasks);
+      // Day ranges here are inclusive, so the bar stops the day before.
+      endDate = earliest != null
+          ? earliest.subtract(const Duration(days: 1))
+          : startDate;
+      if (endDate.isBefore(startDate)) endDate = startDate;
+    } else if (durationSpec != null) {
       if (_isDate(durationSpec, dateFormat)) {
         // It's an end date
         endDate = _parseDate(durationSpec, dateFormat) ?? startDate;
@@ -307,6 +305,52 @@ class GanttParser {
       status: status,
       dependencies: dependencies,
     );
+  }
+
+  /// Ids referenced by an `after …` or `until …` spec.
+  ///
+  /// Mermaid allows several: `after a1 a2` starts once both have finished.
+  /// Taking the whole remainder as one id meant a multi-target reference
+  /// matched no task at all and silently fell back to "right after whatever
+  /// came before me in the source".
+  static List<String> _referencedIds(String spec, String keyword) {
+    if (!spec.toLowerCase().startsWith('$keyword ')) return const [];
+    return spec
+        .substring(keyword.length + 1)
+        .split(RegExp(r'\s+'))
+        .where((id) => id.isNotEmpty)
+        .toList();
+  }
+
+  /// The latest end date among [ids], or null when none of them is known.
+  static DateTime? _latestEnd(List<String> ids, List<GanttTask> tasks) {
+    DateTime? latest;
+    for (final id in ids) {
+      for (final task in tasks) {
+        if (task.id != id) continue;
+        if (latest == null || task.endDate.isAfter(latest)) {
+          latest = task.endDate;
+        }
+      }
+    }
+    return latest;
+  }
+
+  /// The earliest start date among [ids], or null when none is known.
+  ///
+  /// This is what `until` means: run up to the moment the referenced work
+  /// begins.
+  static DateTime? _earliestStart(List<String> ids, List<GanttTask> tasks) {
+    DateTime? earliest;
+    for (final id in ids) {
+      for (final task in tasks) {
+        if (task.id != id) continue;
+        if (earliest == null || task.startDate.isBefore(earliest)) {
+          earliest = task.startDate;
+        }
+      }
+    }
+    return earliest;
   }
 
   /// Generates an ID from the task name.
