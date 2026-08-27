@@ -458,8 +458,13 @@ class MarkdownParser {
       RegExp(r'^<[a-zA-Z][a-zA-Z0-9-]*(?:\s[^<>]*?)?/?>\s*$');
 
   /// A link reference definition: `[label]: url "title"`.
+  ///
+  /// The label may not begin with `^`: `[^1]: note` is a footnote definition,
+  /// and this pattern matched it first. Since a link definition is dropped as
+  /// metadata rather than rendered, every footnote definition in the document
+  /// disappeared without a trace.
   static final _linkDefRe = RegExp(
-    r'^\s{0,3}\[([^\]]+)\]:\s*(\S+)(?:\s+"([^"]*)")?\s*$',
+    r'^\s{0,3}\[([^\^\]][^\]]*)\]:\s*(\S+)(?:\s+"([^"]*)")?\s*$',
   );
 
   /// A setext underline: `===` for level 1, `---` for level 2.

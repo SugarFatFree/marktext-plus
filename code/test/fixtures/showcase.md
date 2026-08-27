@@ -19,8 +19,11 @@ Plain text, **bold**, *italic*, ***bold italic***, `inline code`,
 An image: ![alt text](assets/example.png)
 
 Inline math $E = mc^2$ sits in a sentence. A footnote reference[^note] too.
+A second reference[^terse] whose definition is a single word.
 
 [^note]: The footnote definition itself.
+
+[^terse]: 单词脚注
 
 Characters that must survive escaping: a < b, x & y, "quoted", 'single'.
 

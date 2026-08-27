@@ -1609,6 +1609,30 @@ void _linkSyntaxTests() {
       expect(nodes, isEmpty);
     });
 
+    test('a footnote definition is not mistaken for a link definition', () {
+      // `[^1]: note` matches the link definition pattern too, and that branch
+      // ran first and dropped the line as metadata, so every footnote
+      // definition in a document vanished without a trace.
+      final nodes = parser.parse('[^1]: the note\n');
+      expect(nodes, hasLength(1));
+      final def = nodes.single as FootnoteDefinitionNode;
+      expect(def.id, '1');
+      expect(def.content, 'the note');
+    });
+
+    test('a footnote definition survives next to its reference', () {
+      final nodes = parser.parse('text[^1]\n\n[^1]: the note\n\nafter\n');
+      expect(
+        nodes.map((n) => n.type),
+        [NodeType.paragraph, NodeType.footnoteDefinition, NodeType.paragraph],
+      );
+    });
+
+    test('a link label may still contain a caret', () {
+      final span = spansOf('[t][a^b]\n\n[a^b]: https://x.com\n').single;
+      expect(span.href, 'https://x.com');
+    });
+
     test('a bare address becomes a link', () {
       final spans = spansOf('visit https://example.com now\n');
       final link = spans.firstWhere((s) => s.type == InlineType.link);
