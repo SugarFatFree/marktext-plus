@@ -6,6 +6,7 @@ void main() {
   setUp(() => parser = MarkdownParser());
 
   _sourceSpanTests();
+  _linkSyntaxTests();
   _nestedQuoteTests();
   _setextAndIndentedCodeTests();
   _nestedListTests();
@@ -508,6 +509,70 @@ void _nestedQuoteTests() {
       final quote = nodes.single as BlockquoteNode;
       expect(quote.depth, 0);
       expect(quote.content, 'a\nb');
+    });
+  });
+}
+
+void _linkSyntaxTests() {
+  group('Autolinks and reference links', () {
+    late MarkdownParser parser;
+    setUp(() => parser = MarkdownParser());
+
+    List<InlineSpan> spansOf(String doc) {
+      final spans = <InlineSpan>[];
+      for (final node in parser.parse(doc)) {
+        if (node is ParagraphNode) spans.addAll(node.inlineSpans);
+      }
+      return spans;
+    }
+
+    test('an autolink becomes a link', () {
+      final span = spansOf('<https://example.com>\n').single;
+      expect(span.type, InlineType.link);
+      expect(span.href, 'https://example.com');
+    });
+
+    test('an autolink at the start of a line is not an HTML block', () {
+      // `<https://…>` matched the html block pattern, so the whole line was
+      // treated as markup.
+      final nodes = parser.parse('<https://example.com>\n');
+      expect(nodes.single.type, NodeType.paragraph);
+    });
+
+    test('a real HTML element is still a block', () {
+      final nodes = parser.parse('<div>x</div>\n');
+      expect(nodes.single.type, NodeType.htmlBlock);
+    });
+
+    test('a reference link resolves against its definition', () {
+      final span =
+          spansOf('[text][ref]\n\n[ref]: https://example.com\n').single;
+      expect(span.type, InlineType.link);
+      expect(span.text, 'text');
+      expect(span.href, 'https://example.com');
+    });
+
+    test('a definition may come before the reference', () {
+      final spans = spansOf('[r]: https://x.com\n\nuse [t][r] here\n');
+      expect(spans.any((s) => s.type == InlineType.link), isTrue);
+    });
+
+    test('a collapsed reference uses its text as the label', () {
+      final span = spansOf('[ref][]\n\n[ref]: https://example.com\n').single;
+      expect(span.href, 'https://example.com');
+    });
+
+    test('a definition line is not rendered as content', () {
+      // It used to fall through to the paragraph branch and print
+      // `[ref]: https://…` in the document.
+      final nodes = parser.parse('[ref]: https://example.com\n');
+      expect(nodes, isEmpty);
+    });
+
+    test('an unresolved reference stays as written', () {
+      final span = spansOf('[t][missing]\n').single;
+      expect(span.type, InlineType.text);
+      expect(span.text, '[t][missing]');
     });
   });
 }

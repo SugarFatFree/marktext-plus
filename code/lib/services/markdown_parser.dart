@@ -258,7 +258,18 @@ class MarkdownParser {
   static final _tableSepRe = RegExp(r'^\|[\s:|-]+\|$');
   static final _frontMatterRe = RegExp(r'^---\s*$');
   static final _footnoteDefRe = RegExp(r'^\[\^([^\]]+)\]:\s*(.+)$');
-  static final _htmlBlockStartRe = RegExp(r'^<(\w+)');
+  /// An HTML element opening a block.
+  ///
+  /// The tag name must be followed by something that can start an attribute
+  /// list or close the tag, which keeps `<https://example.com>` — an autolink,
+  /// not an element — out of this branch.
+  static final _htmlBlockStartRe =
+      RegExp(r'^<([a-zA-Z][a-zA-Z0-9-]*)(?=[\s/>])');
+
+  /// A link reference definition: `[label]: url "title"`.
+  static final _linkDefRe = RegExp(
+    r'^\s{0,3}\[([^\]]+)\]:\s*(\S+)(?:\s+"([^"]*)")?\s*$',
+  );
 
   /// A setext underline: `===` for level 1, `---` for level 2.
   static final _setextRe = RegExp(r'^\s{0,3}(=+|-+)\s*$');
@@ -449,6 +460,13 @@ class MarkdownParser {
     return (blocks, i);
   }
 
+  /// Link reference definitions found in the document being parsed.
+  ///
+  /// Collected up front because a reference may appear before its definition.
+  /// Empty when [parseInline] is called on its own, in which case a reference
+  /// link stays plain text.
+  final Map<String, ({String url, String? title})> _linkDefinitions = {};
+
   /// Parse markdown text into a list of block-level nodes.
   List<MarkdownNode> parse(String markdown) {
     // Strip UTF-8 BOM if present (otherwise heading regex on the first line fails)
@@ -458,6 +476,15 @@ class MarkdownParser {
     // LineSplitter handles \n, \r\n, and \r in a single pass without
     // creating intermediate string copies (faster than replaceAll for large files)
     final lines = const LineSplitter().convert(source);
+
+    _linkDefinitions.clear();
+    for (final line in lines) {
+      final match = _linkDefRe.firstMatch(line);
+      if (match == null) continue;
+      _linkDefinitions[match.group(1)!.toLowerCase()] =
+          (url: match.group(2)!, title: match.group(3));
+    }
+
     final nodes = <MarkdownNode>[];
     var i = 0;
 
@@ -492,6 +519,13 @@ class MarkdownParser {
 
       // Blank line — skip
       if (line.trim().isEmpty) {
+        i++;
+        continue;
+      }
+
+      // A link reference definition is metadata, not content; leaving it to
+      // the paragraph branch printed `[ref]: https://…` in the document.
+      if (_linkDefRe.hasMatch(line)) {
         i++;
         continue;
       }
@@ -817,6 +851,10 @@ class MarkdownParser {
       r'|(?<!~)~([^\s~]+?)~(?!~)'  // subscript (single ~, not ~~)
       r'|\*(.+?)\*'                // italic *
       r'|(?<![a-zA-Z0-9_])_(.+?)_(?![a-zA-Z0-9_])'  // italic _
+      // Appended rather than inserted: these add groups 19..21, leaving every
+      // existing branch's numbering alone.
+      r'|<((?:https?|ftp|mailto):[^>\s]+)>'         // 19 autolink
+      r'|\[([^\]]+)\]\[([^\]]*)\]'                // 20 text, 21 label
     );
 
     var lastEnd = 0;
@@ -888,6 +926,28 @@ class MarkdownParser {
       } else if (match.group(18) != null) {
         // Italic _
         spans.add(InlineSpan(type: InlineType.italic, text: match.group(18)!));
+      } else if (match.group(19) != null) {
+        // Autolink: <https://example.com>
+        final url = match.group(19)!;
+        spans.add(InlineSpan(type: InlineType.link, text: url, href: url));
+      } else if (match.group(20) != null) {
+        // Reference link: [text][label], or [text][] where the text is the
+        // label. Unresolved references stay as written rather than becoming a
+        // link to nowhere.
+        final label = match.group(21)!.isEmpty
+            ? match.group(20)!
+            : match.group(21)!;
+        final definition = _linkDefinitions[label.toLowerCase()];
+        if (definition == null) {
+          spans.add(InlineSpan(type: InlineType.text, text: match.group(0)!));
+        } else {
+          spans.add(InlineSpan(
+            type: InlineType.link,
+            text: match.group(20)!,
+            href: definition.url,
+            title: definition.title,
+          ));
+        }
       }
 
       lastEnd = match.end;
