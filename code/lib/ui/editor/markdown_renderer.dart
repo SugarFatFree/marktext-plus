@@ -59,10 +59,25 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   final _editController = TextEditingController();
   late final FocusNode _editFocusNode;
 
-  // Progressive rendering state
+  // Progressive rendering state.
+  //
+  // Every frame rebuilds all the blocks rendered so far, so adding a fixed 50
+  // per frame made the total work quadratic: a 5000-block document took 100
+  // frames and built about 250000 widgets. Doubling gets to the same place in
+  // eight frames.
   int _renderedNodeCount = 0;
+  bool _batchScheduled = false;
   static const _initialBatchSize = 50;
-  static const _incrementalBatchSize = 50;
+  static const _maxBatchSize = 2000;
+
+  /// One [GlobalKey] per heading position, kept between frames.
+  ///
+  /// These used to be allocated fresh on every build, which changes each
+  /// heading's identity and forces Flutter to discard and rebuild its element
+  /// every frame. Keys are per *index* rather than per line so that two
+  /// headings reported on the same line still get distinct keys — the same
+  /// GlobalKey appearing twice in one tree is a crash.
+  final _headingKeysByIndex = <int, GlobalKey>{};
 
   /// Parse raw markdown to find heading line numbers (1-based),
   /// matching the same logic used by the TOC panel.
@@ -173,7 +188,10 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       final parser = md.MarkdownParser();
       _cachedNodes = parser.parse(widget.markdown);
       _cachedHeadingLines = _findHeadingLines(widget.markdown);
-      _renderedNodeCount = 0; // Reset progressive rendering on content change
+      // Keep what is already on screen. Restarting from the first batch made
+      // the preview collapse to the top of the document and re-expand on
+      // every keystroke in split mode.
+      _renderedNodeCount = _renderedNodeCount.clamp(0, _cachedNodes!.length);
       // The node being edited belonged to the previous parse and its line
       // range no longer describes this document.
       _editingNode = null;
@@ -181,12 +199,13 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     final nodes = _cachedNodes!;
     final headingLines = _cachedHeadingLines!;
 
-    // Progressive rendering: initially render first batch, then incrementally add more
+    // Progressive rendering: show the first blocks immediately, then fill in.
     if (_renderedNodeCount == 0) {
-      _renderedNodeCount = nodes.length > _initialBatchSize ? _initialBatchSize : nodes.length;
-      if (nodes.length > _initialBatchSize) {
-        _scheduleNextBatch(nodes.length);
-      }
+      _renderedNodeCount =
+          nodes.length > _initialBatchSize ? _initialBatchSize : nodes.length;
+    }
+    if (_renderedNodeCount < nodes.length) {
+      _scheduleNextBatch(nodes.length);
     }
 
     final widgets = <Widget>[];
@@ -206,7 +225,8 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
           headingIndex++;
           // Always allocate a fresh key for each heading; only the first
           // heading at a given lineNum is registered for scroll targeting.
-          final key = GlobalKey();
+          final key = _headingKeysByIndex.putIfAbsent(
+              headingIndex - 1, () => GlobalKey());
           if (lineNum > 0) {
             _headingKeys.putIfAbsent(lineNum, () => key);
           }
@@ -428,15 +448,19 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   }
 
   void _scheduleNextBatch(int totalNodes) {
+    if (_batchScheduled) return;
+    _batchScheduled = true;
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _batchScheduled = false;
       if (!mounted || _renderedNodeCount >= totalNodes) return;
       setState(() {
-        _renderedNodeCount = (_renderedNodeCount + _incrementalBatchSize).clamp(0, totalNodes);
+        final step = _renderedNodeCount < _maxBatchSize
+            ? _renderedNodeCount
+            : _maxBatchSize;
+        _renderedNodeCount = (_renderedNodeCount + step).clamp(0, totalNodes);
       });
-      // Continue scheduling until all nodes are rendered
-      if (_renderedNodeCount < totalNodes) {
-        _scheduleNextBatch(totalNodes);
-      }
+      // The next build schedules the batch after this one, if any is left.
     });
   }
 
