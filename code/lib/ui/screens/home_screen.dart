@@ -34,6 +34,7 @@ import '../../services/keybinding_service.dart';
 import '../../services/file_service.dart';
 import '../../models/file_encoding.dart';
 import '../../models/line_ending.dart';
+import '../../core/diagnostics/startup_trace.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -62,10 +63,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
     // Run startup side-effects after the first frame so we don't mutate
     // providers during the widget tree build.
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      StartupTrace.mark('first frame painted');
       if (!mounted) return;
       _openStartupFiles();
       _checkForUpdates();
       _restoreSideBarDirectory();
+      StartupTrace.mark('startup side-effects dispatched');
     });
   }
 
@@ -90,6 +93,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
   /// session.
   @override
   void onWindowClose() async {
+    StartupTrace.mark('close requested');
     final unsaved = ref
         .read(tabProvider)
         .tabs
@@ -100,7 +104,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
       // The common path: geometry has to be recorded here too, or it would
       // only ever be saved when something was left unsaved.
       await _saveWindowGeometry();
+      StartupTrace.mark('window geometry saved');
       await windowManager.destroy();
+      StartupTrace.mark('window destroyed');
       return;
     }
 
@@ -117,7 +123,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
     }
 
     await _saveWindowGeometry();
+    StartupTrace.mark('window geometry saved (after prompt)');
     await windowManager.destroy();
+    StartupTrace.mark('window destroyed');
   }
 
   /// Records the window's size, position and maximised state for next launch.
@@ -385,13 +393,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
           isLoading: true,
         );
         ref.read(tabProvider.notifier).addTab(tab);
+        StartupTrace.mark('loading tab added');
 
         // Force a frame to render the loading indicator
         WidgetsBinding.instance.addPostFrameCallback((_) async {
           try {
+            StartupTrace.mark('loading frame painted');
             // Read file content in isolate for large files
             final bytes = await compute(_readFileInIsolate, path);
+            StartupTrace.mark('file read in isolate (${bytes.length} bytes)');
             final (raw, encoding) = FileEncoding.decode(bytes);
+            StartupTrace.mark('decoded (${encoding.name})');
             ref
                 .read(tabProvider.notifier)
                 .loadTabContent(
@@ -400,6 +412,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
                   lineEnding: LineEnding.detect(raw),
                   encoding: encoding,
                 );
+            StartupTrace.mark('content handed to the tab');
+            WidgetsBinding.instance.addPostFrameCallback(
+              (_) => StartupTrace.mark('document painted'),
+            );
           } catch (e) {
             // Handle error: remove the loading tab or show error state
             ref.read(tabProvider.notifier).removeTab(tabId);

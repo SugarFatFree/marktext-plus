@@ -8,6 +8,7 @@ import 'package:window_manager/window_manager.dart';
 import 'package:windows_single_instance/windows_single_instance.dart';
 import 'app.dart';
 import 'core/config/config_service.dart';
+import 'core/diagnostics/startup_trace.dart';
 import 'providers/locale_provider.dart';
 import 'providers/settings_provider.dart';
 import 'providers/tab_provider.dart';
@@ -50,6 +51,7 @@ void _handleSecondInstance(List<dynamic> newArgs) {
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+  StartupTrace.mark('flutter binding ready');
 
   // Initialize single instance on Windows
   if (Platform.isWindows) {
@@ -58,21 +60,27 @@ void main(List<String> args) async {
       "marktext_plus_instance",
       onSecondWindow: _handleSecondInstance,
     );
+    StartupTrace.mark('single instance check');
   }
 
   // Initialize window_manager
   await windowManager.ensureInitialized();
+  StartupTrace.mark('window manager ready');
 
   // Filter startup file arguments
   final startupFiles = _filterStartupFiles(args);
+  StartupTrace.mark('startup args filtered (${startupFiles.length} file(s))');
 
   // Loaded before the window is configured: the saved geometry is what the
   // window should open with, and it was being written to disk and then never
   // read, so every launch reverted to the default size.
   final appSupportDir = await getApplicationSupportDirectory();
   final configDir = appSupportDir.path;
+  StartupTrace.useDirectory(configDir);
+  StartupTrace.mark('config directory resolved');
   final configService = ConfigService(configDir: configDir);
   final config = await configService.load();
+  StartupTrace.mark('config loaded');
 
   final windowOptions = WindowOptions(
     size: Size(config.windowWidth, config.windowHeight),
@@ -80,6 +88,7 @@ void main(List<String> args) async {
   );
 
   windowManager.waitUntilReadyToShow(windowOptions, () async {
+    StartupTrace.mark('window ready to show');
     // Position and maximised state cannot travel in WindowOptions.
     if (config.windowX != 0 || config.windowY != 0) {
       await windowManager.setPosition(Offset(config.windowX, config.windowY));
@@ -89,6 +98,7 @@ void main(List<String> args) async {
     }
     await windowManager.show();
     await windowManager.focus();
+    StartupTrace.mark('window shown');
   });
   final initialLocale = LocaleNotifier.parseLocale(config.locale);
 
@@ -103,8 +113,11 @@ void main(List<String> args) async {
   _globalContainer = container;
   _listenForLinuxFileOpens(container);
 
+  StartupTrace.mark('provider container built');
+
   runApp(UncontrolledProviderScope(
     container: container,
     child: const MarkTextPlusApp(),
   ));
+  StartupTrace.mark('runApp called');
 }
