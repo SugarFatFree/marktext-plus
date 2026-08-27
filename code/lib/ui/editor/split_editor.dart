@@ -1,6 +1,8 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../providers/settings_provider.dart';
 import 'source_editor.dart';
 import 'markdown_renderer.dart';
@@ -13,10 +15,15 @@ class SplitEditor extends ConsumerStatefulWidget {
   /// separate per document.
   final String tabId;
 
+  /// Bumped by the owner when [initialContent] was replaced from outside —
+  /// the document was reloaded after changing on disk.
+  final int externalRevision;
+
   const SplitEditor({
     super.key,
     required this.tabId,
     this.initialContent = '',
+    this.externalRevision = 0,
     this.onChanged,
   });
 
@@ -30,7 +37,11 @@ class _SplitEditorState extends ConsumerState<SplitEditor> {
 
   /// Incremented whenever the preview pane rewrites the source, so the source
   /// pane knows to adopt it.
+  ///
+  /// Added to the owner's revision before being passed down, so a reload from
+  /// disk and an edit made in the preview both reach the source pane.
   int _externalRevision = 0;
+
   /// Filled from settings in initState; 0.5 only until then.
   double _splitRatio = 0.5;
   Timer? _splitPersistTimer;
@@ -45,6 +56,20 @@ class _SplitEditorState extends ConsumerState<SplitEditor> {
     _splitRatio = ref.read(settingsProvider).splitRatio.clamp(0.2, 0.8);
     _content = widget.initialContent;
     _renderedContent = widget.initialContent;
+  }
+
+  @override
+  void didUpdateWidget(SplitEditor oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.externalRevision == oldWidget.externalRevision) return;
+    if (widget.initialContent == _content) return;
+
+    // The document was reloaded under us; both panes show the new text.
+    _debounce?.cancel();
+    setState(() {
+      _content = widget.initialContent;
+      _renderedContent = widget.initialContent;
+    });
   }
 
   @override
@@ -85,7 +110,9 @@ class _SplitEditorState extends ConsumerState<SplitEditor> {
 
   void _onDragUpdate(DragUpdateDetails details, BoxConstraints constraints) {
     setState(() {
-      _splitRatio = (_splitRatio * constraints.maxWidth + details.delta.dx) / constraints.maxWidth;
+      _splitRatio =
+          (_splitRatio * constraints.maxWidth + details.delta.dx) /
+          constraints.maxWidth;
       _splitRatio = _splitRatio.clamp(0.2, 0.8);
       _persistSplitRatio();
     });
@@ -96,9 +123,9 @@ class _SplitEditorState extends ConsumerState<SplitEditor> {
     _splitPersistTimer?.cancel();
     _splitPersistTimer = Timer(const Duration(milliseconds: 400), () {
       if (!mounted) return;
-      ref.read(settingsProvider.notifier).updateConfig(
-            (c) => c.copyWith(splitRatio: _splitRatio),
-          );
+      ref
+          .read(settingsProvider.notifier)
+          .updateConfig((c) => c.copyWith(splitRatio: _splitRatio));
     });
   }
 
@@ -118,7 +145,7 @@ class _SplitEditorState extends ConsumerState<SplitEditor> {
               child: SourceEditor(
                 tabId: widget.tabId,
                 initialContent: _content,
-                externalRevision: _externalRevision,
+                externalRevision: _externalRevision + widget.externalRevision,
                 onChanged: _onContentChanged,
               ),
             ),

@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:path/path.dart' as p;
 import 'package:window_manager/window_manager.dart';
+
 import '../../core/config/app_config.dart';
 import '../../core/i18n/l10n/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
@@ -87,8 +89,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
   /// session.
   @override
   void onWindowClose() async {
-    final unsaved =
-        ref.read(tabProvider).tabs.where((t) => t.isModified).toList();
+    final unsaved = ref
+        .read(tabProvider)
+        .tabs
+        .where((t) => t.isModified)
+        .toList();
 
     if (unsaved.isEmpty || !mounted) {
       // The common path: geometry has to be recorded here too, or it would
@@ -125,7 +130,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
       final size = await windowManager.getSize();
       final position = await windowManager.getPosition();
 
-      await ref.read(settingsProvider.notifier).saveWindowState(
+      await ref
+          .read(settingsProvider.notifier)
+          .saveWindowState(
             width: size.width,
             height: size.height,
             x: position.dx,
@@ -141,8 +148,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
     final l10n = AppLocalizations.of(context)!;
     const maxListed = 5;
     final names = unsaved.take(maxListed).map((t) => t.fileName).join('\n');
-    final extra =
-        unsaved.length > maxListed ? '\n… ${unsaved.length - maxListed}' : '';
+    final extra = unsaved.length > maxListed
+        ? '\n… ${unsaved.length - maxListed}'
+        : '';
 
     return showDialog<_ExitChoice>(
       context: context,
@@ -151,7 +159,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
         content: Text('$names$extra\n\n${l10n.unsavedChangesMessage}'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(_ExitChoice.cancel),
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(_ExitChoice.cancel),
             child: Text(l10n.cancel),
           ),
           TextButton(
@@ -180,7 +189,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
       }
     }
     if (config.sideBarOpenedFiles.isNotEmpty) {
-      ref.read(tabProvider.notifier).restoreOpenedFiles(config.sideBarOpenedFiles);
+      ref
+          .read(tabProvider.notifier)
+          .restoreOpenedFiles(config.sideBarOpenedFiles);
     }
   }
 
@@ -194,14 +205,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
 
     if (lastCheck != null && now.difference(lastCheck).inHours < 24) return;
 
-    await ref.read(settingsProvider.notifier).updateConfig(
-      (c) => c.copyWith(lastUpdateCheck: now.toIso8601String()),
-    );
+    await ref
+        .read(settingsProvider.notifier)
+        .updateConfig(
+          (c) => c.copyWith(lastUpdateCheck: now.toIso8601String()),
+        );
 
     // The automatic check stays quiet when it cannot reach GitHub; only a
     // check the user asked for reports that.
-    final update =
-        (await UpdateService.checkForUpdate(AppConstants.appVersion)).update;
+    final update = (await UpdateService.checkForUpdate(AppConstants.appVersion))
+        .update;
     if (update != null && update.version != config.skipVersion) {
       ref.read(updateProvider.notifier).setUpdate(update);
     }
@@ -247,12 +260,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
     };
 
     for (final entry in formatLabels.entries) {
-      registry.register(Command(
-        id: 'format.${entry.key.name}',
-        label: l10n.commandFormatLabel(entry.value),
-        description: l10n.commandFormatDesc(entry.value),
-        execute: () => ref.read(editorProvider.notifier).applyFormat(entry.key),
-      ));
+      registry.register(
+        Command(
+          id: 'format.${entry.key.name}',
+          label: l10n.commandFormatLabel(entry.value),
+          description: l10n.commandFormatDesc(entry.value),
+          execute: () =>
+              ref.read(editorProvider.notifier).applyFormat(entry.key),
+        ),
+      );
     }
 
     // File operations
@@ -330,8 +346,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
   void _saveCurrentFile() async {
     final activeTab = ref.read(activeTabProvider);
     if (activeTab == null || activeTab.filePath == null) return;
-    await FileService.saveDocument(activeTab.filePath!, activeTab.content,
-        lineEnding: activeTab.lineEnding);
+    await FileService.saveDocument(
+      activeTab.filePath!,
+      activeTab.content,
+      lineEnding: activeTab.lineEnding,
+    );
     ref.read(tabProvider.notifier).markSaved(activeTab.id);
   }
 
@@ -364,7 +383,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
           try {
             // Read file content in isolate for large files
             final raw = await compute(_readFileInIsolate, path);
-            ref.read(tabProvider.notifier).loadTabContent(
+            ref
+                .read(tabProvider.notifier)
+                .loadTabContent(
                   tabId,
                   FileService.normalizeLineEndings(raw),
                   lineEnding: LineEnding.detect(raw),
@@ -400,9 +421,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
       if (entity == FileSystemEntityType.directory) {
         // Open the folder in the file tree
         await ref.read(fileProvider.notifier).loadDirectory(path);
-        await ref.read(settingsProvider.notifier).updateConfig(
-          (c) => c.copyWith(sideBarDirectory: path),
-        );
+        await ref
+            .read(settingsProvider.notifier)
+            .updateConfig((c) => c.copyWith(sideBarDirectory: path));
         continue;
       }
 
@@ -427,7 +448,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
           try {
             // Read file content in isolate for large files
             final raw = await compute(_readFileInIsolate, path);
-            ref.read(tabProvider.notifier).loadTabContent(
+            ref
+                .read(tabProvider.notifier)
+                .loadTabContent(
                   tabId,
                   FileService.normalizeLineEndings(raw),
                   lineEnding: LineEnding.detect(raw),
@@ -455,8 +478,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
   /// instead, so that Ctrl+A and friends still belong to the find bar or a
   /// settings field when that is where the caret is.
   bool _runShortcut(KeyEvent event) {
-    final action = KeybindingService()
-        .actionForEvent(event, isMacOS: PlatformUtils.isMacOS);
+    final action = KeybindingService().actionForEvent(
+      event,
+      isMacOS: PlatformUtils.isMacOS,
+    );
     if (action == null) return false;
 
     final editor = ref.read(editorProvider.notifier);
@@ -530,8 +555,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
     final config = ref.watch(settingsProvider);
     // Only the find bar's visibility is read here. Watching the whole editor
     // state rebuilt this entire screen on every cursor move.
-    final showFindReplace =
-        ref.watch(editorProvider.select((s) => s.showFindReplace));
+    final showFindReplace = ref.watch(
+      editorProvider.select((s) => s.showFindReplace),
+    );
     final l10n = AppLocalizations.of(context)!;
 
     _registerCommands(l10n);
@@ -576,7 +602,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       curve: Curves.easeInOut,
-                      width: config.sideBarVisible && !config.focusMode ? 280 : 0,
+                      width: config.sideBarVisible && !config.focusMode
+                          ? 280
+                          : 0,
                       clipBehavior: Clip.hardEdge,
                       decoration: const BoxDecoration(),
                       child: config.sideBarVisible && !config.focusMode
@@ -597,11 +625,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
                           if (showFindReplace)
                             Builder(
                               builder: (context) {
-                                final controller =
-                                    ref.read(editorProvider.notifier).controller;
+                                final controller = ref
+                                    .read(editorProvider.notifier)
+                                    .controller;
                                 final activeTab = ref.watch(activeTabProvider);
-                                final isSplit = config.editMode == EditMode.split;
-                                if (isSplit && controller != null && activeTab != null) {
+                                final isSplit =
+                                    config.editMode == EditMode.split;
+                                if (isSplit &&
+                                    controller != null &&
+                                    activeTab != null) {
                                   return FindReplaceBar(
                                     textController: controller,
                                     rawContent: activeTab.content,
@@ -609,17 +641,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
                                   );
                                 } else if (controller != null) {
                                   return FindReplaceBar(
-                                      textController: controller);
+                                    textController: controller,
+                                  );
                                 } else if (activeTab != null) {
                                   return FindReplaceBar(
-                                      rawContent: activeTab.content);
+                                    rawContent: activeTab.content,
+                                  );
                                 }
                                 return const SizedBox.shrink();
                               },
                             ),
-                          Expanded(
-                            child: _buildEditorArea(config.editMode),
-                          ),
+                          Expanded(child: _buildEditorArea(config.editMode)),
                         ],
                       ),
                     ),
@@ -649,7 +681,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
             children: [
               Opacity(
                 opacity: 0.3,
-                child: Image.asset('assets/app_icon.png', width: 80, height: 80),
+                child: Image.asset(
+                  'assets/app_icon.png',
+                  width: 80,
+                  height: 80,
+                ),
               ),
               const SizedBox(height: 16),
               Text(
@@ -739,6 +775,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
               key: ValueKey('source_inner_${activeTab.id}'),
               tabId: activeTab.id,
               initialContent: content,
+              // Without this the editor never adopts a reload: it deliberately
+              // ignores a content change it cannot tell apart from its own
+              // typing, and the revision is what tells it apart.
+              externalRevision: activeTab.externalRevision,
               onChanged: onContentChanged,
             ),
           ),
@@ -760,6 +800,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
               key: ValueKey('split_inner_${activeTab.id}'),
               tabId: activeTab.id,
               initialContent: content,
+              externalRevision: activeTab.externalRevision,
               onChanged: onContentChanged,
             ),
           ),

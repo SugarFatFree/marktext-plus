@@ -1,10 +1,13 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
+
 import '../core/config/app_config.dart';
 import '../models/tab_info.dart';
 import '../services/file_service.dart';
+import '../services/open_document_watcher.dart';
 import '../utils/platform_utils.dart';
 import 'editor_provider.dart';
 import 'settings_provider.dart';
@@ -21,6 +24,7 @@ class OpenedFileEntry {
 class TabState {
   final List<TabInfo> tabs;
   final String? activeTabId;
+
   /// Files shown in the sidebar when no folder is opened.
   /// Independent from [tabs] – closing a tab does NOT remove the entry here.
   final List<OpenedFileEntry> openedFiles;
@@ -46,6 +50,7 @@ class TabState {
 
 class TabNotifier extends StateNotifier<TabState> {
   final Ref _ref;
+
   /// One pending auto-save per document.
   ///
   /// A single shared timer meant that editing a second tab cancelled the first
@@ -53,14 +58,84 @@ class TabNotifier extends StateNotifier<TabState> {
   /// stayed unwritten while auto-save was switched on.
   final Map<String, Timer> _autoSaveTimers = {};
 
-  TabNotifier(this._ref) : super(const TabState());
+  /// Notices when an open document is changed by something else — a `git
+  /// checkout`, another editor, a formatter.
+  final OpenDocumentWatcher _diskWatcher = OpenDocumentWatcher();
+  StreamSubscription<String>? _diskSubscription;
+
+  /// Paths this notifier wrote itself, so its own save does not read back as
+  /// somebody else's change.
+  final Set<String> _selfWritten = {};
+
+  TabNotifier(this._ref) : super(const TabState()) {
+    _diskSubscription = _diskWatcher.changes.listen(_onDiskChange);
+  }
+
+  /// Keeps the watch set equal to the files currently open.
+  ///
+  /// Hooked to every state change rather than called from each of the eight
+  /// places that add or close a tab: this version has already recorded six
+  /// bugs whose cause was one behaviour spread across several call sites and
+  /// left to drift.
+  @override
+  set state(TabState value) {
+    super.state = value;
+    _syncDiskWatch();
+  }
+
+  void _syncDiskWatch() {
+    _diskWatcher.watch(
+      state.tabs.map((tab) => tab.filePath).whereType<String>().toSet(),
+    );
+  }
+
+  /// Reloads a document that changed on disk while it had no unsaved edits.
+  ///
+  /// A document with unsaved edits is left exactly as it is: silently
+  /// replacing what somebody is in the middle of writing would be the worse
+  /// of the two failures by a wide margin.
+  Future<void> _onDiskChange(String path) async {
+    if (_selfWritten.remove(path)) return;
+
+    final tab = state.tabs
+        .where((t) => t.filePath == path && !t.isModified && !t.isLoading)
+        .firstOrNull;
+    if (tab == null) return;
+
+    try {
+      final opened = await FileService().readFileWithLineEnding(path);
+      if (opened.content == tab.content) return;
+
+      // Read again from state: the await gave the user time to start typing.
+      final current = state.tabs.where((t) => t.id == tab.id).firstOrNull;
+      if (current == null || current.isModified) return;
+
+      loadTabContent(tab.id, opened.content, lineEnding: opened.lineEnding);
+    } catch (_) {
+      // The file went away, or was unreadable mid-write. The tab keeps what
+      // it has, which is the safe outcome.
+    }
+  }
+
+  @override
+  void dispose() {
+    _diskSubscription?.cancel();
+    _diskWatcher.dispose();
+    for (final timer in _autoSaveTimers.values) {
+      timer.cancel();
+    }
+    _autoSaveTimers.clear();
+    super.dispose();
+  }
 
   /// Restore opened-file entries from persisted config (no tabs opened).
   void restoreOpenedFiles(List<String> filePaths) {
     final entries = <OpenedFileEntry>[];
     for (final path in filePaths) {
       if (File(path).existsSync()) {
-        entries.add(OpenedFileEntry(filePath: path, fileName: p.basename(path)));
+        entries.add(
+          OpenedFileEntry(filePath: path, fileName: p.basename(path)),
+        );
       }
     }
     if (entries.isNotEmpty) {
@@ -70,9 +145,9 @@ class TabNotifier extends StateNotifier<TabState> {
 
   void _persistOpenedFiles() {
     final paths = state.openedFiles.map((f) => f.filePath).toList();
-    _ref.read(settingsProvider.notifier).updateConfig(
-      (c) => c.copyWith(sideBarOpenedFiles: paths),
-    );
+    _ref
+        .read(settingsProvider.notifier)
+        .updateConfig((c) => c.copyWith(sideBarOpenedFiles: paths));
   }
 
   @override
@@ -97,9 +172,14 @@ class TabNotifier extends StateNotifier<TabState> {
       openedFilesChanged = true;
     }
     // Avoid duplicate tabs for the same file
-    final existing = state.tabs.where((t) => t.filePath != null && t.filePath == tab.filePath).firstOrNull;
+    final existing = state.tabs
+        .where((t) => t.filePath != null && t.filePath == tab.filePath)
+        .firstOrNull;
     if (existing != null) {
-      state = state.copyWith(activeTabId: existing.id, openedFiles: openedFiles);
+      state = state.copyWith(
+        activeTabId: existing.id,
+        openedFiles: openedFiles,
+      );
       if (openedFilesChanged) _persistOpenedFiles();
       return;
     }
@@ -129,7 +209,9 @@ class TabNotifier extends StateNotifier<TabState> {
   /// Remove a file from the sidebar opened-files list.
   /// Also closes the corresponding tab if one is open.
   void removeOpenedFile(String filePath) {
-    final openedFiles = state.openedFiles.where((f) => f.filePath != filePath).toList();
+    final openedFiles = state.openedFiles
+        .where((f) => f.filePath != filePath)
+        .toList();
     // Also close the tab for this file
     final tab = state.tabs.where((t) => t.filePath == filePath).firstOrNull;
     var tabs = state.tabs;
@@ -140,7 +222,11 @@ class TabNotifier extends StateNotifier<TabState> {
         activeId = tabs.isNotEmpty ? tabs.last.id : null;
       }
     }
-    state = state.copyWith(tabs: tabs, activeTabId: activeId, openedFiles: openedFiles);
+    state = state.copyWith(
+      tabs: tabs,
+      activeTabId: activeId,
+      openedFiles: openedFiles,
+    );
     _persistOpenedFiles();
   }
 
@@ -151,7 +237,11 @@ class TabNotifier extends StateNotifier<TabState> {
   void updateContent(String id, String content) {
     final tabs = state.tabs.map((tab) {
       if (tab.id == id) {
-        return tab.copyWith(content: content, isModified: true, isLoading: false);
+        return tab.copyWith(
+          content: content,
+          isModified: true,
+          isLoading: false,
+        );
       }
       return tab;
     }).toList();
@@ -162,10 +252,13 @@ class TabNotifier extends StateNotifier<TabState> {
   void loadTabContent(String id, String content, {LineEnding? lineEnding}) {
     final tabs = state.tabs.map((tab) {
       if (tab.id == id) {
+        // The revision is what tells the editors this text did not come from
+        // them; comparing the text itself cannot distinguish the two.
         return tab.copyWith(
           content: content,
           isLoading: false,
           lineEnding: lineEnding,
+          externalRevision: tab.externalRevision + 1,
         );
       }
       return tab;
@@ -187,19 +280,25 @@ class TabNotifier extends StateNotifier<TabState> {
     final config = _ref.read(settingsProvider);
     if (!config.autoSave) return;
 
-    _autoSaveTimers[tabId] =
-        Timer(Duration(milliseconds: config.autoSaveDelay), () {
-      _autoSaveTimers.remove(tabId);
-      _performAutoSave(tabId);
-    });
+    _autoSaveTimers[tabId] = Timer(
+      Duration(milliseconds: config.autoSaveDelay),
+      () {
+        _autoSaveTimers.remove(tabId);
+        _performAutoSave(tabId);
+      },
+    );
   }
 
   Future<void> _performAutoSave(String tabId) async {
     final tab = state.tabs.where((t) => t.id == tabId).firstOrNull;
     if (tab == null || tab.filePath == null || !tab.isModified) return;
     try {
-      await FileService.saveDocument(tab.filePath!, tab.content,
-          lineEnding: tab.lineEnding);
+      _selfWritten.add(tab.filePath!);
+      await FileService.saveDocument(
+        tab.filePath!,
+        tab.content,
+        lineEnding: tab.lineEnding,
+      );
       markSaved(tabId);
     } catch (_) {
       // Left marked as modified so the close confirmation still fires and the
