@@ -177,7 +177,9 @@ class TabNotifier extends StateNotifier<TabState> {
       await File(tab.filePath!).writeAsString(tab.content);
       markSaved(tabId);
     } catch (_) {
-      // Auto-save failed silently
+      // Left marked as modified so the close confirmation still fires and the
+      // status bar keeps showing the dot: a silent success here would tell the
+      // user their work was written when it was not.
     }
   }
 

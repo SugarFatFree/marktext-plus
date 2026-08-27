@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import '../../core/i18n/l10n/app_localizations.dart';
@@ -9,8 +10,98 @@ import '../../models/tab_info.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/tab_provider.dart';
 
+/// What the user chose when asked about unsaved work.
+enum _UnsavedChoice { cancel, discard, save }
+
 class EditorTabBar extends ConsumerWidget {
   const EditorTabBar({super.key});
+
+  /// Closes [tab], asking first when it has unsaved changes.
+  ///
+  /// Closing used to discard the tab outright. That is survivable for a file
+  /// on disk, which auto-save has usually written by then, but a new document
+  /// has no path — auto-save skips it entirely — so its contents were lost for
+  /// good with nothing asked and nothing said.
+  Future<void> _closeTab(
+    BuildContext context,
+    WidgetRef ref,
+    TabInfo tab,
+  ) async {
+    if (!tab.isModified) {
+      ref.read(tabProvider.notifier).removeTab(tab.id);
+      return;
+    }
+
+    final choice = await _askAboutUnsavedChanges(context, tab);
+    if (choice == null || choice == _UnsavedChoice.cancel) return;
+
+    if (choice == _UnsavedChoice.save) {
+      final saved = await _saveTab(ref, tab);
+      // Abandoning the save location prompt means abandoning the close too.
+      if (!saved) return;
+    }
+
+    ref.read(tabProvider.notifier).removeTab(tab.id);
+  }
+
+  Future<_UnsavedChoice?> _askAboutUnsavedChanges(
+    BuildContext context,
+    TabInfo tab,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    return showDialog<_UnsavedChoice>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.unsavedChanges),
+        content: Text('${tab.fileName}\n\n${l10n.unsavedChangesMessage}'),
+        actions: [
+          TextButton(
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(_UnsavedChoice.cancel),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(_UnsavedChoice.discard),
+            child: Text(l10n.dontSave),
+          ),
+          FilledButton(
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(_UnsavedChoice.save),
+            child: Text(l10n.save),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Writes [tab] to disk, prompting for a location if it has never had one.
+  ///
+  /// Returns false when the user cancels that prompt or the write fails.
+  Future<bool> _saveTab(WidgetRef ref, TabInfo tab) async {
+    var path = tab.filePath;
+
+    if (path == null) {
+      path = await FilePicker.platform.saveFile(
+        dialogTitle: 'Save As',
+        fileName: tab.fileName,
+        type: FileType.custom,
+        allowedExtensions: ['md', 'markdown', 'txt'],
+      );
+      if (path == null) return false;
+    }
+
+    try {
+      await File(path).writeAsString(tab.content);
+    } catch (_) {
+      // Closing on a failed write would lose the content the save was meant
+      // to protect.
+      return false;
+    }
+
+    ref.read(tabProvider.notifier).markSaved(tab.id);
+    return true;
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -48,7 +139,7 @@ class EditorTabBar extends ConsumerWidget {
                     isActive: isActive,
                     tokens: tokens,
                     onTap: () => ref.read(tabProvider.notifier).setActiveTab(tab.id),
-                    onClose: () => ref.read(tabProvider.notifier).removeTab(tab.id),
+                    onClose: () => _closeTab(context, ref, tab),
                   ),
                 );
               },
