@@ -801,4 +801,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get updateCheckFailed => '检查更新失败';
+
+  @override
+  String get linkOpenFailed => '无法打开链接';
 }

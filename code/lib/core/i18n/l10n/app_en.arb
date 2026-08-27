@@ -355,5 +355,9 @@
   "updateCheckFailed": "Could not check for updates",
   "@updateCheckFailed": {
     "description": "Shown when a manual update check could not reach the server"
+  },
+  "linkOpenFailed": "Could not open the link",
+  "@linkOpenFailed": {
+    "description": "Shown when a link in the preview cannot be opened"
   }
 }

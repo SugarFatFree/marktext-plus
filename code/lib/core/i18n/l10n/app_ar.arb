@@ -283,5 +283,6 @@
   "previewCopyAsHtmlSuccess": "تم النسخ بصيغة HTML. يمكنك الآن اللصق في Word/WPS مع الحفاظ على التنسيق.",
   "previewCopyAsHtmlTooltip": "نسخ بصيغة HTML (لـ Word/WPS)",
   "updateAvailable": "يتوفر إصدار جديد",
-  "updateDismiss": "تجاهل"
+  "updateDismiss": "تجاهل",
+  "linkOpenFailed": "تعذّر فتح الرابط"
 }

@@ -806,4 +806,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get updateCheckFailed => 'تعذّر التحقق من التحديثات';
+
+  @override
+  String get linkOpenFailed => 'تعذّر فتح الرابط';
 }

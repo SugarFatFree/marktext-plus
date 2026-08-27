@@ -804,4 +804,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get updateCheckFailed => '업데이트를 확인하지 못했습니다';
+
+  @override
+  String get linkOpenFailed => '링크를 열 수 없습니다';
 }

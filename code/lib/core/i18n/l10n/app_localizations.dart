@@ -1690,6 +1690,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not check for updates'**
   String get updateCheckFailed;
+
+  /// Shown when a link in the preview cannot be opened
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open the link'**
+  String get linkOpenFailed;
 }
 
 class _AppLocalizationsDelegate

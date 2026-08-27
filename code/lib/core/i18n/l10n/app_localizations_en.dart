@@ -807,4 +807,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updateCheckFailed => 'Could not check for updates';
+
+  @override
+  String get linkOpenFailed => 'Could not open the link';
 }

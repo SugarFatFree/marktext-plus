@@ -30,6 +30,7 @@
 | BUG-026 | 2026-08-28 | 甘特图 `until` 画成零长条，`after a1 a2` 多依赖失效 | P2 | 已修复 |
 | BUG-027 | 2026-08-28 | showcase 图表数量断言没跟上 fixture 新增块（CI 变红） | P3 | 已修复 |
 | BUG-028 | 2026-08-28 | 配置保存失败会抛出未捕获的异步异常 | P1 | 已修复 |
+| BUG-029 | 2026-08-28 | 预览里点链接失败会抛出未捕获异常，且没有任何提示 | P2 | 已修复 |
 
 ## 详细记录
 
@@ -543,5 +544,24 @@
 | 涉及文件 | `lib/core/config/config_service.dart`、`test/core/config/config_service_test.dart`、`test/providers/tab_reload_test.dart` |
 | 验证方式 | 用真实源码在沙盘跑 5 个场景：正常保存 / 目录位置被文件占住 / `pending` 后确已落盘 / 失败后再保存能恢复并清空记录 / **CI 上那个「目录中途消失」的原始竞态**；新增 3 条仓库测试 |
 | 暂未做（明确记录） | 失败没有向用户提示。当前没有错误通道，加提示要动 Riverpod 到 UI 的一整条链。`lastSaveError` 留作可检查点，将来接提示可直接读 |
+
+---
+
+### BUG-029 预览里点链接失败会抛出未捕获异常，且没有任何提示
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-28 |
+| 优先级 | P2 |
+| 状态 | 已修复 |
+| 怎么发现的 | 承 BUG-028，把「返回 Future 却没人 await」的调用点在全仓扫了一遍（脚本先收集所有返回 `Future` 的方法名，再找没有 `await` / `.then` 的调用行），逐个看方法体里有没有 try |
+| 扫描结果 | 15 个即发即忘的调用点里，`_save`、`_performAutoSave`、`_saveAsImage`、`_preventCloseWhileUnsaved` 内部已有保护；`listDirectory` 已捕获 `FileSystemException`，所以 `_refreshTree` 安全；`checkForUpdate` 整体包了 try 并用 `reachable` 表达失败。**只有 `_openLink` 完全裸奔** |
+| 现象 | 预览里点一个链接，如果打不开，异常会以未捕获异步错误的形式冒出来，界面上**没有任何反馈** |
+| 三条会抛的路径（均已实测） | ① `Uri.parse('http://[bad')` 与 `Uri.parse('https://x.com:notaport')` 抛 `FormatException` —— 都是文档里很正常的笔误；② `launchUrl` 在桌面没有注册该协议处理程序时抛（裸 Linux、Windows 上协议未关联）；③ 相对路径分支里读邻近文件可能因权限失败 |
+| 修复方案 | 拆成 `_openLink`（外层 try）+ `_followLink`（实际动作）。`Uri.parse` 换 `Uri.tryParse` 并判空，`launchUrl` 返回 false 也视为失败。失败时弹 SnackBar 提示 |
+| 新增文案 | `linkOpenFailed`，**12 种语言全部给了译文**，`.arb` 与已入库的生成代码同时更新（pt_BR 走 `AppLocalizationsPtBr` 子类覆写）。每份 arb 的 diff 只有 +1/−1 行 |
+| 顺带补的守卫 | 新增 `test/core/i18n/l10n_coverage_test.dart`：① 12 种语言键集与英文完全一致；② 每个键在生成的抽象类里有声明；③ 每种语言的生成代码都实现了每个键；④ 没有哪种语言整体是英文原文。**BUG-020（十种语言缺 12 条文案、界面直接显示英文）这类问题今后会在 CI 上当场暴露**。带占位符的消息生成的是方法而非 getter，两种写法都算数 |
+| 涉及文件 | `lib/ui/editor/markdown_renderer.dart`、12 份 `app_*.arb`、12 份 `app_localizations*.dart`、`test/core/i18n/l10n_coverage_test.dart`（新增） |
+| 验证方式 | 10 个 href 实测确认哪些会让 `Uri.parse` 抛、`Uri.tryParse` 对同样输入返回 null；12 份 arb 改写后逐份 `json.loads` 复验，并逐键比对**原有条目一个没少、一个没改**；新测试的五条断言先用等价的 Python 逻辑在真实文件上跑通（含发现「参数化消息生成的是方法不是 getter」这个坑）再落库 |
 
 ---

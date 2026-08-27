@@ -809,4 +809,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get updateCheckFailed => 'Suche nach Updates fehlgeschlagen';
+
+  @override
+  String get linkOpenFailed => 'Link konnte nicht geöffnet werden';
 }

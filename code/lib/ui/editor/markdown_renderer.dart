@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/i18n/l10n/app_localizations.dart';
 import '../../core/config/app_config.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/tab_info.dart';
@@ -173,9 +174,35 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     _recognizers.clear();
   }
 
+  /// Follows a link from the preview: a web address in the browser, a relative
+  /// path as a new tab.
+  ///
+  /// Everything here can fail on input the document is free to contain.
+  /// `Uri.parse` throws on `http://[bad` and on a non-numeric port,
+  /// `launchUrl` throws when the desktop has no handler registered for the
+  /// scheme, and reading a neighbouring file can fail on permissions. None of
+  /// the three call sites awaits this, so a throw used to escape as an
+  /// unhandled asynchronous error with nothing shown to the person clicking.
   Future<void> _openLink(String href) async {
+    try {
+      await _followLink(href);
+    } catch (_) {
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
+      if (l10n == null) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.linkOpenFailed)),
+      );
+    }
+  }
+
+  Future<void> _followLink(String href) async {
     if (href.startsWith('http://') || href.startsWith('https://')) {
-      await launchUrl(Uri.parse(href), mode: LaunchMode.externalApplication);
+      final uri = Uri.tryParse(href);
+      if (uri == null) throw FormatException('not a URI', href);
+      final launched =
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched) throw StateError('no handler for $href');
       return;
     }
 

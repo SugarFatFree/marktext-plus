@@ -810,4 +810,7 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get updateCheckFailed => 'Impossibile verificare gli aggiornamenti';
+
+  @override
+  String get linkOpenFailed => 'Impossibile aprire il collegamento';
 }

@@ -808,4 +808,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get updateCheckFailed => 'Не удалось проверить обновления';
+
+  @override
+  String get linkOpenFailed => 'Не удалось открыть ссылку';
 }

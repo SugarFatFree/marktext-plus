@@ -804,4 +804,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get updateCheckFailed => '更新を確認できませんでした';
+
+  @override
+  String get linkOpenFailed => 'リンクを開けませんでした';
 }

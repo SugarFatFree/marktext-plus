@@ -283,5 +283,6 @@
   "previewCopyAsHtmlSuccess": "Copiato come HTML. Ora puoi incollarlo in Word/WPS mantenendo la formattazione.",
   "previewCopyAsHtmlTooltip": "Copia come HTML (per Word/WPS)",
   "updateAvailable": "Nuova versione disponibile",
-  "updateDismiss": "Ignora"
+  "updateDismiss": "Ignora",
+  "linkOpenFailed": "Impossibile aprire il collegamento"
 }

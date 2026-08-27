@@ -810,4 +810,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get updateCheckFailed => 'No se pudo buscar actualizaciones';
+
+  @override
+  String get linkOpenFailed => 'No se pudo abrir el enlace';
 }

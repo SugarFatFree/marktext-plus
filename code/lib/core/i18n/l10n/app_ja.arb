@@ -283,5 +283,6 @@
   "previewCopyAsHtmlSuccess": "HTML としてコピーしました。Word/WPS に書式付きで貼り付けられます。",
   "previewCopyAsHtmlTooltip": "HTML としてコピー（Word/WPS 用）",
   "updateAvailable": "新しいバージョンがあります",
-  "updateDismiss": "閉じる"
+  "updateDismiss": "閉じる",
+  "linkOpenFailed": "リンクを開けませんでした"
 }
