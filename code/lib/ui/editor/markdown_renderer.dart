@@ -697,6 +697,10 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       md.FrontMatterNode() => _buildFrontMatter(node, theme),
       md.FootnoteDefinitionNode() => _buildFootnoteDefinition(node, theme),
       md.HtmlBlockNode() => _buildHtmlBlock(node, theme),
+      // MarkdownNode is not sealed, so the analyser cannot see that the cases
+      // above are all of its subtypes. Showing the source beats dropping the
+      // content if a new kind of node ever turns up here.
+      _ => Text(node.rawContent, style: _defaultTextStyle),
     };
   }
 
