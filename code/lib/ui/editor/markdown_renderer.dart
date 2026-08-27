@@ -655,7 +655,13 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
 
   Widget _buildBlockquote(md.BlockquoteNode node, ThemeData theme, AppThemeTokens tokens) {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
+      // Nested quotes step in, so `>>` reads as being inside `>` rather than
+      // sitting beside it.
+      margin: EdgeInsets.only(
+        left: node.depth * 20.0,
+        top: 8,
+        bottom: 8,
+      ),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         border: Border(

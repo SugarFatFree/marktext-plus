@@ -38,6 +38,7 @@
 | BUG-029 | 2026-08-27 | 导出的 HTML 中本地图片全部失效（相对路径不再成立） | P1 | 已修复 |
 | BUG-030 | 2026-08-27 | 导出的 PDF 中图片完全不显示，只剩替代文字 | P1 | 已修复 |
 | BUG-031 | 2026-08-27 | 导出的 Word 中图片不显示；mermaid 图表被拉伸变形 | P1 | 已修复 |
+| BUG-032 | 2026-08-27 | 嵌套引用层级丢失，内层 `>` 作为字面文字显示 | P2 | 已修复 |
 
 ---
 
@@ -477,3 +478,17 @@
 | 根因分析 | 与 BUG-030 同源：`docx_creator` 的 `DocxImage` 早已在用（mermaid 走的就是它），文档图片却没接上。变形则是因为调用处把 `width: 400, height: 300` 写死 |
 | 修复方案 | `exportToDocx` 接收 `sourcePath`，复用 `_readLocalImages`；仅含一个图片 span 的段落整段渲染为 `DocxImage`。<br>新增 `_imageSize` 从**文件头**读取真实像素尺寸：PNG 取 IHDR（偏移 16..24），GIF 取逻辑屏幕描述符（小端），JPEG 扫描至 SOF 段。如此无需引入图像解码包即可保持宽高比。`_fittedImageSize` 在此基础上限制最大宽度 450pt（A4 可打印宽度），mermaid 图表一并受益 |
 | 涉及文件 | `lib/services/export_service.dart`、`lib/ui/widgets/app_menu_bar.dart`、`test/services/export_image_test.dart` |
+
+---
+
+## BUG-032 嵌套引用层级丢失
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P2 |
+| 状态 | 已修复 |
+| 现象 | `>> 内层引用` 渲染时层级消失，且多出来的 `>` 作为**字面文字**显示在引用内容里 |
+| 根因分析 | `_blockquoteRe` 为 `^>\s?(.*)$`，只剥一个 `>`，剩下的 `> 内层` 被当作正文；`BlockquoteNode` 也没有承载层级的字段 |
+| 修复方案 | 正则改为 `^(>+)\s?(.*)$` 捕获标记串长度作为层级。连续同层级的行合并为一个 `BlockquoteNode`，层级变化即另起一个节点 —— 完整的递归容器模型改动过大，而按层级切分足以正确表达嵌套且改动可控。预览按 depth 缩进；HTML 导出以**嵌套 `<blockquote>`** 表达（这正是 HTML 表示「引用中的引用」的方式），PDF 与 Word 按 depth 缩进 |
+| 涉及文件 | `lib/services/markdown_parser.dart`、`lib/ui/editor/markdown_renderer.dart`、`lib/services/export_service.dart`、`test/services/markdown_parser_test.dart` |

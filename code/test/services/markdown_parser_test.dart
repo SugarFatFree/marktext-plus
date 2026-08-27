@@ -6,6 +6,7 @@ void main() {
   setUp(() => parser = MarkdownParser());
 
   _sourceSpanTests();
+  _nestedQuoteTests();
   _setextAndIndentedCodeTests();
   _nestedListTests();
   _inlineEdgeCaseTests();
@@ -456,6 +457,32 @@ void _setextAndIndentedCodeTests() {
     test('an indented list item is a nested list, not code', () {
       final nodes = parser.parse('- one\n    - nested\n');
       expect(nodes.single.type, NodeType.unorderedList);
+    });
+  });
+}
+
+void _nestedQuoteTests() {
+  group('Nested blockquotes', () {
+    late MarkdownParser parser;
+    setUp(() => parser = MarkdownParser());
+
+    test('a deeper quote becomes its own node', () {
+      // Stripping one `>` and keeping the rest as text left the inner marker
+      // showing as a literal `>` in the rendered quote.
+      final nodes = parser.parse('> outer\n>> inner\n> outer again\n');
+
+      expect(nodes.length, 3);
+      final quotes = nodes.cast<BlockquoteNode>();
+      expect(quotes.map((q) => q.depth).toList(), [0, 1, 0]);
+      expect(quotes[1].content, 'inner');
+      expect(quotes[1].content, isNot(contains('>')));
+    });
+
+    test('consecutive lines at one depth stay a single quote', () {
+      final nodes = parser.parse('> a\n> b\n');
+      final quote = nodes.single as BlockquoteNode;
+      expect(quote.depth, 0);
+      expect(quote.content, 'a\nb');
     });
   });
 }

@@ -152,10 +152,20 @@ class ListNode extends MarkdownNode {
   String get rawContent => items.map((i) => i.content).join('\n');
 }
 class BlockquoteNode extends MarkdownNode {
+  /// Nesting level, 0 for a top-level quote.
+  ///
+  /// A quote containing a deeper quote is emitted as consecutive nodes rather
+  /// than nested ones: `> a` then `>> b` gives depth 0 and depth 1.
+  final int depth;
+
   final String content;
   final List<InlineSpan> inlineSpans;
 
-  BlockquoteNode({required this.content, required this.inlineSpans});
+  BlockquoteNode({
+    required this.content,
+    required this.inlineSpans,
+    this.depth = 0,
+  });
 
   @override
   NodeType get type => NodeType.blockquote;
@@ -241,7 +251,7 @@ class MarkdownParser {
   static final _codeFenceEndRe = RegExp(r'^\s*```\s*$');
   static final _mathBlockRe = RegExp(r'^\$\$\s*$');
   static final _taskRe = RegExp(r'^\[( |x)\]\s+(.+)$');
-  static final _blockquoteRe = RegExp(r'^>\s?(.*)$');
+  static final _blockquoteRe = RegExp(r'^(>+)\s?(.*)$');
   static final _ulRe = RegExp(r'^[\s]*[-*+]\s+(.+)$');
   static final _olRe = RegExp(r'^[\s]*\d+\.\s+(.+)$');
   static final _tableRowRe = RegExp(r'^\|(.+)\|$');
@@ -606,23 +616,29 @@ class MarkdownParser {
       // Blockquote
       final bqMatch = _blockquoteRe.firstMatch(line);
       if (bqMatch != null) {
+        // Consecutive lines at the same depth form one quote; a change in
+        // depth starts another. Stripping a single `>` and keeping the rest as
+        // text left the inner marker showing as literal `>`.
+        final depth = bqMatch.group(1)!.length;
+        final quoteStart = i;
         final bqLines = <String>[];
+
         while (i < lines.length) {
           final m = _blockquoteRe.firstMatch(lines[i]);
-          if (m != null) {
-            bqLines.add(m.group(1) ?? '');
-            i++;
-          } else {
-            break;
-          }
+          if (m == null || m.group(1)!.length != depth) break;
+          bqLines.add(m.group(2) ?? '');
+          i++;
         }
+
         final content = bqLines.join('\n').trim();
         nodes.add(_withSpan(
           BlockquoteNode(
             content: content,
             inlineSpans: parseInline(content),
+            // Depth counts from zero for a single `>`.
+            depth: depth - 1,
           ),
-          blockStart,
+          quoteStart,
           i,
         ));
         continue;

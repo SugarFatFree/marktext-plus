@@ -420,7 +420,7 @@ class ExportService {
         // paragraph's border, indent and shading below.
         return builder.add(DocxParagraph(
           children: _inlineSpansToDocxTexts(quote.inlineSpans),
-          indentLeft: 720,
+          indentLeft: 720 + quote.depth * 360,
           spacingAfter: 240,
           borderLeft: DocxBorderSide(
             style: DocxBorder.single,
@@ -558,7 +558,11 @@ class ExportService {
         final quote = node as BlockquoteNode;
         final content =
             _inlineSpansToHtml(quote.inlineSpans, inlinedImages: inlinedImages);
-        return '<blockquote>\n<p>$content</p>\n</blockquote>';
+        // Depth is expressed by nesting, which is how HTML says "a quote
+        // inside a quote"; a flat blockquote would lose the level.
+        final open = '<blockquote>' * (quote.depth + 1);
+        final close = '</blockquote>' * (quote.depth + 1);
+        return '$open\n<p>$content</p>\n$close';
 
       case NodeType.horizontalRule:
         return '<hr>';
@@ -1003,7 +1007,10 @@ class ExportService {
         final quote = node as BlockquoteNode;
         return [
           pw.Container(
-            margin: pw.EdgeInsets.only(bottom: _pdfSpaceAfter),
+            margin: pw.EdgeInsets.only(
+              left: quote.depth * 16.0,
+              bottom: _pdfSpaceAfter,
+            ),
             padding: const pw.EdgeInsets.only(left: 12, top: 8, bottom: 8, right: 8),
             decoration: pw.BoxDecoration(
               border: pw.Border(left: pw.BorderSide(color: _pdfQuoteBorder, width: 3)),
