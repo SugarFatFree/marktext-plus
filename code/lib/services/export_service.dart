@@ -187,23 +187,40 @@ class ExportService {
   }
 
   /// Export Markdown to PDF
-  static Future<void> exportToPdf(String markdown, String savePath, {Map<String, Uint8List>? mermaidImages}) async {
+  /// Writes [markdown] to [savePath] as a PDF.
+  ///
+  /// [sourcePath] is the document's own location, needed to resolve relative
+  /// image paths; without it images render as their alt text.
+  static Future<void> exportToPdf(
+    String markdown,
+    String savePath, {
+    Map<String, Uint8List>? mermaidImages,
+    String? sourcePath,
+  }) async {
     final parser = MarkdownParser();
     final ast = parser.parse(markdown);
 
+    final documentImages = await _readLocalImages(ast, sourcePath);
     final fontFallbacks = await _loadSystemFonts();
     final primaryFont = fontFallbacks.isNotEmpty ? fontFallbacks.first : null;
 
     try {
-      final bytes = await _buildPdf(ast, primaryFont, fontFallbacks, mermaidImages);
+      final bytes = await _buildPdf(
+          ast, primaryFont, fontFallbacks, mermaidImages, documentImages);
       await File(savePath).writeAsBytes(bytes);
     } catch (e) {
-      final bytes = await _buildPdf(ast, null, [], mermaidImages);
+      final bytes = await _buildPdf(ast, null, [], mermaidImages, documentImages);
       await File(savePath).writeAsBytes(bytes);
     }
   }
 
-  static Future<List<int>> _buildPdf(List<MarkdownNode> ast, pw.Font? primaryFont, List<pw.Font> fontFallbacks, Map<String, Uint8List>? mermaidImages) async {
+  static Future<List<int>> _buildPdf(
+    List<MarkdownNode> ast,
+    pw.Font? primaryFont,
+    List<pw.Font> fontFallbacks,
+    Map<String, Uint8List>? mermaidImages,
+    Map<String, ({Uint8List bytes, String mime})> documentImages,
+  ) async {
     final pdf = pw.Document();
 
     pdf.addPage(
@@ -223,7 +240,13 @@ class ExportService {
             if (mermaidKey != null && mermaidImages != null) {
               img = mermaidImages[mermaidKey];
             }
-            widgets.addAll(_nodeToPdfWidgets(node, primaryFont: primaryFont, fontFallbacks: fontFallbacks, mermaidImage: img));
+            widgets.addAll(_nodeToPdfWidgets(
+              node,
+              primaryFont: primaryFont,
+              fontFallbacks: fontFallbacks,
+              mermaidImage: img,
+              documentImages: documentImages,
+            ));
           }
           return widgets;
         },
@@ -716,7 +739,13 @@ class ExportService {
     }).toList();
   }
 
-  static List<pw.Widget> _nodeToPdfWidgets(MarkdownNode node, {pw.Font? primaryFont, List<pw.Font> fontFallbacks = const [], Uint8List? mermaidImage}) {
+  static List<pw.Widget> _nodeToPdfWidgets(
+    MarkdownNode node, {
+    pw.Font? primaryFont,
+    List<pw.Font> fontFallbacks = const [],
+    Uint8List? mermaidImage,
+    Map<String, ({Uint8List bytes, String mime})> documentImages = const {},
+  }) {
     switch (node.type) {
       case NodeType.heading:
         final heading = node as HeadingNode;
@@ -757,6 +786,24 @@ class ExportService {
 
       case NodeType.paragraph:
         final para = node as ParagraphNode;
+
+        // A paragraph that is nothing but an image renders as the picture.
+        // Images mixed into a sentence stay as their alt text: the pdf
+        // package's rich text cannot place a widget mid-line, and SVG is not
+        // something MemoryImage can decode.
+        if (para.inlineSpans.length == 1 &&
+            para.inlineSpans.single.type == InlineType.image) {
+          final image = documentImages[para.inlineSpans.single.href];
+          if (image != null && image.mime != 'image/svg+xml') {
+            return [
+              pw.Padding(
+                padding: pw.EdgeInsets.only(bottom: _pdfSpaceAfter),
+                child: pw.Image(pw.MemoryImage(image.bytes)),
+              ),
+            ];
+          }
+        }
+
         return [
           pw.Padding(
             padding: pw.EdgeInsets.only(bottom: _pdfSpaceAfter),
@@ -1089,13 +1136,30 @@ class ExportService {
     '.svg': 'image/svg+xml',
   };
 
-  /// Reads local images referenced by [ast] and returns data URIs keyed by the
-  /// `src` they were written with.
+  /// Data URIs for the local images in [ast], keyed by their original `src`.
   ///
   /// Exported HTML is normally moved or sent on, where a relative path no
   /// longer resolves and every image breaks. Inlining keeps the file
-  /// self-contained. Remote URLs are left alone.
+  /// self-contained.
   static Future<Map<String, String>> _collectInlineImages(
+    List<MarkdownNode> ast,
+    String? sourcePath,
+  ) async {
+    final images = await _readLocalImages(ast, sourcePath);
+    return images.map(
+      (src, image) => MapEntry(
+        src,
+        'data:${image.mime};base64,${base64Encode(image.bytes)}',
+      ),
+    );
+  }
+
+  /// Reads the local images referenced by [ast].
+  ///
+  /// Shared by the HTML and PDF exports, which need the same files in
+  /// different forms — a data URI and raw bytes. Remote URLs are left alone.
+  static Future<Map<String, ({Uint8List bytes, String mime})>>
+      _readLocalImages(
     List<MarkdownNode> ast,
     String? sourcePath,
   ) async {
@@ -1119,7 +1183,7 @@ class ExportService {
       }
     }
 
-    final inlined = <String, String>{};
+    final images = <String, ({Uint8List bytes, String mime})>{};
     for (final src in sources) {
       if (src.startsWith('http://') ||
           src.startsWith('https://') ||
@@ -1139,14 +1203,13 @@ class ExportService {
         final mime = _imageMimeTypes[extension];
         if (mime == null) continue;
 
-        final bytes = await file.readAsBytes();
-        inlined[src] = 'data:$mime;base64,${base64Encode(bytes)}';
+        images[src] = (bytes: await file.readAsBytes(), mime: mime);
       } catch (_) {
         // An unreadable image just stays a path.
       }
     }
 
-    return inlined;
+    return images;
   }
 
   /// Resolves [src] against the document's own directory.

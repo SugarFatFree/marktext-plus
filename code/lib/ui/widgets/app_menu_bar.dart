@@ -829,7 +829,12 @@ class AppMenuBar extends ConsumerWidget {
     );
     if (path == null) return;
     final mermaidImages = await _renderMermaidImages(activeTab.content);
-    await ExportService.exportToPdf(activeTab.content, path, mermaidImages: mermaidImages);
+    await ExportService.exportToPdf(
+      activeTab.content,
+      path,
+      mermaidImages: mermaidImages,
+      sourcePath: activeTab.filePath,
+    );
   }
 
   void _exportWord(WidgetRef ref) async {

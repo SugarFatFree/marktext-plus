@@ -36,6 +36,7 @@
 | BUG-027 | 2026-08-27 | 导出时表格单元格丢失行内格式，`**粗体**` 原样输出 | P2 | 已修复 |
 | BUG-028 | 2026-08-27 | 导出的 HTML 不渲染数学公式，代码块无语法高亮 | P2 | 已修复 |
 | BUG-029 | 2026-08-27 | 导出的 HTML 中本地图片全部失效（相对路径不再成立） | P1 | 已修复 |
+| BUG-030 | 2026-08-27 | 导出的 PDF 中图片完全不显示，只剩替代文字 | P1 | 已修复 |
 
 ---
 
@@ -447,3 +448,17 @@
 | 根因分析 | `<img src="$src">` 直接沿用原始相对路径，而该路径是相对**原文档目录**的。导出的 HTML 通常会被移动或转发，相对路径随即失效。<br>原文档路径其实是已知的（`activeTab.filePath`），只是 `exportToHtml` 的签名里没有这个参数 |
 | 修复方案 | `exportToHtml` 新增可选的 `sourcePath`，导出前扫描 AST 收集本地图片、读入并转为 `data:` URI 内联，使 HTML 自包含。远程 URL 与已有的 `data:` 保持原样；单张超过 8 MB 的图片不内联（base64 会膨胀约三分之一，避免生成打不开的文件）；文件缺失或不可读时退回原路径，不让导出失败。<br>**细节**：data URI **不可**再经 `_escapeHtml`，否则 base64 尾部的 `=` 会变成实体而损坏图片 |
 | 涉及文件 | `lib/services/export_service.dart`、`lib/ui/widgets/app_menu_bar.dart`、`test/services/export_image_test.dart` |
+
+---
+
+## BUG-030 导出的 PDF 不显示图片
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-27 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+| 现象 | 文档中的图片导出 PDF 后完全消失，位置上只留下替代文字 |
+| 根因分析 | `_inlineSpansToPdf` 的 `InlineType.image` 分支只回传 `pw.TextSpan(text: alt)`。PDF 侧其实**已经具备嵌图能力** —— mermaid 图表正是通过 `pw.Image(pw.MemoryImage(bytes))` 嵌入的，只是文档图片从未接上这条路 |
+| 修复方案 | `exportToPdf` 同样接收 `sourcePath`，复用 BUG-029 新增的图片读取逻辑（抽出 `_readLocalImages` 返回字节与 MIME，HTML 侧再转 data URI，两条导出路径共用同一次文件读取）。段落若**仅含一个图片 span**，整段渲染为 `pw.Image`。<br>**未覆盖**：混在句子中间的行内图片仍显示替代文字 —— pdf 包的富文本无法在行内嵌入 widget；SVG 也跳过，`MemoryImage` 不能解码 |
+| 涉及文件 | `lib/services/export_service.dart`、`lib/ui/widgets/app_menu_bar.dart` |
