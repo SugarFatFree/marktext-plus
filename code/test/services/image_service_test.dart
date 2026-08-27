@@ -84,16 +84,19 @@ void main() {
       expect(await ImageService.storeImage(source, null), source);
     });
 
-    test('a blank folder setting does not create a nameless directory', () async {
-      final link = await ImageService.storeImage(
-        source,
-        doc,
-        mode: ImageStorageMode.folder,
-        folder: '   ',
-      );
+    test(
+      'a blank folder setting does not create a nameless directory',
+      () async {
+        final link = await ImageService.storeImage(
+          source,
+          doc,
+          mode: ImageStorageMode.folder,
+          folder: '   ',
+        );
 
-      expect(link, source);
-    });
+        expect(link, source);
+      },
+    );
 
     test('several images dropped at once do not overwrite each other', () async {
       // The name carries a millisecond timestamp, and copying is faster than
@@ -117,6 +120,28 @@ void main() {
       expect(ImageService.isImageFile('a.webp'), isTrue);
       expect(ImageService.isImageFile('a.md'), isFalse);
       expect(ImageService.isImageFile('a'), isFalse);
+    });
+  });
+  group('Markdown link separators', () {
+    test('a Windows path becomes a URL path', () {
+      // A markdown link is a URL, and a backslash is an escape character
+      // there: `assets\_private\a.png` loses its separator to the escape
+      // rule. Even where it survives, the document only works on the machine
+      // that wrote it.
+      expect(
+        ImageService.toMarkdownSeparators(
+          r'assets\_private\a.png',
+          separator: r'\',
+        ),
+        'assets/_private/a.png',
+      );
+    });
+
+    test('a POSIX path is left alone', () {
+      expect(
+        ImageService.toMarkdownSeparators('assets/a.png', separator: '/'),
+        'assets/a.png',
+      );
     });
   });
 }

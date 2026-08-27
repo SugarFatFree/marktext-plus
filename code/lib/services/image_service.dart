@@ -1,5 +1,6 @@
 import 'dart:io';
-import 'dart:typed_data';
+
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:pasteboard/pasteboard.dart';
@@ -30,7 +31,15 @@ enum ImageStorageMode {
 }
 
 class ImageService {
-  static const _imageExtensions = {'.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp', '.svg'};
+  static const _imageExtensions = {
+    '.png',
+    '.jpg',
+    '.jpeg',
+    '.gif',
+    '.bmp',
+    '.webp',
+    '.svg',
+  };
 
   /// Folder used beside a document when no other folder is configured.
   static const defaultFolder = 'assets/images';
@@ -89,8 +98,7 @@ class ImageService {
     final ext = path.extension(imagePath);
     final baseName = path.basenameWithoutExtension(imagePath);
     final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final targetPath =
-        _unusedPath(directory, '${baseName}_$timestamp', ext);
+    final targetPath = _unusedPath(directory, '${baseName}_$timestamp', ext);
 
     await File(imagePath).copy(targetPath);
     return _linkFor(targetPath, mdFilePath);
@@ -137,12 +145,27 @@ class ImageService {
   /// A relative path computed across drives or roots comes out as a chain of
   /// `..` segments that no longer resolves, so those stay absolute.
   static String _linkFor(String target, String? mdFilePath) {
-    if (mdFilePath == null) return target;
+    if (mdFilePath == null) return toMarkdownSeparators(target);
     final mdDir = path.dirname(mdFilePath);
     if (path.rootPrefix(path.absolute(target)) !=
         path.rootPrefix(path.absolute(mdDir))) {
-      return target;
+      return toMarkdownSeparators(target);
     }
-    return path.relative(target, from: mdDir);
+    return toMarkdownSeparators(path.relative(target, from: mdDir));
   }
+
+  /// Rewrites a filesystem path for use inside a markdown link.
+  ///
+  /// A markdown link is a URL, and Windows' backslash is an escape character
+  /// there: `assets\_private\a.png` loses its separator to the escape rule
+  /// and stops resolving, and even where it survives the document only works
+  /// on the machine that wrote it. Forward slashes resolve on Windows too.
+  ///
+  /// [separator] is a parameter so the Windows behaviour can be tested from
+  /// any platform.
+  @visibleForTesting
+  static String toMarkdownSeparators(
+    String value, {
+    String separator = path.separator,
+  }) => separator == '/' ? value : value.replaceAll(separator, '/');
 }

@@ -308,7 +308,7 @@
 | 保存路径 | 五处 `saveDocument` 调用全部带上 `encoding`（与 `lineEnding` 同样处理） |
 | 涉及文件 | `lib/models/file_encoding.dart`（新增）、`lib/services/file_service.dart`、`lib/models/tab_info.dart`、`lib/providers/tab_provider.dart`、`lib/ui/screens/home_screen.dart`、`lib/ui/widgets/side_bar.dart`、`lib/ui/widgets/app_menu_bar.dart`、`lib/ui/widgets/editor_tab_bar.dart`、`lib/ui/editor/markdown_renderer.dart`、`test/models/file_encoding_test.dart`（新增） |
 | 验证方式 | 先用真实的 GBK / Latin-1 / UTF-16 / UTF-8+BOM 文件确认了「现在会抛异常」这一事实，再验证修复后**五种编码全部逐字节原样回写**；7 个仓库测试 |
-| 状态栏 | 已在换行符指示器旁边加上编码（`UTF-8` / `UTF-8 BOM` / `UTF-16 LE` / `Latin-1`）。这是同一类「文件在磁盘上的事实」，而且**打开后显示为乱码时，这里就是答案** —— 否则用户完全无从判断原因。编码名本身不需要翻译，因此没有新增文案 |
+| 状态栏（顺带发现的第三个问题） | 本想在换行符旁边**新增**一个编码指示器，加完 CI 报状态栏 `Row` 溢出 69 px。查下去才发现状态栏**早就有一个编码位**，而它读的是 `l10n.statusEncoding` —— 每种语言的 arb 里都写着字面量 `"UTF-8"`。也就是说它一直在声称所有文件都是 UTF-8，与之前修掉的「LF 写死」是同一种谎。于是改成**替换**而不是并排新增：显示真实编码（`UTF-8` / `UTF-8 BOM` / `UTF-16 LE` / `Latin-1`），元素个数不变，溢出随之消失。编码名本身不需要翻译 |
 | 仍未做 | 没有真正的 GBK 解码（Dart 无内置编解码器，引第三方包对 CI 构建有风险），所以 GBK 文档显示为乱码而非正确中文 |
 | 过程记录 | CI 挡下一次：`dart:typed_data` 是多余导入，`package:flutter/foundation.dart` 已经把 `Uint8List` 带进来了（本项目 analyze 把 info 也当失败）。与本会话早先 `visibleForTesting` 那次同类 —— **flutter 的 foundation 已经再导出了不少 dart 核心类型** |
 

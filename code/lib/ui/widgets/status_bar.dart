@@ -47,17 +47,16 @@ class StatusBar extends ConsumerWidget {
         children: [
           Text(l10n.statusLine(editorState.cursorLine + 1, editorState.cursorCol + 1), style: style),
           _divider(tokens),
-          Text(l10n.statusEncoding, style: style),
+          // Was `l10n.statusEncoding`, which is the literal string "UTF-8" in
+          // every language file — the same fiction the line ending indicator
+          // used to tell. A document that opened as mojibake is otherwise a
+          // mystery, and "Latin-1" here is the explanation.
+          Text(encoding.label, style: style),
           _divider(tokens),
           Text(l10n.statusMarkdown, style: style),
           _divider(tokens),
           // Was the literal "LF" regardless of what the file actually used.
           Text(lineEnding.label, style: style),
-          _divider(tokens),
-          // Beside the line ending because it is the same kind of fact about
-          // the file on disk — and because a document that opened as mojibake
-          // is otherwise a mystery: "Latin-1" here is the explanation.
-          Text(encoding.label, style: style),
           if (highlightOff) ...[
             _divider(tokens),
             Text(l10n.statusHighlightOff, style: style),
