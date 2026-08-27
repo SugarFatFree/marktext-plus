@@ -612,13 +612,14 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   }
 
   Widget _buildList(md.ListNode node, ThemeData theme) {
+    final markers = md.MarkdownParser.listMarkers(node.items);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           for (var i = 0; i < node.items.length; i++)
-            _buildListItem(node, node.items[i], i, node.ordered, theme),
+            _buildListItem(node, node.items[i], i, markers[i], theme),
         ],
       ),
     );
@@ -628,7 +629,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     md.ListNode listNode,
     md.ListItem item,
     int index,
-    bool ordered,
+    String marker,
     ThemeData theme,
   ) {
     if (item.isTask) {
@@ -662,10 +663,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            ordered ? '${index + 1}. ' : '• ',
-            style: _defaultTextStyle,
-          ),
+          Text(marker, style: _defaultTextStyle),
           Expanded(
             child: Text.rich(
               _buildInlineSpans(item.inlineSpans, theme, _defaultTextStyle),

@@ -2,6 +2,52 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/services/markdown_parser.dart';
 
 void main() {
+  group('Mixed and nested lists', () {
+    final parser = MarkdownParser();
+
+    ListNode listOf(String source) =>
+        parser.parse(source).whereType<ListNode>().first;
+
+    String markersOf(String source) =>
+        MarkdownParser.listMarkers(listOf(source).items).join();
+
+    test('a bulleted sub-point under a numbered step is its own item', () {
+      // Collected with the parent's marker only, the sub-point was absorbed
+      // into the parent's text: "a - b".
+      final items = listOf('1. a\n   - b').items;
+
+      expect(items, hasLength(2));
+      expect(items[0].content, 'a');
+      expect(items[1].content, 'b');
+      expect(items[1].depth, 1);
+    });
+
+    test('an item remembers its own marker', () {
+      final items = listOf('1. a\n   - b').items;
+      expect(items[0].ordered, isTrue);
+      expect(items[1].ordered, isFalse);
+    });
+
+    test('a numbered sub-list under a bullet works too', () {
+      final items = listOf('- a\n  1. b').items;
+      expect(items, hasLength(2));
+      expect(items[1].ordered, isTrue);
+    });
+
+    test('numbering restarts at each level', () {
+      // Counted over the flat list this read 1. 2. 3. 4.
+      expect(markersOf('1. a\n   1. x\n   2. y\n2. b'), '1. 1. 2. 2. ');
+    });
+
+    test('a bulleted sub-list does not consume a number', () {
+      expect(markersOf('1. a\n   - x\n   - y\n2. b'), '1. • • 2. ');
+    });
+
+    test('each parent starts its sub-list from one', () {
+      expect(markersOf('1. a\n   1. x\n2. b\n   1. y'), '1. 1. 2. 1. ');
+    });
+  });
+
   group('Blockquotes hold blocks', () {
     final parser = MarkdownParser();
 

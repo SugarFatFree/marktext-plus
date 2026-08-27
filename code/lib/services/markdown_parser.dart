@@ -132,12 +132,20 @@ class ListItem {
   /// and only the relative depth matters.
   final int depth;
 
+  /// Whether this item carries a number or a bullet.
+  ///
+  /// Per item rather than per list: a numbered step may hold bulleted
+  /// sub-points, and taking the marker from the list meant those sub-points
+  /// came out numbered.
+  final bool ordered;
+
   ListItem({
     required this.content,
     required this.inlineSpans,
     this.isTask = false,
     this.isChecked = false,
     this.depth = 0,
+    this.ordered = false,
   });
 }
 
@@ -477,13 +485,48 @@ class MarkdownParser {
   ///
   /// Lines after the first in a block are continuation lines, joined with a
   /// space — markdown treats a wrapped item as one paragraph.
-  List<ListItem> _buildListItems(List<List<String>> itemBlocks, RegExp itemRe) {
+  /// The marker to draw in front of each of [items].
+  ///
+  /// Numbering runs per nesting level, so a numbered list inside a numbered
+  /// list starts again at one, and a bulleted sub-point does not consume a
+  /// number. Counting over the flat list gave `1. 2. 3.` down a tree that
+  /// should read `1. 1. 2. 2.`.
+  ///
+  /// Shared so the preview and the three export paths cannot disagree.
+  static List<String> listMarkers(List<ListItem> items) {
+    final counters = <int, int>{};
+    return [
+      for (final item in items) _markerFor(item, counters),
+    ];
+  }
+
+  static String _markerFor(ListItem item, Map<int, int> counters) {
+    // Coming back out to a shallower level ends the deeper lists, so the next
+    // parent's sub-list starts from one again.
+    counters.removeWhere((depth, _) => depth > item.depth);
+
+    if (!item.ordered) {
+      // A bullet at this level ends whatever numbering was running here.
+      counters.remove(item.depth);
+      return '• ';
+    }
+
+    final next = (counters[item.depth] ?? 0) + 1;
+    counters[item.depth] = next;
+    return '$next. ';
+  }
+
+  List<ListItem> _buildListItems(List<List<String>> itemBlocks) {
     final widths =
         itemBlocks.map((block) => _indentColumns(block.first)).toSet().toList()
           ..sort();
 
     return itemBlocks.map((block) {
-      final first = itemRe.firstMatch(block.first)!.group(1)!;
+      // Each item is read with its own marker, not the list's: a bulleted
+      // sub-point under a numbered step is still a bullet.
+      final ordered = _olRe.hasMatch(block.first);
+      final marker = ordered ? _olRe : _ulRe;
+      final first = marker.firstMatch(block.first)!.group(1)!;
       final content = block.length == 1
           ? first
           : [first, ...block.skip(1).map((line) => line.trim())].join(' ');
@@ -498,6 +541,7 @@ class MarkdownParser {
           isTask: true,
           isChecked: taskMatch.group(1)!.toLowerCase() == 'x',
           depth: depth,
+          ordered: ordered,
         );
       }
 
@@ -505,6 +549,7 @@ class MarkdownParser {
         content: content,
         inlineSpans: parseInline(content),
         depth: depth,
+        ordered: ordered,
       );
     }).toList();
   }
@@ -517,16 +562,20 @@ class MarkdownParser {
   /// loop would push out of it: a blank line between items, which used to
   /// split one list into two, and an indented continuation line, which used
   /// to become a paragraph wedged between them.
-  (List<List<String>>, int) _collectListItems(
-    List<String> lines,
-    int start,
-    RegExp itemRe,
-  ) {
+  /// Whether [line] starts a list item of either kind.
+  ///
+  /// A numbered step may hold bulleted sub-points and vice versa, so a list
+  /// cannot be collected by looking only for its own marker: the sub-points
+  /// were swallowed into the parent item's text.
+  static bool _startsListItem(String line) =>
+      _ulRe.hasMatch(line) || _olRe.hasMatch(line);
+
+  (List<List<String>>, int) _collectListItems(List<String> lines, int start) {
     final blocks = <List<String>>[];
     var i = start;
 
     while (i < lines.length) {
-      if (itemRe.hasMatch(lines[i])) {
+      if (_startsListItem(lines[i])) {
         blocks.add([lines[i]]);
         i++;
         continue;
@@ -538,7 +587,7 @@ class MarkdownParser {
           next++;
         }
         // The list continues only if what follows the gap is another item.
-        if (next < lines.length && itemRe.hasMatch(lines[next])) {
+        if (next < lines.length && _startsListItem(lines[next])) {
           i = next;
           continue;
         }
@@ -819,10 +868,10 @@ class MarkdownParser {
       }
       // Unordered list
       if (_ulRe.hasMatch(line)) {
-        final (itemBlocks, next) = _collectListItems(lines, i, _ulRe);
+        final (itemBlocks, next) = _collectListItems(lines, i);
         i = next;
         nodes.add(_withSpan(
-          ListNode(ordered: false, items: _buildListItems(itemBlocks, _ulRe)),
+          ListNode(ordered: false, items: _buildListItems(itemBlocks)),
           blockStart,
           i,
         ));
@@ -831,10 +880,10 @@ class MarkdownParser {
 
       // Ordered list
       if (_olRe.hasMatch(line)) {
-        final (itemBlocks, next) = _collectListItems(lines, i, _olRe);
+        final (itemBlocks, next) = _collectListItems(lines, i);
         i = next;
         nodes.add(_withSpan(
-          ListNode(ordered: true, items: _buildListItems(itemBlocks, _olRe)),
+          ListNode(ordered: true, items: _buildListItems(itemBlocks)),
           blockStart,
           i,
         ));

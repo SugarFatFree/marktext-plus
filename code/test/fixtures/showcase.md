@@ -339,3 +339,10 @@ void main() {}
 > ```
 >
 > > and a quote inside a quote
+
+1. A numbered step
+   - with a bulleted sub-point
+   - and another
+2. The next step
+   1. renumbered from one
+   2. inside this step

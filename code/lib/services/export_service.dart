@@ -390,15 +390,15 @@ class ExportService {
         // Built as indented paragraphs rather than through builder.bullet:
         // that takes plain strings, which drops both the inline formatting and
         // the nesting depth.
-        final counters = <int, int>{};
+        // Shared with the preview and the other exports so the four cannot
+        // disagree about what marker an item gets.
+        final markers = MarkdownParser.listMarkers(list.items);
         var result = builder;
-        for (final item in list.items) {
-          counters[item.depth] = (counters[item.depth] ?? 0) + 1;
-          counters.removeWhere((depth, _) => depth > item.depth);
-
-          final marker = list.ordered
-              ? '${counters[item.depth]}. '
-              : (item.isTask ? (item.isChecked ? '☑ ' : '☐ ') : '• ');
+        for (var i = 0; i < list.items.length; i++) {
+          final item = list.items[i];
+          final marker = item.isTask && !item.ordered
+              ? (item.isChecked ? '☑ ' : '☐ ')
+              : markers[i];
 
           result = result.add(DocxParagraph(
             children: [
@@ -643,14 +643,20 @@ class ExportService {
     final tag = list.ordered ? 'ol' : 'ul';
     final buffer = StringBuffer()..writeln('<$tag>');
     var depth = 0;
+    // Each level opens with the tag its own items use: a bulleted sub-list
+    // under a numbered step was coming out as <ol>, so the bullets rendered
+    // as numbers.
+    final openTags = <String>[tag];
 
     for (final item in list.items) {
       while (depth < item.depth) {
-        buffer.writeln('<$tag>');
+        final childTag = item.ordered ? 'ol' : 'ul';
+        buffer.writeln('<$childTag>');
+        openTags.add(childTag);
         depth++;
       }
       while (depth > item.depth) {
-        buffer.writeln('</$tag>');
+        buffer.writeln('</${openTags.removeLast()}>');
         depth--;
       }
 
@@ -663,10 +669,10 @@ class ExportService {
     }
 
     while (depth > 0) {
-      buffer.writeln('</$tag>');
+      buffer.writeln('</${openTags.removeLast()}>');
       depth--;
     }
-    buffer.write('</$tag>');
+    buffer.write('</${openTags.removeLast()}>');
     return buffer.toString();
   }
 
@@ -980,13 +986,10 @@ class ExportService {
         final items = <pw.Widget>[];
         // Numbering counts within a level: a nested ordered list starts at 1
         // again rather than continuing its parent's sequence.
-        final counters = <int, int>{};
+        final markers = MarkdownParser.listMarkers(list.items);
         for (var i = 0; i < list.items.length; i++) {
           final item = list.items[i];
-          counters[item.depth] = (counters[item.depth] ?? 0) + 1;
-          counters.removeWhere((depth, _) => depth > item.depth);
-          final marker =
-              list.ordered ? '${counters[item.depth]}. ' : '• ';
+          final marker = markers[i];
           final checkbox = item.isTask ? (item.isChecked ? '☑ ' : '☐ ') : '';
           items.add(
             pw.Padding(
