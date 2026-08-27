@@ -832,10 +832,16 @@ class MarkdownParser {
       if (codeFenceMatch != null && !_ulRe.hasMatch(line)) {
         final fence = codeFenceMatch.group(1)!;
         final lang = codeFenceMatch.group(2) ?? '';
+        // A fence indented under a list item indents its content by the same
+        // amount, and that indentation belongs to the list, not to the code.
+        // Left in, every line of a snippet inside a numbered step came out
+        // shifted right by three spaces. `_stripIndent` takes *up to* that
+        // much, so a line indented less keeps what it has.
+        final fenceIndent = _indentColumns(line);
         final codeLines = <String>[];
         i++;
         while (i < lines.length && !_closesFence(lines[i], fence)) {
-          codeLines.add(lines[i]);
+          codeLines.add(_stripIndent(lines[i], fenceIndent));
           i++;
         }
         if (i < lines.length) i++; // skip closing fence

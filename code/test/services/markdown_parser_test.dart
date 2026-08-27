@@ -470,6 +470,44 @@ void main() {
     });
   });
 
+  group('Indented fenced code blocks', () {
+    final parser = MarkdownParser();
+
+    CodeBlockNode codeOf(String source) =>
+        parser.parse(source).whereType<CodeBlockNode>().first;
+
+    test('a fence indented under a list item loses that indentation', () {
+      // Every line of a snippet inside a numbered step came out shifted right
+      // by the three spaces that put the fence under the item.
+      const doc =
+          '1. Step\n'
+          '\n'
+          '   ```dart\n'
+          '   void main() {\n'
+          '     print(1);\n'
+          '   }\n'
+          '   ```\n';
+
+      expect(codeOf(doc).code, 'void main() {\n  print(1);\n}');
+    });
+
+    test('an unindented fence is untouched', () {
+      const doc = '```dart\nvoid main() {\n  print(1);\n}\n```';
+      expect(codeOf(doc).code, 'void main() {\n  print(1);\n}');
+    });
+
+    test('a line indented less than the fence keeps what it has', () {
+      // Stripping exactly the fence width would eat characters off the front.
+      const doc = '  ```\n  a\nb\n  c\n  ```';
+      expect(codeOf(doc).code, 'a\nb\nc');
+    });
+
+    test('a blank line inside the block stays blank', () {
+      const doc = '   ```\n   a\n\n   b\n   ```';
+      expect(codeOf(doc).code, 'a\n\nb');
+    });
+  });
+
   group('Ordered list start number', () {
     final parser = MarkdownParser();
 
