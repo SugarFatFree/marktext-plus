@@ -274,10 +274,12 @@ class ExportService {
 
       case NodeType.blockquote:
         final quote = node as BlockquoteNode;
+        // Through the parsed spans, not quote.content: the raw content still
+        // carries the markdown syntax, so `**bold**` reached Word with its
+        // asterisks showing. The quote still reads as a quote from the
+        // paragraph's border, indent and shading below.
         return builder.add(DocxParagraph(
-          children: [
-            DocxText(quote.content, fontStyle: DocxFontStyle.italic, color: DocxColor('#6a737d')),
-          ],
+          children: _inlineSpansToDocxTexts(quote.inlineSpans),
           indentLeft: 720,
           spacingAfter: 240,
           borderLeft: DocxBorderSide(
@@ -355,7 +357,25 @@ class ExportService {
           return DocxText(span.text, isSuperscript: true);
         case InlineType.subscript:
           return DocxText(span.text, isSubscript: true);
-        default:
+        case InlineType.highlight:
+          // Word has no ==highlight== equivalent, but shading is what the code
+          // branch above already uses to tint a run's background.
+          return DocxText(span.text, shadingFill: 'fff3a3');
+        case InlineType.footnoteRef:
+          // Not a real Word footnote — a real one needs a footnotes part — but
+          // superscript at least keeps the marker readable as a reference.
+          return DocxText(span.text, isSuperscript: true);
+        case InlineType.mathInline:
+          return DocxText(
+            span.text,
+            fontFamily: 'Cambria Math',
+            fontStyle: DocxFontStyle.italic,
+          );
+        case InlineType.image:
+          // Images are not embedded here; the alt text is all that survives,
+          // which is better than dropping the span entirely.
+          return DocxText(span.text);
+        case InlineType.text:
           return DocxText(span.text);
       }
     }).toList();
@@ -488,6 +508,94 @@ class ExportService {
         .replaceAll("'", '&#39;');
   }
 
+  /// Builds PDF rich-text spans from parsed inline content.
+  ///
+  /// PDF export used to print a node's raw `content`, which still holds the
+  /// markdown syntax — so `**bold**` reached the page with its asterisks
+  /// showing. HTML and DOCX already went through the parsed spans; this brings
+  /// PDF in line.
+  static List<pw.TextSpan> _inlineSpansToPdf(
+    List<InlineSpan> spans, {
+    required pw.TextStyle baseStyle,
+    pw.Font? primaryFont,
+    List<pw.Font> fontFallbacks = const [],
+  }) {
+    final codeStyle = baseStyle.copyWith(
+      font: pw.Font.courier(),
+      fontFallback: fontFallbacks,
+      fontSize: _pdfCodeSize,
+      background: pw.BoxDecoration(color: _pdfCodeBg),
+    );
+
+    return spans.map((span) {
+      final text = _normalizeForPdf(span.text);
+      switch (span.type) {
+        case InlineType.bold:
+          return pw.TextSpan(
+            text: text,
+            style: baseStyle.copyWith(fontWeight: pw.FontWeight.bold),
+          );
+        case InlineType.italic:
+          return pw.TextSpan(
+            text: text,
+            style: baseStyle.copyWith(fontStyle: pw.FontStyle.italic),
+          );
+        case InlineType.strikethrough:
+          return pw.TextSpan(
+            text: text,
+            style: baseStyle.copyWith(
+              decoration: pw.TextDecoration.lineThrough,
+            ),
+          );
+        case InlineType.underline:
+          return pw.TextSpan(
+            text: text,
+            style: baseStyle.copyWith(
+              decoration: pw.TextDecoration.underline,
+            ),
+          );
+        case InlineType.code:
+          return pw.TextSpan(text: text, style: codeStyle);
+        case InlineType.link:
+          return pw.TextSpan(
+            text: text,
+            style: baseStyle.copyWith(
+              color: PdfColors.blue700,
+              decoration: pw.TextDecoration.underline,
+            ),
+          );
+        case InlineType.highlight:
+          return pw.TextSpan(
+            text: text,
+            style: baseStyle.copyWith(
+              background: const pw.BoxDecoration(color: PdfColors.yellow100),
+            ),
+          );
+        case InlineType.superscript:
+        case InlineType.subscript:
+          // The pdf package has no baseline shift, so these are shown smaller
+          // rather than raised or lowered.
+          return pw.TextSpan(
+            text: text,
+            style: baseStyle.copyWith(fontSize: _pdfBodySize * 0.75),
+          );
+        case InlineType.mathInline:
+          return pw.TextSpan(
+            text: text,
+            style: baseStyle.copyWith(fontStyle: pw.FontStyle.italic),
+          );
+        case InlineType.footnoteRef:
+          return pw.TextSpan(
+            text: text,
+            style: baseStyle.copyWith(fontSize: _pdfBodySize * 0.75),
+          );
+        case InlineType.image:
+        case InlineType.text:
+          return pw.TextSpan(text: text, style: baseStyle);
+      }
+    }).toList();
+  }
+
   static List<pw.Widget> _nodeToPdfWidgets(MarkdownNode node, {pw.Font? primaryFont, List<pw.Font> fontFallbacks = const [], Uint8List? mermaidImage}) {
     switch (node.type) {
       case NodeType.heading:
@@ -500,14 +608,20 @@ class ExportService {
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                pw.Text(
-                  _normalizeForPdf(heading.content),
-                  style: pw.TextStyle(
-                    fontSize: fontSize,
-                    fontWeight: pw.FontWeight.bold,
-                    font: primaryFont,
-                    fontFallback: fontFallbacks,
-                    height: 1.2,
+                pw.RichText(
+                  text: pw.TextSpan(
+                    children: _inlineSpansToPdf(
+                      heading.inlineSpans,
+                      baseStyle: pw.TextStyle(
+                        fontSize: fontSize,
+                        fontWeight: pw.FontWeight.bold,
+                        font: primaryFont,
+                        fontFallback: fontFallbacks,
+                        height: 1.2,
+                      ),
+                      primaryFont: primaryFont,
+                      fontFallbacks: fontFallbacks,
+                    ),
                   ),
                 ),
                 if (hasBottomBorder)
@@ -526,13 +640,19 @@ class ExportService {
         return [
           pw.Padding(
             padding: pw.EdgeInsets.only(bottom: _pdfSpaceAfter),
-            child: pw.Text(
-              _normalizeForPdf(para.content),
-              style: pw.TextStyle(
-                fontSize: _pdfBodySize,
-                height: _pdfBodyHeight,
-                font: primaryFont,
-                fontFallback: fontFallbacks,
+            child: pw.RichText(
+              text: pw.TextSpan(
+                children: _inlineSpansToPdf(
+                  para.inlineSpans,
+                  baseStyle: pw.TextStyle(
+                    fontSize: _pdfBodySize,
+                    height: _pdfBodyHeight,
+                    font: primaryFont,
+                    fontFallback: fontFallbacks,
+                  ),
+                  primaryFont: primaryFont,
+                  fontFallbacks: fontFallbacks,
+                ),
               ),
             ),
           ),
@@ -659,15 +779,21 @@ class ExportService {
               border: pw.Border(left: pw.BorderSide(color: _pdfQuoteBorder, width: 3)),
               color: _pdfQuoteBg,
             ),
-            child: pw.Text(
-              _normalizeForPdf(quote.content),
-              style: pw.TextStyle(
-                fontSize: _pdfBodySize,
-                height: _pdfBodyHeight,
-                font: primaryFont,
-                fontFallback: fontFallbacks,
-                fontStyle: pw.FontStyle.italic,
-                color: PdfColors.grey700,
+            child: pw.RichText(
+              text: pw.TextSpan(
+                children: _inlineSpansToPdf(
+                  quote.inlineSpans,
+                  baseStyle: pw.TextStyle(
+                    fontSize: _pdfBodySize,
+                    height: _pdfBodyHeight,
+                    font: primaryFont,
+                    fontFallback: fontFallbacks,
+                    fontStyle: pw.FontStyle.italic,
+                    color: PdfColors.grey700,
+                  ),
+                  primaryFont: primaryFont,
+                  fontFallbacks: fontFallbacks,
+                ),
               ),
             ),
           ),
