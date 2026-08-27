@@ -754,20 +754,28 @@ class MarkdownParser {
             _voidHtmlTags.contains(tag.toLowerCase());
 
         if (!selfContained) {
-          // Look for the close before consuming anything: an unclosed tag
-          // should cost one line, not the rest of the document.
-          var closeIndex = -1;
+          // The block ends at the closing tag or, as CommonMark has it, at the
+          // first blank line — whichever comes first. Scanning past a blank
+          // line for a closing tag much further down swallowed everything in
+          // between, and stopping there is also what lets the markdown inside
+          // a `<details>` be read as markdown.
+          //
+          // Look before consuming anything: a tag with neither a close nor a
+          // blank line after it should cost one line, not the document.
+          var lastLine = -1;
           for (var j = i; j < lines.length; j++) {
+            if (lines[j].trim().isEmpty) {
+              lastLine = j - 1;
+              break;
+            }
             if (lines[j].contains(closeTag)) {
-              closeIndex = j;
+              lastLine = j;
               break;
             }
           }
-          if (closeIndex != -1) {
-            while (i <= closeIndex) {
-              htmlLines.add(lines[i]);
-              i++;
-            }
+          while (i <= lastLine) {
+            htmlLines.add(lines[i]);
+            i++;
           }
         }
 

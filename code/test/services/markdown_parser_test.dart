@@ -969,6 +969,45 @@ void _htmlBlockTests() {
       }
     });
 
+    test('a closing tag beyond a blank line does not pull the gap in', () {
+      // `<a href="x">` opens a block; the matching `</a>` sits four blocks
+      // further down. Scanning that far for it swallowed the heading and the
+      // prose in between. CommonMark ends the block at the blank line.
+      const doc =
+          '<a href="x">\n'
+          '\n'
+          '# Middle\n'
+          '\n'
+          'prose\n'
+          '\n'
+          '</a>\n';
+
+      final nodes = parser.parse(doc);
+
+      expect(nodes.where((n) => n.type == NodeType.heading).length, 1);
+      expect(nodes.where((n) => n.type == NodeType.paragraph).length, 2);
+    });
+
+    test('markdown inside a details block is still markdown', () {
+      // The blank line ends the html block, which is what lets the content of
+      // a collapsible section be read rather than shown as raw source.
+      const doc =
+          '<details>\n'
+          '<summary>Open</summary>\n'
+          '\n'
+          '**bold** body\n'
+          '\n'
+          '</details>\n';
+
+      final nodes = parser.parse(doc);
+      final html = nodes.first as HtmlBlockNode;
+
+      expect(html.html, contains('<summary>Open</summary>'));
+      expect(html.html, isNot(contains('bold')));
+      final body = nodes[1] as ParagraphNode;
+      expect(body.inlineSpans.first.type, InlineType.bold);
+    });
+
     test('a block tag inside a centred wrapper still spans the wrapper', () {
       // The README shape: a div around an img. The div starts the block, and
       // the img inside it is carried along rather than ending it.
