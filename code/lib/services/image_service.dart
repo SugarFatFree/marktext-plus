@@ -164,8 +164,10 @@ class ImageService {
   /// [separator] is a parameter so the Windows behaviour can be tested from
   /// any platform.
   @visibleForTesting
-  static String toMarkdownSeparators(
-    String value, {
-    String separator = path.separator,
-  }) => separator == '/' ? value : value.replaceAll(separator, '/');
+  static String toMarkdownSeparators(String value, {String? separator}) {
+    // Not written as a default parameter value: `path.separator` is decided
+    // at runtime, and a default has to be a compile-time constant.
+    final actual = separator ?? path.separator;
+    return actual == '/' ? value : value.replaceAll(actual, '/');
+  }
 }
