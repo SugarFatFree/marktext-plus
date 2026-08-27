@@ -2,6 +2,43 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/services/markdown_parser.dart';
 
 void main() {
+  group('Bold italic', () {
+    final parser = MarkdownParser();
+
+    List<InlineSpan> spansOf(String source) =>
+        (parser.parse(source).single as ParagraphNode).inlineSpans;
+
+    test('*** is bold and italic, not bold with a stray asterisk', () {
+      // Read as the bold branch, `***x***` matched `**` + `*x` + `**` and left
+      // the last asterisk behind as text.
+      final spans = spansOf('***bold italic***');
+
+      expect(spans, hasLength(1));
+      expect(spans.single.type, InlineType.boldItalic);
+      expect(spans.single.text, 'bold italic');
+    });
+
+    test('___ is bold and italic too', () {
+      final spans = spansOf('___bold italic___');
+
+      expect(spans, hasLength(1));
+      expect(spans.single.type, InlineType.boldItalic);
+      expect(spans.single.text, 'bold italic');
+    });
+
+    test('plain bold and italic still parse as before', () {
+      expect(spansOf('**bold**').single.type, InlineType.bold);
+      expect(spansOf('__bold__').single.type, InlineType.bold);
+      expect(spansOf('*italic*').single.type, InlineType.italic);
+      expect(spansOf('_italic_').single.type, InlineType.italic);
+    });
+
+    test('underscores inside a word are still not emphasis', () {
+      expect(spansOf('snake_case_name').single.type, InlineType.text);
+      expect(spansOf('read__me__now').single.type, InlineType.text);
+    });
+  });
+
   group('List syntax the editor already accepted', () {
     final parser = MarkdownParser();
 

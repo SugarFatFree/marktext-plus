@@ -34,6 +34,7 @@ enum InlineType {
   subscript,
   underline,
   footnoteRef,
+  boldItalic,
 }
 
 // -- Inline Span --
@@ -889,11 +890,16 @@ class MarkdownParser {
       r'|\$(?!\s)([^$\n]+?)(?<!\s)\$'  // inline math
       r'|==(.+?)=='                // highlight
       r'|\+\+(.+?)\+\+'            // underline
+      // Must precede the ** branch: alternation prefers the first that
+      // matches at the same position, and `***x***` read as bold left a
+      // stray asterisk behind.
+      r'|\*\*\*(.+?)\*\*\*'          // bold italic ***
       r'|\*\*(.+?)\*\*'            // bold **
       // `_` must not sit inside a word, or snake_case_names read as emphasis.
       // The boundary excludes `_` itself as well: in `read__me__now` the
       // second underscore of the pair is not alphanumeric, so without it the
       // inner `_me_` still matched.
+      r'|(?<![a-zA-Z0-9_])___(.+?)___(?![a-zA-Z0-9_])'  // bold italic ___
       r'|(?<![a-zA-Z0-9_])__(.+?)__(?![a-zA-Z0-9_])'  // bold __
       r'|~~(.+?)~~'                // strikethrough
       // No spaces inside, or `x^2 and y^3` becomes one long superscript.
@@ -957,37 +963,45 @@ class MarkdownParser {
         // Underline
         spans.add(InlineSpan(type: InlineType.underline, text: match.group(11)!));
       } else if (match.group(12) != null) {
-        // Bold **
-        spans.add(InlineSpan(type: InlineType.bold, text: match.group(12)!));
+        // Bold italic ***
+        spans.add(
+            InlineSpan(type: InlineType.boldItalic, text: match.group(12)!));
       } else if (match.group(13) != null) {
-        // Bold __
+        // Bold **
         spans.add(InlineSpan(type: InlineType.bold, text: match.group(13)!));
       } else if (match.group(14) != null) {
+        // Bold italic ___
+        spans.add(
+            InlineSpan(type: InlineType.boldItalic, text: match.group(14)!));
+      } else if (match.group(15) != null) {
+        // Bold __
+        spans.add(InlineSpan(type: InlineType.bold, text: match.group(15)!));
+      } else if (match.group(16) != null) {
         // Strikethrough
         spans.add(InlineSpan(
           type: InlineType.strikethrough,
-          text: match.group(14)!,
+          text: match.group(16)!,
         ));
-      } else if (match.group(15) != null) {
-        // Superscript
-        spans.add(InlineSpan(type: InlineType.superscript, text: match.group(15)!));
-      } else if (match.group(16) != null) {
-        // Subscript
-        spans.add(InlineSpan(type: InlineType.subscript, text: match.group(16)!));
       } else if (match.group(17) != null) {
-        // Italic *
-        spans.add(InlineSpan(type: InlineType.italic, text: match.group(17)!));
+        // Superscript
+        spans.add(InlineSpan(type: InlineType.superscript, text: match.group(17)!));
       } else if (match.group(18) != null) {
-        // Italic _
-        spans.add(InlineSpan(type: InlineType.italic, text: match.group(18)!));
+        // Subscript
+        spans.add(InlineSpan(type: InlineType.subscript, text: match.group(18)!));
       } else if (match.group(19) != null) {
+        // Italic *
+        spans.add(InlineSpan(type: InlineType.italic, text: match.group(19)!));
+      } else if (match.group(20) != null) {
+        // Italic _
+        spans.add(InlineSpan(type: InlineType.italic, text: match.group(20)!));
+      } else if (match.group(21) != null) {
         // Autolink: <https://example.com>
-        final url = match.group(19)!;
+        final url = match.group(21)!;
         spans.add(InlineSpan(type: InlineType.link, text: url, href: url));
-      } else if (match.group(22) != null) {
+      } else if (match.group(24) != null) {
         // Trailing punctuation ends the sentence, not the address: in
         // "see https://example.com." the full stop is not part of the link.
-        final raw = match.group(22)!;
+        final raw = match.group(24)!;
         final url = raw.replaceFirst(RegExp(r'[.,;:!?]+$'), '');
         spans.add(InlineSpan(type: InlineType.link, text: url, href: url));
         if (url.length < raw.length) {
@@ -996,20 +1010,20 @@ class MarkdownParser {
             text: raw.substring(url.length),
           ));
         }
-      } else if (match.group(20) != null) {
+      } else if (match.group(22) != null) {
         // Reference link: [text][label], or [text][] where the text is the
         // label. Unresolved references stay as written rather than becoming a
         // link to nowhere.
-        final label = match.group(21)!.isEmpty
-            ? match.group(20)!
-            : match.group(21)!;
+        final label = match.group(23)!.isEmpty
+            ? match.group(22)!
+            : match.group(23)!;
         final definition = _linkDefinitions[label.toLowerCase()];
         if (definition == null) {
           spans.add(InlineSpan(type: InlineType.text, text: match.group(0)!));
         } else {
           spans.add(InlineSpan(
             type: InlineType.link,
-            text: match.group(20)!,
+            text: match.group(22)!,
             href: definition.url,
             title: definition.title,
           ));

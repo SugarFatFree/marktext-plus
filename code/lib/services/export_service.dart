@@ -480,6 +480,12 @@ class ExportService {
   static List<DocxText> _inlineSpansToDocxTexts(List<InlineSpan> spans) {
     return spans.map((span) {
       switch (span.type) {
+        case InlineType.boldItalic:
+          return DocxText(
+            span.text,
+            fontWeight: DocxFontWeight.bold,
+            fontStyle: DocxFontStyle.italic,
+          );
         case InlineType.bold:
           return DocxText(span.text, fontWeight: DocxFontWeight.bold);
         case InlineType.italic:
@@ -657,6 +663,8 @@ class ExportService {
       switch (span.type) {
         case InlineType.text:
           return text;
+        case InlineType.boldItalic:
+          return '<strong><em>$text</em></strong>';
         case InlineType.bold:
           return '<strong>$text</strong>';
         case InlineType.italic:
@@ -725,6 +733,14 @@ class ExportService {
     return spans.map((span) {
       final text = _normalizeForPdf(span.text);
       switch (span.type) {
+        case InlineType.boldItalic:
+          return pw.TextSpan(
+            text: text,
+            style: baseStyle.copyWith(
+              fontWeight: pw.FontWeight.bold,
+              fontStyle: pw.FontStyle.italic,
+            ),
+          );
         case InlineType.bold:
           return pw.TextSpan(
             text: text,

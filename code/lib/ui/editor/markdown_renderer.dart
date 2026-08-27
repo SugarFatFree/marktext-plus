@@ -948,6 +948,16 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
           } else {
             children.add(TextSpan(text: span.text, style: baseStyle));
           }
+        case md.InlineType.boldItalic:
+          final s = baseStyle?.copyWith(
+            fontWeight: FontWeight.bold,
+            fontStyle: FontStyle.italic,
+          );
+          if (hasSearch) {
+            children.addAll(_applySearchHighlight(span.text, s, es));
+          } else {
+            children.add(TextSpan(text: span.text, style: s));
+          }
         case md.InlineType.bold:
           final s = baseStyle?.copyWith(fontWeight: FontWeight.bold);
           if (hasSearch) {
