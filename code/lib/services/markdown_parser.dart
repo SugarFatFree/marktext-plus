@@ -602,8 +602,28 @@ class MarkdownParser {
 
     return nodes;
   }
+  /// Any ASCII punctuation may be escaped with a backslash.
+  static final _escapedPunctRe = RegExp(r'\\([!-/:-@\[-`{-~])');
+
+  /// Private-use code points standing in for escaped characters while the
+  /// inline pattern runs.
+  ///
+  /// Substituting them is what stops `\*literal\*` being read as emphasis;
+  /// the pattern has no way to look behind for a backslash across fourteen
+  /// alternatives. The block runs to U+F8FF, so documents with more than
+  /// [_maxEscapes] escapes leave the remainder as written.
+  static const _escapeSentinelBase = 0xE000;
+  static const _maxEscapes = 0xF8FF - 0xE000;
+
   /// Parse inline markdown text into a list of InlineSpan.
-  List<InlineSpan> parseInline(String text) {
+  List<InlineSpan> parseInline(String source) {
+    final escapes = <String>[];
+    final text = source.replaceAllMapped(_escapedPunctRe, (match) {
+      if (escapes.length >= _maxEscapes) return match.group(0)!;
+      escapes.add(match.group(1)!);
+      return String.fromCharCode(_escapeSentinelBase + escapes.length - 1);
+    });
+
     final spans = <InlineSpan>[];
     // Combined pattern for inline elements, ordered by priority
     final re = RegExp(
@@ -611,16 +631,19 @@ class MarkdownParser {
       r'|\[([^\]]*)\]\(([^)]+)\)'  // link
       r'|\[\^([^\]]+)\]'           // footnote ref
       r'|`([^`]+)`'                // inline code
-      r'|\$([^$]+)\$'              // inline math
+      // Requires non-space at both ends, so `$5 and $10` is money, not maths.
+      r'|\$(?!\s)([^$\n]+?)(?<!\s)\$'  // inline math
       r'|==(.+?)=='                // highlight
       r'|\+\+(.+?)\+\+'            // underline
       r'|\*\*(.+?)\*\*'            // bold **
-      r'|__(.+?)__'                // bold __
+      // `_` must not sit inside a word, or snake_case_names read as emphasis.
+      r'|(?<![a-zA-Z0-9])__(.+?)__(?![a-zA-Z0-9])'  // bold __
       r'|~~(.+?)~~'                // strikethrough
-      r'|\^(.+?)\^'                // superscript
-      r'|(?<!~)~([^~]+?)~(?!~)'    // subscript (single ~, not ~~)
+      // No spaces inside, or `x^2 and y^3` becomes one long superscript.
+      r'|\^([^\s^]+)\^'            // superscript
+      r'|(?<!~)~([^\s~]+?)~(?!~)'  // subscript (single ~, not ~~)
       r'|\*(.+?)\*'                // italic *
-      r'|_(.+?)_'                  // italic _
+      r'|(?<![a-zA-Z0-9])_(.+?)_(?![a-zA-Z0-9])'  // italic _
     );
 
     var lastEnd = 0;
@@ -716,7 +739,27 @@ class MarkdownParser {
       spans.add(InlineSpan(type: InlineType.text, text: text));
     }
 
-    return spans;
+    if (escapes.isEmpty) return spans;
+    return spans.map((span) => _restoreEscapes(span, escapes)).toList();
+  }
+
+  /// Puts escaped characters back, minus their backslashes.
+  InlineSpan _restoreEscapes(InlineSpan span, List<String> escapes) {
+    String restore(String text) {
+      return text.replaceAllMapped(RegExp(r'[\uE000-\uF8FF]'), (match) {
+        final index = match.group(0)!.codeUnitAt(0) - _escapeSentinelBase;
+        return index >= 0 && index < escapes.length
+            ? escapes[index]
+            : match.group(0)!;
+      });
+    }
+
+    return InlineSpan(
+      type: span.type,
+      text: restore(span.text),
+      href: span.href == null ? null : restore(span.href!),
+      title: span.title == null ? null : restore(span.title!),
+    );
   }
 
   // -- Helpers --

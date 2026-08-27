@@ -6,6 +6,7 @@ void main() {
   setUp(() => parser = MarkdownParser());
 
   _sourceSpanTests();
+  _inlineEdgeCaseTests();
   _htmlBlockTests();
 
   group('Block parsing', () {
@@ -245,6 +246,57 @@ void _htmlBlockTests() {
       expect(html.rawContent, contains('<span>one</span>'));
       expect(html.rawContent, contains('</div>'));
       expect(nodes.where((n) => n.type == NodeType.heading).length, 1);
+    });
+  });
+}
+
+void _inlineEdgeCaseTests() {
+  group('Inline edge cases', () {
+    late MarkdownParser parser;
+    setUp(() => parser = MarkdownParser());
+
+    List<InlineType> typesOf(String text) =>
+        parser.parseInline(text).map((s) => s.type).toList();
+
+    String textOf(String input) =>
+        parser.parseInline(input).map((s) => s.text).join();
+
+    test('a backslash escapes the character after it', () {
+      expect(typesOf(r'literal \*asterisks\* here'), [InlineType.text]);
+      // The backslashes themselves must not survive into the output.
+      expect(textOf(r'literal \*asterisks\* here'), 'literal *asterisks* here');
+    });
+
+    test('underscores inside a word are not emphasis', () {
+      // snake_case identifiers and file names are ordinary text.
+      expect(typesOf('a snake_case_name stays plain'), [InlineType.text]);
+      expect(typesOf('read__me__now'), [InlineType.text]);
+    });
+
+    test('underscores around a word still are', () {
+      expect(typesOf('_real italic_'), contains(InlineType.italic));
+      expect(typesOf('__real bold__'), contains(InlineType.bold));
+    });
+
+    test('currency is not inline maths', () {
+      expect(typesOf(r'price is $5 and $10 today'), [InlineType.text]);
+    });
+
+    test('real inline maths still parses', () {
+      expect(typesOf(r'math $E = mc^2$ inline'),
+          contains(InlineType.mathInline));
+    });
+
+    test('superscript and subscript do not span spaces', () {
+      expect(typesOf('x^2 and y^3 separately'), [InlineType.text]);
+      expect(typesOf('a^2^ here'), contains(InlineType.superscript));
+      expect(typesOf('H~2~O'), contains(InlineType.subscript));
+    });
+
+    test('markers inside inline code stay literal', () {
+      final spans = parser.parseInline('`code with **bold** inside`');
+      expect(spans.single.type, InlineType.code);
+      expect(spans.single.text, 'code with **bold** inside');
     });
   });
 }
