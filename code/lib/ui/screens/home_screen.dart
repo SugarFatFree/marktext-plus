@@ -403,9 +403,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
         WidgetsBinding.instance.addPostFrameCallback((_) async {
           try {
             StartupTrace.mark('loading frame painted');
-            // Read file content in isolate for large files
-            final bytes = await compute(_readFileInIsolate, path);
-            StartupTrace.mark('file read in isolate (${bytes.length} bytes)');
+            final bytes = await _readDocument(path);
+            StartupTrace.mark('file read (${bytes.length} bytes)');
             final (raw, encoding) = FileEncoding.decode(bytes);
             StartupTrace.mark('decoded (${encoding.name})');
             ref
@@ -448,6 +447,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
     return File(path).readAsBytes();
   }
 
+  /// Above this size, reading moves off the UI isolate.
+  ///
+  /// Measured rather than guessed: reading and decoding 10 MiB costs tens of
+  /// milliseconds, so half a megabyte is far inside one frame. Below the
+  /// threshold the isolate is pure overhead — and the *first* `compute` in a
+  /// process has to start an isolate and load the app snapshot, which is
+  /// exactly the one that runs while the user waits for their document.
+  static const _isolateReadThreshold = 512 * 1024;
+
+  /// Reads [path], going off the UI isolate only when that is worth doing.
+  static Future<Uint8List> _readDocument(String path) async {
+    final file = File(path);
+    var small = false;
+    try {
+      small = await file.length() <= _isolateReadThreshold;
+    } on FileSystemException {
+      // Let the read itself report the problem, as it did before.
+    }
+    // Awaited inside no try: a failure here has to reach the caller, which is
+    // what removes the tab it created.
+    if (small) return file.readAsBytes();
+    return compute(_readFileInIsolate, path);
+  }
+
   void _handleDrop(DropDoneDetails details) async {
     final allowedExtensions = {'.md', '.markdown', '.txt'};
 
@@ -484,8 +507,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
         // Force a frame to render the loading indicator
         WidgetsBinding.instance.addPostFrameCallback((_) async {
           try {
-            // Read file content in isolate for large files
-            final bytes = await compute(_readFileInIsolate, path);
+            final bytes = await _readDocument(path);
             final (raw, encoding) = FileEncoding.decode(bytes);
             ref
                 .read(tabProvider.notifier)
