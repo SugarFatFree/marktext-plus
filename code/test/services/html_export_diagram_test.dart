@@ -32,15 +32,23 @@ void main() {
 
   const oneDiagram = '# T\n\n```mermaid\nflowchart TD\n  A --> B\n```\n';
 
+  /// The key a drawn diagram is stored under: the diagram itself.
+  ///
+  /// It used to be its position among the blocks, which held only while the
+  /// side that drew the pictures and the side that placed them counted the
+  /// same things. Both counted only the top level, so a diagram written under
+  /// a numbered step reached the file with no picture at all.
+  const drawn = 'flowchart TD\n  A --> B';
+
   test('a drawn diagram is carried inside the file', () async {
-    final html = await export(oneDiagram, images: {'mermaid_0': png});
+    final html = await export(oneDiagram, images: {drawn: png});
 
     expect(html, contains('data:image/png;base64,'));
     expect(html, isNot(contains('<pre class="mermaid">')));
   });
 
   test('with every diagram drawn, nothing is fetched to draw them', () async {
-    final html = await export(oneDiagram, images: {'mermaid_0': png});
+    final html = await export(oneDiagram, images: {drawn: png});
 
     expect(html, isNot(contains('mermaid.min.js')),
         reason: '所有图都内嵌了，还去取脚本就是白连一次网');
@@ -55,19 +63,40 @@ void main() {
     expect(html, contains('mermaid.min.js'));
   });
 
-  test('a failed diagram does not shift the ones after it', () async {
-    // The images are keyed by counting diagram blocks, and the count has to be
-    // the same on both sides or the wrong picture is embedded.
-    const three = '```mermaid\nA\n```\n\n```mermaid\nB\n```\n\n```mermaid\nC\n```\n';
+  test('a failed diagram leaves the others alone', () async {
+    const three =
+        '```mermaid\nA\n```\n\n```mermaid\nB\n```\n\n```mermaid\nC\n```\n';
     final other = Uint8List.fromList([...png]);
 
-    final html = await export(three, images: {'mermaid_0': png, 'mermaid_2': other});
+    final html = await export(three, images: {'A': png, 'C': other});
 
     // Two embedded, one left to the script — and the script is still there
     // because one diagram needs it.
     expect('data:image/png;base64,'.allMatches(html).length, 2);
     expect('<pre class="mermaid">'.allMatches(html).length, 1);
     expect(html, contains('mermaid.min.js'));
+  });
+
+  test('a diagram under a numbered step gets its picture too', () async {
+    // It is a block the step carries rather than a block of its own, so the
+    // walk that finds diagrams has to go inside the list. Counting top-level
+    // blocks missed it, and the export drew nothing where the diagram was.
+    const inStep = '1. step\n\n   ```mermaid\n   A\n   ```\n';
+
+    final html = await export(inStep, images: {'A': png});
+
+    expect(html, contains('data:image/png;base64,'));
+    expect(html, isNot(contains('<pre class="mermaid">')));
+    expect(html, isNot(contains('mermaid.min.js')),
+        reason: '这张图已经内嵌，不该再去取脚本');
+  });
+
+  test('a diagram inside a quote gets its picture too', () async {
+    const inQuote = '> ```mermaid\n> A\n> ```\n';
+
+    final html = await export(inQuote, images: {'A': png});
+
+    expect(html, contains('data:image/png;base64,'));
   });
 
   test('a document with no diagrams asks for no diagram script', () async {

@@ -543,6 +543,26 @@ class MarkdownParser {
     r'^\s{0,3}\[([^\^\]][^\]]*)\]:\s*(\S+)(?:\s+"([^"]*)")?\s*$',
   );
 
+  /// Every node in [nodes], and every node they carry, in the order a reader
+  /// meets them.
+  ///
+  /// A list item and a quote hold blocks of their own, so walking only the
+  /// top level misses a diagram written under a numbered step — which is how
+  /// the export came to render one without its picture while the two places
+  /// that count diagrams still agreed with each other, both being wrong.
+  static Iterable<MarkdownNode> walk(List<MarkdownNode> nodes) sync* {
+    for (final node in nodes) {
+      yield node;
+      if (node is BlockquoteNode) {
+        yield* walk(node.children);
+      } else if (node is ListNode) {
+        for (final item in node.items) {
+          yield* walk(item.children);
+        }
+      }
+    }
+  }
+
   /// A setext underline: `===` for level 1, `---` for level 2.
   static final _setextRe = RegExp(r'^\s{0,3}(=+|-+)\s*$');
 

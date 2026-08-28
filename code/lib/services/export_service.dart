@@ -143,13 +143,11 @@ class ExportService {
     // and a file that reaches out to the network to render nothing is worse
     // than one that does not reach out at all.
     var needsMermaidScript = false;
-    var scanIndex = 0;
-    for (final node in ast) {
-      if (node is CodeBlockNode && _isMermaidLanguage(node.language)) {
-        if (mermaidImages?['mermaid_$scanIndex'] == null) {
-          needsMermaidScript = true;
-        }
-        scanIndex++;
+    for (final node in MarkdownParser.walk(ast)) {
+      if (node is CodeBlockNode &&
+          _isMermaidLanguage(node.language) &&
+          mermaidImages?[node.code] == null) {
+        needsMermaidScript = true;
       }
     }
 
@@ -195,18 +193,13 @@ class ExportService {
     buffer.writeln('<body>');
     buffer.writeln('  <div class="markdown-body">');
 
-    var mermaidIndex = 0;
     for (final node in ast) {
-      Uint8List? diagram;
-      if (node is CodeBlockNode && _isMermaidLanguage(node.language)) {
-        // Counted exactly as the images were keyed when they were rendered;
-        // a diagram that failed to draw still takes its number, so the ones
-        // after it keep their own.
-        diagram = mermaidImages?['mermaid_$mermaidIndex'];
-        mermaidIndex++;
-      }
       buffer.writeln(
-        nodeToHtml(node, inlinedImages: images, mermaidImage: diagram),
+        nodeToHtml(
+          node,
+          inlinedImages: images,
+          mermaidImages: mermaidImages,
+        ),
       );
     }
 
@@ -310,23 +303,13 @@ class ExportService {
         margin: const pw.EdgeInsets.all(40),
         build: (context) {
           final widgets = <pw.Widget>[];
-          int mermaidIndex = 0;
           for (final node in ast) {
-            String? mermaidKey;
-            if (node is CodeBlockNode && _isMermaidLanguage(node.language)) {
-              mermaidKey = 'mermaid_$mermaidIndex';
-              mermaidIndex++;
-            }
-            Uint8List? img;
-            if (mermaidKey != null && mermaidImages != null) {
-              img = mermaidImages[mermaidKey];
-            }
             widgets.addAll(
               _nodeToPdfWidgets(
                 node,
                 primaryFont: primaryFont,
                 fontFallbacks: fontFallbacks,
-                mermaidImage: img,
+                mermaidImages: mermaidImages,
                 documentImages: documentImages,
               ),
             );
@@ -363,21 +346,11 @@ class ExportService {
       marginRight: 1440,
     );
 
-    int mermaidIndex = 0;
     for (final node in ast) {
-      String? mermaidKey;
-      if (node is CodeBlockNode && _isMermaidLanguage(node.language)) {
-        mermaidKey = 'mermaid_$mermaidIndex';
-        mermaidIndex++;
-      }
-      Uint8List? img;
-      if (mermaidKey != null && mermaidImages != null) {
-        img = mermaidImages[mermaidKey];
-      }
       builder = _addNodeToDocx(
         builder,
         node,
-        mermaidImage: img,
+        mermaidImages: mermaidImages,
         documentImages: documentImages,
       );
     }
@@ -389,7 +362,7 @@ class ExportService {
   static DocxDocumentBuilder _addNodeToDocx(
     DocxDocumentBuilder builder,
     MarkdownNode node, {
-    Uint8List? mermaidImage,
+    Map<String, Uint8List>? mermaidImages,
     Map<String, ({Uint8List bytes, String mime})> documentImages = const {},
   }) {
     switch (node.type) {
@@ -445,6 +418,10 @@ class ExportService {
       case NodeType.codeBlock:
         final code = node as CodeBlockNode;
         final isMermaid = _isMermaidLanguage(code.language);
+        final Uint8List? mermaidImage =
+            isMermaid && mermaidImages != null
+                ? mermaidImages[code.code]
+                : null;
         if (isMermaid && mermaidImage != null) {
           // Sized from the image rather than a fixed 400x300 box, which
           // stretched any diagram that was not exactly 4:3.
@@ -522,7 +499,9 @@ class ExportService {
           // fence beneath a numbered step reached Word at the left margin,
           // outside the step it explains.
           for (final child in item.children) {
-            result = _addNodeToDocx(result, child, documentImages: documentImages);
+            result = _addNodeToDocx(result, child,
+                documentImages: documentImages,
+                mermaidImages: mermaidImages);
           }
         }
         return result;
@@ -558,7 +537,7 @@ class ExportService {
           quoted = _addNodeToDocx(
             quoted,
             child,
-            mermaidImage: mermaidImage,
+            mermaidImages: mermaidImages,
             documentImages: documentImages,
           );
         }
@@ -744,7 +723,7 @@ class ExportService {
   static String nodeToHtml(
     MarkdownNode node, {
     Map<String, String> inlinedImages = const {},
-    Uint8List? mermaidImage,
+    Map<String, Uint8List>? mermaidImages,
   }) {
     switch (node.type) {
       case NodeType.heading:
@@ -772,6 +751,7 @@ class ExportService {
           // or on a network that does not reach jsdelivr, which is most
           // company networks. Falls back to the script only for a diagram the
           // app could not draw.
+          final mermaidImage = mermaidImages?[code.code];
           if (mermaidImage != null) {
             final data = base64Encode(mermaidImage);
             return '<p class="mermaid-image">'
@@ -787,14 +767,16 @@ class ExportService {
 
       case NodeType.orderedList:
       case NodeType.unorderedList:
-        return _listToHtml(node as ListNode, inlinedImages: inlinedImages);
+        return _listToHtml(node as ListNode,
+            inlinedImages: inlinedImages, mermaidImages: mermaidImages);
 
       case NodeType.blockquote:
         final quote = node as BlockquoteNode;
         // The blocks inside, rendered as blocks: a quoted list used to reach
         // the export as a paragraph reading "- a".
         final content = quote.children
-            .map((child) => nodeToHtml(child, inlinedImages: inlinedImages))
+            .map((child) => nodeToHtml(child,
+                inlinedImages: inlinedImages, mermaidImages: mermaidImages))
             .join('\n');
         // One tag per node: a quote inside a quote arrives as a child, so the
         // nesting HTML needs is already there. Repeating the tag by depth on
@@ -1021,6 +1003,7 @@ class ExportService {
   static String _listToHtml(
     ListNode list, {
     Map<String, String> inlinedImages = const {},
+    Map<String, Uint8List>? mermaidImages,
   }) {
     final tag = list.ordered ? 'ol' : 'ul';
     final first = list.items.isEmpty ? null : list.items.first;
@@ -1099,7 +1082,8 @@ class ExportService {
       if (item.children.isNotEmpty) {
         buffer.writeln();
         for (final child in item.children) {
-          buffer.writeln(nodeToHtml(child, inlinedImages: inlinedImages));
+          buffer.writeln(nodeToHtml(child,
+              inlinedImages: inlinedImages, mermaidImages: mermaidImages));
         }
       }
     }
@@ -1324,7 +1308,7 @@ class ExportService {
     MarkdownNode node, {
     pw.Font? primaryFont,
     List<pw.Font> fontFallbacks = const [],
-    Uint8List? mermaidImage,
+    Map<String, Uint8List>? mermaidImages,
     Map<String, ({Uint8List bytes, String mime})> documentImages = const {},
   }) {
     switch (node.type) {
@@ -1414,6 +1398,10 @@ class ExportService {
         final isMermaid = _isMermaidLanguage(code.language);
         final widgets = <pw.Widget>[];
 
+        final Uint8List? mermaidImage =
+            isMermaid && mermaidImages != null
+                ? mermaidImages[code.code]
+                : null;
         if (isMermaid && mermaidImage != null) {
           // Render Mermaid as image
           widgets.add(
@@ -1538,6 +1526,7 @@ class ExportService {
                         primaryFont: primaryFont,
                         fontFallbacks: fontFallbacks,
                         documentImages: documentImages,
+                        mermaidImages: mermaidImages,
                       ),
                   ],
                 ),

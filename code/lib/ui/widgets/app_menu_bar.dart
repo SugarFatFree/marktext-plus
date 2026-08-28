@@ -1058,19 +1058,19 @@ class AppMenuBar extends ConsumerWidget {
     final parser = MarkdownParser();
     final ast = parser.parse(markdown);
     final images = <String, Uint8List>{};
-    int index = 0;
 
-    for (final node in ast) {
-      // Must agree with ExportService's own test, which also asks the parser:
-      // the export indexes into this map by counting diagram blocks, so a
-      // disagreement embeds the wrong picture.
+    // Keyed by the diagram itself, and found by the same walk the export
+    // uses. Both sides used to count blocks and index into this map, which
+    // held only while they counted the same things — and both counted only
+    // the top level, so a diagram under a numbered step reached the export
+    // with no picture at all.
+    for (final node in MarkdownParser.walk(ast)) {
       if (node is CodeBlockNode &&
           MermaidParser.handlesLanguage(node.language)) {
-        final key = 'mermaid_$index';
-        index++;
+        if (images.containsKey(node.code)) continue;
         try {
           final bytes = await _renderMermaidToImage(node.code);
-          if (bytes != null) images[key] = bytes;
+          if (bytes != null) images[node.code] = bytes;
         } catch (_) {
           // Skip failed renders
         }
