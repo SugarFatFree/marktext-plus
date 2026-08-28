@@ -2363,6 +2363,14 @@ Source: "...\Release\*"; DestDir: "{app}"; Flags: recursesubdirs
 
 加上 `ignoreversion`，并写了注释说明为什么它不是可选项。
 
+**并且去掉了成因。**exe 的版本资源来自 `Runner.rc` 里的 `FLUTTER_VERSION_*` 宏，
+而那几个宏由 Flutter 从 pubspec 的 `version: 1.4.0+1` 推导 —— 所以整个 v1.4.0 开发期间，
+**每一个 CI 构建产出的 exe 版本号都是 1.4.0.1，一模一样**。现在构建时传
+`--build-number=$GITHUB_RUN_NUMBER`，每次构建的第四段版本号唯一；安装包的
+`AppVersion` 也从 `0.0.0` 改成真实版本，「程序和功能」里终于能看出装的是哪一版。
+
+两层都做：`ignoreversion` 是直接堵住，唯一版本号是让它不再有机会发生。
+
 顺带把 `ExitProcess` 移到 `CoUninitialize` **之前**：在 apartment 线程上反初始化 COM 会
 等待该 apartment 尚未释放的对象，那本身就是进程可以卡住数秒的地方。一个马上就要不存在的
 进程不需要把 COM 收拾干净。

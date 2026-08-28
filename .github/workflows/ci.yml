@@ -110,7 +110,15 @@ jobs:
           # channel moves under us, and comparing two logs from different weeks
           # without knowing that is comparing two unknowns.
           $sdk = (flutter --version --machine | ConvertFrom-Json).frameworkVersion
+          # The run number becomes the executable's build number, so no two CI
+          # builds carry the same version resource. Inno Setup compares those
+          # resources when deciding whether to replace a file: with every build
+          # stamped 1.4.0.1, it kept the installed runner and only the Dart
+          # snapshot was ever updated. `ignoreversion` in the installer fixes
+          # that outright; this removes the reason it happened, and makes the
+          # file's properties say which build it came from.
           flutter build windows --release `
+            --build-number=$env:GITHUB_RUN_NUMBER `
             --dart-define=BUILD_SHA=$env:GITHUB_SHA `
             --dart-define=BUILD_RUN=$env:GITHUB_RUN_NUMBER `
             --dart-define=BUILD_SDK=$sdk
@@ -140,10 +148,14 @@ jobs:
       - name: Create Inno Setup script
         shell: pwsh
         run: |
+          # From pubspec plus the run number, so "Programs and Features" names
+          # the build rather than showing 0.0.0 for every one of them.
+          $pubspecVersion = (Select-String -Path code/pubspec.yaml -Pattern '^version:\s*(.+)$').Matches[0].Groups[1].Value.Split('+')[0].Trim()
+          $version = "$pubspecVersion.$env:GITHUB_RUN_NUMBER"
           $iss = @"
           [Setup]
           AppName=MarkText Plus
-          AppVersion=0.0.0
+          AppVersion=$version
           AppPublisher=MarkText Plus
           DefaultDirName={autopf}\MarkText Plus
           DefaultGroupName=MarkText Plus

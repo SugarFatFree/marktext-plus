@@ -63,4 +63,18 @@ void main() {
 
     expect(filesLine, contains('ignoreversion'));
   });
+
+  test('every CI build stamps a different version onto the executable', () {
+    // Inno compares version resources when deciding whether to replace a file.
+    // With every build stamped 1.4.0.1 it kept the installed runner, and only
+    // the Dart snapshot was ever updated — three rounds of native fixes were
+    // installed and never ran. `ignoreversion` fixes that outright; the build
+    // number removes the reason it happened.
+    final workflow = File('../.github/workflows/ci.yml').readAsStringSync();
+
+    expect(workflow, contains('--build-number='),
+        reason: '每次构建版本号相同，正是安装包跳过覆盖的成因');
+    expect(workflow, isNot(contains('AppVersion=0.0.0')),
+        reason: '安装包对每个版本都显示 0.0.0');
+  });
 }
