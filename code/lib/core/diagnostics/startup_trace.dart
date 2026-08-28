@@ -99,6 +99,33 @@ class StartupTrace {
     }
   }
 
+  /// The two timings the runner could only take after the arguments were set.
+  ///
+  /// Read from an exported symbol in the executable itself, because the
+  /// entrypoint arguments are handed over before the engine starts and cannot
+  /// carry anything measured afterwards. Slot 0 is just before the Flutter
+  /// view controller is built and slot 1 just after — and building it is what
+  /// boots the engine, loads the AOT snapshot and brings up the GPU surface.
+  ///
+  /// It exists to answer one question before any effort goes into making the
+  /// snapshot smaller: of the 2.7 seconds between the runner starting and the
+  /// first line of Dart, how much of it is that step?
+  ///
+  /// Null on anything but Windows, and on a build whose runner predates it.
+  static (int, int)? _engineWindow() {
+    if (!Platform.isWindows) return null;
+    try {
+      final symbol = DynamicLibrary.executable().lookup<Int64>('mt_trace_engine');
+      final before = symbol[0];
+      final after = symbol[1];
+      if (before < 0 || after < before) return null;
+      return (before, after);
+    } catch (_) {
+      // An older runner, or a platform that does not export it.
+      return null;
+    }
+  }
+
   static int? _runnerMark(String name) => _runnerMarks[name];
 
   @visibleForTesting
@@ -142,6 +169,21 @@ class StartupTrace {
       lines.add(row(engineStart, engineStart - runnerEntry,
           'runner entry → engine start (console, COM, command line)'));
     }
+    final engine = _engineWindow();
+    if (engine != null) {
+      final (before, after) = engine;
+      final previous = engineStart ?? runnerEntry;
+      lines.add(row(before, before - previous,
+          'engine start → creating the view (plugin registration)'));
+      lines.add(row(after, after - before,
+          'creating the view (engine boot, AOT snapshot, GPU surface)'));
+      if (beforeDart != null) {
+        lines.add(row(beforeDart, beforeDart - after,
+            'view created → first Dart mark'));
+      }
+      return lines;
+    }
+
     if (beforeDart != null) {
       final previous = engineStart ?? runnerEntry;
       lines.add(row(beforeDart, beforeDart - previous,

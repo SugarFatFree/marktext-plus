@@ -79,6 +79,20 @@ std::string FormatTraceArgument(const char *name, long long value) {
 
 }  // namespace
 
+// Timings the runner can only take after the entrypoint arguments are fixed.
+//
+// Exported so Dart can read them with FFI: the arguments are handed to the
+// engine before the engine starts, so anything measured after that has to
+// travel some other way. Slot 0 is taken just before the Flutter view
+// controller is built, slot 1 just after — and building it is what boots the
+// engine and loads the AOT snapshot.
+//
+// This is here to answer one question: of the 2.7 seconds that pass between
+// the runner starting and the first line of Dart, how much is the engine
+// coming up? If it is nearly all of it, making app.so smaller is worth doing;
+// if it is not, that work would achieve nothing.
+extern "C" __declspec(dllexport) long long mt_trace_engine[2] = {-1, -1};
+
 int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
                       _In_ wchar_t *command_line, _In_ int show_command) {
   // Before anything else this function does: everything up to here is the
@@ -109,9 +123,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   FlutterWindow window(project);
   Win32Window::Point origin(10, 10);
   Win32Window::Size size(1280, 720);
+
+  mt_trace_engine[0] = MillisecondsSinceProcessStart();
   if (!window.Create(L"MarkText Plus", origin, size)) {
     return EXIT_FAILURE;
   }
+  mt_trace_engine[1] = MillisecondsSinceProcessStart();
   window.SetQuitOnClose(true);
 
   ::MSG msg;
