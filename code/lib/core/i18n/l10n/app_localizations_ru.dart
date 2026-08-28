@@ -9,6 +9,19 @@ class AppLocalizationsRu extends AppLocalizations {
   AppLocalizationsRu([String locale = 'ru']) : super(locale);
 
   @override
+  String get mermaidParseError => 'Ошибка разбора Mermaid';
+
+  @override
+  String imageSavedTo(String path) {
+    return 'Сохранено в $path';
+  }
+
+  @override
+  String imageSaveFailed(String message) {
+    return 'Не удалось сохранить изображение: $message';
+  }
+
+  @override
   String saveFailed(String message) {
     return 'Не удалось сохранить файл: $message';
   }

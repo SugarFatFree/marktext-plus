@@ -9,6 +9,19 @@ class AppLocalizationsPt extends AppLocalizations {
   AppLocalizationsPt([String locale = 'pt']) : super(locale);
 
   @override
+  String get mermaidParseError => 'Erro de análise do Mermaid';
+
+  @override
+  String imageSavedTo(String path) {
+    return 'Guardado em $path';
+  }
+
+  @override
+  String imageSaveFailed(String message) {
+    return 'Não foi possível guardar a imagem: $message';
+  }
+
+  @override
   String saveFailed(String message) {
     return 'Não foi possível guardar o ficheiro: $message';
   }
@@ -857,6 +870,19 @@ class AppLocalizationsPt extends AppLocalizations {
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
 class AppLocalizationsPtBr extends AppLocalizationsPt {
   AppLocalizationsPtBr() : super('pt_BR');
+
+  @override
+  String get mermaidParseError => 'Erro de análise do Mermaid';
+
+  @override
+  String imageSavedTo(String path) {
+    return 'Salvo em $path';
+  }
+
+  @override
+  String imageSaveFailed(String message) {
+    return 'Não foi possível salvar a imagem: $message';
+  }
 
   @override
   String saveFailed(String message) {

@@ -9,6 +9,19 @@ class AppLocalizationsAr extends AppLocalizations {
   AppLocalizationsAr([String locale = 'ar']) : super(locale);
 
   @override
+  String get mermaidParseError => 'خطأ في تحليل Mermaid';
+
+  @override
+  String imageSavedTo(String path) {
+    return 'تم الحفظ في $path';
+  }
+
+  @override
+  String imageSaveFailed(String message) {
+    return 'تعذّر حفظ الصورة: $message';
+  }
+
+  @override
   String saveFailed(String message) {
     return 'تعذّر حفظ الملف: $message';
   }

@@ -1,5 +1,22 @@
 {
   "@@locale": "zh",
+  "mermaidParseError": "Mermaid 解析错误",
+  "imageSavedTo": "已保存到 {path}",
+  "@imageSavedTo": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "imageSaveFailed": "图片保存失败：{message}",
+  "@imageSaveFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "saveFailed": "保存失败：{message}",
   "@saveFailed": {
     "placeholders": {

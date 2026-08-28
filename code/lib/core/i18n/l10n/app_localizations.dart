@@ -117,6 +117,24 @@ abstract class AppLocalizations {
     Locale('zh'),
   ];
 
+  /// No description provided for @mermaidParseError.
+  ///
+  /// In en, this message translates to:
+  /// **'Mermaid parse error'**
+  String get mermaidParseError;
+
+  /// No description provided for @imageSavedTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved to {path}'**
+  String imageSavedTo(String path);
+
+  /// No description provided for @imageSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save the image: {message}'**
+  String imageSaveFailed(String message);
+
   /// No description provided for @saveFailed.
   ///
   /// In en, this message translates to:

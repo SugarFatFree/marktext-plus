@@ -9,6 +9,19 @@ class AppLocalizationsEs extends AppLocalizations {
   AppLocalizationsEs([String locale = 'es']) : super(locale);
 
   @override
+  String get mermaidParseError => 'Error de análisis de Mermaid';
+
+  @override
+  String imageSavedTo(String path) {
+    return 'Guardado en $path';
+  }
+
+  @override
+  String imageSaveFailed(String message) {
+    return 'No se pudo guardar la imagen: $message';
+  }
+
+  @override
   String saveFailed(String message) {
     return 'No se pudo guardar el archivo: $message';
   }

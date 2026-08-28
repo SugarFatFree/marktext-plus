@@ -54,6 +54,8 @@
 | BUG-050 | 2026-08-28 | 保存不是原子的：写到一半崩溃会把用户的文档写成空的或半截 | **P0** | 已修复 |
 | BUG-051 | 2026-08-28 | 侧边栏重命名文件夹必然失败（File.rename 对目录报 EISDIR） | **P1** | 已修复 |
 | BUG-052 | 2026-08-28 | 保存失败时一声不吭，Ctrl+S 和成功保存看不出区别 | **P1** | 已修复 |
+| BUG-053 | 2026-08-28 | Mermaid 语法写错时画成一个空白框，而不是提示错在哪 | **P1** | 已修复 |
+| BUG-054 | 2026-08-28 | Mermaid 的三处提示文案是硬编码英文，错误框在深色主题下刺眼 | P2 | 已修复 |
 
 ## 详细记录
 
@@ -1315,5 +1317,131 @@ void reportSaveFailure(Object error) {
 - `code/lib/ui/widgets/app_menu_bar.dart` —— 两处
 - `code/lib/ui/widgets/editor_tab_bar.dart` —— 一处
 - `code/lib/core/i18n/l10n/app_*.arb` —— 12 个文件新增 `saveFailed`
+
+---
+
+## BUG-053 — Mermaid 语法写错时画成一个空白框
+
+**发现日期**：2026-08-28 　**优先级**：P1 　**状态**：已修复
+
+### 现象
+
+Mermaid 代码里只要有一处语法写错——一个箭头打漏、一个括号没闭合——图表就渲染成
+**一个什么都没有的空白框**，没有任何提示。用户看到的是"图没出来"，自然会说
+"mermaid 渲染有问题"。
+
+最小复现：
+
+```mermaid
+graph TD
+  A--->
+```
+
+表头 `graph TD` 认得出来，但 `A--->` 这条边没有终点，解析器读不出任何节点和边，
+于是拿着一个空的图去画，画出一个空框。
+
+### 根因
+
+`parseWithData` 只在**完全认不出来**时返回 null（比如不认识的图表类型）。表头认得、
+内容读不出来的情况，它返回的是一个**内容为空但非 null 的结果**，绕过了所有错误路径：
+
+```dart
+if (result == null) {
+  throw Exception(parser.describeParseFailure(widget.code));   // ← 到不了这里
+}
+```
+
+而 `describeParseFailure` 其实早就准备好了正确的话：
+「Could not parse this flowchart. The header is recognised, so check the syntax below it.」
+只是没有任何东西会去调用它。
+
+### 与上游的对照
+
+上游把代码交给 `mermaid.parse()` 校验，被拒绝就渲染成一个错误节点：
+
+```ts
+// packages/muya/e2e/tests/diagrams/mermaid.spec.ts
+// A truncated edge (`A--->` with no target) is rejected by `mermaid.parse`,
+// which the preview block catches and surfaces as an error node instead of
+// throwing.
+const INVALID_MERMAID = 'graph TD\n    A--->';
+```
+
+**用的正是同一个例子。**
+
+### 修复方案
+
+给 `MermaidParseResult` 加 `hasContent`，`parseWithData` 在结果没有任何内容时返回 null，
+让已有的错误路径亮起来：
+
+```dart
+MermaidParseResult? parseWithData(String source) {
+  final result = _parseWithData(source);
+  return (result != null && result.hasContent) ? result : null;
+}
+```
+
+`hasContent` 要照顾到 17 种类型专属载荷 —— 饼图、甘特、时间线这些**本来就没有
+nodes/edges**，内容在各自的载荷里，只看 nodes/edges 会把它们全部误判成空。
+
+顺带让 `describeParseFailure` 区分"只有表头"和"表头对但下面读不懂"，前者说
+「has a header but no content」，不再让用户去查一段根本不存在的正文。
+
+### 排查过程中差点得出的错误结论
+
+第一版探针统计的是 `nodes.length` 和 `edges.length`，跑出来 **20 个已支持类型里
+有 15 个"空图"**，看起来像是 mermaid 实现整体崩了。实际上饼图、甘特、时间线、
+看板、雷达、xy、象限、桑基、块图、C4 这些类型的数据根本不在 nodes/edges 里。
+改成检查类型专属载荷之后：**20 个类型全部解析出内容，一个不落**。
+
+这条记在这里是因为它差点变成一份"mermaid 大面积损坏"的错误报告。
+
+### 已确认的上游缺口（未实现，非本次修复范围）
+
+mermaid 11 有四种图表类型本项目没有实现，它们会正确地显示
+「Unrecognised diagram type」并列出支持的类型：`zenuml`、`packet-beta`、
+`architecture-beta`、`treemap-beta`。
+
+### 测试
+
+`test/ui/editor/mermaid/mermaid_parser_test.dart` 新增 4 条，其中一条是守卫的守卫：
+把 **19 种已实现类型各来一个样例**，逐个确认没有被新的空结果判定误伤。
+
+### 涉及文件
+
+- `code/lib/ui/editor/mermaid/parser/mermaid_parser.dart`
+- `code/test/ui/editor/mermaid/mermaid_parser_test.dart`
+
+---
+
+## BUG-054 — Mermaid 的提示文案是硬编码英文，错误框在深色主题下刺眼
+
+**发现日期**：2026-08-28 　**优先级**：P2 　**状态**：已修复
+
+### 现象
+
+一个支持 12 种语言的应用里，mermaid 相关的三句话是写死的英文：
+
+| 位置 | 原文 |
+|---|---|
+| 解析错误框标题 | `Mermaid Parse Error` |
+| 图片导出成功 | `Saved to $savePath` |
+| 图片导出失败 | `Save failed: $e` |
+
+同时那个错误框用的是固定的 `Colors.red.shade50` 底色配 `red.shade700/900` 文字，
+**八个主题一个样**。在 Dark Graphite、Dieci OLED、Midnight 这几个深色主题下，
+文档中间会突然出现一块亮色面板。
+
+### 修复方案
+
+三句话补成 l10n 键（`mermaidParseError`、`imageSavedTo`、`imageSaveFailed`），
+12 种语言全部补齐。错误框改用 `Theme.of(context).colorScheme` 的
+`errorContainer` / `onErrorContainer`，跟着主题走。标题加 `Flexible` 包裹 ——
+换成德语、俄语之后那行明显更长，原来会溢出。
+
+### 涉及文件
+
+- `code/lib/ui/widgets/mermaid_renderer.dart`
+- `code/lib/core/i18n/l10n/app_*.arb` —— 12 个文件各新增 3 个键
 
 ---

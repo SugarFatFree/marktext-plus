@@ -100,13 +100,21 @@ class _MermaidRendererState extends State<MermaidRenderer> {
 
       if (context.mounted && savePath != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Saved to $savePath')),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.imageSavedTo(savePath),
+            ),
+          ),
         );
       }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Save failed: $e')),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.imageSaveFailed('$e'),
+            ),
+          ),
         );
       }
     }
@@ -254,10 +262,14 @@ class _MermaidRendererState extends State<MermaidRenderer> {
       code: widget.code,
       style: style,
       errorBuilder: (context, error) {
+        // Through the colour scheme rather than a fixed red: the pale red wash
+        // was painted the same in every theme, so on a dark one the message
+        // arrived as a bright panel in the middle of the document.
+        final scheme = Theme.of(context).colorScheme;
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.red.shade50,
+            color: scheme.errorContainer,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Column(
@@ -266,19 +278,24 @@ class _MermaidRendererState extends State<MermaidRenderer> {
             children: [
               Row(
                 children: [
-                  Icon(Icons.error_outline, color: Colors.red.shade700),
+                  Icon(Icons.error_outline, color: scheme.onErrorContainer),
                   const SizedBox(width: 8),
-                  Text(
-                    'Mermaid Parse Error',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.red.shade700,
+                  Flexible(
+                    child: Text(
+                      AppLocalizations.of(context)!.mermaidParseError,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: scheme.onErrorContainer,
+                      ),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 8),
-              Text(error, style: TextStyle(color: Colors.red.shade900, fontSize: 12)),
+              Text(
+                error,
+                style: TextStyle(color: scheme.onErrorContainer, fontSize: 12),
+              ),
             ],
           ),
         );

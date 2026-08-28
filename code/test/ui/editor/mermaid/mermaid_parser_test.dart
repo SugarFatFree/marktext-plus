@@ -2158,4 +2158,69 @@ classDiagram
       expect(result!.classDiagramData!.byId('Duck')!.note, 'can fly');
     });
   });
+
+  group('A diagram with nothing in it is rejected, not drawn blank', () {
+    const parser = MermaidParser();
+
+    test('a mistyped arrow no longer draws an empty box', () {
+      // Upstream MarkText hands this to `mermaid.parse`, which rejects it, and
+      // shows an error node in its place. Ours understood the header, found no
+      // node and no edge, and painted an empty box — which reads as a broken
+      // renderer rather than as a typo.
+      expect(parser.parseWithData('graph TD\n  A--->'), isNull);
+      expect(
+        parser.describeParseFailure('graph TD\n  A--->'),
+        contains('check the syntax below it'),
+      );
+    });
+
+    test('a header on its own says so, rather than blaming the body', () {
+      expect(parser.parseWithData('flowchart TD'), isNull);
+      expect(
+        parser.describeParseFailure('flowchart TD'),
+        contains('no content'),
+      );
+    });
+
+    test('an unknown type still names what is supported', () {
+      // zenuml, packet-beta, architecture-beta and treemap-beta are the four
+      // mermaid 11 types not implemented here.
+      expect(parser.parseWithData('architecture-beta\n  group api(cloud)[API]'),
+          isNull);
+      expect(
+        parser.describeParseFailure('architecture-beta\n  group api(cloud)[API]'),
+        contains('Unrecognised diagram type'),
+      );
+    });
+
+    test('every implemented type still parses to something', () {
+      // The guard rejects an empty result, so it has to be shown that no real
+      // diagram falls into it. These are one sample per supported type.
+      const samples = <String, String>{
+        'flowchart': 'flowchart TD\n  A[Start] --> B{Choice}\n  B -->|yes| C[Do]',
+        'sequence': 'sequenceDiagram\n  Alice->>John: Hello',
+        'class': 'classDiagram\n  Animal <|-- Duck',
+        'state': 'stateDiagram-v2\n  [*] --> Still\n  Still --> [*]',
+        'er': 'erDiagram\n  CUSTOMER ||--o{ ORDER : places',
+        'journey': 'journey\n  title My day\n  section Work\n    Tea: 5: Me',
+        'gitGraph': 'gitGraph\n  commit\n  branch dev\n  checkout dev\n  commit',
+        'mindmap': 'mindmap\n  root((core))\n    Origins',
+        'pie': 'pie title Pets\n  "Dogs" : 386\n  "Cats" : 85',
+        'gantt': 'gantt\n  dateFormat YYYY-MM-DD\n  section S\n  A :a1, 2014-01-01, 30d',
+        'timeline': 'timeline\n  title History\n  2002 : LinkedIn',
+        'kanban': 'kanban\n  Todo\n    t1[Create]',
+        'radar': 'radar-beta\n  axis a["A"], b["B"], c["C"]\n  curve x["X"]{1,2,3}\n  max 5',
+        'xychart': 'xychart-beta\n  x-axis [jan, feb]\n  bar [30, 60]',
+        'quadrant': 'quadrantChart\n  x-axis Low --> High\n  y-axis Low --> High\n  A: [0.3, 0.6]',
+        'requirement': 'requirementDiagram\n  requirement r {\n    id: 1\n    text: t\n    risk: high\n    verifymethod: test\n  }',
+        'sankey': 'sankey-beta\n\nA,B,124.729',
+        'block': 'block-beta\n  columns 3\n  a b c',
+        'c4': 'C4Context\n  Person(a, "User", "d")\n  System(b, "Sys", "d")\n  Rel(a, b, "uses")',
+      };
+      for (final entry in samples.entries) {
+        expect(parser.parseWithData(entry.value), isNotNull,
+            reason: '${entry.key} 被空结果守卫误伤了');
+      }
+    });
+  });
 }

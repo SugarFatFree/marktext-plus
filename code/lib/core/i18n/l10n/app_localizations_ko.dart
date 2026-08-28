@@ -9,6 +9,19 @@ class AppLocalizationsKo extends AppLocalizations {
   AppLocalizationsKo([String locale = 'ko']) : super(locale);
 
   @override
+  String get mermaidParseError => 'Mermaid 구문 분석 오류';
+
+  @override
+  String imageSavedTo(String path) {
+    return '$path에 저장했습니다';
+  }
+
+  @override
+  String imageSaveFailed(String message) {
+    return '이미지를 저장하지 못했습니다: $message';
+  }
+
+  @override
   String saveFailed(String message) {
     return '파일을 저장하지 못했습니다: $message';
   }

@@ -1,5 +1,22 @@
 {
   "@@locale": "ko",
+  "mermaidParseError": "Mermaid 구문 분석 오류",
+  "imageSavedTo": "{path}에 저장했습니다",
+  "@imageSavedTo": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "imageSaveFailed": "이미지를 저장하지 못했습니다: {message}",
+  "@imageSaveFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "saveFailed": "파일을 저장하지 못했습니다: {message}",
   "@saveFailed": {
     "placeholders": {

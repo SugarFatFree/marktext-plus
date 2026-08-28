@@ -1,5 +1,22 @@
 {
   "@@locale": "ar",
+  "mermaidParseError": "خطأ في تحليل Mermaid",
+  "imageSavedTo": "تم الحفظ في {path}",
+  "@imageSavedTo": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "imageSaveFailed": "تعذّر حفظ الصورة: {message}",
+  "@imageSaveFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "saveFailed": "تعذّر حفظ الملف: {message}",
   "@saveFailed": {
     "placeholders": {

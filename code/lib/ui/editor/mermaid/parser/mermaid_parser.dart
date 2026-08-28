@@ -63,6 +63,38 @@ class MermaidParseResult {
   /// The parsed diagram data
   final MermaidDiagramData diagram;
 
+  /// Whether anything at all came out of the parse.
+  ///
+  /// A diagram whose header is understood but whose body is not — one mistyped
+  /// arrow is enough — used to reach the painter with nothing in it and draw a
+  /// blank box. A blank box is indistinguishable from a broken renderer, which
+  /// is how "mermaid 渲染有问题" gets reported. Upstream MarkText rejects the
+  /// same input outright and shows an error node in its place.
+  ///
+  /// Types that keep their content in a payload rather than in nodes and edges
+  /// — a pie chart has neither — count as long as the payload is there.
+  bool get hasContent =>
+      diagram.nodes.isNotEmpty ||
+      diagram.edges.isNotEmpty ||
+      pieChartData != null ||
+      ganttChartData != null ||
+      timelineChartData != null ||
+      kanbanChartData != null ||
+      quadrantChartData != null ||
+      requirementDiagramData != null ||
+      sankeyChartData != null ||
+      blockDiagramData != null ||
+      c4DiagramData != null ||
+      radarChartData != null ||
+      xyChartData != null ||
+      classDiagramData != null ||
+      erDiagramData != null ||
+      journeyData != null ||
+      gitGraphData != null ||
+      mindmapData != null ||
+      sequenceData != null;
+
+
   /// Pie chart specific data (only set for pie charts)
   final PieChartData? pieChartData;
 
@@ -134,8 +166,17 @@ class MermaidParser {
   /// Parses a Mermaid diagram string and returns additional data
   ///
   /// Returns a [MermaidParseResult] containing the diagram and any
-  /// type-specific data (like [PieChartData] for pie charts)
+  /// type-specific data (like [PieChartData] for pie charts), or null when
+  /// nothing usable came out of it — see [MermaidParseResult.hasContent].
+  /// Every caller already treats null as "show the reader why", so an empty
+  /// result reaching the painter and drawing a blank box was the one failure
+  /// that said nothing.
   MermaidParseResult? parseWithData(String source) {
+    final result = _parseWithData(source);
+    return (result != null && result.hasContent) ? result : null;
+  }
+
+  MermaidParseResult? _parseWithData(String source) {
     if (source.trim().isEmpty) return null;
 
     final lines = source.split('\n');
@@ -396,6 +437,10 @@ class MermaidParser {
     if (type == DiagramType.unknown) {
       return 'Unrecognised diagram type: "$firstLine".\n'
           'Supported: ${supportedTypes.join(', ')}.';
+    }
+
+    if (cleaned.length <= 1) {
+      return 'This ${_typeLabel(type)} has a header but no content.';
     }
 
     return 'Could not parse this ${_typeLabel(type)}. '

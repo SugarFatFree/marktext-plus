@@ -9,6 +9,19 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
+  String get mermaidParseError => 'Mermaid 解析错误';
+
+  @override
+  String imageSavedTo(String path) {
+    return '已保存到 $path';
+  }
+
+  @override
+  String imageSaveFailed(String message) {
+    return '图片保存失败：$message';
+  }
+
+  @override
   String saveFailed(String message) {
     return '保存失败：$message';
   }

@@ -1,5 +1,22 @@
 {
   "@@locale": "en",
+  "mermaidParseError": "Mermaid parse error",
+  "imageSavedTo": "Saved to {path}",
+  "@imageSavedTo": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "imageSaveFailed": "Could not save the image: {message}",
+  "@imageSaveFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "saveFailed": "Could not save the file: {message}",
   "@saveFailed": {
     "placeholders": {
