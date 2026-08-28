@@ -51,6 +51,8 @@
 | BUG-047 | 2026-08-28 | 每次按键都重建整棵文件树 | P1 | 已修复 |
 | BUG-048 | 2026-08-28 | 侧边栏的新建/重命名/删除失败时毫无提示，对话框一关什么都没发生 | **P1** | 已修复 |
 | BUG-049 | 2026-08-28 | 从「已打开文件」删除文件，下面的文件树不刷新，删掉的文件还在 | P2 | 已修复 |
+| BUG-050 | 2026-08-28 | 保存不是原子的：写到一半崩溃会把用户的文档写成空的或半截 | **P0** | 已修复 |
+| BUG-051 | 2026-08-28 | 侧边栏重命名文件夹必然失败（File.rename 对目录报 EISDIR） | **P1** | 已修复 |
 
 ## 详细记录
 
@@ -1095,5 +1097,157 @@ ref.read(tabProvider.notifier).pathDeleted(file.filePath);
 
 - `code/lib/ui/widgets/side_bar.dart`
 - `code/test/ui/widgets/side_bar_file_ops_test.dart`
+
+---
+
+## BUG-050 — 保存不是原子的，写到一半崩溃会毁掉用户的文档
+
+**发现日期**：2026-08-28 　**优先级**：**P0** 　**状态**：已修复
+
+### 现象
+
+保存过程中如果进程被杀、磁盘写满、或者断电，用户的文档会**变成空文件或者半截内容**，
+而且没有任何可以恢复的东西 —— 原文已经没了。
+
+这不是假想。`writeAsBytes` 默认 `FileMode.write`，语义是**先把文件截断到 0 字节，
+再往里写**。截断和写完之间的那个窗口里，磁盘上的文档就是空的。文件越大窗口越长。
+
+### 根因
+
+```dart
+static Future<void> saveDocument(String path, String content, {...}) async {
+  await File(path).writeAsBytes(encoding.encode(lineEnding.apply(content)));
+}
+```
+
+一行，没有临时文件，没有 fsync，没有备份。
+
+### 与上游的对照
+
+上游 MarkText 的保存走 `write-file-atomic`，而且注释里挂着三个真实 issue 编号，
+说明这些坑他们都踩过：
+
+```ts
+// packages/desktop/src/main/filesystem/index.ts
+// write-file-atomic does not create parent directories; recreate a moved or
+// deleted folder first so an (auto)save into it still succeeds (#3509).
+...
+// (#3786, #3828); a bare rename is only namespace-atomic, not data-durable.
+// write-file-atomic also preserves the target's mode/owner, writes through a
+// symlink to its target, and uses a unique temp name — all of which a plain
+// temp+rename dropped.
+await writeFileAtomic(pathname, content, options)
+```
+
+注意最后那段：**光是 temp + rename 还不够**。上游明确列了四件事，本次修复逐条对齐了三件。
+
+### 修复方案
+
+在文档旁边写一个临时文件，fsync 之后再换入：
+
+```dart
+final temp = File('$target.${pid}_${_saveCounter++}.mtsave');
+final handle = await temp.open(mode: FileMode.writeOnly);
+await handle.writeFrom(bytes);
+await handle.flush();      // ← fsync：光 rename 只保证名字原子，数据可能还在页缓存里
+await handle.close();
+await _renameWithRetry(temp, target);
+```
+
+配套的四件事：
+
+1. **fsync 后再 rename**。`rename` 只是目录项的原子替换。如果字节还在页缓存里就崩了，
+   新名字指向的是一段空洞 —— 上游 #3786 / #3828 说的就是这个。
+2. **父目录不存在就补建**。文档打开期间用户在别处把文件夹移走或删了，保存不该失败
+   （上游 #3509）。
+3. **穿过符号链接写目标文件**。直接对链接本身 rename 会把链接**替换成普通文件**，
+   用户放在别处的真正文档就此和编辑器脱钩了。所以先 `resolveSymbolicLinks`。
+4. **rename 失败要重试**。Windows 上杀毒软件例行会把刚写完的文件按住几十毫秒，
+   rename 撞上共享冲突，下一次就好了。**没有这个重试，原子保存反而比原来那个截断写更不可靠。**
+   退避 20ms / 60ms，共三次。
+
+临时文件用 `pid` + 自增计数命名：分屏和自动保存可能在同一毫秒里各存一次，只靠 pid 会撞。
+`listDirectory` 里把 `.mtsave` 过滤掉，免得保存的一两毫秒内它闪进侧边栏。
+
+### 已知取舍：POSIX 文件权限
+
+换入的是一个新建的临时文件，它的权限来自 umask（通常 0644），**不会继承原文件的权限**。
+原来是 0600 的文档保存后会变成 0644。上游的 `write-file-atomic` 会保留 mode/owner，
+但 `dart:io` 没有 chmod，要做到只能走 FFI 或者每次保存都起一个 `chmod` 进程。
+
+权衡下来先不做：一边是「崩溃必定毁文档」，一边是「私密文档的权限从 0600 变 0644，
+而且所在目录的权限仍然拦着」。前者严重得多。**这条记在这里，不是漏掉了。**
+
+### 测试
+
+`test/services/file_service_atomic_save_test.dart`，10 条。其中真正能区分新旧实现的
+是硬链接那条：
+
+```dart
+File(path).writeAsStringSync('original');
+await Process.run('ln', [path, alias]);       // 硬链接，共享 inode
+await FileService.saveDocument(path, 'replaced');
+expect(File(alias).readAsStringSync(), 'original');
+```
+
+硬链接共享 inode。要是保存是往原文件里写，别名也会看到新内容；它只看到旧内容，
+说明文档是被整个换掉的 —— 而这正是「不可能出现半截文件」的原因。
+已用脚本验证旧实现下这条断言会失败（别名读到 `replaced`）。
+
+### 涉及文件
+
+- `code/lib/services/file_service.dart`
+- `code/test/services/file_service_atomic_save_test.dart` —— 新增
+
+---
+
+## BUG-051 — 侧边栏重命名文件夹必然失败
+
+**发现日期**：2026-08-28 　**优先级**：P1 　**状态**：已修复
+
+### 现象
+
+在侧边栏文件树上右键一个**文件夹** → 重命名 → 输入新名字 → 确定，**文件夹的名字没变**。
+在 BUG-048 修好之前，这个过程连一句提示都没有。重命名文件是正常的，只有文件夹不行。
+
+### 根因
+
+```dart
+Future<void> renameFile(String oldPath, String newPath) async {
+  await File(oldPath).rename(newPath);      // ← 目录会抛
+}
+```
+
+Dart 的 `File.rename` 对目录直接拒绝。实测：
+
+```
+FileSystemException: Cannot rename file to '/tmp/probeOWPZIJ/renamed',
+path = '/tmp/probeOWPZIJ/folder' (OS Error: Is a directory, errno = 21)
+```
+
+换成 `Directory(...).rename(...)` 就成功。同一个文件里的 `deleteEntity` 早就按类型分派了：
+
+```dart
+Future<void> deleteEntity(String path) async {
+  final type = await FileSystemEntity.type(path);
+  if (type == FileSystemEntityType.directory) {
+    await Directory(path).delete(recursive: true);
+  } else if (type == FileSystemEntityType.file) {
+    await File(path).delete();
+  }
+}
+```
+
+**删除分派了，重命名没有。**又是"一个地方修对了，旁边那个没跟上"。
+
+### 修复方案
+
+`renameFile` 照 `deleteEntity` 的样子按类型分派；`moveFile` 原本是一份一模一样的拷贝，
+改成直接转发到 `renameFile`，以后不会再出现两者行为不一致。
+
+### 涉及文件
+
+- `code/lib/services/file_service.dart`
+- `code/test/services/file_service_atomic_save_test.dart`
 
 ---

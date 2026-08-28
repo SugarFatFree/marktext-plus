@@ -54,7 +54,81 @@ class FileService {
     LineEnding lineEnding = LineEnding.lf,
     FileEncoding encoding = FileEncoding.utf8Encoding,
   }) async {
-    await File(path).writeAsBytes(encoding.encode(lineEnding.apply(content)));
+    final bytes = encoding.encode(lineEnding.apply(content));
+
+    // Write through a symlink to whatever it points at. Renaming over the link
+    // itself would replace it with a regular file, quietly detaching the
+    // document from wherever the reader actually keeps it.
+    var target = path;
+    if (await FileSystemEntity.isLink(path)) {
+      try {
+        target = await File(path).resolveSymbolicLinks();
+      } on FileSystemException {
+        // Dangling link. Fall through and write the link's own path.
+      }
+    }
+
+    // The folder may have been moved or deleted while the document was open;
+    // recreate it rather than failing the save.
+    final parent = Directory(p.dirname(target));
+    if (!await parent.exists()) {
+      await parent.create(recursive: true);
+    }
+
+    // A plain writeAsBytes truncates the file and then writes into it. Killed
+    // process, full disk, lost power — the document is left empty or half
+    // written, with nothing to recover from. Write a scratch file beside it
+    // and swap it in instead, so the document on disk is only ever the old
+    // one or the new one.
+    final temp = File('$target.${pid}_${_saveCounter++}.mtsave');
+    try {
+      final handle = await temp.open(mode: FileMode.writeOnly);
+      try {
+        await handle.writeFrom(bytes);
+        // The rename alone is only namespace-atomic: the directory entry
+        // flips over while the bytes are still in the page cache, so a crash
+        // straight afterwards leaves the good name pointing at a hole.
+        await handle.flush();
+      } finally {
+        await handle.close();
+      }
+      await _renameWithRetry(temp, target);
+    } catch (_) {
+      // Never leave the scratch file behind next to the reader's documents.
+      try {
+        if (await temp.exists()) await temp.delete();
+      } on FileSystemException {
+        // Nothing further to try.
+      }
+      rethrow;
+    }
+  }
+
+  /// Scratch files are numbered as well as pid-tagged: two saves in the same
+  /// millisecond, from the split view and an autosave, would otherwise collide.
+  static int _saveCounter = 0;
+
+  /// Suffix of the scratch file [saveDocument] swaps in. Hidden from the tree
+  /// so it cannot flicker into the sidebar mid-save.
+  static const saveTempSuffix = '.mtsave';
+
+  /// Replaces [target] with [temp], retrying briefly.
+  ///
+  /// On Windows a virus scanner routinely holds a newly written file open for
+  /// a few dozen milliseconds, and the rename fails with a sharing violation
+  /// that is gone by the next attempt. Without this the atomic save would be
+  /// *less* reliable than the truncating write it replaces.
+  static Future<void> _renameWithRetry(File temp, String target) async {
+    const delays = [Duration(milliseconds: 20), Duration(milliseconds: 60)];
+    for (var attempt = 0;; attempt++) {
+      try {
+        await temp.rename(target);
+        return;
+      } on FileSystemException {
+        if (attempt >= delays.length) rethrow;
+        await Future<void>.delayed(delays[attempt]);
+      }
+    }
   }
 
   Future<void> writeFile(String path, String content) async {
@@ -91,21 +165,35 @@ class FileService {
 
     return [
       for (final e in entities)
-        FileNode(
-          name: p.basename(e.path),
-          path: e.path,
-          isDirectory: e is Directory,
-        ),
+        // A save in flight owns one of these for a millisecond or two; it is
+        // not something the reader has any use for seeing.
+        if (!e.path.endsWith(saveTempSuffix))
+          FileNode(
+            name: p.basename(e.path),
+            path: e.path,
+            isDirectory: e is Directory,
+          ),
     ];
   }
 
+  /// Renames [oldPath] to [newPath], whichever kind of entity it is.
+  ///
+  /// `File.rename` refuses a directory outright — EISDIR, "Is a directory" —
+  /// so renaming a folder in the sidebar could never work, and until the
+  /// sidebar started reporting these failures it did nothing at all: the
+  /// dialog closed and the folder kept its old name. [deleteEntity] already
+  /// dispatched on the type; this did not.
   Future<void> renameFile(String oldPath, String newPath) async {
-    await File(oldPath).rename(newPath);
+    final type = await FileSystemEntity.type(oldPath);
+    if (type == FileSystemEntityType.directory) {
+      await Directory(oldPath).rename(newPath);
+    } else {
+      await File(oldPath).rename(newPath);
+    }
   }
 
-  Future<void> moveFile(String oldPath, String newPath) async {
-    await File(oldPath).rename(newPath);
-  }
+  Future<void> moveFile(String oldPath, String newPath) =>
+      renameFile(oldPath, newPath);
 
   Future<void> createFile(String path, String content) async {
     await File(path).writeAsString(content);
