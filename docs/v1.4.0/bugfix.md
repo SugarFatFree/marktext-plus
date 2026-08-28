@@ -64,6 +64,7 @@
 | BUG-060 | 2026-08-28 | 标题升级/降级在设置页显示成原始动作名 | P3 | 已修复 |
 | BUG-061 | 2026-08-28 | 38 个格式动作里有 17 个在命令面板里找不到 | P2 | 已修复 |
 | BUG-062 | 2026-08-28 | 「最近文件」在 10 种语言里都是英文，而守这件事的测试形同虚设 | P2 | 已修复 |
+| BUG-063 | 2026-08-28 | 程序已在运行时双击文件，窗口不会被唤到前台；再点图标更是毫无反应 | **P1** | 已修复 |
 
 ## 详细记录
 
@@ -1943,5 +1944,95 @@ expect(untranslated, isEmpty,
 - `code/lib/core/i18n/l10n/app_*.arb` —— 10 个文件各 2 个键
 - `code/lib/core/i18n/l10n/app_localizations_*.dart` —— 重新生成
 - `code/test/core/i18n/l10n_coverage_test.dart` —— 阈值换成名单
+
+---
+
+## BUG-063 — 程序已在运行时双击文件，窗口不会被唤到前台
+
+**发现日期**：2026-08-28 　**优先级**：P1 　**状态**：已修复
+
+### 现象
+
+MarkText Plus 已经开着（最小化，或者被别的窗口挡住）时：
+
+- **双击一个 `.md` 文件** —— 文件确实打开进了标签页，但**窗口纹丝不动**。
+  用户看到的是"点了没反应"。
+- **再点一次桌面图标 / 开始菜单** —— **什么都不会发生**。
+
+### 根因
+
+第二实例的处理只做了"把文件读进标签页"，从来没有把窗口拿到前面：
+
+```dart
+void _handleSecondInstance(List<dynamic> newArgs) {
+  final newFiles = _filterStartupFiles(newArgs);
+  if (newFiles.isEmpty) return;          // ← 不带文件时直接返回，什么都不做
+  _globalContainer?.read(tabProvider.notifier).openFilesFromSecondInstance(newFiles);
+}
+```
+
+`windowManager.show()` / `focus()` 全项目只在 `main()` 里初次启动时调用过一次。
+
+### 与上游的对照
+
+上游在同一个位置**明确会把窗口拿到前面**，而且在"第二次启动不带任何文件"的情况下，
+**这是它唯一做的事**：
+
+```ts
+// packages/desktop/src/main/app/index.ts
+app.on('second-instance', (_event, argv, workingDirectory) => {
+  ...
+  _openFilesCache.push(...buf)
+  if (_openFilesCache.length) {
+    this._openFilesToOpen()
+  } else {
+    const activeWindow = _windowManager.getActiveWindow()
+    if (activeWindow) {
+      activeWindow.bringToFront()      // ← 不带文件时就只做这个
+    }
+  }
+})
+```
+
+### 这可能就是用户说的「打开时重复出现打开方式的选择」
+
+用户点名的第三个问题一直被理解成"那个对话框还在"，而对话框早已从代码里移除。
+但从行为上看：双击文件 → 看起来没反应 → 再试一次 / Windows 再问一遍 ——
+**用户感受到的"重复"，很可能来自这里，而不是来自那个已经删掉的对话框。**
+
+### 修复方案
+
+`openFilesFromSecondInstance` 改为返回"是否在本窗口打开"，因为用户可能把
+「打开方式」设成了新窗口 —— 那种情况下**不应该**动当前窗口：
+
+```dart
+void _handleSecondInstance(List<dynamic> newArgs) async {
+  final newFiles = _filterStartupFiles(newArgs);
+  final notifier = _globalContainer?.read(tabProvider.notifier);
+  if (newFiles.isNotEmpty && notifier != null) {
+    final openedHere = await notifier.openFilesFromSecondInstance(newFiles);
+    if (!openedHere) return;   // 按用户的偏好去了新窗口，这个窗口保持原样
+  }
+  await _bringWindowForward();
+}
+```
+
+`_bringWindowForward` 先 `restore()`（最小化时不 restore，`show()` 不会让它回来），
+再 `show()` + `focus()`，整段包在 try 里 —— 唤起窗口失败不该成为文件打不开的理由。
+
+### 测试
+
+`test/providers/second_instance_test.dart`，3 条。这个方法此前**完全没有测试覆盖**：
+文件在本窗口打开并如实返回、已打开的文件被切到前面而不是重复打开、
+其中一个路径读不了不影响其余的。
+
+窗口调用本身属于平台层，测不了；测的是这个方法给平台层的那个答案 ——
+**返回错了，调用方就会以为文件去了新窗口，于是不唤起本窗口。**
+
+### 涉及文件
+
+- `code/lib/main.dart`
+- `code/lib/providers/tab_provider.dart`
+- `code/test/providers/second_instance_test.dart` —— 新增
 
 ---

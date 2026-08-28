@@ -43,10 +43,37 @@ void _listenForLinuxFileOpens(ProviderContainer container) {
   });
 }
 
-void _handleSecondInstance(List<dynamic> newArgs) {
+/// Brings the running window forward.
+///
+/// Launching the program while it is already running did nothing visible: with
+/// a file, the file opened into a tab behind whatever the reader was looking
+/// at; without one — clicking the shortcut again — the handler returned
+/// immediately and the window stayed hidden. Both read as the program having
+/// ignored the double click. Upstream MarkText calls `bringToFront()` in the
+/// same place, and in the no-files case that is the *only* thing it does.
+Future<void> _bringWindowForward() async {
+  try {
+    if (await windowManager.isMinimized()) {
+      await windowManager.restore();
+    }
+    await windowManager.show();
+    await windowManager.focus();
+  } catch (_) {
+    // Never let surfacing the window be the reason a file fails to open.
+  }
+}
+
+void _handleSecondInstance(List<dynamic> newArgs) async {
   final newFiles = _filterStartupFiles(newArgs);
-  if (newFiles.isEmpty) return;
-  _globalContainer?.read(tabProvider.notifier).openFilesFromSecondInstance(newFiles);
+  final notifier = _globalContainer?.read(tabProvider.notifier);
+
+  if (newFiles.isNotEmpty && notifier != null) {
+    final openedHere = await notifier.openFilesFromSecondInstance(newFiles);
+    // Sent to a new window on purpose; this one should stay as it was.
+    if (!openedHere) return;
+  }
+
+  await _bringWindowForward();
 }
 
 void main(List<String> args) async {

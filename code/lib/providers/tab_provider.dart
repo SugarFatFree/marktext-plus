@@ -487,7 +487,12 @@ class TabNotifier extends StateNotifier<TabState> {
     state = state.copyWith(tabs: [], activeTabId: null);
   }
 
-  Future<void> openFilesFromSecondInstance(List<String> filePaths) async {
+  /// Opens [filePaths] because the program was launched again.
+  ///
+  /// Returns whether they were opened in *this* window; false means the
+  /// reader's preference sent them to a new one, and this window should be
+  /// left exactly where it was.
+  Future<bool> openFilesFromSecondInstance(List<String> filePaths) async {
     // The single-instance layer always routes a second launch here, so this is
     // where the preference has to be honoured: choosing "open in a new window"
     // previously changed nothing, because nothing read the setting.
@@ -496,7 +501,7 @@ class TabNotifier extends StateNotifier<TabState> {
       for (final path in filePaths) {
         await PlatformUtils.launchNewWindow(filePath: path);
       }
-      return;
+      return false;
     }
 
     final fileService = FileService();
@@ -524,6 +529,7 @@ class TabNotifier extends StateNotifier<TabState> {
         // restored. Encoding is no longer a reason to land here.
       }
     }
+    return true;
   }
 }
 
