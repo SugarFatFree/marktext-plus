@@ -1330,6 +1330,17 @@ class MarkdownParser {
       // The lookbehind keeps this off the tail of something already matched
       // as an address, and requiring a dot in the domain keeps it off `a@b`.
       r'|(?<![\w.@+-])([\w.+-]+@[\w-]+(?:\.[\w-]+)+)'  // 24 bare email
+      // A reference image: `![alt][label]`, or `![label][]`. The inline form
+      // `![alt](src)` has had its own branch since a stray `!` in front of a
+      // link gave it away; the reference form never did, so `![alt][img]`
+      // matched the reference *link* branch from its `[` and came out as a
+      // link with the `!` left beside it as text — the same fault, in the
+      // sibling nobody looked at.
+      //
+      // Appended last so no group number ahead of it moves; the leftmost
+      // match still wins, and this one starts a character earlier than the
+      // reference-link branch it has to beat.
+      r'|!\[((?:[^\[\]]|\[[^\[\]]*\])*)\]\[((?:[^\[\]]|\[[^\[\]]*\])*)\]'
     );
 
     var lastEnd = 0;
@@ -1470,6 +1481,25 @@ class MarkdownParser {
           spans.add(InlineSpan(
             type: InlineType.text,
             text: raw.substring(address.length),
+          ));
+        }
+      } else if (match.group(37) != null) {
+        // Reference image: ![alt][label], or ![alt][] where the alt text is
+        // the label. Same rules as the reference link below — including
+        // leaving an unresolved one as written — but it has to be tested
+        // first, because when this branch matches the link branch's groups
+        // are null anyway and reading them would be meaningless.
+        final label =
+            match.group(38)!.isEmpty ? match.group(37)! : match.group(38)!;
+        final definition = _linkDefinitions[label.toLowerCase()];
+        if (definition == null) {
+          spans.add(InlineSpan(type: InlineType.text, text: match.group(0)!));
+        } else {
+          spans.add(InlineSpan(
+            type: InlineType.image,
+            text: match.group(37)!,
+            href: definition.url,
+            title: definition.title,
           ));
         }
       } else if (match.group(32) != null) {

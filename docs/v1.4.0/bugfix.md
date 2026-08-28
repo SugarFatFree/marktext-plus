@@ -65,6 +65,7 @@
 | BUG-061 | 2026-08-28 | 38 个格式动作里有 17 个在命令面板里找不到 | P2 | 已修复 |
 | BUG-062 | 2026-08-28 | 「最近文件」在 10 种语言里都是英文，而守这件事的测试形同虚设 | P2 | 已修复 |
 | BUG-063 | 2026-08-28 | 程序已在运行时双击文件，窗口不会被唤到前台；再点图标更是毫无反应 | **P1** | 已修复 |
+| BUG-064 | 2026-08-28 | 引用式图片 `![alt][ref]` 渲染成链接，`!` 掉在外面 | P2 | 已修复 |
 
 ## 详细记录
 
@@ -2034,5 +2035,76 @@ void _handleSecondInstance(List<dynamic> newArgs) async {
 - `code/lib/main.dart`
 - `code/lib/providers/tab_provider.dart`
 - `code/test/providers/second_instance_test.dart` —— 新增
+
+---
+
+## BUG-064 — 引用式图片 `![alt][ref]` 渲染成链接
+
+**发现日期**：2026-08-28 　**优先级**：P2 　**状态**：已修复
+
+### 现象
+
+```markdown
+![截图][shot]
+
+[shot]: https://example.com/s.png
+```
+
+预览里显示的不是图片，而是一个文字为「截图」的**链接**，前面还多一个孤零零的 `!`。
+导出到 HTML / PDF / Word 同样如此。
+
+### 是怎么找到的
+
+把**上游的测试用例当规格书**：`packages/muya/e2e/tests/` 下有 395 个测试，其中一批
+文件名直接带 issue 编号（2177、3191、3560、3836、4100、4339、4644、4685）——
+那都是上游踩过的真实 bug 的回归测试。我们重新实现了同样的功能，很可能踩同样的坑。
+
+挑出与架构无关的语义类用例（`blocks/reference-link-image.spec.ts`、
+`blocks/footnote-scenarios.spec.ts`），照着写了 10 个情形的探针：
+
+| 情形 | 结果 |
+|---|---|
+| `[label][ref]` | ✓ |
+| 标签大小写不一致 | ✓ |
+| 定义缺失 → 保持字面 | ✓ |
+| **`![alt][ref]`** | **✗ 变成链接** |
+| **`![alt][REF]`** | **✗ 同上** |
+| `[ref][]` 简写 | ✓ |
+| `[ref]` 折叠引用 | ✗ 未实现（见下） |
+| 定义在引用之前 | ✓ |
+| 脚注（两种顺序） | ✓ |
+
+### 根因
+
+内联图片 `![alt](src)` 有自己的分支，注释里还写着当初为什么加：
+
+> Without it `![alt [x]](img.png)` fell through to that branch, which matched
+> from the `[` and turned an image into a link with a stray `!` in front.
+
+**症状一模一样，而引用式图片从来没有过对应的分支。**修过一个，漏了它的兄弟。
+
+### 修复方案
+
+内联大正则是**手工编号**的（派发里直接写 `match.group(32)`），在中间插分支会让后面
+所有编号平移。所以新分支**追加在整个正则的最末尾** —— 组号 37/38，前面一个都不动。
+
+顺序上仍然正确：正则引擎取**最左匹配**，`![alt][img]` 的新分支从位置 0 的 `!` 开始，
+比引用链接分支从位置 1 的 `[` 开始更靠左，所以即使排在后面也会赢。
+
+### 未做：折叠引用 `[ref]`
+
+CommonMark 里 `[ref]` 单独出现、且存在 `[ref]:` 定义时应解析成链接。**没有实现，
+也没有在这次一并加**：它会让文档里任何 `[某某]` 只要碰巧有同名定义就变成链接，
+影响面比引用式图片大得多，值得单独评估。记在这里以免被当成已支持。
+
+### 测试
+
+`code/test/services/reference_image_test.dart`，6 条。最后一条专门守「追加在末尾
+不影响既有分支」：内联图片和内联链接必须原样工作 —— 改正则最容易在别处出事。
+
+### 涉及文件
+
+- `code/lib/services/markdown_parser.dart`
+- `code/test/services/reference_image_test.dart` —— 新增
 
 ---
