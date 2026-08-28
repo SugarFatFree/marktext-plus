@@ -83,6 +83,9 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get fileNameTaken => '已存在同名的文件或文件夹';
+
+  @override
   String get appTitle => 'MarkText Plus';
 
   @override

@@ -87,6 +87,9 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get fileNameTaken => 'يوجد بالفعل ملف أو مجلد بهذا الاسم';
+
+  @override
   String get appTitle => 'MarkText Plus';
 
   @override

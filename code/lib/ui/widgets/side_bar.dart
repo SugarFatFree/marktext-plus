@@ -536,6 +536,15 @@ class _SideBarState extends ConsumerState<SideBar> {
     try {
       await op();
       return true;
+    } on PathExistsException {
+      // The commonest way this fails, and the one the reader can act on.
+      // Left to the generic branch it read as a raw exception name.
+      if (!mounted) return false;
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.fileNameTaken)),
+      );
+      return false;
     } catch (e) {
       if (!mounted) return false;
       final l10n = AppLocalizations.of(context)!;

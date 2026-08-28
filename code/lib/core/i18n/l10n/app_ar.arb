@@ -62,6 +62,7 @@
     }
   },
   "fileOperationFailed": "فشلت عملية الملف: {message}",
+  "fileNameTaken": "يوجد بالفعل ملف أو مجلد بهذا الاسم",
   "@fileOperationFailed": {
     "placeholders": {
       "message": {

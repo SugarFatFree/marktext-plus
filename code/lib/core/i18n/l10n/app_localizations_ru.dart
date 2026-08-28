@@ -89,6 +89,9 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String get fileNameTaken => 'Файл или папка с таким именем уже существует';
+
+  @override
   String get appTitle => 'MarkText Plus';
 
   @override

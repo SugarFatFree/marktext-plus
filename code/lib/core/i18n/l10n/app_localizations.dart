@@ -237,6 +237,12 @@ abstract class AppLocalizations {
   /// **'File operation failed: {message}'**
   String fileOperationFailed(String message);
 
+  /// No description provided for @fileNameTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'A file or folder with that name already exists'**
+  String get fileNameTaken;
+
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:

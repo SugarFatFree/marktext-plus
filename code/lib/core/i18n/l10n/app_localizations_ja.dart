@@ -84,6 +84,9 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get fileNameTaken => '同じ名前のファイルまたはフォルダーが既にあります';
+
+  @override
   String get appTitle => 'MarkText Plus';
 
   @override

@@ -62,6 +62,7 @@
     }
   },
   "fileOperationFailed": "文件操作失败：{message}",
+  "fileNameTaken": "已存在同名的文件或文件夹",
   "@fileOperationFailed": {
     "placeholders": {
       "message": {

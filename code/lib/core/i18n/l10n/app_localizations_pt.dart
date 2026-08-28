@@ -90,6 +90,9 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get fileNameTaken => 'Já existe um arquivo ou pasta com esse nome';
+
+  @override
   String get appTitle => 'MarkText Plus';
 
   @override
@@ -975,6 +978,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String fileOperationFailed(String message) {
     return 'Falha na operação de arquivo: $message';
   }
+
+  @override
+  String get fileNameTaken => 'Já existe um arquivo ou pasta com esse nome';
 
   @override
   String get appTitle => 'MarkText Plus';

@@ -62,6 +62,7 @@
     }
   },
   "fileOperationFailed": "Falha na operação de arquivo: {message}",
+  "fileNameTaken": "Já existe um arquivo ou pasta com esse nome",
   "@fileOperationFailed": {
     "placeholders": {
       "message": {

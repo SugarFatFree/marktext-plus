@@ -84,6 +84,9 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get fileNameTaken => '같은 이름의 파일 또는 폴더가 이미 있습니다';
+
+  @override
   String get appTitle => 'MarkText Plus';
 
   @override

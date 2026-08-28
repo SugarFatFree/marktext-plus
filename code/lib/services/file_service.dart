@@ -4,6 +4,19 @@ import '../models/file_node.dart';
 import '../models/file_encoding.dart';
 import '../models/line_ending.dart';
 
+/// Something already sits where a file was about to be written.
+///
+/// Its own type so the sidebar can say "that name is taken" rather than
+/// showing the reader a raw system error.
+class PathExistsException implements Exception {
+  const PathExistsException(this.path);
+
+  final String path;
+
+  @override
+  String toString() => 'PathExistsException: $path';
+}
+
 class FileService {
   /// Reads [path] as text, normalised to LF.
   ///
@@ -183,7 +196,19 @@ class FileService {
   /// sidebar started reporting these failures it did nothing at all: the
   /// dialog closed and the folder kept its old name. [deleteEntity] already
   /// dispatched on the type; this did not.
-  Future<void> renameFile(String oldPath, String newPath) async {
+  /// Renames [oldPath] to [newPath], refusing to write over anything.
+  ///
+  /// `File.rename` replaces the destination without a word, so renaming a
+  /// note to a name already in use destroyed the note that had it — no
+  /// prompt, no undo, nothing on screen to say it had happened.
+  Future<void> renameFile(
+    String oldPath,
+    String newPath, {
+    bool overwrite = false,
+  }) async {
+    if (!overwrite && oldPath != newPath) {
+      await _refuseIfTaken(newPath);
+    }
     final type = await FileSystemEntity.type(oldPath);
     if (type == FileSystemEntityType.directory) {
       await Directory(oldPath).rename(newPath);
@@ -192,10 +217,26 @@ class FileService {
     }
   }
 
+  /// Throws when something already sits at [path].
+  static Future<void> _refuseIfTaken(String path) async {
+    if (await FileSystemEntity.type(path) != FileSystemEntityType.notFound) {
+      throw PathExistsException(path);
+    }
+  }
+
   Future<void> moveFile(String oldPath, String newPath) =>
       renameFile(oldPath, newPath);
 
-  Future<void> createFile(String path, String content) async {
+  /// Writes a new file, refusing to empty one that is already there.
+  ///
+  /// `writeAsString` truncates, so asking for a new note under a name already
+  /// in use replaced that note with an empty document.
+  Future<void> createFile(
+    String path,
+    String content, {
+    bool overwrite = false,
+  }) async {
+    if (!overwrite) await _refuseIfTaken(path);
     await File(path).writeAsString(content);
   }
 

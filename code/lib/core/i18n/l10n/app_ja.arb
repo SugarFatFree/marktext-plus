@@ -62,6 +62,7 @@
     }
   },
   "fileOperationFailed": "ファイル操作に失敗しました: {message}",
+  "fileNameTaken": "同じ名前のファイルまたはフォルダーが既にあります",
   "@fileOperationFailed": {
     "placeholders": {
       "message": {

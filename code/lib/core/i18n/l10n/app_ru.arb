@@ -62,6 +62,7 @@
     }
   },
   "fileOperationFailed": "Не удалось выполнить операцию с файлом: {message}",
+  "fileNameTaken": "Файл или папка с таким именем уже существует",
   "@fileOperationFailed": {
     "placeholders": {
       "message": {

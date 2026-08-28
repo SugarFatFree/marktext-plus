@@ -90,6 +90,10 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String get fileNameTaken =>
+      'Ya existe un archivo o una carpeta con ese nombre';
+
+  @override
   String get appTitle => 'MarkText Plus';
 
   @override

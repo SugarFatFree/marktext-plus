@@ -62,6 +62,7 @@
     }
   },
   "fileOperationFailed": "파일 작업에 실패했습니다: {message}",
+  "fileNameTaken": "같은 이름의 파일 또는 폴더가 이미 있습니다",
   "@fileOperationFailed": {
     "placeholders": {
       "message": {
