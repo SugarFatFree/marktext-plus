@@ -21,6 +21,39 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   _Category _selected = _Category.general;
 
+  /// The text fields' controllers, kept rather than made in build.
+  ///
+  /// A controller built inside build is a new one on every rebuild: the old
+  /// one is never disposed, and the field is reset to whatever the config
+  /// says. These fields commit on Enter, so anything typed and not yet
+  /// submitted was thrown away the moment something else on the screen
+  /// rebuilt it — flipping any switch was enough.
+  final _fields = <String, TextEditingController>{};
+
+  /// What the config last said, so a value changed elsewhere still reaches
+  /// the field while what the reader is typing does not get overwritten.
+  final _lastFromConfig = <String, String>{};
+
+  @override
+  void dispose() {
+    for (final controller in _fields.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  /// The controller for [key], showing [value] unless the reader is midway
+  /// through replacing it.
+  TextEditingController _field(String key, String value) {
+    final controller =
+        _fields.putIfAbsent(key, () => TextEditingController(text: value));
+    if (_lastFromConfig[key] != value) {
+      _lastFromConfig[key] = value;
+      if (controller.text != value) controller.text = value;
+    }
+    return controller;
+  }
+
   static const _localeMap = {
     'en_US': 'English',
     'zh_CN': '简体中文',
@@ -210,8 +243,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           SizedBox(
             width: 120,
             child: TextField(
-              controller: TextEditingController(
-                  text: config.autoSaveDelay.toString()),
+              controller:
+                  _field('autoSaveDelay', config.autoSaveDelay.toString()),
               keyboardType: TextInputType.number,
               onSubmitted: (v) {
                 final d = int.tryParse(v) ?? 5000;
@@ -315,7 +348,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           SizedBox(
             width: 200,
             child: TextField(
-              controller: TextEditingController(text: config.fontFamily),
+              controller: _field('fontFamily', config.fontFamily),
               onSubmitted: (v) {
                 ref.read(settingsProvider.notifier).updateConfig(
                       (c) => c.copyWith(
@@ -331,7 +364,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           SizedBox(
             width: 200,
             child: TextField(
-              controller: TextEditingController(text: config.codeFontFamily),
+              controller: _field('codeFontFamily', config.codeFontFamily),
               onSubmitted: (v) {
                 ref.read(settingsProvider.notifier)
                     .updateConfig((c) => c.copyWith(codeFontFamily: v.isEmpty ? 'Courier New' : v));
@@ -344,8 +377,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           SizedBox(
             width: 120,
             child: TextField(
-              controller: TextEditingController(
-                text: config.codeFontSize.toStringAsFixed(0),
+              controller: _field(
+                'codeFontSize',
+                config.codeFontSize.toStringAsFixed(0),
               ),
               keyboardType: TextInputType.number,
               onSubmitted: (v) {
@@ -365,7 +399,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           SizedBox(
             width: 120,
             child: TextField(
-              controller: TextEditingController(text: config.editorMaxWidth.toString()),
+              controller:
+                  _field('editorMaxWidth', config.editorMaxWidth.toString()),
               keyboardType: TextInputType.number,
               onSubmitted: (v) {
                 final w = int.tryParse(v) ?? 800;
@@ -404,7 +439,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             SizedBox(
               width: 200,
               child: TextField(
-                controller: TextEditingController(text: config.imageFolder),
+                controller: _field('imageFolder', config.imageFolder),
                 onSubmitted: (v) {
                   final folder = v.trim();
                   ref.read(settingsProvider.notifier).updateConfig(
