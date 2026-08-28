@@ -276,6 +276,7 @@
   "formatCodeSubmenu": "Код",
   "formatInsertSubmenu": "Вставка",
   "fileRename": "Переименовать",
+  "fileMove": "Переместить…",
   "newTab": "Новая вкладка",
   "newNameHintDialog": "Новое имя",
   "commandPaletteHint": "Введите команду...",

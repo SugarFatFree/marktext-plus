@@ -276,6 +276,7 @@
   "formatCodeSubmenu": "代码",
   "formatInsertSubmenu": "插入",
   "fileRename": "重命名",
+  "fileMove": "移动到…",
   "newTab": "新建标签页",
   "newNameHintDialog": "新名称",
   "commandPaletteHint": "输入命令...",

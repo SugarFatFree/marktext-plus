@@ -276,6 +276,7 @@
   "formatCodeSubmenu": "코드",
   "formatInsertSubmenu": "삽입",
   "fileRename": "이름 바꾸기",
+  "fileMove": "이동…",
   "newTab": "새 탭",
   "newNameHintDialog": "새 이름",
   "commandPaletteHint": "명령어 입력...",

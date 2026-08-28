@@ -702,6 +702,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get fileRename => 'Переименовать';
 
   @override
+  String get fileMove => 'Переместить…';
+
+  @override
   String get newTab => 'Новая вкладка';
 
   @override

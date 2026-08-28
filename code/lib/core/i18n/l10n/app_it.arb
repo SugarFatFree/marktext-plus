@@ -276,6 +276,7 @@
   "formatCodeSubmenu": "Codice",
   "formatInsertSubmenu": "Inserisci",
   "fileRename": "Rinomina",
+  "fileMove": "Sposta in…",
   "newTab": "Nuova scheda",
   "newNameHintDialog": "Nuovo nome",
   "commandPaletteHint": "Digita un comando...",

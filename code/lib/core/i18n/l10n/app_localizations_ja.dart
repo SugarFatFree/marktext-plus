@@ -696,6 +696,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get fileRename => '名前を変更';
 
   @override
+  String get fileMove => '移動…';
+
+  @override
   String get newTab => '新しいタブ';
 
   @override

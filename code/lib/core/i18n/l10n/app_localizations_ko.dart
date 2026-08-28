@@ -696,6 +696,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get fileRename => '이름 바꾸기';
 
   @override
+  String get fileMove => '이동…';
+
+  @override
   String get newTab => '새 탭';
 
   @override

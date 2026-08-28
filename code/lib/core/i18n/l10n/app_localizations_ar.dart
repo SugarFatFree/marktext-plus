@@ -701,6 +701,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get fileRename => 'إعادة تسمية';
 
   @override
+  String get fileMove => 'نقل إلى…';
+
+  @override
   String get newTab => 'علامة تبويب جديدة';
 
   @override

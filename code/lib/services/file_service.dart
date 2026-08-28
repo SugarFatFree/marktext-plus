@@ -224,9 +224,6 @@ class FileService {
     }
   }
 
-  Future<void> moveFile(String oldPath, String newPath) =>
-      renameFile(oldPath, newPath);
-
   /// Writes a new file, refusing to empty one that is already there.
   ///
   /// `writeAsString` truncates, so asking for a new note under a name already

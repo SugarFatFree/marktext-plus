@@ -695,6 +695,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get fileRename => '重命名';
 
   @override
+  String get fileMove => '移动到…';
+
+  @override
   String get newTab => '新建标签页';
 
   @override

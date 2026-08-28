@@ -705,6 +705,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get fileRename => 'Renomear';
 
   @override
+  String get fileMove => 'Mover para…';
+
+  @override
   String get newTab => 'Novo separador';
 
   @override
@@ -1614,6 +1617,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get fileRename => 'Renomear';
+
+  @override
+  String get fileMove => 'Mover para…';
 
   @override
   String get newTab => 'Nova aba';

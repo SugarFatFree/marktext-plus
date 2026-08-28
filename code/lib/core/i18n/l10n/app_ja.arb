@@ -276,6 +276,7 @@
   "formatCodeSubmenu": "コード",
   "formatInsertSubmenu": "挿入",
   "fileRename": "名前を変更",
+  "fileMove": "移動…",
   "newTab": "新しいタブ",
   "newNameHintDialog": "新しい名前",
   "commandPaletteHint": "コマンドを入力...",

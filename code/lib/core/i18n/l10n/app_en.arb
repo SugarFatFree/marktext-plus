@@ -315,6 +315,7 @@
   "formatCodeSubmenu": "Code",
   "formatInsertSubmenu": "Insert",
   "fileRename": "Rename",
+  "fileMove": "Move To…",
   "newTab": "New Tab",
   "newNameHintDialog": "New name",
   "commandPaletteHint": "Type a command...",

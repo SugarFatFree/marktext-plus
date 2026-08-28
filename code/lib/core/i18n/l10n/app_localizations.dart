@@ -1437,6 +1437,12 @@ abstract class AppLocalizations {
   /// **'Rename'**
   String get fileRename;
 
+  /// No description provided for @fileMove.
+  ///
+  /// In en, this message translates to:
+  /// **'Move To…'**
+  String get fileMove;
+
   /// No description provided for @newTab.
   ///
   /// In en, this message translates to:

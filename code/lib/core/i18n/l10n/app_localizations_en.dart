@@ -701,6 +701,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fileRename => 'Rename';
 
   @override
+  String get fileMove => 'Move To…';
+
+  @override
   String get newTab => 'New Tab';
 
   @override

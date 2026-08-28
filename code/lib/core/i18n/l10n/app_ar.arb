@@ -276,6 +276,7 @@
   "formatCodeSubmenu": "كود",
   "formatInsertSubmenu": "إدراج",
   "fileRename": "إعادة تسمية",
+  "fileMove": "نقل إلى…",
   "newTab": "علامة تبويب جديدة",
   "newNameHintDialog": "الاسم الجديد",
   "commandPaletteHint": "اكتب أمراً...",

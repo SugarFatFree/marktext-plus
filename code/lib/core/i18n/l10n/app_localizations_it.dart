@@ -705,6 +705,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get fileRename => 'Rinomina';
 
   @override
+  String get fileMove => 'Sposta in…';
+
+  @override
   String get newTab => 'Nuova scheda';
 
   @override

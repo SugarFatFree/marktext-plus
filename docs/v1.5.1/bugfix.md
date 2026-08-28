@@ -3,6 +3,7 @@
 | 编号 | 日期 | 标题 | 优先级 | 状态 |
 |------|------|------|--------|------|
 | BUG-106 | 2026-08-29 | 发布清单列了两个从没被产出的 macOS x64 文件，且通用二进制被命名为 arm64 | P2 | 已修复 |
+| BUG-107 | 2026-08-29 | 菜单里的"重命名"绕开了守卫，会静默覆盖同名文件 | P1 | 已修复 |
 
 ---
 
@@ -51,3 +52,45 @@ v1.5.0 发行版页面上的 macOS 产物只有 `macos-arm64.zip` 和 `macos-arm
 
 - `.github/workflows/release.yml`
 - `code/test/utils/release_assets_test.dart`（新增，3 条）
+
+
+---
+
+## BUG-107：菜单里的"重命名"绕开了守卫，会静默覆盖同名文件
+
+### 现象
+
+在**文件 → 重命名**里把当前文档改成一个已经存在的文件名，那个文件**被无声
+销毁**——没有确认框、没有撤销、屏幕上没有任何提示。
+
+同一个操作在**侧边栏右键重命名**里是安全的，会提示"文件名已被占用"。
+
+### 根因分析
+
+`FileService.renameFile` 早就长出了守卫，它自己的注释写得很清楚：
+
+> `File.rename` replaces the destination without a word, so renaming a note to
+> a name already in use destroyed the note that had it — no prompt, no undo,
+> nothing on screen to say it had happened.
+
+侧边栏走 `fileProvider.renameNode` → `FileService.renameFile`，拿到了守卫，
+并且在 `_runFileOp` 里接住 `PathExistsException` 弹提示。
+
+**菜单没有走这条路**。`app_menu_bar.dart:247` 自己写了一行
+`await File(oldPath).rename(newPath);`——同一个操作的第二份实现，守卫加上去的
+时候这一份没跟上。全项目直接调 `.rename(` 的地方一共六处，其余五处都在
+service 与 config 内部，只有这一处在 UI 层。
+
+### 修复方案
+
+菜单改走 `fileProvider.renameNode`，并接住 `PathExistsException` 与其他异常
+分别提示（复用侧边栏已有的 `fileNameTaken` / `fileOperationFailed` 文案）。
+
+新增 `test/services/menu_rename_guard_test.dart`，其中一条**直接在源码里检查
+四个 UI 文件都不再出现 `File(...).rename(`**——要保证的是"只有一份实现"，
+而不是"两份实现今天恰好一致"。
+
+### 涉及文件
+
+- `code/lib/ui/widgets/app_menu_bar.dart`
+- `code/test/services/menu_rename_guard_test.dart`（新增，3 条）

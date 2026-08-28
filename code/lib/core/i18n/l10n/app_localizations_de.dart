@@ -703,6 +703,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get fileRename => 'Umbenennen';
 
   @override
+  String get fileMove => 'Verschieben …';
+
+  @override
   String get newTab => 'Neuer Tab';
 
   @override

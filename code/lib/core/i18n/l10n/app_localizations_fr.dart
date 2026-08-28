@@ -708,6 +708,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get fileRename => 'Renommer';
 
   @override
+  String get fileMove => 'Déplacer vers…';
+
+  @override
   String get newTab => 'Nouvel onglet';
 
   @override
