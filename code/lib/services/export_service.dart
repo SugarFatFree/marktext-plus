@@ -840,7 +840,11 @@ class ExportService {
     bool inSpans(List<InlineSpan> spans) =>
         spans.any((span) => span.type == InlineType.mathInline);
 
-    for (final node in ast) {
+    // Through walk, so a formula written under a numbered step counts too:
+    // the switch below names the containers it knows, and a list item's own
+    // blocks were not among them — the file went out without KaTeX and the
+    // formula arrived as the dollar signs it was written with.
+    for (final node in MarkdownParser.walk(ast)) {
       switch (node) {
         case MathBlockNode():
           return true;
@@ -1883,7 +1887,10 @@ class ExportService {
       }
     }
 
-    for (final node in ast) {
+    // Through walk, for the same reason the maths check goes through it: a
+    // picture written under a numbered step was not found, so the file kept
+    // a relative path to it and showed a broken image anywhere else.
+    for (final node in MarkdownParser.walk(ast)) {
       if (node is ParagraphNode) scan(node.inlineSpans);
       if (node is HeadingNode) scan(node.inlineSpans);
       if (node is BlockquoteNode) scan(node.inlineSpans);
