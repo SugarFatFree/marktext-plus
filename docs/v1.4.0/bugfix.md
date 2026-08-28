@@ -69,6 +69,8 @@
 | BUG-065 | 2026-08-28 | 导出 HTML 时原样输出文档里的脚本，用浏览器打开就会执行 | **P1** | 已修复 |
 | BUG-066 | 2026-08-28 | 打完字立刻按 Ctrl+Z，撤销要么没反应、要么一次退两步 | **P1** | 已修复 |
 | BUG-067 | 2026-08-28 | 撤销之后光标被丢到文档末尾 | P2 | 已修复 |
+| BUG-068 | 2026-08-28 | 安装包从不覆盖 exe，三轮原生修复从未到达用户机器 | **P0** | 已修复 |
+| BUG-069 | 2026-08-28 | 「打开方式」选完仍然反复出现；扩展名清单散在七处 | **P1** | 已修复 |
 
 ## 详细记录
 
@@ -2318,5 +2320,115 @@ BUG-066 修的是**撤销退错了步数**，这条修的是**退对了但把人
 
 - `code/lib/providers/editor_provider.dart`
 - `code/test/providers/undo_debounce_test.dart`
+
+---
+
+## BUG-068 — 安装包从不覆盖 exe，三轮原生修复从未到达用户机器
+
+**发现日期**：2026-08-28 　**优先级**：**P0** 　**状态**：已修复
+
+### 现象
+
+用户装了新版之后：
+
+- **Dart 侧的新功能全部生效**（日志里出现了新加的「安装体积自测」「构建标识」）
+- **C++ 侧的改动一个都没生效**（runner 埋点第三次仍然缺失，`ExitProcess` 关闭修复毫无效果）
+
+### 根因
+
+Dart 代码编译进 `app.so`，C++ runner 是 `marktext_plus.exe` —— **两个不同的文件**。
+而安装脚本的 `[Files]` 段只有：
+
+```
+Source: "...\Release\*"; DestDir: "{app}"; Flags: recursesubdirs
+```
+
+**没有 `ignoreversion`。**Inno Setup 对带版本资源的 `.exe` / `.dll` 默认比较版本号，
+**版本相同就跳过不覆盖**；而 `marktext_plus.exe` 的版本来自 `Runner.rc`，每次构建都一样。
+`app.so` 没有版本资源，按时间戳覆盖 —— 所以用户拿到的一直是
+**新的 Dart 代码 + 第一次安装那天的 runner**。
+
+### 代价
+
+这一条同时解释了三件一直说不通的事，也就是**三轮排查全部作废**：
+
+1. runner 埋点两种传法（环境变量、入口参数）都被判为「没收到」—— 因为带埋点的 exe 从没装上
+2. `ExitProcess` 关闭修复毫无效果 —— 同上
+3. 为追查这两件事额外花掉的排查
+
+**教训**：当「一部分改动生效、另一部分完全没有效果」时，先怀疑**交付**，而不是继续怀疑代码。
+两次尝试都失败之后我仍在改传递方式，而不是问「这个文件到底有没有被换掉」。
+
+### 修复
+
+加上 `ignoreversion`，并写了注释说明为什么它不是可选项。
+
+顺带把 `ExitProcess` 移到 `CoUninitialize` **之前**：在 apartment 线程上反初始化 COM 会
+等待该 apartment 尚未释放的对象，那本身就是进程可以卡住数秒的地方。一个马上就要不存在的
+进程不需要把 COM 收拾干净。
+
+---
+
+## BUG-069 — 「打开方式」选完仍然反复出现；扩展名清单散在七处
+
+**发现日期**：2026-08-28 　**优先级**：P1 　**状态**：已修复
+
+### 现象
+
+用户点名的第三个问题：「打开时重复出现『打开方式』的选择」。
+
+此前一直按「应用内对话框」来理解，并确认那个对话框早已从代码里删除。**但那说的很可能是
+Windows 自己的「打开方式」选择器** —— 从它里面选了本应用之后，下次双击同一个文件**又问一遍**。
+
+### 根因
+
+安装脚本注册了 ProgId 和 `OpenWithProgids`（让应用出现在「打开方式」列表里），
+但**没有注册 `Software\Classes\Applications\marktext_plus.exe`**。
+Windows 正是用这组键来记住「用其他应用打开」的选择的 —— 缺了它，**选择无处可记，
+于是每次都重新问**。
+
+### 顺带查出的第二个问题：同一份清单散在七处
+
+改扩展名注册时发现，「本编辑器能打开哪些文件」这份清单在代码里有**六份**，加上安装脚本共**七份**：
+
+| 位置 | 用途 |
+|---|---|
+| `main.dart` | 启动参数过滤 |
+| `models/file_node.dart` | `isMarkdown` |
+| `utils/file_utils.dart` | `isMarkdownFile` |
+| `ui/widgets/side_bar.dart` | 侧边栏搜索 |
+| `ui/widgets/editor_tab_bar.dart` | 另存为选择器 |
+| `ui/widgets/app_menu_bar.dart` | 打开 / 另存为选择器（2 处） |
+| `.github/workflows/ci.yml` | 安装包的文件关联 |
+
+它们当时**碰巧一致**。但要加扩展名就得改七处，而漏掉哪一处就是一种具体的故障：
+文件能打开却搜不到、选择器里看不见、或者 **Windows 提供了这个应用、应用却拒绝打开它 ——
+双击之后什么都不发生**。
+
+### 修复
+
+1. 合成一份 `FileUtils.markdownExtensions`，六处代码全部改用它
+2. 按上游 MarkText 的清单补齐 `mmd`、`mdown`、`mdtxt`、`mdtext`（我们原本只有 `md`、`markdown`、`txt`）
+3. 安装脚本补上 `Applications\marktext_plus.exe` 那组键（`FriendlyAppName`、`shell\open\command`、
+   全部 `SupportedTypes`）
+
+### 一个差点写错的地方
+
+`markdownExtensionsWithDot` 第一版写成了 `'.\$e'` —— 那是**转义**，生成的是字面量 `.$e`，
+七个元素会全是同一个字符串，而**分析器不会报错**。测试里因此专门有一条：
+「加点的清单必须由不加点的推导出来，且去重后数量不变」——重复项正是这种写法的特征。
+
+### 测试
+
+`code/test/utils/file_types_test.dart`，4 条。其中两条跨越了代码与构建脚本的边界：
+**安装包注册的扩展名必须和应用能打开的完全一致**（注册项在工作流里，没法 import 这份清单，
+只能靠测试把两边钉在一起），以及 **`[Files]` 行必须带 `ignoreversion`**（守住 BUG-068）。
+
+### 涉及文件
+
+- `code/lib/utils/file_utils.dart`、`code/lib/main.dart`、`code/lib/models/file_node.dart`、
+  `code/lib/ui/widgets/{side_bar,editor_tab_bar,app_menu_bar}.dart`
+- `.github/workflows/ci.yml`
+- `code/test/utils/file_types_test.dart` —— 新增
 
 ---

@@ -1,3 +1,4 @@
+import '../../utils/file_utils.dart';
 import 'dart:io';
 import 'dart:async';
 import 'dart:ui' as ui;
@@ -111,7 +112,7 @@ class AppMenuBar extends ConsumerWidget {
   static void openFile(WidgetRef ref) async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['md', 'markdown', 'txt'],
+      allowedExtensions: FileUtils.markdownExtensions,
     );
     if (result == null || result.files.isEmpty) return;
     final path = result.files.single.path;
@@ -179,7 +180,7 @@ class AppMenuBar extends ConsumerWidget {
       dialogTitle: _l10n?.fileSaveAs ?? 'Save As',
       fileName: activeTab.fileName,
       type: FileType.custom,
-      allowedExtensions: ['md', 'markdown', 'txt'],
+      allowedExtensions: FileUtils.markdownExtensions,
     );
     if (path == null) return;
     try {

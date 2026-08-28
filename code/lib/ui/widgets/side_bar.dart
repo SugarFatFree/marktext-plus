@@ -1,3 +1,4 @@
+import '../../utils/file_utils.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -816,7 +817,7 @@ class _SideBarState extends ConsumerState<SideBar> {
   }
 
   /// Documents worth searching.
-  static const _searchableExtensions = {'.md', '.markdown', '.txt'};
+  static final _searchableExtensions = FileUtils.markdownExtensionsWithDot;
 
   /// Directories that are never the user's own notes and can hold tens of
   /// thousands of files.

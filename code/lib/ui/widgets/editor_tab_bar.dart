@@ -1,3 +1,4 @@
+import '../../utils/file_utils.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -97,7 +98,7 @@ class EditorTabBar extends ConsumerWidget {
             : AppLocalizations.of(context)!.fileSaveAs,
         fileName: tab.fileName,
         type: FileType.custom,
-        allowedExtensions: ['md', 'markdown', 'txt'],
+        allowedExtensions: FileUtils.markdownExtensions,
       );
       if (path == null) return false;
     }

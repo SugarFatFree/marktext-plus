@@ -1,3 +1,4 @@
+import 'utils/file_utils.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -16,7 +17,7 @@ import 'providers/tab_provider.dart';
 ProviderContainer? _globalContainer;
 
 List<String> _filterStartupFiles(List<dynamic> args) {
-  const allowedExtensions = {'.md', '.markdown', '.txt'};
+  final allowedExtensions = FileUtils.markdownExtensionsWithDot;
   return args.where((arg) {
     if (arg is! String) return false;
     final ext = p.extension(arg).toLowerCase();

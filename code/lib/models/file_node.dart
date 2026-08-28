@@ -1,3 +1,5 @@
+import '../utils/file_utils.dart';
+
 class FileNode {
   final String name;
   final String path;
@@ -19,5 +21,6 @@ class FileNode {
   });
 
   String get extension => name.contains('.') ? name.split('.').last : '';
-  bool get isMarkdown => const ['md', 'markdown', 'txt'].contains(extension.toLowerCase());
+  bool get isMarkdown =>
+      FileUtils.markdownExtensions.contains(extension.toLowerCase());
 }

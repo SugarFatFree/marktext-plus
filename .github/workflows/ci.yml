@@ -163,7 +163,24 @@ jobs:
           Root: HKA; Subkey: "Software\Classes\MarkTextPlus.md\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\marktext_plus.exe"" ""%1"""
           Root: HKA; Subkey: "Software\Classes\.md\OpenWithProgids"; ValueType: string; ValueName: "MarkTextPlus.md"; ValueData: ""; Flags: uninsdeletevalue
           Root: HKA; Subkey: "Software\Classes\.markdown\OpenWithProgids"; ValueType: string; ValueName: "MarkTextPlus.md"; ValueData: ""; Flags: uninsdeletevalue
+          Root: HKA; Subkey: "Software\Classes\.mmd\OpenWithProgids"; ValueType: string; ValueName: "MarkTextPlus.md"; ValueData: ""; Flags: uninsdeletevalue
+          Root: HKA; Subkey: "Software\Classes\.mdown\OpenWithProgids"; ValueType: string; ValueName: "MarkTextPlus.md"; ValueData: ""; Flags: uninsdeletevalue
+          Root: HKA; Subkey: "Software\Classes\.mdtxt\OpenWithProgids"; ValueType: string; ValueName: "MarkTextPlus.md"; ValueData: ""; Flags: uninsdeletevalue
+          Root: HKA; Subkey: "Software\Classes\.mdtext\OpenWithProgids"; ValueType: string; ValueName: "MarkTextPlus.md"; ValueData: ""; Flags: uninsdeletevalue
           Root: HKA; Subkey: "Software\Classes\.txt\OpenWithProgids"; ValueType: string; ValueName: "MarkTextPlus.md"; ValueData: ""; Flags: uninsdeletevalue
+
+          ; Without these, picking this app through "Open with" gives Windows
+          ; nowhere to record the choice, so the chooser comes back the next
+          ; time the same file is opened.
+          Root: HKA; Subkey: "Software\Classes\Applications\marktext_plus.exe"; ValueType: string; ValueName: "FriendlyAppName"; ValueData: "MarkText Plus"; Flags: uninsdeletekey
+          Root: HKA; Subkey: "Software\Classes\Applications\marktext_plus.exe\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\marktext_plus.exe"" ""%1"""
+          Root: HKA; Subkey: "Software\Classes\Applications\marktext_plus.exe\SupportedTypes"; ValueType: string; ValueName: ".md"; ValueData: ""
+          Root: HKA; Subkey: "Software\Classes\Applications\marktext_plus.exe\SupportedTypes"; ValueType: string; ValueName: ".markdown"; ValueData: ""
+          Root: HKA; Subkey: "Software\Classes\Applications\marktext_plus.exe\SupportedTypes"; ValueType: string; ValueName: ".mmd"; ValueData: ""
+          Root: HKA; Subkey: "Software\Classes\Applications\marktext_plus.exe\SupportedTypes"; ValueType: string; ValueName: ".mdown"; ValueData: ""
+          Root: HKA; Subkey: "Software\Classes\Applications\marktext_plus.exe\SupportedTypes"; ValueType: string; ValueName: ".mdtxt"; ValueData: ""
+          Root: HKA; Subkey: "Software\Classes\Applications\marktext_plus.exe\SupportedTypes"; ValueType: string; ValueName: ".mdtext"; ValueData: ""
+          Root: HKA; Subkey: "Software\Classes\Applications\marktext_plus.exe\SupportedTypes"; ValueType: string; ValueName: ".txt"; ValueData: ""
 
           [Files]
           ; ignoreversion is not optional here. Without it Inno compares version
