@@ -1,6 +1,7 @@
 {
   "@@locale": "pt_BR",
   "settingsWrapCodeBlocks": "Quebrar linhas longas nos blocos de código",
+  "settingsCodeBlockLineNumbers": "Números de linha nos blocos de código",
   "settingsSaveFailed": "Não foi possível salvar as configurações: {message}",
   "@settingsSaveFailed": {
     "placeholders": {

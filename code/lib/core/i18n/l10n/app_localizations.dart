@@ -123,6 +123,12 @@ abstract class AppLocalizations {
   /// **'Wrap long lines in code blocks'**
   String get settingsWrapCodeBlocks;
 
+  /// No description provided for @settingsCodeBlockLineNumbers.
+  ///
+  /// In en, this message translates to:
+  /// **'Code Block Line Numbers'**
+  String get settingsCodeBlockLineNumbers;
+
   /// No description provided for @settingsSaveFailed.
   ///
   /// In en, this message translates to:

@@ -1,6 +1,7 @@
 {
   "@@locale": "ru",
   "settingsWrapCodeBlocks": "Переносить длинные строки в блоках кода",
+  "settingsCodeBlockLineNumbers": "Номера строк в блоках кода",
   "settingsSaveFailed": "Не удалось сохранить настройки: {message}",
   "@settingsSaveFailed": {
     "placeholders": {

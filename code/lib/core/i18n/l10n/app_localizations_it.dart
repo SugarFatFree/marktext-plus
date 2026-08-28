@@ -13,6 +13,10 @@ class AppLocalizationsIt extends AppLocalizations {
       'Manda a capo le righe lunghe nei blocchi di codice';
 
   @override
+  String get settingsCodeBlockLineNumbers =>
+      'Numeri di riga nei blocchi di codice';
+
+  @override
   String settingsSaveFailed(String message) {
     return 'Impossibile salvare le impostazioni: $message';
   }

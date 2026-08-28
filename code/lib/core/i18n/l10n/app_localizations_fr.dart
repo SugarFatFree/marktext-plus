@@ -13,6 +13,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Retour à la ligne dans les blocs de code';
 
   @override
+  String get settingsCodeBlockLineNumbers =>
+      'Numéros de ligne dans les blocs de code';
+
+  @override
   String settingsSaveFailed(String message) {
     return 'Impossible d\'enregistrer vos réglages : $message';
   }

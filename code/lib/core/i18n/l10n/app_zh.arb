@@ -1,6 +1,7 @@
 {
   "@@locale": "zh",
   "settingsWrapCodeBlocks": "代码块内长行自动换行",
+  "settingsCodeBlockLineNumbers": "代码块行号",
   "settingsSaveFailed": "设置保存失败：{message}",
   "@settingsSaveFailed": {
     "placeholders": {

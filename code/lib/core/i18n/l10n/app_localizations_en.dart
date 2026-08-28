@@ -12,6 +12,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsWrapCodeBlocks => 'Wrap long lines in code blocks';
 
   @override
+  String get settingsCodeBlockLineNumbers => 'Code Block Line Numbers';
+
+  @override
   String settingsSaveFailed(String message) {
     return 'Could not save your settings: $message';
   }

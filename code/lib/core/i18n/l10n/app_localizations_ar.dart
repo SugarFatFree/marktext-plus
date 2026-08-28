@@ -13,6 +13,10 @@ class AppLocalizationsAr extends AppLocalizations {
       'التفاف الأسطر الطويلة في كتل التعليمات البرمجية';
 
   @override
+  String get settingsCodeBlockLineNumbers =>
+      'أرقام الأسطر في كتل التعليمات البرمجية';
+
+  @override
   String settingsSaveFailed(String message) {
     return 'تعذّر حفظ الإعدادات: $message';
   }

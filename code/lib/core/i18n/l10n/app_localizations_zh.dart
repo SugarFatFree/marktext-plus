@@ -12,6 +12,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsWrapCodeBlocks => '代码块内长行自动换行';
 
   @override
+  String get settingsCodeBlockLineNumbers => '代码块行号';
+
+  @override
   String settingsSaveFailed(String message) {
     return '设置保存失败：$message';
   }

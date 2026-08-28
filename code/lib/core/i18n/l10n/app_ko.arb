@@ -1,6 +1,7 @@
 {
   "@@locale": "ko",
   "settingsWrapCodeBlocks": "코드 블록의 긴 줄 줄바꿈",
+  "settingsCodeBlockLineNumbers": "코드 블록 줄 번호",
   "settingsSaveFailed": "설정을 저장하지 못했습니다: {message}",
   "@settingsSaveFailed": {
     "placeholders": {

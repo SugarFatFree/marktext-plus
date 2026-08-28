@@ -257,6 +257,25 @@ void main() {
     });
   });
 
+  group('Code block line numbers', () {
+    testWidgets('a fenced block is numbered from one', (tester) async {
+      await pumpRenderer(tester, markdown: '```\nalpha\nbeta\ngamma\n```\n');
+
+      for (final n in ['1', '2', '3']) {
+        expect(find.text(n), findsWidgets, reason: '缺少行号 $n');
+      }
+      expect(find.text('4'), findsNothing,
+          reason: '尾部换行不该多出一行号');
+    });
+
+    testWidgets('the code itself is still there', (tester) async {
+      await pumpRenderer(tester, markdown: '```\nalpha\nbeta\n```\n');
+
+      expect(find.textContaining('alpha'), findsWidgets);
+      expect(find.textContaining('beta'), findsWidgets);
+    });
+  });
+
   group('Blocks a list item carries', () {
     testWidgets('a code block under a step is drawn inside the preview',
         (tester) async {

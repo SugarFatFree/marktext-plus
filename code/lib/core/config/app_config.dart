@@ -40,6 +40,12 @@ class AppConfig {
   /// was no way to turn it off.
   bool wrapCodeBlocks;
 
+  /// Whether a fenced code block is drawn with a gutter of line numbers.
+  ///
+  /// On, as it is upstream: a snippet someone is talking about is talked
+  /// about by line.
+  bool codeBlockLineNumbers;
+
   /// Auto-closing of `(`, `[` and `{`.
   bool autoPairBracket;
 
@@ -100,6 +106,7 @@ class AppConfig {
     this.tabSize = 4,
     this.enableHtml = false,
     this.wrapCodeBlocks = true,
+    this.codeBlockLineNumbers = true,
     this.autoPairBracket = true,
     this.autoPairQuote = true,
     this.autoPairMarkdownSyntax = true,
@@ -143,6 +150,7 @@ class AppConfig {
     'tabSize': tabSize,
     'enableHtml': enableHtml,
     'wrapCodeBlocks': wrapCodeBlocks,
+    'codeBlockLineNumbers': codeBlockLineNumbers,
     'autoPairBracket': autoPairBracket,
     'autoPairQuote': autoPairQuote,
     'autoPairMarkdownSyntax': autoPairMarkdownSyntax,
@@ -189,6 +197,7 @@ class AppConfig {
       tabSize: json['tabSize'] as int? ?? 4,
       enableHtml: json['enableHtml'] as bool? ?? false,
       wrapCodeBlocks: json['wrapCodeBlocks'] as bool? ?? true,
+      codeBlockLineNumbers: json['codeBlockLineNumbers'] as bool? ?? true,
       autoPairBracket: json['autoPairBracket'] as bool? ?? true,
       autoPairQuote: json['autoPairQuote'] as bool? ?? true,
       autoPairMarkdownSyntax:
@@ -257,6 +266,7 @@ class AppConfig {
     int? tabSize,
     bool? enableHtml,
     bool? wrapCodeBlocks,
+    bool? codeBlockLineNumbers,
     bool? autoPairBracket,
     bool? autoPairQuote,
     bool? autoPairMarkdownSyntax,
@@ -299,6 +309,8 @@ class AppConfig {
       tabSize: tabSize ?? this.tabSize,
       enableHtml: enableHtml ?? this.enableHtml,
       wrapCodeBlocks: wrapCodeBlocks ?? this.wrapCodeBlocks,
+      codeBlockLineNumbers:
+          codeBlockLineNumbers ?? this.codeBlockLineNumbers,
       autoPairBracket: autoPairBracket ?? this.autoPairBracket,
       autoPairQuote: autoPairQuote ?? this.autoPairQuote,
       autoPairMarkdownSyntax:

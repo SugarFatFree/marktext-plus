@@ -543,6 +543,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ),
         _row(
+          l10n.settingsCodeBlockLineNumbers,
+          Switch(
+            value: config.codeBlockLineNumbers,
+            onChanged: (v) => ref
+                .read(settingsProvider.notifier)
+                .updateConfig((c) => c.copyWith(codeBlockLineNumbers: v)),
+          ),
+        ),
+        _row(
           l10n.settingsAutoPairBracket,
           Switch(
             value: config.autoPairBracket,

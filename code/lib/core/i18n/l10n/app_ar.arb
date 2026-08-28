@@ -1,6 +1,7 @@
 {
   "@@locale": "ar",
   "settingsWrapCodeBlocks": "التفاف الأسطر الطويلة في كتل التعليمات البرمجية",
+  "settingsCodeBlockLineNumbers": "أرقام الأسطر في كتل التعليمات البرمجية",
   "settingsSaveFailed": "تعذّر حفظ الإعدادات: {message}",
   "@settingsSaveFailed": {
     "placeholders": {

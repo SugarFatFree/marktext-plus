@@ -13,6 +13,10 @@ class AppLocalizationsPt extends AppLocalizations {
       'Quebrar linhas longas nos blocos de código';
 
   @override
+  String get settingsCodeBlockLineNumbers =>
+      'Números de linha nos blocos de código';
+
+  @override
   String settingsSaveFailed(String message) {
     return 'Não foi possível guardar as definições: $message';
   }
@@ -905,6 +909,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get settingsWrapCodeBlocks =>
       'Quebrar linhas longas nos blocos de código';
+
+  @override
+  String get settingsCodeBlockLineNumbers =>
+      'Números de linha nos blocos de código';
 
   @override
   String settingsSaveFailed(String message) {

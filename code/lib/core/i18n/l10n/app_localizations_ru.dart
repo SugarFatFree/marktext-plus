@@ -13,6 +13,9 @@ class AppLocalizationsRu extends AppLocalizations {
       'Переносить длинные строки в блоках кода';
 
   @override
+  String get settingsCodeBlockLineNumbers => 'Номера строк в блоках кода';
+
+  @override
   String settingsSaveFailed(String message) {
     return 'Не удалось сохранить настройки: $message';
   }

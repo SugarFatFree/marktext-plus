@@ -13,6 +13,10 @@ class AppLocalizationsEs extends AppLocalizations {
       'Ajustar las líneas largas en los bloques de código';
 
   @override
+  String get settingsCodeBlockLineNumbers =>
+      'Números de línea en bloques de código';
+
+  @override
   String settingsSaveFailed(String message) {
     return 'No se pudo guardar la configuración: $message';
   }

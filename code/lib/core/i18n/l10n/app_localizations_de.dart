@@ -12,6 +12,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsWrapCodeBlocks => 'Lange Zeilen in Codeblöcken umbrechen';
 
   @override
+  String get settingsCodeBlockLineNumbers => 'Zeilennummern in Codeblöcken';
+
+  @override
   String settingsSaveFailed(String message) {
     return 'Einstellungen konnten nicht gespeichert werden: $message';
   }

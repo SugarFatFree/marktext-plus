@@ -759,30 +759,45 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
 
     final wraps = ref.read(settingsProvider).wrapCodeBlocks;
 
-    Widget body = canHighlight
-        ? Text.rich(
-            TextSpan(
-              style: _buildCodeTextStyle(baseCodeStyle),
-              children: _buildHighlightedCodeSpans(node.code, node.language),
-            ),
-            softWrap: wraps,
-            overflow: wraps ? TextOverflow.clip : TextOverflow.visible,
-          )
-        : Text(
-            node.code,
-            style: baseCodeStyle,
-            softWrap: wraps,
-            overflow: wraps ? TextOverflow.clip : TextOverflow.visible,
-          );
+    final numbered = ref.read(settingsProvider).codeBlockLineNumbers;
+    final codeStyle = _buildCodeTextStyle(baseCodeStyle);
 
-    if (!wraps) {
-      // Scrolls rather than wraps. A wrapped line of code loses its
-      // indentation and breaks in the middle of a name; for prose that is
-      // right and for code it is the opposite of what reading it needs.
-      body = SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: body,
+    Widget body;
+    if (numbered) {
+      body = _numberedCode(
+        node,
+        codeStyle: codeStyle,
+        plainStyle: baseCodeStyle,
+        highlighted: canHighlight,
+        wraps: wraps,
+        tokens: tokens,
       );
+    } else {
+      body = canHighlight
+          ? Text.rich(
+              TextSpan(
+                style: codeStyle,
+                children: _buildHighlightedCodeSpans(node.code, node.language),
+              ),
+              softWrap: wraps,
+              overflow: wraps ? TextOverflow.clip : TextOverflow.visible,
+            )
+          : Text(
+              node.code,
+              style: baseCodeStyle,
+              softWrap: wraps,
+              overflow: wraps ? TextOverflow.clip : TextOverflow.visible,
+            );
+
+      if (!wraps) {
+        // Scrolls rather than wraps. A wrapped line of code loses its
+        // indentation and breaks in the middle of a name; for prose that is
+        // right and for code it is the opposite of what reading it needs.
+        body = SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: body,
+        );
+      }
     }
 
     return Container(
@@ -794,6 +809,95 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         borderRadius: BorderRadius.circular(8),
       ),
       child: body,
+    );
+  }
+
+  /// A code block with a gutter of line numbers beside it.
+  ///
+  /// One row per line, so a line that wraps grows its own row and the number
+  /// stays level with the line it belongs to. Drawing the code as one block
+  /// of text and the numbers as another lines up only until something wraps.
+  ///
+  /// When the block scrolls instead of wrapping, only the code scrolls: the
+  /// numbers are what tells the reader where they are, and they are no use
+  /// slid off to the left.
+  Widget _numberedCode(
+    md.CodeBlockNode node,
+    {required TextStyle codeStyle,
+    required TextStyle plainStyle,
+    required bool highlighted,
+    required bool wraps,
+    required AppThemeTokens tokens}) {
+    final lines = highlighted
+        ? CodeHighlighting.splitByLine(
+            _buildHighlightedCodeSpans(node.code, node.language),
+          )
+        : [
+            for (final line in node.code.split('\n'))
+              [TextSpan(text: line, style: plainStyle)],
+          ];
+    // A trailing newline leaves an empty last line that no one wrote.
+    if (lines.length > 1 && lines.last.isEmpty) lines.removeLast();
+
+    final numberStyle = plainStyle.copyWith(
+      color: tokens.colorTextMuted,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
+    final gutterWidth = 12.0 + 8.0 * '${lines.length}'.length;
+
+    Widget numberCell(int index) => SizedBox(
+          width: gutterWidth,
+          child: Text(
+            '${index + 1}',
+            style: numberStyle,
+            textAlign: TextAlign.right,
+          ),
+        );
+
+    Widget codeCell(int index) => Text.rich(
+          TextSpan(style: codeStyle, children: lines[index]),
+          softWrap: wraps,
+          overflow: wraps ? TextOverflow.clip : TextOverflow.visible,
+        );
+
+    if (wraps) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var i = 0; i < lines.length; i++)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                numberCell(i),
+                const SizedBox(width: 12),
+                Expanded(child: codeCell(i)),
+              ],
+            ),
+        ],
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          mainAxisSize: MainAxisSize.min,
+          children: [for (var i = 0; i < lines.length; i++) numberCell(i)],
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [for (var i = 0; i < lines.length; i++) codeCell(i)],
+            ),
+          ),
+        ),
+      ],
     );
   }
 

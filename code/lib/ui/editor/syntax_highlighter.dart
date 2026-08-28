@@ -506,6 +506,7 @@ class IncrementalMarkdownHighlighter {
           else
             ...line.children!.cast<TextSpan>(),
       ];
+
 }
 
 enum _PatternType {

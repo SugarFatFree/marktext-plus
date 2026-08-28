@@ -1,6 +1,7 @@
 {
   "@@locale": "en",
   "settingsWrapCodeBlocks": "Wrap long lines in code blocks",
+  "settingsCodeBlockLineNumbers": "Code Block Line Numbers",
   "settingsSaveFailed": "Could not save your settings: {message}",
   "@settingsSaveFailed": {
     "placeholders": {

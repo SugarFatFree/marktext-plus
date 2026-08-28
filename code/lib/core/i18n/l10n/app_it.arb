@@ -1,6 +1,7 @@
 {
   "@@locale": "it",
   "settingsWrapCodeBlocks": "Manda a capo le righe lunghe nei blocchi di codice",
+  "settingsCodeBlockLineNumbers": "Numeri di riga nei blocchi di codice",
   "settingsSaveFailed": "Impossibile salvare le impostazioni: {message}",
   "@settingsSaveFailed": {
     "placeholders": {

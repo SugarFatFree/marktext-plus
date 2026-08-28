@@ -12,6 +12,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsWrapCodeBlocks => '코드 블록의 긴 줄 줄바꿈';
 
   @override
+  String get settingsCodeBlockLineNumbers => '코드 블록 줄 번호';
+
+  @override
   String settingsSaveFailed(String message) {
     return '설정을 저장하지 못했습니다: $message';
   }

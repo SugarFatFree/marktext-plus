@@ -1,6 +1,7 @@
 {
   "@@locale": "ja",
   "settingsWrapCodeBlocks": "コードブロック内の長い行を折り返す",
+  "settingsCodeBlockLineNumbers": "コードブロックの行番号",
   "settingsSaveFailed": "設定を保存できませんでした: {message}",
   "@settingsSaveFailed": {
     "placeholders": {

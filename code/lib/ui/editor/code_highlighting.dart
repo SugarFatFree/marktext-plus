@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:highlight/highlight_core.dart' as core;
 import 'package:highlight/languages/dart.dart' as lang_dart;
 import 'package:highlight/languages/javascript.dart' as lang_javascript;
@@ -196,4 +197,40 @@ class CodeHighlighting {
     'delphi',
     'lisp',
   ];
+  /// The same spans, cut into one list per line of text.
+  ///
+  /// A gutter of line numbers has to line up with the code beside it, and a
+  /// highlighter hands back runs that pay no attention to where the lines
+  /// are: one run can span several, and one line can be made of several runs.
+  /// Highlighting each line on its own would line up too, and would lose
+  /// every construct that runs past the end of a line — a block comment, a
+  /// string in three pieces.
+  static List<List<TextSpan>> splitByLine(List<TextSpan> spans) {
+    final lines = <List<TextSpan>>[<TextSpan>[]];
+
+    void emit(String text, TextStyle? style) {
+      final pieces = text.split('\n');
+      for (var i = 0; i < pieces.length; i++) {
+        if (i > 0) lines.add(<TextSpan>[]);
+        if (pieces[i].isNotEmpty) {
+          lines.last.add(TextSpan(text: pieces[i], style: style));
+        }
+      }
+    }
+
+    void walk(List<TextSpan> input, TextStyle? inherited) {
+      for (final span in input) {
+        // A child without a style of its own is drawn in its parent's, so
+        // the pieces have to carry it down with them.
+        final style = span.style ?? inherited;
+        final text = span.text;
+        if (text != null) emit(text, style);
+        final children = span.children;
+        if (children != null) walk(children.cast<TextSpan>(), style);
+      }
+    }
+
+    walk(spans, null);
+    return lines;
+  }
 }

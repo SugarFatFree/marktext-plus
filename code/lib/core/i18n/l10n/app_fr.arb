@@ -1,6 +1,7 @@
 {
   "@@locale": "fr",
   "settingsWrapCodeBlocks": "Retour à la ligne dans les blocs de code",
+  "settingsCodeBlockLineNumbers": "Numéros de ligne dans les blocs de code",
   "settingsSaveFailed": "Impossible d'enregistrer vos réglages : {message}",
   "@settingsSaveFailed": {
     "placeholders": {
