@@ -1,5 +1,7 @@
 {
   "@@locale": "zh",
+  "helpOpenDiagnosticLog": "打开诊断日志",
+  "diagnosticLogMissing": "还没有写出诊断日志",
   "mermaidCaptureFailed": "无法截取图表",
   "mermaidErrorEmpty": "图表是空的。",
   "mermaidErrorUnknownType": "无法识别的图表类型：“{type}”。",

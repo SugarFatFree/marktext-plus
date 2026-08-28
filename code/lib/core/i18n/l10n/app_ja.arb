@@ -1,5 +1,7 @@
 {
   "@@locale": "ja",
+  "helpOpenDiagnosticLog": "診断ログを開く",
+  "diagnosticLogMissing": "診断ログはまだ書き出されていません",
   "mermaidCaptureFailed": "図をキャプチャできませんでした",
   "mermaidErrorEmpty": "図が空です。",
   "mermaidErrorUnknownType": "認識できない図の種類: 「{type}」。",

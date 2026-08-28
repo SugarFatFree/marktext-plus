@@ -9,6 +9,12 @@ class AppLocalizationsAr extends AppLocalizations {
   AppLocalizationsAr([String locale = 'ar']) : super(locale);
 
   @override
+  String get helpOpenDiagnosticLog => 'فتح سجل التشخيص';
+
+  @override
+  String get diagnosticLogMissing => 'لم يُكتب أي سجل تشخيص بعد';
+
+  @override
   String get mermaidCaptureFailed => 'تعذّر التقاط المخطط';
 
   @override

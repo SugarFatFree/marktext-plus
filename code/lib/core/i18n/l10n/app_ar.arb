@@ -1,5 +1,7 @@
 {
   "@@locale": "ar",
+  "helpOpenDiagnosticLog": "فتح سجل التشخيص",
+  "diagnosticLogMissing": "لم يُكتب أي سجل تشخيص بعد",
   "mermaidCaptureFailed": "تعذّر التقاط المخطط",
   "mermaidErrorEmpty": "المخطط فارغ.",
   "mermaidErrorUnknownType": "نوع مخطط غير معروف: «{type}».",

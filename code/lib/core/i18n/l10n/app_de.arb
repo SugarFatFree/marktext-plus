@@ -1,5 +1,7 @@
 {
   "@@locale": "de",
+  "helpOpenDiagnosticLog": "Diagnoseprotokoll öffnen",
+  "diagnosticLogMissing": "Es wurde noch kein Diagnoseprotokoll geschrieben",
   "mermaidCaptureFailed": "Diagramm konnte nicht erfasst werden",
   "mermaidErrorEmpty": "Das Diagramm ist leer.",
   "mermaidErrorUnknownType": "Unbekannter Diagrammtyp: „{type}“.",

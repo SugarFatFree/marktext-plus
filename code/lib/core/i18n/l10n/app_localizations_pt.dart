@@ -9,6 +9,13 @@ class AppLocalizationsPt extends AppLocalizations {
   AppLocalizationsPt([String locale = 'pt']) : super(locale);
 
   @override
+  String get helpOpenDiagnosticLog => 'Abrir o registo de diagnóstico';
+
+  @override
+  String get diagnosticLogMissing =>
+      'Ainda não foi escrito nenhum registo de diagnóstico';
+
+  @override
   String get mermaidCaptureFailed => 'Não foi possível capturar o diagrama';
 
   @override
@@ -894,6 +901,13 @@ class AppLocalizationsPt extends AppLocalizations {
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
 class AppLocalizationsPtBr extends AppLocalizationsPt {
   AppLocalizationsPtBr() : super('pt_BR');
+
+  @override
+  String get helpOpenDiagnosticLog => 'Abrir o log de diagnóstico';
+
+  @override
+  String get diagnosticLogMissing =>
+      'Ainda não foi escrito nenhum log de diagnóstico';
 
   @override
   String get mermaidCaptureFailed => 'Não foi possível capturar o diagrama';

@@ -1,5 +1,7 @@
 {
   "@@locale": "fr",
+  "helpOpenDiagnosticLog": "Ouvrir le journal de diagnostic",
+  "diagnosticLogMissing": "Aucun journal de diagnostic n'a encore été écrit",
   "mermaidCaptureFailed": "Impossible de capturer le diagramme",
   "mermaidErrorEmpty": "Le diagramme est vide.",
   "mermaidErrorUnknownType": "Type de diagramme non reconnu : « {type} ».",

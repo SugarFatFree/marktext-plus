@@ -117,6 +117,18 @@ abstract class AppLocalizations {
     Locale('zh'),
   ];
 
+  /// No description provided for @helpOpenDiagnosticLog.
+  ///
+  /// In en, this message translates to:
+  /// **'Open diagnostic log'**
+  String get helpOpenDiagnosticLog;
+
+  /// No description provided for @diagnosticLogMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'No diagnostic log has been written yet'**
+  String get diagnosticLogMissing;
+
   /// No description provided for @mermaidCaptureFailed.
   ///
   /// In en, this message translates to:

@@ -1,5 +1,7 @@
 {
   "@@locale": "en",
+  "helpOpenDiagnosticLog": "Open diagnostic log",
+  "diagnosticLogMissing": "No diagnostic log has been written yet",
   "mermaidCaptureFailed": "Could not capture the diagram",
   "mermaidErrorEmpty": "The diagram is empty.",
   "mermaidErrorUnknownType": "Unrecognised diagram type: \"{type}\".",

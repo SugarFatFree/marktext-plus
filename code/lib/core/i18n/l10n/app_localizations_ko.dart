@@ -9,6 +9,12 @@ class AppLocalizationsKo extends AppLocalizations {
   AppLocalizationsKo([String locale = 'ko']) : super(locale);
 
   @override
+  String get helpOpenDiagnosticLog => '진단 로그 열기';
+
+  @override
+  String get diagnosticLogMissing => '아직 진단 로그가 기록되지 않았습니다';
+
+  @override
   String get mermaidCaptureFailed => '다이어그램을 캡처하지 못했습니다';
 
   @override

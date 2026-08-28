@@ -130,7 +130,7 @@ class StartupTrace {
   }
 
   static final List<String> _lines = <String>[];
-  static String? _logPath;
+  static final List<String> _logPaths = <String>[];
   static int _last = 0;
 
   static Timer? _flushTimer;
@@ -152,6 +152,15 @@ class StartupTrace {
     return 'build: ${short.isEmpty ? '?' : short}'
         '${run.isEmpty ? '' : '  (CI run #$run)'}';
   }
+
+  /// Where the trace is being written, once that has been settled.
+  ///
+  /// The config directory when anything is being written at all, since that
+  /// one is always there and always writable.
+  static String? get logPath => _logPaths.isEmpty ? null : _logPaths.first;
+
+  /// Every place the trace is being written.
+  static List<String> get logPaths => List.unmodifiable(_logPaths);
 
   static final Set<String> _once = <String>{};
 
@@ -230,7 +239,7 @@ class StartupTrace {
   }
 
   static void _scheduleFlush() {
-    if (_logPath == null || _flushTimer != null) return;
+    if (_logPaths.isEmpty || _flushTimer != null) return;
     _flushTimer = Timer(const Duration(milliseconds: 200), () {
       _flushTimer = null;
       flush();
@@ -242,22 +251,22 @@ class StartupTrace {
   /// Called on a timer, and directly at the end of a run: the window is about
   /// to be destroyed there, and a pending timer would never fire.
   static bool flush() {
-    final path = _logPath;
-    if (path == null) return false;
-    try {
-      File(path).writeAsStringSync(
-        'MarkText Plus startup trace\n'
+    if (_logPaths.isEmpty) return false;
+    final body = 'MarkText Plus startup trace\n'
         '${DateTime.now().toIso8601String()}\n'
         '$buildStamp\n'
-        'log: $path\n'
-        '${_lines.join('\n')}\n',
-        flush: true,
-      );
-      return true;
-    } catch (_) {
-      // Diagnostics must never be the reason the app fails to start.
-      return false;
+        'log: ${_logPaths.join('  |  ')}\n'
+        '${_lines.join('\n')}\n';
+    var landed = false;
+    for (final path in _logPaths) {
+      try {
+        File(path).writeAsStringSync(body, flush: true);
+        landed = true;
+      } catch (_) {
+        // Diagnostics must never be the reason the app fails to start.
+      }
     }
+    return landed;
   }
 
   /// Where later marks should be written, once the config directory is known.
@@ -271,12 +280,20 @@ class StartupTrace {
   /// its own small ordeal, and one the person reporting a slow start should
   /// not have to go through.
   static void useDirectory(String directory) {
-    for (final candidate in [_beside(Platform.resolvedExecutable), directory]) {
+    _logPaths.clear();
+    // The config directory first and unconditionally. Trying beside the
+    // executable first and stopping at the first success meant that an
+    // installed copy — which lives under Program Files — wrote its trace
+    // there, while the person who had been asked for it went looking in the
+    // config directory where the settings are, found nothing, and reasonably
+    // concluded the log was not being written at all.
+    for (final candidate in [directory, _beside(Platform.resolvedExecutable)]) {
       if (candidate == null) continue;
-      _logPath = '$candidate${Platform.pathSeparator}startup-trace.log';
-      if (flush()) return;
+      final path = '$candidate${Platform.pathSeparator}startup-trace.log';
+      if (_logPaths.contains(path)) continue;
+      _logPaths.add(path);
+      if (!flush()) _logPaths.remove(path);
     }
-    _logPath = null;
   }
 
   /// The directory holding [executable], or null if it cannot be determined.

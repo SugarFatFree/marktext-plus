@@ -1,5 +1,7 @@
 {
   "@@locale": "es",
+  "helpOpenDiagnosticLog": "Abrir el registro de diagnóstico",
+  "diagnosticLogMissing": "Todavía no se ha escrito ningún registro de diagnóstico",
   "mermaidCaptureFailed": "No se pudo capturar el diagrama",
   "mermaidErrorEmpty": "El diagrama está vacío.",
   "mermaidErrorUnknownType": "Tipo de diagrama no reconocido: «{type}».",

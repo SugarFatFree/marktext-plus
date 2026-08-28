@@ -9,6 +9,12 @@ class AppLocalizationsJa extends AppLocalizations {
   AppLocalizationsJa([String locale = 'ja']) : super(locale);
 
   @override
+  String get helpOpenDiagnosticLog => '診断ログを開く';
+
+  @override
+  String get diagnosticLogMissing => '診断ログはまだ書き出されていません';
+
+  @override
   String get mermaidCaptureFailed => '図をキャプチャできませんでした';
 
   @override

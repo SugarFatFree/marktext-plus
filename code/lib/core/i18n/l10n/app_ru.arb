@@ -1,5 +1,7 @@
 {
   "@@locale": "ru",
+  "helpOpenDiagnosticLog": "Открыть журнал диагностики",
+  "diagnosticLogMissing": "Журнал диагностики ещё не записан",
   "mermaidCaptureFailed": "Не удалось снять изображение диаграммы",
   "mermaidErrorEmpty": "Диаграмма пуста.",
   "mermaidErrorUnknownType": "Неизвестный тип диаграммы: «{type}».",

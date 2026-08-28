@@ -9,6 +9,13 @@ class AppLocalizationsFr extends AppLocalizations {
   AppLocalizationsFr([String locale = 'fr']) : super(locale);
 
   @override
+  String get helpOpenDiagnosticLog => 'Ouvrir le journal de diagnostic';
+
+  @override
+  String get diagnosticLogMissing =>
+      'Aucun journal de diagnostic n\'a encore été écrit';
+
+  @override
   String get mermaidCaptureFailed => 'Impossible de capturer le diagramme';
 
   @override

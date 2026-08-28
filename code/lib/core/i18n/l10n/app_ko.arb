@@ -1,5 +1,7 @@
 {
   "@@locale": "ko",
+  "helpOpenDiagnosticLog": "진단 로그 열기",
+  "diagnosticLogMissing": "아직 진단 로그가 기록되지 않았습니다",
   "mermaidCaptureFailed": "다이어그램을 캡처하지 못했습니다",
   "mermaidErrorEmpty": "다이어그램이 비어 있습니다.",
   "mermaidErrorUnknownType": "인식할 수 없는 다이어그램 유형: '{type}'.",

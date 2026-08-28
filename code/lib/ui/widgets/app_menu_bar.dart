@@ -10,6 +10,7 @@ import 'package:path/path.dart' as p;
 import 'package:url_launcher/url_launcher.dart';
 import '../../app.dart';
 import '../../core/config/app_config.dart';
+import '../../core/diagnostics/startup_trace.dart';
 import '../../core/i18n/l10n/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/tab_info.dart';
@@ -863,9 +864,48 @@ class AppMenuBar extends ConsumerWidget {
         .showSnackBar(SnackBar(content: Text(message)));
   }
 
+  /// Shows the reader where the startup trace went.
+  ///
+  /// The installer puts the program under Program Files, which it cannot write
+  /// to, so the trace falls back to the config directory — and finding that by
+  /// hand means knowing both that `%APPDATA%` is not expanded by PowerShell
+  /// and what the version resource calls the company. Someone who has been
+  /// asked for a log should not have to work that out.
+  static Future<void> _openDiagnosticLog() async {
+    final context = navigatorKey.currentContext;
+    final path = StartupTrace.logPath;
+    if (path == null) {
+      if (context == null || !context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.diagnosticLogMissing)),
+      );
+      return;
+    }
+    try {
+      if (Platform.isWindows) {
+        // Selects the file in Explorer rather than opening the folder, so the
+        // one that matters is the one already highlighted.
+        await Process.run('explorer.exe', ['/select,', path]);
+      } else if (Platform.isMacOS) {
+        await Process.run('open', ['-R', path]);
+      } else {
+        await Process.run('xdg-open', [p.dirname(path)]);
+      }
+    } catch (e) {
+      if (context == null || !context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.fileOperationFailed('$e'))),
+      );
+    }
+  }
+
   Widget _buildHelpMenu(AppLocalizations l10n, WidgetRef ref) {
     return SubmenuButton(
       menuChildren: [
+        MenuItemButton(
+          onPressed: _openDiagnosticLog,
+          child: Text(l10n.helpOpenDiagnosticLog),
+        ),
         MenuItemButton(
           child: Text(l10n.helpAbout),
           onPressed: () {

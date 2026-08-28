@@ -9,6 +9,12 @@ class AppLocalizationsRu extends AppLocalizations {
   AppLocalizationsRu([String locale = 'ru']) : super(locale);
 
   @override
+  String get helpOpenDiagnosticLog => 'Открыть журнал диагностики';
+
+  @override
+  String get diagnosticLogMissing => 'Журнал диагностики ещё не записан';
+
+  @override
   String get mermaidCaptureFailed => 'Не удалось снять изображение диаграммы';
 
   @override
