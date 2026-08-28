@@ -5,6 +5,7 @@
 | BUG-106 | 2026-08-29 | 发布清单列了两个从没被产出的 macOS x64 文件，且通用二进制被命名为 arm64 | P2 | 已修复 |
 | BUG-107 | 2026-08-29 | 菜单里的"重命名"绕开了守卫，会静默覆盖同名文件 | P1 | 已修复 |
 | BUG-108 | 2026-08-29 | 文件树列出所有文件，点开二进制会当文本打开并可能被写坏 | P1 | 已修复 |
+| BUG-109 | 2026-08-29 | 快捷键文件非原子写，损坏时自定义快捷键被无声重置且原文件被覆盖 | P2 | 已修复 |
 
 ---
 
@@ -146,3 +147,54 @@ return !hasMarkdownExtension(pathname)
 - `code/lib/utils/file_utils.dart`
 - `code/lib/ui/widgets/side_bar.dart`
 - `code/test/services/file_tree_filter_test.dart`（新增，6 条）
+
+
+---
+
+## BUG-109：快捷键文件非原子写，损坏时自定义快捷键被无声重置且原文件被覆盖
+
+### 现象
+
+自定义过的快捷键会在某次启动后**全部变回默认值**，没有任何提示，
+而且**存着它们的那个文件也找不回来了**——下一次改任何一个快捷键就把它覆盖掉。
+
+### 根因分析
+
+排查方式是扫全项目所有绕开 `FileService` 的写盘调用。十二处里十一处都合理
+（导出走用户选定的路径、图片有 `_unusedPath` 守卫、诊断日志），只有
+`keybinding_service.dart` 这一处是问题：
+
+1. **非原子写**。`file.writeAsString(...)` 直接就地写。进程在写到一半时被杀
+   （关机、崩溃、任务管理器），留下的是一个被截断的文件。
+
+2. **截断的文件解析不了，于是被无声吞掉**：
+
+   ```dart
+   } catch (_) {
+     _keybindings = Map.from(defaultKeybindings);
+   }
+   ```
+
+   不提示、不保留原文件。下一次 `_save()` 直接覆盖，用户自定义的东西**彻底
+   消失**。
+
+而 `ConfigService`（设置文件）**早就修过同样的两个问题**：写临时文件再
+`rename`（原子），读不动就 `rename` 成 `.corrupt` 留着。同一套行为的两份实现，
+一份跟上了，一份没有。
+
+### 修复方案
+
+抽出 `lib/core/config/json_store.dart`，把"读、原子写、损坏隔离"做成**一份**
+实现，`ConfigService` 与 `KeybindingService` 都改用它——**不是把配置那份复制
+到快捷键这边**，那样只是把两份变两份新的。下一次这类修复落到哪一边，另一边
+自动都有。
+
+`ConfigService` 保留了一个自己的分支：JSON 能解析但 `AppConfig.fromJson` 抛错
+（字段形状不对）。这种情况文件仍然在原地，注释里写明了。
+
+### 涉及文件
+
+- `code/lib/core/config/json_store.dart`（新增）
+- `code/lib/core/config/config_service.dart`
+- `code/lib/services/keybinding_service.dart`
+- `code/test/core/config/json_store_test.dart`（新增，7 条）

@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - File ▸ Move To…, the one menu command upstream MarkText has that this one did not
 
 ### Fixed
+- Customised keyboard shortcuts survive a crash. The file was written in place, so a process killed mid-write left it truncated; a truncated file failed to parse and was silently replaced by the defaults, and the next save overwrote the only copy. It is now written and quarantined the way the settings file already was
 - The sidebar tree shows folders and markdown documents, as upstream MarkText does, rather than everything a directory holds. Tapping a `.png` or a `.pdf` opened it as a text tab full of mojibake — one stray keystroke away from an auto-save writing that back over the original
 - The tree and the folder search now skip the same directories; the search stepped over `node_modules` while the tree listed all of it
 - Renaming from the File menu no longer destroys a file that already has the name. The service grew a guard against that and the sidebar adopted it; the menu kept its own `File.rename` call and so kept the bug
