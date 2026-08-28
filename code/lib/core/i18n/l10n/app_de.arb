@@ -1,5 +1,13 @@
 {
   "@@locale": "de",
+  "settingsSaveFailed": "Einstellungen konnten nicht gespeichert werden: {message}",
+  "@settingsSaveFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "settingsFollowSystemTheme": "Hell/Dunkel des Systems folgen",
   "settingsFollowSystemThemeHint": "Wählen Sie je ein helles und ein dunkles Design; das System entscheidet, welches erscheint.",
   "settingsAutoPairBracket": "Klammern automatisch schließen",

@@ -9,6 +9,11 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
+  String settingsSaveFailed(String message) {
+    return '设置保存失败：$message';
+  }
+
+  @override
   String get settingsFollowSystemTheme => '跟随系统深浅色';
 
   @override

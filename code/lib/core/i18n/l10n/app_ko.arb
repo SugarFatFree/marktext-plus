@@ -1,5 +1,13 @@
 {
   "@@locale": "ko",
+  "settingsSaveFailed": "설정을 저장하지 못했습니다: {message}",
+  "@settingsSaveFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "settingsFollowSystemTheme": "시스템 밝기 설정 따르기",
   "settingsFollowSystemThemeHint": "밝은 테마와 어두운 테마를 하나씩 고르면 어느 쪽을 보여줄지는 시스템이 정합니다.",
   "settingsAutoPairBracket": "괄호 자동 닫기",

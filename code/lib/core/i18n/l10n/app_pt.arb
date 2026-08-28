@@ -1,5 +1,13 @@
 {
   "@@locale": "pt",
+  "settingsSaveFailed": "Não foi possível guardar as definições: {message}",
+  "@settingsSaveFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "settingsFollowSystemTheme": "Seguir o modo claro/escuro do sistema",
   "settingsFollowSystemThemeHint": "Escolha um tema claro e um escuro; o sistema decide qual é mostrado.",
   "settingsAutoPairBracket": "Fechar parênteses automaticamente",

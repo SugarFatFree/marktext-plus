@@ -1,5 +1,13 @@
 {
   "@@locale": "ja",
+  "settingsSaveFailed": "設定を保存できませんでした: {message}",
+  "@settingsSaveFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "settingsFollowSystemTheme": "システムのライト/ダーク設定に従う",
   "settingsFollowSystemThemeHint": "ライトとダークのテーマをそれぞれ選ぶと、どちらを表示するかはシステムが決めます。",
   "settingsAutoPairBracket": "括弧を自動で閉じる",

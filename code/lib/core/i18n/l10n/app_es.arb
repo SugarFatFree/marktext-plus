@@ -1,5 +1,13 @@
 {
   "@@locale": "es",
+  "settingsSaveFailed": "No se pudo guardar la configuración: {message}",
+  "@settingsSaveFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "settingsFollowSystemTheme": "Seguir el modo claro/oscuro del sistema",
   "settingsFollowSystemThemeHint": "Elija un tema claro y uno oscuro; el sistema decide cuál se muestra.",
   "settingsAutoPairBracket": "Cerrar corchetes automáticamente",

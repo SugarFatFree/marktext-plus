@@ -1,5 +1,13 @@
 {
   "@@locale": "en",
+  "settingsSaveFailed": "Could not save your settings: {message}",
+  "@settingsSaveFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "settingsFollowSystemTheme": "Follow the system light/dark setting",
   "settingsFollowSystemThemeHint": "Pick one light theme and one dark theme; the system decides which is shown.",
   "settingsAutoPairBracket": "Auto-close brackets",

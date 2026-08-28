@@ -121,5 +121,19 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   }
 
   ::CoUninitialize();
-  return EXIT_SUCCESS;
+
+  // Leave immediately rather than returning.
+  //
+  // Returning from wWinMain hands control to the C runtime, which unwinds and
+  // waits on every thread the process still has. Something in that set does not
+  // come back: the window disappears and the process stays, sometimes for
+  // seconds. The Dart side cannot fix it — a watchdog armed before
+  // `destroy()` never got to log a single line, which says the isolate had
+  // already stopped while the process was still alive, so whatever is holding
+  // on is native and out of Dart's reach.
+  //
+  // Everything that had to reach disk — the document, the window geometry, the
+  // settings — was written and flushed before the window was destroyed, so
+  // there is nothing left to lose by not waiting.
+  ::ExitProcess(EXIT_SUCCESS);
 }

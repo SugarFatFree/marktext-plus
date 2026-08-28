@@ -9,6 +9,11 @@ class AppLocalizationsRu extends AppLocalizations {
   AppLocalizationsRu([String locale = 'ru']) : super(locale);
 
   @override
+  String settingsSaveFailed(String message) {
+    return 'Не удалось сохранить настройки: $message';
+  }
+
+  @override
   String get settingsFollowSystemTheme =>
       'Следовать светлой/тёмной теме системы';
 

@@ -108,6 +108,10 @@ void main(List<String> args) async {
   StartupTrace.useDirectory(configDir);
   StartupTrace.mark('config directory resolved');
   final configService = ConfigService(configDir: configDir);
+  // One place learns that a settings write failed; this is where it is said
+  // out loud. Without it a read-only config directory reverted every change
+  // on the next launch and never explained itself.
+  SettingsNotifier.onSaveFailed = reportSettingsSaveFailure;
   final config = await configService.load();
   StartupTrace.mark('config loaded');
 

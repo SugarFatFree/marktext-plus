@@ -1,5 +1,13 @@
 {
   "@@locale": "ar",
+  "settingsSaveFailed": "تعذّر حفظ الإعدادات: {message}",
+  "@settingsSaveFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "settingsFollowSystemTheme": "اتّباع وضع الفاتح/الداكن في النظام",
   "settingsFollowSystemThemeHint": "اختر سمة فاتحة وأخرى داكنة، ويقرّر النظام أيّهما يظهر.",
   "settingsAutoPairBracket": "إغلاق الأقواس تلقائيًا",

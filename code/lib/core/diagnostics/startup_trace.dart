@@ -71,6 +71,7 @@ class StartupTrace {
     }
   }
   static final Map<String, int> _runnerMarks = <String, int>{};
+  static List<String> _entrypointArguments = const [];
 
   /// Picks the runner's own timings out of the entrypoint arguments.
   ///
@@ -82,6 +83,11 @@ class StartupTrace {
   ///
   /// Call before the first [mark].
   static void readRunnerArguments(List<String> args) {
+    // Kept whatever happens: two attempts at getting the runner's own timings
+    // across have now arrived as nothing, and "the marks are missing" does not
+    // say whether the runner failed to add them or the engine failed to pass
+    // them on. The raw list settles that in one line.
+    _entrypointArguments = args;
     const prefix = '--mt-trace-';
     for (final arg in args) {
       if (!arg.startsWith(prefix)) continue;
@@ -116,11 +122,15 @@ class StartupTrace {
     if (runnerEntry == null) {
       // No runner marks: either an older build or a platform where the runner
       // does not stamp them. The single total is still worth having.
+      final seen = _entrypointArguments.isEmpty
+          ? 'none'
+          : _entrypointArguments.join(' ');
       return [
         beforeDart == null
             ? '        (before Dart: not measured on this build)'
             : row(beforeDart, beforeDart,
-                'process start → Dart (runner not instrumented; total only)'),
+                'process start → Dart (runner marks absent; total only)'),
+        '        entrypoint args as Dart saw them: $seen',
       ];
     }
 

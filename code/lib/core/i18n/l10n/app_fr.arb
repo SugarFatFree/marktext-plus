@@ -1,5 +1,13 @@
 {
   "@@locale": "fr",
+  "settingsSaveFailed": "Impossible d'enregistrer vos réglages : {message}",
+  "@settingsSaveFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "settingsFollowSystemTheme": "Suivre le mode clair/sombre du système",
   "settingsFollowSystemThemeHint": "Choisissez un thème clair et un thème sombre ; le système décide lequel s'affiche.",
   "settingsAutoPairBracket": "Fermer les parenthèses automatiquement",

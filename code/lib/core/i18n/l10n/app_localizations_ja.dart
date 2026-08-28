@@ -9,6 +9,11 @@ class AppLocalizationsJa extends AppLocalizations {
   AppLocalizationsJa([String locale = 'ja']) : super(locale);
 
   @override
+  String settingsSaveFailed(String message) {
+    return '設定を保存できませんでした: $message';
+  }
+
+  @override
   String get settingsFollowSystemTheme => 'システムのライト/ダーク設定に従う';
 
   @override

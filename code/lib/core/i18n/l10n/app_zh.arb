@@ -1,5 +1,13 @@
 {
   "@@locale": "zh",
+  "settingsSaveFailed": "设置保存失败：{message}",
+  "@settingsSaveFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "settingsFollowSystemTheme": "跟随系统深浅色",
   "settingsFollowSystemThemeHint": "分别选一个浅色主题和一个深色主题，由系统决定显示哪个。",
   "settingsAutoPairBracket": "自动补全括号",

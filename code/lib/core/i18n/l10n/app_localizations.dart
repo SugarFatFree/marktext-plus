@@ -117,6 +117,12 @@ abstract class AppLocalizations {
     Locale('zh'),
   ];
 
+  /// No description provided for @settingsSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save your settings: {message}'**
+  String settingsSaveFailed(String message);
+
   /// No description provided for @settingsFollowSystemTheme.
   ///
   /// In en, this message translates to:

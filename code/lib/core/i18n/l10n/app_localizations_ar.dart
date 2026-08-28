@@ -9,6 +9,11 @@ class AppLocalizationsAr extends AppLocalizations {
   AppLocalizationsAr([String locale = 'ar']) : super(locale);
 
   @override
+  String settingsSaveFailed(String message) {
+    return 'تعذّر حفظ الإعدادات: $message';
+  }
+
+  @override
   String get settingsFollowSystemTheme => 'اتّباع وضع الفاتح/الداكن في النظام';
 
   @override

@@ -1,5 +1,13 @@
 {
   "@@locale": "ru",
+  "settingsSaveFailed": "Не удалось сохранить настройки: {message}",
+  "@settingsSaveFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "settingsFollowSystemTheme": "Следовать светлой/тёмной теме системы",
   "settingsFollowSystemThemeHint": "Выберите по одной светлой и тёмной теме — система решит, какая будет показана.",
   "settingsAutoPairBracket": "Автоматически закрывать скобки",

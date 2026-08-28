@@ -9,6 +9,11 @@ class AppLocalizationsKo extends AppLocalizations {
   AppLocalizationsKo([String locale = 'ko']) : super(locale);
 
   @override
+  String settingsSaveFailed(String message) {
+    return '설정을 저장하지 못했습니다: $message';
+  }
+
+  @override
   String get settingsFollowSystemTheme => '시스템 밝기 설정 따르기';
 
   @override

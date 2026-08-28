@@ -9,6 +9,11 @@ class AppLocalizationsDe extends AppLocalizations {
   AppLocalizationsDe([String locale = 'de']) : super(locale);
 
   @override
+  String settingsSaveFailed(String message) {
+    return 'Einstellungen konnten nicht gespeichert werden: $message';
+  }
+
+  @override
   String get settingsFollowSystemTheme => 'Hell/Dunkel des Systems folgen';
 
   @override

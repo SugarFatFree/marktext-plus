@@ -1,5 +1,13 @@
 {
   "@@locale": "it",
+  "settingsSaveFailed": "Impossibile salvare le impostazioni: {message}",
+  "@settingsSaveFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "settingsFollowSystemTheme": "Segui l'impostazione chiaro/scuro del sistema",
   "settingsFollowSystemThemeHint": "Scegli un tema chiaro e uno scuro: il sistema decide quale mostrare.",
   "settingsAutoPairBracket": "Chiudi automaticamente le parentesi",

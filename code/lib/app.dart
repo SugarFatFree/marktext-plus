@@ -11,6 +11,24 @@ import 'ui/screens/home_screen.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
+/// Tells the reader that a settings change did not reach disk.
+///
+/// Separate wording from a document's save failure: the reader is looking at
+/// a switch they have just flicked, and "could not save the file" would send
+/// them looking at their document.
+void reportSettingsSaveFailure(Object error) {
+  final context = navigatorKey.currentContext;
+  if (context == null || !context.mounted) return;
+  final l10n = AppLocalizations.of(context);
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(l10n == null
+          ? 'Could not save your settings: $error'
+          : l10n.settingsSaveFailed('$error')),
+    ),
+  );
+}
+
 /// Tells the reader that a save did not happen.
 ///
 /// All three save paths — the menu, Save As, and the one the tab bar uses when
