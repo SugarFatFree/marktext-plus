@@ -257,6 +257,28 @@ void main() {
     });
   });
 
+  group('Blocks a list item carries', () {
+    testWidgets('a code block under a step is drawn inside the preview',
+        (tester) async {
+      // The parser and the exports were checked when items gained blocks of
+      // their own; the preview was not.
+      await pumpRenderer(
+        tester,
+        markdown: '1. step\n\n   ```dart\n   void main() {}\n   ```\n',
+      );
+
+      expect(find.textContaining('step'), findsWidgets);
+      expect(find.textContaining('void main'), findsWidgets,
+          reason: '步骤携带的代码块没有画出来');
+    });
+
+    testWidgets('a quote under a step is drawn too', (tester) async {
+      await pumpRenderer(tester, markdown: '- item\n\n  > quoted\n');
+
+      expect(find.textContaining('quoted'), findsWidgets);
+    });
+  });
+
   group('Task checkboxes', () {
     testWidgets('are disabled in a read-only preview', (tester) async {
       await pumpRenderer(tester, markdown: '- [ ] first\n- [x] second\n');
