@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:marktext_plus/providers/editor_provider.dart';
 import 'package:marktext_plus/services/markdown_parser.dart';
 import 'package:marktext_plus/ui/editor/source_editor.dart';
 
@@ -200,4 +201,42 @@ void main() {
       expect(SourceEditor.deleteParagraphAt(source, 1), (source, 1));
     });
   });
+
+  group('SourceEditor.listPrefixFor', () {
+    // The bullet the reader chose, for every kind of bullet. A task list
+    // wrote a dash whatever the setting said, so choosing `*` gave one list
+    // written with stars and the next with dashes in the same document.
+    test('a bullet list uses the chosen marker', () {
+      for (final marker in ['-', '*', '+']) {
+        expect(
+          SourceEditor.listPrefixFor(FormatAction.unorderedList, marker),
+          '$marker ',
+        );
+      }
+    });
+
+    test('a task list uses it too', () {
+      expect(SourceEditor.listPrefixFor(FormatAction.taskList, '*'), '* [ ] ');
+      expect(SourceEditor.listPrefixFor(FormatAction.taskList, '-'), '- [ ] ');
+    });
+
+    test('a numbered list is numbered, whatever the bullet is', () {
+      expect(
+        SourceEditor.listPrefixFor(FormatAction.orderedList, '*'),
+        '1. ',
+      );
+    });
+
+    test('the two bullet kinds agree with each other', () {
+      // A document that mixes markers reads as two lists to some parsers.
+      for (final marker in ['-', '*', '+']) {
+        final bullet =
+            SourceEditor.listPrefixFor(FormatAction.unorderedList, marker);
+        final task = SourceEditor.listPrefixFor(FormatAction.taskList, marker);
+        expect(task.startsWith(bullet), isTrue,
+            reason: '$marker：任务列表与普通列表用了不同的标记');
+      }
+    });
+  });
+
 }

@@ -70,6 +70,18 @@ class SourceEditor extends ConsumerStatefulWidget {
   /// widget would need a whole editor to assert one line.
   /// Result of toggling an inline wrapper.
   @visibleForTesting
+  /// The characters a list action writes in front of a line.
+  ///
+  /// The bullet the reader chose, for every kind of bullet: a task list wrote
+  /// a dash whatever the setting said, so choosing `*` gave one list written
+  /// with stars and the next with dashes, in the same document.
+  static String listPrefixFor(FormatAction action, String bulletMarker) =>
+      switch (action) {
+        FormatAction.orderedList => '1. ',
+        FormatAction.taskList => '$bulletMarker [ ] ',
+        _ => '$bulletMarker ',
+      };
+
   static ({String text, int start, int end}) toggleWrap(
     String text,
     int start,
@@ -771,15 +783,14 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
       case FormatAction.toParagraph:
         _setHeadingLevel(null);
       case FormatAction.orderedList:
-        _applyLinePrefixAtCursor('1. ');
       case FormatAction.unorderedList:
-        // The configured marker, which nothing was reading: choosing * or +
-        // in settings still produced a dash.
-        _applyLinePrefixAtCursor(
-          '${ref.read(settingsProvider).bulletListMarker} ',
-        );
       case FormatAction.taskList:
-        _applyLinePrefixAtCursor('- [ ] ');
+        _applyLinePrefixAtCursor(
+          SourceEditor.listPrefixFor(
+            action,
+            ref.read(settingsProvider).bulletListMarker,
+          ),
+        );
       case FormatAction.quoteBlock:
         _applyLinePrefixAtCursor('> ');
       case FormatAction.codeBlock:
