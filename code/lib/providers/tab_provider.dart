@@ -363,6 +363,74 @@ class TabNotifier extends StateNotifier<TabState> {
   }
 
   /// Rebinds a tab to a different file, after a rename or a "save as".
+  /// Follows a rename on disk, for a file or for a whole folder.
+  ///
+  /// Renaming from the sidebar only moved the file and refreshed the tree: an
+  /// open tab kept pointing at a path that no longer existed, and the next
+  /// save wrote the old file back out. Renaming from the File menu did rebind
+  /// its tab, so the two ways of doing the same thing disagreed.
+  void pathRenamed(String oldPath, String newPath) {
+    final oldPrefix = '$oldPath${p.separator}';
+
+    String? moved(String? path) {
+      if (path == null) return null;
+      if (path == oldPath) return newPath;
+      if (path.startsWith(oldPrefix)) {
+        return newPath + path.substring(oldPath.length);
+      }
+      return null;
+    }
+
+    var changed = false;
+    final tabs = state.tabs.map((tab) {
+      final target = moved(tab.filePath);
+      if (target == null) return tab;
+      changed = true;
+      return tab.copyWith(filePath: target, fileName: p.basename(target));
+    }).toList();
+
+    final openedFiles = state.openedFiles.map((entry) {
+      final target = moved(entry.filePath);
+      if (target == null) return entry;
+      changed = true;
+      return OpenedFileEntry(filePath: target, fileName: p.basename(target));
+    }).toList();
+
+    if (!changed) return;
+    state = state.copyWith(tabs: tabs, openedFiles: openedFiles);
+    _persistOpenedFiles();
+  }
+
+  /// Drops whatever was open under [path], which is no longer on disk.
+  ///
+  /// No prompt about unsaved work: deleting was asked for explicitly, and
+  /// offering to save changes to a file that has just been removed would be a
+  /// strange thing to be asked.
+  void pathDeleted(String path) {
+    final prefix = '$path${p.separator}';
+    bool gone(String? filePath) =>
+        filePath != null && (filePath == path || filePath.startsWith(prefix));
+
+    final tabs = state.tabs.where((t) => !gone(t.filePath)).toList();
+    final openedFiles =
+        state.openedFiles.where((f) => !gone(f.filePath)).toList();
+    if (tabs.length == state.tabs.length &&
+        openedFiles.length == state.openedFiles.length) {
+      return;
+    }
+
+    var activeId = state.activeTabId;
+    if (!tabs.any((t) => t.id == activeId)) {
+      activeId = tabs.isNotEmpty ? tabs.last.id : null;
+    }
+    state = state.copyWith(
+      tabs: tabs,
+      activeTabId: activeId,
+      openedFiles: openedFiles,
+    );
+    _persistOpenedFiles();
+  }
+
   void updateTabPath(String id, String newPath, String newName) {
     final oldPath = state.tabs.where((t) => t.id == id).firstOrNull?.filePath;
 

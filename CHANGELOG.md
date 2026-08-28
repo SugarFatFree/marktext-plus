@@ -57,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The same kind of line no longer freezes the preview either: parsing 60,000 unmatched brackets went from 51 seconds to 55 milliseconds
 - A long line inside a `pie` or `erDiagram` block no longer freezes the preview for fourteen and twenty-seven seconds respectively
 - A whole-word search over a large document is twenty times faster
+- Renaming or deleting a file from the sidebar takes its open tab with it — renaming used to leave the tab on the old path, where the next save wrote the old file back out; a folder does it to every file beneath it
 - Saving a new document from the close prompt names the tab after the file it wrote and adds it to the recent files, as Save As from the menu already did
 - Closing a file from the sidebar asks about unsaved work, as closing its tab already did — the cross on the row, the context menu, closing a file or a whole folder all used to discard it silently
 - Save from the command palette offers Save As for a document that has no file yet, instead of doing nothing; New File from the palette names the tab in the app's language

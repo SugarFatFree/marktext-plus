@@ -459,12 +459,19 @@ class _SideBarState extends ConsumerState<SideBar> {
         if (newName != null && newName.isNotEmpty && newName != node.name) {
           final newPath = p.join(p.dirname(node.path), newName);
           await ref.read(fileProvider.notifier).renameNode(node.path, newPath);
+          // Whatever is open under it moves too — a folder rename takes every
+          // file beneath it. Without this the tab pointed at a path that no
+          // longer existed and the next save wrote the old file back out.
+          ref.read(tabProvider.notifier).pathRenamed(node.path, newPath);
         }
       case 'delete':
         if (!mounted) return;
         final confirmed = await _showConfirmDialog(this.context, l10n.confirmDeleteFile(node.name));
         if (confirmed == true) {
           await ref.read(fileProvider.notifier).deleteNode(node.path);
+          // The opened-files context menu already closed the tab when it
+          // deleted a file; this one left it open on a file that was gone.
+          ref.read(tabProvider.notifier).pathDeleted(node.path);
         }
     }
   }

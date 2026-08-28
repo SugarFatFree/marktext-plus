@@ -222,7 +222,9 @@ class AppMenuBar extends ConsumerWidget {
     if (newName == null || newName.isEmpty || newName == p.basename(oldPath)) return;
     final newPath = p.join(p.dirname(oldPath), newName);
     await File(oldPath).rename(newPath);
-    ref.read(tabProvider.notifier).updateTabPath(activeTab.id, newPath, newName);
+    // The same call the sidebar makes, so the two ways of renaming cannot
+    // drift apart again.
+    ref.read(tabProvider.notifier).pathRenamed(oldPath, newPath);
   }
 
   Widget _buildFileMenu(
