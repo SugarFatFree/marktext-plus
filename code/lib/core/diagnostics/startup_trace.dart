@@ -184,9 +184,13 @@ class StartupTrace {
     if (sha.isEmpty && run.isEmpty) {
       return 'build: local (no BUILD_SHA; this is not a CI build)';
     }
+    const sdk = String.fromEnvironment('BUILD_SDK');
     final short = sha.length >= 8 ? sha.substring(0, 8) : sha;
     return 'build: ${short.isEmpty ? '?' : short}'
-        '${run.isEmpty ? '' : '  (CI run #$run)'}';
+        '${run.isEmpty ? '' : '  (CI run #$run)'}'
+        // Which SDK produced this. The channel moves week to week, so two
+        // traces taken a month apart differ by more than the source does.
+        '${sdk.isEmpty ? '' : '  Flutter $sdk'}';
   }
 
   /// Where the trace is being written, once that has been settled.

@@ -70,7 +70,8 @@ jobs:
         run: |
           flutter build linux --release \
             --dart-define=BUILD_SHA=${GITHUB_SHA} \
-            --dart-define=BUILD_RUN=${GITHUB_RUN_NUMBER}
+            --dart-define=BUILD_RUN=${GITHUB_RUN_NUMBER} \
+            --dart-define=BUILD_SDK=$(flutter --version --machine | python3 -c 'import json,sys; print(json.load(sys.stdin)["frameworkVersion"])')
 
       - name: Package
         run: |
@@ -105,9 +106,14 @@ jobs:
         working-directory: code
         run: |
           flutter --version
+          # Stamped in so a trace says which SDK produced the binary. The
+          # channel moves under us, and comparing two logs from different weeks
+          # without knowing that is comparing two unknowns.
+          $sdk = (flutter --version --machine | ConvertFrom-Json).frameworkVersion
           flutter build windows --release `
             --dart-define=BUILD_SHA=$env:GITHUB_SHA `
-            --dart-define=BUILD_RUN=$env:GITHUB_RUN_NUMBER
+            --dart-define=BUILD_RUN=$env:GITHUB_RUN_NUMBER `
+            --dart-define=BUILD_SDK=$sdk
 
       # What Windows has to read before the first line of Dart runs. A slow
       # start was chased for days by asking the person reporting it to measure
