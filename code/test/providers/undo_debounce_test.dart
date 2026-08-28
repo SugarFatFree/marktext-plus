@@ -90,4 +90,57 @@ void main() {
 
     expect(controller.text, 'A typed but not yet recorded');
   });
+
+  group('the caret comes back with the text', () {
+    /// Types [text] and leaves the caret at [caret], without letting the
+    /// debounce record it.
+    void typeAt(String text, int caret) {
+      controller.value = TextEditingValue(
+        text: text,
+        selection: TextSelection.collapsed(offset: caret),
+      );
+    }
+
+    test('undo puts the caret where the edit was, not at the end', () {
+      // A long document: dropping the caret at the end throws the reader to
+      // the bottom of the file, away from what they just undid.
+      final long = 'x' * 500;
+      typeAt('$long HERE', 5);
+      notifier.pushHistory(controller.text);
+      typeAt('$long HERE more', 8);
+
+      notifier.undo();
+
+      expect(controller.text, '$long HERE');
+      expect(controller.selection.baseOffset, 5,
+          reason: '光标被丢到文末，撤销之后要重新找回原处');
+    });
+
+    test('redo restores its own caret too', () {
+      typeAt('one', 3);
+      notifier.pushHistory('one');
+      typeAt('one two', 7);
+
+      notifier.undo();
+      notifier.redo();
+
+      expect(controller.text, 'one two');
+      expect(controller.selection.baseOffset, 7);
+    });
+
+    test('a caret past the end of an older, shorter state is brought inside',
+        () {
+      // The recorded position belongs to a document that no longer exists;
+      // offsets from it are not positions in this one.
+      typeAt('short', 5);
+      notifier.pushHistory('short');
+      typeAt('short and then a good deal longer', 33);
+
+      notifier.undo();
+
+      expect(controller.selection.baseOffset,
+          lessThanOrEqualTo(controller.text.length));
+      expect(controller.selection.isValid, isTrue);
+    });
+  });
 }

@@ -144,13 +144,19 @@ class EditorState {
 class EditorNotifier extends StateNotifier<EditorState> {
   EditorNotifier() : super(const EditorState());
 
+  /// One recorded state of the document, and where the caret was in it.
+  ///
+  /// Undo used to restore the text alone and drop the caret at the very end.
+  /// In a long document that means every undo throws the reader to the bottom
+  /// of the file, away from the edit they were undoing — which makes a working
+  /// undo tiring to use.
   /// Undo history, kept per tab.
   ///
   /// A single shared stack meant switching tabs carried the previous file's
   /// history along: pressing undo in one document could replace it with a
   /// snapshot of another.
-  final Map<String, List<String>> _undoStacks = {};
-  final Map<String, List<String>> _redoStacks = {};
+  final Map<String, List<_Snapshot>> _undoStacks = {};
+  final Map<String, List<_Snapshot>> _redoStacks = {};
   String _historyKey = '';
 
   /// Snapshots kept per tab.
@@ -159,8 +165,31 @@ class EditorNotifier extends StateNotifier<EditorState> {
   /// so an unbounded stack would grow without limit over a long session.
   static const _maxHistory = 200;
 
-  List<String> get _undoStack => _undoStacks.putIfAbsent(_historyKey, () => []);
-  List<String> get _redoStack => _redoStacks.putIfAbsent(_historyKey, () => []);
+  List<_Snapshot> get _undoStack =>
+      _undoStacks.putIfAbsent(_historyKey, () => []);
+  List<_Snapshot> get _redoStack =>
+      _redoStacks.putIfAbsent(_historyKey, () => []);
+
+  /// Where the caret is now, for the snapshot about to be taken.
+  int get _caret {
+    final selection = _controller?.selection;
+    if (selection == null || !selection.isValid) return 0;
+    return selection.baseOffset;
+  }
+
+  /// Puts [snapshot] back on screen, caret and all.
+  void _restore(_Snapshot snapshot) {
+    final controller = _controller;
+    if (controller == null) return;
+    controller.value = TextEditingValue(
+      text: snapshot.text,
+      selection: TextSelection.collapsed(
+        // The document this snapshot came from may be shorter than the one on
+        // screen, and an offset past its end is not a position at all.
+        offset: snapshot.caret.clamp(0, snapshot.text.length),
+      ),
+    );
+  }
 
   /// Points history at [tabId]; call before the editor for that tab is used.
   void setHistoryTab(String tabId) {
@@ -289,9 +318,9 @@ class EditorNotifier extends StateNotifier<EditorState> {
 
   void pushHistory(String content) {
     final stack = _undoStack;
-    if (stack.isNotEmpty && stack.last == content) return;
+    if (stack.isNotEmpty && stack.last.text == content) return;
 
-    stack.add(content);
+    stack.add((text: content, caret: _caret));
     if (stack.length > _maxHistory) {
       // Oldest first: the recent past is what undo is for.
       stack.removeRange(0, stack.length - _maxHistory);
@@ -317,8 +346,8 @@ class EditorNotifier extends StateNotifier<EditorState> {
     //
     // Added straight to the stack rather than through pushHistory, which
     // clears the redo stack — the one thing undo must not do.
-    if (_undoStack.last != current) {
-      _undoStack.add(current);
+    if (_undoStack.last.text != current) {
+      _undoStack.add((text: current, caret: _caret));
       if (_undoStack.length > _maxHistory) {
         _undoStack.removeRange(0, _undoStack.length - _maxHistory);
       }
@@ -331,11 +360,7 @@ class EditorNotifier extends StateNotifier<EditorState> {
     }
 
     _redoStack.add(_undoStack.removeLast());
-    final previous = _undoStack.last;
-    controller.value = TextEditingValue(
-      text: previous,
-      selection: TextSelection.collapsed(offset: previous.length),
-    );
+    _restore(_undoStack.last);
 
     _updateUndoRedoState();
   }
@@ -345,11 +370,7 @@ class EditorNotifier extends StateNotifier<EditorState> {
 
     final next = _redoStack.removeLast();
     _undoStack.add(next);
-
-    _controller!.value = TextEditingValue(
-      text: next,
-      selection: TextSelection.collapsed(offset: next.length),
-    );
+    _restore(next);
 
     _updateUndoRedoState();
   }
@@ -432,3 +453,5 @@ class EditorNotifier extends StateNotifier<EditorState> {
 final editorProvider = StateNotifierProvider<EditorNotifier, EditorState>((ref) {
   return EditorNotifier();
 });
+
+typedef _Snapshot = ({String text, int caret});
