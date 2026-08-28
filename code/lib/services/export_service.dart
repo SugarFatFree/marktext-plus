@@ -1026,17 +1026,49 @@ class ExportService {
     // under a numbered step was coming out as <ol>, so the bullets rendered
     // as numbers.
     final openTags = <String>[tag];
+    // A sub-list belongs inside the item it hangs off, so the item it hangs
+    // off cannot be closed yet. Closing every <li> as soon as it was written
+    // put the nested <ul> beside its parent instead of inside it, which no
+    // list may contain: browsers forgive it, validators do not, and anything
+    // that reads the structure — pasting into Word, converting with pandoc —
+    // loses the level.
+    var itemOpen = false;
+
+    // Written without its closing tag, so a sub-list can go inside it. An
+    // item with nothing under it closes on the same line, which is how the
+    // exported html reads everywhere else.
+    void closeItem() {
+      if (itemOpen) {
+        buffer.writeln('</li>');
+        itemOpen = false;
+      }
+    }
 
     for (final item in list.items) {
-      while (depth < item.depth) {
-        final childTag = item.ordered ? 'ol' : 'ul';
-        buffer.writeln(_openListTag(childTag, item.number));
-        openTags.add(childTag);
-        depth++;
-      }
-      while (depth > item.depth) {
-        buffer.writeln('</${openTags.removeLast()}>');
-        depth--;
+      if (item.depth > depth) {
+        // A list that starts indented has nothing to hang off; give it an
+        // item of its own rather than nesting a list directly in a list.
+        if (!itemOpen) {
+          buffer.write('  <li>');
+          itemOpen = true;
+        }
+        buffer.writeln();
+        while (depth < item.depth) {
+          final childTag = item.ordered ? 'ol' : 'ul';
+          buffer.writeln(_openListTag(childTag, item.number));
+          openTags.add(childTag);
+          depth++;
+          itemOpen = false;
+        }
+      } else {
+        closeItem();
+        while (depth > item.depth) {
+          buffer.writeln('</${openTags.removeLast()}>');
+          depth--;
+          // The item that held the sub-list ends with it.
+          buffer.writeln('  </li>');
+          itemOpen = false;
+        }
       }
 
       final content = _inlineSpansToHtml(
@@ -1051,12 +1083,15 @@ class ExportService {
       // wrote with blank lines exported as tight as one written without.
       final body =
           list.isLoose ? '<p>$checkbox$content</p>' : '$checkbox$content';
-      buffer.writeln('  <li>$body</li>');
+      buffer.write('  <li>$body');
+      itemOpen = true;
     }
 
+    closeItem();
     while (depth > 0) {
       buffer.writeln('</${openTags.removeLast()}>');
       depth--;
+      buffer.writeln('  </li>');
     }
     buffer.write('</${openTags.removeLast()}>');
     return buffer.toString();
