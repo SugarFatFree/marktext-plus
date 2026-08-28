@@ -102,10 +102,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get fileSaveAs => 'Speichern unter';
 
   @override
-  String get fileRecentFiles => 'Recent Files';
+  String get fileRecentFiles => 'Zuletzt verwendete Dateien';
 
   @override
-  String get fileNoRecentFiles => 'No Recent Files';
+  String get fileNoRecentFiles => 'Keine zuletzt verwendeten Dateien';
 
   @override
   String get fileExport => 'Exportieren';

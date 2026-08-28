@@ -100,10 +100,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get fileSaveAs => 'حفظ باسم';
 
   @override
-  String get fileRecentFiles => 'Recent Files';
+  String get fileRecentFiles => 'الملفات الأخيرة';
 
   @override
-  String get fileNoRecentFiles => 'No Recent Files';
+  String get fileNoRecentFiles => 'لا توجد ملفات حديثة';
 
   @override
   String get fileExport => 'تصدير';

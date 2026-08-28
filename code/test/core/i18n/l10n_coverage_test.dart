@@ -90,28 +90,42 @@ void main() {
   });
 
   test('no language leaves a string untranslated as the English text', () {
-    // A handful are proper nouns or symbols that are the same everywhere.
-    const sharedEverywhere = {'appTitle'};
+    // Words that genuinely read the same in several languages, and the ones
+    // that are never translated at all: the product's own name, file formats,
+    // the theme names, and the two- or three-letter status abbreviations.
+    //
+    // Listed rather than measured. The check here used to be "fewer than half
+    // the keys look untranslated", which no real omission could ever trip:
+    // "Recent Files" sat untranslated in ten of the eleven languages and this
+    // test passed every time. A list has to be edited deliberately, which is
+    // the point — adding to it is a decision, and forgetting a translation is
+    // not.
+    const sameInSomeLanguages = {
+      // Never translated anywhere.
+      'appTitle', 'settingsMarkdown', 'statusMarkdown', 'statusEncoding',
+      'statusLineFeed', 'fileExportHtml', 'fileExportPdf', 'fileExportWord',
+      'themeOneDark', 'themeNord', 'themeDieciOLED', 'themeShibuya',
+      // The same word in several European languages, or borrowed as-is.
+      'ok', 'settingsEditor', 'settingsGeneral', 'menuFile', 'menuFormat',
+      'formatLink', 'keybindingLink', 'formatImage', 'keybindingImage',
+      'formatCodeSubmenu', 'formatTextSubmenu', 'formatFrontMatter',
+      'commandFormatLabel',
+      // "Ln 1, Col 1" is left in this shorthand by several editors.
+      'statusLine',
+    };
     final english = arb('en');
 
     for (final lang in languages) {
       if (lang == 'en') continue;
       final theirs = arb(lang);
-      final identical = [
+      final untranslated = [
         for (final key in keysOf('en'))
-          if (!sharedEverywhere.contains(key) &&
-              theirs[key] == english[key] &&
-              (english[key] as String).length > 3)
+          if (!sameInSomeLanguages.contains(key) && theirs[key] == english[key])
             key,
       ];
-      // Reported rather than asserted to zero: some words genuinely coincide
-      // across languages ("Markdown", "PDF"). The bar is that a language is
-      // not wholesale untranslated.
-      expect(
-        identical.length,
-        lessThan(keysOf('en').length ~/ 2),
-        reason: '$lang looks largely untranslated: ${identical.take(10)}',
-      );
+
+      expect(untranslated, isEmpty,
+          reason: '$lang 里这些条目还是英文原文：${untranslated.join(', ')}');
     }
   });
 }

@@ -101,10 +101,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get fileSaveAs => 'Сохранить как';
 
   @override
-  String get fileRecentFiles => 'Recent Files';
+  String get fileRecentFiles => 'Недавние файлы';
 
   @override
-  String get fileNoRecentFiles => 'No Recent Files';
+  String get fileNoRecentFiles => 'Нет недавних файлов';
 
   @override
   String get fileExport => 'Экспорт';

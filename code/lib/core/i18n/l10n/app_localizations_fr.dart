@@ -102,10 +102,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get fileSaveAs => 'Enregistrer sous';
 
   @override
-  String get fileRecentFiles => 'Recent Files';
+  String get fileRecentFiles => 'Fichiers récents';
 
   @override
-  String get fileNoRecentFiles => 'No Recent Files';
+  String get fileNoRecentFiles => 'Aucun fichier récent';
 
   @override
   String get fileExport => 'Exporter';

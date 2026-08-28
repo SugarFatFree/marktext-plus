@@ -102,10 +102,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get fileSaveAs => 'Guardar como';
 
   @override
-  String get fileRecentFiles => 'Recent Files';
+  String get fileRecentFiles => 'Ficheiros recentes';
 
   @override
-  String get fileNoRecentFiles => 'No Recent Files';
+  String get fileNoRecentFiles => 'Sem ficheiros recentes';
 
   @override
   String get fileExport => 'Exportar';
@@ -996,10 +996,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get fileSaveAs => 'Salvar como';
 
   @override
-  String get fileRecentFiles => 'Recent Files';
+  String get fileRecentFiles => 'Arquivos recentes';
 
   @override
-  String get fileNoRecentFiles => 'No Recent Files';
+  String get fileNoRecentFiles => 'Nenhum arquivo recente';
 
   @override
   String get fileExport => 'Exportar';

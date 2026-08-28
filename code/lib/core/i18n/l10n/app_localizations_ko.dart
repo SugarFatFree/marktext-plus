@@ -99,10 +99,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get fileSaveAs => '다른 이름으로 저장';
 
   @override
-  String get fileRecentFiles => 'Recent Files';
+  String get fileRecentFiles => '최근 파일';
 
   @override
-  String get fileNoRecentFiles => 'No Recent Files';
+  String get fileNoRecentFiles => '최근 파일 없음';
 
   @override
   String get fileExport => '내보내기';

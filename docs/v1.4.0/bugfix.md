@@ -63,6 +63,7 @@
 | BUG-059 | 2026-08-28 | 11 个快捷键写死在菜单里，设置页看不见也改不了，其中两个还和已有键位撞车 | **P1** | 已修复 |
 | BUG-060 | 2026-08-28 | 标题升级/降级在设置页显示成原始动作名 | P3 | 已修复 |
 | BUG-061 | 2026-08-28 | 38 个格式动作里有 17 个在命令面板里找不到 | P2 | 已修复 |
+| BUG-062 | 2026-08-28 | 「最近文件」在 10 种语言里都是英文，而守这件事的测试形同虚设 | P2 | 已修复 |
 
 ## 详细记录
 
@@ -1871,5 +1872,76 @@ for (final entry in formatLabels.entries) {
 
 - `code/lib/ui/screens/home_screen.dart`
 - `code/test/ui/screens/command_palette_coverage_test.dart` —— 新增
+
+---
+
+## BUG-062 — 「最近文件」在 10 种语言里都是英文，而守这件事的测试形同虚设
+
+**发现日期**：2026-08-28 　**优先级**：P2 　**状态**：已修复
+
+### 现象
+
+文件菜单里的「最近文件」子菜单，在**除英文和中文之外的全部 10 种语言**下都显示英文
+`Recent Files` / `No Recent Files`。
+
+### 更值得记的部分：守卫早就有，但拦不住任何东西
+
+`test/core/i18n/l10n_coverage_test.dart` 里本来就有一条
+`no language leaves a string untranslated as the English text`。它一直是通过的。
+看它怎么写的：
+
+```dart
+// Reported rather than asserted to zero: some words genuinely coincide
+// across languages ("Markdown", "PDF"). The bar is that a language is
+// not wholesale untranslated.
+expect(
+  identical.length,
+  lessThan(keysOf('en').length ~/ 2),
+  reason: '$lang looks largely untranslated: ...',
+);
+```
+
+**门槛是「未翻译的键少于总数的一半」** —— 283 个键里漏翻 141 个才会报警。
+两个漏翻的键，这条断言永远不会响。
+
+注释里的顾虑是对的：有些词在多种语言里天然相同（德语的 `Editor`、法语的 `Image`、
+意大利语的 `File`、西班牙语的 `General`）。**但正确的答案是把这些词列出来，
+而不是设一个宽到没有意义的阈值。**
+
+### 排查过程
+
+对 12 个 ARB 做了三层核对：
+
+1. **键集是否一致** —— 12 个文件各 283 键，完全一致，没问题
+2. **值是否照抄英文** —— 逐语言列出与英文完全相同的条目
+3. **逐条判断是不是真漏翻** —— 这一步不能省。初查列出 14 个键、跨 10 种语言，
+   但其中绝大多数是假阳性：德语的 `Editor`/`Format`/`Text`/`Code`、法语的
+   `Image`/`Format`/`Code`、意大利语的 `File`、西班牙语的 `General`、
+   葡萄牙语的 `Link` —— 这些词本来就是那样。
+
+**只有 `fileRecentFiles` / `fileNoRecentFiles` 是毫无疑义的漏翻** ——
+没有哪种语言会把「最近文件」写成英文。
+
+### 修复
+
+1. 10 种语言补上翻译（日语「最近使用したファイル」、德语
+   「Zuletzt verwendete Dateien」、俄语「Недавние файлы」等），
+   并重新 `flutter gen-l10n` —— 只改 `.arb` 不重新生成等于没改，
+   这个测试文件的注释里正记着这个教训。
+2. **把那条 50% 阈值换成明确名单。**26 个天然相同的键逐个列出，
+   其余任何一条与英文相同都会让测试失败：
+
+```dart
+expect(untranslated, isEmpty,
+    reason: '$lang 里这些条目还是英文原文：${untranslated.join(', ')}');
+```
+
+名单必须手动编辑才能加长，这正是重点 —— **往名单里加是一个决定，而漏翻不是。**
+
+### 涉及文件
+
+- `code/lib/core/i18n/l10n/app_*.arb` —— 10 个文件各 2 个键
+- `code/lib/core/i18n/l10n/app_localizations_*.dart` —— 重新生成
+- `code/test/core/i18n/l10n_coverage_test.dart` —— 阈值换成名单
 
 ---

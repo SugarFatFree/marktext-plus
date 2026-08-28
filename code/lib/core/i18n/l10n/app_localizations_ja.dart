@@ -99,10 +99,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get fileSaveAs => '名前を付けて保存';
 
   @override
-  String get fileRecentFiles => 'Recent Files';
+  String get fileRecentFiles => '最近使用したファイル';
 
   @override
-  String get fileNoRecentFiles => 'No Recent Files';
+  String get fileNoRecentFiles => '最近使用したファイルはありません';
 
   @override
   String get fileExport => 'エクスポート';
