@@ -1588,6 +1588,20 @@ quadrantChart
       expect(state.label, 'Sitting still');
     });
 
+    test('the two terminals are told apart', () {
+      // Both were plain circles, so a reader could not see which end of a
+      // diagram was the start and which was the finish.
+      final diagram = stateOf(
+        'stateDiagram-v2\n  [*] --> idle\n  idle --> [*]',
+      );
+
+      final start = diagram.nodes.firstWhere((n) => n.id == '__start__');
+      final end = diagram.nodes.firstWhere((n) => n.id == '__end__');
+      expect(start.shape, NodeShape.circle);
+      expect(end.shape, NodeShape.doubleCircle);
+      expect(end.shape, isNot(start.shape));
+    });
+
     test('choice, fork and join are told apart', () {
       final diagram = stateOf(
         'stateDiagram-v2\n'

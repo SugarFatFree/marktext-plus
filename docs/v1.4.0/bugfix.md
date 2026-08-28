@@ -76,6 +76,7 @@
 | BUG-072 | 2026-08-28 | 拖入/粘贴文件名带空格的图片，插入的是坏链接 | **P1** | 已修复 |
 | BUG-073 | 2026-08-28 | 一条写错的公式会把库的英文异常当正文显示在文档里 | P2 | 已修复 |
 | BUG-074 | 2026-08-28 | 嵌套引用的两种标准写法渲染成两个样子 | P2 | 已修复 |
+| BUG-075 | 2026-08-28 | 状态图的起点和终点画得一模一样 | P2 | 已修复 |
 
 ## 详细记录
 
@@ -2775,5 +2776,54 @@ CommonMark 里 `> > 内层` 和 `>> 内层` 是同一个东西——引用里再
 - `code/lib/services/export_service.dart`
 - `code/lib/ui/editor/markdown_renderer.dart`
 - `code/test/services/markdown_parser_test.dart`
+
+---
+
+## BUG-075：状态图的起点和终点画得一模一样
+
+### 现象
+
+`stateDiagram-v2` 里 `[*]` 既表示起点也表示终点，两者都被画成同一个空心圆。
+一张状态图的两个端点长得完全一样，读图时看不出哪头是开始、哪头是结束。
+
+mermaid 的画法是：起点一个实心圆，终点是实心圆外面再套一个环（双圆）。
+
+### 根因
+
+`state_diagram_parser.dart` 的 `_registerNode` 在造 `[*]` 节点时**已经拿到了
+`isFrom` 参数**（区分它出现在箭头左边还是右边），却对两种情况都写死
+`NodeShape.circle`。
+
+同一个文件里的 `<<end>>` 构造型早就映射到 `NodeShape.doubleCircle` 了，画笔
+也一直支持这个形状——**是同一份文件内部的不一致，不是缺能力**。
+
+### 修复方案
+
+`shape: isFrom ? NodeShape.circle : NodeShape.doubleCircle`。
+
+### 排查中确认为正常的部分
+
+这轮顺着"枚举了 20 种图表类型、渲染分派里只出现 18 种"这条线查下去，
+`stateDiagram` 看着像"有解析无渲染"，实际不是：
+
+- `StateDiagramParser` 构造 diagram 时把 `type` 设成 `flowchart`，因此复用
+  Dagre 分层布局和流程图画笔——探针实测 5 个节点分 4 层，布局是对的。
+  我一度以为它掉进了 `SimpleLayoutEngine`（按行流式排布、完全不看边），
+  **这个猜测不成立**。
+- `[*]` 起止各算一个独立节点（5 节点）、`: label` 转换标签、
+  `state "描述" as id`、`<<choice>>` 菱形、`direction LR`、复合状态转 subgraph
+  ——逐项探针验过，都正确。
+
+已知且是**明确取舍**、非缺陷的两项（解析器文件头有记录）：注释
+`note right of A : …` 读取后丢弃；`<<fork>>`/`<<join>>` 因为没有"横条"形状而
+退化成矩形。
+
+另外两处机械检查也是干净的：AppConfig 39 个配置项全部有人读取；59 条默认
+快捷键全部有对应处理器。
+
+### 涉及文件
+
+- `code/lib/ui/editor/mermaid/parser/state_diagram_parser.dart`
+- `code/test/ui/editor/mermaid/mermaid_parser_test.dart`
 
 ---

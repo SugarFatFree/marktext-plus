@@ -166,7 +166,16 @@ class StateDiagramParser {
       final id = (isFrom ? _startId : _endId) + scope;
       _nodes.putIfAbsent(
         id,
-        () => MermaidNode(id: id, label: '', shape: NodeShape.circle),
+        // Mermaid draws the start as a filled circle and the end as that
+        // circle inside a ring, which is the only thing telling a reader
+        // which terminal is which. Drawing both as a plain circle made every
+        // state diagram's two ends identical. `<<end>>` below already used
+        // the ringed shape; `[*]` as a target is the same terminal.
+        () => MermaidNode(
+          id: id,
+          label: '',
+          shape: isFrom ? NodeShape.circle : NodeShape.doubleCircle,
+        ),
       );
       _claim(id);
       return id;
