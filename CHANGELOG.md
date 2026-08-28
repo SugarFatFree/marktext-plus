@@ -8,10 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - v1.5.0
 
 ### Added
+- The five markdown extensions upstream MarkText accepts and this editor did not: `mkd`, `mkdn`, `mdwn`, `mdx`, `text`
 - Mermaid `architecture-beta` diagrams render: icon-bearing service boxes, dashed group frames, and orthogonal connections. The arrangement is derived from the edges the way mermaid derives it — `db:L -- R:server` puts the server to the *left* of the db, not wherever source order would have put it
 - Mermaid `packet-beta` diagrams render: rows of bit cells with the fields laid over them, explicit ranges (`0-15:`), single bits, and mermaid 11.5's relative widths (`+16:`). A field that straddles a row is drawn one box per row, the way mermaid draws it
 
 ### Fixed
+- macOS registers as a handler for markdown documents, and opens the one that was double-clicked. It had neither half: no `CFBundleDocumentTypes` in the bundle, and nothing listening for the Apple event Finder sends instead of `argv`
+- The Windows installer people actually download registers every type the app opens. It offered three of seven; the test that checks this was reading the CI workflow rather than the release one
+- The Linux mime definition matches what the app opens — it both missed types the app accepts and claimed types the app then dropped, which opened the app on an empty window
 - Editing a block that sits inside a quote or under a list item in the preview no longer writes the edit over the top of the document — nested blocks were numbered from line zero, so their reported source was the document's first lines
 - Folder search no longer reads oversized files into memory whole; files over 2 MiB are skipped and the count of skipped files is shown rather than silently dropped
 - Dropping a `.mmd`, `.mdown`, `.mdtxt` or `.mdtext` file on the window opens it — drag and drop kept a private list holding three of the seven extensions the rest of the program accepts

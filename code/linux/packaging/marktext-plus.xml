@@ -4,11 +4,15 @@
     <comment>Markdown document</comment>
     <comment xml:lang="zh_CN">Markdown 文档</comment>
     <sub-class-of type="text/plain"/>
-    <glob pattern="*.md"/>
     <glob pattern="*.markdown"/>
     <glob pattern="*.mdown"/>
-    <glob pattern="*.mkd"/>
     <glob pattern="*.mkdn"/>
+    <glob pattern="*.md"/>
+    <glob pattern="*.mkd"/>
     <glob pattern="*.mdwn"/>
+    <glob pattern="*.mdtxt"/>
+    <glob pattern="*.mdtext"/>
+    <glob pattern="*.mdx"/>
+    <glob pattern="*.mmd"/>
   </mime-type>
 </mime-info>

@@ -15,13 +15,24 @@ class FileUtils {
   /// `mmd`, `mdown`, `mdtxt` and `mdtext` are what upstream MarkText registers
   /// as well. `txt` is ours: the editor opens plain text, and the installer
   /// only offers this app for it rather than claiming it.
+  /// Every extension this editor treats as a markdown document.
+  ///
+  /// The same eleven upstream MarkText accepts (`MARKDOWN_EXTENSIONS` in
+  /// `common/filesystem/paths.ts`), plus `mmd`. A file the upstream editor
+  /// opens and this one refuses is a parity gap the reader meets as a double
+  /// click that does nothing.
   static const markdownExtensions = <String>[
-    'md',
     'markdown',
-    'mmd',
     'mdown',
+    'mkdn',
+    'md',
+    'mkd',
+    'mdwn',
     'mdtxt',
     'mdtext',
+    'mdx',
+    'mmd',
+    'text',
     'txt',
   ];
 

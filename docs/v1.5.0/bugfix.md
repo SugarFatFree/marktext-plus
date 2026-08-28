@@ -6,6 +6,9 @@
 | BUG-100 | 2026-08-29 | 拖放自带一份私有扩展名清单，且拖入不支持的文件毫无反应 | P2 | 已修复 |
 | BUG-101 | 2026-08-29 | 引用/列表里的块行号从 0 开始，预览编辑会覆盖文档开头 | P0 | 已修复 |
 | BUG-102 | 2026-08-29 | mermaid barrel 只导出 20 种图型里的 11 种 | P3 | 已修复 |
+| BUG-103 | 2026-08-29 | macOS 完全没有文件关联，双击 .md 永远打不开本应用 | P1 | 已修复 |
+| BUG-104 | 2026-08-29 | 真正发版的 release.yml 只注册 3 种扩展名，而测试只守着不发版的 ci.yml | P1 | 已修复 |
+| BUG-105 | 2026-08-29 | Linux mime 声明的扩展名与应用能打开的两个方向都不一致 | P2 | 已修复 |
 
 ---
 
@@ -175,3 +178,120 @@ journey、gitGraph、mindmap、quadrant、requirement、state 一个都不在里
 ### 涉及文件
 
 - `code/lib/ui/editor/mermaid/mermaid.dart`
+
+
+---
+
+## BUG-103：macOS 完全没有文件关联，双击 .md 永远打不开本应用
+
+### 现象
+
+在 macOS 上双击 `.md` 文件，"打开方式"里**根本不会出现 MarkText Plus**。
+即便手动选中本应用，双击也打不开文件——应用会启动，但停在空白窗口。
+
+release 工作流确实在发 macOS 的 zip 和 dmg（x64 与 arm64 各一份），
+所以这不是"平台没做"，是**平台做了一半**。
+
+### 根因分析
+
+v1.3.0 的 BUG-001 修的是同一个症状，记录里三个平台都点了名，但实际只落地了
+Linux（`.desktop` + mime xml）和 Windows（安装包注册表）。macOS 两处都缺：
+
+1. **`macos/Runner/Info.plist` 里没有 `CFBundleDocumentTypes`**——
+   系统据此决定哪些应用能打开哪类文档，没有它，本应用不在候选里。
+2. **就算注册了也收不到路径**。macOS 双击文档**不经过 `argv`**：Finder 发的是
+   Apple Event，落到 `NSApplicationDelegate` 的 `application:openFile(s):`。
+   而本项目的启动文件是从 `argv` 里筛的（`_filterStartupFiles`），
+   Linux 走 GTK 通道，Windows 走 `windows_single_instance`，macOS 什么都没接。
+
+### 修复方案
+
+复用 Linux 已有的那条通道 `com.marktextplus/files`，不新开一条：
+
+- `Info.plist`：`CFBundleDocumentTypes` 两条——Markdown（`LSHandlerRank: Owner`）
+  与 Plain Text（`Alternate`，txt/text 不该由本应用独占）。
+- `AppDelegate.swift`：实现 `application(_:openFile:)` 与 `application(_:openFiles:)`，
+  **先入队再投递**。双击文档启动应用时，路径和启动是同一瞬间的事，远早于引擎
+  跑到 `main`；直接往通道里推会掉在地上，表现就是"双击了没反应"。
+  Dart 调 `drainPendingFiles` 取队列，这个调用同时也是"我准备好了"的信号。
+- `MainFlutterWindow.swift`：引擎创建之后把 controller 交给 delegate 建通道。
+- `main.dart`：`_listenForLinuxFileOpens` 改名 `_listenForFileOpens`，macOS 也走，
+  装好 handler 后主动 drain 一次。
+
+**关于 `override`**：本机没有 Swift 编译器，而 CI 只在打 tag 时才构建 macOS，
+写错要等到发版才暴露。所以先去 SDK 里读了
+`shell/platform/darwin/macos/framework/Headers/FlutterAppDelegate.h` 及其实现——
+`FlutterAppDelegate` 实现了 `application:openURLs:` 和 `applicationShouldTerminate:`，
+但没实现 `application:openFile(s):`；而模板里已有的
+`applicationShouldTerminateAfterLastWindowClosed` 同样不在超类实现之列却用了
+`override` 且能编译。据此确定这两个新方法也该带 `override`——是查出来的，不是猜的。
+
+### 涉及文件
+
+- `code/macos/Runner/Info.plist`
+- `code/macos/Runner/AppDelegate.swift`
+- `code/macos/Runner/MainFlutterWindow.swift`
+- `code/lib/main.dart`
+
+---
+
+## BUG-104：真正发版的 release.yml 只注册 3 种扩展名，而测试只守着不发版的 ci.yml
+
+### 现象
+
+Windows 安装包装完之后，只有 `.md` / `.markdown` / `.txt` 三种文件的"打开方式"
+里有本应用；`.mmd` / `.mdown` / `.mdtxt` / `.mdtext` 没有——而应用本身是能打开
+这四种的。
+
+### 根因分析
+
+`test/utils/file_types_test.dart` 里**早就有**一条测试断言"安装包注册的扩展名
+和应用能打开的对得上"。它一直是绿的——因为它读的是 `.github/workflows/ci.yml`，
+而 CI 那份确实有全部七种。
+
+**用户下载的安装包是 `release.yml` 打的**，那一份停在三种，没有任何测试看着它。
+守住了不发版的那个，漏掉了发版的那个。
+
+### 修复方案
+
+两个工作流的注册表段都按共享清单重新生成；测试改为**遍历两个文件**。
+
+### 涉及文件
+
+- `.github/workflows/ci.yml`
+- `.github/workflows/release.yml`
+- `code/test/utils/file_types_test.dart`
+
+---
+
+## BUG-105：Linux mime 声明的扩展名与应用能打开的两个方向都不一致
+
+### 现象
+
+`linux/packaging/marktext-plus.xml` 声明的 glob 是
+`md markdown mdown mkd mkdn mdwn`，而应用的清单是
+`md markdown mmd mdown mdtxt mdtext txt`。
+
+两个方向都错：
+
+- **少了** `mmd` / `mdtxt` / `mdtext`——应用能打开，但文件管理器不认，
+  双击走"打开方式"询问。
+- **多了** `mkd` / `mkdn` / `mdwn`——文件管理器把路径交过来了，
+  启动筛选器 `_filterStartupFiles` 却按应用清单把它丢掉，
+  应用启动后停在空白窗口。**多一个 glob 比少一个更糟**。
+
+### 修复方案
+
+对齐方向选的是**扩展应用的清单**，而不是砍掉 mime 里的三种：源项目
+`../marktext/packages/desktop/src/common/filesystem/paths.ts` 的
+`MARKDOWN_EXTENSIONS` 有 11 种（`markdown mdown mkdn md mkd mdwn mdtxt mdtext
+mdx text txt`），本项目只有 7 种且多一个 `mmd`。用户的长期要求是与源项目对齐，
+所以补齐为 11 + `mmd` = 12 种。mime xml 里不含 `txt` / `text`——它们是纯文本，
+由 `.desktop` 的 `MimeType=text/plain` 覆盖；把它们 glob 成 markdown 会让系统上
+每个文本文件都显示成 Markdown 文档。
+
+### 涉及文件
+
+- `code/lib/utils/file_utils.dart`
+- `code/linux/packaging/marktext-plus.xml`
+- `code/test/utils/file_types_test.dart`

@@ -29,25 +29,83 @@ void main() {
           isTrue,
           reason: '$ext 大写形式');
     }
-    for (final ext in ['pdf', 'png', 'docx', 'mdx']) {
+    for (final ext in ['pdf', 'png', 'docx', 'json']) {
       expect(FileUtils.isMarkdownFile('/notes/file.$ext'), isFalse,
           reason: ext);
     }
   });
 
-  test('the installer offers exactly the types the app opens', () {
-    // The registry entries live in the workflow, so they cannot import this
-    // list; this is what keeps the two honest. Windows offering the app for a
+  test('both installers offer exactly the types the app opens', () {
+    // The registry entries live in the workflows, so they cannot import this
+    // list; this is what keeps them honest. Windows offering the app for a
     // type it then refuses to open is a double click that appears to do
     // nothing.
-    final workflow = File('../.github/workflows/ci.yml').readAsStringSync();
-    final registered = RegExp(r'Software\\Classes\\\.(\w+)\\OpenWithProgids')
-        .allMatches(workflow)
+    //
+    // Both workflows, not just one: this guarded ci.yml alone while
+    // release.yml — the installer people actually download — had drifted to
+    // three of the seven types, and nothing said so.
+    for (final path in [
+      '../.github/workflows/ci.yml',
+      '../.github/workflows/release.yml',
+    ]) {
+      final workflow = File(path).readAsStringSync();
+      final registered = RegExp(r'Software\\Classes\\\.(\w+)\\OpenWithProgids')
+          .allMatches(workflow)
+          .map((m) => m.group(1)!)
+          .toSet();
+
+      expect(registered, FileUtils.markdownExtensions.toSet(),
+          reason: '$path 注册的扩展名和应用能打开的对不上');
+    }
+  });
+
+  test('the Linux mime definition globs the types the app opens', () {
+    // A glob the app does not accept is worse than a missing one: the file
+    // manager hands the path over, the startup filter drops it, and the app
+    // opens on an empty window.
+    final xml =
+        File('linux/packaging/marktext-plus.xml').readAsStringSync();
+    final globbed = RegExp(r'<glob pattern="\*\.(\w+)"/>')
+        .allMatches(xml)
         .map((m) => m.group(1)!)
         .toSet();
 
-    expect(registered, FileUtils.markdownExtensions.toSet(),
-        reason: '安装包注册的扩展名和应用能打开的对不上');
+    // `txt` and `text` are plain text, declared through the desktop entry's
+    // MimeType instead; globbing them as markdown would relabel every text
+    // file on the system.
+    expect(globbed,
+        FileUtils.markdownExtensions.toSet().difference({'txt', 'text'}),
+        reason: 'mime 声明的扩展名和应用能打开的对不上');
+  });
+
+  test('the macOS bundle declares the types the app opens', () {
+    // Without this the app is never offered for a markdown file on macOS at
+    // all — the one platform where the association was left undone.
+    final plist = File('macos/Runner/Info.plist').readAsStringSync();
+    final types = RegExp(
+            r'<key>CFBundleTypeExtensions</key>\s*<array>(.*?)</array>',
+            dotAll: true)
+        .allMatches(plist)
+        .expand((m) => RegExp(r'<string>(\w+)</string>')
+            .allMatches(m.group(1)!)
+            .map((e) => e.group(1)!))
+        .toSet();
+
+    expect(types, FileUtils.markdownExtensions.toSet(),
+        reason: 'Info.plist 声明的扩展名和应用能打开的对不上');
+  });
+
+  test('the file channel has one name, spelled the same in three languages',
+      () {
+    // Dart listens on it, the GTK runner pushes a second launch's arguments
+    // down it, and the macOS app delegate pushes Finder's documents down it.
+    // A typo in any one of them is a double click that silently does nothing.
+    const name = 'com.marktextplus/files';
+    expect(File('lib/main.dart').readAsStringSync(), contains(name));
+    expect(File('linux/runner/my_application.cc').readAsStringSync(),
+        contains(name));
+    expect(File('macos/Runner/AppDelegate.swift').readAsStringSync(),
+        contains(name));
   });
 
   test('the installer replaces the executable rather than keeping the old one',

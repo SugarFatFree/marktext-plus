@@ -191,12 +191,17 @@ jobs:
           Root: HKA; Subkey: "Software\Classes\MarkTextPlus.md"; ValueType: string; ValueName: ""; ValueData: "MarkText Plus Markdown File"; Flags: uninsdeletekey
           Root: HKA; Subkey: "Software\Classes\MarkTextPlus.md\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\marktext_plus.exe,0"
           Root: HKA; Subkey: "Software\Classes\MarkTextPlus.md\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\marktext_plus.exe"" ""%1"""
-          Root: HKA; Subkey: "Software\Classes\.md\OpenWithProgids"; ValueType: string; ValueName: "MarkTextPlus.md"; ValueData: ""; Flags: uninsdeletevalue
           Root: HKA; Subkey: "Software\Classes\.markdown\OpenWithProgids"; ValueType: string; ValueName: "MarkTextPlus.md"; ValueData: ""; Flags: uninsdeletevalue
-          Root: HKA; Subkey: "Software\Classes\.mmd\OpenWithProgids"; ValueType: string; ValueName: "MarkTextPlus.md"; ValueData: ""; Flags: uninsdeletevalue
           Root: HKA; Subkey: "Software\Classes\.mdown\OpenWithProgids"; ValueType: string; ValueName: "MarkTextPlus.md"; ValueData: ""; Flags: uninsdeletevalue
+          Root: HKA; Subkey: "Software\Classes\.mkdn\OpenWithProgids"; ValueType: string; ValueName: "MarkTextPlus.md"; ValueData: ""; Flags: uninsdeletevalue
+          Root: HKA; Subkey: "Software\Classes\.md\OpenWithProgids"; ValueType: string; ValueName: "MarkTextPlus.md"; ValueData: ""; Flags: uninsdeletevalue
+          Root: HKA; Subkey: "Software\Classes\.mkd\OpenWithProgids"; ValueType: string; ValueName: "MarkTextPlus.md"; ValueData: ""; Flags: uninsdeletevalue
+          Root: HKA; Subkey: "Software\Classes\.mdwn\OpenWithProgids"; ValueType: string; ValueName: "MarkTextPlus.md"; ValueData: ""; Flags: uninsdeletevalue
           Root: HKA; Subkey: "Software\Classes\.mdtxt\OpenWithProgids"; ValueType: string; ValueName: "MarkTextPlus.md"; ValueData: ""; Flags: uninsdeletevalue
           Root: HKA; Subkey: "Software\Classes\.mdtext\OpenWithProgids"; ValueType: string; ValueName: "MarkTextPlus.md"; ValueData: ""; Flags: uninsdeletevalue
+          Root: HKA; Subkey: "Software\Classes\.mdx\OpenWithProgids"; ValueType: string; ValueName: "MarkTextPlus.md"; ValueData: ""; Flags: uninsdeletevalue
+          Root: HKA; Subkey: "Software\Classes\.mmd\OpenWithProgids"; ValueType: string; ValueName: "MarkTextPlus.md"; ValueData: ""; Flags: uninsdeletevalue
+          Root: HKA; Subkey: "Software\Classes\.text\OpenWithProgids"; ValueType: string; ValueName: "MarkTextPlus.md"; ValueData: ""; Flags: uninsdeletevalue
           Root: HKA; Subkey: "Software\Classes\.txt\OpenWithProgids"; ValueType: string; ValueName: "MarkTextPlus.md"; ValueData: ""; Flags: uninsdeletevalue
 
           ; Without these, picking this app through "Open with" gives Windows
