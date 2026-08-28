@@ -111,6 +111,16 @@ class EditorTabBar extends ConsumerWidget {
       return false;
     }
 
+    // The same three steps the Save As in the menu takes. That one was fixed
+    // to rebind the tab and remember the path; this copy of the branch was
+    // not, so a document saved through the close prompt stayed untitled and
+    // never reached the recent files list.
+    if (tab.filePath != path) {
+      ref
+          .read(tabProvider.notifier)
+          .updateTabPath(tab.id, path, p.basename(path));
+      ref.read(settingsProvider.notifier).addRecentFile(path);
+    }
     ref.read(tabProvider.notifier).markSaved(tab.id);
     return true;
   }
