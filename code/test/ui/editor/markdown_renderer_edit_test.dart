@@ -73,6 +73,61 @@ void main() {
     await tester.pump(kDoubleTapTimeout);
   }
 
+  /// The wrapper that gives a block its text cursor and hover wash.
+  ///
+  /// Not `MouseRegion` with a text cursor: the preview sits inside a
+  /// SelectionArea, which installs those itself, so that predicate matches
+  /// everywhere and distinguishes nothing.
+  Finder editableCursors() => find.byType(PreviewEditableBlock);
+
+  group('Saying that a block can be edited', () {
+    testWidgets('a paragraph asks for the text cursor', (tester) async {
+      // Double tap always worked; nothing on screen said so. The pointer
+      // stayed an arrow and the block looked as inert as printed paper, which
+      // is how a preview that *is* editable reads as one that is not.
+      await pumpRenderer(
+        tester,
+        markdown: 'Just a paragraph.\n',
+        onSourceChanged: (_) {},
+      );
+
+      expect(editableCursors(), findsWidgets);
+    });
+
+    testWidgets('a read-only preview does not', (tester) async {
+      // No onSourceChanged means nothing can be written back, and promising an
+      // edit that cannot happen is worse than promising nothing.
+      await pumpRenderer(tester, markdown: 'Just a paragraph.\n');
+
+      expect(editableCursors(), findsNothing);
+    });
+
+    testWidgets('a task list does not', (tester) async {
+      // The two blocks deliberately left out of the double-tap wrapper. A task
+      // list has its own tap targets, and wrapping it put a recogniser in the
+      // gesture arena that held every checkbox dead for the double-tap
+      // timeout. Offering a text cursor there would advertise an edit that
+      // the block does not accept.
+      await pumpRenderer(
+        tester,
+        markdown: '- [ ] first\n- [x] second\n',
+        onSourceChanged: (_) {},
+      );
+
+      expect(editableCursors(), findsNothing);
+    });
+
+    testWidgets('a diagram does not', (tester) async {
+      await pumpRenderer(
+        tester,
+        markdown: '```mermaid\nflowchart TD\n  A --> B\n```\n',
+        onSourceChanged: (_) {},
+      );
+
+      expect(editableCursors(), findsNothing);
+    });
+  });
+
   group('Editing a diagram block', () {
     const diagram = '```mermaid\nflowchart TD\n  A --> B\n```\n';
 

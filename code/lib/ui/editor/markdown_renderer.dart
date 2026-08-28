@@ -318,39 +318,40 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             _headingKeys.putIfAbsent(lineNum, () => key);
           }
           widgets.add(
-            _wrapEditable(node, _buildHeading(node, theme, tokens, key: key)),
+            _wrapEditable(node, tokens, _buildHeading(node, theme, tokens, key: key)),
           );
         case md.ParagraphNode():
-          widgets.add(_wrapEditable(node, _buildParagraph(node, theme)));
+          widgets.add(_wrapEditable(node, tokens, _buildParagraph(node, theme)));
         case md.CodeBlockNode():
           widgets.add(
-            _wrapEditable(node, _buildCodeBlock(node, theme, tokens)),
+            _wrapEditable(node, tokens, _buildCodeBlock(node, theme, tokens)),
           );
         case md.ListNode():
-          widgets.add(_wrapEditable(node, _buildList(node, theme)));
+          widgets.add(_wrapEditable(node, tokens, _buildList(node, theme)));
         case md.BlockquoteNode():
           widgets.add(
-            _wrapEditable(node, _buildBlockquote(node, theme, tokens)),
+            _wrapEditable(node, tokens, _buildBlockquote(node, theme, tokens)),
           );
         case md.HorizontalRuleNode():
           widgets.add(
             _wrapEditable(
               node,
+              tokens,
               Divider(thickness: 1, color: tokens.colorBorder),
             ),
           );
         case md.TableNode():
-          widgets.add(_wrapEditable(node, _buildTable(node, theme)));
+          widgets.add(_wrapEditable(node, tokens, _buildTable(node, theme)));
         case md.MathBlockNode():
-          widgets.add(_wrapEditable(node, _buildMathBlock(node, theme)));
+          widgets.add(_wrapEditable(node, tokens, _buildMathBlock(node, theme)));
         case md.FrontMatterNode():
-          widgets.add(_wrapEditable(node, _buildFrontMatter(node, theme)));
+          widgets.add(_wrapEditable(node, tokens, _buildFrontMatter(node, theme)));
         case md.FootnoteDefinitionNode():
           widgets.add(
-            _wrapEditable(node, _buildFootnoteDefinition(node, theme)),
+            _wrapEditable(node, tokens, _buildFootnoteDefinition(node, theme)),
           );
         case md.HtmlBlockNode():
-          widgets.add(_wrapEditable(node, _buildHtmlBlock(node, theme)));
+          widgets.add(_wrapEditable(node, tokens, _buildHtmlBlock(node, theme)));
       }
     }
 
@@ -440,7 +441,8 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   ///
   /// Double tap rather than single: the preview sits inside a SelectionArea,
   /// and a single tap would fight text selection and link taps.
-  Widget _wrapEditable(md.MarkdownNode node, Widget child) {
+  Widget _wrapEditable(
+      md.MarkdownNode node, AppThemeTokens tokens, Widget child) {
     if (widget.onSourceChanged == null) return child;
 
     if (identical(_editingNode, node)) {
@@ -466,9 +468,9 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       return child;
     }
 
-    return GestureDetector(
-      behavior: HitTestBehavior.deferToChild,
-      onDoubleTap: () => _startEditing(node),
+    return PreviewEditableBlock(
+      hoverColor: tokens.colorSurfaceHover,
+      onEdit: () => _startEditing(node),
       child: child,
     );
   }
@@ -1347,6 +1349,67 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: imageWidget,
+      ),
+    );
+  }
+}
+
+
+/// A preview block that says it can be edited.
+///
+/// Public only so a test can point at it: a SelectionArea installs text-cursor
+/// MouseRegions of its own all over the preview, so "is there a text cursor
+/// here" cannot tell this wrapper apart from the selection machinery.
+///
+/// Double tap has always worked, but nothing on screen said so: the pointer
+/// stayed an arrow and the block looked as inert as printed paper, so the
+/// preview read as something you can only look at. The text cursor and the
+/// quiet wash of colour are the two ordinary ways a surface says "there is
+/// text here you can get at".
+///
+/// It keeps its own hover flag rather than lifting it into the renderer's
+/// state: a setState up there rebuilds every block in the batch, which is
+/// exactly the waste that moving the caret used to cause.
+///
+/// A MouseRegion is deliberately the only thing added. This file has already
+/// been through the gesture arena twice — the double-tap recogniser left the
+/// diagram toolbar and every task-list checkbox dead for the double-tap
+/// timeout — and a MouseRegion does not enter the arena at all.
+class PreviewEditableBlock extends StatefulWidget {
+  @visibleForTesting
+  const PreviewEditableBlock({
+    required this.hoverColor,
+    required this.onEdit,
+    required this.child,
+  });
+
+  final Color hoverColor;
+  final VoidCallback onEdit;
+  final Widget child;
+
+  @override
+  State<PreviewEditableBlock> createState() => PreviewEditableBlockState();
+}
+
+class PreviewEditableBlockState extends State<PreviewEditableBlock> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.text,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        behavior: HitTestBehavior.deferToChild,
+        onDoubleTap: widget.onEdit,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: _hovered ? widget.hoverColor : Colors.transparent,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: widget.child,
+        ),
       ),
     );
   }
