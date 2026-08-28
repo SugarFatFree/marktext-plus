@@ -62,6 +62,7 @@
 | BUG-058 | 2026-08-28 | 深色主题下时序图的 alt/loop 帧标题与 [else] 标签几乎看不见 | P2 | 已修复 |
 | BUG-059 | 2026-08-28 | 11 个快捷键写死在菜单里，设置页看不见也改不了，其中两个还和已有键位撞车 | **P1** | 已修复 |
 | BUG-060 | 2026-08-28 | 标题升级/降级在设置页显示成原始动作名 | P3 | 已修复 |
+| BUG-061 | 2026-08-28 | 38 个格式动作里有 17 个在命令面板里找不到 | P2 | 已修复 |
 
 ## 详细记录
 
@@ -1816,5 +1817,59 @@ for (final action in KeybindingService.defaultKeybindings.keys) {
 ### 涉及文件
 
 - `code/lib/ui/screens/settings_screen.dart`
+
+---
+
+## BUG-061 — 38 个格式动作里有 17 个在命令面板里找不到
+
+**发现日期**：2026-08-28 　**优先级**：P2 　**状态**：已修复
+
+### 现象
+
+命令面板（`Ctrl+P`）里搜不到下划线、高亮、上标、下标、行内代码、行内公式、清除格式、
+复制为 Markdown、复制为 HTML、全选、复制当前行、标题升级、标题降级、转为段落、
+松散列表、新建段落、删除段落 —— **一共 17 个**。它们在菜单里都有，功能也都正常。
+
+### 根因
+
+面板的格式命令来自 `home_screen.dart` 里一张手写的映射表：
+
+```dart
+final formatLabels = {
+  FormatAction.bold: l10n.formatBold,
+  ...
+};
+for (final entry in formatLabels.entries) {
+  registry.register(Command(id: 'format.${entry.key.name}', ...));
+}
+```
+
+**`FormatAction` 枚举有 38 个值，这张表只列了 21 个。**没坏任何东西 —— 只是同一批东西的
+第二份清单没跟上，而第二份清单就是会这样。
+
+菜单和面板执行的是同一个 `applyFormat`（菜单里的 `fmt` 就是它的别名），所以这 17 个
+动作缺的**只是这张表里的一行**。
+
+### 是怎么找到的
+
+顺着上一轮 BUG-059 的思路 ——「注册表不等于事实」—— 把命令面板也当成一份注册表来核对。
+先查它和菜单是否落到同一实现（视图类走同一批 provider 方法、格式类走同一个 `applyFormat`，
+**都没有走岔**），再查它**收录得全不全**，这才发现 21 对 38。
+
+### 修复
+
+17 个全部补进映射表，标签复用菜单已有的 l10n 键，不新增任何翻译。
+
+### 测试
+
+`test/ui/screens/command_palette_coverage_test.dart`，2 条，双向锁死：
+
+- 每个 `FormatAction` 都必须出现在这张表里 —— 以后新增枚举值却忘了加，测试会挡住
+- 表里不得出现枚举里没有的名字，且两边数量必须相等
+
+### 涉及文件
+
+- `code/lib/ui/screens/home_screen.dart`
+- `code/test/ui/screens/command_palette_coverage_test.dart` —— 新增
 
 ---

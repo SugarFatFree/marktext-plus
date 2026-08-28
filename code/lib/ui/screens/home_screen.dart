@@ -288,6 +288,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
       FormatAction.horizontalRule: l10n.formatHorizontalRule,
       FormatAction.frontMatter: l10n.formatFrontMatter,
       FormatAction.htmlBlock: l10n.formatHtmlBlock,
+      // The seventeen that the menu offered and this map did not, so they were
+      // in every menu and unreachable from the palette. Both go through the
+      // same applyFormat, so the only thing that had been missing was the
+      // entry here — which is exactly the kind of omission a second list of
+      // the same things produces.
+      FormatAction.underline: l10n.formatUnderline,
+      FormatAction.highlight: l10n.formatHighlight,
+      FormatAction.superscript: l10n.formatSuperscript,
+      FormatAction.subscript: l10n.formatSubscript,
+      FormatAction.inlineCode: l10n.formatInlineCode,
+      FormatAction.inlineMath: l10n.formatInlineMath,
+      FormatAction.clearFormatting: l10n.formatClearFormatting,
+      FormatAction.copyAsMarkdown: l10n.editCopyAsMarkdown,
+      FormatAction.copyAsHtml: l10n.editCopyAsHtml,
+      FormatAction.selectAll: l10n.editSelectAll,
+      FormatAction.duplicateLine: l10n.editDuplicateLine,
+      FormatAction.promoteHeading: l10n.paragraphPromoteHeading,
+      FormatAction.demoteHeading: l10n.paragraphDemoteHeading,
+      FormatAction.toParagraph: l10n.paragraphToParagraph,
+      FormatAction.looseList: l10n.paragraphLooseList,
+      FormatAction.createParagraph: l10n.editCreateParagraph,
+      FormatAction.deleteParagraph: l10n.editDeleteParagraph,
     };
 
     for (final entry in formatLabels.entries) {
