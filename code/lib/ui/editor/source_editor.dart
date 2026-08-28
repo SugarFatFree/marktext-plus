@@ -553,6 +553,34 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
       return KeyEventResult.ignored;
     }
 
+    // Enter inside a list carries the list on, which is what every editor
+    // does and what upstream gives each block its own handler for. Without it
+    // a writer types the marker again on every line, and the numbering by
+    // hand.
+    if (event.logicalKey == LogicalKeyboardKey.enter &&
+        !HardwareKeyboard.instance.isShiftPressed &&
+        !HardwareKeyboard.instance.isControlPressed &&
+        !HardwareKeyboard.instance.isMetaPressed &&
+        selection.isCollapsed) {
+      final offset = selection.baseOffset;
+      final lineStart = text.lastIndexOf('\n', offset - 1) + 1;
+      final line = text.substring(lineStart, offset);
+      final carry = md.MarkdownParser.listContinuation(line);
+
+      if (carry != null) {
+        // An item with nothing in it is how a writer ends a list: the marker
+        // comes off rather than another one appearing below it.
+        final replacement = carry.isEmpty ? '' : '\n${carry.marker}';
+        final from = carry.isEmpty ? lineStart : offset;
+        _controller.value = TextEditingValue(
+          text: text.substring(0, from) + replacement + text.substring(offset),
+          selection:
+              TextSelection.collapsed(offset: from + replacement.length),
+        );
+        return KeyEventResult.handled;
+      }
+    }
+
     // Handle tab: indent rather than move focus.
     //
     // A TextField gives Tab to the focus traversal by default, so pressing it

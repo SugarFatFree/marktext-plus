@@ -813,6 +813,50 @@ class MarkdownParser {
   static bool _startsListItem(String line) =>
       _ulRe.hasMatch(line) || _olRe.hasMatch(line);
 
+  /// A list item line, including one with nothing written in it yet.
+  ///
+  /// [_ulRe] and [_olRe] both require content, because an empty marker is not
+  /// an item of a parsed document. Pressing Enter on one is exactly when that
+  /// matters, so continuation needs its own reading of the line.
+  static final _continuationRe =
+      RegExp(r'^(\s*)([-*+]|\d+[.)])(\s+)(.*)$');
+
+  /// What pressing Enter at the end of [line] should carry to the next line.
+  ///
+  /// Returns null when the line is not a list item. `marker` is the text to
+  /// put in front of the new line — the same bullet, or the next number, with
+  /// the indentation and spacing the author used, and an unticked box when
+  /// the item had one. `isEmpty` says the item has no text yet, which is how
+  /// a writer ends a list: the marker comes off instead of another appearing.
+  static ({String marker, bool isEmpty})? listContinuation(String line) {
+    // `- - -` and `* * *` are thematic breaks, however much the first
+    // characters look like a bullet. This parser reads them as list items —
+    // the list branch is tried before the rule — but there is no reason for
+    // the editor to put a marker under one.
+    if (RegExp(r'^\s*([-*_])(\s*\1){2,}\s*$').hasMatch(line)) return null;
+
+    final match = _continuationRe.firstMatch(line);
+    if (match == null) return null;
+
+    final indent = match.group(1)!;
+    final bullet = match.group(2)!;
+    final gap = match.group(3)!;
+    final content = match.group(4)!;
+
+    final task = RegExp(r'^\[([ xX])\]\s*(.*)$').firstMatch(content);
+    final body = task == null ? content : task.group(2)!;
+
+    final number = int.tryParse(bullet.substring(0, bullet.length - 1));
+    final nextBullet = number == null
+        ? bullet
+        : '${number + 1}${bullet.substring(bullet.length - 1)}';
+
+    return (
+      marker: '$indent$nextBullet$gap${task == null ? '' : '[ ] '}',
+      isEmpty: body.trim().isEmpty,
+    );
+  }
+
   /// Whether [line] opens a list item, of either kind.
   ///
   /// Public because the preview has to find the line an item was written on:
