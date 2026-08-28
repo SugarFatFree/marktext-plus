@@ -117,10 +117,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   // machine and the same source. flutter/flutter#191860 measures the same
   // thing on a minimal project — 54 ms on Skia against 1183 ms on Impeller.
   //
-  // The default is baked in at build time (MARKTEXT_IMPELLER_DEFAULT, set by
-  // CI) so that two installers can be compared without anyone having to set
-  // anything: a variable left over from an earlier experiment has already
-  // made one set of measurements say the opposite of what was intended.
+  // The default is baked in at build time rather than read from the machine
+  // that runs the program: a variable left over from an earlier experiment
+  // has already made one set of measurements say the opposite of what was
+  // intended. Nothing defines MARKTEXT_IMPELLER_DEFAULT now, so shipped
+  // builds take the 0 below; CMake picks it up from the environment when two
+  // installers need comparing again.
   // MARKTEXT_IMPELLER=1/0 still overrides it for a single launch.
 #ifndef MARKTEXT_IMPELLER_DEFAULT
 #define MARKTEXT_IMPELLER_DEFAULT 0

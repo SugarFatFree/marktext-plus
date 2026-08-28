@@ -69,9 +69,21 @@ class AppMenuBar extends ConsumerWidget {
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-        child: Row(
+        // The toolbar stands down when the window is too narrow for it: every
+        // one of its buttons is also an item in the menus beside it, and the
+        // bar was striped from about 780 pixels down. A scrolling row is not
+        // an option here — the Spacer that holds the toolbar to the right
+        // edge needs a bounded width, which a scrolling row does not give.
+        child: LayoutBuilder(
+          builder: (context, constraints) => Row(
           children: [
-            MenuBar(
+            // The menus scroll on their own when six of them will not fit;
+            // the Spacer stays outside, in a row that still has a width, so
+            // the toolbar keeps its place at the right edge.
+            Flexible(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: MenuBar(
               style: MenuStyle(
                 backgroundColor: WidgetStatePropertyAll(tokens.colorSurface),
                 elevation: const WidgetStatePropertyAll(0),
@@ -85,10 +97,14 @@ class AppMenuBar extends ConsumerWidget {
                 _buildWindowMenu(l10n, ref),
                 _buildHelpMenu(l10n, ref),
               ],
+                ),
+              ),
             ),
             const Spacer(),
-            _buildToolbarIcons(ref, tokens, l10n),
+            if (constraints.maxWidth >= 820)
+              _buildToolbarIcons(ref, tokens, l10n),
           ],
+          ),
         ),
       ),
     );

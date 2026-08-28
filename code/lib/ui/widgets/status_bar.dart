@@ -50,7 +50,19 @@ class StatusBar extends ConsumerWidget {
         color: tokens.colorSurface,
         border: Border(top: BorderSide(color: tokens.colorBorder, width: 1)),
       ),
-      child: Row(
+      // What fits, in order of what a reader can least do without. The bar was
+      // striped from about 790 pixels down, and it cannot wrap or scroll —
+      // a Spacer needs a bounded width, which a scrolling row does not give.
+      // So the least useful counts stand down instead.
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth;
+          final showParagraphs = width >= 820;
+          final showChars = width >= 700;
+          final showDocumentKind = width >= 600;
+          final showEncoding = width >= 440;
+          final showLineEnding = width >= 380;
+          return Row(
         children: [
           Text(
             l10n.statusLine(
@@ -64,16 +76,21 @@ class StatusBar extends ConsumerWidget {
           // every language file — the same fiction the line ending indicator
           // used to tell. A document that opened as mojibake is otherwise a
           // mystery, and "Latin-1" here is the explanation.
-          Text(encoding.label, style: style),
-          _divider(tokens),
-          Text(l10n.statusMarkdown, style: style),
-          _divider(tokens),
+          if (showEncoding) ...[
+            Text(encoding.label, style: style),
+            _divider(tokens),
+          ],
+          if (showDocumentKind) ...[
+            Text(l10n.statusMarkdown, style: style),
+            _divider(tokens),
+          ],
           // Was the literal "LF" regardless of what the file actually used.
           //
           // Clickable, which is how the upstream editor's Edit menu offers the
           // same choice — and how a status bar usually offers it. No new copy
           // is needed: the label is "LF" or "CRLF" in every language.
-          _LineEndingButton(lineEnding: lineEnding, style: style),
+          if (showLineEnding)
+            _LineEndingButton(lineEnding: lineEnding, style: style),
           if (highlightOff) ...[
             _divider(tokens),
             Text(l10n.statusHighlightOff, style: style),
@@ -90,14 +107,20 @@ class StatusBar extends ConsumerWidget {
             _divider(tokens),
           ],
           Text('${l10n.statusWords}: ${wordCount.words}', style: style),
-          _divider(tokens),
-          Text('${l10n.statusChars}: ${wordCount.characters}', style: style),
-          _divider(tokens),
-          Text(
-            '${l10n.statusParagraphs}: ${wordCount.paragraphs}',
-            style: style,
-          ),
+          if (showChars) ...[
+            _divider(tokens),
+            Text('${l10n.statusChars}: ${wordCount.characters}', style: style),
+          ],
+          if (showParagraphs) ...[
+            _divider(tokens),
+            Text(
+              '${l10n.statusParagraphs}: ${wordCount.paragraphs}',
+              style: style,
+            ),
+          ],
         ],
+          );
+        },
       ),
     );
   }
