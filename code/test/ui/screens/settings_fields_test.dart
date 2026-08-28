@@ -43,12 +43,8 @@ void main() {
     if (configDir.existsSync()) configDir.deleteSync(recursive: true);
   });
 
-  Future<void> pump(WidgetTester tester) async {
-    // The screen is laid out for a real window; the default test surface is
-    // narrower than the rows it draws.
-    await tester.binding.setSurfaceSize(const Size(1400, 900));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-
+  /// Mounts the screen at whatever surface size is already set.
+  Future<void> pumpAt(WidgetTester tester) async {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
@@ -65,6 +61,13 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+  }
+
+  /// Mounts it at a size comfortably wider than the rows it draws.
+  Future<void> pump(WidgetTester tester) async {
+    await tester.binding.setSurfaceSize(const Size(1400, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await pumpAt(tester);
   }
 
   /// The field showing [current], whatever row it sits in.
@@ -103,6 +106,36 @@ void main() {
 
     expect(fieldShowing('1234'), findsOneWidget,
         reason: '别处改了配置，字段应当跟上');
+  });
+
+  group('the page fits the window it is given', () {
+    // Every row was laid out with neither side able to give way, so the whole
+    // page overflowed to the right below about a thousand pixels — striped,
+    // not scrollable. The keybindings page did it fifty-nine times at once.
+    for (final width in [1200.0, 1000.0, 800.0, 600.0]) {
+      testWidgets('at ${width.toInt()} px, on every page', (tester) async {
+        await tester.binding.setSurfaceSize(Size(width, 800));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+
+        final caught = <String>[];
+        final previous = FlutterError.onError;
+        FlutterError.onError = (details) =>
+            caught.add(details.exceptionAsString().split('\n').first);
+        addTearDown(() => FlutterError.onError = previous);
+
+        await pumpAt(tester);
+
+        for (final page in ['Editor', 'Markdown', 'Theme', 'Keybindings']) {
+          final tile = find.text(page);
+          expect(tile, findsWidgets, reason: '找不到 $page 分类入口');
+          await tester.tap(tile.first);
+          await tester.pump();
+        }
+
+        expect(caught, isEmpty, reason: caught.join(' | '));
+        tester.takeException();
+      });
+    }
   });
 
   testWidgets('the screen tears down without complaint', (tester) async {

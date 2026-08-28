@@ -216,17 +216,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         const SizedBox(height: 24),
         _row(
           l10n.settingsLanguage,
-          DropdownButton<String>(
-            value: _localeMap.containsKey(localeKey) ? localeKey : 'en_US',
-            items: _localeMap.entries
-                .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
-                .toList(),
-            onChanged: (v) {
-              if (v == null) return;
-              final loc = LocaleNotifier.parseLocale(v);
-              ref.read(localeProvider.notifier).setLocale(loc);
-              ref.read(settingsProvider.notifier).setLocale(v);
-            },
+          SizedBox(
+            width: 220,
+            child: DropdownButton<String>(
+              isExpanded: true,
+                value: _localeMap.containsKey(localeKey) ? localeKey : 'en_US',
+                items: _localeMap.entries
+                    .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
+                    .toList(),
+                onChanged: (v) {
+                  if (v == null) return;
+                  final loc = LocaleNotifier.parseLocale(v);
+                  ref.read(localeProvider.notifier).setLocale(loc);
+                  ref.read(settingsProvider.notifier).setLocale(v);
+                },
+              ),
           ),
         ),
         _row(
@@ -257,28 +261,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
         _row(
           l10n.fileOpenBehavior,
-          DropdownButton<FileOpenBehavior>(
-            value: config.fileOpenBehavior,
-            items: [
-              DropdownMenuItem(
-                value: FileOpenBehavior.notSet,
-                child: Text(l10n.fileOpenBehaviorNotSet),
+          SizedBox(
+            width: 220,
+            child: DropdownButton<FileOpenBehavior>(
+              isExpanded: true,
+                value: config.fileOpenBehavior,
+                items: [
+                  DropdownMenuItem(
+                    value: FileOpenBehavior.notSet,
+                    child: Text(l10n.fileOpenBehaviorNotSet),
+                  ),
+                  DropdownMenuItem(
+                    value: FileOpenBehavior.newWindow,
+                    child: Text(l10n.fileOpenBehaviorNewWindow),
+                  ),
+                  DropdownMenuItem(
+                    value: FileOpenBehavior.existingWindow,
+                    child: Text(l10n.fileOpenBehaviorExistingWindow),
+                  ),
+                ],
+                onChanged: (value) {
+                  if (value == null) return;
+                  ref
+                      .read(settingsProvider.notifier)
+                      .updateConfig((c) => c.copyWith(fileOpenBehavior: value));
+                },
               ),
-              DropdownMenuItem(
-                value: FileOpenBehavior.newWindow,
-                child: Text(l10n.fileOpenBehaviorNewWindow),
-              ),
-              DropdownMenuItem(
-                value: FileOpenBehavior.existingWindow,
-                child: Text(l10n.fileOpenBehaviorExistingWindow),
-              ),
-            ],
-            onChanged: (value) {
-              if (value == null) return;
-              ref
-                  .read(settingsProvider.notifier)
-                  .updateConfig((c) => c.copyWith(fileOpenBehavior: value));
-            },
           ),
         ),
       ],
@@ -324,20 +332,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
         _row(
           l10n.settingsTabSize,
-          DropdownButton<int>(
-            value: config.tabSize,
-            items: const [
-              DropdownMenuItem(value: 2, child: Text('2')),
-              DropdownMenuItem(value: 4, child: Text('4')),
-              DropdownMenuItem(value: 8, child: Text('8')),
-            ],
-            onChanged: (v) {
-              if (v != null) {
-                ref
-                    .read(settingsProvider.notifier)
-                    .updateConfig((c) => c.copyWith(tabSize: v));
-              }
-            },
+          SizedBox(
+            width: 220,
+            child: DropdownButton<int>(
+              isExpanded: true,
+                value: config.tabSize,
+                items: const [
+                  DropdownMenuItem(value: 2, child: Text('2')),
+                  DropdownMenuItem(value: 4, child: Text('4')),
+                  DropdownMenuItem(value: 8, child: Text('8')),
+                ],
+                onChanged: (v) {
+                  if (v != null) {
+                    ref
+                        .read(settingsProvider.notifier)
+                        .updateConfig((c) => c.copyWith(tabSize: v));
+                  }
+                },
+              ),
           ),
         ),
         _row(
@@ -412,24 +424,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
         _row(
           l10n.settingsImageStorage,
-          DropdownButton<String>(
-            value: const {'copy', 'folder', 'link'}.contains(config.imageStorageMode)
-                ? config.imageStorageMode
-                : 'copy',
-            items: [
-              DropdownMenuItem(
-                  value: 'copy', child: Text(l10n.settingsImageStorageCopy)),
-              DropdownMenuItem(
-                  value: 'folder', child: Text(l10n.settingsImageStorageFolder)),
-              DropdownMenuItem(
-                  value: 'link', child: Text(l10n.settingsImageStorageLink)),
-            ],
-            onChanged: (v) {
-              if (v == null) return;
-              ref
-                  .read(settingsProvider.notifier)
-                  .updateConfig((c) => c.copyWith(imageStorageMode: v));
-            },
+          SizedBox(
+            width: 220,
+            child: DropdownButton<String>(
+              isExpanded: true,
+                value: const {'copy', 'folder', 'link'}.contains(config.imageStorageMode)
+                    ? config.imageStorageMode
+                    : 'copy',
+                items: [
+                  DropdownMenuItem(
+                      value: 'copy', child: Text(l10n.settingsImageStorageCopy)),
+                  DropdownMenuItem(
+                      value: 'folder', child: Text(l10n.settingsImageStorageFolder)),
+                  DropdownMenuItem(
+                      value: 'link', child: Text(l10n.settingsImageStorageLink)),
+                ],
+                onChanged: (v) {
+                  if (v == null) return;
+                  ref
+                      .read(settingsProvider.notifier)
+                      .updateConfig((c) => c.copyWith(imageStorageMode: v));
+                },
+              ),
           ),
         ),
         // Only the shared-folder option has a folder to configure.
@@ -454,18 +470,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         _row(
           l10n.settingsTextDirection,
-          DropdownButton<String>(
-            value: config.textDirection,
-            items: [
-              DropdownMenuItem(value: 'ltr', child: Text(l10n.settingsTextDirectionLtr)),
-              DropdownMenuItem(value: 'rtl', child: Text(l10n.settingsTextDirectionRtl)),
-            ],
-            onChanged: (v) {
-              if (v != null) {
-                ref.read(settingsProvider.notifier)
-                    .updateConfig((c) => c.copyWith(textDirection: v));
-              }
-            },
+          SizedBox(
+            width: 220,
+            child: DropdownButton<String>(
+              isExpanded: true,
+                value: config.textDirection,
+                items: [
+                  DropdownMenuItem(value: 'ltr', child: Text(l10n.settingsTextDirectionLtr)),
+                  DropdownMenuItem(value: 'rtl', child: Text(l10n.settingsTextDirectionRtl)),
+                ],
+                onChanged: (v) {
+                  if (v != null) {
+                    ref.read(settingsProvider.notifier)
+                        .updateConfig((c) => c.copyWith(textDirection: v));
+                  }
+                },
+              ),
           ),
         ),
       ],
@@ -484,20 +504,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         const SizedBox(height: 24),
         _row(
           l10n.settingsBulletListMarker,
-          DropdownButton<String>(
-            value: config.bulletListMarker,
-            items: const [
-              DropdownMenuItem(value: '-', child: Text('-')),
-              DropdownMenuItem(value: '*', child: Text('*')),
-              DropdownMenuItem(value: '+', child: Text('+')),
-            ],
-            onChanged: (v) {
-              if (v != null) {
-                ref
-                    .read(settingsProvider.notifier)
-                    .updateConfig((c) => c.copyWith(bulletListMarker: v));
-              }
-            },
+          SizedBox(
+            width: 220,
+            child: DropdownButton<String>(
+              isExpanded: true,
+                value: config.bulletListMarker,
+                items: const [
+                  DropdownMenuItem(value: '-', child: Text('-')),
+                  DropdownMenuItem(value: '*', child: Text('*')),
+                  DropdownMenuItem(value: '+', child: Text('+')),
+                ],
+                onChanged: (v) {
+                  if (v != null) {
+                    ref
+                        .read(settingsProvider.notifier)
+                        .updateConfig((c) => c.copyWith(bulletListMarker: v));
+                  }
+                },
+              ),
           ),
         ),
         _row(
@@ -773,9 +797,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(_translateKeybindingAction(entry.key, l10n), style: const TextStyle(fontSize: 16)),
+                  // Same as _row: the action's name is the only part that can
+                  // give way, so it is the part that does. Fifty-nine of
+                  // these rows overflowed together as soon as the window was
+                  // narrower than about a thousand pixels.
+                  Expanded(
+                    child: Text(
+                      _translateKeybindingAction(entry.key, l10n),
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
                   Row(
                     children: [
                       Container(
@@ -880,15 +913,40 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   // -- Helpers --
+  /// Below this much room a row stacks instead of sitting side by side.
+  static const _stackRowsBelow = 420.0;
+
   Widget _row(String label, Widget control) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(fontSize: 16)),
-          control,
-        ],
+      // Side by side while there is room, stacked when there is not.
+      //
+      // A dropdown is as wide as its longest option and a field has a width
+      // it needs to be usable; only the label can give way. Laid out with
+      // neither able to, the page overflowed to the right as soon as the
+      // window was narrower than about 1000 pixels — striped, not scrollable,
+      // and worse in every language whose words run longer than English's.
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final label0 = Text(label, style: const TextStyle(fontSize: 16));
+          if (constraints.maxWidth < _stackRowsBelow) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                label0,
+                const SizedBox(height: 8),
+                Align(alignment: Alignment.centerLeft, child: control),
+              ],
+            );
+          }
+          return Row(
+            children: [
+              Expanded(child: label0),
+              const SizedBox(width: 16),
+              control,
+            ],
+          );
+        },
       ),
     );
   }
