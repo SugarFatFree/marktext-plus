@@ -3,6 +3,7 @@ library;
 
 import '../models/diagram.dart';
 import '../models/xy_chart.dart';
+import 'label.dart';
 
 /// Parser for Mermaid XY Charts
 class XYChartParser {
@@ -115,12 +116,7 @@ class XYChartParser {
   }
 
   /// Extracts a quoted string or returns plain text
-  String _extractQuotedOrPlain(String input) {
-    if (input.startsWith('"') && input.endsWith('"') && input.length >= 2) {
-      return input.substring(1, input.length - 1);
-    }
-    return input;
-  }
+  String _extractQuotedOrPlain(String input) => cleanLabel(input);
 
   /// Parses axis definition
   /// Supports: "Title" [cat1, cat2] or "Title" min --> max or just [cat1, cat2]

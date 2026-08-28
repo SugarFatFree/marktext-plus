@@ -1,5 +1,6 @@
 import '../models/diagram.dart';
 import '../models/gantt.dart';
+import 'label.dart';
 
 /// Parser for Mermaid Gantt chart diagrams
 ///
@@ -46,7 +47,7 @@ class GanttParser {
 
       // Parse title
       if (lineLower.startsWith('title ')) {
-        title = line.substring(6).trim();
+        title = cleanLabel(line.substring(6)).trim();
         continue;
       }
 
@@ -165,7 +166,7 @@ class GanttParser {
     final colonIndex = line.indexOf(':');
     if (colonIndex == -1) return null;
 
-    final name = line.substring(0, colonIndex).trim();
+    final name = cleanLabel(line.substring(0, colonIndex)).trim();
     final definition = line.substring(colonIndex + 1).trim();
 
     if (name.isEmpty || definition.isEmpty) return null;

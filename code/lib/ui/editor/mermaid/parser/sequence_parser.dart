@@ -2,6 +2,7 @@ import '../models/diagram.dart';
 import '../models/edge.dart';
 import '../models/node.dart';
 import '../models/sequence.dart';
+import 'label.dart';
 
 /// Parser for Mermaid sequence diagrams
 ///
@@ -217,7 +218,7 @@ class SequenceParser {
 
     if (asMatch != null) {
       id = asMatch.group(1)!;
-      label = asMatch.group(2)!;
+      label = cleanLabel(asMatch.group(2)!);
       _aliases[id] = label;
     } else {
       id = remaining;
@@ -296,7 +297,7 @@ class SequenceParser {
 
     // `autonumber` stamps each message with its position. The number goes in
     // front of the text because that is where mermaid draws it.
-    var label = messageText;
+    var label = messageText == null ? null : cleanLabel(messageText);
     final number = _autoNumber;
     if (number != null) {
       label = label == null || label.isEmpty ? '$number' : '$number $label';

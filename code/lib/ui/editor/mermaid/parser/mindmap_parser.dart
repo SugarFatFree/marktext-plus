@@ -1,6 +1,7 @@
 import '../models/diagram.dart';
 import '../models/mindmap.dart';
 import 'indentation.dart';
+import 'label.dart';
 
 /// Parser for Mermaid mindmaps (`mindmap`).
 ///
@@ -107,7 +108,7 @@ class MindmapParser {
       final label = body.substring(start + open.length,
           body.length - close.length);
       // An id may precede the wrapper (`id[Label]`); mermaid shows the label.
-      return (label.trim(), shape, cssClass);
+      return (cleanLabel(label).trim(), shape, cssClass);
     }
 
     return (body, MindmapShape.none, cssClass);

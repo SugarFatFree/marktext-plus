@@ -4,6 +4,7 @@ library;
 import '../models/diagram.dart';
 import '../models/kanban.dart';
 import 'indentation.dart';
+import 'label.dart';
 
 /// Parser for Mermaid Kanban diagrams
 class KanbanParser {
@@ -93,7 +94,7 @@ class KanbanParser {
         }
 
         final columnTitle =
-            (columnMatch.group(2) ?? columnMatch.group(3) ?? '').trim();
+            cleanLabel(columnMatch.group(2) ?? columnMatch.group(3)).trim();
         if (columnTitle.isEmpty) continue;
         // Untitled columns still need a stable id for task attribution.
         final columnId = columnMatch.group(1) ?? columnTitle;
@@ -171,7 +172,7 @@ class KanbanParser {
     final match = _taskRe.firstMatch(line);
     if (match == null) return null;
 
-    final description = (match.group(2) ?? match.group(3) ?? '').trim();
+    final description = cleanLabel(match.group(2) ?? match.group(3)).trim();
     if (description.isEmpty) return null;
     // Tasks written without an id fall back to their text, which is what the
     // renderer shows anyway.

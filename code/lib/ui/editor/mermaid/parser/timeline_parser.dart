@@ -1,5 +1,6 @@
 import '../models/diagram.dart';
 import '../models/timeline.dart';
+import 'label.dart';
 
 /// Parser for Mermaid Timeline diagrams
 ///
@@ -30,7 +31,7 @@ class TimelineParser {
     return [
       for (final part in text.split(':'))
         if (part.trim().isNotEmpty)
-          TimelineEvent(title: part.trim(), periods: [period]),
+          TimelineEvent(title: cleanLabel(part).trim(), periods: [period]),
     ];
   }
 
@@ -55,7 +56,7 @@ class TimelineParser {
 
       // Parse title
       if (lineLower.startsWith('title ')) {
-        title = line.substring(6).trim();
+        title = cleanLabel(line.substring(6)).trim();
         continue;
       }
 

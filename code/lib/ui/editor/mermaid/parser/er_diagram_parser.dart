@@ -3,6 +3,7 @@ import '../models/edge.dart';
 import '../models/er_diagram.dart';
 import '../models/node.dart';
 import 'identifier.dart';
+import 'label.dart';
 
 /// Parser for Mermaid entity-relationship diagrams (`erDiagram`).
 ///
@@ -112,12 +113,14 @@ class ErDiagramParser {
     final connector = match.group(3)!;
     final rightToken = match.group(4)!;
     final right = _declare(match.group(5)!);
-    final label = match.group(6)?.trim();
+    final label = cleanLabel(match.group(6)).trim();
 
     _edges.add(MermaidEdge(
       from: left.id,
       to: right.id,
-      label: (label == null || label.isEmpty) ? null : _unquote(label),
+      // Empty rather than null: the painter draws a label background
+      // wherever there is one, and an empty label left a box on the line.
+      label: label.isEmpty ? null : label,
       startArrowType: _headForLeft(leftToken),
       arrowType: _headForRight(rightToken),
       lineType: connector == '..' ? LineType.dotted : LineType.solid,
@@ -187,7 +190,7 @@ class ErDiagramParser {
     final aliasMatch =
         RegExp(r'^([^\[\]]+)\[\s*"?([^\]]*?)"?\s*\]$').firstMatch(name);
     if (aliasMatch != null) {
-      name = aliasMatch.group(1)!.trim();
+      name = cleanLabel(aliasMatch.group(1)!).trim();
       alias = aliasMatch.group(2);
     }
 
@@ -198,13 +201,6 @@ class ErDiagramParser {
     );
     if (alias != null && alias.isNotEmpty) builder.alias = alias;
     return builder;
-  }
-
-  String _unquote(String text) {
-    if (text.length >= 2 && text.startsWith('"') && text.endsWith('"')) {
-      return text.substring(1, text.length - 1);
-    }
-    return text;
   }
 
   String _normalizeId(String raw) {

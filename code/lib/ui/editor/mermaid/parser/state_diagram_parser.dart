@@ -2,6 +2,7 @@ import '../models/diagram.dart';
 import '../models/edge.dart';
 import '../models/node.dart';
 import 'identifier.dart';
+import 'label.dart';
 
 /// Parser for Mermaid state diagrams (stateDiagram / stateDiagram-v2)
 ///
@@ -130,7 +131,7 @@ class StateDiagramParser {
       // the label threw it away.
       _nodes[id] = MermaidNode(
         id: id,
-        label: alias.group(1)!,
+        label: cleanLabel(alias.group(1)!),
         shape: NodeShape.stadium,
       );
       _claim(id);
@@ -143,7 +144,7 @@ class StateDiagramParser {
 
     final fromRaw = m.group(1)!.trim();
     final toRaw = m.group(2)!.trim();
-    final label = m.group(3)?.trim();
+    final label = cleanLabel(m.group(3)).trim();
 
     final fromId = _registerNode(fromRaw, isFrom: true);
     final toId = _registerNode(toRaw, isFrom: false);

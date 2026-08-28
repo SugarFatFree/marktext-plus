@@ -1,5 +1,6 @@
 import '../models/diagram.dart';
 import '../models/pie_chart.dart';
+import 'label.dart';
 
 /// Parser for Mermaid pie chart diagrams
 ///
@@ -58,7 +59,7 @@ class PieChartParser {
 
       // Parse title
       if (line.toLowerCase().startsWith('title ')) {
-        title = line.substring(6).trim();
+        title = cleanLabel(line.substring(6)).trim();
         continue;
       }
 
@@ -102,7 +103,7 @@ class PieChartParser {
       final label = match.group(1)!;
       final value = double.tryParse(match.group(2)!);
       if (value != null && value > 0) {
-        return PieSlice(label: label, value: value);
+        return PieSlice(label: cleanLabel(label), value: value);
       }
     }
 
@@ -114,7 +115,7 @@ class PieChartParser {
       final label = match.group(1)!;
       final value = double.tryParse(match.group(2)!);
       if (value != null && value > 0) {
-        return PieSlice(label: label, value: value);
+        return PieSlice(label: cleanLabel(label), value: value);
       }
     }
 
@@ -131,7 +132,7 @@ class PieChartParser {
       final label = match.group(1)!.trim();
       final value = double.tryParse(match.group(2)!);
       if (value != null && value > 0 && label.isNotEmpty) {
-        return PieSlice(label: label, value: value);
+        return PieSlice(label: cleanLabel(label), value: value);
       }
     }
 

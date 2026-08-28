@@ -70,6 +70,50 @@ void main() {
     });
   });
 
+  group('every diagram type, not just the flowchart', () {
+    // Only the flowchart parser cleaned its labels. Every other type drew the
+    // tag: a sequence message, a state transition, a class name, an ER
+    // relationship, a pie slice, a gantt task — all of them.
+    const withBreak = {
+      '时序 消息': 'sequenceDiagram\nA->>B: one<br/>two\n',
+      '时序 参与者': 'sequenceDiagram\nparticipant A as one<br/>two\nA->>A: x\n',
+      '状态 转换': 'stateDiagram-v2\n[*] --> S\nS --> T : one<br/>two\n',
+      '状态 描述': 'stateDiagram-v2\nstate "one<br/>two" as S\nS --> [*]\n',
+      '类图 类名': 'classDiagram\nclass A["one<br/>two"]\n',
+      'ER 关系': 'erDiagram\nA ||--o{ B : one<br/>two\n',
+      '流程图': 'flowchart TD\nA[one<br/>two] --> B\n',
+    };
+
+    for (final entry in withBreak.entries) {
+      test('${entry.key} 的标签不再留着标签文字', () {
+        final result = parser.parseWithData(entry.value)!;
+        final texts = [
+          ...result.diagram.nodes.map((n) => n.label),
+          ...result.diagram.edges.map((e) => e.label ?? ''),
+        ];
+
+        expect(texts.where((t) => t.contains('<br')), isEmpty,
+            reason: '${entry.key} 把 <br/> 当成文字画了出来');
+        expect(texts.any((t) => t.contains('\n')), isTrue,
+            reason: '${entry.key} 没有换行');
+      });
+    }
+
+    test('a pie slice breaks too', () {
+      final pie = parser
+          .parseWithData('pie title t\n"one<br/>two" : 40\n"x" : 60\n')!
+          .pieChartData!;
+      expect(pie.slices.first.label, 'one\ntwo');
+    });
+
+    test('a gantt task breaks too', () {
+      final gantt = parser
+          .parseWithData('gantt\nsection S\none<br/>two :a1, 2024-01-01, 3d\n')!
+          .ganttChartData!;
+      expect(gantt.tasks.first.name, 'one\ntwo');
+    });
+  });
+
   group('a node is measured for the lines it holds', () {
     Size sizeOf(String label) {
       final diagram = parser.parse('flowchart TD\nA[$label] --> B\n')!;

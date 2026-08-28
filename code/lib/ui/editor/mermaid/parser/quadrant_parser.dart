@@ -3,6 +3,7 @@ library;
 
 import '../models/diagram.dart';
 import '../models/quadrant_chart.dart';
+import 'label.dart';
 
 /// Parser for Mermaid quadrant charts (`quadrantChart`).
 class QuadrantParser {
@@ -52,7 +53,7 @@ class QuadrantParser {
       if (line.toLowerCase() == 'quadrantchart') continue;
 
       if (line.toLowerCase().startsWith('title ')) {
-        title = line.substring(6).trim();
+        title = cleanLabel(line.substring(6)).trim();
         continue;
       }
 
@@ -138,7 +139,7 @@ class QuadrantParser {
     final color = _colorRe.firstMatch(trailing);
 
     return QuadrantPoint(
-      label: _unquote(match.group(1)!.trim()),
+      label: cleanLabel(match.group(1)!.trim()),
       // Out-of-range coordinates would be drawn outside the chart box.
       x: x.clamp(0.0, 1.0),
       y: y.clamp(0.0, 1.0),

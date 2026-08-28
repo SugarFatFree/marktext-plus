@@ -3,6 +3,7 @@ import '../models/diagram.dart';
 import '../models/edge.dart';
 import '../models/node.dart';
 import 'identifier.dart';
+import 'label.dart';
 
 /// Parser for Mermaid class diagrams (`classDiagram`).
 ///
@@ -232,7 +233,7 @@ class ClassDiagramParser {
     final labelMatch = RegExp(r'^(.+?)\[\s*"(.*)"\s*\]$').firstMatch(rest);
     if (labelMatch != null) {
       rest = labelMatch.group(1)!.trim();
-      label = labelMatch.group(2);
+      label = cleanLabel(labelMatch.group(2));
     }
 
     // `class A:::cssClass`
@@ -384,7 +385,9 @@ class ClassDiagramParser {
       _edges.add(MermaidEdge(
         from: fromId,
         to: toId,
-        label: (label != null && label.isNotEmpty) ? label : null,
+        // Empty rather than null: the painter draws a label background
+        // wherever there is one, and an empty label left a box on the line.
+        label: (label == null || label.isEmpty) ? null : cleanLabel(label),
         arrowType: pattern.endHead,
         startArrowType: pattern.startHead,
         lineType: pattern.dashed ? LineType.dotted : LineType.solid,

@@ -3,6 +3,7 @@ library;
 
 import '../models/diagram.dart';
 import '../models/radar.dart';
+import 'label.dart';
 
 /// Parser for Mermaid Radar charts
 class RadarParser {
@@ -129,7 +130,7 @@ class RadarParser {
       if (labelMatch != null) {
         final id = labelMatch.group(1)!.trim();
         final label = labelMatch.group(2)!;
-        axes.add(RadarAxis(id: id, label: label));
+        axes.add(RadarAxis(id: id, label: cleanLabel(label)));
       } else {
         // Simple axis: A or 编程
         axes.add(RadarAxis(id: trimmed, label: trimmed));
@@ -154,7 +155,7 @@ class RadarParser {
     if (match == null) return null;
 
     final id = match.group(1)!.trim();
-    final label = match.group(2) ?? id;
+    final label = cleanLabel(match.group(2) ?? id);
     final valuesStr = match.group(3)!;
 
     // Parse values - can be: 1,2,3 or A:1, B:2, C:3
