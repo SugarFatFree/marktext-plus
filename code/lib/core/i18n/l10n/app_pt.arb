@@ -1,5 +1,6 @@
 {
   "@@locale": "pt",
+  "settingsWrapCodeBlocks": "Quebrar linhas longas nos blocos de código",
   "settingsSaveFailed": "Não foi possível guardar as definições: {message}",
   "@settingsSaveFailed": {
     "placeholders": {

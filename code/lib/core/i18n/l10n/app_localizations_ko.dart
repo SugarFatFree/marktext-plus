@@ -9,6 +9,9 @@ class AppLocalizationsKo extends AppLocalizations {
   AppLocalizationsKo([String locale = 'ko']) : super(locale);
 
   @override
+  String get settingsWrapCodeBlocks => '코드 블록의 긴 줄 줄바꿈';
+
+  @override
   String settingsSaveFailed(String message) {
     return '설정을 저장하지 못했습니다: $message';
   }

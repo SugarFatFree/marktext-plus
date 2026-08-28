@@ -742,6 +742,34 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     // Skip highlighting for very large blocks to keep first-render responsive
     final canHighlight = node.language.isNotEmpty && node.code.length <= 20000;
 
+    final wraps = ref.read(settingsProvider).wrapCodeBlocks;
+
+    Widget body = canHighlight
+        ? Text.rich(
+            TextSpan(
+              style: _buildCodeTextStyle(baseCodeStyle),
+              children: _buildHighlightedCodeSpans(node.code, node.language),
+            ),
+            softWrap: wraps,
+            overflow: wraps ? TextOverflow.clip : TextOverflow.visible,
+          )
+        : Text(
+            node.code,
+            style: baseCodeStyle,
+            softWrap: wraps,
+            overflow: wraps ? TextOverflow.clip : TextOverflow.visible,
+          );
+
+    if (!wraps) {
+      // Scrolls rather than wraps. A wrapped line of code loses its
+      // indentation and breaks in the middle of a name; for prose that is
+      // right and for code it is the opposite of what reading it needs.
+      body = SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: body,
+      );
+    }
+
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.symmetric(vertical: 8),
@@ -750,14 +778,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         color: tokens.colorSurface,
         borderRadius: BorderRadius.circular(8),
       ),
-      child: canHighlight
-          ? Text.rich(
-              TextSpan(
-                style: _buildCodeTextStyle(baseCodeStyle),
-                children: _buildHighlightedCodeSpans(node.code, node.language),
-              ),
-            )
-          : Text(node.code, style: baseCodeStyle),
+      child: body,
     );
   }
 

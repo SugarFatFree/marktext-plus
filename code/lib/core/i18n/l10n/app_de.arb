@@ -1,5 +1,6 @@
 {
   "@@locale": "de",
+  "settingsWrapCodeBlocks": "Lange Zeilen in Codeblöcken umbrechen",
   "settingsSaveFailed": "Einstellungen konnten nicht gespeichert werden: {message}",
   "@settingsSaveFailed": {
     "placeholders": {

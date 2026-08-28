@@ -9,6 +9,9 @@ class AppLocalizationsJa extends AppLocalizations {
   AppLocalizationsJa([String locale = 'ja']) : super(locale);
 
   @override
+  String get settingsWrapCodeBlocks => 'コードブロック内の長い行を折り返す';
+
+  @override
   String settingsSaveFailed(String message) {
     return '設定を保存できませんでした: $message';
   }

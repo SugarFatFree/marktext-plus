@@ -9,6 +9,10 @@ class AppLocalizationsPt extends AppLocalizations {
   AppLocalizationsPt([String locale = 'pt']) : super(locale);
 
   @override
+  String get settingsWrapCodeBlocks =>
+      'Quebrar linhas longas nos blocos de código';
+
+  @override
   String settingsSaveFailed(String message) {
     return 'Não foi possível guardar as definições: $message';
   }
@@ -924,6 +928,10 @@ class AppLocalizationsPt extends AppLocalizations {
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
 class AppLocalizationsPtBr extends AppLocalizationsPt {
   AppLocalizationsPtBr() : super('pt_BR');
+
+  @override
+  String get settingsWrapCodeBlocks =>
+      'Quebrar linhas longas nos blocos de código';
 
   @override
   String settingsSaveFailed(String message) {

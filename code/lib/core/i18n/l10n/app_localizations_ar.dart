@@ -9,6 +9,10 @@ class AppLocalizationsAr extends AppLocalizations {
   AppLocalizationsAr([String locale = 'ar']) : super(locale);
 
   @override
+  String get settingsWrapCodeBlocks =>
+      'التفاف الأسطر الطويلة في كتل التعليمات البرمجية';
+
+  @override
   String settingsSaveFailed(String message) {
     return 'تعذّر حفظ الإعدادات: $message';
   }

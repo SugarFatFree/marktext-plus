@@ -454,6 +454,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ),
         _row(
+          l10n.settingsWrapCodeBlocks,
+          Switch(
+            value: config.wrapCodeBlocks,
+            onChanged: (v) => ref
+                .read(settingsProvider.notifier)
+                .updateConfig((c) => c.copyWith(wrapCodeBlocks: v)),
+          ),
+        ),
+        _row(
           l10n.settingsAutoPairBracket,
           Switch(
             value: config.autoPairBracket,

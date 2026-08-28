@@ -9,6 +9,10 @@ class AppLocalizationsEs extends AppLocalizations {
   AppLocalizationsEs([String locale = 'es']) : super(locale);
 
   @override
+  String get settingsWrapCodeBlocks =>
+      'Ajustar las líneas largas en los bloques de código';
+
+  @override
   String settingsSaveFailed(String message) {
     return 'No se pudo guardar la configuración: $message';
   }

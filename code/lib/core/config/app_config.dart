@@ -32,6 +32,14 @@ class AppConfig {
   int tabSize;
   bool enableHtml;
 
+  /// Whether a long line inside a code block wraps, or the block scrolls.
+  ///
+  /// Wrapping is the default, as it is upstream. Turning it off matters for
+  /// code: a wrapped line loses its indentation and breaks in the middle of a
+  /// name, which is the opposite of what reading code needs. Until now there
+  /// was no way to turn it off.
+  bool wrapCodeBlocks;
+
   /// Auto-closing of `(`, `[` and `{`.
   bool autoPairBracket;
 
@@ -83,6 +91,7 @@ class AppConfig {
     this.bulletListMarker = '-',
     this.tabSize = 4,
     this.enableHtml = false,
+    this.wrapCodeBlocks = true,
     this.autoPairBracket = true,
     this.autoPairQuote = true,
     this.autoPairMarkdownSyntax = true,
@@ -124,6 +133,7 @@ class AppConfig {
     'bulletListMarker': bulletListMarker,
     'tabSize': tabSize,
     'enableHtml': enableHtml,
+    'wrapCodeBlocks': wrapCodeBlocks,
     'autoPairBracket': autoPairBracket,
     'autoPairQuote': autoPairQuote,
     'autoPairMarkdownSyntax': autoPairMarkdownSyntax,
@@ -168,6 +178,7 @@ class AppConfig {
       bulletListMarker: json['bulletListMarker'] as String? ?? '-',
       tabSize: json['tabSize'] as int? ?? 4,
       enableHtml: json['enableHtml'] as bool? ?? false,
+      wrapCodeBlocks: json['wrapCodeBlocks'] as bool? ?? true,
       autoPairBracket: json['autoPairBracket'] as bool? ?? true,
       autoPairQuote: json['autoPairQuote'] as bool? ?? true,
       autoPairMarkdownSyntax:
@@ -234,6 +245,7 @@ class AppConfig {
     String? bulletListMarker,
     int? tabSize,
     bool? enableHtml,
+    bool? wrapCodeBlocks,
     bool? autoPairBracket,
     bool? autoPairQuote,
     bool? autoPairMarkdownSyntax,
@@ -274,6 +286,7 @@ class AppConfig {
       bulletListMarker: bulletListMarker ?? this.bulletListMarker,
       tabSize: tabSize ?? this.tabSize,
       enableHtml: enableHtml ?? this.enableHtml,
+      wrapCodeBlocks: wrapCodeBlocks ?? this.wrapCodeBlocks,
       autoPairBracket: autoPairBracket ?? this.autoPairBracket,
       autoPairQuote: autoPairQuote ?? this.autoPairQuote,
       autoPairMarkdownSyntax:

@@ -9,6 +9,9 @@ class AppLocalizationsDe extends AppLocalizations {
   AppLocalizationsDe([String locale = 'de']) : super(locale);
 
   @override
+  String get settingsWrapCodeBlocks => 'Lange Zeilen in Codeblöcken umbrechen';
+
+  @override
   String settingsSaveFailed(String message) {
     return 'Einstellungen konnten nicht gespeichert werden: $message';
   }

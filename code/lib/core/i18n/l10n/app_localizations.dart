@@ -117,6 +117,12 @@ abstract class AppLocalizations {
     Locale('zh'),
   ];
 
+  /// No description provided for @settingsWrapCodeBlocks.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrap long lines in code blocks'**
+  String get settingsWrapCodeBlocks;
+
   /// No description provided for @settingsSaveFailed.
   ///
   /// In en, this message translates to:

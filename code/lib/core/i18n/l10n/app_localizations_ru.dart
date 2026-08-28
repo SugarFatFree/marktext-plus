@@ -9,6 +9,10 @@ class AppLocalizationsRu extends AppLocalizations {
   AppLocalizationsRu([String locale = 'ru']) : super(locale);
 
   @override
+  String get settingsWrapCodeBlocks =>
+      'Переносить длинные строки в блоках кода';
+
+  @override
   String settingsSaveFailed(String message) {
     return 'Не удалось сохранить настройки: $message';
   }

@@ -9,6 +9,9 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
+  String get settingsWrapCodeBlocks => '代码块内长行自动换行';
+
+  @override
   String settingsSaveFailed(String message) {
     return '设置保存失败：$message';
   }

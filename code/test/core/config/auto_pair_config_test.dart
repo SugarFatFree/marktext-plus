@@ -51,4 +51,20 @@ void main() {
     expect(config.autoPairBracket, isTrue);
     expect(config.autoPairQuote, isTrue);
   });
+
+  group('wrapping inside code blocks', () {
+    test('defaults to on, matching upstream and the previous behaviour', () {
+      expect(AppConfig().wrapCodeBlocks, isTrue);
+    });
+
+    test('turning it off survives a round trip', () {
+      final off = AppConfig(wrapCodeBlocks: false);
+      expect(AppConfig.fromJson(off.toJson()).wrapCodeBlocks, isFalse);
+    });
+
+    test('a config written before it existed keeps wrapping', () {
+      final old = AppConfig().toJson()..remove('wrapCodeBlocks');
+      expect(AppConfig.fromJson(old).wrapCodeBlocks, isTrue);
+    });
+  });
 }

@@ -9,6 +9,10 @@ class AppLocalizationsIt extends AppLocalizations {
   AppLocalizationsIt([String locale = 'it']) : super(locale);
 
   @override
+  String get settingsWrapCodeBlocks =>
+      'Manda a capo le righe lunghe nei blocchi di codice';
+
+  @override
   String settingsSaveFailed(String message) {
     return 'Impossibile salvare le impostazioni: $message';
   }

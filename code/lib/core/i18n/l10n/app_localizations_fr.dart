@@ -9,6 +9,10 @@ class AppLocalizationsFr extends AppLocalizations {
   AppLocalizationsFr([String locale = 'fr']) : super(locale);
 
   @override
+  String get settingsWrapCodeBlocks =>
+      'Retour à la ligne dans les blocs de code';
+
+  @override
   String settingsSaveFailed(String message) {
     return 'Impossible d\'enregistrer vos réglages : $message';
   }
