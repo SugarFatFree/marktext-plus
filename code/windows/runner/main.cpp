@@ -120,8 +120,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
     ::DispatchMessage(&msg);
   }
 
-  ::CoUninitialize();
-
   // Leave immediately rather than returning.
   //
   // Returning from wWinMain hands control to the C runtime, which unwinds and
@@ -135,5 +133,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   // Everything that had to reach disk — the document, the window geometry, the
   // settings — was written and flushed before the window was destroyed, so
   // there is nothing left to lose by not waiting.
+  //
+  // Before CoUninitialize, not after. Uninitialising COM on an apartment
+  // thread waits for the objects that apartment still has outstanding, and
+  // that wait is itself a place the process can sit for seconds. Nothing here
+  // needs COM to be shut down tidily on the way out of a process that is
+  // about to stop existing.
   ::ExitProcess(EXIT_SUCCESS);
 }

@@ -166,7 +166,15 @@ jobs:
           Root: HKA; Subkey: "Software\Classes\.txt\OpenWithProgids"; ValueType: string; ValueName: "MarkTextPlus.md"; ValueData: ""; Flags: uninsdeletevalue
 
           [Files]
-          Source: "${{ github.workspace }}\code\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: recursesubdirs
+          ; ignoreversion is not optional here. Without it Inno compares version
+          ; resources for .exe and .dll files and keeps the installed one when
+          ; the versions match — and marktext_plus.exe carries the same fixed
+          ; version from Runner.rc in every build. The result was that app.so
+          ; (no version resource, replaced by timestamp) updated on every
+          ; install while the runner executable stayed as it was on the day of
+          ; the first install: three rounds of native fixes never reached the
+          ; machine that reported the fault.
+          Source: "${{ github.workspace }}\code\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
 
           [Icons]
           Name: "{group}\MarkText Plus"; Filename: "{app}\marktext_plus.exe"
