@@ -152,6 +152,11 @@ class ExportService {
       }
     }
 
+    // KaTeX is the last thing this file reaches out for, and most documents
+    // have no maths in them at all. Asking only when there is something to
+    // typeset means the ordinary document is self-contained.
+    final needsKatex = _containsMath(ast);
+
     final buffer = StringBuffer();
     buffer.writeln('<!DOCTYPE html>');
     buffer.writeln('<html lang="en">');
@@ -179,10 +184,12 @@ class ExportService {
     // Maths and code highlighting were rendered in the preview but not in the
     // export, so a document that looked right in the app arrived as raw LaTeX
     // and uncoloured code.
-    buffer.writeln(
-      '  <link rel="stylesheet" '
-      'href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">',
-    );
+    if (needsKatex) {
+      buffer.writeln(
+        '  <link rel="stylesheet" '
+        'href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">',
+      );
+    }
     buffer.writeln('</head>');
     buffer.writeln('<body>');
     buffer.writeln('  <div class="markdown-body">');
@@ -205,24 +212,27 @@ class ExportService {
     buffer.writeln('  </div>');
 
     // Loaded at the end of the body so the content exists before they run.
-    buffer.writeln(
-      '  <script src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>',
-    );
-    buffer.writeln(
-      '  <script src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/'
-      'auto-render.min.js"></script>',
-    );
-    buffer.writeln('  <script>');
-    buffer.writeln('    renderMathInElement(document.body, {');
-    buffer.writeln('      delimiters: [');
-    // Doubled for JavaScript: a single backslash before [ is not a valid JS
-    // escape and collapses to a bare [, which would not match the \[ ... \]
-    // the math block is written with.
-    buffer.writeln(r"        {left: '\\[', right: '\\]', display: true},");
-    buffer.writeln(r"        {left: '\\(', right: '\\)', display: false}");
-    buffer.writeln('      ]');
-    buffer.writeln('    });');
-    buffer.writeln('  </script>');
+    if (needsKatex) {
+      buffer.writeln(
+        '  <script src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>',
+      );
+      buffer.writeln(
+        '  <script src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/'
+        'auto-render.min.js"></script>',
+      );
+      buffer.writeln('  <script>');
+      buffer.writeln('    renderMathInElement(document.body, {');
+      buffer.writeln('      delimiters: [');
+      // Doubled for JavaScript: a single backslash before [ is not a valid JS
+      // escape and collapses to a bare [, which would not match the \[ ... \]
+      // the math block is written with.
+      buffer.writeln(r"        {left: '\\[', right: '\\]', display: true},");
+      buffer.writeln(r"        {left: '\\(', right: '\\)', display: false}");
+      buffer.writeln('      ]');
+      buffer.writeln('    });');
+      buffer.writeln('  </script>');
+    }
+
     buffer.writeln('</body>');
     buffer.writeln('</html>');
 
@@ -771,6 +781,39 @@ class ExportService {
         final html = node as HtmlBlockNode;
         return sanitiseHtmlForExport(html.html);
     }
+  }
+
+  /// Whether anything in the document has to be typeset as maths.
+  ///
+  /// Both forms count: a `$$…$$` block, and a `$…$` run inside a paragraph, a
+  /// heading, a list item, a quote or a table cell — maths in a table cell is
+  /// exactly the sort of place a check like this forgets to look.
+  static bool _containsMath(List<MarkdownNode> ast) {
+    bool inSpans(List<InlineSpan> spans) =>
+        spans.any((span) => span.type == InlineType.mathInline);
+
+    for (final node in ast) {
+      switch (node) {
+        case MathBlockNode():
+          return true;
+        case ParagraphNode(:final inlineSpans):
+        case HeadingNode(:final inlineSpans):
+        case BlockquoteNode(:final inlineSpans):
+          if (inSpans(inlineSpans)) return true;
+        case ListNode(:final items):
+          if (items.any((item) => inSpans(item.inlineSpans))) return true;
+        case TableNode(:final headers, :final rows):
+          // Cells are raw text until the export parses them, so this asks the
+          // same parser the export will ask — a check that reads the cell any
+          // other way would disagree with what ends up in the file.
+          for (final cell in [headers, ...rows].expand((row) => row)) {
+            if (inSpans(_cellParser.parseInline(cell))) return true;
+          }
+        default:
+          break;
+      }
+    }
+    return false;
   }
 
   /// Colours a code block using the highlighter the app already carries.
