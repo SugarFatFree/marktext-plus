@@ -106,9 +106,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
       // only ever be saved when something was left unsaved.
       await _saveWindowGeometry();
       StartupTrace.mark('window geometry saved');
-      StartupTrace.mark('stopping file watches');
+      // The marks around this live inside stopWatchingFiles itself; repeating
+      // them here printed each one twice and made the close look as if it had
+      // run through the handler two times.
       ref.read(tabProvider.notifier).stopWatchingFiles();
-      StartupTrace.mark('file watches stopped');
       // Written before destroy: the call may not return.
       StartupTrace.flush();
       StartupTrace.armShutdownWatchdog();
@@ -132,9 +133,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
 
     await _saveWindowGeometry();
     StartupTrace.mark('window geometry saved (after prompt)');
-    StartupTrace.mark('stopping file watches');
     ref.read(tabProvider.notifier).stopWatchingFiles();
-    StartupTrace.mark('file watches stopped');
     StartupTrace.flush();
     StartupTrace.armShutdownWatchdog();
     await windowManager.destroy();

@@ -50,6 +50,8 @@ void _handleSecondInstance(List<dynamic> newArgs) {
 }
 
 void main(List<String> args) async {
+  // Before the first mark, so the runner's own timings head the trace.
+  StartupTrace.readRunnerArguments(args);
   WidgetsFlutterBinding.ensureInitialized();
   StartupTrace.mark('flutter binding ready');
 

@@ -70,17 +70,33 @@ class StartupTrace {
       return null;
     }
   }
-  /// Reads a milestone the Windows runner left in the environment.
+  static final Map<String, int> _runnerMarks = <String, int>{};
+
+  /// Picks the runner's own timings out of the entrypoint arguments.
   ///
-  /// `windows/runner/main.cpp` stamps three of these before the engine starts.
-  /// Missing values mean an older build, or a platform whose runner is not
-  /// instrumented; either way the line simply says so rather than guessing.
-  static int? _runnerMark(String name) {
-    final raw = Platform.environment[name];
-    if (raw == null) return null;
-    final value = int.tryParse(raw.trim());
-    return (value == null || value < 0) ? null : value;
+  /// `windows/runner/main.cpp` appends `--mt-trace-…=<ms>` arguments before the
+  /// engine starts. The first attempt used environment variables and Dart's
+  /// `Platform.environment` never saw them — the trace read "runner not
+  /// instrumented" on a build that certainly was — so they travel as arguments
+  /// now, which arrive in `main` with nothing in between to lose them.
+  ///
+  /// Call before the first [mark].
+  static void readRunnerArguments(List<String> args) {
+    const prefix = '--mt-trace-';
+    for (final arg in args) {
+      if (!arg.startsWith(prefix)) continue;
+      final equals = arg.indexOf('=');
+      if (equals < 0) continue;
+      final value = int.tryParse(arg.substring(equals + 1).trim());
+      if (value == null || value < 0) continue;
+      _runnerMarks[arg.substring(prefix.length, equals)] = value;
+    }
   }
+
+  static int? _runnerMark(String name) => _runnerMarks[name];
+
+  @visibleForTesting
+  static int? runnerMarkForTesting(String name) => _runnerMark(name);
 
   /// The part of startup that happens before Dart can time anything.
   ///
@@ -93,9 +109,8 @@ class StartupTrace {
         '${at.toString().padLeft(6)} ms  '
         '(+${delta.toString().padLeft(5)} ms)  $phase';
 
-    final runnerEntry = _runnerMark('MARKTEXT_TRACE_RUNNER_ENTRY');
-    final engineStart = _runnerMark('MARKTEXT_TRACE_ENGINE_START');
-    final windowCreated = _runnerMark('MARKTEXT_TRACE_WINDOW_CREATED');
+    final runnerEntry = _runnerMark('runner-entry');
+    final engineStart = _runnerMark('engine-start');
     final beforeDart = _beforeDart;
 
     if (runnerEntry == null) {
@@ -116,15 +131,11 @@ class StartupTrace {
     if (engineStart != null) {
       lines.add(row(engineStart, engineStart - runnerEntry,
           'runner entry → engine start (console, COM, command line)'));
-      if (windowCreated != null) {
-        lines.add(row(windowCreated, windowCreated - engineStart,
-            'engine start → window created (engine boot, AOT snapshot load)'));
-      }
     }
     if (beforeDart != null) {
-      final previous = windowCreated ?? engineStart ?? runnerEntry;
+      final previous = engineStart ?? runnerEntry;
       lines.add(row(beforeDart, beforeDart - previous,
-          'window created → first Dart mark'));
+          'engine start → first Dart mark (engine boot, AOT snapshot load)'));
     }
     return lines;
   }

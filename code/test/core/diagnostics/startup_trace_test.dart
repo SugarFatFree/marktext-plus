@@ -40,4 +40,33 @@ void main() {
     expect(carried.endsWith('\n\n'), isTrue,
         reason: '没有留出空行，下一次运行会紧贴着上一次的最后一行');
   });
+
+  group('runner timings arrive as entrypoint arguments', () {
+    test('the values are picked out and the file arguments left alone', () {
+      // Environment variables were tried first and Dart's Platform.environment
+      // never saw them: the trace said "runner not instrumented" on a build
+      // that certainly was.
+      StartupTrace.readRunnerArguments([
+        'C:\\notes\\readme.md',
+        '--mt-trace-runner-entry=1200',
+        '--mt-trace-engine-start=1450',
+      ]);
+
+      expect(StartupTrace.runnerMarkForTesting('runner-entry'), 1200);
+      expect(StartupTrace.runnerMarkForTesting('engine-start'), 1450);
+    });
+
+    test('nonsense is ignored rather than reported as a timing', () {
+      StartupTrace.readRunnerArguments([
+        '--mt-trace-runner-entry=-1',
+        '--mt-trace-engine-start=',
+        '--mt-trace-broken',
+      ]);
+
+      // -1 is what the runner writes when Windows would not tell it when the
+      // process started; it is an absence, not a measurement.
+      expect(StartupTrace.runnerMarkForTesting('broken'), isNull);
+      expect(StartupTrace.runnerMarkForTesting('engine-start'), isNot(-1));
+    });
+  });
 }

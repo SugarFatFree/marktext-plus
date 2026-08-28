@@ -1,6 +1,7 @@
 #include <flutter/dart_project.h>
 #include <flutter/flutter_view_controller.h>
 #include <windows.h>
+#include <string>
 
 #include "flutter_window.h"
 #include "utils.h"
@@ -47,31 +48,33 @@ long long MillisecondsSinceProcessStart() {
   return (long long)((now.QuadPart - start.QuadPart) / 10000ULL);
 }
 
-// Leaves the elapsed time where Dart can read it.
+// Formats an elapsed time as a Dart entrypoint argument.
 //
-// An environment variable rather than a file or a channel: it costs nothing,
-// it is already in place before the engine starts, and Dart reads it through
-// Platform.environment without either side needing to know about the other.
-void RecordStartupMark(const wchar_t *name) {
-  long long value = MillisecondsSinceProcessStart();
-  wchar_t buffer[24];
-  int end = 0;
+// An argument rather than an environment variable: the first attempt used
+// SetEnvironmentVariableW, and Dart's Platform.environment did not see the
+// values — the trace came out saying "runner not instrumented" on a build that
+// certainly was. Arguments go through set_dart_entrypoint_arguments and arrive
+// in main(List<String> args) with nothing in between to lose them.
+//
+// Written with nothing but plain arithmetic: this file cannot be compiled on
+// the machine it was written on, so it avoids every library call it does not
+// need, integer formatting included.
+std::string FormatTraceArgument(const char *name, long long value) {
+  std::string text(name);
   if (value < 0) {
-    buffer[end++] = L'-';
+    text += '-';
     value = 1;
   }
-  // Write the digits backwards into the tail, then copy them forwards.
-  wchar_t digits[24];
+  char digits[24];
   int count = 0;
   do {
-    digits[count++] = (wchar_t)(L'0' + (value % 10));
+    digits[count++] = static_cast<char>('0' + (value % 10));
     value /= 10;
   } while (value > 0 && count < 20);
   while (count > 0) {
-    buffer[end++] = digits[--count];
+    text += digits[--count];
   }
-  buffer[end] = L'\0';
-  ::SetEnvironmentVariableW(name, buffer);
+  return text;
 }
 
 }  // namespace
@@ -80,7 +83,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
                       _In_ wchar_t *command_line, _In_ int show_command) {
   // Before anything else this function does: everything up to here is the
   // operating system loading the executable and its libraries.
-  RecordStartupMark(L"MARKTEXT_TRACE_RUNNER_ENTRY");
+  const long long runner_entry_ms = MillisecondsSinceProcessStart();
   // Attach to console when present (e.g., 'flutter run') or create a
   // new console when running with a debugger.
   if (!::AttachConsole(ATTACH_PARENT_PROCESS) && ::IsDebuggerPresent()) {
@@ -96,9 +99,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   std::vector<std::string> command_line_arguments =
       GetCommandLineArguments();
 
-  project.set_dart_entrypoint_arguments(std::move(command_line_arguments));
+  command_line_arguments.push_back(
+      FormatTraceArgument("--mt-trace-runner-entry=", runner_entry_ms));
+  command_line_arguments.push_back(FormatTraceArgument(
+      "--mt-trace-engine-start=", MillisecondsSinceProcessStart()));
 
-  RecordStartupMark(L"MARKTEXT_TRACE_ENGINE_START");
+  project.set_dart_entrypoint_arguments(std::move(command_line_arguments));
 
   FlutterWindow window(project);
   Win32Window::Point origin(10, 10);
@@ -107,11 +113,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
     return EXIT_FAILURE;
   }
   window.SetQuitOnClose(true);
-
-  // Creating the window is what starts the engine and runs the Dart
-  // entrypoint, so the gap from the mark above is engine startup and snapshot
-  // loading.
-  RecordStartupMark(L"MARKTEXT_TRACE_WINDOW_CREATED");
 
   ::MSG msg;
   while (::GetMessage(&msg, nullptr, 0, 0)) {
