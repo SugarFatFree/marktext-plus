@@ -15,6 +15,7 @@
 | FEAT-011 | 2026-08-28 | 段落菜单补上「松散列表项」（对齐上游最后一项缺口） | 中 | 中等 | 已实现 |
 | FEAT-012 | 2026-08-28 | 编辑菜单补上「在下方插入段落」与「删除当前段落」 | 中 | 中等 | 已实现 |
 | FEAT-013 | 2026-08-28 | 设置里可以选编辑器正文字体 | 中 | 简单 | 已实现 |
+| FEAT-014 | 2026-08-28 | 评估：Mermaid 渲染抽成独立开源包的可行性 | 低 | — | 已评估，待决策 |
 
 ## 详细需求
 
@@ -283,5 +284,21 @@
 | 新增文案 | `settingsEditorFontFamily`，12 种语言全部给译文 |
 | 涉及文件 | `lib/ui/screens/settings_screen.dart`、12 份 `app_*.arb`、11 份 `app_localizations*.dart` |
 | 验证方式 | 本机 `dart analyze --fatal-infos lib` 通过；12 份 arb 逐份复验键集与原有条目未被改动 |
+
+---
+
+### FEAT-014 — 评估：Mermaid 渲染抽成独立开源包的可行性
+
+| 字段 | 内容 |
+|------|------|
+| 评估日期 | 2026-08-28 |
+| 状态 | **已评估，等用户决定是否执行** |
+| 需求来源 | 用户原始要求：「mermaid 渲染你看看有没有什么 flutter 开放的组件，如果没有你就仿照 mermaid 的 js 库自己使用 flutter 完全实现一个新的开源项目」 |
+| 「完全实现」这部分已完成 | `lib/ui/editor/mermaid/` 共 **72 个文件、21832 行**纯 Dart/Flutter 实现，覆盖 19 种图表类型（流程图、时序、类、状态、ER、旅程、gitGraph、脑图、饼图、甘特、时间线、看板、雷达、xy、象限、需求、桑基、块图、C4 五种），不依赖 WebView |
+| 耦合度实测 | **对外部零依赖** —— 该目录下所有文件只 import 自身与 `package:flutter` / `dart:*`，没有一处引用应用的其它部分 |
+| 反向接口面 | 应用只用到 5 个文件：`parser/mermaid_parser.dart`、`widgets/mermaid_diagram.dart`、`models/{node,edge,style}.dart`；符号只有 `MermaidParser.handlesLanguage` / `.parseWithData` / `.supportedTypes` 与 `MermaidDiagram` 组件 |
+| 因此抽包需要做的 | ① 新建 `packages/flutter_mermaid/`，把该目录整体 `git mv` 过去；② 写 `pubspec.yaml` 与一个 barrel 导出文件（把上述 5 个文件的公开符号 re-export）；③ 应用改为 path 依赖，导入语句从相对路径换成 `package:flutter_mermaid/...`。**应用逻辑一行不用改** |
+| 为什么没有直接做 | 这是一次 72 个文件的结构性移动，会让 git 历史变难追，而对编辑器本身**没有任何功能收益**；用户那句要求的落点是「要有一个能用的 mermaid 渲染」，这一点已经满足。**是否要独立发包是产品决策，留给用户定** |
+| 真要做时的验证方式 | 本机 `dart analyze --fatal-infos lib test` + `flutter test` 全量（686 条，27 秒）即可确认没改坏，再推 CI 出三平台构建 |
 
 ---
