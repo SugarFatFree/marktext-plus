@@ -301,19 +301,41 @@ class EditorNotifier extends StateNotifier<EditorState> {
   }
 
   void undo() {
-    if (_undoStack.isEmpty || _controller == null) return;
+    final controller = _controller;
+    if (controller == null || _undoStack.isEmpty) return;
 
-    final current = _controller!.text;
-    _redoStack.add(current);
-
-    _undoStack.removeLast();
-    if (_undoStack.isNotEmpty) {
-      final previous = _undoStack.last;
-      _controller!.value = TextEditingValue(
-        text: previous,
-        selection: TextSelection.collapsed(offset: previous.length),
-      );
+    final current = controller.text;
+    // Snapshots are taken on a 300 ms debounce, so the edit the reader just
+    // made is usually not on the stack yet. Undo assumed it was, and the two
+    // ways that went wrong were both silent:
+    //
+    // * with one entry on the stack, undo popped it, found nothing to put
+    //   back, and left the text alone — the key did nothing at all;
+    // * with more, it popped the *previous* state and applied the one before
+    //   that, so a single press stepped back twice and took away an edit the
+    //   reader had not asked to lose.
+    //
+    // Added straight to the stack rather than through pushHistory, which
+    // clears the redo stack — the one thing undo must not do.
+    if (_undoStack.last != current) {
+      _undoStack.add(current);
+      if (_undoStack.length > _maxHistory) {
+        _undoStack.removeRange(0, _undoStack.length - _maxHistory);
+      }
     }
+
+    // Only the current state is left; there is nowhere to go back to.
+    if (_undoStack.length < 2) {
+      _updateUndoRedoState();
+      return;
+    }
+
+    _redoStack.add(_undoStack.removeLast());
+    final previous = _undoStack.last;
+    controller.value = TextEditingValue(
+      text: previous,
+      selection: TextSelection.collapsed(offset: previous.length),
+    );
 
     _updateUndoRedoState();
   }

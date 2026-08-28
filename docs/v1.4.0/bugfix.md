@@ -67,6 +67,7 @@
 | BUG-063 | 2026-08-28 | 程序已在运行时双击文件，窗口不会被唤到前台；再点图标更是毫无反应 | **P1** | 已修复 |
 | BUG-064 | 2026-08-28 | 引用式图片 `![alt][ref]` 渲染成链接，`!` 掉在外面 | P2 | 已修复 |
 | BUG-065 | 2026-08-28 | 导出 HTML 时原样输出文档里的脚本，用浏览器打开就会执行 | **P1** | 已修复 |
+| BUG-066 | 2026-08-28 | 打完字立刻按 Ctrl+Z，撤销要么没反应、要么一次退两步 | **P1** | 已修复 |
 
 ## 详细记录
 
@@ -2181,5 +2182,88 @@ case NodeType.htmlBlock:
 
 - `code/lib/services/export_service.dart`
 - `code/test/services/html_export_sanitise_test.dart` —— 新增
+
+---
+
+## BUG-066 — 打完字立刻按 Ctrl+Z，撤销要么没反应、要么一次退两步
+
+**发现日期**：2026-08-28 　**优先级**：P1 　**状态**：已修复
+
+### 现象
+
+**撤销键在最常用的那一刻是坏的。**打完一段字、立刻按 Ctrl+Z（也就是绝大多数人按它的时机），
+会出现两种结果之一：
+
+- 文档里只记录过一个状态时 —— **什么都不会发生**，按键像是失灵
+- 记录过多个状态时 —— **一次退两步**，把上一次编辑也一起吞掉
+
+超过 300 毫秒再按就正常。
+
+### 根因
+
+撤销快照是在输入的 **300 毫秒防抖**之后才推入栈的，而 `undo()` 假设「当前文本已经在栈顶」：
+
+```dart
+final current = _controller!.text;
+_redoStack.add(current);
+_undoStack.removeLast();          // ← 弹掉的是「上一个状态」，不是当前状态
+if (_undoStack.isNotEmpty) {
+  _controller!.value = ...(_undoStack.last);   // 应用的是「上上个状态」
+}
+```
+
+推演：栈 `["A", "AB"]`，用户刚打出 `"ABC"`（尚未入栈），按下撤销 ——
+把 `"ABC"` 存进 redo，弹出 `"AB"`，应用 `"A"`。**用户只打了一个字符、按了一次撤销，
+却退回了两步。**
+
+栈里只有一项时：弹掉唯一那项后栈空了，`if (_undoStack.isNotEmpty)` 不成立，
+**文本一个字都没改**，但 canUndo 已经变成 false。
+
+**两种错法都是无声的** —— 没有报错，没有提示，只有一个行为不对的按键。
+
+### 修复方案
+
+撤销之前先确认栈顶就是当前文本，不是就先补上：
+
+```dart
+if (_undoStack.last != current) {
+  _undoStack.add(current);
+  ...
+}
+if (_undoStack.length < 2) { _updateUndoRedoState(); return; }
+_redoStack.add(_undoStack.removeLast());
+```
+
+**补的时候是直接入栈，不走 `pushHistory`** —— 后者会清空 redo 栈，而那正是撤销唯一
+不能做的事。
+
+顺带把「栈上只剩当前状态」的情况处理干净：直接返回，不再动文本。
+
+### 一个恰好正确的地方（查过，没动）
+
+`undo()` 会改写控制器文本，从而触发 `_onTextChanged`，300 毫秒后调用 `pushHistory`
+—— 而 `pushHistory` 会清空 redo 栈。redo 之所以没被这条路径毁掉，是因为
+`pushHistory` 开头有一句 `if (stack.last == content) return;` **在清空 redo 之前
+就返回了**。这一句是承重的，改动它会静默弄坏 redo。
+
+### 测试
+
+`code/test/providers/undo_debounce_test.dart`，6 条。用「直接改控制器文本而不触发防抖」
+模拟「刚打完字、快照还没入栈」的那一刻。**对旧实现跑，6 条里有 3 条失败** —— 先确认了
+测试抓得住这个 bug，才算数。
+
+其中一条守的是最坏的后果：**那个还没入栈的编辑不能丢** —— 撤销之后再重做，必须能拿回来，
+否则撤销就成了毁掉工作的方式。
+
+### 一处已知但未改的地方
+
+撤销之后光标被放到文档末尾（`TextSelection.collapsed(offset: previous.length)`），
+而不是回到编辑发生的位置。在长文档里这很打扰。修它需要连同快照一起记录选区，
+是另一件事，记在这里。
+
+### 涉及文件
+
+- `code/lib/providers/editor_provider.dart`
+- `code/test/providers/undo_debounce_test.dart` —— 新增
 
 ---
