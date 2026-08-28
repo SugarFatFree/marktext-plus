@@ -37,6 +37,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The editor's body font can be chosen in Settings; the setting was read all along but had no row of its own
 - Paragraph ▸ Loose List Item spaces a list's items apart, or runs them together again — the last entry the upstream paragraph menu had and this one did not
 - Edit ▸ Create Paragraph Below and Delete Paragraph, anchored on the outermost block as upstream anchors them
+- File ▸ Print, on Ctrl+P, opening the system print dialog with the document laid out by the same code the PDF export uses; the palette moves to Ctrl+Shift+P, which is where upstream and VS Code both put it
+- A list item can carry blocks of its own — a code fence beneath a numbered step, a second paragraph, a quote, a table — instead of the list breaking in three around them and the fence landing at the document's left margin
+- Pressing Enter in a list carries the list on: the same bullet, the next number, the indentation and spacing that were written, and an unticked box for a task. An item with nothing in it ends the list instead
+- The size code is drawn at can be set, independently of the body text; raising the reading size used to enlarge the prose and leave code at a fixed 14
+- Edit ▸ Find in Files, which searches every file in the open folder. The search itself was there all along, reachable only by finding the magnifying glass in the sidebar, and the label was already translated into all twelve languages
+- A mermaid diagram can be titled with `---\ntitle: …\n---`, which is how mermaid documents it for every type and the only way a flowchart can be titled at all
 
 ### Fixed
 - Clicking a folder-search result now scrolls to the line that matched, instead of opening the file at the top
@@ -72,6 +78,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The buttons on a diagram's toolbar answer immediately, where each used to sit dead for a third of a second
 - A change another program makes just after the app saves — a formatter running on save, say — is picked up instead of silently dropped and then overwritten
 - Typing in a large document is faster than before: a keystroke in a 1.4 MiB file costs 45 ms where it used to cost 57
+- Launching is roughly ten times quicker on Windows: creating the engine's view took two to four seconds and now takes a third of one. The cost was Impeller, the renderer that became the Windows default after this program's last release; shipped builds ask for the other one. Everything the program does itself has always added up to about 150 ms
+- `<br/>` inside a mermaid label is a line break rather than five characters on screen — in every diagram type, not only the flowchart — and `&amp;` and its siblings are decoded. An edge label written in quotes loses them, as a node label already did
+- A mermaid state diagram's start and end are told apart: mermaid draws the end ringed, and both were drawn as the same plain circle
+- The two spellings of a nested quote, `>> inner` and `> > inner`, are the same quote inside a quote. One nested and the other sat beside its parent
+- A table's column alignment survives being exported: `:--`, `:-:` and `--:` were honoured on screen and dropped by HTML, PDF and Word alike. Word also gets real table cells, so `**bold**` in a cell is bold rather than asterisks
+- An exported nested list nests the way HTML requires — the sub-list inside the item it hangs off, rather than beside it. Browsers forgive the old shape; validators, pandoc and anything pasted into Word do not
+- The code font is used wherever code is drawn: inline `code`, front matter and html blocks kept the platform's generic face while fenced blocks changed, so one setting produced two fonts on one screen
+- A task list's checkbox ticks the line it belongs to. Counting one line per item put it on a continuation line, on the blank line of a loose list, or inside a block carried by the step — where it silently did nothing
+- Closing the find bar no longer throws, and the highlight it draws in the preview is cleared as it was meant to be
+- The settings page keeps what is being typed into it: its text fields were rebuilt on every rebuild, so flipping any switch discarded whatever had not yet been submitted
+- The window can be made narrow without the settings page, the menu bar or the status bar spilling over their right edge. There is no minimum window size, and the striping started at about a thousand pixels
 
 ## [v1.3.0] - 2026-08-27
 
