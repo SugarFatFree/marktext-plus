@@ -47,6 +47,7 @@
 | BUG-043 | 2026-08-28 | 从关闭确认里保存新文档，标签页不绑到新路径也不入最近打开 | P2 | 已修复 |
 | BUG-044 | 2026-08-28 | 从侧边栏重命名/删除文件，打开着的标签页不跟着走 | **P0** | 已修复 |
 | BUG-045 | 2026-08-28 | 「消除」更新提示后，下次启动它又回来 | P2 | 已修复 |
+| BUG-046 | 2026-08-28 | 光标每移动一格，整个预览的所有块都重建一遍 | **P1** | 已修复 |
 
 ## 详细记录
 
@@ -883,5 +884,24 @@
 | 扫描的完整结果 | `AppConfig` 共 **32 个字段**：全部都有代码在读（唯一报出的 `defaultValue` 是我正则的误报，那是 `_parseDouble` 的参数名）；界面可改的 25 个；剩下 7 个里 6 个是程序自己维护的（窗口几何、最大化、侧边栏文件列表），只有 `fontFamily` 是真缺口 |
 | 涉及文件 | `lib/ui/widgets/status_bar.dart` |
 | 验证方式 | 本机 `dart analyze --fatal-infos lib` 通过；确认 `settings_provider` 导入本就存在 |
+
+---
+
+### BUG-046 光标每移动一格，整个预览的所有块都重建一遍
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-28 |
+| 优先级 | **P1**（分屏模式下每次按键都付这个代价） |
+| 状态 | 已修复 |
+| 怎么发现的 | 把 BUG-045 那个方法（**字段是否被读 / 是否被写**）从 `AppConfig` 推广到 provider 的状态类。第一个信号是 `EditorState.selectedText` **被写但无人读**，顺着它查写入时机，牵出了更大的问题 |
+| 现象 | 源码窗格里光标每移动一格（方向键、点击、打字），都会触发 `editorProvider` 的**两次**状态更新；而 `markdown_renderer` 监听的是**整个** `editorProvider`。分屏模式下，这意味着**每一次按键都会重建预览里已渲染的全部块** —— 而预览本身的设计就是「每帧重建至今渲染过的所有块」 |
+| 根因链条 | ① 光标变化 → `updateCursor` 写入状态；<br>② 同一次回调里 `updateSelection` 再写一次 —— 而 `selectedText` **全项目没有任何读取方**（渲染器里那个同名变量是局部的）；<br>③ `markdown_renderer.dart` 写的是 `ref.watch(editorProvider)`，注释说「为了搜索状态变化时重建」，但它同时也订阅了光标、选区、滚动等一切变化 |
+| 修复方案 | ① 把渲染器的监听收窄到它真正需要的**预览搜索 5 个字段**（用 record 形式的 `select`）；<br>② 菜单栏同样收窄到 `canUndo` / `canRedo`（原先整体监听，光标一动就重建整条菜单栏）；<br>③ 删掉 `selectedText` 字段与 `updateSelection` —— 写了从来没人读，每次选区变化白付一次状态更新 |
+| 状态栏为什么不动 | 它读的就是 `cursorLine` / `cursorCol`，本来就该在光标移动时重建 |
+| 与 v1.4.0 早先那笔的关系 | `app.dart` 之前修过同一类问题（把 `settingsProvider` 的整体监听收窄），当时的注释写着「任何设置写入都会重建整个 app」。**同一个坑在 `editorProvider` 上又踩了一次** |
+| 涉及文件 | `lib/ui/editor/markdown_renderer.dart`、`lib/ui/widgets/app_menu_bar.dart`、`lib/providers/editor_provider.dart`、`lib/ui/editor/source_editor.dart` |
+| 验证方式 | 本机 `dart analyze --fatal-infos lib test` 通过；本机 `flutter test test/ui/editor/ test/providers/` **314 条全过** |
+| 待用户确认 | 这条改的是「打字/移动光标时的流畅度」，本机没有 GUI 无法直接测量。分屏模式下的手感变化需要在 Windows 上体感确认 |
 
 ---

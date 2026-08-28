@@ -431,15 +431,9 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
 
     ref.read(editorProvider.notifier).updateCursor(line, col);
 
-    if (selection.isCollapsed) {
-      ref.read(editorProvider.notifier).updateSelection('');
-    } else {
-      final start = selection.start.clamp(0, text.length);
-      final end = selection.end.clamp(0, text.length);
-      ref
-          .read(editorProvider.notifier)
-          .updateSelection(text.substring(start, end));
-    }
+    // The selected text used to be pushed into EditorState here, on every
+    // change of selection. Nothing ever read it, and each write was a second
+    // state change per cursor move on top of the position above.
 
     _scrollToTypewriterPosition(line);
   }

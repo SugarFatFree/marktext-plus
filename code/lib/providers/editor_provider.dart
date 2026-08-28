@@ -48,7 +48,6 @@ class EditorState {
   final int cursorLine;
   final int cursorCol;
   final double scrollOffset;
-  final String selectedText;
   final FormatAction? pendingFormat;
   final bool canUndo;
   final bool canRedo;
@@ -83,7 +82,6 @@ class EditorState {
     this.cursorLine = 0,
     this.cursorCol = 0,
     this.scrollOffset = 0.0,
-    this.selectedText = '',
     this.pendingFormat,
     this.canUndo = false,
     this.canRedo = false,
@@ -104,7 +102,6 @@ class EditorState {
     int? cursorLine,
     int? cursorCol,
     double? scrollOffset,
-    String? selectedText,
     FormatAction? pendingFormat,
     bool clearFormat = false,
     bool? canUndo,
@@ -126,7 +123,6 @@ class EditorState {
       cursorLine: cursorLine ?? this.cursorLine,
       cursorCol: cursorCol ?? this.cursorCol,
       scrollOffset: scrollOffset ?? this.scrollOffset,
-      selectedText: selectedText ?? this.selectedText,
       pendingFormat: clearFormat ? null : (pendingFormat ?? this.pendingFormat),
       canUndo: canUndo ?? this.canUndo,
       canRedo: canRedo ?? this.canRedo,
@@ -281,10 +277,6 @@ class EditorNotifier extends StateNotifier<EditorState> {
 
   void updateScroll(double offset) {
     state = state.copyWith(scrollOffset: offset);
-  }
-
-  void updateSelection(String text) {
-    state = state.copyWith(selectedText: text);
   }
 
   void applyFormat(FormatAction action) {

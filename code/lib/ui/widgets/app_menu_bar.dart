@@ -332,7 +332,11 @@ class AppMenuBar extends ConsumerWidget {
   }
 
   Widget _buildEditMenu(AppLocalizations l10n, WidgetRef ref) {
-    final editorState = ref.watch(editorProvider);
+    // Undo and redo availability only. The whole provider would rebuild the
+    // menu bar on every cursor move.
+    final editorState = ref.watch(
+      editorProvider.select((s) => (canUndo: s.canUndo, canRedo: s.canRedo)),
+    );
     return SubmenuButton(
       menuChildren: [
         MenuItemButton(

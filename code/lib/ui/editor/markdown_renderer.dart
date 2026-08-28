@@ -242,8 +242,21 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     final theme = Theme.of(context);
     final config = ref.watch(settingsProvider);
     final tokens = AppTheme.getTokens(config.themeName);
-    // Watch editorProvider to rebuild when search state changes
-    ref.watch(editorProvider);
+    // Only the preview's search state, not the whole of it. Watching the whole
+    // provider meant every cursor move and every change of selection in the
+    // source pane rebuilt the entire preview — in split view, on every arrow
+    // key — and the preview rebuilds every block it has rendered so far.
+    ref.watch(
+      editorProvider.select(
+        (s) => (
+          s.previewSearchQuery,
+          s.previewSearchCaseSensitive,
+          s.previewSearchWholeWord,
+          s.previewSearchUseRegex,
+          s.previewCurrentMatchIndex,
+        ),
+      ),
+    );
 
     // Also when the inline-HTML setting changes: the text is the same but the
     // parse is not, and without this the preview kept the old rendering until
