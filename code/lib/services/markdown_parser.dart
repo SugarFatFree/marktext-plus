@@ -367,7 +367,24 @@ class MarkdownParser {
     final lines = text.split('\n');
     var inFence = false;
 
-    for (var i = 0; i < lines.length; i++) {
+    // The outline has to see the document the way parse() does, because the
+    // preview maps its Nth heading widget to the Nth entry here. Two of them
+    // disagreed: a `# comment` inside front matter was listed although no
+    // heading is drawn for it, and a setext heading was drawn although
+    // nothing was listed — so from the first disagreement on, every entry
+    // scrolled to the wrong heading.
+    var i = 0;
+    if (lines.isNotEmpty && isFrontMatterOpener(lines.first.trim())) {
+      final closer = lines.first.trim() == '{' ? '}' : lines.first.trim();
+      for (var j = 1; j < lines.length; j++) {
+        if (lines[j].trim() == closer) {
+          i = j + 1;
+          break;
+        }
+      }
+    }
+
+    for (; i < lines.length; i++) {
       if (_codeFenceRe.hasMatch(lines[i])) {
         inFence = !inFence;
         continue;
@@ -375,12 +392,28 @@ class MarkdownParser {
       if (inFence) continue;
 
       final match = _headingRe.firstMatch(lines[i]);
-      if (match == null) continue;
-      headings.add((
-        line: i + 1,
-        level: match.group(1)!.length,
-        text: match.group(2)!.trim(),
-      ));
+      if (match != null) {
+        headings.add((
+          line: i + 1,
+          level: match.group(1)!.length,
+          text: match.group(2)!.trim(),
+        ));
+        continue;
+      }
+
+      // Text underlined with `===` or `---`, which parse() reads as a heading
+      // for the same reason: real text precedes the rule.
+      if (lines[i].trim().isNotEmpty &&
+          !_hrRe.hasMatch(lines[i]) &&
+          i + 1 < lines.length &&
+          _setextRe.hasMatch(lines[i + 1])) {
+        headings.add((
+          line: i + 1,
+          level: lines[i + 1].trim().startsWith('=') ? 1 : 2,
+          text: lines[i].trim(),
+        ));
+        i++;
+      }
     }
     return headings;
   }
