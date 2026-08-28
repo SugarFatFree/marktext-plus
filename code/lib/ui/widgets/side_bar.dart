@@ -17,6 +17,7 @@ import '../screens/settings_screen.dart';
 import '../../providers/sidebar_provider.dart';
 import '../../services/file_service.dart';
 import '../../services/markdown_parser.dart';
+import 'editor_tab_bar.dart';
 
 
 class SideBar extends ConsumerStatefulWidget {
@@ -285,9 +286,7 @@ class _SideBarState extends ConsumerState<SideBar> {
                     iconSize: 12,
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
-                    onPressed: () {
-                      ref.read(tabProvider.notifier).removeOpenedFile(file.filePath);
-                    },
+                    onPressed: () => _closeOpenedFile(file.filePath),
                     tooltip: l10n.closeFile,
                   ),
                 ),
@@ -359,7 +358,7 @@ class _SideBarState extends ConsumerState<SideBar> {
                           iconSize: 12,
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
-                          onPressed: () {
+                          onPressed: () async {
                             if (isRootFolder) {
                               // Close the entire folder and all its files
                               final folderPath = node.path;
@@ -369,15 +368,22 @@ class _SideBarState extends ConsumerState<SideBar> {
                               );
 
                               // Close all tabs for files in this folder
-                              final tabState = ref.read(tabProvider);
-                              for (final tab in tabState.tabs) {
-                                if (tab.filePath != null && tab.filePath!.startsWith(folderPath)) {
-                                  ref.read(tabProvider.notifier).removeOpenedFile(tab.filePath!);
-                                }
+                              final inFolder = ref
+                                  .read(tabProvider)
+                                  .tabs
+                                  .where((t) =>
+                                      t.filePath != null &&
+                                      t.filePath!.startsWith(folderPath))
+                                  .map((t) => t.filePath!)
+                                  .toList();
+                              // One at a time: two prompts at once would
+                              // stack on top of each other.
+                              for (final path in inFolder) {
+                                await _closeOpenedFile(path);
                               }
                             } else {
                               // Close the file tab
-                              ref.read(tabProvider.notifier).removeOpenedFile(node.path);
+                              await _closeOpenedFile(node.path);
                             }
                           },
                           tooltip: isRootFolder ? l10n.fileOpenFolder : l10n.closeFile,
@@ -393,6 +399,30 @@ class _SideBarState extends ConsumerState<SideBar> {
           ...node.children.map((child) => _buildFileNode(child, depth + 1)),
       ],
     );
+  }
+
+  /// Closes [filePath]: its tab, if one is open, and its sidebar entry.
+  ///
+  /// Asks about unsaved work exactly as closing from the tab bar does. The
+  /// sidebar had five ways to close a file — the small cross on each row, the
+  /// context menu, closing a file node, and closing a folder, which does every
+  /// file under it — and all five went straight to `removeOpenedFile`, which
+  /// drops the tab without a word. Unsaved edits went with it.
+  Future<void> _closeOpenedFile(String filePath) async {
+    final tab = ref
+        .read(tabProvider)
+        .tabs
+        .where((t) => t.filePath == filePath)
+        .firstOrNull;
+
+    if (tab != null && tab.isModified) {
+      if (!mounted) return;
+      await EditorTabBar.closeTab(context, ref, tab);
+      // Still there means the prompt was cancelled, so the entry stays too.
+      if (ref.read(tabProvider).tabs.any((t) => t.id == tab.id)) return;
+    }
+
+    ref.read(tabProvider.notifier).removeOpenedFile(filePath);
   }
 
   void _showFileContextMenu(BuildContext context, Offset position, FileNode node) async {
@@ -495,7 +525,7 @@ class _SideBarState extends ConsumerState<SideBar> {
       case 'copy_path':
         await Clipboard.setData(ClipboardData(text: file.filePath));
       case 'close':
-        ref.read(tabProvider.notifier).removeOpenedFile(file.filePath);
+        await _closeOpenedFile(file.filePath);
       case 'delete':
         if (!mounted) return;
         final confirmed = await _showConfirmDialog(
@@ -505,6 +535,10 @@ class _SideBarState extends ConsumerState<SideBar> {
         if (confirmed == true) {
           try {
             await File(file.filePath).delete();
+            // Straight through, unlike the other four ways of closing: the
+            // file has just been deleted at the person's own request, and
+            // asking whether to save changes to a file that no longer exists
+            // would be a strange thing to be asked.
             ref.read(tabProvider.notifier).removeOpenedFile(file.filePath);
           } catch (_) {
             // Ignore delete errors
