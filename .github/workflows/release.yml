@@ -197,23 +197,50 @@ jobs:
           mkdir -p "$PKG_DIR/usr/lib/marktext-plus"
           mkdir -p "$PKG_DIR/usr/bin"
           mkdir -p "$PKG_DIR/usr/share/applications"
+          mkdir -p "$PKG_DIR/usr/share/mime/packages"
           mkdir -p "$PKG_DIR/usr/share/icons/hicolor/512x512/apps"
 
           cp -r code/build/linux/${{ matrix.flutter_build_dir }}/release/bundle/* "$PKG_DIR/usr/lib/marktext-plus/"
           ln -sf /usr/lib/marktext-plus/marktext_plus "$PKG_DIR/usr/bin/marktext-plus"
           cp code/linux/resources/app_icon_512.png "$PKG_DIR/usr/share/icons/hicolor/512x512/apps/marktext-plus.png"
 
-          cat > "$PKG_DIR/usr/share/applications/marktext-plus.desktop" << 'DESKTOP'
-          [Desktop Entry]
-          Type=Application
-          Name=MarkText Plus
-          Comment=A lightweight Markdown editor
-          Exec=marktext-plus %F
-          Icon=marktext-plus
-          Terminal=false
-          Categories=Utility;TextEditor;
-          MimeType=text/markdown;text/x-markdown;text/plain;
-          DESKTOP
+          # Ship the shared-mime-info definition: without it a system whose
+          # mime database has no .md glob never resolves text/markdown, and the
+          # MimeType= line below matches nothing.
+          cp code/linux/packaging/marktext-plus.xml "$PKG_DIR/usr/share/mime/packages/marktext-plus.xml"
+
+          # Single source of truth for the desktop entry lives in the repo.
+          sed -e 's|@EXEC_PATH@|marktext-plus|' \
+              -e 's|^Icon=.*|Icon=marktext-plus|' \
+              code/linux/packaging/marktext-plus.desktop \
+              > "$PKG_DIR/usr/share/applications/marktext-plus.desktop"
+
+          # Desktop environments only pick up a new handler once these caches
+          # are rebuilt; skipping this is why the "Open With" chooser kept
+          # reappearing after install.
+          cat > "$PKG_DIR/DEBIAN/postinst" << 'POSTINST'
+          #!/bin/sh
+          set -e
+          if [ "$1" = "configure" ]; then
+            update-desktop-database -q /usr/share/applications 2>/dev/null || true
+            update-mime-database /usr/share/mime 2>/dev/null || true
+            gtk-update-icon-cache -f -t /usr/share/icons/hicolor 2>/dev/null || true
+          fi
+          exit 0
+          POSTINST
+          chmod 755 "$PKG_DIR/DEBIAN/postinst"
+
+          cat > "$PKG_DIR/DEBIAN/postrm" << 'POSTRM'
+          #!/bin/sh
+          set -e
+          if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
+            update-desktop-database -q /usr/share/applications 2>/dev/null || true
+            update-mime-database /usr/share/mime 2>/dev/null || true
+            gtk-update-icon-cache -f -t /usr/share/icons/hicolor 2>/dev/null || true
+          fi
+          exit 0
+          POSTRM
+          chmod 755 "$PKG_DIR/DEBIAN/postrm"
 
           cat > "$PKG_DIR/DEBIAN/control" << CTRL
           Package: marktext-plus
@@ -239,6 +266,7 @@ jobs:
           mkdir -p "$RPM_ROOT/BUILDROOT/marktext-plus-${VERSION}-1.${{ matrix.rpm_arch }}/usr/lib/marktext-plus"
           mkdir -p "$RPM_ROOT/BUILDROOT/marktext-plus-${VERSION}-1.${{ matrix.rpm_arch }}/usr/bin"
           mkdir -p "$RPM_ROOT/BUILDROOT/marktext-plus-${VERSION}-1.${{ matrix.rpm_arch }}/usr/share/applications"
+          mkdir -p "$RPM_ROOT/BUILDROOT/marktext-plus-${VERSION}-1.${{ matrix.rpm_arch }}/usr/share/mime/packages"
           mkdir -p "$RPM_ROOT/BUILDROOT/marktext-plus-${VERSION}-1.${{ matrix.rpm_arch }}/usr/share/icons/hicolor/512x512/apps"
 
           cp -r code/build/linux/${{ matrix.flutter_build_dir }}/release/bundle/* \
@@ -248,17 +276,13 @@ jobs:
           cp code/linux/resources/app_icon_512.png \
             "$RPM_ROOT/BUILDROOT/marktext-plus-${VERSION}-1.${{ matrix.rpm_arch }}/usr/share/icons/hicolor/512x512/apps/marktext-plus.png"
 
-          cat > "$RPM_ROOT/BUILDROOT/marktext-plus-${VERSION}-1.${{ matrix.rpm_arch }}/usr/share/applications/marktext-plus.desktop" << 'DESKTOP'
-          [Desktop Entry]
-          Type=Application
-          Name=MarkText Plus
-          Comment=A lightweight Markdown editor
-          Exec=marktext-plus %F
-          Icon=marktext-plus
-          Terminal=false
-          Categories=Utility;TextEditor;
-          MimeType=text/markdown;text/x-markdown;text/plain;
-          DESKTOP
+          cp code/linux/packaging/marktext-plus.xml \
+            "$RPM_ROOT/BUILDROOT/marktext-plus-${VERSION}-1.${{ matrix.rpm_arch }}/usr/share/mime/packages/marktext-plus.xml"
+
+          sed -e 's|@EXEC_PATH@|marktext-plus|' \
+              -e 's|^Icon=.*|Icon=marktext-plus|' \
+              code/linux/packaging/marktext-plus.desktop \
+              > "$RPM_ROOT/BUILDROOT/marktext-plus-${VERSION}-1.${{ matrix.rpm_arch }}/usr/share/applications/marktext-plus.desktop"
 
           cat > "$RPM_ROOT/SPECS/marktext-plus.spec" << SPEC
           Name:           marktext-plus
@@ -276,11 +300,18 @@ jobs:
           /usr/lib/marktext-plus
           /usr/bin/marktext-plus
           /usr/share/applications/marktext-plus.desktop
+          /usr/share/mime/packages/marktext-plus.xml
           /usr/share/icons/hicolor/512x512/apps/marktext-plus.png
 
           %post
           update-desktop-database &>/dev/null || :
-          gtk-update-icon-cache /usr/share/icons/hicolor &>/dev/null || :
+          update-mime-database /usr/share/mime &>/dev/null || :
+          gtk-update-icon-cache -f -t /usr/share/icons/hicolor &>/dev/null || :
+
+          %postun
+          update-desktop-database &>/dev/null || :
+          update-mime-database /usr/share/mime &>/dev/null || :
+          gtk-update-icon-cache -f -t /usr/share/icons/hicolor &>/dev/null || :
           SPEC
 
           rpmbuild --define "_topdir $RPM_ROOT" -bb "$RPM_ROOT/SPECS/marktext-plus.spec"

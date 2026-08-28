@@ -1,5 +1,76 @@
 {
   "@@locale": "ja",
+  "settingsWrapCodeBlocks": "コードブロック内の長い行を折り返す",
+  "settingsCodeBlockLineNumbers": "コードブロックの行番号",
+  "settingsSaveFailed": "設定を保存できませんでした: {message}",
+  "@settingsSaveFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsFollowSystemTheme": "システムのライト/ダーク設定に従う",
+  "settingsFollowSystemThemeHint": "ライトとダークのテーマをそれぞれ選ぶと、どちらを表示するかはシステムが決めます。",
+  "settingsAutoPairBracket": "括弧を自動で閉じる",
+  "settingsAutoPairQuote": "引用符を自動で閉じる",
+  "settingsAutoPairMarkdown": "Markdown 記法を自動で閉じる（`、*、~）",
+  "helpOpenDiagnosticLog": "診断ログを開く",
+  "diagnosticLogMissing": "診断ログはまだ書き出されていません",
+  "mermaidCaptureFailed": "図をキャプチャできませんでした",
+  "mermaidErrorEmpty": "図が空です。",
+  "mermaidErrorUnknownType": "認識できない図の種類: 「{type}」。",
+  "@mermaidErrorUnknownType": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "mermaidErrorHeaderOnly": "この図にはヘッダーだけがあり、内容がありません。",
+  "mermaidErrorBadBody": "ヘッダーは認識できています。その下の構文を確認してください。",
+  "mermaidSupportedTypes": "対応している種類: {list}",
+  "@mermaidSupportedTypes": {
+    "placeholders": {
+      "list": {
+        "type": "String"
+      }
+    }
+  },
+  "mermaidParseError": "Mermaid の解析エラー",
+  "imageSavedTo": "{path} に保存しました",
+  "@imageSavedTo": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "imageSaveFailed": "画像を保存できませんでした: {message}",
+  "@imageSaveFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "saveFailed": "ファイルを保存できませんでした: {message}",
+  "@saveFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "fileOperationFailed": "ファイル操作に失敗しました: {message}",
+  "fileNameTaken": "同じ名前のファイルまたはフォルダーが既にあります",
+  "@fileOperationFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "appTitle": "MarkText Plus",
   "menuFile": "ファイル",
   "menuEdit": "編集",
@@ -13,11 +84,12 @@
   "fileOpenFolder": "フォルダを開く",
   "fileSave": "保存",
   "fileSaveAs": "名前を付けて保存",
-  "fileRecentFiles": "Recent Files",
-  "fileNoRecentFiles": "No Recent Files",
+  "fileRecentFiles": "最近使用したファイル",
+  "fileNoRecentFiles": "最近使用したファイルはありません",
   "fileExport": "エクスポート",
   "fileExportHtml": "HTML",
   "fileExportPdf": "PDF",
+  "filePrint": "印刷",
   "fileExportWord": "Word (.docx)",
   "fileSettings": "設定",
   "fileQuit": "終了",
@@ -99,7 +171,6 @@
   "settingsLightThemes": "ライトテーマ",
   "settingsDarkThemes": "ダークテーマ",
   "confirmResetMessage": "すべての設定をデフォルトに戻しますか？",
-  "comingSoon": "近日公開",
   "noFiles": "ファイルなし",
   "noOpenFolder": "フォルダを開いてファイルを参照",
   "searchPlaceholder": "ファイル内を検索...",
@@ -116,6 +187,8 @@
   "editCopyAsHtml": "HTMLとしてコピー",
   "editSelectAll": "すべて選択",
   "editDuplicateLine": "行を複製",
+  "editCreateParagraph": "下に段落を作成",
+  "editDeleteParagraph": "段落を削除",
   "formatUnderline": "下線",
   "formatSuperscript": "上付き文字",
   "formatSubscript": "下付き文字",
@@ -124,6 +197,8 @@
   "formatInlineMath": "インライン数式",
   "formatClearFormatting": "書式をクリア",
   "settingsCodeFontFamily": "コードフォント",
+  "settingsCodeFontSize": "コードフォントサイズ",
+  "settingsEditorFontFamily": "本文フォント",
   "settingsEditorMaxWidth": "エディタの最大幅",
   "settingsTextDirection": "テキスト方向",
   "keybindingsEdit": "キーバインドを編集",
@@ -132,11 +207,6 @@
   "statusWords": "単語",
   "statusChars": "文字",
   "statusParagraphs": "段落",
-  "themeCadmiumLight": "カドミウムライト",
-  "themeOneDark": "One Dark",
-  "themeMaterialDark": "Material ダーク",
-  "themeGraphiteLight": "グラファイトライト",
-  "themeUlyssesLight": "Ulysses ライト",
   "themeRedGraphite": "レッドグラファイト",
   "themeShibuya": "渋谷",
   "themePinkBlossom": "ピンクブロッサム",
@@ -180,7 +250,13 @@
   "copyFilePath": "ファイルパスをコピー",
   "deleteFile": "ファイルを削除",
   "confirmDeleteFile": "\"{fileName}\" を削除してもよろしいですか？",
-  "@confirmDeleteFile": { "placeholders": { "fileName": { "type": "String" } } },
+  "@confirmDeleteFile": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
   "newFolder": "新しいフォルダ",
   "rename": "名前を変更",
   "delete": "削除",
@@ -205,9 +281,21 @@
   "settingsTextDirectionLtr": "左から右",
   "settingsTextDirectionRtl": "右から左",
   "commandFormatLabel": "書式：{action}",
-  "@commandFormatLabel": { "placeholders": { "action": { "type": "String" } } },
+  "@commandFormatLabel": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
   "commandFormatDesc": "{action}書式を適用",
-  "@commandFormatDesc": { "placeholders": { "action": { "type": "String" } } },
+  "@commandFormatDesc": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
   "commandNewFile": "新規ファイル",
   "commandNewFileDesc": "新しい無題ファイルを作成",
   "commandSave": "保存",
@@ -226,8 +314,43 @@
   "commandToggleSidebarDesc": "サイドバーの表示/非表示を切り替え",
   "commandToggleTabBar": "タブバー切替",
   "commandToggleTabBarDesc": "タブバーの表示/非表示を切り替え",
-
   "welcomeNewFile": "新規ファイル",
   "welcomeOpenFile": "ファイルを開く",
-  "welcomeDragHint": "ファイルをここにドロップして開く"
+  "welcomeDragHint": "ファイルをここにドロップして開く",
+  "mermaidFullscreen": "全画面",
+  "mermaidSaveAs": "名前を付けて保存",
+  "mermaidCopySource": "ソースをコピー",
+  "mermaidEditSource": "ソースを編集",
+  "mermaidFullscreenHint": "図をダブルタップで全画面表示",
+  "mermaidSaveAsHint": "図を PNG として保存",
+  "menuParagraph": "段落",
+  "paragraphPromoteHeading": "見出しレベルを上げる",
+  "paragraphDemoteHeading": "見出しレベルを下げる",
+  "paragraphToParagraph": "段落に変換",
+  "paragraphLooseList": "ゆるいリスト項目",
+  "close": "閉じる",
+  "mermaidViewerTitle": "Mermaid ダイアグラムビューア",
+  "mermaidViewerHint": "Ctrl+スクロールで拡大縮小    ドラッグで移動    Esc で閉じる",
+  "statusHighlightOff": "大きなファイルのため構文ハイライトは無効",
+  "settingsImageStorage": "ドロップした画像の保存先",
+  "settingsImageStorageCopy": "文書のとなりにコピー",
+  "settingsImageStorageFolder": "共通のフォルダーにまとめる",
+  "settingsImageStorageLink": "元の場所を参照する",
+  "settingsImageFolder": "画像フォルダー",
+  "fileCloseTab": "タブを閉じる",
+  "fileClearRecentFiles": "最近のファイルを消去",
+  "viewCommandPalette": "コマンドパレット",
+  "viewReloadImages": "画像を再読み込み",
+  "formatFrontMatter": "フロントマター",
+  "formatHtmlBlock": "HTML ブロック",
+  "updateUpToDate": "最新バージョンです",
+  "updateCheckFailed": "更新を確認できませんでした",
+  "fileOpenBehavior": "ファイルを開くときの動作",
+  "fileOpenBehaviorExistingWindow": "現在のウィンドウで開く",
+  "fileOpenBehaviorNewWindow": "新しいウィンドウで開く",
+  "fileOpenBehaviorNotSet": "未設定",
+  "updateAvailable": "新しいバージョンがあります",
+  "updateDismiss": "閉じる",
+  "linkOpenFailed": "リンクを開けませんでした",
+  "recentFileMissing": "そのファイルは存在しません。一覧から削除しました"
 }

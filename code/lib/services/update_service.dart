@@ -12,29 +12,42 @@ class UpdateService {
   static const _apiUrl = 'https://api.github.com/repos/SugarFatFree/marktext-plus/releases/latest';
   static const _releasesUrl = 'https://github.com/SugarFatFree/marktext-plus/releases/latest';
 
-  static Future<UpdateInfo?> checkForUpdate(String currentVersion) async {
+  /// Asks GitHub for the latest release.
+  ///
+  /// Reports whether the check actually happened, separately from whether it
+  /// found anything: the automatic check on startup wants to stay quiet when
+  /// the network is down, but a check the user asked for must not answer
+  /// "you are on the latest version" when it never got an answer.
+  static Future<({UpdateInfo? update, bool reachable})> checkForUpdate(
+    String currentVersion,
+  ) async {
     try {
       final response = await http.get(
         Uri.parse(_apiUrl),
         headers: {'Accept': 'application/vnd.github.v3+json'},
       ).timeout(const Duration(seconds: 10));
-      if (response.statusCode != 200) return null;
+      if (response.statusCode != 200) {
+        return (update: null, reachable: false);
+      }
 
       final json = jsonDecode(response.body);
       final tagName = json['tag_name'] as String?;
-      if (tagName == null) return null;
+      if (tagName == null) return (update: null, reachable: false);
 
       final remoteVersion = tagName.replaceFirst('v', '');
       if (_isNewer(remoteVersion, currentVersion)) {
-        return UpdateInfo(
-          version: remoteVersion,
-          url: json['html_url'] as String? ?? _releasesUrl,
-          releaseNotes: json['body'] as String? ?? '',
+        return (
+          update: UpdateInfo(
+            version: remoteVersion,
+            url: json['html_url'] as String? ?? _releasesUrl,
+            releaseNotes: json['body'] as String? ?? '',
+          ),
+          reachable: true,
         );
       }
-      return null;
-    } catch (e) {
-      return null;
+      return (update: null, reachable: true);
+    } catch (_) {
+      return (update: null, reachable: false);
     }
   }
 

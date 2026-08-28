@@ -1,5 +1,76 @@
 {
   "@@locale": "en",
+  "settingsWrapCodeBlocks": "Wrap long lines in code blocks",
+  "settingsCodeBlockLineNumbers": "Code Block Line Numbers",
+  "settingsSaveFailed": "Could not save your settings: {message}",
+  "@settingsSaveFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsFollowSystemTheme": "Follow the system light/dark setting",
+  "settingsFollowSystemThemeHint": "Pick one light theme and one dark theme; the system decides which is shown.",
+  "settingsAutoPairBracket": "Auto-close brackets",
+  "settingsAutoPairQuote": "Auto-close quotes",
+  "settingsAutoPairMarkdown": "Auto-close Markdown syntax (`, *, ~)",
+  "helpOpenDiagnosticLog": "Open diagnostic log",
+  "diagnosticLogMissing": "No diagnostic log has been written yet",
+  "mermaidCaptureFailed": "Could not capture the diagram",
+  "mermaidErrorEmpty": "The diagram is empty.",
+  "mermaidErrorUnknownType": "Unrecognised diagram type: \"{type}\".",
+  "@mermaidErrorUnknownType": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "mermaidErrorHeaderOnly": "This diagram has a header but no content.",
+  "mermaidErrorBadBody": "The header is recognised, so check the syntax below it.",
+  "mermaidSupportedTypes": "Supported types: {list}",
+  "@mermaidSupportedTypes": {
+    "placeholders": {
+      "list": {
+        "type": "String"
+      }
+    }
+  },
+  "mermaidParseError": "Mermaid parse error",
+  "imageSavedTo": "Saved to {path}",
+  "@imageSavedTo": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "imageSaveFailed": "Could not save the image: {message}",
+  "@imageSaveFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "saveFailed": "Could not save the file: {message}",
+  "@saveFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "fileOperationFailed": "File operation failed: {message}",
+  "fileNameTaken": "A file or folder with that name already exists",
+  "@fileOperationFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "appTitle": "MarkText Plus",
   "menuFile": "File",
   "menuEdit": "Edit",
@@ -18,6 +89,7 @@
   "fileExport": "Export",
   "fileExportHtml": "HTML",
   "fileExportPdf": "PDF",
+  "filePrint": "Print",
   "fileExportWord": "Word (.docx)",
   "fileSettings": "Settings",
   "fileQuit": "Quit",
@@ -46,7 +118,13 @@
   "formatItalic": "Italic",
   "formatStrikethrough": "Strikethrough",
   "formatHeading": "Heading {level}",
-  "@formatHeading": { "placeholders": { "level": { "type": "int" } } },
+  "@formatHeading": {
+    "placeholders": {
+      "level": {
+        "type": "int"
+      }
+    }
+  },
   "formatOrderedList": "Ordered List",
   "formatUnorderedList": "Unordered List",
   "formatTaskList": "Task List",
@@ -80,7 +158,16 @@
   "settingsEnableHtml": "Enable HTML",
   "settingsResetDefaults": "Reset to Defaults",
   "statusLine": "Ln {line}, Col {col}",
-  "@statusLine": { "placeholders": { "line": { "type": "int" }, "col": { "type": "int" } } },
+  "@statusLine": {
+    "placeholders": {
+      "line": {
+        "type": "int"
+      },
+      "col": {
+        "type": "int"
+      }
+    }
+  },
   "statusEncoding": "UTF-8",
   "statusMarkdown": "Markdown",
   "unsavedChanges": "Unsaved Changes",
@@ -101,13 +188,18 @@
   "settingsLightThemes": "Light Themes",
   "settingsDarkThemes": "Dark Themes",
   "confirmResetMessage": "Are you sure you want to reset all settings to defaults?",
-  "comingSoon": "Coming soon",
   "noFiles": "No files",
   "noOpenFolder": "Open a folder to browse files",
   "searchPlaceholder": "Search in files...",
   "searchNoResults": "No results found",
   "searchResultCount": "{count} results found",
-  "@searchResultCount": { "placeholders": { "count": { "type": "int" } } },
+  "@searchResultCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "tocEmpty": "No headings found",
   "editFindNext": "Find Next",
   "editFindPrevious": "Find Previous",
@@ -117,10 +209,16 @@
   "editRegex": "Regular Expression",
   "editCopyAsMarkdown": "Copy as Markdown",
   "editCopyAsHtml": "Copy as HTML",
-  "previewCopyAsHtmlTooltip": "Copy as HTML (for Word/WPS)",
-  "previewCopyAsHtmlSuccess": "Copied as HTML. You can now paste into Word/WPS with formatting.",
   "editSelectAll": "Select All",
   "editDuplicateLine": "Duplicate Line",
+  "editCreateParagraph": "Create Paragraph Below",
+  "@editCreateParagraph": {
+    "description": "Edit menu item that opens an empty paragraph below the current block"
+  },
+  "editDeleteParagraph": "Delete Paragraph",
+  "@editDeleteParagraph": {
+    "description": "Edit menu item that removes the block the caret is in"
+  },
   "formatUnderline": "Underline",
   "formatSuperscript": "Superscript",
   "formatSubscript": "Subscript",
@@ -129,6 +227,11 @@
   "formatInlineMath": "Inline Math",
   "formatClearFormatting": "Clear Formatting",
   "settingsCodeFontFamily": "Code Font Family",
+  "settingsCodeFontSize": "Code Font Size",
+  "settingsEditorFontFamily": "Editor Font Family",
+  "@settingsEditorFontFamily": {
+    "description": "Settings row for the font the editor's body text is drawn in"
+  },
   "settingsEditorMaxWidth": "Editor Max Width",
   "settingsTextDirection": "Text Direction",
   "keybindingsEdit": "Edit Keybinding",
@@ -137,11 +240,6 @@
   "statusWords": "Words",
   "statusChars": "Chars",
   "statusParagraphs": "Paragraphs",
-  "themeCadmiumLight": "Cadmium Light",
-  "themeOneDark": "One Dark",
-  "themeMaterialDark": "Material Dark",
-  "themeGraphiteLight": "Graphite Light",
-  "themeUlyssesLight": "Ulysses Light",
   "themeRedGraphite": "Red Graphite",
   "themeShibuya": "Shibuya",
   "themePinkBlossom": "Pink Blossom",
@@ -185,7 +283,13 @@
   "copyFilePath": "Copy File Path",
   "deleteFile": "Delete File",
   "confirmDeleteFile": "Are you sure you want to delete \"{fileName}\"?",
-  "@confirmDeleteFile": { "placeholders": { "fileName": { "type": "String" } } },
+  "@confirmDeleteFile": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
   "newFolder": "New Folder",
   "rename": "Rename",
   "delete": "Delete",
@@ -210,9 +314,21 @@
   "settingsTextDirectionLtr": "LTR",
   "settingsTextDirectionRtl": "RTL",
   "commandFormatLabel": "Format: {action}",
-  "@commandFormatLabel": { "placeholders": { "action": { "type": "String" } } },
+  "@commandFormatLabel": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
   "commandFormatDesc": "Apply {action} formatting",
-  "@commandFormatDesc": { "placeholders": { "action": { "type": "String" } } },
+  "@commandFormatDesc": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
   "commandNewFile": "New File",
   "commandNewFileDesc": "Create a new untitled file",
   "commandSave": "Save",
@@ -231,19 +347,103 @@
   "commandToggleSidebarDesc": "Show or hide the sidebar",
   "commandToggleTabBar": "Toggle Tab Bar",
   "commandToggleTabBarDesc": "Show or hide the tab bar",
-
   "welcomeNewFile": "New File",
   "welcomeOpenFile": "Open File",
   "welcomeDragHint": "Drop files here to open",
-
   "fileOpenBehavior": "File Opening Behavior",
-  "fileOpenBehaviorTitle": "How to Open Files?",
-  "fileOpenBehaviorMessage": "When you double-click a file while the app is already running:",
   "fileOpenBehaviorNewWindow": "Open in New Window",
-  "fileOpenBehaviorNewWindowDesc": "Allow multiple app instances",
   "fileOpenBehaviorExistingWindow": "Open in Current Window",
-  "fileOpenBehaviorExistingWindowDesc": "Add to existing tabs (single instance)",
   "fileOpenBehaviorNotSet": "Not configured",
   "updateAvailable": "New version available",
-  "updateDismiss": "Dismiss"
+  "updateDismiss": "Dismiss",
+  "mermaidFullscreen": "Fullscreen",
+  "mermaidSaveAs": "Save As",
+  "mermaidCopySource": "Copy Source",
+  "mermaidEditSource": "Edit Source",
+  "@mermaidEditSource": {
+    "description": "Toolbar button that opens a diagram's markdown source for editing"
+  },
+  "mermaidFullscreenHint": "Double-tap the diagram to view fullscreen",
+  "mermaidSaveAsHint": "Save the diagram as PNG",
+  "menuParagraph": "Paragraph",
+  "paragraphPromoteHeading": "Promote Heading",
+  "paragraphDemoteHeading": "Demote Heading",
+  "paragraphToParagraph": "Convert to Paragraph",
+  "paragraphLooseList": "Loose List Item",
+  "@paragraphLooseList": {
+    "description": "Paragraph menu item that spaces a list's items apart or runs them together"
+  },
+  "close": "Close",
+  "@close": {
+    "description": "Generic label for a button that closes a dialog"
+  },
+  "mermaidViewerTitle": "Mermaid Diagram Viewer",
+  "@mermaidViewerTitle": {
+    "description": "Title of the fullscreen Mermaid diagram dialog"
+  },
+  "mermaidViewerHint": "Ctrl+Scroll to zoom    Drag to pan    Esc to close",
+  "@mermaidViewerHint": {
+    "description": "Hint line listing the fullscreen diagram viewer gestures"
+  },
+  "statusHighlightOff": "Syntax highlighting off (large file)",
+  "@statusHighlightOff": {
+    "description": "Status bar note shown when a document is too large to highlight"
+  },
+  "settingsImageStorage": "Where to put dropped images",
+  "@settingsImageStorage": {
+    "description": "Setting that chooses where a dropped or pasted image is stored"
+  },
+  "settingsImageStorageCopy": "Beside the document",
+  "@settingsImageStorageCopy": {
+    "description": "Image storage option: copy next to the markdown file"
+  },
+  "settingsImageStorageFolder": "In one shared folder",
+  "@settingsImageStorageFolder": {
+    "description": "Image storage option: copy into one configured folder"
+  },
+  "settingsImageStorageLink": "Link where they are",
+  "@settingsImageStorageLink": {
+    "description": "Image storage option: reference the file in place"
+  },
+  "settingsImageFolder": "Image folder",
+  "@settingsImageFolder": {
+    "description": "Setting for the folder used by the shared-folder image option"
+  },
+  "fileCloseTab": "Close Tab",
+  "@fileCloseTab": {
+    "description": "File menu item that closes the active tab"
+  },
+  "fileClearRecentFiles": "Clear Recent Files",
+  "@fileClearRecentFiles": {
+    "description": "Menu item that empties the recent files list"
+  },
+  "viewCommandPalette": "Command Palette",
+  "viewReloadImages": "Reload Images",
+  "@viewReloadImages": {
+    "description": "View menu item that drops cached images so pictures edited outside the app are read from disk again"
+  },
+  "@viewCommandPalette": {
+    "description": "View menu item that opens the command palette"
+  },
+  "formatFrontMatter": "Front Matter",
+  "@formatFrontMatter": {
+    "description": "Paragraph menu item that inserts a YAML front matter block"
+  },
+  "formatHtmlBlock": "HTML Block",
+  "@formatHtmlBlock": {
+    "description": "Paragraph menu item that inserts an HTML block"
+  },
+  "updateUpToDate": "You are on the latest version",
+  "@updateUpToDate": {
+    "description": "Shown when a manual update check finds nothing newer"
+  },
+  "updateCheckFailed": "Could not check for updates",
+  "@updateCheckFailed": {
+    "description": "Shown when a manual update check could not reach the server"
+  },
+  "linkOpenFailed": "Could not open the link",
+  "recentFileMissing": "That file is no longer there; it has been removed from the list",
+  "@linkOpenFailed": {
+    "description": "Shown when a link in the preview cannot be opened"
+  }
 }

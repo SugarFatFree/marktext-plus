@@ -1,5 +1,76 @@
 {
   "@@locale": "ko",
+  "settingsWrapCodeBlocks": "코드 블록의 긴 줄 줄바꿈",
+  "settingsCodeBlockLineNumbers": "코드 블록 줄 번호",
+  "settingsSaveFailed": "설정을 저장하지 못했습니다: {message}",
+  "@settingsSaveFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsFollowSystemTheme": "시스템 밝기 설정 따르기",
+  "settingsFollowSystemThemeHint": "밝은 테마와 어두운 테마를 하나씩 고르면 어느 쪽을 보여줄지는 시스템이 정합니다.",
+  "settingsAutoPairBracket": "괄호 자동 닫기",
+  "settingsAutoPairQuote": "따옴표 자동 닫기",
+  "settingsAutoPairMarkdown": "Markdown 구문 자동 닫기(`, *, ~)",
+  "helpOpenDiagnosticLog": "진단 로그 열기",
+  "diagnosticLogMissing": "아직 진단 로그가 기록되지 않았습니다",
+  "mermaidCaptureFailed": "다이어그램을 캡처하지 못했습니다",
+  "mermaidErrorEmpty": "다이어그램이 비어 있습니다.",
+  "mermaidErrorUnknownType": "인식할 수 없는 다이어그램 유형: '{type}'.",
+  "@mermaidErrorUnknownType": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "mermaidErrorHeaderOnly": "이 다이어그램에는 헤더만 있고 내용이 없습니다.",
+  "mermaidErrorBadBody": "헤더는 인식되었습니다. 그 아래 구문을 확인하세요.",
+  "mermaidSupportedTypes": "지원되는 유형: {list}",
+  "@mermaidSupportedTypes": {
+    "placeholders": {
+      "list": {
+        "type": "String"
+      }
+    }
+  },
+  "mermaidParseError": "Mermaid 구문 분석 오류",
+  "imageSavedTo": "{path}에 저장했습니다",
+  "@imageSavedTo": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "imageSaveFailed": "이미지를 저장하지 못했습니다: {message}",
+  "@imageSaveFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "saveFailed": "파일을 저장하지 못했습니다: {message}",
+  "@saveFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "fileOperationFailed": "파일 작업에 실패했습니다: {message}",
+  "fileNameTaken": "같은 이름의 파일 또는 폴더가 이미 있습니다",
+  "@fileOperationFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "appTitle": "MarkText Plus",
   "menuFile": "파일",
   "menuEdit": "편집",
@@ -13,11 +84,12 @@
   "fileOpenFolder": "폴더 열기",
   "fileSave": "저장",
   "fileSaveAs": "다른 이름으로 저장",
-  "fileRecentFiles": "Recent Files",
-  "fileNoRecentFiles": "No Recent Files",
+  "fileRecentFiles": "최근 파일",
+  "fileNoRecentFiles": "최근 파일 없음",
   "fileExport": "내보내기",
   "fileExportHtml": "HTML",
   "fileExportPdf": "PDF",
+  "filePrint": "인쇄",
   "fileExportWord": "Word (.docx)",
   "fileSettings": "설정",
   "fileQuit": "종료",
@@ -99,7 +171,6 @@
   "settingsLightThemes": "라이트 테마",
   "settingsDarkThemes": "다크 테마",
   "confirmResetMessage": "모든 설정을 기본값으로 되돌리시겠습니까?",
-  "comingSoon": "곧 출시",
   "noFiles": "파일 없음",
   "noOpenFolder": "폴더를 열어 파일 탐색",
   "searchPlaceholder": "파일에서 검색...",
@@ -116,6 +187,8 @@
   "editCopyAsHtml": "HTML로 복사",
   "editSelectAll": "모두 선택",
   "editDuplicateLine": "줄 복제",
+  "editCreateParagraph": "아래에 단락 만들기",
+  "editDeleteParagraph": "단락 삭제",
   "formatUnderline": "밑줄",
   "formatSuperscript": "위 첨자",
   "formatSubscript": "아래 첨자",
@@ -124,6 +197,8 @@
   "formatInlineMath": "인라인 수식",
   "formatClearFormatting": "서식 지우기",
   "settingsCodeFontFamily": "코드 글꼴",
+  "settingsCodeFontSize": "코드 글꼴 크기",
+  "settingsEditorFontFamily": "본문 글꼴",
   "settingsEditorMaxWidth": "편집기 최대 너비",
   "settingsTextDirection": "텍스트 방향",
   "keybindingsEdit": "키 바인딩 편집",
@@ -132,11 +207,6 @@
   "statusWords": "단어",
   "statusChars": "문자",
   "statusParagraphs": "단락",
-  "themeCadmiumLight": "카드뮴 라이트",
-  "themeOneDark": "One Dark",
-  "themeMaterialDark": "Material 다크",
-  "themeGraphiteLight": "그래파이트 라이트",
-  "themeUlyssesLight": "Ulysses 라이트",
   "themeRedGraphite": "레드 그래파이트",
   "themeShibuya": "시부야",
   "themePinkBlossom": "핑크 블로썸",
@@ -180,7 +250,13 @@
   "copyFilePath": "파일 경로 복사",
   "deleteFile": "파일 삭제",
   "confirmDeleteFile": "\"{fileName}\"을(를) 삭제하시겠습니까?",
-  "@confirmDeleteFile": { "placeholders": { "fileName": { "type": "String" } } },
+  "@confirmDeleteFile": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
   "newFolder": "새 폴더",
   "rename": "이름 변경",
   "delete": "삭제",
@@ -205,9 +281,21 @@
   "settingsTextDirectionLtr": "왼쪽에서 오른쪽",
   "settingsTextDirectionRtl": "오른쪽에서 왼쪽",
   "commandFormatLabel": "서식: {action}",
-  "@commandFormatLabel": { "placeholders": { "action": { "type": "String" } } },
+  "@commandFormatLabel": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
   "commandFormatDesc": "{action} 서식 적용",
-  "@commandFormatDesc": { "placeholders": { "action": { "type": "String" } } },
+  "@commandFormatDesc": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
   "commandNewFile": "새 파일",
   "commandNewFileDesc": "새 제목 없는 파일 만들기",
   "commandSave": "저장",
@@ -226,8 +314,43 @@
   "commandToggleSidebarDesc": "사이드바 표시/숨기기",
   "commandToggleTabBar": "탭 바 전환",
   "commandToggleTabBarDesc": "탭 바 표시/숨기기",
-
   "welcomeNewFile": "새 파일",
   "welcomeOpenFile": "파일 열기",
-  "welcomeDragHint": "파일을 여기에 드롭하여 열기"
+  "welcomeDragHint": "파일을 여기에 드롭하여 열기",
+  "mermaidFullscreen": "전체 화면",
+  "mermaidSaveAs": "다른 이름으로 저장",
+  "mermaidCopySource": "소스 복사",
+  "mermaidEditSource": "소스 편집",
+  "mermaidFullscreenHint": "다이어그램을 두 번 탭하면 전체 화면으로 표시됩니다",
+  "mermaidSaveAsHint": "다이어그램을 PNG로 저장",
+  "menuParagraph": "단락",
+  "paragraphPromoteHeading": "제목 수준 올리기",
+  "paragraphDemoteHeading": "제목 수준 내리기",
+  "paragraphToParagraph": "단락으로 변환",
+  "paragraphLooseList": "느슨한 목록 항목",
+  "close": "닫기",
+  "mermaidViewerTitle": "Mermaid 다이어그램 뷰어",
+  "mermaidViewerHint": "Ctrl+스크롤로 확대/축소    드래그로 이동    Esc로 닫기",
+  "statusHighlightOff": "큰 파일이라 구문 강조를 껐습니다",
+  "settingsImageStorage": "끌어다 놓은 이미지 저장 위치",
+  "settingsImageStorageCopy": "문서 옆에 복사",
+  "settingsImageStorageFolder": "공용 폴더 한 곳에",
+  "settingsImageStorageLink": "복사하지 않고 원래 위치 참조",
+  "settingsImageFolder": "이미지 폴더",
+  "fileCloseTab": "탭 닫기",
+  "fileClearRecentFiles": "최근 파일 지우기",
+  "viewCommandPalette": "명령 팔레트",
+  "viewReloadImages": "이미지 다시 불러오기",
+  "formatFrontMatter": "프런트 매터",
+  "formatHtmlBlock": "HTML 블록",
+  "updateUpToDate": "최신 버전입니다",
+  "updateCheckFailed": "업데이트를 확인하지 못했습니다",
+  "fileOpenBehavior": "파일 열기 동작",
+  "fileOpenBehaviorExistingWindow": "현재 창에서 열기",
+  "fileOpenBehaviorNewWindow": "새 창에서 열기",
+  "fileOpenBehaviorNotSet": "설정되지 않음",
+  "updateAvailable": "새 버전이 있습니다",
+  "updateDismiss": "닫기",
+  "linkOpenFailed": "링크를 열 수 없습니다",
+  "recentFileMissing": "해당 파일이 없습니다. 목록에서 제거했습니다"
 }

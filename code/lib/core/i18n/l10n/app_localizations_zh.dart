@@ -9,6 +9,86 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
+  String get settingsWrapCodeBlocks => '代码块内长行自动换行';
+
+  @override
+  String get settingsCodeBlockLineNumbers => '代码块行号';
+
+  @override
+  String settingsSaveFailed(String message) {
+    return '设置保存失败：$message';
+  }
+
+  @override
+  String get settingsFollowSystemTheme => '跟随系统深浅色';
+
+  @override
+  String get settingsFollowSystemThemeHint => '分别选一个浅色主题和一个深色主题，由系统决定显示哪个。';
+
+  @override
+  String get settingsAutoPairBracket => '自动补全括号';
+
+  @override
+  String get settingsAutoPairQuote => '自动补全引号';
+
+  @override
+  String get settingsAutoPairMarkdown => '自动补全 Markdown 语法（`、*、~）';
+
+  @override
+  String get helpOpenDiagnosticLog => '打开诊断日志';
+
+  @override
+  String get diagnosticLogMissing => '还没有写出诊断日志';
+
+  @override
+  String get mermaidCaptureFailed => '无法截取图表';
+
+  @override
+  String get mermaidErrorEmpty => '图表是空的。';
+
+  @override
+  String mermaidErrorUnknownType(String type) {
+    return '无法识别的图表类型：“$type”。';
+  }
+
+  @override
+  String get mermaidErrorHeaderOnly => '这个图表只有表头，没有内容。';
+
+  @override
+  String get mermaidErrorBadBody => '表头是认得的，请检查下面的语法。';
+
+  @override
+  String mermaidSupportedTypes(String list) {
+    return '支持的类型：$list';
+  }
+
+  @override
+  String get mermaidParseError => 'Mermaid 解析错误';
+
+  @override
+  String imageSavedTo(String path) {
+    return '已保存到 $path';
+  }
+
+  @override
+  String imageSaveFailed(String message) {
+    return '图片保存失败：$message';
+  }
+
+  @override
+  String saveFailed(String message) {
+    return '保存失败：$message';
+  }
+
+  @override
+  String fileOperationFailed(String message) {
+    return '文件操作失败：$message';
+  }
+
+  @override
+  String get fileNameTaken => '已存在同名的文件或文件夹';
+
+  @override
   String get appTitle => 'MarkText Plus';
 
   @override
@@ -61,6 +141,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get fileExportPdf => 'PDF';
+
+  @override
+  String get filePrint => '打印';
 
   @override
   String get fileExportWord => 'Word (.docx)';
@@ -310,9 +393,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get confirmResetMessage => '确定要恢复所有设置为默认值吗？';
 
   @override
-  String get comingSoon => '即将推出';
-
-  @override
   String get noFiles => '没有文件';
 
   @override
@@ -357,16 +437,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get editCopyAsHtml => '复制为 HTML';
 
   @override
-  String get previewCopyAsHtmlTooltip => '复制为 HTML（用于 Word/WPS）';
-
-  @override
-  String get previewCopyAsHtmlSuccess => '已复制为 HTML 格式，现在可以粘贴到 Word/WPS 并保留格式。';
-
-  @override
   String get editSelectAll => '全选';
 
   @override
   String get editDuplicateLine => '复制行';
+
+  @override
+  String get editCreateParagraph => '在下方插入段落';
+
+  @override
+  String get editDeleteParagraph => '删除当前段落';
 
   @override
   String get formatUnderline => '下划线';
@@ -393,6 +473,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsCodeFontFamily => '代码字体';
 
   @override
+  String get settingsCodeFontSize => '代码字体大小';
+
+  @override
+  String get settingsEditorFontFamily => '正文字体';
+
+  @override
   String get settingsEditorMaxWidth => '编辑器最大宽度';
 
   @override
@@ -415,21 +501,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get statusParagraphs => '段落';
-
-  @override
-  String get themeCadmiumLight => '镉黄浅色';
-
-  @override
-  String get themeOneDark => 'One Dark';
-
-  @override
-  String get themeMaterialDark => 'Material 深色';
-
-  @override
-  String get themeGraphiteLight => '石墨浅色';
-
-  @override
-  String get themeUlyssesLight => 'Ulysses 浅色';
 
   @override
   String get themeRedGraphite => '红石墨';
@@ -708,22 +779,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get fileOpenBehavior => '文件打开行为';
 
   @override
-  String get fileOpenBehaviorTitle => '如何打开文件？';
-
-  @override
-  String get fileOpenBehaviorMessage => '当应用已运行时，双击文件：';
-
-  @override
   String get fileOpenBehaviorNewWindow => '在新窗口打开';
 
   @override
-  String get fileOpenBehaviorNewWindowDesc => '允许多个应用实例';
-
-  @override
   String get fileOpenBehaviorExistingWindow => '在当前窗口打开';
-
-  @override
-  String get fileOpenBehaviorExistingWindowDesc => '添加到现有标签页（单实例）';
 
   @override
   String get fileOpenBehaviorNotSet => '未配置';
@@ -733,4 +792,94 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get updateDismiss => '忽略';
+
+  @override
+  String get mermaidFullscreen => '全屏';
+
+  @override
+  String get mermaidSaveAs => '另存为';
+
+  @override
+  String get mermaidCopySource => '复制源码';
+
+  @override
+  String get mermaidEditSource => '编辑源码';
+
+  @override
+  String get mermaidFullscreenHint => '双击图表全屏查看';
+
+  @override
+  String get mermaidSaveAsHint => '保存图表为 PNG';
+
+  @override
+  String get menuParagraph => '段落';
+
+  @override
+  String get paragraphPromoteHeading => '提升标题';
+
+  @override
+  String get paragraphDemoteHeading => '降低标题';
+
+  @override
+  String get paragraphToParagraph => '转为段落';
+
+  @override
+  String get paragraphLooseList => '松散列表项';
+
+  @override
+  String get close => '关闭';
+
+  @override
+  String get mermaidViewerTitle => 'Mermaid 图表查看';
+
+  @override
+  String get mermaidViewerHint => 'Ctrl+滚轮缩放    拖动平移    Esc 关闭';
+
+  @override
+  String get statusHighlightOff => '大文件已关闭语法高亮';
+
+  @override
+  String get settingsImageStorage => '拖入的图片保存位置';
+
+  @override
+  String get settingsImageStorageCopy => '复制到文档旁边';
+
+  @override
+  String get settingsImageStorageFolder => '统一放到一个文件夹';
+
+  @override
+  String get settingsImageStorageLink => '不复制，直接引用原位置';
+
+  @override
+  String get settingsImageFolder => '图片文件夹';
+
+  @override
+  String get fileCloseTab => '关闭标签页';
+
+  @override
+  String get fileClearRecentFiles => '清空最近文件';
+
+  @override
+  String get viewCommandPalette => '命令面板';
+
+  @override
+  String get viewReloadImages => '重新加载图片';
+
+  @override
+  String get formatFrontMatter => '前置元数据';
+
+  @override
+  String get formatHtmlBlock => 'HTML 块';
+
+  @override
+  String get updateUpToDate => '已经是最新版本';
+
+  @override
+  String get updateCheckFailed => '检查更新失败';
+
+  @override
+  String get linkOpenFailed => '无法打开链接';
+
+  @override
+  String get recentFileMissing => '该文件已不存在，已从列表中移除';
 }

@@ -34,13 +34,20 @@ enum FormatAction {
   copyAsHtml,
   selectAll,
   duplicateLine,
+  promoteHeading,
+  demoteHeading,
+  toParagraph,
+  frontMatter,
+  htmlBlock,
+  looseList,
+  createParagraph,
+  deleteParagraph,
 }
 
 class EditorState {
   final int cursorLine;
   final int cursorCol;
   final double scrollOffset;
-  final String selectedText;
   final FormatAction? pendingFormat;
   final bool canUndo;
   final bool canRedo;
@@ -53,11 +60,28 @@ class EditorState {
   final bool previewSearchUseRegex;
   final int previewCurrentMatchIndex;
 
+  /// Bumped each time the user asks to step to another search match.
+  ///
+  /// A counter rather than a flag: two consecutive "next" requests have to be
+  /// distinguishable, and the find bar owns the match list so it is the one
+  /// that has to act on this.
+  final int findStepRequest;
+
+  /// Bumped when the user asks for images to be read from disk again.
+  ///
+  /// Flutter caches a decoded image against its file path, so a picture edited
+  /// outside the app keeps showing the old bitmap. The renderer folds this
+  /// into each image's key, which is what makes the widget resolve afresh
+  /// after the cache is emptied.
+  final int imageRevision;
+
+  /// Which way the last [findStepRequest] wants to go.
+  final bool findStepForward;
+
   const EditorState({
     this.cursorLine = 0,
     this.cursorCol = 0,
     this.scrollOffset = 0.0,
-    this.selectedText = '',
     this.pendingFormat,
     this.canUndo = false,
     this.canRedo = false,
@@ -69,13 +93,15 @@ class EditorState {
     this.previewSearchWholeWord = false,
     this.previewSearchUseRegex = false,
     this.previewCurrentMatchIndex = -1,
+    this.findStepRequest = 0,
+    this.imageRevision = 0,
+    this.findStepForward = true,
   });
 
   EditorState copyWith({
     int? cursorLine,
     int? cursorCol,
     double? scrollOffset,
-    String? selectedText,
     FormatAction? pendingFormat,
     bool clearFormat = false,
     bool? canUndo,
@@ -89,12 +115,14 @@ class EditorState {
     bool? previewSearchWholeWord,
     bool? previewSearchUseRegex,
     int? previewCurrentMatchIndex,
+    int? findStepRequest,
+    int? imageRevision,
+    bool? findStepForward,
   }) {
     return EditorState(
       cursorLine: cursorLine ?? this.cursorLine,
       cursorCol: cursorCol ?? this.cursorCol,
       scrollOffset: scrollOffset ?? this.scrollOffset,
-      selectedText: selectedText ?? this.selectedText,
       pendingFormat: clearFormat ? null : (pendingFormat ?? this.pendingFormat),
       canUndo: canUndo ?? this.canUndo,
       canRedo: canRedo ?? this.canRedo,
@@ -106,6 +134,9 @@ class EditorState {
       previewSearchWholeWord: previewSearchWholeWord ?? this.previewSearchWholeWord,
       previewSearchUseRegex: previewSearchUseRegex ?? this.previewSearchUseRegex,
       previewCurrentMatchIndex: previewCurrentMatchIndex ?? this.previewCurrentMatchIndex,
+      findStepRequest: findStepRequest ?? this.findStepRequest,
+      imageRevision: imageRevision ?? this.imageRevision,
+      findStepForward: findStepForward ?? this.findStepForward,
     );
   }
 }
@@ -113,8 +144,65 @@ class EditorState {
 class EditorNotifier extends StateNotifier<EditorState> {
   EditorNotifier() : super(const EditorState());
 
-  final List<String> _undoStack = [];
-  final List<String> _redoStack = [];
+  /// One recorded state of the document, and where the caret was in it.
+  ///
+  /// Undo used to restore the text alone and drop the caret at the very end.
+  /// In a long document that means every undo throws the reader to the bottom
+  /// of the file, away from the edit they were undoing — which makes a working
+  /// undo tiring to use.
+  /// Undo history, kept per tab.
+  ///
+  /// A single shared stack meant switching tabs carried the previous file's
+  /// history along: pressing undo in one document could replace it with a
+  /// snapshot of another.
+  final Map<String, List<_Snapshot>> _undoStacks = {};
+  final Map<String, List<_Snapshot>> _redoStacks = {};
+  String _historyKey = '';
+
+  /// Snapshots kept per tab.
+  ///
+  /// Each entry is a whole copy of the document, pushed on a 300ms debounce,
+  /// so an unbounded stack would grow without limit over a long session.
+  static const _maxHistory = 200;
+
+  List<_Snapshot> get _undoStack =>
+      _undoStacks.putIfAbsent(_historyKey, () => []);
+  List<_Snapshot> get _redoStack =>
+      _redoStacks.putIfAbsent(_historyKey, () => []);
+
+  /// Where the caret is now, for the snapshot about to be taken.
+  int get _caret {
+    final selection = _controller?.selection;
+    if (selection == null || !selection.isValid) return 0;
+    return selection.baseOffset;
+  }
+
+  /// Puts [snapshot] back on screen, caret and all.
+  void _restore(_Snapshot snapshot) {
+    final controller = _controller;
+    if (controller == null) return;
+    controller.value = TextEditingValue(
+      text: snapshot.text,
+      selection: TextSelection.collapsed(
+        // The document this snapshot came from may be shorter than the one on
+        // screen, and an offset past its end is not a position at all.
+        offset: snapshot.caret.clamp(0, snapshot.text.length),
+      ),
+    );
+  }
+
+  /// Points history at [tabId]; call before the editor for that tab is used.
+  void setHistoryTab(String tabId) {
+    if (_historyKey == tabId) return;
+    _historyKey = tabId;
+    _updateUndoRedoState();
+  }
+
+  /// Drops a closed tab's history so it does not accumulate.
+  void forgetHistory(String tabId) {
+    _undoStacks.remove(tabId);
+    _redoStacks.remove(tabId);
+  }
   TextEditingController? _controller;
   ScrollController? _editorScrollController;
   double _editorTextFieldWidth = 0;
@@ -125,8 +213,29 @@ class EditorNotifier extends StateNotifier<EditorState> {
     _controller = controller;
   }
 
+  /// Drops [controller] if it is still the registered one.
+  ///
+  /// The editor that owns it disposes it, and a stale pointer here is worse
+  /// than none: the find bar treats a non-null controller as "there is a
+  /// source editor on screen", so in preview mode it would attach to a
+  /// disposed controller and search a snapshot frozen at the moment the
+  /// source editor went away.
+  ///
+  /// The identity check matters because the replacement editor registers
+  /// itself before the outgoing one is disposed.
+  void clearController(TextEditingController controller) {
+    if (identical(_controller, controller)) _controller = null;
+  }
+
   void setEditorScrollController(ScrollController controller) {
     _editorScrollController = controller;
+  }
+
+  /// Drops [controller] if it is still the registered one.
+  void clearEditorScrollController(ScrollController controller) {
+    if (identical(_editorScrollController, controller)) {
+      _editorScrollController = null;
+    }
   }
 
   /// Store the actual width available for text rendering inside the TextField.
@@ -199,10 +308,6 @@ class EditorNotifier extends StateNotifier<EditorState> {
     state = state.copyWith(scrollOffset: offset);
   }
 
-  void updateSelection(String text) {
-    state = state.copyWith(selectedText: text);
-  }
-
   void applyFormat(FormatAction action) {
     state = state.copyWith(pendingFormat: action);
   }
@@ -212,27 +317,50 @@ class EditorNotifier extends StateNotifier<EditorState> {
   }
 
   void pushHistory(String content) {
-    if (_undoStack.isEmpty || _undoStack.last != content) {
-      _undoStack.add(content);
-      _redoStack.clear();
-      _updateUndoRedoState();
+    final stack = _undoStack;
+    if (stack.isNotEmpty && stack.last.text == content) return;
+
+    stack.add((text: content, caret: _caret));
+    if (stack.length > _maxHistory) {
+      // Oldest first: the recent past is what undo is for.
+      stack.removeRange(0, stack.length - _maxHistory);
     }
+    _redoStack.clear();
+    _updateUndoRedoState();
   }
 
   void undo() {
-    if (_undoStack.isEmpty || _controller == null) return;
+    final controller = _controller;
+    if (controller == null || _undoStack.isEmpty) return;
 
-    final current = _controller!.text;
-    _redoStack.add(current);
-
-    _undoStack.removeLast();
-    if (_undoStack.isNotEmpty) {
-      final previous = _undoStack.last;
-      _controller!.value = TextEditingValue(
-        text: previous,
-        selection: TextSelection.collapsed(offset: previous.length),
-      );
+    final current = controller.text;
+    // Snapshots are taken on a 300 ms debounce, so the edit the reader just
+    // made is usually not on the stack yet. Undo assumed it was, and the two
+    // ways that went wrong were both silent:
+    //
+    // * with one entry on the stack, undo popped it, found nothing to put
+    //   back, and left the text alone — the key did nothing at all;
+    // * with more, it popped the *previous* state and applied the one before
+    //   that, so a single press stepped back twice and took away an edit the
+    //   reader had not asked to lose.
+    //
+    // Added straight to the stack rather than through pushHistory, which
+    // clears the redo stack — the one thing undo must not do.
+    if (_undoStack.last.text != current) {
+      _undoStack.add((text: current, caret: _caret));
+      if (_undoStack.length > _maxHistory) {
+        _undoStack.removeRange(0, _undoStack.length - _maxHistory);
+      }
     }
+
+    // Only the current state is left; there is nowhere to go back to.
+    if (_undoStack.length < 2) {
+      _updateUndoRedoState();
+      return;
+    }
+
+    _redoStack.add(_undoStack.removeLast());
+    _restore(_undoStack.last);
 
     _updateUndoRedoState();
   }
@@ -242,11 +370,7 @@ class EditorNotifier extends StateNotifier<EditorState> {
 
     final next = _redoStack.removeLast();
     _undoStack.add(next);
-
-    _controller!.value = TextEditingValue(
-      text: next,
-      selection: TextSelection.collapsed(offset: next.length),
-    );
+    _restore(next);
 
     _updateUndoRedoState();
   }
@@ -255,6 +379,18 @@ class EditorNotifier extends StateNotifier<EditorState> {
     state = state.copyWith(
       canUndo: _undoStack.length > 1,
       canRedo: _redoStack.isNotEmpty,
+    );
+  }
+
+  /// Asks the find bar to move to the next or previous match.
+  ///
+  /// Opens the bar first when it is closed, so the shortcut works without
+  /// having to press Ctrl+F beforehand.
+  void stepToFindMatch({required bool forward}) {
+    state = state.copyWith(
+      showFindReplace: true,
+      findStepRequest: state.findStepRequest + 1,
+      findStepForward: forward,
     );
   }
 
@@ -268,6 +404,18 @@ class EditorNotifier extends StateNotifier<EditorState> {
 
   void scrollToLine(int line) {
     state = state.copyWith(targetScrollLine: line);
+  }
+
+  /// Drops every decoded image and asks the preview to read them again.
+  ///
+  /// Emptying the cache alone is not enough: a picture already on screen is
+  /// held live, and the widget showing it would not resolve again. Bumping the
+  /// revision changes each image's key, which is what forces that.
+  void reloadImages() {
+    PaintingBinding.instance.imageCache
+      ..clear()
+      ..clearLiveImages();
+    state = state.copyWith(imageRevision: state.imageRevision + 1);
   }
 
   void clearScrollTarget() {
@@ -305,3 +453,5 @@ class EditorNotifier extends StateNotifier<EditorState> {
 final editorProvider = StateNotifierProvider<EditorNotifier, EditorState>((ref) {
   return EditorNotifier();
 });
+
+typedef _Snapshot = ({String text, int caret});

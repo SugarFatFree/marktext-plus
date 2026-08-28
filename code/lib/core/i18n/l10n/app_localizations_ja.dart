@@ -9,6 +9,87 @@ class AppLocalizationsJa extends AppLocalizations {
   AppLocalizationsJa([String locale = 'ja']) : super(locale);
 
   @override
+  String get settingsWrapCodeBlocks => 'コードブロック内の長い行を折り返す';
+
+  @override
+  String get settingsCodeBlockLineNumbers => 'コードブロックの行番号';
+
+  @override
+  String settingsSaveFailed(String message) {
+    return '設定を保存できませんでした: $message';
+  }
+
+  @override
+  String get settingsFollowSystemTheme => 'システムのライト/ダーク設定に従う';
+
+  @override
+  String get settingsFollowSystemThemeHint =>
+      'ライトとダークのテーマをそれぞれ選ぶと、どちらを表示するかはシステムが決めます。';
+
+  @override
+  String get settingsAutoPairBracket => '括弧を自動で閉じる';
+
+  @override
+  String get settingsAutoPairQuote => '引用符を自動で閉じる';
+
+  @override
+  String get settingsAutoPairMarkdown => 'Markdown 記法を自動で閉じる（`、*、~）';
+
+  @override
+  String get helpOpenDiagnosticLog => '診断ログを開く';
+
+  @override
+  String get diagnosticLogMissing => '診断ログはまだ書き出されていません';
+
+  @override
+  String get mermaidCaptureFailed => '図をキャプチャできませんでした';
+
+  @override
+  String get mermaidErrorEmpty => '図が空です。';
+
+  @override
+  String mermaidErrorUnknownType(String type) {
+    return '認識できない図の種類: 「$type」。';
+  }
+
+  @override
+  String get mermaidErrorHeaderOnly => 'この図にはヘッダーだけがあり、内容がありません。';
+
+  @override
+  String get mermaidErrorBadBody => 'ヘッダーは認識できています。その下の構文を確認してください。';
+
+  @override
+  String mermaidSupportedTypes(String list) {
+    return '対応している種類: $list';
+  }
+
+  @override
+  String get mermaidParseError => 'Mermaid の解析エラー';
+
+  @override
+  String imageSavedTo(String path) {
+    return '$path に保存しました';
+  }
+
+  @override
+  String imageSaveFailed(String message) {
+    return '画像を保存できませんでした: $message';
+  }
+
+  @override
+  String saveFailed(String message) {
+    return 'ファイルを保存できませんでした: $message';
+  }
+
+  @override
+  String fileOperationFailed(String message) {
+    return 'ファイル操作に失敗しました: $message';
+  }
+
+  @override
+  String get fileNameTaken => '同じ名前のファイルまたはフォルダーが既にあります';
+
+  @override
   String get appTitle => 'MarkText Plus';
 
   @override
@@ -48,10 +129,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get fileSaveAs => '名前を付けて保存';
 
   @override
-  String get fileRecentFiles => 'Recent Files';
+  String get fileRecentFiles => '最近使用したファイル';
 
   @override
-  String get fileNoRecentFiles => 'No Recent Files';
+  String get fileNoRecentFiles => '最近使用したファイルはありません';
 
   @override
   String get fileExport => 'エクスポート';
@@ -61,6 +142,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get fileExportPdf => 'PDF';
+
+  @override
+  String get filePrint => '印刷';
 
   @override
   String get fileExportWord => 'Word (.docx)';
@@ -310,9 +394,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get confirmResetMessage => 'すべての設定をデフォルトに戻しますか？';
 
   @override
-  String get comingSoon => '近日公開';
-
-  @override
   String get noFiles => 'ファイルなし';
 
   @override
@@ -357,17 +438,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get editCopyAsHtml => 'HTMLとしてコピー';
 
   @override
-  String get previewCopyAsHtmlTooltip => 'Copy as HTML (for Word/WPS)';
-
-  @override
-  String get previewCopyAsHtmlSuccess =>
-      'Copied as HTML. You can now paste into Word/WPS with formatting.';
-
-  @override
   String get editSelectAll => 'すべて選択';
 
   @override
   String get editDuplicateLine => '行を複製';
+
+  @override
+  String get editCreateParagraph => '下に段落を作成';
+
+  @override
+  String get editDeleteParagraph => '段落を削除';
 
   @override
   String get formatUnderline => '下線';
@@ -394,6 +474,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsCodeFontFamily => 'コードフォント';
 
   @override
+  String get settingsCodeFontSize => 'コードフォントサイズ';
+
+  @override
+  String get settingsEditorFontFamily => '本文フォント';
+
+  @override
   String get settingsEditorMaxWidth => 'エディタの最大幅';
 
   @override
@@ -416,21 +502,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get statusParagraphs => '段落';
-
-  @override
-  String get themeCadmiumLight => 'カドミウムライト';
-
-  @override
-  String get themeOneDark => 'One Dark';
-
-  @override
-  String get themeMaterialDark => 'Material ダーク';
-
-  @override
-  String get themeGraphiteLight => 'グラファイトライト';
-
-  @override
-  String get themeUlyssesLight => 'Ulysses ライト';
 
   @override
   String get themeRedGraphite => 'レッドグラファイト';
@@ -706,34 +777,110 @@ class AppLocalizationsJa extends AppLocalizations {
   String get welcomeDragHint => 'ファイルをここにドロップして開く';
 
   @override
-  String get fileOpenBehavior => 'File Opening Behavior';
+  String get fileOpenBehavior => 'ファイルを開くときの動作';
 
   @override
-  String get fileOpenBehaviorTitle => 'How to Open Files?';
+  String get fileOpenBehaviorNewWindow => '新しいウィンドウで開く';
 
   @override
-  String get fileOpenBehaviorMessage =>
-      'When you double-click a file while the app is already running:';
+  String get fileOpenBehaviorExistingWindow => '現在のウィンドウで開く';
 
   @override
-  String get fileOpenBehaviorNewWindow => 'Open in New Window';
+  String get fileOpenBehaviorNotSet => '未設定';
 
   @override
-  String get fileOpenBehaviorNewWindowDesc => 'Allow multiple app instances';
+  String get updateAvailable => '新しいバージョンがあります';
 
   @override
-  String get fileOpenBehaviorExistingWindow => 'Open in Current Window';
+  String get updateDismiss => '閉じる';
 
   @override
-  String get fileOpenBehaviorExistingWindowDesc =>
-      'Add to existing tabs (single instance)';
+  String get mermaidFullscreen => '全画面';
 
   @override
-  String get fileOpenBehaviorNotSet => 'Not configured';
+  String get mermaidSaveAs => '名前を付けて保存';
 
   @override
-  String get updateAvailable => 'New version available';
+  String get mermaidCopySource => 'ソースをコピー';
 
   @override
-  String get updateDismiss => 'Dismiss';
+  String get mermaidEditSource => 'ソースを編集';
+
+  @override
+  String get mermaidFullscreenHint => '図をダブルタップで全画面表示';
+
+  @override
+  String get mermaidSaveAsHint => '図を PNG として保存';
+
+  @override
+  String get menuParagraph => '段落';
+
+  @override
+  String get paragraphPromoteHeading => '見出しレベルを上げる';
+
+  @override
+  String get paragraphDemoteHeading => '見出しレベルを下げる';
+
+  @override
+  String get paragraphToParagraph => '段落に変換';
+
+  @override
+  String get paragraphLooseList => 'ゆるいリスト項目';
+
+  @override
+  String get close => '閉じる';
+
+  @override
+  String get mermaidViewerTitle => 'Mermaid ダイアグラムビューア';
+
+  @override
+  String get mermaidViewerHint => 'Ctrl+スクロールで拡大縮小    ドラッグで移動    Esc で閉じる';
+
+  @override
+  String get statusHighlightOff => '大きなファイルのため構文ハイライトは無効';
+
+  @override
+  String get settingsImageStorage => 'ドロップした画像の保存先';
+
+  @override
+  String get settingsImageStorageCopy => '文書のとなりにコピー';
+
+  @override
+  String get settingsImageStorageFolder => '共通のフォルダーにまとめる';
+
+  @override
+  String get settingsImageStorageLink => '元の場所を参照する';
+
+  @override
+  String get settingsImageFolder => '画像フォルダー';
+
+  @override
+  String get fileCloseTab => 'タブを閉じる';
+
+  @override
+  String get fileClearRecentFiles => '最近のファイルを消去';
+
+  @override
+  String get viewCommandPalette => 'コマンドパレット';
+
+  @override
+  String get viewReloadImages => '画像を再読み込み';
+
+  @override
+  String get formatFrontMatter => 'フロントマター';
+
+  @override
+  String get formatHtmlBlock => 'HTML ブロック';
+
+  @override
+  String get updateUpToDate => '最新バージョンです';
+
+  @override
+  String get updateCheckFailed => '更新を確認できませんでした';
+
+  @override
+  String get linkOpenFailed => 'リンクを開けませんでした';
+
+  @override
+  String get recentFileMissing => 'そのファイルは存在しません。一覧から削除しました';
 }

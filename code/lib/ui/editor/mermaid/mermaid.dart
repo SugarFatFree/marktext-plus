@@ -4,14 +4,11 @@
 /// rendering using only Dart and Flutter's CustomPainter, without
 /// any WebView or external API dependencies.
 ///
-/// Supported diagram types:
-/// - Flowchart (graph TD/LR/BT/RL)
-/// - Sequence diagram
-/// - Pie chart
-/// - Gantt chart
-/// - Timeline
-/// - Class diagram (basic)
-/// - State diagram (basic)
+/// The diagram types this renderer draws are listed in
+/// [MermaidParser.supportedTypes]. That list is the one the fence-language
+/// check and the "unsupported type" message are both derived from, so it is
+/// the only place worth keeping up to date — this comment used to carry a
+/// second copy and had fallen eight types behind.
 ///
 /// Example usage:
 /// ```dart
@@ -52,30 +49,40 @@
 ///   ''',
 /// )
 /// ```
+library;
 
 export 'config/responsive_config.dart';
 export 'layout/layout_engine.dart';
-export 'layout/sugiyama_layout.dart';
+export 'layout/sequence_layout.dart';
 export 'models/diagram.dart';
 export 'models/edge.dart';
 export 'models/gantt.dart';
 export 'models/kanban.dart';
 export 'models/node.dart';
+export 'models/block_diagram.dart';
+export 'models/c4_diagram.dart';
 export 'models/pie_chart.dart';
+export 'models/sankey.dart';
 export 'models/timeline.dart';
 export 'models/style.dart';
 export 'painter/flowchart_painter.dart';
 export 'painter/gantt_painter.dart';
 export 'painter/kanban_painter.dart';
 export 'painter/mermaid_painter.dart';
+export 'painter/block_painter.dart';
+export 'painter/c4_painter.dart';
 export 'painter/pie_chart_painter.dart';
+export 'painter/sankey_painter.dart';
 export 'painter/sequence_painter.dart';
 export 'painter/timeline_painter.dart';
 export 'parser/flowchart_parser.dart';
 export 'parser/gantt_parser.dart';
 export 'parser/kanban_parser.dart';
 export 'parser/mermaid_parser.dart';
+export 'parser/block_parser.dart';
+export 'parser/c4_parser.dart';
 export 'parser/pie_chart_parser.dart';
+export 'parser/sankey_parser.dart';
 export 'parser/sequence_parser.dart';
 export 'parser/timeline_parser.dart';
 export 'widgets/mermaid_diagram.dart';

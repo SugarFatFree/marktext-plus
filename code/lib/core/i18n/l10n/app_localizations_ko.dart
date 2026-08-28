@@ -9,6 +9,87 @@ class AppLocalizationsKo extends AppLocalizations {
   AppLocalizationsKo([String locale = 'ko']) : super(locale);
 
   @override
+  String get settingsWrapCodeBlocks => '코드 블록의 긴 줄 줄바꿈';
+
+  @override
+  String get settingsCodeBlockLineNumbers => '코드 블록 줄 번호';
+
+  @override
+  String settingsSaveFailed(String message) {
+    return '설정을 저장하지 못했습니다: $message';
+  }
+
+  @override
+  String get settingsFollowSystemTheme => '시스템 밝기 설정 따르기';
+
+  @override
+  String get settingsFollowSystemThemeHint =>
+      '밝은 테마와 어두운 테마를 하나씩 고르면 어느 쪽을 보여줄지는 시스템이 정합니다.';
+
+  @override
+  String get settingsAutoPairBracket => '괄호 자동 닫기';
+
+  @override
+  String get settingsAutoPairQuote => '따옴표 자동 닫기';
+
+  @override
+  String get settingsAutoPairMarkdown => 'Markdown 구문 자동 닫기(`, *, ~)';
+
+  @override
+  String get helpOpenDiagnosticLog => '진단 로그 열기';
+
+  @override
+  String get diagnosticLogMissing => '아직 진단 로그가 기록되지 않았습니다';
+
+  @override
+  String get mermaidCaptureFailed => '다이어그램을 캡처하지 못했습니다';
+
+  @override
+  String get mermaidErrorEmpty => '다이어그램이 비어 있습니다.';
+
+  @override
+  String mermaidErrorUnknownType(String type) {
+    return '인식할 수 없는 다이어그램 유형: \'$type\'.';
+  }
+
+  @override
+  String get mermaidErrorHeaderOnly => '이 다이어그램에는 헤더만 있고 내용이 없습니다.';
+
+  @override
+  String get mermaidErrorBadBody => '헤더는 인식되었습니다. 그 아래 구문을 확인하세요.';
+
+  @override
+  String mermaidSupportedTypes(String list) {
+    return '지원되는 유형: $list';
+  }
+
+  @override
+  String get mermaidParseError => 'Mermaid 구문 분석 오류';
+
+  @override
+  String imageSavedTo(String path) {
+    return '$path에 저장했습니다';
+  }
+
+  @override
+  String imageSaveFailed(String message) {
+    return '이미지를 저장하지 못했습니다: $message';
+  }
+
+  @override
+  String saveFailed(String message) {
+    return '파일을 저장하지 못했습니다: $message';
+  }
+
+  @override
+  String fileOperationFailed(String message) {
+    return '파일 작업에 실패했습니다: $message';
+  }
+
+  @override
+  String get fileNameTaken => '같은 이름의 파일 또는 폴더가 이미 있습니다';
+
+  @override
   String get appTitle => 'MarkText Plus';
 
   @override
@@ -48,10 +129,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get fileSaveAs => '다른 이름으로 저장';
 
   @override
-  String get fileRecentFiles => 'Recent Files';
+  String get fileRecentFiles => '최근 파일';
 
   @override
-  String get fileNoRecentFiles => 'No Recent Files';
+  String get fileNoRecentFiles => '최근 파일 없음';
 
   @override
   String get fileExport => '내보내기';
@@ -61,6 +142,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get fileExportPdf => 'PDF';
+
+  @override
+  String get filePrint => '인쇄';
 
   @override
   String get fileExportWord => 'Word (.docx)';
@@ -310,9 +394,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get confirmResetMessage => '모든 설정을 기본값으로 되돌리시겠습니까?';
 
   @override
-  String get comingSoon => '곧 출시';
-
-  @override
   String get noFiles => '파일 없음';
 
   @override
@@ -357,17 +438,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get editCopyAsHtml => 'HTML로 복사';
 
   @override
-  String get previewCopyAsHtmlTooltip => 'Copy as HTML (for Word/WPS)';
-
-  @override
-  String get previewCopyAsHtmlSuccess =>
-      'Copied as HTML. You can now paste into Word/WPS with formatting.';
-
-  @override
   String get editSelectAll => '모두 선택';
 
   @override
   String get editDuplicateLine => '줄 복제';
+
+  @override
+  String get editCreateParagraph => '아래에 단락 만들기';
+
+  @override
+  String get editDeleteParagraph => '단락 삭제';
 
   @override
   String get formatUnderline => '밑줄';
@@ -394,6 +474,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsCodeFontFamily => '코드 글꼴';
 
   @override
+  String get settingsCodeFontSize => '코드 글꼴 크기';
+
+  @override
+  String get settingsEditorFontFamily => '본문 글꼴';
+
+  @override
   String get settingsEditorMaxWidth => '편집기 최대 너비';
 
   @override
@@ -416,21 +502,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get statusParagraphs => '단락';
-
-  @override
-  String get themeCadmiumLight => '카드뮴 라이트';
-
-  @override
-  String get themeOneDark => 'One Dark';
-
-  @override
-  String get themeMaterialDark => 'Material 다크';
-
-  @override
-  String get themeGraphiteLight => '그래파이트 라이트';
-
-  @override
-  String get themeUlyssesLight => 'Ulysses 라이트';
 
   @override
   String get themeRedGraphite => '레드 그래파이트';
@@ -706,34 +777,110 @@ class AppLocalizationsKo extends AppLocalizations {
   String get welcomeDragHint => '파일을 여기에 드롭하여 열기';
 
   @override
-  String get fileOpenBehavior => 'File Opening Behavior';
+  String get fileOpenBehavior => '파일 열기 동작';
 
   @override
-  String get fileOpenBehaviorTitle => 'How to Open Files?';
+  String get fileOpenBehaviorNewWindow => '새 창에서 열기';
 
   @override
-  String get fileOpenBehaviorMessage =>
-      'When you double-click a file while the app is already running:';
+  String get fileOpenBehaviorExistingWindow => '현재 창에서 열기';
 
   @override
-  String get fileOpenBehaviorNewWindow => 'Open in New Window';
+  String get fileOpenBehaviorNotSet => '설정되지 않음';
 
   @override
-  String get fileOpenBehaviorNewWindowDesc => 'Allow multiple app instances';
+  String get updateAvailable => '새 버전이 있습니다';
 
   @override
-  String get fileOpenBehaviorExistingWindow => 'Open in Current Window';
+  String get updateDismiss => '닫기';
 
   @override
-  String get fileOpenBehaviorExistingWindowDesc =>
-      'Add to existing tabs (single instance)';
+  String get mermaidFullscreen => '전체 화면';
 
   @override
-  String get fileOpenBehaviorNotSet => 'Not configured';
+  String get mermaidSaveAs => '다른 이름으로 저장';
 
   @override
-  String get updateAvailable => 'New version available';
+  String get mermaidCopySource => '소스 복사';
 
   @override
-  String get updateDismiss => 'Dismiss';
+  String get mermaidEditSource => '소스 편집';
+
+  @override
+  String get mermaidFullscreenHint => '다이어그램을 두 번 탭하면 전체 화면으로 표시됩니다';
+
+  @override
+  String get mermaidSaveAsHint => '다이어그램을 PNG로 저장';
+
+  @override
+  String get menuParagraph => '단락';
+
+  @override
+  String get paragraphPromoteHeading => '제목 수준 올리기';
+
+  @override
+  String get paragraphDemoteHeading => '제목 수준 내리기';
+
+  @override
+  String get paragraphToParagraph => '단락으로 변환';
+
+  @override
+  String get paragraphLooseList => '느슨한 목록 항목';
+
+  @override
+  String get close => '닫기';
+
+  @override
+  String get mermaidViewerTitle => 'Mermaid 다이어그램 뷰어';
+
+  @override
+  String get mermaidViewerHint => 'Ctrl+스크롤로 확대/축소    드래그로 이동    Esc로 닫기';
+
+  @override
+  String get statusHighlightOff => '큰 파일이라 구문 강조를 껐습니다';
+
+  @override
+  String get settingsImageStorage => '끌어다 놓은 이미지 저장 위치';
+
+  @override
+  String get settingsImageStorageCopy => '문서 옆에 복사';
+
+  @override
+  String get settingsImageStorageFolder => '공용 폴더 한 곳에';
+
+  @override
+  String get settingsImageStorageLink => '복사하지 않고 원래 위치 참조';
+
+  @override
+  String get settingsImageFolder => '이미지 폴더';
+
+  @override
+  String get fileCloseTab => '탭 닫기';
+
+  @override
+  String get fileClearRecentFiles => '최근 파일 지우기';
+
+  @override
+  String get viewCommandPalette => '명령 팔레트';
+
+  @override
+  String get viewReloadImages => '이미지 다시 불러오기';
+
+  @override
+  String get formatFrontMatter => '프런트 매터';
+
+  @override
+  String get formatHtmlBlock => 'HTML 블록';
+
+  @override
+  String get updateUpToDate => '최신 버전입니다';
+
+  @override
+  String get updateCheckFailed => '업데이트를 확인하지 못했습니다';
+
+  @override
+  String get linkOpenFailed => '링크를 열 수 없습니다';
+
+  @override
+  String get recentFileMissing => '해당 파일이 없습니다. 목록에서 제거했습니다';
 }

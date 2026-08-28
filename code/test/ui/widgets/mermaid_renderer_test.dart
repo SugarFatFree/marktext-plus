@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:marktext_plus/core/i18n/l10n/app_localizations.dart';
 import 'package:marktext_plus/ui/widgets/mermaid_renderer.dart';
 
 void main() {
@@ -13,8 +14,10 @@ void main() {
 ''';
 
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const Scaffold(
             body: MermaidRenderer(
               code: mermaidCode,
               isDarkMode: false,
@@ -23,10 +26,13 @@ void main() {
         ),
       );
 
-      await tester.pumpAndSettle();
+      // Not pumpAndSettle(): MermaidDiagram starts in a loading state that
+      // renders an indeterminate CircularProgressIndicator, whose animation
+      // never stops. The toolbar under test renders on the first frame.
+      await tester.pump();
 
       expect(find.byIcon(Icons.copy_outlined), findsOneWidget);
-      expect(find.text('复制源码'), findsOneWidget);
+      expect(find.byKey(const Key('mermaid-copy-source')), findsOneWidget);
     });
 
     testWidgets('copies mermaid source when button tapped', (tester) async {
@@ -34,9 +40,28 @@ void main() {
   A[Start] --> B[End]
 ''';
 
+      // Reading the clipboard back with Clipboard.getData deadlocks here: the
+      // platform channel round trip needs the event loop to turn, and the test
+      // body is awaiting it with nothing left to pump. Assert on the write
+      // instead.
+      MethodCall? clipboardCall;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') clipboardCall = call;
+          return null;
+        },
+      );
+      addTearDown(() {
+        tester.binding.defaultBinaryMessenger
+            .setMockMethodCallHandler(SystemChannels.platform, null);
+      });
+
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const Scaffold(
             body: MermaidRenderer(
               code: mermaidCode,
               isDarkMode: false,
@@ -45,12 +70,12 @@ void main() {
         ),
       );
 
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('复制源码'));
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('mermaid-copy-source')));
       await tester.pump();
 
-      final clipboardData = await Clipboard.getData('text/plain');
-      expect(clipboardData?.text, mermaidCode);
+      expect(clipboardCall, isNotNull, reason: 'no clipboard write happened');
+      expect(clipboardCall!.arguments['text'], mermaidCode);
     });
   });
 }

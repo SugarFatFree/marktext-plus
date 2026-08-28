@@ -1,4 +1,5 @@
 /// Data models for Timeline diagrams
+library;
 
 /// Represents a single event in a timeline
 class TimelineEvent {
@@ -32,12 +33,19 @@ class TimelineEvent {
   }
 }
 
+/// Height of the band strip a `section` occupies above the period titles.
+///
+/// The painter draws it and the layout engine reserves room for it, so it
+/// lives here rather than being written out twice and drifting apart.
+const double timelineGroupBandHeight = 34.0;
+
 /// Represents a section in a timeline
 class TimelineSection {
   /// Creates a timeline section
   const TimelineSection({
     required this.title,
     required this.events,
+    this.group,
   });
 
   /// Title of the section
@@ -46,14 +54,23 @@ class TimelineSection {
   /// Events in this section
   final List<TimelineEvent> events;
 
+  /// The mermaid `section` this period was written under, if any.
+  ///
+  /// This class models one *period* column; mermaid's own `section` keyword is
+  /// a band grouping several of them. Null when the diagram uses no sections,
+  /// which is what every timeline written before this looked like.
+  final String? group;
+
   /// Creates a copy with modified properties
   TimelineSection copyWith({
     String? title,
     List<TimelineEvent>? events,
+    String? group,
   }) {
     return TimelineSection(
       title: title ?? this.title,
       events: events ?? this.events,
+      group: group ?? this.group,
     );
   }
 }

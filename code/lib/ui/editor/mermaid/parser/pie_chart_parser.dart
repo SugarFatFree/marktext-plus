@@ -1,5 +1,6 @@
 import '../models/diagram.dart';
 import '../models/pie_chart.dart';
+import 'label.dart';
 
 /// Parser for Mermaid pie chart diagrams
 ///
@@ -33,10 +34,22 @@ class PieChartParser {
     final slices = <PieSlice>[];
     var showValuesInLegend = false;
 
-    // Parse the first line for options
-    final firstLine = lines.first.trim().toLowerCase();
-    if (firstLine.contains('showdata')) {
+    // Parse the first line for options and for a title written on it.
+    //
+    // Mermaid's own documentation opens with `pie title Pets adopted by
+    // volunteers`; only `showData` was read off this line, so that title —
+    // the spelling most people copy — was silently dropped.
+    var header = lines.first.trim();
+    if (header.toLowerCase().startsWith('pie')) {
+      header = header.substring(3).trimLeft();
+    }
+    if (header.toLowerCase().startsWith('showdata')) {
       showValuesInLegend = true;
+      header = header.substring(8).trimLeft();
+    }
+    if (header.toLowerCase().startsWith('title ')) {
+      final headerTitle = header.substring(6).trim();
+      if (headerTitle.isNotEmpty) title = headerTitle;
     }
 
     // Parse remaining lines
@@ -46,7 +59,7 @@ class PieChartParser {
 
       // Parse title
       if (line.toLowerCase().startsWith('title ')) {
-        title = line.substring(6).trim();
+        title = cleanLabel(line.substring(6)).trim();
         continue;
       }
 
@@ -90,7 +103,7 @@ class PieChartParser {
       final label = match.group(1)!;
       final value = double.tryParse(match.group(2)!);
       if (value != null && value > 0) {
-        return PieSlice(label: label, value: value);
+        return PieSlice(label: cleanLabel(label), value: value);
       }
     }
 
@@ -102,19 +115,24 @@ class PieChartParser {
       final label = match.group(1)!;
       final value = double.tryParse(match.group(2)!);
       if (value != null && value > 0) {
-        return PieSlice(label: label, value: value);
+        return PieSlice(label: cleanLabel(label), value: value);
       }
     }
 
     // Try unquoted label: Label : value
-    final unquotedPattern = RegExp(r'([^:]+):\s*([\d.]+)');
+    //
+    // Anchored at the start: a slice is the whole line. Without the anchor the
+    // engine tried every position on a line with no colon, handing `[^:]+`
+    // back one character at a time from each — a 30,000-character line inside
+    // a `pie` block took fourteen seconds.
+    final unquotedPattern = RegExp(r'^([^:]+):\s*([\d.]+)');
     match = unquotedPattern.firstMatch(line);
 
     if (match != null) {
       final label = match.group(1)!.trim();
       final value = double.tryParse(match.group(2)!);
       if (value != null && value > 0 && label.isNotEmpty) {
-        return PieSlice(label: label, value: value);
+        return PieSlice(label: cleanLabel(label), value: value);
       }
     }
 

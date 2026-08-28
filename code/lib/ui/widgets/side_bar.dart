@@ -1,3 +1,4 @@
+import '../../utils/file_utils.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,23 +9,53 @@ import '../../core/i18n/l10n/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/file_node.dart';
 import '../../models/tab_info.dart';
+import '../../models/file_encoding.dart';
 import '../../providers/editor_provider.dart';
 import '../../providers/file_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/tab_provider.dart';
 import '../screens/settings_screen.dart';
+import '../../providers/sidebar_provider.dart';
+import '../../services/file_service.dart';
+import '../../services/markdown_parser.dart';
+import 'editor_tab_bar.dart';
 
-enum SideBarTab { files, search, toc }
 
 class SideBar extends ConsumerStatefulWidget {
   const SideBar({super.key});
 
   @override
   ConsumerState<SideBar> createState() => _SideBarState();
+
+  /// Which files are open, and which of them is showing.
+  ///
+  /// A `String` because that is what `select` can compare: rebuilding only
+  /// when this changes is the point. The sidebar shows names and highlights,
+  /// so the document's text and its modified flag are none of its business —
+  /// and watching the whole of `tabProvider` had it rebuilding the entire file
+  /// tree on every keystroke.
+  @visibleForTesting
+  static String openFilesKey(TabState state) {
+    final buffer = StringBuffer(state.activeTabId ?? '');
+    for (final tab in state.tabs) {
+      buffer
+        ..write('\u0001')
+        ..write(tab.id)
+        ..write('\u0002')
+        ..write(tab.filePath ?? '');
+    }
+    return buffer.toString();
+  }
+
+  /// The path of the tab in the foreground, or null.
+  @visibleForTesting
+  static String? activePath(TabState state) => state.tabs
+      .where((t) => t.id == state.activeTabId)
+      .map((t) => t.filePath)
+      .firstOrNull;
 }
 
 class _SideBarState extends ConsumerState<SideBar> {
-  SideBarTab _selectedTab = SideBarTab.files;
   SideBarTab? _hoveredTab;
   final TextEditingController _searchController = TextEditingController();
   List<_SearchResult> _searchResults = [];
@@ -111,7 +142,7 @@ class _SideBarState extends ConsumerState<SideBar> {
   }
 
   Widget _buildIconButton(IconData icon, SideBarTab tab, String tooltip, AppThemeTokens tokens) {
-    final isSelected = _selectedTab == tab;
+    final isSelected = ref.watch(sideBarTabProvider) == tab;
     final isHovered = _hoveredTab == tab;
     return Tooltip(
       message: tooltip,
@@ -120,7 +151,7 @@ class _SideBarState extends ConsumerState<SideBar> {
         onEnter: (_) => setState(() => _hoveredTab = tab),
         onExit: (_) => setState(() => _hoveredTab = null),
         child: GestureDetector(
-          onTap: () => setState(() => _selectedTab = tab),
+          onTap: () => ref.read(sideBarTabProvider.notifier).state = tab,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 100),
             curve: Curves.easeOut,
@@ -147,6 +178,7 @@ class _SideBarState extends ConsumerState<SideBar> {
   }
 
   Widget _buildContentArea(AppLocalizations l10n) {
+    final selectedTab = ref.watch(sideBarTabProvider);
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 200),
       switchInCurve: Curves.easeInOut,
@@ -155,8 +187,8 @@ class _SideBarState extends ConsumerState<SideBar> {
         return FadeTransition(opacity: animation, child: child);
       },
       child: KeyedSubtree(
-        key: ValueKey(_selectedTab),
-        child: switch (_selectedTab) {
+        key: ValueKey(selectedTab),
+        child: switch (selectedTab) {
           SideBarTab.files => _buildFileTree(l10n),
           SideBarTab.search => _buildSearchPanel(l10n),
           SideBarTab.toc => _buildTocPanel(l10n),
@@ -169,14 +201,17 @@ class _SideBarState extends ConsumerState<SideBar> {
 
   Widget _buildFileTree(AppLocalizations l10n) {
     final fileNodes = ref.watch(fileProvider);
-    final tabState = ref.watch(tabProvider);
+    // Narrow, deliberately: see [SideBar.openFilesKey].
+    ref.watch(tabProvider.select(SideBar.openFilesKey));
+    final openedFiles = ref.watch(tabProvider.select((s) => s.openedFiles));
+    final activePath = ref.watch(tabProvider.select(SideBar.activePath));
     final currentDir = ref.watch(fileProvider.notifier).currentDirectory;
 
     if (fileNodes.isNotEmpty) {
       // Collect opened files that are NOT inside the current directory
       final externalFiles = <OpenedFileEntry>[];
       if (currentDir != null) {
-        for (final file in tabState.openedFiles) {
+        for (final file in openedFiles) {
           if (!file.filePath.startsWith(currentDir)) {
             externalFiles.add(file);
           }
@@ -198,14 +233,14 @@ class _SideBarState extends ConsumerState<SideBar> {
                 ),
               ),
             ),
-            ...externalFiles.map((file) => _buildExternalFileItem(file, tabState, l10n)),
+            ...externalFiles.map((file) => _buildExternalFileItem(file, activePath, l10n)),
           ],
         ],
       );
     }
 
     // No folder opened – show opened files list
-    if (tabState.openedFiles.isEmpty) {
+    if (openedFiles.isEmpty) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -233,14 +268,15 @@ class _SideBarState extends ConsumerState<SideBar> {
     }
 
     return ListView(
-      children: tabState.openedFiles.map((file) {
-        return _buildExternalFileItem(file, tabState, l10n);
+      children: openedFiles.map((file) {
+        return _buildExternalFileItem(file, activePath, l10n);
       }).toList(),
     );
   }
 
-  Widget _buildExternalFileItem(OpenedFileEntry file, TabState tabState, AppLocalizations l10n) {
-    final isActive = tabState.tabs.any((t) => t.filePath == file.filePath && t.id == tabState.activeTabId);
+  Widget _buildExternalFileItem(
+      OpenedFileEntry file, String? activePath, AppLocalizations l10n) {
+    final isActive = activePath == file.filePath;
     return GestureDetector(
       onSecondaryTapUp: (details) {
         _showOpenedFileContextMenu(context, details.globalPosition, file);
@@ -282,9 +318,7 @@ class _SideBarState extends ConsumerState<SideBar> {
                     iconSize: 12,
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
-                    onPressed: () {
-                      ref.read(tabProvider.notifier).removeOpenedFile(file.filePath);
-                    },
+                    onPressed: () => _closeOpenedFile(file.filePath),
                     tooltip: l10n.closeFile,
                   ),
                 ),
@@ -298,9 +332,13 @@ class _SideBarState extends ConsumerState<SideBar> {
 
   Widget _buildFileNode(FileNode node, int depth) {
     final l10n = AppLocalizations.of(context)!;
-    final tabState = ref.watch(tabProvider);
-    final isOpenedInTab = !node.isDirectory &&
-        tabState.tabs.any((t) => t.filePath == node.path);
+    final openPaths = ref.watch(
+      tabProvider.select(
+        (s) => s.tabs.map((t) => t.filePath).whereType<String>().join('\u0001'),
+      ),
+    );
+    final isOpenedInTab =
+        !node.isDirectory && openPaths.split('\u0001').contains(node.path);
     final isRootFolder = depth == 0 && node.isDirectory;
 
     return Column(
@@ -356,7 +394,7 @@ class _SideBarState extends ConsumerState<SideBar> {
                           iconSize: 12,
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
-                          onPressed: () {
+                          onPressed: () async {
                             if (isRootFolder) {
                               // Close the entire folder and all its files
                               final folderPath = node.path;
@@ -366,15 +404,22 @@ class _SideBarState extends ConsumerState<SideBar> {
                               );
 
                               // Close all tabs for files in this folder
-                              final tabState = ref.read(tabProvider);
-                              for (final tab in tabState.tabs) {
-                                if (tab.filePath != null && tab.filePath!.startsWith(folderPath)) {
-                                  ref.read(tabProvider.notifier).removeOpenedFile(tab.filePath!);
-                                }
+                              final inFolder = ref
+                                  .read(tabProvider)
+                                  .tabs
+                                  .where((t) =>
+                                      t.filePath != null &&
+                                      t.filePath!.startsWith(folderPath))
+                                  .map((t) => t.filePath!)
+                                  .toList();
+                              // One at a time: two prompts at once would
+                              // stack on top of each other.
+                              for (final path in inFolder) {
+                                await _closeOpenedFile(path);
                               }
                             } else {
                               // Close the file tab
-                              ref.read(tabProvider.notifier).removeOpenedFile(node.path);
+                              await _closeOpenedFile(node.path);
                             }
                           },
                           tooltip: isRootFolder ? l10n.fileOpenFolder : l10n.closeFile,
@@ -390,6 +435,30 @@ class _SideBarState extends ConsumerState<SideBar> {
           ...node.children.map((child) => _buildFileNode(child, depth + 1)),
       ],
     );
+  }
+
+  /// Closes [filePath]: its tab, if one is open, and its sidebar entry.
+  ///
+  /// Asks about unsaved work exactly as closing from the tab bar does. The
+  /// sidebar had five ways to close a file — the small cross on each row, the
+  /// context menu, closing a file node, and closing a folder, which does every
+  /// file under it — and all five went straight to `removeOpenedFile`, which
+  /// drops the tab without a word. Unsaved edits went with it.
+  Future<void> _closeOpenedFile(String filePath) async {
+    final tab = ref
+        .read(tabProvider)
+        .tabs
+        .where((t) => t.filePath == filePath)
+        .firstOrNull;
+
+    if (tab != null && tab.isModified) {
+      if (!mounted) return;
+      await EditorTabBar.closeTab(context, ref, tab);
+      // Still there means the prompt was cancelled, so the entry stays too.
+      if (ref.read(tabProvider).tabs.any((t) => t.id == tab.id)) return;
+    }
+
+    ref.read(tabProvider.notifier).removeOpenedFile(filePath);
   }
 
   void _showFileContextMenu(BuildContext context, Offset position, FileNode node) async {
@@ -412,27 +481,77 @@ class _SideBarState extends ConsumerState<SideBar> {
         if (!mounted) return;
         final name = await _showInputDialog(this.context, l10n.fileNew, l10n.fileNameHint);
         if (name != null && name.isNotEmpty) {
-          await ref.read(fileProvider.notifier).createNode(p.join(parentDir, name));
+          await _runFileOp(() =>
+              ref.read(fileProvider.notifier).createNode(p.join(parentDir, name)));
         }
       case 'new_folder':
         if (!mounted) return;
         final name = await _showInputDialog(this.context, l10n.newFolder, l10n.folderNameHint);
         if (name != null && name.isNotEmpty) {
-          await ref.read(fileProvider.notifier).createNode(p.join(parentDir, name), isDirectory: true);
+          await _runFileOp(() => ref
+              .read(fileProvider.notifier)
+              .createNode(p.join(parentDir, name), isDirectory: true));
         }
       case 'rename':
         if (!mounted) return;
         final newName = await _showInputDialog(this.context, l10n.rename, l10n.newNameHint, initialValue: node.name);
         if (newName != null && newName.isNotEmpty && newName != node.name) {
           final newPath = p.join(p.dirname(node.path), newName);
-          await ref.read(fileProvider.notifier).renameNode(node.path, newPath);
+          final renamed = await _runFileOp(
+              () => ref.read(fileProvider.notifier).renameNode(node.path, newPath));
+          // Only when the rename actually happened. Moving the tabs after a
+          // failed rename would point them at a path that does not exist.
+          if (!renamed) return;
+          // Whatever is open under it moves too — a folder rename takes every
+          // file beneath it. Without this the tab pointed at a path that no
+          // longer existed and the next save wrote the old file back out.
+          ref.read(tabProvider.notifier).pathRenamed(node.path, newPath);
         }
       case 'delete':
         if (!mounted) return;
         final confirmed = await _showConfirmDialog(this.context, l10n.confirmDeleteFile(node.name));
         if (confirmed == true) {
-          await ref.read(fileProvider.notifier).deleteNode(node.path);
+          if (!await _runFileOp(
+              () => ref.read(fileProvider.notifier).deleteNode(node.path))) {
+            return;
+          }
+          // The opened-files context menu already closed the tab when it
+          // deleted a file; this one left it open on a file that was gone.
+          ref.read(tabProvider.notifier).pathDeleted(node.path);
         }
+    }
+  }
+
+  /// Runs a file-system operation, reporting failure instead of swallowing it.
+  ///
+  /// Every one of these used to be a bare `await`: a name Windows rejects, a
+  /// read-only folder, a file another program holds open — the dialog closed
+  /// and absolutely nothing happened, because an unhandled exception in an
+  /// async callback is silent in a release build. Upstream MarkText notifies
+  /// on each of these ("Error while deleting", "Error in Side Bar").
+  ///
+  /// Returns whether the operation succeeded, so the caller can skip the
+  /// follow-up work that only makes sense if it did.
+  Future<bool> _runFileOp(Future<void> Function() op) async {
+    try {
+      await op();
+      return true;
+    } on PathExistsException {
+      // The commonest way this fails, and the one the reader can act on.
+      // Left to the generic branch it read as a raw exception name.
+      if (!mounted) return false;
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.fileNameTaken)),
+      );
+      return false;
+    } catch (e) {
+      if (!mounted) return false;
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.fileOperationFailed('$e'))),
+      );
+      return false;
     }
   }
 
@@ -492,7 +611,7 @@ class _SideBarState extends ConsumerState<SideBar> {
       case 'copy_path':
         await Clipboard.setData(ClipboardData(text: file.filePath));
       case 'close':
-        ref.read(tabProvider.notifier).removeOpenedFile(file.filePath);
+        await _closeOpenedFile(file.filePath);
       case 'delete':
         if (!mounted) return;
         final confirmed = await _showConfirmDialog(
@@ -500,17 +619,29 @@ class _SideBarState extends ConsumerState<SideBar> {
           l10n.confirmDeleteFile(file.fileName),
         );
         if (confirmed == true) {
-          try {
-            await File(file.filePath).delete();
-            ref.read(tabProvider.notifier).removeOpenedFile(file.filePath);
-          } catch (_) {
-            // Ignore delete errors
+          // Through the same provider as the file-tree menu. Deleting the file
+          // directly here skipped the tree refresh, so the file it had just
+          // removed stayed visible in the folder below — and clicking it
+          // opened a document that no longer existed.
+          if (!await _runFileOp(
+              () => ref.read(fileProvider.notifier).deleteNode(file.filePath))) {
+            return;
           }
+          // Straight through, unlike the other four ways of closing: the file
+          // has just been deleted at the person's own request, and asking
+          // whether to save changes to a file that no longer exists would be
+          // a strange thing to be asked.
+          ref.read(tabProvider.notifier).pathDeleted(file.filePath);
         }
     }
   }
 
-  void _openFileInTab(String filePath) async {
+  /// Opens [filePath] in a tab, optionally scrolling to [line].
+  ///
+  /// [line] is 1-based. A search result knows which line it matched, and
+  /// dropping that on the way to the editor left the reader at the top of the
+  /// file with no idea where the hit was.
+  void _openFileInTab(String filePath, {int? line}) async {
     final tabNotifier = ref.read(tabProvider.notifier);
     final currentTabs = ref.read(tabProvider);
 
@@ -520,6 +651,7 @@ class _SideBarState extends ConsumerState<SideBar> {
     ).firstOrNull;
     if (existing != null) {
       tabNotifier.setActiveTab(existing.id);
+      if (line != null) ref.read(editorProvider.notifier).scrollToLine(line);
       return;
     }
 
@@ -537,9 +669,16 @@ class _SideBarState extends ConsumerState<SideBar> {
 
     // Load file content asynchronously
     try {
-      final content = await File(filePath).readAsString();
+      // Through FileService so CRLF is normalised and remembered; reading
+      // the file directly left \r\n in the document, which breaks Markdown
+      // syntax in the preview and in every export.
+      final opened = await FileService().readFileWithLineEnding(filePath);
       if (!mounted) return;
-      tabNotifier.loadTabContent(tabId, content);
+      tabNotifier.loadTabContent(tabId, opened.content,
+          lineEnding: opened.lineEnding, encoding: opened.encoding);
+      // Requested before the new editor exists; it reads the pending target
+      // when it initialises.
+      if (line != null) ref.read(editorProvider.notifier).scrollToLine(line);
     } catch (_) {
       // Read failed – remove the loading tab
       if (!mounted) return;
@@ -583,6 +722,11 @@ class _SideBarState extends ConsumerState<SideBar> {
           padding: const EdgeInsets.all(8),
           child: TextField(
             controller: _searchController,
+            // The panel is rebuilt whenever it is switched to (AnimatedSwitcher
+            // keys it by tab), so this fires each time it is opened — from the
+            // sidebar icon or from Edit ▸ Find in Files. Showing a search box
+            // and making the reader click it first is a wasted step.
+            autofocus: true,
             decoration: InputDecoration(
               hintText: l10n.searchPlaceholder,
               isDense: true,
@@ -611,7 +755,11 @@ class _SideBarState extends ConsumerState<SideBar> {
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                l10n.searchResultCount(_searchResults.length),
+                // The list is capped; saying "500 results" when there are
+                // more would be a quiet lie about what was searched.
+                _searchResults.length >= _maxSearchResults
+                    ? '${l10n.searchResultCount(_searchResults.length)}+'
+                    : l10n.searchResultCount(_searchResults.length),
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
@@ -647,7 +795,10 @@ class _SideBarState extends ConsumerState<SideBar> {
                   itemBuilder: (context, index) {
                     final result = _searchResults[index];
                     return InkWell(
-                      onTap: () => _openFileInTab(result.filePath),
+                      onTap: () => _openFileInTab(
+                        result.filePath,
+                        line: result.lineNumber,
+                      ),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         child: Column(
@@ -679,6 +830,30 @@ class _SideBarState extends ConsumerState<SideBar> {
     );
   }
 
+  /// Documents worth searching.
+  static final _searchableExtensions = FileUtils.markdownExtensionsWithDot;
+
+  /// Directories that are never the user's own notes and can hold tens of
+  /// thousands of files.
+  static const _skippedDirectories = {
+    'node_modules',
+    'vendor',
+    'build',
+    'dist',
+    'target',
+  };
+
+  /// Beyond this the result list stops being useful and starts being a
+  /// memory problem: a common word across a large folder runs to tens of
+  /// thousands of hits, each one a string in a list widget.
+  static const _maxSearchResults = 500;
+
+  /// Distinguishes one search from the next.
+  ///
+  /// Starting a second search while the first is still walking the tree used
+  /// to let the slower one finish last and overwrite the newer results.
+  int _searchGeneration = 0;
+
   void _performSearch() async {
     final query = _searchController.text.trim();
     if (query.isEmpty) return;
@@ -686,52 +861,87 @@ class _SideBarState extends ConsumerState<SideBar> {
     final rootPath = ref.read(fileProvider.notifier).currentDirectory;
     if (rootPath == null) return;
 
+    final generation = ++_searchGeneration;
     setState(() {
       _isSearching = true;
       _searchResults = [];
     });
 
     final results = <_SearchResult>[];
-    await _searchInDirectory(Directory(rootPath), query, results);
+    await _searchInDirectory(
+      Directory(rootPath),
+      query.toLowerCase(),
+      results,
+      generation,
+    );
 
-    if (mounted) {
-      setState(() {
-        _searchResults = results;
-        _isSearching = false;
-      });
-    }
+    if (!mounted || generation != _searchGeneration) return;
+    setState(() {
+      _searchResults = results;
+      _isSearching = false;
+    });
   }
 
+  /// Walks [dir] collecting matches for [lowercaseQuery].
+  ///
+  /// The query arrives already lowercased: it used to be lowercased again for
+  /// every line of every file.
   Future<void> _searchInDirectory(
-      Directory dir, String query, List<_SearchResult> results) async {
+    Directory dir,
+    String lowercaseQuery,
+    List<_SearchResult> results,
+    int generation,
+  ) async {
+    if (results.length >= _maxSearchResults) return;
+    if (generation != _searchGeneration) return;
+
+    List<FileSystemEntity> entities;
     try {
-      final entities = dir.listSync();
-      for (final entity in entities) {
-        if (entity is File) {
-          final ext = p.extension(entity.path).toLowerCase();
-          if (ext == '.md' || ext == '.markdown' || ext == '.txt') {
-            try {
-              final content = await entity.readAsString();
-              final lines = content.split('\n');
-              for (int i = 0; i < lines.length; i++) {
-                if (lines[i].toLowerCase().contains(query.toLowerCase())) {
-                  results.add(_SearchResult(
-                    filePath: entity.path,
-                    lineNumber: i + 1,
-                    matchLine: lines[i].trim(),
-                  ));
-                }
-              }
-            } catch (_) {}
-          }
-        } else if (entity is Directory) {
-          final name = p.basename(entity.path);
-          if (!name.startsWith('.')) {
-            await _searchInDirectory(entity, query, results);
-          }
+      // Asynchronous: listSync walked the whole tree on the UI isolate, so a
+      // large folder froze the window until the search finished.
+      entities = await dir.list(followLinks: false).toList();
+    } catch (_) {
+      return;
+    }
+
+    for (final entity in entities) {
+      if (results.length >= _maxSearchResults) return;
+      if (generation != _searchGeneration) return;
+
+      if (entity is Directory) {
+        final name = p.basename(entity.path);
+        if (name.startsWith('.') || _skippedDirectories.contains(name)) {
+          continue;
         }
+        await _searchInDirectory(entity, lowercaseQuery, results, generation);
+        continue;
       }
-    } catch (_) {}
+
+      if (entity is! File) continue;
+      if (!_searchableExtensions
+          .contains(p.extension(entity.path).toLowerCase())) {
+        continue;
+      }
+
+      try {
+        // Through the shared decode: `readAsString` throws on anything but
+        // UTF-8, and the catch below then skipped the file entirely — a
+        // legacy document was simply unsearchable.
+        final (text, _) = FileEncoding.decode(await entity.readAsBytes());
+        final lines = text.split('\n');
+        for (int i = 0; i < lines.length; i++) {
+          if (!lines[i].toLowerCase().contains(lowercaseQuery)) continue;
+          results.add(_SearchResult(
+            filePath: entity.path,
+            lineNumber: i + 1,
+            matchLine: lines[i].trim(),
+          ));
+          if (results.length >= _maxSearchResults) return;
+        }
+      } catch (_) {
+        // Unreadable or not text; nothing to search.
+      }
+    }
   }
 
   // -- TOC Panel --
@@ -740,18 +950,17 @@ class _SideBarState extends ConsumerState<SideBar> {
     final activeTab = ref.watch(activeTabProvider);
     final content = activeTab?.content ?? '';
 
-    final headings = <_TocEntry>[];
-    final lines = content.split('\n');
-    for (int i = 0; i < lines.length; i++) {
-      final match = RegExp(r'^(#{1,6})\s+(.+)$').firstMatch(lines[i]);
-      if (match != null) {
-        headings.add(_TocEntry(
-          level: match.group(1)!.length,
-          text: match.group(2)!,
-          lineNumber: i + 1,
-        ));
-      }
-    }
+    // Shared with the preview, which maps its Nth heading widget to the Nth
+    // entry here: two readings of the same document would put every entry
+    // after the first disagreement on the wrong line.
+    final headings = [
+      for (final heading in MarkdownParser.headingOutline(content))
+        _TocEntry(
+          level: heading.level,
+          text: heading.text,
+          lineNumber: heading.line,
+        ),
+    ];
 
     if (headings.isEmpty) {
       return Center(

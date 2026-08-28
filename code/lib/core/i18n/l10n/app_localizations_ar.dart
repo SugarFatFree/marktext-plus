@@ -9,6 +9,91 @@ class AppLocalizationsAr extends AppLocalizations {
   AppLocalizationsAr([String locale = 'ar']) : super(locale);
 
   @override
+  String get settingsWrapCodeBlocks =>
+      'التفاف الأسطر الطويلة في كتل التعليمات البرمجية';
+
+  @override
+  String get settingsCodeBlockLineNumbers =>
+      'أرقام الأسطر في كتل التعليمات البرمجية';
+
+  @override
+  String settingsSaveFailed(String message) {
+    return 'تعذّر حفظ الإعدادات: $message';
+  }
+
+  @override
+  String get settingsFollowSystemTheme => 'اتّباع وضع الفاتح/الداكن في النظام';
+
+  @override
+  String get settingsFollowSystemThemeHint =>
+      'اختر سمة فاتحة وأخرى داكنة، ويقرّر النظام أيّهما يظهر.';
+
+  @override
+  String get settingsAutoPairBracket => 'إغلاق الأقواس تلقائيًا';
+
+  @override
+  String get settingsAutoPairQuote => 'إغلاق علامات الاقتباس تلقائيًا';
+
+  @override
+  String get settingsAutoPairMarkdown =>
+      'إغلاق صياغة Markdown تلقائيًا (`، *، ~)';
+
+  @override
+  String get helpOpenDiagnosticLog => 'فتح سجل التشخيص';
+
+  @override
+  String get diagnosticLogMissing => 'لم يُكتب أي سجل تشخيص بعد';
+
+  @override
+  String get mermaidCaptureFailed => 'تعذّر التقاط المخطط';
+
+  @override
+  String get mermaidErrorEmpty => 'المخطط فارغ.';
+
+  @override
+  String mermaidErrorUnknownType(String type) {
+    return 'نوع مخطط غير معروف: «$type».';
+  }
+
+  @override
+  String get mermaidErrorHeaderOnly => 'هذا المخطط يحتوي على ترويسة بلا محتوى.';
+
+  @override
+  String get mermaidErrorBadBody =>
+      'تم التعرّف على الترويسة، تحقّق من الصياغة أدناه.';
+
+  @override
+  String mermaidSupportedTypes(String list) {
+    return 'الأنواع المدعومة: $list';
+  }
+
+  @override
+  String get mermaidParseError => 'خطأ في تحليل Mermaid';
+
+  @override
+  String imageSavedTo(String path) {
+    return 'تم الحفظ في $path';
+  }
+
+  @override
+  String imageSaveFailed(String message) {
+    return 'تعذّر حفظ الصورة: $message';
+  }
+
+  @override
+  String saveFailed(String message) {
+    return 'تعذّر حفظ الملف: $message';
+  }
+
+  @override
+  String fileOperationFailed(String message) {
+    return 'فشلت عملية الملف: $message';
+  }
+
+  @override
+  String get fileNameTaken => 'يوجد بالفعل ملف أو مجلد بهذا الاسم';
+
+  @override
   String get appTitle => 'MarkText Plus';
 
   @override
@@ -48,10 +133,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get fileSaveAs => 'حفظ باسم';
 
   @override
-  String get fileRecentFiles => 'Recent Files';
+  String get fileRecentFiles => 'الملفات الأخيرة';
 
   @override
-  String get fileNoRecentFiles => 'No Recent Files';
+  String get fileNoRecentFiles => 'لا توجد ملفات حديثة';
 
   @override
   String get fileExport => 'تصدير';
@@ -61,6 +146,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get fileExportPdf => 'PDF';
+
+  @override
+  String get filePrint => 'طباعة';
 
   @override
   String get fileExportWord => 'Word (.docx)';
@@ -311,9 +399,6 @@ class AppLocalizationsAr extends AppLocalizations {
       'هل أنت متأكد من إعادة تعيين جميع الإعدادات؟';
 
   @override
-  String get comingSoon => 'قريباً';
-
-  @override
   String get noFiles => 'لا توجد ملفات';
 
   @override
@@ -358,17 +443,16 @@ class AppLocalizationsAr extends AppLocalizations {
   String get editCopyAsHtml => 'نسخ كـ HTML';
 
   @override
-  String get previewCopyAsHtmlTooltip => 'Copy as HTML (for Word/WPS)';
-
-  @override
-  String get previewCopyAsHtmlSuccess =>
-      'Copied as HTML. You can now paste into Word/WPS with formatting.';
-
-  @override
   String get editSelectAll => 'تحديد الكل';
 
   @override
   String get editDuplicateLine => 'تكرار السطر';
+
+  @override
+  String get editCreateParagraph => 'إنشاء فقرة بالأسفل';
+
+  @override
+  String get editDeleteParagraph => 'حذف الفقرة';
 
   @override
   String get formatUnderline => 'تسطير';
@@ -395,6 +479,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settingsCodeFontFamily => 'خط الكود';
 
   @override
+  String get settingsCodeFontSize => 'حجم خط الكود';
+
+  @override
+  String get settingsEditorFontFamily => 'خط المحرر';
+
+  @override
   String get settingsEditorMaxWidth => 'أقصى عرض للمحرر';
 
   @override
@@ -417,21 +507,6 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get statusParagraphs => 'فقرات';
-
-  @override
-  String get themeCadmiumLight => 'كادميوم فاتح';
-
-  @override
-  String get themeOneDark => 'One Dark';
-
-  @override
-  String get themeMaterialDark => 'Material داكن';
-
-  @override
-  String get themeGraphiteLight => 'جرافيت فاتح';
-
-  @override
-  String get themeUlyssesLight => 'Ulysses فاتح';
 
   @override
   String get themeRedGraphite => 'جرافيت أحمر';
@@ -708,34 +783,113 @@ class AppLocalizationsAr extends AppLocalizations {
   String get welcomeDragHint => 'اسحب الملفات هنا لفتحها';
 
   @override
-  String get fileOpenBehavior => 'File Opening Behavior';
+  String get fileOpenBehavior => 'سلوك فتح الملفات';
 
   @override
-  String get fileOpenBehaviorTitle => 'How to Open Files?';
+  String get fileOpenBehaviorNewWindow => 'الفتح في نافذة جديدة';
 
   @override
-  String get fileOpenBehaviorMessage =>
-      'When you double-click a file while the app is already running:';
+  String get fileOpenBehaviorExistingWindow => 'الفتح في النافذة الحالية';
 
   @override
-  String get fileOpenBehaviorNewWindow => 'Open in New Window';
+  String get fileOpenBehaviorNotSet => 'غير مُهيَّأ';
 
   @override
-  String get fileOpenBehaviorNewWindowDesc => 'Allow multiple app instances';
+  String get updateAvailable => 'يتوفر إصدار جديد';
 
   @override
-  String get fileOpenBehaviorExistingWindow => 'Open in Current Window';
+  String get updateDismiss => 'تجاهل';
 
   @override
-  String get fileOpenBehaviorExistingWindowDesc =>
-      'Add to existing tabs (single instance)';
+  String get mermaidFullscreen => 'ملء الشاشة';
 
   @override
-  String get fileOpenBehaviorNotSet => 'Not configured';
+  String get mermaidSaveAs => 'حفظ باسم';
 
   @override
-  String get updateAvailable => 'New version available';
+  String get mermaidCopySource => 'نسخ المصدر';
 
   @override
-  String get updateDismiss => 'Dismiss';
+  String get mermaidEditSource => 'تحرير المصدر';
+
+  @override
+  String get mermaidFullscreenHint =>
+      'انقر نقرًا مزدوجًا على الرسم التخطيطي لعرضه بملء الشاشة';
+
+  @override
+  String get mermaidSaveAsHint => 'حفظ الرسم التخطيطي بصيغة PNG';
+
+  @override
+  String get menuParagraph => 'فقرة';
+
+  @override
+  String get paragraphPromoteHeading => 'رفع مستوى العنوان';
+
+  @override
+  String get paragraphDemoteHeading => 'خفض مستوى العنوان';
+
+  @override
+  String get paragraphToParagraph => 'تحويل إلى فقرة';
+
+  @override
+  String get paragraphLooseList => 'عنصر قائمة متباعد';
+
+  @override
+  String get close => 'إغلاق';
+
+  @override
+  String get mermaidViewerTitle => 'عارض مخططات Mermaid';
+
+  @override
+  String get mermaidViewerHint =>
+      'Ctrl+عجلة الفأرة للتكبير    السحب للتحريك    Esc للإغلاق';
+
+  @override
+  String get statusHighlightOff => 'تم إيقاف تلوين البنية (ملف كبير)';
+
+  @override
+  String get settingsImageStorage => 'مكان حفظ الصور المسحوبة';
+
+  @override
+  String get settingsImageStorageCopy => 'بجانب المستند';
+
+  @override
+  String get settingsImageStorageFolder => 'في مجلد مشترك واحد';
+
+  @override
+  String get settingsImageStorageLink => 'الربط بمكانها الأصلي';
+
+  @override
+  String get settingsImageFolder => 'مجلد الصور';
+
+  @override
+  String get fileCloseTab => 'إغلاق علامة التبويب';
+
+  @override
+  String get fileClearRecentFiles => 'مسح الملفات الأخيرة';
+
+  @override
+  String get viewCommandPalette => 'لوحة الأوامر';
+
+  @override
+  String get viewReloadImages => 'إعادة تحميل الصور';
+
+  @override
+  String get formatFrontMatter => 'بيانات المقدمة';
+
+  @override
+  String get formatHtmlBlock => 'كتلة HTML';
+
+  @override
+  String get updateUpToDate => 'أنت تستخدم أحدث إصدار';
+
+  @override
+  String get updateCheckFailed => 'تعذّر التحقق من التحديثات';
+
+  @override
+  String get linkOpenFailed => 'تعذّر فتح الرابط';
+
+  @override
+  String get recentFileMissing =>
+      'لم يعد هذا الملف موجودًا، وقد أُزيل من القائمة';
 }

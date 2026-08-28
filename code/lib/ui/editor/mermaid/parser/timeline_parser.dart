@@ -1,7 +1,12 @@
 import '../models/diagram.dart';
 import '../models/timeline.dart';
+import 'label.dart';
 
 /// Parser for Mermaid Timeline diagrams
+///
+/// A `section` line opens a band grouping the periods that follow it. Each
+/// period is still its own column; [TimelineSection.group] carries the band
+/// name, and the painter draws it above the period titles.
 ///
 /// Parses Timeline syntax like:
 /// ```
@@ -17,6 +22,19 @@ class TimelineParser {
   /// Creates a Timeline parser
   const TimelineParser();
 
+  /// Splits the text after a period into one event per colon.
+  ///
+  /// `2004 : Facebook : Google` is two events on the same period, which
+  /// mermaid draws as two boxes. Splitting on the first colon only left them
+  /// as a single box reading "Facebook : Google".
+  List<TimelineEvent> _eventsFrom(String text, String period) {
+    return [
+      for (final part in text.split(':'))
+        if (part.trim().isNotEmpty)
+          TimelineEvent(title: cleanLabel(part).trim(), periods: [period]),
+    ];
+  }
+
   /// Parses Timeline diagram from cleaned lines
   ///
   /// Returns a tuple of (MermaidDiagramData, TimelineChartData) or null if parsing fails
@@ -26,6 +44,7 @@ class TimelineParser {
     String? title;
     final sections = <TimelineSection>[];
     String? currentPeriod;
+    String? currentGroup;
     final currentEvents = <TimelineEvent>[];
 
     // Parse all lines (timeline keyword already stripped by caller)
@@ -37,7 +56,31 @@ class TimelineParser {
 
       // Parse title
       if (lineLower.startsWith('title ')) {
-        title = line.substring(6).trim();
+        title = cleanLabel(line.substring(6)).trim();
+        continue;
+      }
+
+      // Parse a section band
+      //
+      // A `section` line carries no colon, so it used to fall through to the
+      // branch below and be attached as the *description* of whichever event
+      // came last — the band name was drawn as text inside an unrelated event
+      // box.
+      if (lineLower.startsWith('section ')) {
+        final name = line.substring(8).trim();
+        if (name.isNotEmpty) {
+          // The open period belongs to the band that is ending.
+          if (currentPeriod != null && currentEvents.isNotEmpty) {
+            sections.add(TimelineSection(
+              title: currentPeriod,
+              events: List.from(currentEvents),
+              group: currentGroup,
+            ));
+            currentEvents.clear();
+            currentPeriod = null;
+          }
+          currentGroup = name;
+        }
         continue;
       }
 
@@ -50,10 +93,7 @@ class TimelineParser {
         if (leftPart.isEmpty && rightPart.isNotEmpty) {
           // Continuation of previous period: "     : Event"
           if (currentPeriod != null && rightPart.isNotEmpty) {
-            currentEvents.add(TimelineEvent(
-              title: rightPart,
-              periods: [currentPeriod],
-            ));
+            currentEvents.addAll(_eventsFrom(rightPart, currentPeriod));
           }
         } else if (leftPart.isNotEmpty && rightPart.isNotEmpty) {
           // New period with event: "2004 : Facebook"
@@ -62,15 +102,13 @@ class TimelineParser {
             sections.add(TimelineSection(
               title: currentPeriod,
               events: List.from(currentEvents),
+              group: currentGroup,
             ));
             currentEvents.clear();
           }
 
           currentPeriod = leftPart;
-          currentEvents.add(TimelineEvent(
-            title: rightPart,
-            periods: [currentPeriod],
-          ));
+          currentEvents.addAll(_eventsFrom(rightPart, currentPeriod));
         } else if (leftPart.isNotEmpty && rightPart.isEmpty) {
           // Just a period marker: "2004 :"
           // Save previous section if exists
@@ -78,6 +116,7 @@ class TimelineParser {
             sections.add(TimelineSection(
               title: currentPeriod,
               events: List.from(currentEvents),
+              group: currentGroup,
             ));
             currentEvents.clear();
           }
@@ -100,6 +139,7 @@ class TimelineParser {
       sections.add(TimelineSection(
         title: currentPeriod,
         events: List.from(currentEvents),
+        group: currentGroup,
       ));
     }
 

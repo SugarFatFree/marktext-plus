@@ -182,7 +182,7 @@ flutter clean
 ### Mermaid 渲染
 - **复杂图表**: 超大型图表可能性能下降
 - **语法支持**: 部分高级 Mermaid 语法尚未实现
-- **导出**: HTML 导出使用 CDN（v11），PDF 导出不支持 Mermaid
+- **导出**: HTML 导出使用 CDN（v11）；**PDF 与 Word 导出会把图表渲染成 PNG 嵌入**（`app_menu_bar._renderMermaidImages` 先离屏渲染，再交给 `ExportService`），单张渲染失败时跳过该图而不影响整篇
 
 ### 配置迁移
 - **V1.1.3 变更**: 配置目录从 `~/.marktext-plus/` 迁移到系统应用目录
@@ -191,7 +191,7 @@ flutter clean
 ## 最近更新（V1.2.0）
 
 ### 新增功能
-- 预览模式富文本复制（Ctrl+C 自动写入 HTML 格式到剪贴板，粘贴到 Word 保留格式）
+- 预览模式富文本复制（Ctrl+C 自动写入 HTML 格式到剪贴板，粘贴到 Word 保留格式）—— **仅 Windows**：走 user32/kernel32 的 FFI 写 `HTML Format`，macOS / Linux 降级为纯文本（见 v1.2.0 FEAT-001）
 - 导出为 Word (.docx)（使用 `docx_creator` 包，支持标题/列表/表格/内联格式）
 
 ### 修复

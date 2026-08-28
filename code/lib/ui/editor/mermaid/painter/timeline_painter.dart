@@ -44,6 +44,24 @@ class TimelinePainter extends CustomPainter {
     final availableWidth = size.width - padding * 2;
     final sectionWidth = availableWidth / totalSections;
 
+    // Mermaid's `section` keyword bands several period columns together. The
+    // band is drawn above the period titles, so it needs its own strip of
+    // height — but only when the diagram uses sections at all, which keeps
+    // every timeline written without them laid out exactly as before.
+    final groups = _groupRuns();
+    if (groups.isNotEmpty) {
+      for (final run in groups) {
+        _drawGroupBand(
+          canvas,
+          run,
+          padding,
+          sectionWidth,
+          currentY,
+        );
+      }
+      currentY += timelineGroupBandHeight;
+    }
+
     // Adjust vertical spacing based on section density
     final verticalSpacing = isMobile ? 35.0 : 50.0;
 
@@ -72,7 +90,11 @@ class TimelinePainter extends CustomPainter {
     for (var i = 0; i < totalSections; i++) {
       final section = timelineData.sections[i];
       final sectionX = padding + sectionWidth * i + sectionWidth / 2;
-      final color = TimelineChartColors.getColorForSection(i);
+      // Columns in the same band share a colour, the way mermaid colours by
+      // section; without bands each column keeps its own.
+      final color = TimelineChartColors.getColorForSection(
+        _colorIndexFor(i),
+      );
 
       // Draw section marker (circle on timeline)
       _drawSectionMarker(canvas, sectionX, timelineY, eventRadius, color);
@@ -122,6 +144,99 @@ class TimelinePainter extends CustomPainter {
     );
     textPainter.layout();
     textPainter.paint(canvas, Offset(x - textPainter.width / 2, y));
+  }
+
+  /// Runs of consecutive columns that share a [TimelineSection.group].
+  ///
+  /// Returns `(group name, first column, last column)` for each run, and an
+  /// empty list when the diagram uses no sections.
+  List<(String, int, int)> _groupRuns() {
+    final runs = <(String, int, int)>[];
+    final sections = timelineData.sections;
+    var start = 0;
+    while (start < sections.length) {
+      final name = sections[start].group;
+      var end = start;
+      while (end + 1 < sections.length && sections[end + 1].group == name) {
+        end++;
+      }
+      if (name != null) runs.add((name, start, end));
+      start = end + 1;
+    }
+    return runs;
+  }
+
+  /// Which colour a column takes: its band's ordinal, or its own when the
+  /// diagram has no bands.
+  int _colorIndexFor(int column) {
+    final group = timelineData.sections[column].group;
+    if (group == null) return column;
+    // Ordinal by first appearance, so a band keeps one colour even if its
+    // columns are not contiguous in the source.
+    final seen = <String>{};
+    for (final section in timelineData.sections) {
+      final name = section.group;
+      if (name == null) continue;
+      if (name == group) break;
+      seen.add(name);
+    }
+    return seen.length;
+  }
+
+  /// Draws one band above the period titles it covers.
+  void _drawGroupBand(
+    Canvas canvas,
+    (String, int, int) run,
+    double padding,
+    double sectionWidth,
+    double y,
+  ) {
+    final (name, first, last) = run;
+    final left = padding + sectionWidth * first;
+    final right = padding + sectionWidth * (last + 1);
+    final color = Color(
+      TimelineChartColors.getColorForSection(_colorIndexFor(first)),
+    );
+
+    final rect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(left + 2, y, right - left - 4, timelineGroupBandHeight - 8),
+      const Radius.circular(4),
+    );
+    canvas.drawRRect(
+      rect,
+      Paint()
+        ..color = color.withValues(alpha: 0.15)
+        ..style = PaintingStyle.fill,
+    );
+    canvas.drawRRect(
+      rect,
+      Paint()
+        ..color = color.withValues(alpha: 0.5)
+        ..strokeWidth = 1.0
+        ..style = PaintingStyle.stroke,
+    );
+
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: name,
+        style: TextStyle(
+          fontSize: deviceConfig?.fontSize ?? 12.0,
+          fontWeight: FontWeight.bold,
+          color: color,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+      ellipsis: '…',
+    );
+    textPainter.layout(maxWidth: (right - left - 12).clamp(0.0, double.infinity));
+    textPainter.paint(
+      canvas,
+      Offset(
+        (left + right) / 2 - textPainter.width / 2,
+        y + (timelineGroupBandHeight - 8 - textPainter.height) / 2,
+      ),
+    );
   }
 
   /// Draws the horizontal timeline line
@@ -240,14 +355,14 @@ class TimelinePainter extends CustomPainter {
       );
 
       final boxPaint = Paint()
-        ..color = Color(color).withOpacity(0.15)
+        ..color = Color(color).withValues(alpha: 0.15)
         ..style = PaintingStyle.fill;
 
       canvas.drawRRect(boxRect, boxPaint);
 
       // Draw border
       final borderPaint = Paint()
-        ..color = Color(color).withOpacity(0.5)
+        ..color = Color(color).withValues(alpha: 0.5)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.0;
 
@@ -268,7 +383,7 @@ class TimelinePainter extends CustomPainter {
             text: event.description,
             style: TextStyle(
               fontSize: fontSize - 1,
-              color: Color(TimelineChartColors.textColor).withOpacity(0.7),
+              color: Color(TimelineChartColors.textColor).withValues(alpha: 0.7),
               fontStyle: FontStyle.italic,
               height: 1.2, // Line height for better readability
             ),
@@ -296,7 +411,7 @@ class TimelinePainter extends CustomPainter {
     int color,
   ) {
     final paint = Paint()
-      ..color = Color(color).withOpacity(0.5)
+      ..color = Color(color).withValues(alpha: 0.5)
       ..strokeWidth = 2.0
       ..style = PaintingStyle.stroke;
 

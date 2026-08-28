@@ -2,11 +2,26 @@ import '../models/diagram.dart';
 import '../models/edge.dart';
 import '../models/node.dart';
 import '../models/style.dart';
+import 'label.dart';
 
 /// Helper class for arrow information
 class _ArrowInfo {
-  const _ArrowInfo(this.type, this.label);
-  final String type;
+  const _ArrowInfo({
+    required this.line,
+    required this.head,
+    required this.bidirectional,
+    this.label,
+  });
+
+  /// The dashes, equals signs or dots that make up the line.
+  final String line;
+
+  /// What sits at the far end: `>`, `o`, `x`, or empty for a plain line.
+  final String head;
+
+  /// Whether the near end carries an arrow head as well, as in `A <--> B`.
+  final bool bidirectional;
+
   final String? label;
 }
 
@@ -85,7 +100,10 @@ class FlowchartParser {
   }
 
   void _parseLine(String line) {
-    final trimmed = line.trim();
+    // A statement may end with a semicolon. Now that a node id accepts any
+    // character that is not a delimiter, `A-->B;` would otherwise name the
+    // target "B;".
+    final trimmed = line.trim().replaceFirst(RegExp(r';\s*$'), '');
     if (trimmed.isEmpty) return;
 
     // Parse classDef
@@ -136,7 +154,7 @@ class FlowchartParser {
 
     // Parse id and label
     // Format can be: "subgraph id" or "subgraph id [label]" or "subgraph label"
-    final bracketMatch = RegExp(r'^(\w+)\s*\[(.+)\]$').firstMatch(trimmed);
+    final bracketMatch = RegExp(r'^([^\s\[\](){}<>|]+)\s*\[(.+)\]$').firstMatch(trimmed);
     if (bracketMatch != null) {
       _currentSubgraphId = bracketMatch.group(1);
       _currentSubgraphLabel = bracketMatch.group(2);
@@ -192,7 +210,20 @@ class FlowchartParser {
   void _parseNodeOrEdge(String line) {
     // Split line by arrows to get individual node-edge pairs
     // Arrows: -->, ==>, ---, -.->
-    final arrowRegex = RegExp(r'\s*(==>|-->|---|\.\.\.|===|-.->|-\.->|---->|====|---)\s*(\|[^|]*\|)?\s*');
+    // An arrow is: an optional head at the near end, a line, an optional
+    // label sitting between two line segments, a head, and an optional
+    // piped label.
+    //
+    // The old alternation listed `---` before `---->`, and alternation
+    // prefers the first branch that matches, so a long arrow was read as a
+    // short one and the rest — `-> B` — became the target's name. It also had
+    // no form for `A -- label --> B` at all, which lost the source node, and
+    // an unescaped dot that matched any single character between dashes.
+    final arrowRegex = RegExp(
+      r'\s*(<)?(-{2,}|={2,}|-\.+-|-\.)'
+      r'(?:\s*([^|>ox\-=.][^|]*?)\s*(-{2,}|={2,}|-\.+-|\.-))?'
+      r'([>ox])?\s*(?:\|([^|]*)\|)?\s*',
+    );
 
     final parts = <String>[];
     final arrows = <_ArrowInfo>[];
@@ -202,12 +233,13 @@ class FlowchartParser {
       if (match.start > lastEnd) {
         parts.add(line.substring(lastEnd, match.start).trim());
       }
-      String? label;
-      if (match.group(2) != null) {
-        final labelStr = match.group(2)!;
-        label = labelStr.substring(1, labelStr.length - 1);
-      }
-      arrows.add(_ArrowInfo(match.group(1)!, label));
+      arrows.add(_ArrowInfo(
+        line: match.group(2)!,
+        head: match.group(5) ?? '',
+        bidirectional: match.group(1) != null,
+        // Either spelling of the label; only one can be present.
+        label: _edgeLabel(match.group(3) ?? match.group(6)),
+      ));
       lastEnd = match.end;
     }
     // Add the last part
@@ -225,44 +257,82 @@ class FlowchartParser {
       return;
     }
 
-    // Process all nodes and edges
-    for (var i = 0; i < parts.length; i++) {
-      final nodeId = _extractId(parts[i]);
+    // One position may name several nodes: `A --> B & C` links A to both, and
+    // `A & B --> C` links both to C. Splitting only on arrows dropped
+    // everything after the ampersand.
+    final groups = parts.map(_splitOnAmpersand).toList();
 
-      // Skip if this is a subgraph ID (don't create node for subgraph reference)
-      if (!_subgraphIds.contains(nodeId)) {
-        final node = _parseNode(parts[i]);
-        if (node != null) {
-          // Only add node if not exists, or update if new one has shape/label info
-          if (!_nodes.containsKey(node.id) || _shouldUpdateNode(_nodes[node.id]!, node)) {
-            _nodes[node.id] = node;
-          }
-          _trackNodeForSubgraph(node.id);
+    // Process all nodes and edges
+    for (var i = 0; i < groups.length; i++) {
+      for (final part in groups[i]) {
+        final nodeId = _extractId(part);
+
+        // Skip if this is a subgraph ID (don't create node for subgraph reference)
+        if (_subgraphIds.contains(nodeId)) continue;
+        final node = _parseNode(part);
+        if (node == null) continue;
+        // Only add node if not exists, or update if new one has shape/label info
+        if (!_nodes.containsKey(node.id) ||
+            _shouldUpdateNode(_nodes[node.id]!, node)) {
+          _nodes[node.id] = node;
+        }
+        _trackNodeForSubgraph(node.id);
+      }
+
+      // Create edges between every node on this side and every node on the
+      // next, which for the ordinary one-to-one case is a single edge.
+      if (i >= arrows.length || i + 1 >= groups.length) continue;
+      final arrow = arrows[i];
+
+      for (final fromPart in groups[i]) {
+        for (final toPart in groups[i + 1]) {
+          final fromId = _extractId(fromPart);
+          final toId = _extractId(toPart);
+
+          // Check if either endpoint is a subgraph
+          final isFromSubgraph = _subgraphIds.contains(fromId);
+          final isToSubgraph = _subgraphIds.contains(toId);
+
+          _edges.add(MermaidEdge(
+            from: fromId,
+            to: toId,
+            label: arrow.label,
+            arrowType: _parseArrowType(arrow.head),
+            lineType: _parseLineType(arrow.line),
+            bidirectional: arrow.bidirectional,
+            // `A <--> B` draws a head at both ends.
+            startArrowType:
+                arrow.bidirectional ? ArrowType.arrow : ArrowType.none,
+            isSubgraphEdge: isFromSubgraph || isToSubgraph,
+          ));
         }
       }
-
-      // Create edge between consecutive nodes/subgraphs
-      if (i < arrows.length && i + 1 < parts.length) {
-        final fromId = _extractId(parts[i]);
-        final toId = _extractId(parts[i + 1]);
-
-        // Check if either endpoint is a subgraph
-        final isFromSubgraph = _subgraphIds.contains(fromId);
-        final isToSubgraph = _subgraphIds.contains(toId);
-
-        // Create edge - the edge system will handle subgraph edges
-        final arrow = arrows[i];
-        final edge = MermaidEdge(
-          from: fromId,
-          to: toId,
-          label: arrow.label,
-          arrowType: _parseArrowType(arrow.type),
-          lineType: _parseLineType(arrow.type),
-          isSubgraphEdge: isFromSubgraph || isToSubgraph,
-        );
-        _edges.add(edge);
-      }
     }
+  }
+
+  /// Splits `B & C` into its node strings.
+  ///
+  /// An ampersand inside a label — `A[Tom & Jerry]` — is content, so only
+  /// ampersands outside brackets separate.
+  static List<String> _splitOnAmpersand(String part) {
+    if (!part.contains('&')) return [part];
+
+    final result = <String>[];
+    final current = StringBuffer();
+    var depth = 0;
+    for (var i = 0; i < part.length; i++) {
+      final char = part[i];
+      if (char == '[' || char == '(' || char == '{') depth++;
+      if (char == ']' || char == ')' || char == '}') depth--;
+      if (char == '&' && depth == 0) {
+        result.add(current.toString().trim());
+        current.clear();
+        continue;
+      }
+      current.write(char);
+    }
+    result.add(current.toString().trim());
+    return result.where((p) => p.isNotEmpty).toList();
   }
 
   /// Determines if a new node should replace an existing node
@@ -280,14 +350,29 @@ class FlowchartParser {
 
   /// Extracts just the ID from a node string like "B{label}" -> "B"
   String _extractId(String nodeStr) {
-    final match = RegExp(r'^(\w+)').firstMatch(nodeStr);
+    final match = RegExp(r'^([^\s\[\](){}<>|]+)').firstMatch(nodeStr);
     return match?.group(1) ?? nodeStr;
+  }
+
+  /// An edge's own label, or null when it has none.
+  ///
+  /// Null rather than an empty string: the painter draws a label background
+  /// wherever there is a label, and an empty one left a box floating on the
+  /// line.
+  static String? _edgeLabel(String? raw) {
+    if (raw == null) return null;
+    final cleaned = cleanLabel(raw);
+    return cleaned.isEmpty ? null : cleaned;
   }
 
   /// Parses a node definition and returns a MermaidNode
   MermaidNode? _parseNode(String text) {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return null;
+
+    // Node ids accept any script. `\w` is ASCII-only in Dart, so
+    // `开始 --> 结束` produced no nodes at all while still producing edges
+    // that pointed at them — the diagram came out empty.
 
     // Try to match different node shapes
     // [text] - rectangle
@@ -305,23 +390,23 @@ class FlowchartParser {
     NodeShape shape;
 
     // Double bracket patterns first
-    final doubleCircle = RegExp(r'^(\w+)\(\((.+)\)\)$');
-    final hexagon = RegExp(r'^(\w+)\{\{(.+)\}\}$');
-    final subroutine = RegExp(r'^(\w+)\[\[(.+)\]\]$');
-    final cylinder = RegExp(r'^(\w+)\[\((.+)\)\]$');
-    final stadium = RegExp(r'^(\w+)\(\[(.+)\]\)$');
+    final doubleCircle = RegExp(r'^([^\s\[\](){}<>|]+)\(\((.+)\)\)$');
+    final hexagon = RegExp(r'^([^\s\[\](){}<>|]+)\{\{(.+)\}\}$');
+    final subroutine = RegExp(r'^([^\s\[\](){}<>|]+)\[\[(.+)\]\]$');
+    final cylinder = RegExp(r'^([^\s\[\](){}<>|]+)\[\((.+)\)\]$');
+    final stadium = RegExp(r'^([^\s\[\](){}<>|]+)\(\[(.+)\]\)$');
 
     // Single bracket patterns
-    final rectangle = RegExp(r'^(\w+)\[(.+)\]$');
-    final roundedRect = RegExp(r'^(\w+)\((.+)\)$');
-    final diamond = RegExp(r'^(\w+)\{(.+)\}$');
-    final asymmetric = RegExp(r'^(\w+)>(.+)\]$');
+    final rectangle = RegExp(r'^([^\s\[\](){}<>|]+)\[(.+)\]$');
+    final roundedRect = RegExp(r'^([^\s\[\](){}<>|]+)\((.+)\)$');
+    final diamond = RegExp(r'^([^\s\[\](){}<>|]+)\{(.+)\}$');
+    final asymmetric = RegExp(r'^([^\s\[\](){}<>|]+)>(.+)\]$');
 
     // Parallelogram patterns
-    final parallelogram = RegExp(r'^(\w+)\[/(.+)/\]$');
-    final parallelogramAlt = RegExp(r'^(\w+)\[\\(.+)\\\]$');
-    final trapezoid = RegExp(r'^(\w+)\[/(.+)\\\]$');
-    final trapezoidAlt = RegExp(r'^(\w+)\[\\(.+)/\]$');
+    final parallelogram = RegExp(r'^([^\s\[\](){}<>|]+)\[/(.+)/\]$');
+    final parallelogramAlt = RegExp(r'^([^\s\[\](){}<>|]+)\[\\(.+)\\\]$');
+    final trapezoid = RegExp(r'^([^\s\[\](){}<>|]+)\[/(.+)\\\]$');
+    final trapezoidAlt = RegExp(r'^([^\s\[\](){}<>|]+)\[\\(.+)/\]$');
 
     Match? match;
 
@@ -379,7 +464,7 @@ class FlowchartParser {
       shape = NodeShape.diamond;
     } else {
       // Plain node ID without shape
-      final plainId = RegExp(r'^(\w+)$').firstMatch(trimmed);
+      final plainId = RegExp(r'^([^\s\[\](){}<>|]+)$').firstMatch(trimmed);
       if (plainId != null) {
         id = plainId.group(1)!;
         label = id;
@@ -389,8 +474,10 @@ class FlowchartParser {
       }
     }
 
-    // Handle escaped quotes in labels
-    label = label.replaceAll('\\"', '"').replaceAll("\\'", "'");
+    // One helper for every label in every diagram: this used to unescape and
+    // unquote here and nowhere else, so edge labels kept their quotes, and
+    // `<br/>` was drawn as five characters wherever it appeared.
+    label = cleanLabel(label);
 
     return MermaidNode(
       id: id,
@@ -399,22 +486,32 @@ class FlowchartParser {
     );
   }
 
-  ArrowType _parseArrowType(String arrow) {
-    if (arrow.contains('x')) return ArrowType.cross;
-    if (arrow.contains('o')) return ArrowType.circle;
-    if (arrow.contains('>')) return ArrowType.arrow;
-    return ArrowType.none;
+  ArrowType _parseArrowType(String head) {
+    switch (head) {
+      case 'x':
+        return ArrowType.cross;
+      case 'o':
+        return ArrowType.circle;
+      case '>':
+        return ArrowType.arrow;
+      default:
+        return ArrowType.none;
+    }
   }
 
-  LineType _parseLineType(String arrow) {
-    if (arrow.contains('=')) return LineType.thick;
-    if (arrow.contains('.') || arrow.contains('-.')) return LineType.dotted;
+  LineType _parseLineType(String line) {
+    if (line.contains('=')) return LineType.thick;
+    if (line.contains('.')) return LineType.dotted;
     return LineType.solid;
   }
 
   void _parseClassDef(String line) {
     // classDef className fill:#f9f,stroke:#333,stroke-width:4px
-    final pattern = RegExp(r'classDef\s+(\w+)\s+(.+)');
+    //
+    // The name is whatever is not whitespace: `\w` is ASCII-only in Dart, so
+    // `classDef 红色 fill:#f96` matched nothing and the style was dropped
+    // silently — as was the `class A 红色` that referred to it.
+    final pattern = RegExp(r'classDef\s+(\S+)\s+(.+)');
     final match = pattern.firstMatch(line);
     if (match == null) return;
 
@@ -429,7 +526,7 @@ class FlowchartParser {
 
   void _parseClassAssignment(String line) {
     // class nodeId1,nodeId2 className
-    final pattern = RegExp(r'class\s+([^\s]+)\s+(\w+)');
+    final pattern = RegExp(r'class\s+([^\s]+)\s+(\S+)');
     final match = pattern.firstMatch(line);
     if (match == null) return;
 
@@ -443,7 +540,7 @@ class FlowchartParser {
 
   void _parseStyle(String line) {
     // style nodeId fill:#f9f,stroke:#333
-    final pattern = RegExp(r'style\s+(\w+)\s+(.+)');
+    final pattern = RegExp(r'style\s+([^\s\[\](){}<>|]+)\s+(.+)');
     final match = pattern.firstMatch(line);
     if (match == null) return;
 

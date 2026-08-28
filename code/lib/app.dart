@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:window_manager/window_manager.dart';
+import 'core/diagnostics/startup_trace.dart';
 import 'core/i18n/l10n/app_localizations.dart';
 import 'core/theme/app_theme.dart';
 import 'providers/settings_provider.dart';
@@ -10,23 +11,94 @@ import 'ui/screens/home_screen.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
+/// Tells the reader that a settings change did not reach disk.
+///
+/// Separate wording from a document's save failure: the reader is looking at
+/// a switch they have just flicked, and "could not save the file" would send
+/// them looking at their document.
+void reportSettingsSaveFailure(Object error) {
+  final context = navigatorKey.currentContext;
+  if (context == null || !context.mounted) return;
+  final l10n = AppLocalizations.of(context);
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(l10n == null
+          ? 'Could not save your settings: $error'
+          : l10n.settingsSaveFailed('$error')),
+    ),
+  );
+}
+
+/// Tells the reader that a save did not happen.
+///
+/// All three save paths — the menu, Save As, and the one the tab bar uses when
+/// closing — used to swallow the failure. Ctrl+S on a read-only file, or one
+/// another program holds open, did nothing at all: no message, and the only
+/// clue was the modified dot that stayed put. Upstream MarkText notifies on
+/// every one of these.
+void reportSaveFailure(Object error) {
+  final context = navigatorKey.currentContext;
+  if (context == null || !context.mounted) return;
+  final l10n = AppLocalizations.of(context);
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(l10n == null
+          ? 'Could not save the file: $error'
+          : l10n.saveFailed('$error')),
+    ),
+  );
+}
+
 class MarkTextPlusApp extends ConsumerWidget {
   const MarkTextPlusApp({super.key});
 
+  /// The brightness already pushed to the window.
+  ///
+  /// Setting it is a platform channel call, and this used to run on every
+  /// rebuild of the app root.
+  static Brightness? _appliedBrightness;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final config = ref.watch(settingsProvider);
+    // Only the theme name matters here. Watching the whole config rebuilt the
+    // entire app whenever any setting was written — the split divider
+    // position, the list of open files, the last update check.
+    // The four fields the theme depends on, as one record: `select` compares
+    // with `==`, and a record of strings and a bool compares by value, so this
+    // still rebuilds only when one of them actually changes.
+    final (chosen, followSystem, lightChoice, darkChoice) =
+        ref.watch(settingsProvider.select(
+      (c) => (c.themeName, c.followSystemTheme, c.lightModeTheme,
+          c.darkModeTheme),
+    ));
+    // Reading it here is what subscribes this widget to the operating system's
+    // light/dark switch: without the dependency the app would keep whichever
+    // theme it started with until the next launch.
+    final systemBrightness = MediaQuery.platformBrightnessOf(context);
+    final themeName = AppTheme.resolveThemeName(
+      followSystem: followSystem,
+      chosen: chosen,
+      lightChoice: lightChoice,
+      darkChoice: darkChoice,
+      systemBrightness: systemBrightness,
+    );
+    final textDirection =
+        ref.watch(settingsProvider.select((c) => c.textDirection));
     final locale = ref.watch(localeProvider);
-    final tokens = AppTheme.getTokens(config.themeName);
+    final tokens = AppTheme.getTokens(themeName);
+    StartupTrace.markOnce('app root built (theme and locale resolved)');
 
     // Sync window brightness with theme
-    windowManager.setBrightness(tokens.brightness);
+    if (_appliedBrightness != tokens.brightness) {
+      _appliedBrightness = tokens.brightness;
+      windowManager.setBrightness(tokens.brightness);
+    }
 
     return MaterialApp(
       navigatorKey: navigatorKey,
       title: 'MarkText Plus',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.getTheme(config.themeName),
+      theme: AppTheme.getTheme(themeName),
       themeMode: tokens.brightness == Brightness.dark ? ThemeMode.dark : ThemeMode.light,
       themeAnimationDuration: Duration.zero,
       locale: locale,
@@ -38,7 +110,12 @@ class MarkTextPlusApp extends ConsumerWidget {
       ],
       supportedLocales: AppLocalizations.supportedLocales,
       home: Directionality(
-        textDirection: locale.languageCode == 'ar' ? TextDirection.rtl : TextDirection.ltr,
+        // The setting existed but nothing read it, so choosing a direction did
+        // nothing. An explicit 'rtl' now wins; otherwise the language decides,
+        // which keeps Arabic right-to-left by default.
+        textDirection: textDirection == 'rtl' || locale.languageCode == 'ar'
+            ? TextDirection.rtl
+            : TextDirection.ltr,
         child: const HomeScreen(),
       ),
     );

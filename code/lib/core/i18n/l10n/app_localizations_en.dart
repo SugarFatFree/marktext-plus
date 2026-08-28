@@ -9,6 +9,90 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get settingsWrapCodeBlocks => 'Wrap long lines in code blocks';
+
+  @override
+  String get settingsCodeBlockLineNumbers => 'Code Block Line Numbers';
+
+  @override
+  String settingsSaveFailed(String message) {
+    return 'Could not save your settings: $message';
+  }
+
+  @override
+  String get settingsFollowSystemTheme =>
+      'Follow the system light/dark setting';
+
+  @override
+  String get settingsFollowSystemThemeHint =>
+      'Pick one light theme and one dark theme; the system decides which is shown.';
+
+  @override
+  String get settingsAutoPairBracket => 'Auto-close brackets';
+
+  @override
+  String get settingsAutoPairQuote => 'Auto-close quotes';
+
+  @override
+  String get settingsAutoPairMarkdown => 'Auto-close Markdown syntax (`, *, ~)';
+
+  @override
+  String get helpOpenDiagnosticLog => 'Open diagnostic log';
+
+  @override
+  String get diagnosticLogMissing => 'No diagnostic log has been written yet';
+
+  @override
+  String get mermaidCaptureFailed => 'Could not capture the diagram';
+
+  @override
+  String get mermaidErrorEmpty => 'The diagram is empty.';
+
+  @override
+  String mermaidErrorUnknownType(String type) {
+    return 'Unrecognised diagram type: \"$type\".';
+  }
+
+  @override
+  String get mermaidErrorHeaderOnly =>
+      'This diagram has a header but no content.';
+
+  @override
+  String get mermaidErrorBadBody =>
+      'The header is recognised, so check the syntax below it.';
+
+  @override
+  String mermaidSupportedTypes(String list) {
+    return 'Supported types: $list';
+  }
+
+  @override
+  String get mermaidParseError => 'Mermaid parse error';
+
+  @override
+  String imageSavedTo(String path) {
+    return 'Saved to $path';
+  }
+
+  @override
+  String imageSaveFailed(String message) {
+    return 'Could not save the image: $message';
+  }
+
+  @override
+  String saveFailed(String message) {
+    return 'Could not save the file: $message';
+  }
+
+  @override
+  String fileOperationFailed(String message) {
+    return 'File operation failed: $message';
+  }
+
+  @override
+  String get fileNameTaken => 'A file or folder with that name already exists';
+
+  @override
   String get appTitle => 'MarkText Plus';
 
   @override
@@ -61,6 +145,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get fileExportPdf => 'PDF';
+
+  @override
+  String get filePrint => 'Print';
 
   @override
   String get fileExportWord => 'Word (.docx)';
@@ -312,9 +399,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Are you sure you want to reset all settings to defaults?';
 
   @override
-  String get comingSoon => 'Coming soon';
-
-  @override
   String get noFiles => 'No files';
 
   @override
@@ -359,17 +443,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editCopyAsHtml => 'Copy as HTML';
 
   @override
-  String get previewCopyAsHtmlTooltip => 'Copy as HTML (for Word/WPS)';
-
-  @override
-  String get previewCopyAsHtmlSuccess =>
-      'Copied as HTML. You can now paste into Word/WPS with formatting.';
-
-  @override
   String get editSelectAll => 'Select All';
 
   @override
   String get editDuplicateLine => 'Duplicate Line';
+
+  @override
+  String get editCreateParagraph => 'Create Paragraph Below';
+
+  @override
+  String get editDeleteParagraph => 'Delete Paragraph';
 
   @override
   String get formatUnderline => 'Underline';
@@ -396,6 +479,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsCodeFontFamily => 'Code Font Family';
 
   @override
+  String get settingsCodeFontSize => 'Code Font Size';
+
+  @override
+  String get settingsEditorFontFamily => 'Editor Font Family';
+
+  @override
   String get settingsEditorMaxWidth => 'Editor Max Width';
 
   @override
@@ -418,21 +507,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get statusParagraphs => 'Paragraphs';
-
-  @override
-  String get themeCadmiumLight => 'Cadmium Light';
-
-  @override
-  String get themeOneDark => 'One Dark';
-
-  @override
-  String get themeMaterialDark => 'Material Dark';
-
-  @override
-  String get themeGraphiteLight => 'Graphite Light';
-
-  @override
-  String get themeUlyssesLight => 'Ulysses Light';
 
   @override
   String get themeRedGraphite => 'Red Graphite';
@@ -712,24 +786,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fileOpenBehavior => 'File Opening Behavior';
 
   @override
-  String get fileOpenBehaviorTitle => 'How to Open Files?';
-
-  @override
-  String get fileOpenBehaviorMessage =>
-      'When you double-click a file while the app is already running:';
-
-  @override
   String get fileOpenBehaviorNewWindow => 'Open in New Window';
 
   @override
-  String get fileOpenBehaviorNewWindowDesc => 'Allow multiple app instances';
-
-  @override
   String get fileOpenBehaviorExistingWindow => 'Open in Current Window';
-
-  @override
-  String get fileOpenBehaviorExistingWindowDesc =>
-      'Add to existing tabs (single instance)';
 
   @override
   String get fileOpenBehaviorNotSet => 'Not configured';
@@ -739,4 +799,97 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updateDismiss => 'Dismiss';
+
+  @override
+  String get mermaidFullscreen => 'Fullscreen';
+
+  @override
+  String get mermaidSaveAs => 'Save As';
+
+  @override
+  String get mermaidCopySource => 'Copy Source';
+
+  @override
+  String get mermaidEditSource => 'Edit Source';
+
+  @override
+  String get mermaidFullscreenHint =>
+      'Double-tap the diagram to view fullscreen';
+
+  @override
+  String get mermaidSaveAsHint => 'Save the diagram as PNG';
+
+  @override
+  String get menuParagraph => 'Paragraph';
+
+  @override
+  String get paragraphPromoteHeading => 'Promote Heading';
+
+  @override
+  String get paragraphDemoteHeading => 'Demote Heading';
+
+  @override
+  String get paragraphToParagraph => 'Convert to Paragraph';
+
+  @override
+  String get paragraphLooseList => 'Loose List Item';
+
+  @override
+  String get close => 'Close';
+
+  @override
+  String get mermaidViewerTitle => 'Mermaid Diagram Viewer';
+
+  @override
+  String get mermaidViewerHint =>
+      'Ctrl+Scroll to zoom    Drag to pan    Esc to close';
+
+  @override
+  String get statusHighlightOff => 'Syntax highlighting off (large file)';
+
+  @override
+  String get settingsImageStorage => 'Where to put dropped images';
+
+  @override
+  String get settingsImageStorageCopy => 'Beside the document';
+
+  @override
+  String get settingsImageStorageFolder => 'In one shared folder';
+
+  @override
+  String get settingsImageStorageLink => 'Link where they are';
+
+  @override
+  String get settingsImageFolder => 'Image folder';
+
+  @override
+  String get fileCloseTab => 'Close Tab';
+
+  @override
+  String get fileClearRecentFiles => 'Clear Recent Files';
+
+  @override
+  String get viewCommandPalette => 'Command Palette';
+
+  @override
+  String get viewReloadImages => 'Reload Images';
+
+  @override
+  String get formatFrontMatter => 'Front Matter';
+
+  @override
+  String get formatHtmlBlock => 'HTML Block';
+
+  @override
+  String get updateUpToDate => 'You are on the latest version';
+
+  @override
+  String get updateCheckFailed => 'Could not check for updates';
+
+  @override
+  String get linkOpenFailed => 'Could not open the link';
+
+  @override
+  String get recentFileMissing =>
+      'That file is no longer there; it has been removed from the list';
 }

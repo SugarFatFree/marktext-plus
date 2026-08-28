@@ -1,5 +1,76 @@
 {
   "@@locale": "fr",
+  "settingsWrapCodeBlocks": "Retour à la ligne dans les blocs de code",
+  "settingsCodeBlockLineNumbers": "Numéros de ligne dans les blocs de code",
+  "settingsSaveFailed": "Impossible d'enregistrer vos réglages : {message}",
+  "@settingsSaveFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsFollowSystemTheme": "Suivre le mode clair/sombre du système",
+  "settingsFollowSystemThemeHint": "Choisissez un thème clair et un thème sombre ; le système décide lequel s'affiche.",
+  "settingsAutoPairBracket": "Fermer les parenthèses automatiquement",
+  "settingsAutoPairQuote": "Fermer les guillemets automatiquement",
+  "settingsAutoPairMarkdown": "Fermer la syntaxe Markdown automatiquement (`, *, ~)",
+  "helpOpenDiagnosticLog": "Ouvrir le journal de diagnostic",
+  "diagnosticLogMissing": "Aucun journal de diagnostic n'a encore été écrit",
+  "mermaidCaptureFailed": "Impossible de capturer le diagramme",
+  "mermaidErrorEmpty": "Le diagramme est vide.",
+  "mermaidErrorUnknownType": "Type de diagramme non reconnu : « {type} ».",
+  "@mermaidErrorUnknownType": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "mermaidErrorHeaderOnly": "Ce diagramme a un en-tête mais aucun contenu.",
+  "mermaidErrorBadBody": "L'en-tête est reconnu ; vérifiez la syntaxe en dessous.",
+  "mermaidSupportedTypes": "Types pris en charge : {list}",
+  "@mermaidSupportedTypes": {
+    "placeholders": {
+      "list": {
+        "type": "String"
+      }
+    }
+  },
+  "mermaidParseError": "Erreur d'analyse Mermaid",
+  "imageSavedTo": "Enregistré dans {path}",
+  "@imageSavedTo": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "imageSaveFailed": "Impossible d'enregistrer l'image : {message}",
+  "@imageSaveFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "saveFailed": "Impossible d'enregistrer le fichier : {message}",
+  "@saveFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "fileOperationFailed": "Échec de l'opération sur le fichier : {message}",
+  "fileNameTaken": "Un fichier ou un dossier portant ce nom existe déjà",
+  "@fileOperationFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "appTitle": "MarkText Plus",
   "menuFile": "Fichier",
   "menuEdit": "Édition",
@@ -13,11 +84,12 @@
   "fileOpenFolder": "Ouvrir un dossier",
   "fileSave": "Enregistrer",
   "fileSaveAs": "Enregistrer sous",
-  "fileRecentFiles": "Recent Files",
-  "fileNoRecentFiles": "No Recent Files",
+  "fileRecentFiles": "Fichiers récents",
+  "fileNoRecentFiles": "Aucun fichier récent",
   "fileExport": "Exporter",
   "fileExportHtml": "HTML",
   "fileExportPdf": "PDF",
+  "filePrint": "Imprimer",
   "fileExportWord": "Word (.docx)",
   "fileSettings": "Paramètres",
   "fileQuit": "Quitter",
@@ -99,7 +171,6 @@
   "settingsLightThemes": "Thèmes clairs",
   "settingsDarkThemes": "Thèmes sombres",
   "confirmResetMessage": "Voulez-vous vraiment réinitialiser tous les paramètres ?",
-  "comingSoon": "Bientôt disponible",
   "noFiles": "Aucun fichier",
   "noOpenFolder": "Ouvrir un dossier pour parcourir les fichiers",
   "searchPlaceholder": "Rechercher dans les fichiers...",
@@ -116,6 +187,8 @@
   "editCopyAsHtml": "Copier en HTML",
   "editSelectAll": "Tout sélectionner",
   "editDuplicateLine": "Dupliquer la ligne",
+  "editCreateParagraph": "Créer un paragraphe en dessous",
+  "editDeleteParagraph": "Supprimer le paragraphe",
   "formatUnderline": "Souligné",
   "formatSuperscript": "Exposant",
   "formatSubscript": "Indice",
@@ -124,6 +197,8 @@
   "formatInlineMath": "Formule en ligne",
   "formatClearFormatting": "Effacer le formatage",
   "settingsCodeFontFamily": "Police de code",
+  "settingsCodeFontSize": "Taille de police du code",
+  "settingsEditorFontFamily": "Police de l'éditeur",
   "settingsEditorMaxWidth": "Largeur maximale de l'éditeur",
   "settingsTextDirection": "Direction du texte",
   "keybindingsEdit": "Modifier le raccourci",
@@ -132,11 +207,6 @@
   "statusWords": "Mots",
   "statusChars": "Caractères",
   "statusParagraphs": "Paragraphes",
-  "themeCadmiumLight": "Cadmium Clair",
-  "themeOneDark": "One Dark",
-  "themeMaterialDark": "Material Sombre",
-  "themeGraphiteLight": "Graphite Clair",
-  "themeUlyssesLight": "Ulysses Clair",
   "themeRedGraphite": "Graphite Rouge",
   "themeShibuya": "Shibuya",
   "themePinkBlossom": "Fleur Rose",
@@ -180,7 +250,13 @@
   "copyFilePath": "Copier le chemin du fichier",
   "deleteFile": "Supprimer le fichier",
   "confirmDeleteFile": "Êtes-vous sûr de vouloir supprimer \"{fileName}\" ?",
-  "@confirmDeleteFile": { "placeholders": { "fileName": { "type": "String" } } },
+  "@confirmDeleteFile": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
   "newFolder": "Nouveau dossier",
   "rename": "Renommer",
   "delete": "Supprimer",
@@ -205,9 +281,21 @@
   "settingsTextDirectionLtr": "Gauche à droite",
   "settingsTextDirectionRtl": "Droite à gauche",
   "commandFormatLabel": "Format : {action}",
-  "@commandFormatLabel": { "placeholders": { "action": { "type": "String" } } },
+  "@commandFormatLabel": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
   "commandFormatDesc": "Appliquer le formatage {action}",
-  "@commandFormatDesc": { "placeholders": { "action": { "type": "String" } } },
+  "@commandFormatDesc": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
   "commandNewFile": "Nouveau fichier",
   "commandNewFileDesc": "Créer un nouveau fichier sans titre",
   "commandSave": "Enregistrer",
@@ -226,8 +314,43 @@
   "commandToggleSidebarDesc": "Afficher ou masquer la barre latérale",
   "commandToggleTabBar": "Basculer la barre d'onglets",
   "commandToggleTabBarDesc": "Afficher ou masquer la barre d'onglets",
-
   "welcomeNewFile": "Nouveau fichier",
   "welcomeOpenFile": "Ouvrir un fichier",
-  "welcomeDragHint": "Déposez des fichiers ici pour les ouvrir"
+  "welcomeDragHint": "Déposez des fichiers ici pour les ouvrir",
+  "mermaidFullscreen": "Plein écran",
+  "mermaidSaveAs": "Enregistrer sous",
+  "mermaidCopySource": "Copier la source",
+  "mermaidEditSource": "Modifier la source",
+  "mermaidFullscreenHint": "Double-cliquez sur le diagramme pour l'afficher en plein écran",
+  "mermaidSaveAsHint": "Enregistrer le diagramme au format PNG",
+  "menuParagraph": "Paragraphe",
+  "paragraphPromoteHeading": "Promouvoir le titre",
+  "paragraphDemoteHeading": "Rétrograder le titre",
+  "paragraphToParagraph": "Convertir en paragraphe",
+  "paragraphLooseList": "Élément de liste espacé",
+  "close": "Fermer",
+  "mermaidViewerTitle": "Visionneuse de diagramme Mermaid",
+  "mermaidViewerHint": "Ctrl+Molette pour zoomer    Glisser pour déplacer    Échap pour fermer",
+  "statusHighlightOff": "Coloration syntaxique désactivée (fichier volumineux)",
+  "settingsImageStorage": "Emplacement des images déposées",
+  "settingsImageStorageCopy": "À côté du document",
+  "settingsImageStorageFolder": "Dans un dossier commun",
+  "settingsImageStorageLink": "Lier à leur emplacement",
+  "settingsImageFolder": "Dossier d'images",
+  "fileCloseTab": "Fermer l'onglet",
+  "fileClearRecentFiles": "Effacer les fichiers récents",
+  "viewCommandPalette": "Palette de commandes",
+  "viewReloadImages": "Recharger les images",
+  "formatFrontMatter": "En-tête YAML",
+  "formatHtmlBlock": "Bloc HTML",
+  "updateUpToDate": "Vous utilisez la dernière version",
+  "updateCheckFailed": "Impossible de vérifier les mises à jour",
+  "fileOpenBehavior": "Comportement à l'ouverture des fichiers",
+  "fileOpenBehaviorExistingWindow": "Ouvrir dans la fenêtre actuelle",
+  "fileOpenBehaviorNewWindow": "Ouvrir dans une nouvelle fenêtre",
+  "fileOpenBehaviorNotSet": "Non configuré",
+  "updateAvailable": "Nouvelle version disponible",
+  "updateDismiss": "Ignorer",
+  "linkOpenFailed": "Impossible d'ouvrir le lien",
+  "recentFileMissing": "Ce fichier n’existe plus ; il a été retiré de la liste"
 }

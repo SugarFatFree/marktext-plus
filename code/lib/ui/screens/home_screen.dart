@@ -1,10 +1,13 @@
 import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:path/path.dart' as p;
+import 'package:window_manager/window_manager.dart';
+
 import '../../core/config/app_config.dart';
 import '../../core/i18n/l10n/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
@@ -20,13 +23,18 @@ import '../../core/constants.dart';
 import '../../utils/platform_utils.dart';
 import '../widgets/app_menu_bar.dart';
 import '../widgets/side_bar.dart';
-import '../widgets/editor_tab_bar.dart';
 import '../widgets/status_bar.dart';
 import '../widgets/find_replace_bar.dart';
 import '../widgets/command_palette.dart';
+import '../widgets/editor_tab_bar.dart';
 import '../editor/source_editor.dart';
 import '../editor/markdown_renderer.dart';
 import '../editor/split_editor.dart';
+import '../../services/keybinding_service.dart';
+import '../../services/file_service.dart';
+import '../../models/file_encoding.dart';
+import '../../models/line_ending.dart';
+import '../../core/diagnostics/startup_trace.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -35,7 +43,10 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+/// What the user chose when asked about unsaved work on exit.
+enum _ExitChoice { cancel, discard, save }
+
+class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
   bool _startupFilesProcessed = false;
   bool _updateCheckDone = false;
   bool _sideBarRestored = false;
@@ -43,14 +54,157 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    StartupTrace.mark('home screen initState');
+    // The listener lives here rather than above MaterialApp because closing
+    // has to be able to show a dialog, which needs a Navigator and the
+    // localisations in scope.
+    windowManager.addListener(this);
+    _preventCloseWhileUnsaved();
+
     // Run startup side-effects after the first frame so we don't mutate
     // providers during the widget tree build.
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      StartupTrace.mark('first frame painted');
       if (!mounted) return;
       _openStartupFiles();
       _checkForUpdates();
       _restoreSideBarDirectory();
+      StartupTrace.mark('startup side-effects dispatched');
     });
+  }
+
+  @override
+  void dispose() {
+    windowManager.removeListener(this);
+    super.dispose();
+  }
+
+  Future<void> _preventCloseWhileUnsaved() async {
+    try {
+      await windowManager.setPreventClose(true);
+    } catch (_) {
+      // No window to manage; the app simply closes as before.
+    }
+  }
+
+  /// Intercepts the window's close button.
+  ///
+  /// Closing the window used to end the process outright, discarding every
+  /// modified tab at once — the same loss as closing a tab, over the whole
+  /// session.
+  @override
+  void onWindowClose() async {
+    StartupTrace.mark('close requested');
+    final unsaved = ref
+        .read(tabProvider)
+        .tabs
+        .where((t) => t.isModified)
+        .toList();
+
+    if (unsaved.isEmpty || !mounted) {
+      // The common path: geometry has to be recorded here too, or it would
+      // only ever be saved when something was left unsaved.
+      await _saveWindowGeometry();
+      StartupTrace.mark('window geometry saved');
+      // The marks around this live inside stopWatchingFiles itself; repeating
+      // them here printed each one twice and made the close look as if it had
+      // run through the handler two times.
+      ref.read(tabProvider.notifier).stopWatchingFiles();
+      // Written before destroy: the call may not return.
+      StartupTrace.flush();
+      StartupTrace.armShutdownWatchdog();
+      await windowManager.destroy();
+      StartupTrace.mark('window destroyed');
+      StartupTrace.flush();
+      return;
+    }
+
+    final choice = await _askAboutUnsavedOnExit(unsaved);
+    if (choice == null || choice == _ExitChoice.cancel) return;
+
+    if (choice == _ExitChoice.save) {
+      for (final tab in unsaved) {
+        final saved = await EditorTabBar.saveTab(ref, tab);
+        // Abandoning one save abandons the exit: quitting anyway would lose
+        // exactly the work the user asked to keep.
+        if (!saved) return;
+      }
+    }
+
+    await _saveWindowGeometry();
+    StartupTrace.mark('window geometry saved (after prompt)');
+    ref.read(tabProvider.notifier).stopWatchingFiles();
+    StartupTrace.flush();
+    StartupTrace.armShutdownWatchdog();
+    await windowManager.destroy();
+    StartupTrace.mark('window destroyed');
+    StartupTrace.flush();
+  }
+
+  /// Records the window's size, position and maximised state for next launch.
+  ///
+  /// Done here because the window still exists; the previous attempt ran on
+  /// AppLifecycleState.detached, by which point position was unreachable — it
+  /// wrote zeros and false over whatever had been stored.
+  Future<void> _saveWindowGeometry() async {
+    try {
+      // Together rather than one after another: three independent reads over
+      // the platform channel, each a round trip to the Windows thread, and
+      // they were being waited on in sequence while the window sat there.
+      final (maximized, size, position) = await (
+        windowManager.isMaximized(),
+        windowManager.getSize(),
+        windowManager.getPosition(),
+      ).wait;
+      StartupTrace.mark('window bounds read');
+
+      await ref
+          .read(settingsProvider.notifier)
+          .saveWindowState(
+            width: size.width,
+            height: size.height,
+            x: position.dx,
+            y: position.dy,
+            isMaximized: maximized,
+          );
+      StartupTrace.mark('window state written to config');
+    } catch (_) {
+      // Nothing to record without a window; closing continues regardless.
+      StartupTrace.mark('window geometry could not be read');
+    }
+  }
+
+  Future<_ExitChoice?> _askAboutUnsavedOnExit(List<TabInfo> unsaved) {
+    final l10n = AppLocalizations.of(context)!;
+    const maxListed = 5;
+    final names = unsaved.take(maxListed).map((t) => t.fileName).join('\n');
+    final extra = unsaved.length > maxListed
+        ? '\n… ${unsaved.length - maxListed}'
+        : '';
+
+    return showDialog<_ExitChoice>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.unsavedChanges),
+        content: Text('$names$extra\n\n${l10n.unsavedChangesMessage}'),
+        actions: [
+          TextButton(
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(_ExitChoice.cancel),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(_ExitChoice.discard),
+            child: Text(l10n.dontSave),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(_ExitChoice.save),
+            child: Text(l10n.save),
+          ),
+        ],
+      ),
+    );
   }
 
   void _restoreSideBarDirectory() {
@@ -65,7 +219,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       }
     }
     if (config.sideBarOpenedFiles.isNotEmpty) {
-      ref.read(tabProvider.notifier).restoreOpenedFiles(config.sideBarOpenedFiles);
+      ref
+          .read(tabProvider.notifier)
+          .restoreOpenedFiles(config.sideBarOpenedFiles);
     }
   }
 
@@ -79,17 +235,32 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     if (lastCheck != null && now.difference(lastCheck).inHours < 24) return;
 
-    await ref.read(settingsProvider.notifier).updateConfig(
-      (c) => c.copyWith(lastUpdateCheck: now.toIso8601String()),
-    );
+    await ref
+        .read(settingsProvider.notifier)
+        .updateConfig(
+          (c) => c.copyWith(lastUpdateCheck: now.toIso8601String()),
+        );
 
-    final update = await UpdateService.checkForUpdate(AppConstants.appVersion);
+    // The automatic check stays quiet when it cannot reach GitHub; only a
+    // check the user asked for reports that.
+    final update = (await UpdateService.checkForUpdate(AppConstants.appVersion))
+        .update;
     if (update != null && update.version != config.skipVersion) {
       ref.read(updateProvider.notifier).setUpdate(update);
     }
   }
 
+  /// The localisations the command palette was last filled from.
+  ///
+  /// [build] runs on every cursor move, because it watches the editor state,
+  /// and rebuilding thirty commands with their formatted labels each time was
+  /// pure garbage. The command list only depends on the language.
+  AppLocalizations? _commandsBuiltFrom;
+
   void _registerCommands(AppLocalizations l10n) {
+    if (identical(_commandsBuiltFrom, l10n)) return;
+    _commandsBuiltFrom = l10n;
+
     final registry = CommandRegistry.instance;
     registry.clear();
 
@@ -114,15 +285,42 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       FormatAction.link: l10n.formatLink,
       FormatAction.image: l10n.formatImage,
       FormatAction.horizontalRule: l10n.formatHorizontalRule,
+      FormatAction.frontMatter: l10n.formatFrontMatter,
+      FormatAction.htmlBlock: l10n.formatHtmlBlock,
+      // The seventeen that the menu offered and this map did not, so they were
+      // in every menu and unreachable from the palette. Both go through the
+      // same applyFormat, so the only thing that had been missing was the
+      // entry here — which is exactly the kind of omission a second list of
+      // the same things produces.
+      FormatAction.underline: l10n.formatUnderline,
+      FormatAction.highlight: l10n.formatHighlight,
+      FormatAction.superscript: l10n.formatSuperscript,
+      FormatAction.subscript: l10n.formatSubscript,
+      FormatAction.inlineCode: l10n.formatInlineCode,
+      FormatAction.inlineMath: l10n.formatInlineMath,
+      FormatAction.clearFormatting: l10n.formatClearFormatting,
+      FormatAction.copyAsMarkdown: l10n.editCopyAsMarkdown,
+      FormatAction.copyAsHtml: l10n.editCopyAsHtml,
+      FormatAction.selectAll: l10n.editSelectAll,
+      FormatAction.duplicateLine: l10n.editDuplicateLine,
+      FormatAction.promoteHeading: l10n.paragraphPromoteHeading,
+      FormatAction.demoteHeading: l10n.paragraphDemoteHeading,
+      FormatAction.toParagraph: l10n.paragraphToParagraph,
+      FormatAction.looseList: l10n.paragraphLooseList,
+      FormatAction.createParagraph: l10n.editCreateParagraph,
+      FormatAction.deleteParagraph: l10n.editDeleteParagraph,
     };
 
     for (final entry in formatLabels.entries) {
-      registry.register(Command(
-        id: 'format.${entry.key.name}',
-        label: l10n.commandFormatLabel(entry.value),
-        description: l10n.commandFormatDesc(entry.value),
-        execute: () => ref.read(editorProvider.notifier).applyFormat(entry.key),
-      ));
+      registry.register(
+        Command(
+          id: 'format.${entry.key.name}',
+          label: l10n.commandFormatLabel(entry.value),
+          description: l10n.commandFormatDesc(entry.value),
+          execute: () =>
+              ref.read(editorProvider.notifier).applyFormat(entry.key),
+        ),
+      );
     }
 
     // File operations
@@ -131,18 +329,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         id: 'file.new',
         label: l10n.commandNewFile,
         description: l10n.commandNewFileDesc,
-        execute: () {
-          final tab = TabInfo(
-            id: DateTime.now().millisecondsSinceEpoch.toString(),
-          );
-          ref.read(tabProvider.notifier).addTab(tab);
-        },
+        execute: () => AppMenuBar.newFile(ref, l10n),
       ),
       Command(
         id: 'file.save',
         label: l10n.commandSave,
         description: l10n.commandSaveDesc,
-        execute: () => _saveCurrentFile(),
+        execute: () => AppMenuBar.saveFile(ref),
       ),
     ]);
 
@@ -197,12 +390,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     ]);
   }
 
-  void _saveCurrentFile() async {
-    final activeTab = ref.read(activeTabProvider);
-    if (activeTab == null || activeTab.filePath == null) return;
-    await File(activeTab.filePath!).writeAsString(activeTab.content);
-    ref.read(tabProvider.notifier).markSaved(activeTab.id);
-  }
 
   void _openStartupFiles() async {
     if (_startupFilesProcessed) return;
@@ -211,15 +398,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final files = ref.read(startupFilesProvider);
     if (files.isEmpty) return;
 
-    final config = ref.read(settingsProvider);
-    if (config.fileOpenBehavior == FileOpenBehavior.notSet && mounted) {
-      final choice = await _showFileOpenBehaviorDialog();
-      // If user dismisses dialog (ESC or system close), default to existingWindow
-      final finalChoice = choice ?? FileOpenBehavior.existingWindow;
-      ref.read(settingsProvider.notifier).updateConfig(
-        (c) => c.copyWith(fileOpenBehavior: finalChoice),
-      );
-    }
+    // Opening behaviour is a preference, not a question to ask on launch.
+    // `notSet` simply means "use the current window"; Settings is where it
+    // gets changed. Upstream MarkText behaves the same way.
 
     for (final path in files) {
       try {
@@ -233,13 +414,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           isLoading: true,
         );
         ref.read(tabProvider.notifier).addTab(tab);
+        StartupTrace.mark('loading tab added');
 
         // Force a frame to render the loading indicator
         WidgetsBinding.instance.addPostFrameCallback((_) async {
           try {
-            // Read file content in isolate for large files
-            final content = await compute(_readFileInIsolate, path);
-            ref.read(tabProvider.notifier).updateContent(tabId, content);
+            StartupTrace.mark('loading frame painted');
+            final bytes = await _readDocument(path);
+            StartupTrace.mark('file read (${bytes.length} bytes)');
+            final (raw, encoding) = FileEncoding.decode(bytes);
+            StartupTrace.mark('decoded (${encoding.name})');
+            ref
+                .read(tabProvider.notifier)
+                .loadTabContent(
+                  tabId,
+                  FileService.normalizeLineEndings(raw),
+                  lineEnding: LineEnding.detect(raw),
+                  encoding: encoding,
+                );
+            StartupTrace.mark('content handed to the tab');
+            WidgetsBinding.instance.addPostFrameCallback(
+              (_) => StartupTrace.mark('document painted'),
+            );
           } catch (e) {
             // Handle error: remove the loading tab or show error state
             ref.read(tabProvider.notifier).removeTab(tabId);
@@ -247,76 +443,49 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         });
 
         ref.read(settingsProvider.notifier).addRecentFile(path);
-      } catch (_) {}
+      } catch (_) {
+        // A file named on the command line that cannot be opened is skipped;
+        // the others still open. The inner catch above has already removed
+        // the tab that was created for it.
+      }
     }
   }
 
-  // Top-level or static function for compute isolate
-  static Future<String> _readFileInIsolate(String path) async {
-    return await File(path).readAsString();
+  /// Reads [path] off the UI isolate.
+  ///
+  /// Returns the bytes as they are: the encoding and the line endings are
+  /// worked out on the main isolate, where the result is needed anyway,
+  /// rather than sending a record across the boundary.
+  ///
+  /// Bytes rather than a string because `readAsString` throws on anything but
+  /// UTF-8, and the catch around this call removes the tab — so a file in any
+  /// other encoding used to open and vanish.
+  static Future<Uint8List> _readFileInIsolate(String path) async {
+    return File(path).readAsBytes();
   }
 
-  Future<FileOpenBehavior?> _showFileOpenBehaviorDialog() {
-    final l10n = AppLocalizations.of(context)!;
-    return showDialog<FileOpenBehavior>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.fileOpenBehaviorTitle),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(l10n.fileOpenBehaviorMessage),
-            const SizedBox(height: 16),
-            _buildRadioOption(
-              ctx,
-              l10n.fileOpenBehaviorNewWindow,
-              l10n.fileOpenBehaviorNewWindowDesc,
-              FileOpenBehavior.newWindow,
-            ),
-            _buildRadioOption(
-              ctx,
-              l10n.fileOpenBehaviorExistingWindow,
-              l10n.fileOpenBehaviorExistingWindowDesc,
-              FileOpenBehavior.existingWindow,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  /// Above this size, reading moves off the UI isolate.
+  ///
+  /// Measured rather than guessed: reading and decoding 10 MiB costs tens of
+  /// milliseconds, so half a megabyte is far inside one frame. Below the
+  /// threshold the isolate is pure overhead — and the *first* `compute` in a
+  /// process has to start an isolate and load the app snapshot, which is
+  /// exactly the one that runs while the user waits for their document.
+  static const _isolateReadThreshold = 512 * 1024;
 
-  Widget _buildRadioOption(
-    BuildContext ctx,
-    String title,
-    String subtitle,
-    FileOpenBehavior value,
-  ) {
-    return InkWell(
-      onTap: () => Navigator.of(ctx).pop(value),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          children: [
-            Radio<FileOpenBehavior>(
-              value: value,
-              groupValue: null,
-              onChanged: (_) => Navigator.of(ctx).pop(value),
-            ),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-                  Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  /// Reads [path], going off the UI isolate only when that is worth doing.
+  static Future<Uint8List> _readDocument(String path) async {
+    final file = File(path);
+    var small = false;
+    try {
+      small = await file.length() <= _isolateReadThreshold;
+    } on FileSystemException {
+      // Let the read itself report the problem, as it did before.
+    }
+    // Awaited inside no try: a failure here has to reach the caller, which is
+    // what removes the tab it created.
+    if (small) return file.readAsBytes();
+    return compute(_readFileInIsolate, path);
   }
 
   void _handleDrop(DropDoneDetails details) async {
@@ -330,9 +499,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (entity == FileSystemEntityType.directory) {
         // Open the folder in the file tree
         await ref.read(fileProvider.notifier).loadDirectory(path);
-        await ref.read(settingsProvider.notifier).updateConfig(
-          (c) => c.copyWith(sideBarDirectory: path),
-        );
+        await ref
+            .read(settingsProvider.notifier)
+            .updateConfig((c) => c.copyWith(sideBarDirectory: path));
         continue;
       }
 
@@ -355,9 +524,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         // Force a frame to render the loading indicator
         WidgetsBinding.instance.addPostFrameCallback((_) async {
           try {
-            // Read file content in isolate for large files
-            final content = await compute(_readFileInIsolate, path);
-            ref.read(tabProvider.notifier).updateContent(tabId, content);
+            final bytes = await _readDocument(path);
+            final (raw, encoding) = FileEncoding.decode(bytes);
+            ref
+                .read(tabProvider.notifier)
+                .loadTabContent(
+                  tabId,
+                  FileService.normalizeLineEndings(raw),
+                  lineEnding: LineEnding.detect(raw),
+                  encoding: encoding,
+                );
           } catch (e) {
             ref.read(tabProvider.notifier).removeTab(tabId);
           }
@@ -370,10 +546,87 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
+  /// Runs the window-level action bound to [event], if any.
+  ///
+  /// Flutter's MenuItemButton.shortcut only *displays* a shortcut — "shortcuts
+  /// are not automatically handled", per its own documentation — so every
+  /// shortcut in the menus was decorative. This handles the ones that are not
+  /// about the text: opening, saving, find and replace.
+  ///
+  /// Anything that edits the document is handled inside [SourceEditor]
+  /// instead, so that Ctrl+A and friends still belong to the find bar or a
+  /// settings field when that is where the caret is.
+  bool _runShortcut(KeyEvent event) {
+    final action = KeybindingService().actionForEvent(
+      event,
+      isMacOS: PlatformUtils.isMacOS,
+    );
+    if (action == null) return false;
+
+    final editor = ref.read(editorProvider.notifier);
+    switch (action) {
+      case 'find':
+      case 'replace':
+        editor.toggleFindReplace();
+        return true;
+      case 'save':
+        AppMenuBar.saveFile(ref);
+        return true;
+      case 'open':
+        AppMenuBar.openFile(ref);
+        return true;
+      case 'findNext':
+        editor.stepToFindMatch(forward: true);
+        return true;
+      case 'findPrevious':
+        editor.stepToFindMatch(forward: false);
+        return true;
+      case 'closeTab':
+        final tab = ref.read(activeTabProvider);
+        if (tab != null) EditorTabBar.closeTab(context, ref, tab);
+        return true;
+
+      // The view actions, answered here as well as by the menu because focus
+      // mode takes the menu bar out of the tree — and with it every shortcut
+      // the menu registers, including the one that leaves focus mode.
+      //
+      // Written out as key comparisons once (Ctrl+Alt+1, Ctrl+Shift+B and the
+      // rest), which held only while the table said the same thing: rebinding
+      // one in Settings left the old key working here.
+      case 'commandPalette':
+        CommandPalette.show(context);
+        return true;
+      case 'sourceMode':
+        ref.read(settingsProvider.notifier).setEditMode(EditMode.source);
+        return true;
+      case 'previewMode':
+        ref.read(settingsProvider.notifier).setEditMode(EditMode.preview);
+        return true;
+      case 'splitMode':
+        ref.read(settingsProvider.notifier).setEditMode(EditMode.split);
+        return true;
+      case 'toggleTabBar':
+        ref.read(settingsProvider.notifier).toggleTabBar();
+        return true;
+      case 'toggleSidebar':
+        ref.read(settingsProvider.notifier).toggleSideBar();
+        return true;
+      case 'focusMode':
+        ref.read(settingsProvider.notifier).toggleFocusMode();
+        return true;
+    }
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
+    StartupTrace.markOnce('home screen first build');
     final config = ref.watch(settingsProvider);
-    final editorState = ref.watch(editorProvider);
+    // Only the find bar's visibility is read here. Watching the whole editor
+    // state rebuilt this entire screen on every cursor move.
+    final showFindReplace = ref.watch(
+      editorProvider.select((s) => s.showFindReplace),
+    );
     final l10n = AppLocalizations.of(context)!;
 
     _registerCommands(l10n);
@@ -383,37 +636,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       onKeyEvent: (node, event) {
         if (event is! KeyDownEvent) return KeyEventResult.ignored;
 
-        final isCtrl = PlatformUtils.isMacOS
-            ? HardwareKeyboard.instance.isMetaPressed
-            : HardwareKeyboard.instance.isControlPressed;
-
-        // Ctrl+P / Cmd+P -> command palette
-        if (event.logicalKey == LogicalKeyboardKey.keyP && isCtrl) {
-          CommandPalette.show(context);
-          return KeyEventResult.handled;
-        }
-
-        // Ctrl+F / Cmd+F -> toggle find/replace
-        if (event.logicalKey == LogicalKeyboardKey.keyF && isCtrl) {
-          ref.read(editorProvider.notifier).toggleFindReplace();
-          return KeyEventResult.handled;
-        }
-
-        // Ctrl+H / Cmd+H -> toggle find/replace
-        if (event.logicalKey == LogicalKeyboardKey.keyH && isCtrl) {
-          ref.read(editorProvider.notifier).toggleFindReplace();
-          return KeyEventResult.handled;
-        }
-
+        // Escape is not a rebindable action; the rest come from the table.
         if (config.focusMode && event.logicalKey == LogicalKeyboardKey.escape) {
           ref.read(settingsProvider.notifier).toggleFocusMode();
           return KeyEventResult.handled;
         }
-        if (editorState.showFindReplace && event.logicalKey == LogicalKeyboardKey.escape) {
+        if (showFindReplace && event.logicalKey == LogicalKeyboardKey.escape) {
           ref.read(editorProvider.notifier).hideFindReplace();
           return KeyEventResult.handled;
         }
-        return KeyEventResult.ignored;
+
+        return _runShortcut(event)
+            ? KeyEventResult.handled
+            : KeyEventResult.ignored;
       },
       child: Scaffold(
         body: DropTarget(
@@ -427,7 +662,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       curve: Curves.easeInOut,
-                      width: config.sideBarVisible && !config.focusMode ? 280 : 0,
+                      width: config.sideBarVisible && !config.focusMode
+                          ? 280
+                          : 0,
                       clipBehavior: Clip.hardEdge,
                       decoration: const BoxDecoration(),
                       child: config.sideBarVisible && !config.focusMode
@@ -445,14 +682,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 ? const EditorTabBar()
                                 : const SizedBox.shrink(),
                           ),
-                          if (editorState.showFindReplace)
+                          if (showFindReplace)
                             Builder(
                               builder: (context) {
-                                final controller =
-                                    ref.read(editorProvider.notifier).controller;
+                                final controller = ref
+                                    .read(editorProvider.notifier)
+                                    .controller;
                                 final activeTab = ref.watch(activeTabProvider);
-                                final isSplit = config.editMode == EditMode.split;
-                                if (isSplit && controller != null && activeTab != null) {
+                                final isSplit =
+                                    config.editMode == EditMode.split;
+                                if (isSplit &&
+                                    controller != null &&
+                                    activeTab != null) {
                                   return FindReplaceBar(
                                     textController: controller,
                                     rawContent: activeTab.content,
@@ -460,17 +701,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   );
                                 } else if (controller != null) {
                                   return FindReplaceBar(
-                                      textController: controller);
+                                    textController: controller,
+                                  );
                                 } else if (activeTab != null) {
                                   return FindReplaceBar(
-                                      rawContent: activeTab.content);
+                                    rawContent: activeTab.content,
+                                  );
                                 }
                                 return const SizedBox.shrink();
                               },
                             ),
-                          Expanded(
-                            child: _buildEditorArea(config.editMode),
-                          ),
+                          Expanded(child: _buildEditorArea(config.editMode)),
                         ],
                       ),
                     ),
@@ -500,7 +741,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             children: [
               Opacity(
                 opacity: 0.3,
-                child: Image.asset('assets/app_icon.png', width: 80, height: 80),
+                child: Image.asset(
+                  'assets/app_icon.png',
+                  width: 80,
+                  height: 80,
+                ),
               ),
               const SizedBox(height: 16),
               Text(
@@ -588,7 +833,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             shouldBuild: currentIndex == 0,
             builder: () => SourceEditor(
               key: ValueKey('source_inner_${activeTab.id}'),
+              tabId: activeTab.id,
               initialContent: content,
+              // Without this the editor never adopts a reload: it deliberately
+              // ignores a content change it cannot tell apart from its own
+              // typing, and the revision is what tells it apart.
+              externalRevision: activeTab.externalRevision,
               onChanged: onContentChanged,
             ),
           ),
@@ -599,6 +849,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             builder: () => MarkdownRenderer(
               key: ValueKey('preview_inner_${activeTab.id}'),
               markdown: content,
+              onSourceChanged: onContentChanged,
             ),
           ),
           // EditMode.split (index 2)
@@ -607,7 +858,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             shouldBuild: currentIndex == 2,
             builder: () => SplitEditor(
               key: ValueKey('split_inner_${activeTab.id}'),
+              tabId: activeTab.id,
               initialContent: content,
+              externalRevision: activeTab.externalRevision,
               onChanged: onContentChanged,
             ),
           ),

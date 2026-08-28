@@ -3,32 +3,43 @@ import 'dart:io';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:highlight/highlight.dart' show highlight, Node;
+import 'package:highlight/highlight_core.dart' show Node;
+
+import 'code_highlighting.dart';
 import 'package:flutter_highlight/themes/github.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/i18n/l10n/app_localizations.dart';
 import '../../core/config/app_config.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/tab_info.dart';
 import '../../providers/editor_provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../services/text_search_service.dart';
 import '../../providers/tab_provider.dart';
 import '../../services/markdown_parser.dart' as md;
 import '../../services/export_service.dart';
 import '../../services/clipboard_service.dart';
+import 'mermaid/parser/mermaid_parser.dart';
 import '../widgets/mermaid_renderer.dart';
+import '../../services/file_service.dart';
 
 class MarkdownRenderer extends ConsumerStatefulWidget {
   final String markdown;
-  final void Function(int lineIndex, bool checked)? onTaskToggle;
+
+  /// Called with the whole updated document when the preview edits it —
+  /// a block edited in place, or a task checkbox toggled.
+  ///
+  /// Leaving this null keeps the preview read-only.
+  final ValueChanged<String>? onSourceChanged;
 
   const MarkdownRenderer({
     super.key,
     required this.markdown,
-    this.onTaskToggle,
+    this.onSourceChanged,
   });
 
   @override
@@ -41,55 +52,115 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   final _headingKeys = <int, GlobalKey>{};
   int _matchCounter = 0;
   final _recognizers = <TapGestureRecognizer>[];
-  final _inlineParser = md.MarkdownParser();
+  /// Rebuilt when the inline-HTML setting changes, which is the only thing
+  /// that alters how a parser reads the same text.
+  md.MarkdownParser _inlineParser = md.MarkdownParser();
 
   // AST cache — only re-parse when markdown content changes
   String? _cachedMarkdown;
   List<md.MarkdownNode>? _cachedNodes;
   List<int>? _cachedHeadingLines;
 
-  // Progressive rendering state
+  // In-place block editing state. Null means nothing is being edited.
+  md.MarkdownNode? _editingNode;
+  final _editController = TextEditingController();
+  late final FocusNode _editFocusNode;
+
+  // Progressive rendering state.
+  //
+  // Every frame rebuilds all the blocks rendered so far, so adding a fixed 50
+  // per frame made the total work quadratic: a 5000-block document took 100
+  // frames and built about 250000 widgets. Doubling gets to the same place in
+  // eight frames.
+  /// The document whose full parse is still owed, when only a prefix of it has
+  /// been parsed so far. Null when what is cached is the whole thing.
+  String? _awaitingFullParse;
+
   int _renderedNodeCount = 0;
+  bool _batchScheduled = false;
   static const _initialBatchSize = 50;
-  static const _incrementalBatchSize = 50;
+  static const _maxBatchSize = 2000;
+
+  /// One [GlobalKey] per heading position, kept between frames.
+  ///
+  /// These used to be allocated fresh on every build, which changes each
+  /// heading's identity and forces Flutter to discard and rebuild its element
+  /// every frame. Keys are per *index* rather than per line so that two
+  /// headings reported on the same line still get distinct keys — the same
+  /// GlobalKey appearing twice in one tree is a crash.
+  final _headingKeysByIndex = <int, GlobalKey>{};
 
   /// Parse raw markdown to find heading line numbers (1-based),
   /// matching the same logic used by the TOC panel.
   List<int> _findHeadingLines(String markdown) {
-    final source = markdown.isNotEmpty && markdown.codeUnitAt(0) == 0xFEFF
-        ? markdown.substring(1)
-        : markdown;
-    final lines = source.split('\n');
-    final result = <int>[];
-    for (int i = 0; i < lines.length; i++) {
-      if (RegExp(r'^#{1,6}\s+.+$').hasMatch(lines[i])) {
-        result.add(i + 1);
-      }
-    }
-    return result;
+    return md.MarkdownParser.headingOutline(markdown)
+        .map((heading) => heading.line)
+        .toList();
   }
 
   @override
   void initState() {
     super.initState();
+    _editFocusNode = FocusNode(
+      onKeyEvent: (node, event) {
+        if (event is KeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.escape) {
+          _cancelEdit();
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+    );
+    // Clicking away commits, matching how the source editor behaves.
+    _editFocusNode.addListener(() {
+      if (!_editFocusNode.hasFocus) _commitEdit();
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.listenManual(
         editorProvider.select((s) => s.targetScrollLine),
-        (prev, next) {
-          if (next != null) {
-            final key = _headingKeys[next];
-            if (key?.currentContext != null) {
-              Scrollable.ensureVisible(
-                key!.currentContext!,
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-              );
-            }
-            ref.read(editorProvider.notifier).clearScrollTarget();
-          }
-        },
+        (prev, next) => _scrollToTargetLine(next),
       );
+
+      // A request made before this widget existed — the search panel opening a
+      // file and asking for its line in one breath — never reaches the
+      // listener above, which only fires on a change.
+      _scrollToTargetLine(ref.read(editorProvider).targetScrollLine);
     });
+  }
+
+  void _scrollToTargetLine(int? line) {
+    if (line == null) return;
+
+    final key = _keyForLine(line);
+    if (key?.currentContext != null) {
+      Scrollable.ensureVisible(
+        key!.currentContext!,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+    ref.read(editorProvider.notifier).clearScrollTarget();
+  }
+
+  /// The key of the block the preview should scroll to for source [line].
+  ///
+  /// Only headings carry a key — giving every block one would mean a GlobalKey
+  /// per node, which is exactly the per-node cost the progressive renderer
+  /// exists to avoid. A search hit lands on an ordinary line, so it falls back
+  /// to the heading above it: near enough to read from, and free.
+  GlobalKey? _keyForLine(int line) {
+    final exact = _headingKeys[line];
+    if (exact != null) return exact;
+
+    var best = -1;
+    GlobalKey? bestKey;
+    for (final entry in _headingKeys.entries) {
+      if (entry.key <= line && entry.key > best) {
+        best = entry.key;
+        bestKey = entry.value;
+      }
+    }
+    return bestKey;
   }
 
   @override
@@ -97,6 +168,8 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     for (final recognizer in _recognizers) {
       recognizer.dispose();
     }
+    _editController.dispose();
+    _editFocusNode.dispose();
     super.dispose();
   }
 
@@ -107,28 +180,66 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     _recognizers.clear();
   }
 
+  /// Follows a link from the preview: a web address in the browser, a relative
+  /// path as a new tab.
+  ///
+  /// Everything here can fail on input the document is free to contain.
+  /// `Uri.parse` throws on `http://[bad` and on a non-numeric port,
+  /// `launchUrl` throws when the desktop has no handler registered for the
+  /// scheme, and reading a neighbouring file can fail on permissions. None of
+  /// the three call sites awaits this, so a throw used to escape as an
+  /// unhandled asynchronous error with nothing shown to the person clicking.
   Future<void> _openLink(String href) async {
+    try {
+      await _followLink(href);
+    } catch (_) {
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
+      if (l10n == null) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.linkOpenFailed)),
+      );
+    }
+  }
+
+  Future<void> _followLink(String href) async {
     if (href.startsWith('http://') || href.startsWith('https://')) {
-      await launchUrl(Uri.parse(href), mode: LaunchMode.externalApplication);
+      final uri = Uri.tryParse(href);
+      if (uri == null) throw FormatException('not a URI', href);
+      final launched =
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched) throw StateError('no handler for $href');
       return;
     }
 
     final activeTabId = ref.read(tabProvider).activeTabId;
-    final activeTab = ref.read(tabProvider).tabs.where((tab) => tab.id == activeTabId).firstOrNull;
-    final baseDir = activeTab?.filePath != null ? p.dirname(activeTab!.filePath!) : null;
-    final resolvedPath = baseDir != null ? p.normalize(p.join(baseDir, href)) : p.normalize(href);
+    final activeTab = ref
+        .read(tabProvider)
+        .tabs
+        .where((tab) => tab.id == activeTabId)
+        .firstOrNull;
+    final baseDir = activeTab?.filePath != null
+        ? p.dirname(activeTab!.filePath!)
+        : null;
+    final resolvedPath = baseDir != null
+        ? p.normalize(p.join(baseDir, href))
+        : p.normalize(href);
     final file = File(resolvedPath);
     if (!file.existsSync()) return;
 
-    final content = await file.readAsString();
-    ref.read(tabProvider.notifier).addTab(
-      TabInfo(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        filePath: resolvedPath,
-        fileName: p.basename(resolvedPath),
-        content: content,
-      ),
-    );
+    final opened = await FileService().readFileWithLineEnding(resolvedPath);
+    ref
+        .read(tabProvider.notifier)
+        .addTab(
+          TabInfo(
+            id: DateTime.now().millisecondsSinceEpoch.toString(),
+            filePath: resolvedPath,
+            fileName: p.basename(resolvedPath),
+            content: opened.content,
+            lineEnding: opened.lineEnding,
+            encoding: opened.encoding,
+          ),
+        );
   }
 
   @override
@@ -137,26 +248,67 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     final theme = Theme.of(context);
     final config = ref.watch(settingsProvider);
     final tokens = AppTheme.getTokens(config.themeName);
-    // Watch editorProvider to rebuild when search state changes
-    ref.watch(editorProvider);
+    // Only the preview's search state, not the whole of it. Watching the whole
+    // provider meant every cursor move and every change of selection in the
+    // source pane rebuilt the entire preview — in split view, on every arrow
+    // key — and the preview rebuilds every block it has rendered so far.
+    ref.watch(
+      editorProvider.select(
+        (s) => (
+          s.previewSearchQuery,
+          s.previewSearchCaseSensitive,
+          s.previewSearchWholeWord,
+          s.previewSearchUseRegex,
+          s.previewCurrentMatchIndex,
+        ),
+      ),
+    );
+
+    // Also when the inline-HTML setting changes: the text is the same but the
+    // parse is not, and without this the preview kept the old rendering until
+    // the next keystroke.
+    if (_inlineParser.enableHtml != config.enableHtml) {
+      _inlineParser = md.MarkdownParser(enableHtml: config.enableHtml);
+      _cachedMarkdown = null;
+    }
 
     // Only re-parse when markdown content actually changes
     if (_cachedMarkdown != widget.markdown) {
       _cachedMarkdown = widget.markdown;
-      final parser = md.MarkdownParser();
-      _cachedNodes = parser.parse(widget.markdown);
+      final parser = md.MarkdownParser(enableHtml: config.enableHtml);
+      // A long document is parsed in two goes: enough of the top to put
+      // something on screen, then the whole of it on the next frame. Parsing
+      // costs about 0.02–0.04 ms a block and has no hot spot left to remove,
+      // so a five megabyte document took about three seconds during which
+      // there was nothing to look at. The prefix keeps the document's own line
+      // numbering, so the blocks it yields carry the ranges that editing a
+      // block in the preview depends on.
+      final prefix = md.MarkdownParser.safePrefix(widget.markdown);
+      _cachedNodes = parser.parse(prefix ?? widget.markdown);
+      _awaitingFullParse = prefix == null ? null : widget.markdown;
+      if (_awaitingFullParse != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _finishParse());
+      }
       _cachedHeadingLines = _findHeadingLines(widget.markdown);
-      _renderedNodeCount = 0; // Reset progressive rendering on content change
+      // Keep what is already on screen. Restarting from the first batch made
+      // the preview collapse to the top of the document and re-expand on
+      // every keystroke in split mode.
+      _renderedNodeCount = _renderedNodeCount.clamp(0, _cachedNodes!.length);
+      // The node being edited belonged to the previous parse and its line
+      // range no longer describes this document.
+      _editingNode = null;
     }
     final nodes = _cachedNodes!;
     final headingLines = _cachedHeadingLines!;
 
-    // Progressive rendering: initially render first batch, then incrementally add more
+    // Progressive rendering: show the first blocks immediately, then fill in.
     if (_renderedNodeCount == 0) {
-      _renderedNodeCount = nodes.length > _initialBatchSize ? _initialBatchSize : nodes.length;
-      if (nodes.length > _initialBatchSize) {
-        _scheduleNextBatch(nodes.length);
-      }
+      _renderedNodeCount = nodes.length > _initialBatchSize
+          ? _initialBatchSize
+          : nodes.length;
+    }
+    if (_renderedNodeCount < nodes.length) {
+      _scheduleNextBatch(nodes.length);
     }
 
     final widgets = <Widget>[];
@@ -176,55 +328,80 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
           headingIndex++;
           // Always allocate a fresh key for each heading; only the first
           // heading at a given lineNum is registered for scroll targeting.
-          final key = GlobalKey();
+          final key = _headingKeysByIndex.putIfAbsent(
+            headingIndex - 1,
+            () => GlobalKey(),
+          );
           if (lineNum > 0) {
             _headingKeys.putIfAbsent(lineNum, () => key);
           }
-          widgets.add(_buildHeading(node, theme, tokens, key: key));
+          widgets.add(
+            _wrapEditable(node, tokens, _buildHeading(node, theme, tokens, key: key)),
+          );
         case md.ParagraphNode():
-          widgets.add(_buildParagraph(node, theme));
+          widgets.add(_wrapEditable(node, tokens, _buildParagraph(node, theme)));
         case md.CodeBlockNode():
-          widgets.add(_buildCodeBlock(node, theme, tokens));
+          widgets.add(
+            _wrapEditable(node, tokens, _buildCodeBlock(node, theme, tokens)),
+          );
         case md.ListNode():
-          widgets.add(_buildList(node, theme));
+          widgets.add(
+            _wrapEditable(node, tokens, _buildList(node, theme, tokens)),
+          );
         case md.BlockquoteNode():
-          widgets.add(_buildBlockquote(node, theme, tokens));
+          widgets.add(
+            _wrapEditable(node, tokens, _buildBlockquote(node, theme, tokens)),
+          );
         case md.HorizontalRuleNode():
-          widgets.add(Divider(thickness: 1, color: tokens.colorBorder));
+          widgets.add(
+            _wrapEditable(
+              node,
+              tokens,
+              Divider(thickness: 1, color: tokens.colorBorder),
+            ),
+          );
         case md.TableNode():
-          widgets.add(_buildTable(node, theme));
+          widgets.add(_wrapEditable(node, tokens, _buildTable(node, theme)));
         case md.MathBlockNode():
-          widgets.add(_buildMathBlock(node, theme));
+          widgets.add(_wrapEditable(node, tokens, _buildMathBlock(node, theme)));
         case md.FrontMatterNode():
-          widgets.add(_buildFrontMatter(node, theme));
+          widgets.add(_wrapEditable(node, tokens, _buildFrontMatter(node, theme)));
         case md.FootnoteDefinitionNode():
-          widgets.add(_buildFootnoteDefinition(node, theme));
+          widgets.add(
+            _wrapEditable(node, tokens, _buildFootnoteDefinition(node, theme)),
+          );
         case md.HtmlBlockNode():
-          widgets.add(_buildHtmlBlock(node, theme));
+          widgets.add(_wrapEditable(node, tokens, _buildHtmlBlock(node, theme)));
       }
     }
 
     // Add loading indicator if more nodes are pending
     if (_renderedNodeCount < nodes.length) {
-      widgets.add(const Padding(
-        padding: EdgeInsets.all(16),
-        child: Center(
-          child: SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2),
+      widgets.add(
+        const Padding(
+          padding: EdgeInsets.all(16),
+          child: Center(
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
           ),
         ),
-      ));
+      );
     }
 
     return Focus(
       onKeyEvent: (node, event) {
         if (event is KeyDownEvent &&
             event.logicalKey == LogicalKeyboardKey.keyC &&
-            (HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed)) {
+            (HardwareKeyboard.instance.isControlPressed ||
+                HardwareKeyboard.instance.isMetaPressed)) {
           // Let SelectionArea handle the copy first, then enhance with HTML format
-          Future.delayed(const Duration(milliseconds: 100), () => _enhanceClipboardWithHtml());
+          Future.delayed(
+            const Duration(milliseconds: 100),
+            () => _enhanceClipboardWithHtml(),
+          );
         }
         return KeyEventResult.ignored;
       },
@@ -232,9 +409,14 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         child: SelectionArea(
           child: Center(
             child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: config.editorMaxWidth.toDouble()),
+              constraints: BoxConstraints(
+                maxWidth: config.editorMaxWidth.toDouble(),
+              ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 24,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: widgets,
@@ -242,6 +424,191 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  /// Flips the checkbox marker on one task line and writes the list back.
+  ///
+  /// The parser consumes exactly one source line per list item, so item
+  /// [index] is line [index] of the list's own source.
+  void _toggleTask(md.ListNode node, int index, bool checked) {
+    final onChanged = widget.onSourceChanged;
+    if (onChanged == null) return;
+
+    final lines = md.MarkdownParser.sourceOfBlock(
+      widget.markdown,
+      node,
+    ).split('\n');
+
+    // The line an item was written on, found by counting item lines rather
+    // than assuming one line per item. A lazy continuation, the blank line of
+    // a loose list, or a block carried under a step all shift the rest of the
+    // items down — and the toggle then landed on a line with no box on it,
+    // where it silently did nothing.
+    var lineIndex = -1;
+    var seen = -1;
+    for (var i = 0; i < lines.length; i++) {
+      if (!md.MarkdownParser.startsListItem(lines[i])) continue;
+      seen++;
+      if (seen == index) {
+        lineIndex = i;
+        break;
+      }
+    }
+    if (lineIndex < 0) return;
+
+    final line = lines[lineIndex];
+    final updated = checked
+        ? line.replaceFirst(RegExp(r'\[\s\]'), '[x]')
+        : line.replaceFirst(RegExp(r'\[[xX]\]'), '[ ]');
+    if (updated == line) return;
+
+    lines[lineIndex] = updated;
+    onChanged(
+      md.MarkdownParser.replaceBlock(widget.markdown, node, lines.join('\n')),
+    );
+  }
+
+  // ------------------------------------------------------- in-place editing
+
+  /// Wraps a rendered block so a double tap swaps it for its markdown source.
+  ///
+  /// Double tap rather than single: the preview sits inside a SelectionArea,
+  /// and a single tap would fight text selection and link taps.
+  Widget _wrapEditable(
+      md.MarkdownNode node, AppThemeTokens tokens, Widget child) {
+    if (widget.onSourceChanged == null) return child;
+
+    if (identical(_editingNode, node)) {
+      return _buildBlockEditor(node);
+    }
+
+    // A task list has its own tap targets. Wrapping it in a double-tap
+    // recogniser puts that recogniser in the gesture arena, where it holds on
+    // for the double-tap timeout before conceding — so every checkbox would
+    // sit dead for ~300ms before responding. Ticking a box is the far more
+    // frequent action, so it wins: these blocks stay directly interactive and
+    // are edited from the source pane instead.
+    if (node is md.ListNode && node.items.any((item) => item.isTask)) {
+      return child;
+    }
+
+    // A diagram is the same story: its toolbar has four buttons, and every one
+    // of them sat dead for the double-tap timeout while the recogniser waited
+    // to see whether a second tap was coming. It carries its own "edit source"
+    // button, so it needs the gesture even less than a task list does.
+    if (node is md.CodeBlockNode &&
+        MermaidParser.handlesLanguage(node.language)) {
+      return child;
+    }
+
+    return PreviewEditableBlock(
+      hoverColor: tokens.colorSurfaceHover,
+      onEdit: () => _startEditing(node),
+      child: child,
+    );
+  }
+
+  /// Replaces the prefix parsed for the first frame with the whole document.
+  ///
+  /// Gives up quietly if the document changed in the meantime — the next build
+  /// has already started its own parse, and finishing this one would put the
+  /// previous document back on screen.
+  void _finishParse() {
+    final source = _awaitingFullParse;
+    if (source == null || !mounted || source != widget.markdown) return;
+    _awaitingFullParse = null;
+
+    final config = ref.read(settingsProvider);
+    final nodes =
+        md.MarkdownParser(enableHtml: config.enableHtml).parse(source);
+    if (!mounted) return;
+    setState(() {
+      _cachedNodes = nodes;
+      // Whatever is already on screen stays on screen; the rest fills in the
+      // way it does for a document that was parsed in one go.
+      _renderedNodeCount = _renderedNodeCount.clamp(0, nodes.length);
+    });
+  }
+
+  void _startEditing(md.MarkdownNode node) {
+    // Whatever holds focus has to give it up first. A double tap comes from a
+    // gesture recogniser, which never takes focus; the diagram's "edit source"
+    // button is a real button and does. Leaving it focused while an editor
+    // that commits on losing focus mounts beside it is asking for the editor
+    // to close the moment focus settles.
+    FocusManager.instance.primaryFocus?.unfocus();
+
+    final source = md.MarkdownParser.sourceOfBlock(widget.markdown, node);
+    _editController.value = TextEditingValue(
+      text: source,
+      selection: TextSelection.collapsed(offset: source.length),
+    );
+    setState(() => _editingNode = node);
+    // Focus after the editor exists in the tree.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _editFocusNode.requestFocus();
+    });
+  }
+
+  /// Writes the edited text back into the document.
+  ///
+  /// Clearing [_editingNode] before unfocusing is what stops [_cancelEdit]
+  /// from committing through the focus listener.
+  void _commitEdit() {
+    final node = _editingNode;
+    if (node == null) return;
+    _editingNode = null;
+
+    final updated = md.MarkdownParser.replaceBlock(
+      widget.markdown,
+      node,
+      _editController.text,
+    );
+
+    if (updated == widget.markdown) {
+      if (mounted) setState(() {});
+      return;
+    }
+    widget.onSourceChanged?.call(updated);
+  }
+
+  void _cancelEdit() {
+    if (_editingNode == null) return;
+    setState(() => _editingNode = null);
+    _editFocusNode.unfocus();
+  }
+
+  Widget _buildBlockEditor(md.MarkdownNode node) {
+    final config = ref.read(settingsProvider);
+    final tokens = AppTheme.getTokens(config.themeName);
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      decoration: BoxDecoration(
+        color: tokens.colorSurface,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: tokens.colorAccent),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      child: TextField(
+        controller: _editController,
+        focusNode: _editFocusNode,
+        maxLines: null,
+        autofocus: true,
+        style: TextStyle(
+          fontFamily: config.codeFontFamily,
+          fontFamilyFallback: const ['monospace'],
+          fontSize: config.fontSize,
+          height: config.lineHeight,
+          color: tokens.colorText,
+        ),
+        decoration: const InputDecoration(
+          isDense: true,
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.zero,
         ),
       ),
     );
@@ -268,24 +635,49 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   }
 
   void _scheduleNextBatch(int totalNodes) {
+    if (_batchScheduled) return;
+    _batchScheduled = true;
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _batchScheduled = false;
       if (!mounted || _renderedNodeCount >= totalNodes) return;
       setState(() {
-        _renderedNodeCount = (_renderedNodeCount + _incrementalBatchSize).clamp(0, totalNodes);
+        final step = _renderedNodeCount < _maxBatchSize
+            ? _renderedNodeCount
+            : _maxBatchSize;
+        _renderedNodeCount = (_renderedNodeCount + step).clamp(0, totalNodes);
       });
-      // Continue scheduling until all nodes are rendered
-      if (_renderedNodeCount < totalNodes) {
-        _scheduleNextBatch(totalNodes);
-      }
+      // The next build schedules the batch after this one, if any is left.
     });
   }
 
-  Widget _buildHeading(md.HeadingNode node, ThemeData theme, AppThemeTokens tokens, {Key? key}) {
+  Widget _buildHeading(
+    md.HeadingNode node,
+    ThemeData theme,
+    AppThemeTokens tokens, {
+    Key? key,
+  }) {
     final style = switch (node.level) {
-      1 => TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: tokens.colorText),
-      2 => TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: tokens.colorText),
-      3 => TextStyle(fontSize: 21, fontWeight: FontWeight.w600, color: tokens.colorText),
-      _ => TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: tokens.colorTextMuted),
+      1 => TextStyle(
+        fontSize: 28,
+        fontWeight: FontWeight.w700,
+        color: tokens.colorText,
+      ),
+      2 => TextStyle(
+        fontSize: 24,
+        fontWeight: FontWeight.w600,
+        color: tokens.colorText,
+      ),
+      3 => TextStyle(
+        fontSize: 21,
+        fontWeight: FontWeight.w600,
+        color: tokens.colorText,
+      ),
+      _ => TextStyle(
+        fontSize: 17,
+        fontWeight: FontWeight.w600,
+        color: tokens.colorTextMuted,
+      ),
     };
 
     return Padding(
@@ -297,12 +689,20 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
           Text.rich(
             _buildInlineSpans(node.inlineSpans, theme, style),
             style: style,
-            strutStyle: StrutStyle(fontSize: style.fontSize, height: style.height ?? 1.4, forceStrutHeight: true),
+            strutStyle: StrutStyle(
+              fontSize: style.fontSize,
+              height: style.height ?? 1.4,
+              forceStrutHeight: true,
+            ),
           ),
           if (node.level == 1)
             Padding(
               padding: const EdgeInsets.only(top: 8),
-              child: Divider(height: 1, thickness: 1, color: tokens.colorBorder),
+              child: Divider(
+                height: 1,
+                thickness: 1,
+                color: tokens.colorBorder,
+              ),
             ),
         ],
       ),
@@ -333,33 +733,72 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     );
   }
 
-  /// Languages recognized as Mermaid diagram types.
-  static const _diagramLanguages = {
-    'mermaid',
-    'flowchart',
-    'sequence',
-    'gantt',
-    'classdiagram',
-    'statediagram',
-    'erdiagram',
-    'journey',
-    'gitgraph',
-    'pie',
-    'mindmap',
-  };
-
-  Widget _buildCodeBlock(md.CodeBlockNode node, ThemeData theme, AppThemeTokens tokens) {
+  Widget _buildCodeBlock(
+    md.CodeBlockNode node,
+    ThemeData theme,
+    AppThemeTokens tokens,
+  ) {
     final lang = node.language.toLowerCase();
-    if (_diagramLanguages.contains(lang)) {
+    // Asks the parser what it can draw rather than keeping a second list here,
+    // which drifted out of step with the parser as types were implemented.
+    if (MermaidParser.handlesLanguage(lang)) {
       return MermaidRenderer(
         code: node.code,
         isDarkMode: theme.brightness == Brightness.dark,
+        // Its own double tap opens fullscreen, so the diagram gets a toolbar
+        // button instead of the gesture every other block is edited by.
+        onEditSource: widget.onSourceChanged == null
+            ? null
+            : () => _startEditing(node),
       );
     }
 
-    final baseCodeStyle = const TextStyle(fontFamily: 'monospace', fontSize: 14);
+    final baseCodeStyle = _codeStyle();
     // Skip highlighting for very large blocks to keep first-render responsive
     final canHighlight = node.language.isNotEmpty && node.code.length <= 20000;
+
+    final wraps = ref.read(settingsProvider).wrapCodeBlocks;
+
+    final numbered = ref.read(settingsProvider).codeBlockLineNumbers;
+    final codeStyle = _buildCodeTextStyle(baseCodeStyle);
+
+    Widget body;
+    if (numbered) {
+      body = _numberedCode(
+        node,
+        codeStyle: codeStyle,
+        plainStyle: baseCodeStyle,
+        highlighted: canHighlight,
+        wraps: wraps,
+        tokens: tokens,
+      );
+    } else {
+      body = canHighlight
+          ? Text.rich(
+              TextSpan(
+                style: codeStyle,
+                children: _buildHighlightedCodeSpans(node.code, node.language),
+              ),
+              softWrap: wraps,
+              overflow: wraps ? TextOverflow.clip : TextOverflow.visible,
+            )
+          : Text(
+              node.code,
+              style: baseCodeStyle,
+              softWrap: wraps,
+              overflow: wraps ? TextOverflow.clip : TextOverflow.visible,
+            );
+
+      if (!wraps) {
+        // Scrolls rather than wraps. A wrapped line of code loses its
+        // indentation and breaks in the middle of a name; for prose that is
+        // right and for code it is the opposite of what reading it needs.
+        body = SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: body,
+        );
+      }
+    }
 
     return Container(
       width: double.infinity,
@@ -369,17 +808,96 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         color: tokens.colorSurface,
         borderRadius: BorderRadius.circular(8),
       ),
-      child: canHighlight
-          ? Text.rich(
-              TextSpan(
-                style: _buildCodeTextStyle(baseCodeStyle),
-                children: _buildHighlightedCodeSpans(node.code, node.language),
-              ),
-            )
-          : Text(
-              node.code,
-              style: baseCodeStyle,
+      child: body,
+    );
+  }
+
+  /// A code block with a gutter of line numbers beside it.
+  ///
+  /// One row per line, so a line that wraps grows its own row and the number
+  /// stays level with the line it belongs to. Drawing the code as one block
+  /// of text and the numbers as another lines up only until something wraps.
+  ///
+  /// When the block scrolls instead of wrapping, only the code scrolls: the
+  /// numbers are what tells the reader where they are, and they are no use
+  /// slid off to the left.
+  Widget _numberedCode(
+    md.CodeBlockNode node,
+    {required TextStyle codeStyle,
+    required TextStyle plainStyle,
+    required bool highlighted,
+    required bool wraps,
+    required AppThemeTokens tokens}) {
+    final lines = highlighted
+        ? CodeHighlighting.splitByLine(
+            _buildHighlightedCodeSpans(node.code, node.language),
+          )
+        : [
+            for (final line in node.code.split('\n'))
+              [TextSpan(text: line, style: plainStyle)],
+          ];
+    // A trailing newline leaves an empty last line that no one wrote.
+    if (lines.length > 1 && lines.last.isEmpty) lines.removeLast();
+
+    final numberStyle = plainStyle.copyWith(
+      color: tokens.colorTextMuted,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
+    final gutterWidth = 12.0 + 8.0 * '${lines.length}'.length;
+
+    Widget numberCell(int index) => SizedBox(
+          width: gutterWidth,
+          child: Text(
+            '${index + 1}',
+            style: numberStyle,
+            textAlign: TextAlign.right,
+          ),
+        );
+
+    Widget codeCell(int index) => Text.rich(
+          TextSpan(style: codeStyle, children: lines[index]),
+          softWrap: wraps,
+          overflow: wraps ? TextOverflow.clip : TextOverflow.visible,
+        );
+
+    if (wraps) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var i = 0; i < lines.length; i++)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                numberCell(i),
+                const SizedBox(width: 12),
+                Expanded(child: codeCell(i)),
+              ],
             ),
+        ],
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          mainAxisSize: MainAxisSize.min,
+          children: [for (var i = 0; i < lines.length; i++) numberCell(i)],
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [for (var i = 0; i < lines.length; i++) codeCell(i)],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -389,15 +907,24 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     );
   }
 
-  List<TextSpan> _buildHighlightedCodeSpans(String source, String language, {int tabSize = 8}) {
-    final nodes = highlight.parse(source.replaceAll('\t', ' ' * tabSize), language: language).nodes;
+  List<TextSpan> _buildHighlightedCodeSpans(
+    String source,
+    String language, {
+    int tabSize = 8,
+  }) {
+    final nodes = CodeHighlighting.instance
+        .parse(source.replaceAll('\t', ' ' * tabSize), language: language)
+        .nodes;
     if (nodes == null || nodes.isEmpty) {
       return [TextSpan(text: source)];
     }
     return _convertHighlightNodes(nodes, githubTheme);
   }
 
-  List<TextSpan> _convertHighlightNodes(List<Node> nodes, Map<String, TextStyle> theme) {
+  List<TextSpan> _convertHighlightNodes(
+    List<Node> nodes,
+    Map<String, TextStyle> theme,
+  ) {
     final spans = <TextSpan>[];
     var currentSpans = spans;
     final stack = <List<TextSpan>>[];
@@ -422,7 +949,9 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       }
 
       final nestedSpans = <TextSpan>[];
-      currentSpans.add(TextSpan(children: nestedSpans, style: theme[node.className!]));
+      currentSpans.add(
+        TextSpan(children: nestedSpans, style: theme[node.className!]),
+      );
       stack.add(currentSpans);
       currentSpans = nestedSpans;
 
@@ -440,38 +969,54 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     return spans;
   }
 
-  Widget _buildList(md.ListNode node, ThemeData theme) {
+  Widget _buildList(md.ListNode node, ThemeData theme, AppThemeTokens tokens) {
+    final markers = md.MarkdownParser.listMarkers(node.items);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           for (var i = 0; i < node.items.length; i++)
-            _buildListItem(node.items[i], i, node.ordered, theme),
+            _buildListItem(node, node.items[i], i, markers[i], theme, tokens),
         ],
       ),
     );
   }
 
-  Widget _buildListItem(md.ListItem item, int index, bool ordered, ThemeData theme) {
+  /// Space under one item.
+  ///
+  /// A list whose items are separated by blank lines is loose, and CommonMark
+  /// renders each item as a paragraph — which is what puts air between them.
+  /// Drawing it as tight as a list written without gaps threw away spacing
+  /// the author asked for.
+  double _itemGap(md.ListNode node) => node.isLoose ? 12 : 4;
+
+  Widget _buildListItem(
+    md.ListNode listNode,
+    md.ListItem item,
+    int index,
+    String marker,
+    ThemeData theme,
+    AppThemeTokens tokens,
+  ) {
     if (item.isTask) {
       return Padding(
-        padding: const EdgeInsets.only(left: 16, bottom: 4),
+        padding: EdgeInsets.only(
+          left: 16 + item.depth * 20.0,
+          bottom: _itemGap(listNode),
+        ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Checkbox(
               value: item.isChecked,
-              onChanged: widget.onTaskToggle != null
-                  ? (value) => widget.onTaskToggle!(index, value ?? false)
+              onChanged: widget.onSourceChanged != null
+                  ? (value) => _toggleTask(listNode, index, value ?? false)
                   : null,
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: Text.rich(
-                _buildInlineSpans(item.inlineSpans, theme, _defaultTextStyle),
-                strutStyle: _defaultStrutStyle,
-              ),
+              child: _itemBody(item, theme, tokens),
             ),
           ],
         ),
@@ -479,45 +1024,108 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     }
 
     return Padding(
-      padding: const EdgeInsets.only(left: 24, bottom: 4),
+      // Nested items step in; without this a sub-list rendered flush with its
+      // parent and the structure was invisible.
+      padding: EdgeInsets.only(
+        left: 24 + item.depth * 20.0,
+        bottom: _itemGap(listNode),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            ordered ? '${index + 1}. ' : '• ',
-            style: _defaultTextStyle,
-          ),
+          Text(marker, style: _defaultTextStyle),
           Expanded(
-            child: Text.rich(
-              _buildInlineSpans(item.inlineSpans, theme, _defaultTextStyle),
-              strutStyle: _defaultStrutStyle,
-            ),
+            child: _itemBody(item, theme, tokens),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildBlockquote(md.BlockquoteNode node, ThemeData theme, AppThemeTokens tokens) {
+  /// An item's text, and the blocks written underneath it.
+  ///
+  /// A code fence beneath a numbered step, a second paragraph, a quote: these
+  /// used to be rendered at the document's left margin, outside the step they
+  /// belong to, because only [ListItem.inlineSpans] was drawn.
+  Widget _itemBody(
+    md.ListItem item,
+    ThemeData theme,
+    AppThemeTokens tokens,
+  ) {
+    final text = Text.rich(
+      _buildInlineSpans(item.inlineSpans, theme, _defaultTextStyle),
+      strutStyle: _defaultStrutStyle,
+    );
+    if (item.children.isEmpty) return text;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        text,
+        for (final child in item.children)
+          _buildQuotedNode(child, theme, tokens),
+      ],
+    );
+  }
+
+  /// Renders one block inside a quote.
+  ///
+  /// Deliberately narrower than the top-level switch: a quoted block is not
+  /// separately editable, does not take part in heading scroll targets, and
+  /// cannot be a diagram, so it needs none of that machinery.
+  Widget _buildQuotedNode(
+    md.MarkdownNode node,
+    ThemeData theme,
+    AppThemeTokens tokens,
+  ) {
+    return switch (node) {
+      md.HeadingNode() => _buildHeading(node, theme, tokens),
+      md.ParagraphNode() => _buildParagraph(node, theme),
+      md.CodeBlockNode() => _buildCodeBlock(node, theme, tokens),
+      md.ListNode() => _buildList(node, theme, tokens),
+      md.BlockquoteNode() => _buildBlockquote(node, theme, tokens),
+      md.HorizontalRuleNode() => Divider(
+        thickness: 1,
+        color: tokens.colorBorder,
+      ),
+      md.TableNode() => _buildTable(node, theme),
+      md.MathBlockNode() => _buildMathBlock(node, theme),
+      md.FrontMatterNode() => _buildFrontMatter(node, theme),
+      md.FootnoteDefinitionNode() => _buildFootnoteDefinition(node, theme),
+      md.HtmlBlockNode() => _buildHtmlBlock(node, theme),
+      // MarkdownNode is not sealed, so the analyser cannot see that the cases
+      // above are all of its subtypes. Showing the source beats dropping the
+      // content if a new kind of node ever turns up here.
+      _ => Text(node.rawContent, style: _defaultTextStyle),
+    };
+  }
+
+  Widget _buildBlockquote(
+    md.BlockquoteNode node,
+    ThemeData theme,
+    AppThemeTokens tokens,
+  ) {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
+      // A quote inside a quote is built inside this container, so its own
+      // border and padding already step it in; adding the depth again here
+      // indented the inner quote twice.
+      margin: const EdgeInsets.only(top: 8, bottom: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        border: Border(
-          left: BorderSide(color: tokens.colorAccent, width: 3),
-        ),
+        border: Border(left: BorderSide(color: tokens.colorAccent, width: 3)),
         color: tokens.colorAccentMuted.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(4),
       ),
-      child: Text.rich(
-        _buildInlineSpans(node.inlineSpans, theme, _defaultTextStyle),
-        // Use natural line height without forcing strut height to prevent text overlap
-        strutStyle: StrutStyle(
-          fontSize: 16,
-          height: 1.6,
-          leadingDistribution: TextLeadingDistribution.even,
-          fontFamilyFallback: AppTheme.platformFontFallback,
-        ),
+      // A quote holds blocks, not just a run of text: quoting a list or a
+      // heading used to show the source markers as literal characters.
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final child in node.children)
+            _buildQuotedNode(child, theme, tokens),
+        ],
       ),
     );
   }
@@ -617,8 +1225,39 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         child: Math.tex(
           node.expression,
           textStyle: theme.textTheme.bodyLarge,
+          // Without this the package prints its own exception into the page —
+          // `ParseException: Undefined control sequence: \foo`, in English, in
+          // body text, indistinguishable from something the reader wrote. What
+          // they need to see is the formula they typed and that it did not
+          // come out.
+          onErrorFallback: (_) => Text(
+            node.expression,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              fontFamily: 'monospace',
+              color: theme.colorScheme.error,
+            ),
+          ),
         ),
       ),
+    );
+  }
+
+  /// The face chosen for code, wherever code is shown.
+  ///
+  /// The setting had nothing reading it at all once; then the fenced code
+  /// block started reading it and the other four places that draw monospace
+  /// text did not. Picking a code font changed the blocks and left inline
+  /// `code`, front matter, html blocks and the block editor in the platform's
+  /// generic face — the same font setting producing two different fonts on
+  /// one screen. One source, so the next place to draw code cannot drift.
+  TextStyle _codeStyle({double? fontSize, Color? color}) {
+    final config = ref.read(settingsProvider);
+    return TextStyle(
+      fontFamily: config.codeFontFamily,
+      // A face that is not installed falls back rather than to the UI font.
+      fontFamilyFallback: const ['monospace'],
+      fontSize: fontSize ?? config.codeFontSize,
+      color: color,
     );
   }
 
@@ -631,14 +1270,14 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         borderRadius: BorderRadius.circular(4),
         border: Border.all(color: theme.dividerColor),
       ),
-      child: Text(
-        node.content,
-        style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
-      ),
+      child: Text(node.content, style: _codeStyle()),
     );
   }
 
-  Widget _buildFootnoteDefinition(md.FootnoteDefinitionNode node, ThemeData theme) {
+  Widget _buildFootnoteDefinition(
+    md.FootnoteDefinitionNode node,
+    ThemeData theme,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
@@ -651,9 +1290,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
               fontWeight: FontWeight.bold,
             ),
           ),
-          Expanded(
-            child: Text(node.content, style: theme.textTheme.bodySmall),
-          ),
+          Expanded(child: Text(node.content, style: theme.textTheme.bodySmall)),
         ],
       ),
     );
@@ -667,54 +1304,33 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(4),
       ),
-      child: Text(
-        node.html,
-        style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
-      ),
+      child: Text(node.html, style: _codeStyle()),
     );
   }
 
   /// Split a text span into segments with search highlighting applied.
-  List<InlineSpan> _applySearchHighlight(String text, TextStyle? style, EditorState editorState) {
+  List<InlineSpan> _applySearchHighlight(
+    String text,
+    TextStyle? style,
+    EditorState editorState,
+  ) {
     final query = editorState.previewSearchQuery;
     if (query.isEmpty || text.isEmpty) {
       return [TextSpan(text: text, style: style)];
     }
 
-    final matchRanges = <TextRange>[];
-    try {
-      if (editorState.previewSearchUseRegex) {
-        final regex = RegExp(query, caseSensitive: editorState.previewSearchCaseSensitive);
-        for (final m in regex.allMatches(text)) {
-          matchRanges.add(TextRange(start: m.start, end: m.end));
-        }
-      } else {
-        String searchText = text;
-        String searchPattern = query;
-        if (!editorState.previewSearchCaseSensitive) {
-          searchText = text.toLowerCase();
-          searchPattern = query.toLowerCase();
-        }
-        int index = 0;
-        while (index < searchText.length) {
-          final pos = searchText.indexOf(searchPattern, index);
-          if (pos == -1) break;
-          if (editorState.previewSearchWholeWord) {
-            final isWordStart = pos == 0 || !RegExp(r'[a-zA-Z0-9_]').hasMatch(text[pos - 1]);
-            final isWordEnd = pos + query.length >= text.length ||
-                !RegExp(r'[a-zA-Z0-9_]').hasMatch(text[pos + query.length]);
-            if (isWordStart && isWordEnd) {
-              matchRanges.add(TextRange(start: pos, end: pos + query.length));
-            }
-          } else {
-            matchRanges.add(TextRange(start: pos, end: pos + query.length));
-          }
-          index = pos + 1;
-        }
-      }
-    } catch (_) {
-      return [TextSpan(text: text, style: style)];
-    }
+    // One scanner for the app: the find bar counts the matches and this
+    // highlights them, and when each had its own the two disagreed about
+    // overlapping hits — `aa` in `aaaa` was two there and three here, and the
+    // overlapping ranges spliced below drew six characters where there are
+    // four.
+    final matchRanges = TextSearch.matches(
+      text,
+      query,
+      caseSensitive: editorState.previewSearchCaseSensitive,
+      wholeWord: editorState.previewSearchWholeWord,
+      useRegex: editorState.previewSearchUseRegex,
+    );
 
     if (matchRanges.isEmpty) {
       return [TextSpan(text: text, style: style)];
@@ -725,18 +1341,25 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     final currentIdx = editorState.previewCurrentMatchIndex;
 
     for (final range in matchRanges) {
+      // Belt and braces: an overlapping range would re-emit text already
+      // written and the paragraph would show more characters than it has.
+      if (range.start < lastEnd) continue;
       if (range.start > lastEnd) {
-        result.add(TextSpan(text: text.substring(lastEnd, range.start), style: style));
+        result.add(
+          TextSpan(text: text.substring(lastEnd, range.start), style: style),
+        );
       }
       final isCurrent = _matchCounter == currentIdx;
-      result.add(TextSpan(
-        text: text.substring(range.start, range.end),
-        style: style?.copyWith(
-          backgroundColor: isCurrent
-              ? Colors.orange.withValues(alpha: 0.6)
-              : Colors.yellow.withValues(alpha: 0.4),
+      result.add(
+        TextSpan(
+          text: text.substring(range.start, range.end),
+          style: style?.copyWith(
+            backgroundColor: isCurrent
+                ? Colors.orange.withValues(alpha: 0.6)
+                : Colors.yellow.withValues(alpha: 0.4),
+          ),
         ),
-      ));
+      );
       _matchCounter++;
       lastEnd = range.end;
     }
@@ -763,6 +1386,16 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
           } else {
             children.add(TextSpan(text: span.text, style: baseStyle));
           }
+        case md.InlineType.boldItalic:
+          final s = baseStyle?.copyWith(
+            fontWeight: FontWeight.bold,
+            fontStyle: FontStyle.italic,
+          );
+          if (hasSearch) {
+            children.addAll(_applySearchHighlight(span.text, s, es));
+          } else {
+            children.add(TextSpan(text: span.text, style: s));
+          }
         case md.InlineType.bold:
           final s = baseStyle?.copyWith(fontWeight: FontWeight.bold);
           if (hasSearch) {
@@ -779,10 +1412,12 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
           }
         case md.InlineType.code:
           final s = baseStyle?.copyWith(
-            fontFamily: 'monospace',
+            fontFamily: ref.read(settingsProvider).codeFontFamily,
+            fontFamilyFallback: const ['monospace'],
             fontSize: (baseStyle.fontSize ?? 16) * 0.9,
             height: baseStyle.height,
-            backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
+            backgroundColor: theme.colorScheme.surfaceContainerHighest
+                .withValues(alpha: 0.6),
           );
           if (hasSearch) {
             children.addAll(_applySearchHighlight(span.text, s, es));
@@ -800,7 +1435,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             ..onTap = () {
               if (span.href != null &&
                   (HardwareKeyboard.instance.isControlPressed ||
-                   HardwareKeyboard.instance.isMetaPressed)) {
+                      HardwareKeyboard.instance.isMetaPressed)) {
                 _openLink(span.href!);
               }
             };
@@ -808,7 +1443,9 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
           if (hasSearch) {
             children.addAll(_applySearchHighlight(span.text, s, es));
           } else {
-            children.add(TextSpan(text: span.text, style: s, recognizer: recognizer));
+            children.add(
+              TextSpan(text: span.text, style: s, recognizer: recognizer),
+            );
           }
         case md.InlineType.image:
           children.add(_buildImageSpan(span, theme));
@@ -820,12 +1457,29 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             children.add(TextSpan(text: span.text, style: s));
           }
         case md.InlineType.mathInline:
-          children.add(WidgetSpan(
-            child: Math.tex(
-              span.text,
-              textStyle: baseStyle,
+          children.add(
+            WidgetSpan(
+              child: Math.tex(
+                span.text,
+                textStyle: baseStyle,
+                // On one line, always. A formula sits inside a sentence, and
+                // the package's default is a multi-line English exception —
+                // which wraps, pushes the line apart and buries the sentence.
+                // The reader's own text, in the error colour, says the same
+                // thing without any of that.
+                onErrorFallback: (_) => Text(
+                  span.text,
+                  maxLines: 1,
+                  softWrap: false,
+                  overflow: TextOverflow.ellipsis,
+                  style: baseStyle?.copyWith(
+                    fontFamily: 'monospace',
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                ),
+              ),
             ),
-          ));
+          );
         case md.InlineType.highlight:
           final s = baseStyle?.copyWith(
             backgroundColor: Colors.yellow.withValues(alpha: 0.4),
@@ -836,27 +1490,35 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             children.add(TextSpan(text: span.text, style: s));
           }
         case md.InlineType.superscript:
-          children.add(WidgetSpan(
-            alignment: PlaceholderAlignment.middle,
-            child: Transform.translate(
-              offset: const Offset(0, -4),
-              child: Text(
-                span.text,
-                style: baseStyle?.copyWith(fontSize: (baseStyle.fontSize ?? 14) * 0.75),
+          children.add(
+            WidgetSpan(
+              alignment: PlaceholderAlignment.middle,
+              child: Transform.translate(
+                offset: const Offset(0, -4),
+                child: Text(
+                  span.text,
+                  style: baseStyle?.copyWith(
+                    fontSize: (baseStyle.fontSize ?? 14) * 0.75,
+                  ),
+                ),
               ),
             ),
-          ));
+          );
         case md.InlineType.subscript:
-          children.add(WidgetSpan(
-            alignment: PlaceholderAlignment.middle,
-            child: Transform.translate(
-              offset: const Offset(0, 4),
-              child: Text(
-                span.text,
-                style: baseStyle?.copyWith(fontSize: (baseStyle.fontSize ?? 14) * 0.75),
+          children.add(
+            WidgetSpan(
+              alignment: PlaceholderAlignment.middle,
+              child: Transform.translate(
+                offset: const Offset(0, 4),
+                child: Text(
+                  span.text,
+                  style: baseStyle?.copyWith(
+                    fontSize: (baseStyle.fontSize ?? 14) * 0.75,
+                  ),
+                ),
               ),
             ),
-          ));
+          );
         case md.InlineType.underline:
           final s = baseStyle?.copyWith(decoration: TextDecoration.underline);
           if (hasSearch) {
@@ -865,16 +1527,18 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             children.add(TextSpan(text: span.text, style: s));
           }
         case md.InlineType.footnoteRef:
-          children.add(WidgetSpan(
-            alignment: PlaceholderAlignment.top,
-            child: Text(
-              '[${span.text}]',
-              style: baseStyle?.copyWith(
-                color: theme.colorScheme.primary,
-                fontSize: (baseStyle.fontSize ?? 14) * 0.75,
+          children.add(
+            WidgetSpan(
+              alignment: PlaceholderAlignment.top,
+              child: Text(
+                '[${span.text}]',
+                style: baseStyle?.copyWith(
+                  color: theme.colorScheme.primary,
+                  fontSize: (baseStyle.fontSize ?? 14) * 0.75,
+                ),
               ),
             ),
-          ));
+          );
       }
     }
 
@@ -890,10 +1554,18 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       );
     }
 
+    // Folded into the key so "reload images" makes the widget resolve again:
+    // emptying the cache does not by itself disturb a picture already on
+    // screen.
+    final revision = ref.watch(
+      editorProvider.select((state) => state.imageRevision),
+    );
+
     Widget imageWidget;
     if (href.startsWith('http://') || href.startsWith('https://')) {
       imageWidget = Image.network(
         href,
+        key: ValueKey('image:$revision:$href'),
         errorBuilder: (context, error, stackTrace) => Text(
           '[${span.text}]',
           style: TextStyle(color: theme.colorScheme.error),
@@ -903,9 +1575,22 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       final file = File(href);
       imageWidget = Image.file(
         file,
+        key: ValueKey('image:$revision:$href'),
         errorBuilder: (context, error, stackTrace) => Text(
           '[${span.text}]',
           style: TextStyle(color: theme.colorScheme.error),
+        ),
+      );
+    }
+
+    // A badge is an image wrapped in a link, so it opens the link when tapped.
+    final linkHref = span.linkHref;
+    if (linkHref != null && linkHref.isNotEmpty) {
+      imageWidget = MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: () => _openLink(linkHref),
+          child: imageWidget,
         ),
       );
     }
@@ -914,6 +1599,68 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: imageWidget,
+      ),
+    );
+  }
+}
+
+
+/// A preview block that says it can be edited.
+///
+/// Public only so a test can point at it: a SelectionArea installs text-cursor
+/// MouseRegions of its own all over the preview, so "is there a text cursor
+/// here" cannot tell this wrapper apart from the selection machinery.
+///
+/// Double tap has always worked, but nothing on screen said so: the pointer
+/// stayed an arrow and the block looked as inert as printed paper, so the
+/// preview read as something you can only look at. The text cursor and the
+/// quiet wash of colour are the two ordinary ways a surface says "there is
+/// text here you can get at".
+///
+/// It keeps its own hover flag rather than lifting it into the renderer's
+/// state: a setState up there rebuilds every block in the batch, which is
+/// exactly the waste that moving the caret used to cause.
+///
+/// A MouseRegion is deliberately the only thing added. This file has already
+/// been through the gesture arena twice — the double-tap recogniser left the
+/// diagram toolbar and every task-list checkbox dead for the double-tap
+/// timeout — and a MouseRegion does not enter the arena at all.
+class PreviewEditableBlock extends StatefulWidget {
+  @visibleForTesting
+  const PreviewEditableBlock({
+    super.key,
+    required this.hoverColor,
+    required this.onEdit,
+    required this.child,
+  });
+
+  final Color hoverColor;
+  final VoidCallback onEdit;
+  final Widget child;
+
+  @override
+  State<PreviewEditableBlock> createState() => PreviewEditableBlockState();
+}
+
+class PreviewEditableBlockState extends State<PreviewEditableBlock> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.text,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        behavior: HitTestBehavior.deferToChild,
+        onDoubleTap: widget.onEdit,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: _hovered ? widget.hoverColor : Colors.transparent,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: widget.child,
+        ),
       ),
     );
   }

@@ -1,3 +1,4 @@
+import '../../utils/file_utils.dart';
 import 'dart:io';
 import 'dart:async';
 import 'dart:ui' as ui;
@@ -5,11 +6,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:printing/printing.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:url_launcher/url_launcher.dart';
 import '../../app.dart';
 import '../../core/config/app_config.dart';
+import '../../core/diagnostics/startup_trace.dart';
 import '../../core/i18n/l10n/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/tab_info.dart';
@@ -24,73 +27,27 @@ import '../../utils/platform_utils.dart';
 import '../screens/settings_screen.dart';
 import '../editor/mermaid/widgets/mermaid_diagram.dart';
 import '../editor/mermaid/models/style.dart';
+import 'editor_tab_bar.dart';
+import '../editor/mermaid/parser/mermaid_parser.dart';
+import '../../providers/sidebar_provider.dart';
+import 'command_palette.dart';
+import '../../services/file_service.dart';
+import 'package:window_manager/window_manager.dart';
+import '../../providers/window_provider.dart';
+import '../../providers/update_provider.dart';
+import '../../services/update_service.dart';
+import '../../core/constants.dart';
 
 class AppMenuBar extends ConsumerWidget {
   const AppMenuBar({super.key});
 
-  static SingleActivator? _parseShortcut(String keys) {
-    final parts = keys.split('+');
-    if (parts.isEmpty) return null;
-    bool ctrl = false, shift = false, alt = false, meta = false;
-    String? keyLabel;
-    for (final part in parts) {
-      switch (part.trim()) {
-        case 'Ctrl':
-          if (PlatformUtils.isMacOS) { meta = true; } else { ctrl = true; }
-        case 'Shift':
-          shift = true;
-        case 'Alt':
-          alt = true;
-        case 'Meta':
-          meta = true;
-        default:
-          keyLabel = part.trim();
-      }
-    }
-    if (keyLabel == null) return null;
-    final logicalKey = _labelToKey(keyLabel);
-    if (logicalKey == null) return null;
-    return SingleActivator(logicalKey, control: ctrl, shift: shift, alt: alt, meta: meta);
-  }
-
-  static LogicalKeyboardKey? _labelToKey(String label) {
-    return switch (label) {
-      'A' => LogicalKeyboardKey.keyA,
-      'B' => LogicalKeyboardKey.keyB,
-      'C' => LogicalKeyboardKey.keyC,
-      'D' => LogicalKeyboardKey.keyD,
-      'E' => LogicalKeyboardKey.keyE,
-      'F' => LogicalKeyboardKey.keyF,
-      'G' => LogicalKeyboardKey.keyG,
-      'H' => LogicalKeyboardKey.keyH,
-      'I' => LogicalKeyboardKey.keyI,
-      'J' => LogicalKeyboardKey.keyJ,
-      'K' => LogicalKeyboardKey.keyK,
-      'L' => LogicalKeyboardKey.keyL,
-      'M' => LogicalKeyboardKey.keyM,
-      'N' => LogicalKeyboardKey.keyN,
-      'O' => LogicalKeyboardKey.keyO,
-      'P' => LogicalKeyboardKey.keyP,
-      'Q' => LogicalKeyboardKey.keyQ,
-      'R' => LogicalKeyboardKey.keyR,
-      'S' => LogicalKeyboardKey.keyS,
-      'T' => LogicalKeyboardKey.keyT,
-      'U' => LogicalKeyboardKey.keyU,
-      'V' => LogicalKeyboardKey.keyV,
-      'W' => LogicalKeyboardKey.keyW,
-      'X' => LogicalKeyboardKey.keyX,
-      'Y' => LogicalKeyboardKey.keyY,
-      'Z' => LogicalKeyboardKey.keyZ,
-      '1' => LogicalKeyboardKey.digit1,
-      '2' => LogicalKeyboardKey.digit2,
-      '3' => LogicalKeyboardKey.digit3,
-      '4' => LogicalKeyboardKey.digit4,
-      '5' => LogicalKeyboardKey.digit5,
-      '6' => LogicalKeyboardKey.digit6,
-      '`' => LogicalKeyboardKey.backquote,
-      _ => null,
-    };
-  }
+  /// The shortcut configured for [action], or null when it has none.
+  ///
+  /// Both the label a menu shows and the key that actually fires now come from
+  /// the same place, so a rebound shortcut cannot display one thing and do
+  /// another.
+  static SingleActivator? _shortcut(String action) =>
+      KeybindingService().activatorFor(action, isMacOS: PlatformUtils.isMacOS);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -112,52 +69,79 @@ class AppMenuBar extends ConsumerWidget {
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-        child: Row(
+        // The toolbar stands down when the window is too narrow for it: every
+        // one of its buttons is also an item in the menus beside it, and the
+        // bar was striped from about 780 pixels down. A scrolling row is not
+        // an option here — the Spacer that holds the toolbar to the right
+        // edge needs a bounded width, which a scrolling row does not give.
+        child: LayoutBuilder(
+          builder: (context, constraints) => Row(
           children: [
-            MenuBar(
+            // The menus scroll on their own when six of them will not fit;
+            // the Spacer stays outside, in a row that still has a width, so
+            // the toolbar keeps its place at the right edge.
+            Flexible(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: MenuBar(
               style: MenuStyle(
                 backgroundColor: WidgetStatePropertyAll(tokens.colorSurface),
                 elevation: const WidgetStatePropertyAll(0),
                 padding: const WidgetStatePropertyAll(EdgeInsets.zero),
               ),
               children: [
-                _buildFileMenu(l10n, ref),
+                _buildFileMenu(context, l10n, ref),
                 _buildEditMenu(l10n, ref),
-                _buildViewMenu(l10n, ref),
+                _buildViewMenu(context, l10n, ref),
                 _buildFormatMenu(l10n, ref),
                 _buildWindowMenu(l10n, ref),
                 _buildHelpMenu(l10n, ref),
               ],
+                ),
+              ),
             ),
             const Spacer(),
-            _buildToolbarIcons(ref, tokens),
+            if (constraints.maxWidth >= 820)
+              _buildToolbarIcons(ref, tokens, l10n),
           ],
+          ),
         ),
       ),
     );
   }
 
-  void _newFile(WidgetRef ref) {
+  /// Opens an empty tab.
+  ///
+  /// Public so the command palette runs this rather than its own copy: that
+  /// copy left the name out, and a new document created from the palette came
+  /// up called "Untitled" whatever language the app was in.
+  static void newFile(WidgetRef ref, AppLocalizations l10n) {
     final tab = TabInfo(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
+      // TabInfo defaults to the English 'Untitled'; it is a model and has no
+      // way to reach the localisations, so the name is passed in here.
+      fileName: l10n.untitled,
     );
     ref.read(tabProvider.notifier).addTab(tab);
   }
 
-  void _openFile(WidgetRef ref) async {
+  /// Opens a file through the picker. Shared with the shortcut dispatcher.
+  static void openFile(WidgetRef ref) async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['md', 'markdown', 'txt'],
+      allowedExtensions: FileUtils.markdownExtensions,
     );
     if (result == null || result.files.isEmpty) return;
     final path = result.files.single.path;
     if (path == null) return;
-    final content = await File(path).readAsString();
+    final opened = await FileService().readFileWithLineEnding(path);
     final tab = TabInfo(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       filePath: path,
       fileName: p.basename(path),
-      content: content,
+      content: opened.content,
+      lineEnding: opened.lineEnding,
+      encoding: opened.encoding,
     );
     ref.read(tabProvider.notifier).addTab(tab);
     ref.read(settingsProvider.notifier).addRecentFile(path);
@@ -172,29 +156,66 @@ class AppMenuBar extends ConsumerWidget {
     );
   }
 
-  void _saveFile(WidgetRef ref) async {
+  /// Writes the active tab back to disk, asking for a location if it has
+  /// none. Shared with the shortcut dispatcher.
+  static void saveFile(WidgetRef ref) async {
     final activeTab = ref.read(activeTabProvider);
     if (activeTab == null) return;
     if (activeTab.filePath != null) {
-      await File(activeTab.filePath!).writeAsString(activeTab.content);
+      try {
+        await FileService.saveDocument(activeTab.filePath!, activeTab.content,
+            lineEnding: activeTab.lineEnding, encoding: activeTab.encoding);
+      } catch (e) {
+        // Left marked as modified, so the dot in the tab bar and the close
+        // confirmation both keep telling the truth about what is on disk —
+        // and said out loud, because a silent Ctrl+S is indistinguishable
+        // from one that worked.
+        reportSaveFailure(e);
+        return;
+      }
       ref.read(tabProvider.notifier).markSaved(activeTab.id);
     } else {
       _saveFileAs(ref);
     }
   }
 
-  void _saveFileAs(WidgetRef ref) async {
+  /// The localisations, when a context is available.
+  ///
+  /// The file picker's title is shown by the operating system, so it has to be
+  /// a string rather than a widget — and these call sites are static, with no
+  /// context of their own. Falls back to English if the navigator has none,
+  /// which is better than showing nothing.
+  static AppLocalizations? get _l10n {
+    final context = navigatorKey.currentContext;
+    return context == null ? null : AppLocalizations.of(context);
+  }
+
+  static void _saveFileAs(WidgetRef ref) async {
     final activeTab = ref.read(activeTabProvider);
     if (activeTab == null) return;
     final path = await FilePicker.platform.saveFile(
-      dialogTitle: 'Save As',
+      dialogTitle: _l10n?.fileSaveAs ?? 'Save As',
       fileName: activeTab.fileName,
       type: FileType.custom,
-      allowedExtensions: ['md', 'markdown', 'txt'],
+      allowedExtensions: FileUtils.markdownExtensions,
     );
     if (path == null) return;
-    await File(path).writeAsString(activeTab.content);
+    try {
+      await FileService.saveDocument(path, activeTab.content,
+          lineEnding: activeTab.lineEnding, encoding: activeTab.encoding);
+    } catch (e) {
+      reportSaveFailure(e);
+      return;
+    }
+
+    // Rebind the tab to where it was actually written. Without this an
+    // untitled document stayed untitled: the title bar kept saying so, and
+    // the next Ctrl+S asked for a location all over again.
+    ref
+        .read(tabProvider.notifier)
+        .updateTabPath(activeTab.id, path, p.basename(path));
     ref.read(tabProvider.notifier).markSaved(activeTab.id);
+    ref.read(settingsProvider.notifier).addRecentFile(path);
   }
 
   void _renameFile(WidgetRef ref) async {
@@ -224,43 +245,40 @@ class AppMenuBar extends ConsumerWidget {
     if (newName == null || newName.isEmpty || newName == p.basename(oldPath)) return;
     final newPath = p.join(p.dirname(oldPath), newName);
     await File(oldPath).rename(newPath);
-    ref.read(tabProvider.notifier).updateTabPath(activeTab.id, newPath, newName);
+    // The same call the sidebar makes, so the two ways of renaming cannot
+    // drift apart again.
+    ref.read(tabProvider.notifier).pathRenamed(oldPath, newPath);
   }
 
-  Widget _buildFileMenu(AppLocalizations l10n, WidgetRef ref) {
+  Widget _buildFileMenu(
+      BuildContext context, AppLocalizations l10n, WidgetRef ref) {
+    final hasDocument = ref.watch(activeTabProvider) != null;
     return SubmenuButton(
       menuChildren: [
         MenuItemButton(
           child: Text(l10n.fileNew),
-          onPressed: () => _newFile(ref),
+          onPressed: () => newFile(ref, l10n),
         ),
         MenuItemButton(
+          shortcut: _shortcut('newWindow'),
           child: Text(l10n.fileNewWindow),
           onPressed: () => _newWindow(),
         ),
         const Divider(height: 1),
         MenuItemButton(
-          onPressed: () => _openFile(ref),
-          shortcut: SingleActivator(
-            LogicalKeyboardKey.keyO,
-            control: !PlatformUtils.isMacOS,
-            meta: PlatformUtils.isMacOS,
-          ),
+          onPressed: () => openFile(ref),
+          shortcut: _shortcut('open'),
           child: Text(l10n.fileOpen),
         ),
         MenuItemButton(
           child: Text(l10n.fileOpenFolder),
           onPressed: () => _openFolder(ref),
         ),
-        _buildRecentFilesMenu(l10n, ref),
+        _buildRecentFilesMenu(context, l10n, ref),
         const Divider(height: 1),
         MenuItemButton(
-          onPressed: () => _saveFile(ref),
-          shortcut: SingleActivator(
-            LogicalKeyboardKey.keyS,
-            control: !PlatformUtils.isMacOS,
-            meta: PlatformUtils.isMacOS,
-          ),
+          onPressed: () => saveFile(ref),
+          shortcut: _shortcut('save'),
           child: Text(l10n.fileSave),
         ),
         MenuItemButton(
@@ -272,25 +290,44 @@ class AppMenuBar extends ConsumerWidget {
           onPressed: () => _renameFile(ref),
         ),
         const Divider(height: 1),
+        MenuItemButton(
+          shortcut: _shortcut('closeTab'),
+          child: Text(l10n.fileCloseTab),
+          onPressed: () => _closeActiveTab(context, ref),
+        ),
+        const Divider(height: 1),
+        // Greyed out with nothing open. Closing the last tab leaves no
+        // document at all, and each of these began by returning quietly when
+        // it found none — the reader clicked Export and nothing happened,
+        // with nothing to say why.
         SubmenuButton(
           menuChildren: [
             MenuItemButton(
+              onPressed: hasDocument ? () => _exportHtml(ref) : null,
               child: Text(l10n.fileExportHtml),
-              onPressed: () => _exportHtml(ref),
             ),
             MenuItemButton(
+              shortcut: _shortcut('exportPdf'),
+              onPressed: hasDocument ? () => _exportPdf(ref) : null,
               child: Text(l10n.fileExportPdf),
-              onPressed: () => _exportPdf(ref),
             ),
             MenuItemButton(
+              onPressed: hasDocument ? () => _exportWord(ref) : null,
               child: Text(l10n.fileExportWord),
-              onPressed: () => _exportWord(ref),
             ),
           ],
           child: Text(l10n.fileExport),
         ),
+        // Beside Export, which is where upstream puts it, and laid out by the
+        // same code the PDF export uses so the paper matches the file.
+        MenuItemButton(
+          shortcut: _shortcut('print'),
+          onPressed: hasDocument ? () => _print(ref) : null,
+          child: Text(l10n.filePrint),
+        ),
         const Divider(height: 1),
         MenuItemButton(
+          shortcut: _shortcut('settings'),
           child: Text(l10n.fileSettings),
           onPressed: () {
             navigatorKey.currentState?.push(
@@ -319,8 +356,14 @@ class AppMenuBar extends ConsumerWidget {
         ),
         const Divider(height: 1),
         MenuItemButton(
+          shortcut: _shortcut('quit'),
+          // `close`, not `exit(0)`: the window is set to prevent closing, so
+          // this reaches the same handler the title bar's close button does —
+          // which asks about unsaved work and records the window geometry.
+          // Quitting from the menu used to end the process outright, losing
+          // every modified tab without a word.
           child: Text(l10n.fileQuit),
-          onPressed: () => exit(0),
+          onPressed: () => windowManager.close(),
         ),
       ],
       child: Text(l10n.menuFile, style: const TextStyle(fontSize: 13)),
@@ -328,30 +371,25 @@ class AppMenuBar extends ConsumerWidget {
   }
 
   Widget _buildEditMenu(AppLocalizations l10n, WidgetRef ref) {
-    final editorState = ref.watch(editorProvider);
+    // Undo and redo availability only. The whole provider would rebuild the
+    // menu bar on every cursor move.
+    final editorState = ref.watch(
+      editorProvider.select((s) => (canUndo: s.canUndo, canRedo: s.canRedo)),
+    );
     return SubmenuButton(
       menuChildren: [
         MenuItemButton(
           onPressed: editorState.canUndo
               ? () => ref.read(editorProvider.notifier).undo()
               : null,
-          shortcut: SingleActivator(
-            LogicalKeyboardKey.keyZ,
-            control: !PlatformUtils.isMacOS,
-            meta: PlatformUtils.isMacOS,
-          ),
+          shortcut: _shortcut('undo'),
           child: Text(l10n.editUndo),
         ),
         MenuItemButton(
           onPressed: editorState.canRedo
               ? () => ref.read(editorProvider.notifier).redo()
               : null,
-          shortcut: SingleActivator(
-            LogicalKeyboardKey.keyZ,
-            control: !PlatformUtils.isMacOS,
-            meta: PlatformUtils.isMacOS,
-            shift: true,
-          ),
+          shortcut: _shortcut('redo'),
           child: Text(l10n.editRedo),
         ),
         const Divider(height: 1),
@@ -411,79 +449,97 @@ class AppMenuBar extends ConsumerWidget {
         ),
         const Divider(height: 1),
         MenuItemButton(
-          shortcut: SingleActivator(
-            LogicalKeyboardKey.keyA,
-            control: !PlatformUtils.isMacOS,
-            meta: PlatformUtils.isMacOS,
-          ),
+          shortcut: _shortcut('selectAll'),
           child: Text(l10n.editSelectAll),
           onPressed: () => ref.read(editorProvider.notifier).applyFormat(FormatAction.selectAll),
         ),
         MenuItemButton(
-          shortcut: SingleActivator(
-            LogicalKeyboardKey.keyD,
-            control: !PlatformUtils.isMacOS,
-            meta: PlatformUtils.isMacOS,
-          ),
+          shortcut: _shortcut('duplicateLine'),
           child: Text(l10n.editDuplicateLine),
           onPressed: () => ref.read(editorProvider.notifier).applyFormat(FormatAction.duplicateLine),
         ),
+        // Beside "duplicate line", which is where upstream puts them.
+        MenuItemButton(
+          shortcut: _shortcut('createParagraph'),
+          child: Text(l10n.editCreateParagraph),
+          onPressed: () => ref
+              .read(editorProvider.notifier)
+              .applyFormat(FormatAction.createParagraph),
+        ),
+        MenuItemButton(
+          shortcut: _shortcut('deleteParagraph'),
+          child: Text(l10n.editDeleteParagraph),
+          onPressed: () => ref
+              .read(editorProvider.notifier)
+              .applyFormat(FormatAction.deleteParagraph),
+        ),
         const Divider(height: 1),
         MenuItemButton(
-          shortcut: SingleActivator(
-            LogicalKeyboardKey.keyF,
-            control: !PlatformUtils.isMacOS,
-            meta: PlatformUtils.isMacOS,
-          ),
+          shortcut: _shortcut('find'),
           child: Text(l10n.editFind),
           onPressed: () => ref.read(editorProvider.notifier).toggleFindReplace(),
         ),
         MenuItemButton(
-          shortcut: SingleActivator(
-            LogicalKeyboardKey.keyH,
-            control: !PlatformUtils.isMacOS,
-            meta: PlatformUtils.isMacOS,
-          ),
+          shortcut: _shortcut('findNext'),
+          child: Text(l10n.editFindNext),
+          onPressed: () => ref
+              .read(editorProvider.notifier)
+              .stepToFindMatch(forward: true),
+        ),
+        MenuItemButton(
+          shortcut: _shortcut('findPrevious'),
+          child: Text(l10n.editFindPrevious),
+          onPressed: () => ref
+              .read(editorProvider.notifier)
+              .stepToFindMatch(forward: false),
+        ),
+        MenuItemButton(
+          shortcut: _shortcut('replace'),
           child: Text(l10n.editReplace),
           onPressed: () => ref.read(editorProvider.notifier).toggleFindReplace(),
+        ),
+        // Searching every file in the folder was only ever reachable by
+        // finding the magnifying glass in the sidebar. Upstream puts it in
+        // this menu next to Find, the label was already translated into all
+        // twelve languages, and nothing referred to it.
+        MenuItemButton(
+          child: Text(l10n.editFindInFiles),
+          onPressed: () {
+            final settings = ref.read(settingsProvider.notifier);
+            if (!ref.read(settingsProvider).sideBarVisible) {
+              settings.toggleSideBar();
+            }
+            ref.read(sideBarTabProvider.notifier).state = SideBarTab.search;
+          },
         ),
       ],
       child: Text(l10n.menuEdit, style: const TextStyle(fontSize: 13)),
     );
   }
 
-  Widget _buildViewMenu(AppLocalizations l10n, WidgetRef ref) {
+  Widget _buildViewMenu(
+      BuildContext context, AppLocalizations l10n, WidgetRef ref) {
     final config = ref.watch(settingsProvider);
-    final isMac = PlatformUtils.isMacOS;
     return SubmenuButton(
       menuChildren: [
         SubmenuButton(
           menuChildren: [
             MenuItemButton(
-              shortcut: SingleActivator(
-                LogicalKeyboardKey.digit1,
-                control: !isMac, meta: isMac, alt: true,
-              ),
+              shortcut: _shortcut('sourceMode'),
               child: Text(l10n.viewSourceCode),
               onPressed: () {
                 ref.read(settingsProvider.notifier).setEditMode(EditMode.source);
               },
             ),
             MenuItemButton(
-              shortcut: SingleActivator(
-                LogicalKeyboardKey.digit2,
-                control: !isMac, meta: isMac, alt: true,
-              ),
+              shortcut: _shortcut('previewMode'),
               child: Text(l10n.viewPreview),
               onPressed: () {
                 ref.read(settingsProvider.notifier).setEditMode(EditMode.preview);
               },
             ),
             MenuItemButton(
-              shortcut: SingleActivator(
-                LogicalKeyboardKey.digit3,
-                control: !isMac, meta: isMac, alt: true,
-              ),
+              shortcut: _shortcut('splitMode'),
               child: Text(l10n.viewSplitView),
               onPressed: () {
                 ref.read(settingsProvider.notifier).setEditMode(EditMode.split);
@@ -494,41 +550,53 @@ class AppMenuBar extends ConsumerWidget {
         ),
         const Divider(height: 1),
         MenuItemButton(
-          shortcut: SingleActivator(
-            LogicalKeyboardKey.keyB,
-            control: !isMac, meta: isMac, shift: true,
-          ),
+          shortcut: _shortcut('toggleSidebar'),
           child: Text(config.sideBarVisible ? l10n.viewHideSidebar : l10n.viewShowSidebar),
           onPressed: () {
             ref.read(settingsProvider.notifier).toggleSideBar();
           },
         ),
         MenuItemButton(
-          shortcut: SingleActivator(
-            LogicalKeyboardKey.keyT,
-            control: !isMac, meta: isMac, alt: true,
-          ),
+          shortcut: _shortcut('toggleTabBar'),
           child: Text(config.tabBarVisible ? l10n.viewHideTabBar : l10n.viewShowTabBar),
           onPressed: () {
             ref.read(settingsProvider.notifier).toggleTabBar();
           },
         ),
+        // The table of contents was reachable only by finding its icon in the
+        // sidebar; the command palette had no entry at all.
+        MenuItemButton(
+          shortcut: _shortcut('reloadImages'),
+          // A picture edited outside the app kept showing its old self:
+          // Flutter caches a decoded image against its path.
+          child: Text(l10n.viewReloadImages),
+          onPressed: () => ref.read(editorProvider.notifier).reloadImages(),
+        ),
+        MenuItemButton(
+          child: Text(l10n.sidebarToc),
+          onPressed: () {
+            final settings = ref.read(settingsProvider.notifier);
+            if (!ref.read(settingsProvider).sideBarVisible) {
+              settings.toggleSideBar();
+            }
+            ref.read(sideBarTabProvider.notifier).state = SideBarTab.toc;
+          },
+        ),
+        MenuItemButton(
+          shortcut: _shortcut('commandPalette'),
+          child: Text(l10n.viewCommandPalette),
+          onPressed: () => CommandPalette.show(context),
+        ),
         const Divider(height: 1),
         MenuItemButton(
-          shortcut: SingleActivator(
-            LogicalKeyboardKey.keyF,
-            control: !isMac, meta: isMac, shift: true,
-          ),
+          shortcut: _shortcut('focusMode'),
           child: Text(config.focusMode ? '${l10n.viewFocusMode} \u2713' : l10n.viewFocusMode),
           onPressed: () {
             ref.read(settingsProvider.notifier).toggleFocusMode();
           },
         ),
         MenuItemButton(
-          shortcut: SingleActivator(
-            LogicalKeyboardKey.keyW,
-            control: !isMac, meta: isMac, shift: true,
-          ),
+          shortcut: _shortcut('typewriterMode'),
           child: Text(config.typewriterMode ? '${l10n.viewTypewriterMode} \u2713' : l10n.viewTypewriterMode),
           onPressed: () {
             ref.read(settingsProvider.notifier).toggleTypewriterMode();
@@ -536,10 +604,7 @@ class AppMenuBar extends ConsumerWidget {
         ),
         const Divider(height: 1),
         MenuItemButton(
-          shortcut: SingleActivator(
-            LogicalKeyboardKey.equal,
-            control: !isMac, meta: isMac,
-          ),
+          shortcut: _shortcut('zoomIn'),
           child: Text(l10n.viewZoomIn),
           onPressed: () {
             final newSize = (config.fontSize + 2).clamp(12.0, 32.0);
@@ -547,10 +612,7 @@ class AppMenuBar extends ConsumerWidget {
           },
         ),
         MenuItemButton(
-          shortcut: SingleActivator(
-            LogicalKeyboardKey.minus,
-            control: !isMac, meta: isMac,
-          ),
+          shortcut: _shortcut('zoomOut'),
           child: Text(l10n.viewZoomOut),
           onPressed: () {
             final newSize = (config.fontSize - 2).clamp(12.0, 32.0);
@@ -558,10 +620,7 @@ class AppMenuBar extends ConsumerWidget {
           },
         ),
         MenuItemButton(
-          shortcut: SingleActivator(
-            LogicalKeyboardKey.digit0,
-            control: !isMac, meta: isMac,
-          ),
+          shortcut: _shortcut('resetZoom'),
           child: Text(l10n.viewResetZoom),
           onPressed: () {
             ref.read(settingsProvider.notifier).setFontSize(16.0);
@@ -574,7 +633,6 @@ class AppMenuBar extends ConsumerWidget {
 
   Widget _buildFormatMenu(AppLocalizations l10n, WidgetRef ref) {
     void fmt(FormatAction action) => ref.read(editorProvider.notifier).applyFormat(action);
-    final kb = KeybindingService();
     final headingActions = [
       FormatAction.heading1, FormatAction.heading2, FormatAction.heading3,
       FormatAction.heading4, FormatAction.heading5, FormatAction.heading6,
@@ -585,31 +643,32 @@ class AppMenuBar extends ConsumerWidget {
         SubmenuButton(
           menuChildren: [
             MenuItemButton(
-              shortcut: _parseShortcut(kb.getKeybinding('bold')),
+              shortcut: _shortcut('bold'),
               child: Text(l10n.formatBold),
               onPressed: () => fmt(FormatAction.bold),
             ),
             MenuItemButton(
-              shortcut: _parseShortcut(kb.getKeybinding('italic')),
+              shortcut: _shortcut('italic'),
               child: Text(l10n.formatItalic),
               onPressed: () => fmt(FormatAction.italic),
             ),
             MenuItemButton(
-              shortcut: _parseShortcut(kb.getKeybinding('strikethrough')),
+              shortcut: _shortcut('strikethrough'),
               child: Text(l10n.formatStrikethrough),
               onPressed: () => fmt(FormatAction.strikethrough),
             ),
             MenuItemButton(
-              shortcut: _parseShortcut(kb.getKeybinding('underline')),
+              shortcut: _shortcut('underline'),
               child: Text(l10n.formatUnderline),
               onPressed: () => fmt(FormatAction.underline),
             ),
             MenuItemButton(
-              shortcut: _parseShortcut(kb.getKeybinding('highlight')),
+              shortcut: _shortcut('highlight'),
               child: Text(l10n.formatHighlight),
               onPressed: () => fmt(FormatAction.highlight),
             ),
             MenuItemButton(
+              shortcut: _shortcut('clearFormatting'),
               child: Text(l10n.formatClearFormatting),
               onPressed: () => fmt(FormatAction.clearFormatting),
             ),
@@ -620,7 +679,7 @@ class AppMenuBar extends ConsumerWidget {
           menuChildren: List.generate(
             6,
             (i) => MenuItemButton(
-              shortcut: _parseShortcut(kb.getKeybinding(headingKeys[i])),
+              shortcut: _shortcut(headingKeys[i]),
               child: Text(l10n.formatHeading(i + 1)),
               onPressed: () => fmt(headingActions[i]),
             ),
@@ -630,22 +689,61 @@ class AppMenuBar extends ConsumerWidget {
         SubmenuButton(
           menuChildren: [
             MenuItemButton(
-              shortcut: _parseShortcut(kb.getKeybinding('orderedList')),
+              shortcut: _shortcut('promoteHeading'),
+              child: Text(l10n.paragraphPromoteHeading),
+              onPressed: () => fmt(FormatAction.promoteHeading),
+            ),
+            MenuItemButton(
+              shortcut: _shortcut('demoteHeading'),
+              child: Text(l10n.paragraphDemoteHeading),
+              onPressed: () => fmt(FormatAction.demoteHeading),
+            ),
+            MenuItemButton(
+              shortcut: _shortcut('frontMatter'),
+              // Front matter only counts as front matter at the very top of
+              // the file, so this ignores the caret and inserts there.
+              child: Text(l10n.formatFrontMatter),
+              onPressed: () => fmt(FormatAction.frontMatter),
+            ),
+            MenuItemButton(
+              shortcut: _shortcut('htmlBlock'),
+              child: Text(l10n.formatHtmlBlock),
+              onPressed: () => fmt(FormatAction.htmlBlock),
+            ),
+            MenuItemButton(
+              shortcut: _shortcut('toParagraph'),
+              child: Text(l10n.paragraphToParagraph),
+              onPressed: () => fmt(FormatAction.toParagraph),
+            ),
+            MenuItemButton(
+              shortcut: _shortcut('looseList'),
+              // Upstream carries this as a checkbox; a menu here has no state
+              // to check against, so it reads as the action it performs.
+              child: Text(l10n.paragraphLooseList),
+              onPressed: () => fmt(FormatAction.looseList),
+            ),
+          ],
+          child: Text(l10n.menuParagraph),
+        ),
+        SubmenuButton(
+          menuChildren: [
+            MenuItemButton(
+              shortcut: _shortcut('orderedList'),
               child: Text(l10n.formatOrderedList),
               onPressed: () => fmt(FormatAction.orderedList),
             ),
             MenuItemButton(
-              shortcut: _parseShortcut(kb.getKeybinding('unorderedList')),
+              shortcut: _shortcut('unorderedList'),
               child: Text(l10n.formatUnorderedList),
               onPressed: () => fmt(FormatAction.unorderedList),
             ),
             MenuItemButton(
-              shortcut: _parseShortcut(kb.getKeybinding('taskList')),
+              shortcut: _shortcut('taskList'),
               child: Text(l10n.formatTaskList),
               onPressed: () => fmt(FormatAction.taskList),
             ),
             MenuItemButton(
-              shortcut: _parseShortcut(kb.getKeybinding('quoteBlock')),
+              shortcut: _shortcut('quoteBlock'),
               child: Text(l10n.formatQuoteBlock),
               onPressed: () => fmt(FormatAction.quoteBlock),
             ),
@@ -655,20 +753,22 @@ class AppMenuBar extends ConsumerWidget {
         SubmenuButton(
           menuChildren: [
             MenuItemButton(
-              shortcut: _parseShortcut(kb.getKeybinding('codeBlock')),
+              shortcut: _shortcut('codeBlock'),
               child: Text(l10n.formatCodeBlock),
               onPressed: () => fmt(FormatAction.codeBlock),
             ),
             MenuItemButton(
+              shortcut: _shortcut('mathBlock'),
               child: Text(l10n.formatMathBlock),
               onPressed: () => fmt(FormatAction.mathBlock),
             ),
             MenuItemButton(
-              shortcut: _parseShortcut(kb.getKeybinding('inlineCode')),
+              shortcut: _shortcut('inlineCode'),
               child: Text(l10n.formatInlineCode),
               onPressed: () => fmt(FormatAction.inlineCode),
             ),
             MenuItemButton(
+              shortcut: _shortcut('inlineMath'),
               child: Text(l10n.formatInlineMath),
               onPressed: () => fmt(FormatAction.inlineMath),
             ),
@@ -678,17 +778,17 @@ class AppMenuBar extends ConsumerWidget {
         SubmenuButton(
           menuChildren: [
             MenuItemButton(
-              shortcut: _parseShortcut(kb.getKeybinding('table')),
+              shortcut: _shortcut('table'),
               child: Text(l10n.formatTable),
               onPressed: () => fmt(FormatAction.table),
             ),
             MenuItemButton(
-              shortcut: _parseShortcut(kb.getKeybinding('link')),
+              shortcut: _shortcut('link'),
               child: Text(l10n.formatLink),
               onPressed: () => fmt(FormatAction.link),
             ),
             MenuItemButton(
-              shortcut: _parseShortcut(kb.getKeybinding('image')),
+              shortcut: _shortcut('image'),
               child: Text(l10n.formatImage),
               onPressed: () => fmt(FormatAction.image),
             ),
@@ -713,32 +813,122 @@ class AppMenuBar extends ConsumerWidget {
   }
 
   Widget _buildWindowMenu(AppLocalizations l10n, WidgetRef ref) {
+    final isFullScreen = ref.watch(fullScreenProvider);
+    final isAlwaysOnTop = ref.watch(alwaysOnTopProvider);
+
     return SubmenuButton(
       menuChildren: [
         MenuItemButton(
+          // Was SystemNavigator.pop, which asks the app to leave the current
+          // route — on desktop that is a way to quit, not to minimise.
           child: Text(l10n.windowMinimize),
-          onPressed: () => SystemChannels.platform.invokeMethod('SystemNavigator.pop'),
+          onPressed: () => windowManager.minimize(),
         ),
         MenuItemButton(
-          child: Text(l10n.windowFullScreen),
-          onPressed: () {
-            // Full screen toggle not available without window_manager
-          },
+          shortcut: _shortcut('fullScreen'),
+          child: Text(
+            isFullScreen ? '${l10n.windowFullScreen} \u2713' : l10n.windowFullScreen,
+          ),
+          onPressed: () => _toggleFullScreen(ref),
         ),
         MenuItemButton(
-          child: Text(l10n.windowAlwaysOnTop),
-          onPressed: () {
-            // Always on top not available without window_manager
-          },
+          child: Text(
+            isAlwaysOnTop
+                ? '${l10n.windowAlwaysOnTop} \u2713'
+                : l10n.windowAlwaysOnTop,
+          ),
+          onPressed: () => _toggleAlwaysOnTop(ref),
         ),
       ],
       child: Text(l10n.menuWindow, style: const TextStyle(fontSize: 13)),
     );
   }
 
+  /// Both toggles ask the window what it is doing before flipping it, so a
+  /// change made outside the menu cannot leave them inverted.
+  static Future<void> _toggleFullScreen(WidgetRef ref) async {
+    final next = !await windowManager.isFullScreen();
+    await windowManager.setFullScreen(next);
+    ref.read(fullScreenProvider.notifier).state = next;
+  }
+
+  static Future<void> _toggleAlwaysOnTop(WidgetRef ref) async {
+    final next = !await windowManager.isAlwaysOnTop();
+    await windowManager.setAlwaysOnTop(next);
+    ref.read(alwaysOnTopProvider.notifier).state = next;
+  }
+
+  /// Asks GitHub whether there is a newer release and says what it found.
+  ///
+  /// A check that reports nothing looks like a menu item that does nothing,
+  /// so all three outcomes — newer version, up to date, could not reach the
+  /// server — are shown.
+  static Future<void> _checkForUpdatesNow(
+    WidgetRef ref,
+    AppLocalizations l10n,
+  ) async {
+    final result = await UpdateService.checkForUpdate(AppConstants.appVersion);
+    final update = result.update;
+
+    if (update != null) {
+      // The status bar indicator is the app's existing way of saying this.
+      ref.read(updateProvider.notifier).setUpdate(update);
+    }
+
+    final context = navigatorKey.currentContext;
+    if (context == null || !context.mounted) return;
+
+    final message = !result.reachable
+        ? l10n.updateCheckFailed
+        : update != null
+            ? '${l10n.updateAvailable}: ${update.version}'
+            : l10n.updateUpToDate;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  /// Shows the reader where the startup trace went.
+  ///
+  /// The installer puts the program under Program Files, which it cannot write
+  /// to, so the trace falls back to the config directory — and finding that by
+  /// hand means knowing both that `%APPDATA%` is not expanded by PowerShell
+  /// and what the version resource calls the company. Someone who has been
+  /// asked for a log should not have to work that out.
+  static Future<void> _openDiagnosticLog() async {
+    final context = navigatorKey.currentContext;
+    final path = StartupTrace.logPath;
+    if (path == null) {
+      if (context == null || !context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.diagnosticLogMissing)),
+      );
+      return;
+    }
+    try {
+      if (Platform.isWindows) {
+        // Selects the file in Explorer rather than opening the folder, so the
+        // one that matters is the one already highlighted.
+        await Process.run('explorer.exe', ['/select,', path]);
+      } else if (Platform.isMacOS) {
+        await Process.run('open', ['-R', path]);
+      } else {
+        await Process.run('xdg-open', [p.dirname(path)]);
+      }
+    } catch (e) {
+      if (context == null || !context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.fileOperationFailed('$e'))),
+      );
+    }
+  }
+
   Widget _buildHelpMenu(AppLocalizations l10n, WidgetRef ref) {
     return SubmenuButton(
       menuChildren: [
+        MenuItemButton(
+          onPressed: _openDiagnosticLog,
+          child: Text(l10n.helpOpenDiagnosticLog),
+        ),
         MenuItemButton(
           child: Text(l10n.helpAbout),
           onPressed: () {
@@ -752,8 +942,10 @@ class AppMenuBar extends ConsumerWidget {
         ),
         const Divider(height: 1),
         MenuItemButton(
+          // Was a link to the releases page: an item called "Check for
+          // Updates" that checks nothing. The app already knows how to ask.
           child: Text(l10n.helpCheckUpdates),
-          onPressed: () => _launchUrl('https://github.com/SugarFatFree/marktext-plus/releases'),
+          onPressed: () => _checkForUpdatesNow(ref, l10n),
         ),
         MenuItemButton(
           child: Text(l10n.helpChangelog),
@@ -782,61 +974,108 @@ class AppMenuBar extends ConsumerWidget {
     final activeTab = ref.read(activeTabProvider);
     if (activeTab == null) return;
     final path = await FilePicker.platform.saveFile(
-      dialogTitle: 'Export HTML',
+      dialogTitle: _exportTitle(_l10n?.fileExportHtml ?? 'HTML'),
       fileName: '${p.basenameWithoutExtension(activeTab.fileName)}.html',
       type: FileType.custom,
       allowedExtensions: ['html'],
     );
     if (path == null) return;
-    await ExportService.exportToHtml(activeTab.content, path);
+    // Diagrams are drawn here and carried into the file, the same way the PDF
+    // and Word exports have always done it. Without them the export described
+    // each diagram and left a script from a CDN to draw it, so the diagrams
+    // were blank for anyone offline — or on a network that does not reach
+    // jsdelivr, which is most company networks.
+    final mermaidImages = await _renderMermaidImages(activeTab.content);
+    // The tab's own path is what relative image references resolve against.
+    await ExportService.exportToHtml(
+      activeTab.content,
+      path,
+      sourcePath: activeTab.filePath,
+      enableHtml: ref.read(settingsProvider).enableHtml,
+      mermaidImages: mermaidImages,
+    );
   }
 
   void _exportPdf(WidgetRef ref) async {
     final activeTab = ref.read(activeTabProvider);
     if (activeTab == null) return;
     final path = await FilePicker.platform.saveFile(
-      dialogTitle: 'Export PDF',
+      dialogTitle: _exportTitle(_l10n?.fileExportPdf ?? 'PDF'),
       fileName: '${p.basenameWithoutExtension(activeTab.fileName)}.pdf',
       type: FileType.custom,
       allowedExtensions: ['pdf'],
     );
     if (path == null) return;
     final mermaidImages = await _renderMermaidImages(activeTab.content);
-    await ExportService.exportToPdf(activeTab.content, path, mermaidImages: mermaidImages);
+    await ExportService.exportToPdf(
+      activeTab.content,
+      path,
+      mermaidImages: mermaidImages,
+      sourcePath: activeTab.filePath,
+      enableHtml: ref.read(settingsProvider).enableHtml,
+    );
+  }
+
+  /// Hands the document to the system print dialog.
+  ///
+  /// Through the printing plugin rather than by writing a PDF and opening it:
+  /// the dialog's own page setup — printer, paper, range, copies — only
+  /// reaches a document that is laid out for it.
+  void _print(WidgetRef ref) async {
+    final activeTab = ref.read(activeTabProvider);
+    if (activeTab == null) return;
+    final mermaidImages = await _renderMermaidImages(activeTab.content);
+    final enableHtml = ref.read(settingsProvider).enableHtml;
+    await Printing.layoutPdf(
+      name: p.basenameWithoutExtension(activeTab.fileName),
+      onLayout: (_) async => Uint8List.fromList(
+        await ExportService.pdfBytes(
+          activeTab.content,
+          mermaidImages: mermaidImages,
+          sourcePath: activeTab.filePath,
+          enableHtml: enableHtml,
+        ),
+      ),
+    );
   }
 
   void _exportWord(WidgetRef ref) async {
     final activeTab = ref.read(activeTabProvider);
     if (activeTab == null) return;
     final path = await FilePicker.platform.saveFile(
-      dialogTitle: 'Export Word',
+      dialogTitle: _exportTitle(_l10n?.fileExportWord ?? 'Word'),
       fileName: '${p.basenameWithoutExtension(activeTab.fileName)}.docx',
       type: FileType.custom,
       allowedExtensions: ['docx'],
     );
     if (path == null) return;
     final mermaidImages = await _renderMermaidImages(activeTab.content);
-    await ExportService.exportToDocx(activeTab.content, path, mermaidImages: mermaidImages);
+    await ExportService.exportToDocx(
+      activeTab.content,
+      path,
+      mermaidImages: mermaidImages,
+      sourcePath: activeTab.filePath,
+      enableHtml: ref.read(settingsProvider).enableHtml,
+    );
   }
-
-  static const _mermaidLanguages = {
-    'mermaid', 'flowchart', 'sequence', 'gantt', 'classdiagram',
-    'statediagram', 'erdiagram', 'journey', 'gitgraph', 'pie', 'mindmap',
-  };
 
   Future<Map<String, Uint8List>> _renderMermaidImages(String markdown) async {
     final parser = MarkdownParser();
     final ast = parser.parse(markdown);
     final images = <String, Uint8List>{};
-    int index = 0;
 
-    for (final node in ast) {
-      if (node is CodeBlockNode && _mermaidLanguages.contains(node.language.toLowerCase())) {
-        final key = 'mermaid_$index';
-        index++;
+    // Keyed by the diagram itself, and found by the same walk the export
+    // uses. Both sides used to count blocks and index into this map, which
+    // held only while they counted the same things — and both counted only
+    // the top level, so a diagram under a numbered step reached the export
+    // with no picture at all.
+    for (final node in MarkdownParser.walk(ast)) {
+      if (node is CodeBlockNode &&
+          MermaidParser.handlesLanguage(node.language)) {
+        if (images.containsKey(node.code)) continue;
         try {
           final bytes = await _renderMermaidToImage(node.code);
-          if (bytes != null) images[key] = bytes;
+          if (bytes != null) images[node.code] = bytes;
         } catch (_) {
           // Skip failed renders
         }
@@ -857,12 +1096,16 @@ class AppMenuBar extends ConsumerWidget {
         top: -9999,
         child: RepaintBoundary(
           key: key,
+          // No width: this is drawn off screen for an export, so it should be
+          // the whole diagram at its own size. Forcing 800 meant a diagram
+          // wider than that was laid out at its full width inside a box that
+          // was not — and the capture kept only the left 800 pixels. Every
+          // export of a wide diagram was missing its right-hand side, in the
+          // PDF, the Word file and the HTML alike.
           child: Container(
             color: Colors.white,
-            width: 800,
             child: MermaidDiagram(
               code: code,
-              width: 800,
               style: const MermaidStyle(),
             ),
           ),
@@ -888,26 +1131,38 @@ class AppMenuBar extends ConsumerWidget {
           result = byteData.buffer.asUint8List();
         }
       }
-    } catch (_) {}
+    } catch (_) {
+      // A diagram that will not render leaves `result` null, and the caller
+      // simply leaves that one out of the export rather than failing the
+      // whole document.
+    }
 
     entry.remove();
     return result;
   }
 
   void _newWindow() async {
-    final executable = Platform.resolvedExecutable;
-    if (PlatformUtils.isMacOS) {
-      await Process.start('open', ['-n', '-a', executable]);
-    } else {
-      await Process.start(executable, [], mode: ProcessStartMode.detached);
-    }
+    await PlatformUtils.launchNewWindow();
   }
 
   void _launchUrl(String url) async {
     await launchUrl(Uri.parse(url));
   }
 
-  Widget _buildRecentFilesMenu(AppLocalizations l10n, WidgetRef ref) {
+  /// "Export" and the format, in the user's language.
+  ///
+  /// The two halves are separate menu entries already — a submenu labelled
+  /// Export holding HTML, PDF and Word — so no new copy is needed.
+  static String _exportTitle(String format) {
+    final export = _l10n?.fileExport ?? 'Export';
+    return '$export $format';
+  }
+
+  Widget _buildRecentFilesMenu(
+    BuildContext context,
+    AppLocalizations l10n,
+    WidgetRef ref,
+  ) {
     final recentFiles = ref.watch(settingsProvider).recentFiles;
     return SubmenuButton(
       menuChildren: recentFiles.isEmpty
@@ -917,34 +1172,74 @@ class AppMenuBar extends ConsumerWidget {
                 child: Text(l10n.fileNoRecentFiles),
               ),
             ]
-          : recentFiles
-              .map((filePath) => MenuItemButton(
+          : [
+              ...recentFiles.map((filePath) => MenuItemButton(
                     child: Text(
                       p.basename(filePath),
                       overflow: TextOverflow.ellipsis,
                     ),
-                    onPressed: () => _openRecentFile(ref, filePath),
-                  ))
-              .toList(),
+                    onPressed: () =>
+                        _openRecentFile(context, ref, filePath),
+                  )),
+              const Divider(height: 1),
+              // The list only ever grew; there was no way to empty it.
+              MenuItemButton(
+                child: Text(l10n.fileClearRecentFiles),
+                onPressed: () => ref
+                    .read(settingsProvider.notifier)
+                    .updateConfig((c) => c.copyWith(recentFiles: const [])),
+              ),
+            ],
       child: Text(l10n.fileRecentFiles),
     );
   }
 
-  void _openRecentFile(WidgetRef ref, String filePath) async {
+  /// Closes the active tab through the tab bar's confirmation, so an unsaved
+  /// document is not discarded without asking.
+  static void _closeActiveTab(BuildContext context, WidgetRef ref) {
+    final tab = ref.read(activeTabProvider);
+    if (tab == null) return;
+    EditorTabBar.closeTab(context, ref, tab);
+  }
+
+  void _openRecentFile(
+    BuildContext context,
+    WidgetRef ref,
+    String filePath,
+  ) async {
     final file = File(filePath);
-    if (!await file.exists()) return;
-    final content = await file.readAsString();
+    if (!await file.exists()) {
+      // Returning quietly left the entry in the list and the reader clicking
+      // it again. A recent file that has been moved or deleted is the
+      // commonest thing to find in this menu, and the list is the one place
+      // that can put it right.
+      final settings = ref.read(settingsProvider.notifier);
+      final remaining = [
+        ...ref.read(settingsProvider).recentFiles.where((p) => p != filePath),
+      ];
+      await settings.updateConfig((c) => c.copyWith(recentFiles: remaining));
+      if (!context.mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.recentFileMissing)),
+      );
+      return;
+    }
+    final opened = await FileService().readFileWithLineEnding(filePath);
     final tab = TabInfo(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       filePath: filePath,
       fileName: p.basename(filePath),
-      content: content,
+      content: opened.content,
+      lineEnding: opened.lineEnding,
+      encoding: opened.encoding,
     );
     ref.read(tabProvider.notifier).addTab(tab);
     ref.read(settingsProvider.notifier).addRecentFile(filePath);
   }
 
-  Widget _buildToolbarIcons(WidgetRef ref, AppThemeTokens tokens) {
+  Widget _buildToolbarIcons(
+      WidgetRef ref, AppThemeTokens tokens, AppLocalizations l10n) {
     final config = ref.watch(settingsProvider);
 
     return Row(
@@ -954,7 +1249,7 @@ class AppMenuBar extends ConsumerWidget {
         IconButton(
           icon: Icon(_getEditModeIcon(config.editMode)),
           iconSize: 18,
-          tooltip: _getEditModeTooltip(config.editMode),
+          tooltip: _getEditModeTooltip(config.editMode, l10n),
           onPressed: () => _cycleEditMode(ref, config.editMode),
         ),
         const SizedBox(width: 4),
@@ -962,7 +1257,7 @@ class AppMenuBar extends ConsumerWidget {
         IconButton(
           icon: const Icon(Icons.search),
           iconSize: 18,
-          tooltip: '搜索',
+          tooltip: l10n.sidebarSearch,
           onPressed: () => ref.read(editorProvider.notifier).toggleFindReplace(),
         ),
         const SizedBox(width: 4),
@@ -970,7 +1265,7 @@ class AppMenuBar extends ConsumerWidget {
         IconButton(
           icon: Icon(config.sideBarVisible ? Icons.menu_open : Icons.menu),
           iconSize: 18,
-          tooltip: config.sideBarVisible ? '隐藏侧边栏' : '显示侧边栏',
+          tooltip: config.sideBarVisible ? l10n.viewHideSidebar : l10n.viewShowSidebar,
           onPressed: () => ref.read(settingsProvider.notifier).toggleSideBar(),
         ),
         const SizedBox(width: 4),
@@ -978,7 +1273,7 @@ class AppMenuBar extends ConsumerWidget {
         IconButton(
           icon: const Icon(Icons.remove),
           iconSize: 18,
-          tooltip: '缩小',
+          tooltip: l10n.viewZoomOut,
           onPressed: () {
             final newSize = (config.fontSize - 1).clamp(12.0, 32.0);
             ref.read(settingsProvider.notifier).setFontSize(newSize);
@@ -989,7 +1284,7 @@ class AppMenuBar extends ConsumerWidget {
         IconButton(
           icon: const Icon(Icons.add),
           iconSize: 18,
-          tooltip: '放大',
+          tooltip: l10n.viewZoomIn,
           onPressed: () {
             final newSize = (config.fontSize + 1).clamp(12.0, 32.0);
             ref.read(settingsProvider.notifier).setFontSize(newSize);
@@ -1007,11 +1302,11 @@ class AppMenuBar extends ConsumerWidget {
     };
   }
 
-  String _getEditModeTooltip(EditMode mode) {
+  String _getEditModeTooltip(EditMode mode, AppLocalizations l10n) {
     return switch (mode) {
-      EditMode.source => '源代码模式',
-      EditMode.preview => '预览模式',
-      EditMode.split => '双栏模式',
+      EditMode.source => l10n.commandSourceMode,
+      EditMode.preview => l10n.commandPreviewMode,
+      EditMode.split => l10n.commandSplitMode,
     };
   }
 

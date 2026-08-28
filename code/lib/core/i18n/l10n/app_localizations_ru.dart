@@ -9,6 +9,92 @@ class AppLocalizationsRu extends AppLocalizations {
   AppLocalizationsRu([String locale = 'ru']) : super(locale);
 
   @override
+  String get settingsWrapCodeBlocks =>
+      'Переносить длинные строки в блоках кода';
+
+  @override
+  String get settingsCodeBlockLineNumbers => 'Номера строк в блоках кода';
+
+  @override
+  String settingsSaveFailed(String message) {
+    return 'Не удалось сохранить настройки: $message';
+  }
+
+  @override
+  String get settingsFollowSystemTheme =>
+      'Следовать светлой/тёмной теме системы';
+
+  @override
+  String get settingsFollowSystemThemeHint =>
+      'Выберите по одной светлой и тёмной теме — система решит, какая будет показана.';
+
+  @override
+  String get settingsAutoPairBracket => 'Автоматически закрывать скобки';
+
+  @override
+  String get settingsAutoPairQuote => 'Автоматически закрывать кавычки';
+
+  @override
+  String get settingsAutoPairMarkdown =>
+      'Автоматически закрывать разметку Markdown (`, *, ~)';
+
+  @override
+  String get helpOpenDiagnosticLog => 'Открыть журнал диагностики';
+
+  @override
+  String get diagnosticLogMissing => 'Журнал диагностики ещё не записан';
+
+  @override
+  String get mermaidCaptureFailed => 'Не удалось снять изображение диаграммы';
+
+  @override
+  String get mermaidErrorEmpty => 'Диаграмма пуста.';
+
+  @override
+  String mermaidErrorUnknownType(String type) {
+    return 'Неизвестный тип диаграммы: «$type».';
+  }
+
+  @override
+  String get mermaidErrorHeaderOnly =>
+      'У этой диаграммы есть заголовок, но нет содержимого.';
+
+  @override
+  String get mermaidErrorBadBody =>
+      'Заголовок распознан — проверьте синтаксис ниже.';
+
+  @override
+  String mermaidSupportedTypes(String list) {
+    return 'Поддерживаемые типы: $list';
+  }
+
+  @override
+  String get mermaidParseError => 'Ошибка разбора Mermaid';
+
+  @override
+  String imageSavedTo(String path) {
+    return 'Сохранено в $path';
+  }
+
+  @override
+  String imageSaveFailed(String message) {
+    return 'Не удалось сохранить изображение: $message';
+  }
+
+  @override
+  String saveFailed(String message) {
+    return 'Не удалось сохранить файл: $message';
+  }
+
+  @override
+  String fileOperationFailed(String message) {
+    return 'Не удалось выполнить операцию с файлом: $message';
+  }
+
+  @override
+  String get fileNameTaken => 'Файл или папка с таким именем уже существует';
+
+  @override
   String get appTitle => 'MarkText Plus';
 
   @override
@@ -48,10 +134,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get fileSaveAs => 'Сохранить как';
 
   @override
-  String get fileRecentFiles => 'Recent Files';
+  String get fileRecentFiles => 'Недавние файлы';
 
   @override
-  String get fileNoRecentFiles => 'No Recent Files';
+  String get fileNoRecentFiles => 'Нет недавних файлов';
 
   @override
   String get fileExport => 'Экспорт';
@@ -61,6 +147,9 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get fileExportPdf => 'PDF';
+
+  @override
+  String get filePrint => 'Печать';
 
   @override
   String get fileExportWord => 'Word (.docx)';
@@ -311,9 +400,6 @@ class AppLocalizationsRu extends AppLocalizations {
       'Вы уверены, что хотите сбросить все настройки?';
 
   @override
-  String get comingSoon => 'Скоро';
-
-  @override
   String get noFiles => 'Нет файлов';
 
   @override
@@ -358,17 +444,16 @@ class AppLocalizationsRu extends AppLocalizations {
   String get editCopyAsHtml => 'Копировать как HTML';
 
   @override
-  String get previewCopyAsHtmlTooltip => 'Copy as HTML (for Word/WPS)';
-
-  @override
-  String get previewCopyAsHtmlSuccess =>
-      'Copied as HTML. You can now paste into Word/WPS with formatting.';
-
-  @override
   String get editSelectAll => 'Выделить всё';
 
   @override
   String get editDuplicateLine => 'Дублировать строку';
+
+  @override
+  String get editCreateParagraph => 'Создать абзац ниже';
+
+  @override
+  String get editDeleteParagraph => 'Удалить абзац';
 
   @override
   String get formatUnderline => 'Подчёркнутый';
@@ -395,6 +480,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get settingsCodeFontFamily => 'Шрифт кода';
 
   @override
+  String get settingsCodeFontSize => 'Размер шрифта кода';
+
+  @override
+  String get settingsEditorFontFamily => 'Шрифт редактора';
+
+  @override
   String get settingsEditorMaxWidth => 'Максимальная ширина редактора';
 
   @override
@@ -417,21 +508,6 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get statusParagraphs => 'Абзацы';
-
-  @override
-  String get themeCadmiumLight => 'Кадмий светлый';
-
-  @override
-  String get themeOneDark => 'One Dark';
-
-  @override
-  String get themeMaterialDark => 'Material тёмный';
-
-  @override
-  String get themeGraphiteLight => 'Графит светлый';
-
-  @override
-  String get themeUlyssesLight => 'Ulysses светлый';
 
   @override
   String get themeRedGraphite => 'Красный графит';
@@ -710,34 +786,113 @@ class AppLocalizationsRu extends AppLocalizations {
   String get welcomeDragHint => 'Перетащите файлы сюда для открытия';
 
   @override
-  String get fileOpenBehavior => 'File Opening Behavior';
+  String get fileOpenBehavior => 'Поведение при открытии файлов';
 
   @override
-  String get fileOpenBehaviorTitle => 'How to Open Files?';
+  String get fileOpenBehaviorNewWindow => 'Открывать в новом окне';
 
   @override
-  String get fileOpenBehaviorMessage =>
-      'When you double-click a file while the app is already running:';
+  String get fileOpenBehaviorExistingWindow => 'Открывать в текущем окне';
 
   @override
-  String get fileOpenBehaviorNewWindow => 'Open in New Window';
+  String get fileOpenBehaviorNotSet => 'Не настроено';
 
   @override
-  String get fileOpenBehaviorNewWindowDesc => 'Allow multiple app instances';
+  String get updateAvailable => 'Доступна новая версия';
 
   @override
-  String get fileOpenBehaviorExistingWindow => 'Open in Current Window';
+  String get updateDismiss => 'Скрыть';
 
   @override
-  String get fileOpenBehaviorExistingWindowDesc =>
-      'Add to existing tabs (single instance)';
+  String get mermaidFullscreen => 'Полноэкранный режим';
 
   @override
-  String get fileOpenBehaviorNotSet => 'Not configured';
+  String get mermaidSaveAs => 'Сохранить как';
 
   @override
-  String get updateAvailable => 'New version available';
+  String get mermaidCopySource => 'Копировать исходный код';
 
   @override
-  String get updateDismiss => 'Dismiss';
+  String get mermaidEditSource => 'Редактировать исходный код';
+
+  @override
+  String get mermaidFullscreenHint =>
+      'Дважды нажмите на диаграмму для полноэкранного просмотра';
+
+  @override
+  String get mermaidSaveAsHint => 'Сохранить диаграмму в формате PNG';
+
+  @override
+  String get menuParagraph => 'Абзац';
+
+  @override
+  String get paragraphPromoteHeading => 'Повысить уровень заголовка';
+
+  @override
+  String get paragraphDemoteHeading => 'Понизить уровень заголовка';
+
+  @override
+  String get paragraphToParagraph => 'Преобразовать в абзац';
+
+  @override
+  String get paragraphLooseList => 'Разреженный список';
+
+  @override
+  String get close => 'Закрыть';
+
+  @override
+  String get mermaidViewerTitle => 'Просмотр диаграммы Mermaid';
+
+  @override
+  String get mermaidViewerHint =>
+      'Ctrl+колесо — масштаб    Перетаскивание — панорама    Esc — закрыть';
+
+  @override
+  String get statusHighlightOff =>
+      'Подсветка синтаксиса отключена (большой файл)';
+
+  @override
+  String get settingsImageStorage => 'Куда помещать перетащенные изображения';
+
+  @override
+  String get settingsImageStorageCopy => 'Рядом с документом';
+
+  @override
+  String get settingsImageStorageFolder => 'В одной общей папке';
+
+  @override
+  String get settingsImageStorageLink => 'Ссылаться на исходное место';
+
+  @override
+  String get settingsImageFolder => 'Папка изображений';
+
+  @override
+  String get fileCloseTab => 'Закрыть вкладку';
+
+  @override
+  String get fileClearRecentFiles => 'Очистить недавние файлы';
+
+  @override
+  String get viewCommandPalette => 'Палитра команд';
+
+  @override
+  String get viewReloadImages => 'Перезагрузить изображения';
+
+  @override
+  String get formatFrontMatter => 'Front matter';
+
+  @override
+  String get formatHtmlBlock => 'HTML-блок';
+
+  @override
+  String get updateUpToDate => 'У вас последняя версия';
+
+  @override
+  String get updateCheckFailed => 'Не удалось проверить обновления';
+
+  @override
+  String get linkOpenFailed => 'Не удалось открыть ссылку';
+
+  @override
+  String get recentFileMissing => 'Этого файла больше нет; он удалён из списка';
 }

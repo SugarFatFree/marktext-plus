@@ -31,6 +31,18 @@ enum DiagramType {
   /// State diagram
   stateDiagram,
 
+  /// Entity-relationship diagram
+  erDiagram,
+
+  /// User journey diagram
+  journey,
+
+  /// Git commit graph
+  gitGraph,
+
+  /// Mindmap
+  mindmap,
+
   /// Pie chart diagram
   pieChart,
 
@@ -48,6 +60,21 @@ enum DiagramType {
 
   /// XY chart diagram
   xyChart,
+
+  /// Quadrant chart diagram
+  quadrantChart,
+
+  /// Requirement diagram
+  requirementDiagram,
+
+  /// Sankey flow diagram
+  sankey,
+
+  /// Block diagram (`block-beta`)
+  blockDiagram,
+
+  /// C4 model diagram (`C4Context` and its siblings)
+  c4Diagram,
 
   /// Unknown/unsupported type
   unknown,

@@ -165,8 +165,15 @@ class DagreLayout extends LayoutEngine {
     final fontSize = nodeStyle.fontSize;
 
     // Calculate text dimensions
-    final textWidth = _measureTextWidth(node.label, fontSize);
-    final textHeight = fontSize * 1.4;
+    // A label can hold line breaks — `<br/>` in the source is how mermaid
+    // wraps text inside a box. Measuring the whole string as one line made
+    // the box far too wide and one line too short, so the second line was
+    // drawn outside it.
+    final lines = node.label.split('\n');
+    final textWidth = lines
+        .map((line) => _measureTextWidth(line, fontSize))
+        .fold<double>(0, math.max);
+    final textHeight = fontSize * 1.4 * lines.length;
 
     // Shape-specific sizing
     switch (node.shape) {

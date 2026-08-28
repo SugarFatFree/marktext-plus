@@ -2,11 +2,17 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import '../config/responsive_config.dart';
+import '../models/git_graph.dart';
+import '../models/journey.dart';
 import '../models/diagram.dart';
 import '../models/kanban.dart';
 import '../models/node.dart';
+import '../models/quadrant_chart.dart';
 import '../models/radar.dart';
 import '../models/timeline.dart';
+import '../models/block_diagram.dart';
+import '../models/c4_diagram.dart';
+import '../models/sankey.dart';
 import '../models/style.dart';
 import '../models/xy_chart.dart';
 
@@ -28,10 +34,15 @@ abstract class LayoutEngine {
   Size measureNode(MermaidNode node, MermaidStyle style) {
     final nodeStyle = style.getNodeStyle(node.className);
 
-    // Calculate text size
+    // Calculate text size. A label can hold line breaks: `<br/>` in the
+    // source is how mermaid wraps text inside a box, so the widest line sets
+    // the width and the count sets the height.
     final fontSize = nodeStyle.fontSize;
-    final textWidth = node.label.length * fontSize * 0.6;
-    final textHeight = fontSize * 1.4;
+    final lines = node.label.split('\n');
+    final textWidth = lines
+        .map((line) => line.length * fontSize * 0.6)
+        .fold<double>(0, math.max);
+    final textHeight = fontSize * 1.4 * lines.length;
 
     // Add padding based on shape
     double horizontalPadding = 24.0;
@@ -168,10 +179,18 @@ class TimelineChartLayout {
     final verticalSpacing = isMobile ? 30.0 : 40.0;
     final timelineMargin = 20.0;
 
+    // A `section` band is drawn above the period labels, so it needs its own
+    // strip — and only when the diagram uses sections, which leaves every
+    // timeline written without them exactly the height it was.
+    final hasGroups =
+        timelineData.sections.any((section) => section.group != null);
+    final groupBandHeight = hasGroups ? timelineGroupBandHeight : 0.0;
+
     // Calculate total height
-    // Structure: padding + title + spacing + period labels + timeline + spacing + events + padding
+    // Structure: padding + title + bands + spacing + period labels + timeline + spacing + events + padding
     final totalHeight = padding +
         titleHeight +
+        groupBandHeight +
         verticalSpacing +  // Space for period labels above timeline
         timelineMargin +   // Space around timeline
         verticalSpacing +  // Space before events
@@ -294,6 +313,142 @@ class RadarChartLayout {
   }
 }
 
+/// Layout engine for quadrant charts
+class QuadrantChartLayout {
+  /// Creates a quadrant chart layout engine
+  const QuadrantChartLayout({this.deviceConfig});
+
+  /// Responsive device configuration
+  final MermaidDeviceConfig? deviceConfig;
+
+  /// Computes layout size for a quadrant chart.
+  ///
+  /// The plot is square; the extra height is the title plus the axis captions
+  /// drawn outside it on all four sides.
+  Size computeLayout(
+    QuadrantChartData quadrantData,
+    MermaidStyle style,
+    Size availableSize,
+  ) {
+    final isMobile = deviceConfig?.deviceType == DeviceType.mobile;
+    final padding = style.padding;
+    final titleHeight =
+        quadrantData.title != null ? (isMobile ? 32.0 : 40.0) : 0.0;
+    const axisGutter = 26.0;
+
+    final availableWidth = availableSize.width - padding * 2 - axisGutter * 2;
+    final availableHeight =
+        availableSize.height - padding * 2 - titleHeight - axisGutter * 2;
+
+    final side = math.min(
+      math.min(availableWidth, availableHeight),
+      isMobile ? 320.0 : 460.0,
+    );
+    if (side <= 0) return Size.zero;
+
+    return Size(
+      side + padding * 2 + axisGutter * 2,
+      side + padding * 2 + titleHeight + axisGutter * 2,
+    );
+  }
+}
+
+/// Layout engine for C4 diagrams
+class C4DiagramLayout {
+  /// Creates a C4 layout engine
+  const C4DiagramLayout({this.deviceConfig});
+
+  /// Responsive device configuration
+  final MermaidDeviceConfig? deviceConfig;
+
+  /// Computes the size a C4 diagram needs.
+  ///
+  /// Delegates to [C4Layout], the same code the painter runs, so the box
+  /// reserved here always matches what gets drawn into it.
+  Size computeLayout(
+    C4DiagramData c4Data,
+    MermaidStyle style,
+    Size availableSize,
+  ) {
+    final isMobile = deviceConfig?.deviceType == DeviceType.mobile;
+    final titleHeight = c4Data.title == null ? 0.0 : (isMobile ? 30.0 : 38.0);
+
+    final layout = C4Layout.compute(
+      c4Data,
+      availableWidth: availableSize.width,
+      padding: style.padding,
+      titleHeight: titleHeight,
+    );
+    if (layout.elements.isEmpty && layout.boundaries.isEmpty) return Size.zero;
+    return Size(math.max(layout.width, availableSize.width), layout.height);
+  }
+}
+
+/// Layout engine for block diagrams
+class BlockDiagramLayout {
+  /// Creates a block diagram layout engine
+  const BlockDiagramLayout({this.deviceConfig});
+
+  /// Responsive device configuration
+  final MermaidDeviceConfig? deviceConfig;
+
+  /// Computes the size a block diagram needs.
+  ///
+  /// Delegates to [BlockLayout], the same code the painter runs, so the box
+  /// reserved here always matches what gets drawn into it.
+  Size computeLayout(
+    BlockDiagramData blockData,
+    MermaidStyle style,
+    Size availableSize,
+  ) {
+    final layout = BlockLayout.compute(
+      blockData,
+      availableWidth: availableSize.width,
+      padding: style.padding,
+    );
+    if (layout.blocks.isEmpty) return Size.zero;
+    return Size(math.max(layout.width, availableSize.width), layout.height);
+  }
+}
+
+/// Layout engine for Sankey diagrams
+class SankeyChartLayout {
+  /// Creates a Sankey layout engine
+  const SankeyChartLayout({this.deviceConfig});
+
+  /// Responsive device configuration
+  final MermaidDeviceConfig? deviceConfig;
+
+  /// Computes the size a Sankey diagram needs.
+  ///
+  /// Delegates to [SankeyLayout], the same code the painter runs, so the box
+  /// reserved here always matches what gets drawn into it.
+  Size computeLayout(
+    SankeyChartData sankeyData,
+    MermaidStyle style,
+    Size availableSize,
+  ) {
+    final isMobile = deviceConfig?.deviceType == DeviceType.mobile;
+    final titleHeight =
+        sankeyData.title == null ? 0.0 : (isMobile ? 30.0 : 38.0);
+
+    final layout = SankeyLayout.compute(
+      sankeyData,
+      availableWidth: availableSize.width,
+      bandHeight: isMobile ? 260 : 360,
+      padding: style.padding,
+      titleHeight: titleHeight,
+      labelGutter: isMobile ? 72 : 96,
+    );
+
+    if (layout.nodes.isEmpty) return Size.zero;
+    return Size(
+      math.max(layout.width, availableSize.width),
+      layout.height,
+    );
+  }
+}
+
 /// Layout engine for XY charts
 class XYChartLayout {
   /// Creates an XY chart layout engine
@@ -322,3 +477,95 @@ class XYChartLayout {
   }
 }
 
+
+/// Layout engine for user journey diagrams.
+///
+/// A journey is a satisfaction line: tasks run left to right on a fixed
+/// column pitch, and the score puts each marker on one of five rows.
+class JourneyChartLayout {
+  /// Creates a journey layout engine.
+  const JourneyChartLayout({this.deviceConfig});
+
+  /// Responsive device configuration.
+  final MermaidDeviceConfig? deviceConfig;
+
+  /// Width of one task column.
+  static const double taskWidth = 110.0;
+
+  /// Height of the plotted score band.
+  static const double chartHeight = 190.0;
+
+  /// Height of the section header strip.
+  static const double sectionBarHeight = 34.0;
+
+  /// Height reserved under the chart for task labels.
+  static const double labelHeight = 54.0;
+
+  /// Height reserved for the actor legend; zero when nobody is named.
+  static const double legendHeight = 30.0;
+
+  /// Computes the layout size for a journey diagram.
+  Size computeLayout(
+    JourneyData journeyData,
+    MermaidStyle style,
+    Size availableSize,
+  ) {
+    final taskCount = journeyData.allTasks.length;
+    if (taskCount == 0) return Size.zero;
+
+    final padding = style.padding;
+    final titleHeight = journeyData.title != null ? 44.0 : 12.0;
+    final legend = journeyData.actors.isEmpty ? 0.0 : legendHeight;
+
+    final width = padding * 2 + taskCount * taskWidth;
+    final height = padding * 2 +
+        titleHeight +
+        sectionBarHeight +
+        chartHeight +
+        labelHeight +
+        legend;
+
+    return Size(width, height);
+  }
+}
+
+/// Layout engine for git graphs.
+///
+/// One row per branch, one column per commit in source order.
+class GitGraphLayout {
+  /// Creates a git graph layout engine.
+  const GitGraphLayout({this.deviceConfig});
+
+  /// Responsive device configuration.
+  final MermaidDeviceConfig? deviceConfig;
+
+  /// Horizontal distance between commits.
+  static const double columnWidth = 70.0;
+
+  /// Vertical distance between branch rows.
+  static const double rowHeight = 62.0;
+
+  /// Space on the left for branch name labels.
+  static const double labelGutter = 96.0;
+
+  /// Computes the layout size for a git graph.
+  Size computeLayout(
+    GitGraphData gitData,
+    MermaidStyle style,
+    Size availableSize,
+  ) {
+    if (gitData.commits.isEmpty) return Size.zero;
+
+    final padding = style.padding;
+    final titleHeight = gitData.title != null ? 44.0 : 8.0;
+
+    // A trailing half column keeps a tag on the last commit inside the canvas.
+    final width = padding * 2 +
+        labelGutter +
+        (gitData.lastColumn + 1.5) * columnWidth;
+    final height =
+        padding * 2 + titleHeight + gitData.branches.length * rowHeight;
+
+    return Size(width, height);
+  }
+}

@@ -200,7 +200,14 @@ class RadarPainter extends CustomPainter {
 
     for (var i = 0; i < math.min(curve.values.length, radarData.axes.length); i++) {
       final value = curve.values[i];
-      final normalizedValue = (value - min) / (max - min);
+      // `max 5` with `min 5` — a typo, but parseable — leaves nothing to
+      // divide by. Nothing broke: the division gave NaN and `clamp` turns NaN
+      // into its upper bound, so the curve drew at full radius. This says that
+      // outright rather than resting on a detail of `num.clamp` that reads
+      // like an accident.
+      final span = max - min;
+      final normalizedValue =
+          span > 0 ? (value - min) / span : (value >= max ? 1.0 : 0.0);
       final r = radius * normalizedValue.clamp(0.0, 1.0);
       final angle = _getAngleForAxis(i);
 

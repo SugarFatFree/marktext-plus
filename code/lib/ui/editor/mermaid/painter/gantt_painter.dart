@@ -142,7 +142,7 @@ class GanttPainter extends CustomPainter {
 
     // Draw header background
     final headerPaint = Paint()
-      ..color = Color(style.backgroundColor).withOpacity(0.9)
+      ..color = Color(style.backgroundColor).withValues(alpha: 0.9)
       ..style = PaintingStyle.fill;
 
     canvas.drawRect(
@@ -201,7 +201,7 @@ class GanttPainter extends CustomPainter {
 
       // Draw vertical grid line
       final linePaint = Paint()
-        ..color = Color(GanttChartColors.gridLineColor).withOpacity(0.5)
+        ..color = Color(GanttChartColors.gridLineColor).withValues(alpha: 0.5)
         ..strokeWidth = 0.5;
 
       canvas.drawLine(
@@ -518,7 +518,7 @@ class GanttPainter extends CustomPainter {
 
     // Draw border for better visibility
     final borderPaint = Paint()
-      ..color = Color(color).withOpacity(0.8)
+      ..color = Color(color).withValues(alpha: 0.8)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.0;
 
@@ -550,7 +550,7 @@ class GanttPainter extends CustomPainter {
 
     // Draw border
     final borderPaint = Paint()
-      ..color = Color(color).withOpacity(0.8)
+      ..color = Color(color).withValues(alpha: 0.8)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
 
@@ -600,7 +600,7 @@ class GanttPainter extends CustomPainter {
 
     // Draw background for label
     final bgPaint = Paint()
-      ..color = Color(GanttChartColors.todayMarkerColor).withOpacity(0.1)
+      ..color = Color(GanttChartColors.todayMarkerColor).withValues(alpha: 0.1)
       ..style = PaintingStyle.fill;
 
     canvas.drawRRect(

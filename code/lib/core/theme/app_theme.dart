@@ -241,6 +241,28 @@ class AppTheme {
   }
 
   /// Get theme tokens by name
+  /// The theme to actually use, given what the reader chose and what the
+  /// operating system is currently set to.
+  ///
+  /// A plain function rather than something reading providers, so the rule can
+  /// be stated and tested on its own: which theme appears is not the sort of
+  /// thing to work out by looking at the screen.
+  ///
+  /// [chosen] is the single theme picked when not following the system; the
+  /// other two are the pair used when following it. Nothing here validates
+  /// that [lightChoice] is a light theme — someone who wants a dark editor
+  /// while the system is light is entitled to say so.
+  static String resolveThemeName({
+    required bool followSystem,
+    required String chosen,
+    required String lightChoice,
+    required String darkChoice,
+    required Brightness systemBrightness,
+  }) {
+    if (!followSystem) return chosen;
+    return systemBrightness == Brightness.dark ? darkChoice : lightChoice;
+  }
+
   static AppThemeTokens getTokens(String name) {
     return switch (name) {
       'redGraphite' => redGraphite,
@@ -285,8 +307,18 @@ class AppTheme {
     ];
   }
 
+  /// Built themes, by name.
+  ///
+  /// Constructing a [ThemeData] builds every component sub-theme, and the app
+  /// root rebuilds whenever any setting is written — a debounced divider drag,
+  /// the list of open files. There are eight themes and they never change.
+  static final Map<String, ThemeData> _themeCache = {};
+
   /// Build ThemeData from tokens
-  static ThemeData getTheme(String name) {
+  static ThemeData getTheme(String name) =>
+      _themeCache.putIfAbsent(name, () => _buildTheme(name));
+
+  static ThemeData _buildTheme(String name) {
     final tokens = getTokens(name);
     final fontFallback = platformFontFallback;
     final baseTextStyle = TextStyle(

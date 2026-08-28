@@ -14,6 +14,30 @@ enum ArrowType {
 
   /// Double arrow head <-->
   doubleArrow,
+
+  /// Hollow triangle head (class diagram inheritance / realization)
+  hollowTriangle,
+
+  /// Filled diamond head (class diagram composition)
+  filledDiamond,
+
+  /// Hollow diamond head (class diagram aggregation)
+  hollowDiamond,
+
+  /// Open V-shaped head without closing stroke (class diagram dependency)
+  openArrow,
+
+  /// ER crow's foot notation: zero or one (`|o`).
+  erZeroOrOne,
+
+  /// ER crow's foot notation: exactly one (`||`).
+  erExactlyOne,
+
+  /// ER crow's foot notation: zero or more (`}o`).
+  erZeroOrMore,
+
+  /// ER crow's foot notation: one or more (`}|`).
+  erOneOrMore,
 }
 
 /// Type of line
@@ -41,6 +65,9 @@ class MermaidEdge {
     this.animated = false,
     this.bidirectional = false,
     this.isSubgraphEdge = false,
+    this.startArrowType = ArrowType.none,
+    this.startLabel,
+    this.endLabel,
   });
 
   /// Source node ID
@@ -70,6 +97,18 @@ class MermaidEdge {
   /// Whether this edge connects subgraphs (not individual nodes)
   final bool isSubgraphEdge;
 
+  /// Arrow head drawn at the [from] end of the edge.
+  ///
+  /// Class diagrams need this: `A <|-- B` keeps `A` as the layout parent but
+  /// draws the inheritance triangle on `A`'s side of the line.
+  final ArrowType startArrowType;
+
+  /// Cardinality/role text rendered near the [from] end (e.g. `"1"`).
+  final String? startLabel;
+
+  /// Cardinality/role text rendered near the [to] end (e.g. `"0..*"`).
+  final String? endLabel;
+
   /// Creates a copy with modified properties
   MermaidEdge copyWith({
     String? from,
@@ -81,6 +120,9 @@ class MermaidEdge {
     bool? animated,
     bool? bidirectional,
     bool? isSubgraphEdge,
+    ArrowType? startArrowType,
+    String? startLabel,
+    String? endLabel,
   }) {
     return MermaidEdge(
       from: from ?? this.from,
@@ -92,6 +134,9 @@ class MermaidEdge {
       animated: animated ?? this.animated,
       bidirectional: bidirectional ?? this.bidirectional,
       isSubgraphEdge: isSubgraphEdge ?? this.isSubgraphEdge,
+      startArrowType: startArrowType ?? this.startArrowType,
+      startLabel: startLabel ?? this.startLabel,
+      endLabel: endLabel ?? this.endLabel,
     );
   }
 

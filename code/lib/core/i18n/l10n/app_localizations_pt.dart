@@ -9,6 +9,94 @@ class AppLocalizationsPt extends AppLocalizations {
   AppLocalizationsPt([String locale = 'pt']) : super(locale);
 
   @override
+  String get settingsWrapCodeBlocks =>
+      'Quebrar linhas longas nos blocos de código';
+
+  @override
+  String get settingsCodeBlockLineNumbers =>
+      'Números de linha nos blocos de código';
+
+  @override
+  String settingsSaveFailed(String message) {
+    return 'Não foi possível guardar as definições: $message';
+  }
+
+  @override
+  String get settingsFollowSystemTheme =>
+      'Seguir o modo claro/escuro do sistema';
+
+  @override
+  String get settingsFollowSystemThemeHint =>
+      'Escolha um tema claro e um escuro; o sistema decide qual é mostrado.';
+
+  @override
+  String get settingsAutoPairBracket => 'Fechar parênteses automaticamente';
+
+  @override
+  String get settingsAutoPairQuote => 'Fechar aspas automaticamente';
+
+  @override
+  String get settingsAutoPairMarkdown =>
+      'Fechar a sintaxe Markdown automaticamente (`, *, ~)';
+
+  @override
+  String get helpOpenDiagnosticLog => 'Abrir o registo de diagnóstico';
+
+  @override
+  String get diagnosticLogMissing =>
+      'Ainda não foi escrito nenhum registo de diagnóstico';
+
+  @override
+  String get mermaidCaptureFailed => 'Não foi possível capturar o diagrama';
+
+  @override
+  String get mermaidErrorEmpty => 'O diagrama está vazio.';
+
+  @override
+  String mermaidErrorUnknownType(String type) {
+    return 'Tipo de diagrama não reconhecido: «$type».';
+  }
+
+  @override
+  String get mermaidErrorHeaderOnly =>
+      'Este diagrama tem cabeçalho mas não tem conteúdo.';
+
+  @override
+  String get mermaidErrorBadBody =>
+      'O cabeçalho é reconhecido; verifique a sintaxe abaixo.';
+
+  @override
+  String mermaidSupportedTypes(String list) {
+    return 'Tipos suportados: $list';
+  }
+
+  @override
+  String get mermaidParseError => 'Erro de análise do Mermaid';
+
+  @override
+  String imageSavedTo(String path) {
+    return 'Guardado em $path';
+  }
+
+  @override
+  String imageSaveFailed(String message) {
+    return 'Não foi possível guardar a imagem: $message';
+  }
+
+  @override
+  String saveFailed(String message) {
+    return 'Não foi possível guardar o ficheiro: $message';
+  }
+
+  @override
+  String fileOperationFailed(String message) {
+    return 'Falha na operação de ficheiro: $message';
+  }
+
+  @override
+  String get fileNameTaken => 'Já existe um arquivo ou pasta com esse nome';
+
+  @override
   String get appTitle => 'MarkText Plus';
 
   @override
@@ -48,10 +136,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get fileSaveAs => 'Guardar como';
 
   @override
-  String get fileRecentFiles => 'Recent Files';
+  String get fileRecentFiles => 'Ficheiros recentes';
 
   @override
-  String get fileNoRecentFiles => 'No Recent Files';
+  String get fileNoRecentFiles => 'Sem ficheiros recentes';
 
   @override
   String get fileExport => 'Exportar';
@@ -61,6 +149,9 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get fileExportPdf => 'PDF';
+
+  @override
+  String get filePrint => 'Imprimir';
 
   @override
   String get fileExportWord => 'Word (.docx)';
@@ -312,9 +403,6 @@ class AppLocalizationsPt extends AppLocalizations {
       'Tem a certeza de que pretende repor todas as definições?';
 
   @override
-  String get comingSoon => 'Em breve';
-
-  @override
   String get noFiles => 'Sem ficheiros';
 
   @override
@@ -359,17 +447,16 @@ class AppLocalizationsPt extends AppLocalizations {
   String get editCopyAsHtml => 'Copiar como HTML';
 
   @override
-  String get previewCopyAsHtmlTooltip => 'Copy as HTML (for Word/WPS)';
-
-  @override
-  String get previewCopyAsHtmlSuccess =>
-      'Copied as HTML. You can now paste into Word/WPS with formatting.';
-
-  @override
   String get editSelectAll => 'Selecionar tudo';
 
   @override
   String get editDuplicateLine => 'Duplicar linha';
+
+  @override
+  String get editCreateParagraph => 'Criar parágrafo abaixo';
+
+  @override
+  String get editDeleteParagraph => 'Excluir parágrafo';
 
   @override
   String get formatUnderline => 'Sublinhado';
@@ -396,6 +483,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String get settingsCodeFontFamily => 'Fonte de código';
 
   @override
+  String get settingsCodeFontSize => 'Tamanho da fonte de código';
+
+  @override
+  String get settingsEditorFontFamily => 'Fonte do editor';
+
+  @override
   String get settingsEditorMaxWidth => 'Largura máxima do editor';
 
   @override
@@ -418,21 +511,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get statusParagraphs => 'Parágrafos';
-
-  @override
-  String get themeCadmiumLight => 'Cádmio Claro';
-
-  @override
-  String get themeOneDark => 'One Dark';
-
-  @override
-  String get themeMaterialDark => 'Material Escuro';
-
-  @override
-  String get themeGraphiteLight => 'Grafite Claro';
-
-  @override
-  String get themeUlyssesLight => 'Ulysses Claro';
 
   @override
   String get themeRedGraphite => 'Grafite Vermelho';
@@ -712,41 +790,209 @@ class AppLocalizationsPt extends AppLocalizations {
   String get welcomeDragHint => 'Arraste ficheiros para aqui para abrir';
 
   @override
-  String get fileOpenBehavior => 'File Opening Behavior';
+  String get fileOpenBehavior => 'Comportamento ao abrir ficheiros';
 
   @override
-  String get fileOpenBehaviorTitle => 'How to Open Files?';
+  String get fileOpenBehaviorNewWindow => 'Abrir numa nova janela';
 
   @override
-  String get fileOpenBehaviorMessage =>
-      'When you double-click a file while the app is already running:';
+  String get fileOpenBehaviorExistingWindow => 'Abrir na janela atual';
 
   @override
-  String get fileOpenBehaviorNewWindow => 'Open in New Window';
+  String get fileOpenBehaviorNotSet => 'Não configurado';
 
   @override
-  String get fileOpenBehaviorNewWindowDesc => 'Allow multiple app instances';
+  String get updateAvailable => 'Nova versão disponível';
 
   @override
-  String get fileOpenBehaviorExistingWindow => 'Open in Current Window';
+  String get updateDismiss => 'Dispensar';
 
   @override
-  String get fileOpenBehaviorExistingWindowDesc =>
-      'Add to existing tabs (single instance)';
+  String get mermaidFullscreen => 'Ecrã inteiro';
 
   @override
-  String get fileOpenBehaviorNotSet => 'Not configured';
+  String get mermaidSaveAs => 'Guardar como';
 
   @override
-  String get updateAvailable => 'New version available';
+  String get mermaidCopySource => 'Copiar código-fonte';
 
   @override
-  String get updateDismiss => 'Dismiss';
+  String get mermaidEditSource => 'Editar código-fonte';
+
+  @override
+  String get mermaidFullscreenHint =>
+      'Toque duas vezes no diagrama para ver em ecrã inteiro';
+
+  @override
+  String get mermaidSaveAsHint => 'Guardar o diagrama como PNG';
+
+  @override
+  String get menuParagraph => 'Parágrafo';
+
+  @override
+  String get paragraphPromoteHeading => 'Promover título';
+
+  @override
+  String get paragraphDemoteHeading => 'Rebaixar título';
+
+  @override
+  String get paragraphToParagraph => 'Converter em parágrafo';
+
+  @override
+  String get paragraphLooseList => 'Item de lista espaçado';
+
+  @override
+  String get close => 'Fechar';
+
+  @override
+  String get mermaidViewerTitle => 'Visualizador de diagramas Mermaid';
+
+  @override
+  String get mermaidViewerHint =>
+      'Ctrl+Roda para ampliar    Arrastar para deslocar    Esc para fechar';
+
+  @override
+  String get statusHighlightOff =>
+      'Realce de sintaxe desativado (ficheiro grande)';
+
+  @override
+  String get settingsImageStorage => 'Onde guardar as imagens arrastadas';
+
+  @override
+  String get settingsImageStorageCopy => 'Junto ao documento';
+
+  @override
+  String get settingsImageStorageFolder => 'Numa pasta partilhada';
+
+  @override
+  String get settingsImageStorageLink => 'Ligar onde estão';
+
+  @override
+  String get settingsImageFolder => 'Pasta de imagens';
+
+  @override
+  String get fileCloseTab => 'Fechar separador';
+
+  @override
+  String get fileClearRecentFiles => 'Limpar ficheiros recentes';
+
+  @override
+  String get viewCommandPalette => 'Paleta de comandos';
+
+  @override
+  String get viewReloadImages => 'Recarregar imagens';
+
+  @override
+  String get formatFrontMatter => 'Front matter';
+
+  @override
+  String get formatHtmlBlock => 'Bloco HTML';
+
+  @override
+  String get updateUpToDate => 'Está a usar a versão mais recente';
+
+  @override
+  String get updateCheckFailed => 'Não foi possível procurar atualizações';
+
+  @override
+  String get linkOpenFailed => 'Não foi possível abrir a ligação';
+
+  @override
+  String get recentFileMissing =>
+      'Esse arquivo não existe mais; foi removido da lista';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
 class AppLocalizationsPtBr extends AppLocalizationsPt {
   AppLocalizationsPtBr() : super('pt_BR');
+
+  @override
+  String get settingsWrapCodeBlocks =>
+      'Quebrar linhas longas nos blocos de código';
+
+  @override
+  String get settingsCodeBlockLineNumbers =>
+      'Números de linha nos blocos de código';
+
+  @override
+  String settingsSaveFailed(String message) {
+    return 'Não foi possível salvar as configurações: $message';
+  }
+
+  @override
+  String get settingsFollowSystemTheme =>
+      'Seguir o modo claro/escuro do sistema';
+
+  @override
+  String get settingsFollowSystemThemeHint =>
+      'Escolha um tema claro e um escuro; o sistema decide qual é mostrado.';
+
+  @override
+  String get settingsAutoPairBracket => 'Fechar parênteses automaticamente';
+
+  @override
+  String get settingsAutoPairQuote => 'Fechar aspas automaticamente';
+
+  @override
+  String get settingsAutoPairMarkdown =>
+      'Fechar a sintaxe Markdown automaticamente (`, *, ~)';
+
+  @override
+  String get helpOpenDiagnosticLog => 'Abrir o log de diagnóstico';
+
+  @override
+  String get diagnosticLogMissing =>
+      'Ainda não foi escrito nenhum log de diagnóstico';
+
+  @override
+  String get mermaidCaptureFailed => 'Não foi possível capturar o diagrama';
+
+  @override
+  String get mermaidErrorEmpty => 'O diagrama está vazio.';
+
+  @override
+  String mermaidErrorUnknownType(String type) {
+    return 'Tipo de diagrama não reconhecido: «$type».';
+  }
+
+  @override
+  String get mermaidErrorHeaderOnly =>
+      'Este diagrama tem cabeçalho mas não tem conteúdo.';
+
+  @override
+  String get mermaidErrorBadBody =>
+      'O cabeçalho é reconhecido; verifique a sintaxe abaixo.';
+
+  @override
+  String mermaidSupportedTypes(String list) {
+    return 'Tipos suportados: $list';
+  }
+
+  @override
+  String get mermaidParseError => 'Erro de análise do Mermaid';
+
+  @override
+  String imageSavedTo(String path) {
+    return 'Salvo em $path';
+  }
+
+  @override
+  String imageSaveFailed(String message) {
+    return 'Não foi possível salvar a imagem: $message';
+  }
+
+  @override
+  String saveFailed(String message) {
+    return 'Não foi possível salvar o arquivo: $message';
+  }
+
+  @override
+  String fileOperationFailed(String message) {
+    return 'Falha na operação de arquivo: $message';
+  }
+
+  @override
+  String get fileNameTaken => 'Já existe um arquivo ou pasta com esse nome';
 
   @override
   String get appTitle => 'MarkText Plus';
@@ -788,10 +1034,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get fileSaveAs => 'Salvar como';
 
   @override
-  String get fileRecentFiles => 'Recent Files';
+  String get fileRecentFiles => 'Arquivos recentes';
 
   @override
-  String get fileNoRecentFiles => 'No Recent Files';
+  String get fileNoRecentFiles => 'Nenhum arquivo recente';
 
   @override
   String get fileExport => 'Exportar';
@@ -801,6 +1047,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get fileExportPdf => 'PDF';
+
+  @override
+  String get filePrint => 'Imprimir';
 
   @override
   String get fileExportWord => 'Word (.docx)';
@@ -1052,9 +1301,6 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
       'Tem certeza de que deseja redefinir todas as configurações?';
 
   @override
-  String get comingSoon => 'Em breve';
-
-  @override
   String get noFiles => 'Sem arquivos';
 
   @override
@@ -1105,6 +1351,12 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get editDuplicateLine => 'Duplicar linha';
 
   @override
+  String get editCreateParagraph => 'Criar parágrafo abaixo';
+
+  @override
+  String get editDeleteParagraph => 'Excluir parágrafo';
+
+  @override
   String get formatUnderline => 'Sublinhado';
 
   @override
@@ -1129,6 +1381,12 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get settingsCodeFontFamily => 'Fonte de código';
 
   @override
+  String get settingsCodeFontSize => 'Tamanho da fonte de código';
+
+  @override
+  String get settingsEditorFontFamily => 'Fonte do editor';
+
+  @override
   String get settingsEditorMaxWidth => 'Largura máxima do editor';
 
   @override
@@ -1151,21 +1409,6 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get statusParagraphs => 'Parágrafos';
-
-  @override
-  String get themeCadmiumLight => 'Cádmio Claro';
-
-  @override
-  String get themeOneDark => 'One Dark';
-
-  @override
-  String get themeMaterialDark => 'Material Escuro';
-
-  @override
-  String get themeGraphiteLight => 'Grafite Claro';
-
-  @override
-  String get themeUlyssesLight => 'Ulysses Claro';
 
   @override
   String get themeRedGraphite => 'Grafite Vermelho';
@@ -1441,4 +1684,116 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get welcomeDragHint => 'Arraste arquivos para cá para abrir';
+
+  @override
+  String get fileOpenBehavior => 'Comportamento ao abrir arquivos';
+
+  @override
+  String get fileOpenBehaviorNewWindow => 'Abrir em uma nova janela';
+
+  @override
+  String get fileOpenBehaviorExistingWindow => 'Abrir na janela atual';
+
+  @override
+  String get fileOpenBehaviorNotSet => 'Não configurado';
+
+  @override
+  String get updateAvailable => 'Nova versão disponível';
+
+  @override
+  String get updateDismiss => 'Dispensar';
+
+  @override
+  String get mermaidFullscreen => 'Tela cheia';
+
+  @override
+  String get mermaidSaveAs => 'Salvar como';
+
+  @override
+  String get mermaidCopySource => 'Copiar código-fonte';
+
+  @override
+  String get mermaidEditSource => 'Editar código-fonte';
+
+  @override
+  String get mermaidFullscreenHint =>
+      'Toque duas vezes no diagrama para ver em tela cheia';
+
+  @override
+  String get mermaidSaveAsHint => 'Salvar o diagrama como PNG';
+
+  @override
+  String get menuParagraph => 'Parágrafo';
+
+  @override
+  String get paragraphPromoteHeading => 'Promover título';
+
+  @override
+  String get paragraphDemoteHeading => 'Rebaixar título';
+
+  @override
+  String get paragraphToParagraph => 'Converter em parágrafo';
+
+  @override
+  String get paragraphLooseList => 'Item de lista espaçado';
+
+  @override
+  String get close => 'Fechar';
+
+  @override
+  String get mermaidViewerTitle => 'Visualizador de diagramas Mermaid';
+
+  @override
+  String get mermaidViewerHint =>
+      'Ctrl+Roda para ampliar    Arrastar para deslocar    Esc para fechar';
+
+  @override
+  String get statusHighlightOff =>
+      'Realce de sintaxe desativado (arquivo grande)';
+
+  @override
+  String get settingsImageStorage => 'Onde salvar as imagens arrastadas';
+
+  @override
+  String get settingsImageStorageCopy => 'Junto ao documento';
+
+  @override
+  String get settingsImageStorageFolder => 'Em uma pasta compartilhada';
+
+  @override
+  String get settingsImageStorageLink => 'Vincular onde estão';
+
+  @override
+  String get settingsImageFolder => 'Pasta de imagens';
+
+  @override
+  String get fileCloseTab => 'Fechar aba';
+
+  @override
+  String get fileClearRecentFiles => 'Limpar arquivos recentes';
+
+  @override
+  String get viewCommandPalette => 'Paleta de comandos';
+
+  @override
+  String get viewReloadImages => 'Recarregar imagens';
+
+  @override
+  String get formatFrontMatter => 'Front matter';
+
+  @override
+  String get formatHtmlBlock => 'Bloco HTML';
+
+  @override
+  String get updateUpToDate => 'Você está usando a versão mais recente';
+
+  @override
+  String get updateCheckFailed => 'Não foi possível verificar atualizações';
+
+  @override
+  String get linkOpenFailed => 'Não foi possível abrir o link';
+
+  @override
+  String get recentFileMissing =>
+      'Esse arquivo não existe mais; foi removido da lista';
 }

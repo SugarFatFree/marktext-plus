@@ -7,6 +7,7 @@ import '../../providers/locale_provider.dart';
 import '../../core/config/app_config.dart';
 import '../../core/theme/app_theme.dart';
 import '../../services/keybinding_service.dart';
+import '../../services/image_service.dart';
 
 enum _Category { general, editor, markdown, theme, keybindings }
 
@@ -19,6 +20,39 @@ class SettingsScreen extends ConsumerStatefulWidget {
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   _Category _selected = _Category.general;
+
+  /// The text fields' controllers, kept rather than made in build.
+  ///
+  /// A controller built inside build is a new one on every rebuild: the old
+  /// one is never disposed, and the field is reset to whatever the config
+  /// says. These fields commit on Enter, so anything typed and not yet
+  /// submitted was thrown away the moment something else on the screen
+  /// rebuilt it — flipping any switch was enough.
+  final _fields = <String, TextEditingController>{};
+
+  /// What the config last said, so a value changed elsewhere still reaches
+  /// the field while what the reader is typing does not get overwritten.
+  final _lastFromConfig = <String, String>{};
+
+  @override
+  void dispose() {
+    for (final controller in _fields.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  /// The controller for [key], showing [value] unless the reader is midway
+  /// through replacing it.
+  TextEditingController _field(String key, String value) {
+    final controller =
+        _fields.putIfAbsent(key, () => TextEditingController(text: value));
+    if (_lastFromConfig[key] != value) {
+      _lastFromConfig[key] = value;
+      if (controller.text != value) controller.text = value;
+    }
+    return controller;
+  }
 
   static const _localeMap = {
     'en_US': 'English',
@@ -182,17 +216,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         const SizedBox(height: 24),
         _row(
           l10n.settingsLanguage,
-          DropdownButton<String>(
-            value: _localeMap.containsKey(localeKey) ? localeKey : 'en_US',
-            items: _localeMap.entries
-                .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
-                .toList(),
-            onChanged: (v) {
-              if (v == null) return;
-              final loc = LocaleNotifier.parseLocale(v);
-              ref.read(localeProvider.notifier).setLocale(loc);
-              ref.read(settingsProvider.notifier).setLocale(v);
-            },
+          SizedBox(
+            width: 220,
+            child: DropdownButton<String>(
+              isExpanded: true,
+                value: _localeMap.containsKey(localeKey) ? localeKey : 'en_US',
+                items: _localeMap.entries
+                    .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
+                    .toList(),
+                onChanged: (v) {
+                  if (v == null) return;
+                  final loc = LocaleNotifier.parseLocale(v);
+                  ref.read(localeProvider.notifier).setLocale(loc);
+                  ref.read(settingsProvider.notifier).setLocale(v);
+                },
+              ),
           ),
         ),
         _row(
@@ -209,8 +247,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           SizedBox(
             width: 120,
             child: TextField(
-              controller: TextEditingController(
-                  text: config.autoSaveDelay.toString()),
+              controller:
+                  _field('autoSaveDelay', config.autoSaveDelay.toString()),
               keyboardType: TextInputType.number,
               onSubmitted: (v) {
                 final d = int.tryParse(v) ?? 5000;
@@ -223,28 +261,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
         _row(
           l10n.fileOpenBehavior,
-          DropdownButton<FileOpenBehavior>(
-            value: config.fileOpenBehavior,
-            items: [
-              DropdownMenuItem(
-                value: FileOpenBehavior.notSet,
-                child: Text(l10n.fileOpenBehaviorNotSet),
+          SizedBox(
+            width: 220,
+            child: DropdownButton<FileOpenBehavior>(
+              isExpanded: true,
+                value: config.fileOpenBehavior,
+                items: [
+                  DropdownMenuItem(
+                    value: FileOpenBehavior.notSet,
+                    child: Text(l10n.fileOpenBehaviorNotSet),
+                  ),
+                  DropdownMenuItem(
+                    value: FileOpenBehavior.newWindow,
+                    child: Text(l10n.fileOpenBehaviorNewWindow),
+                  ),
+                  DropdownMenuItem(
+                    value: FileOpenBehavior.existingWindow,
+                    child: Text(l10n.fileOpenBehaviorExistingWindow),
+                  ),
+                ],
+                onChanged: (value) {
+                  if (value == null) return;
+                  ref
+                      .read(settingsProvider.notifier)
+                      .updateConfig((c) => c.copyWith(fileOpenBehavior: value));
+                },
               ),
-              DropdownMenuItem(
-                value: FileOpenBehavior.newWindow,
-                child: Text(l10n.fileOpenBehaviorNewWindow),
-              ),
-              DropdownMenuItem(
-                value: FileOpenBehavior.existingWindow,
-                child: Text(l10n.fileOpenBehaviorExistingWindow),
-              ),
-            ],
-            onChanged: (value) {
-              if (value == null) return;
-              ref
-                  .read(settingsProvider.notifier)
-                  .updateConfig((c) => c.copyWith(fileOpenBehavior: value));
-            },
           ),
         ),
       ],
@@ -290,20 +332,43 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
         _row(
           l10n.settingsTabSize,
-          DropdownButton<int>(
-            value: config.tabSize,
-            items: const [
-              DropdownMenuItem(value: 2, child: Text('2')),
-              DropdownMenuItem(value: 4, child: Text('4')),
-              DropdownMenuItem(value: 8, child: Text('8')),
-            ],
-            onChanged: (v) {
-              if (v != null) {
-                ref
-                    .read(settingsProvider.notifier)
-                    .updateConfig((c) => c.copyWith(tabSize: v));
-              }
-            },
+          SizedBox(
+            width: 220,
+            child: DropdownButton<int>(
+              isExpanded: true,
+                value: config.tabSize,
+                items: const [
+                  DropdownMenuItem(value: 2, child: Text('2')),
+                  DropdownMenuItem(value: 4, child: Text('4')),
+                  DropdownMenuItem(value: 8, child: Text('8')),
+                ],
+                onChanged: (v) {
+                  if (v != null) {
+                    ref
+                        .read(settingsProvider.notifier)
+                        .updateConfig((c) => c.copyWith(tabSize: v));
+                  }
+                },
+              ),
+          ),
+        ),
+        _row(
+          // The editor's body font was applied all along but had nowhere to be
+          // chosen: only the code font had a row, so the setting sat at
+          // 'monospace' whatever anyone wanted.
+          l10n.settingsEditorFontFamily,
+          SizedBox(
+            width: 200,
+            child: TextField(
+              controller: _field('fontFamily', config.fontFamily),
+              onSubmitted: (v) {
+                ref.read(settingsProvider.notifier).updateConfig(
+                      (c) => c.copyWith(
+                        fontFamily: v.isEmpty ? 'monospace' : v,
+                      ),
+                    );
+              },
+            ),
           ),
         ),
         _row(
@@ -311,10 +376,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           SizedBox(
             width: 200,
             child: TextField(
-              controller: TextEditingController(text: config.codeFontFamily),
+              controller: _field('codeFontFamily', config.codeFontFamily),
               onSubmitted: (v) {
                 ref.read(settingsProvider.notifier)
                     .updateConfig((c) => c.copyWith(codeFontFamily: v.isEmpty ? 'Courier New' : v));
+              },
+            ),
+          ),
+        ),
+        _row(
+          l10n.settingsCodeFontSize,
+          SizedBox(
+            width: 120,
+            child: TextField(
+              controller: _field(
+                'codeFontSize',
+                config.codeFontSize.toStringAsFixed(0),
+              ),
+              keyboardType: TextInputType.number,
+              onSubmitted: (v) {
+                final size = double.tryParse(v);
+                if (size == null) return;
+                ref.read(settingsProvider.notifier).updateConfig(
+                      // Clamped: a zero or a stray 400 from the keyboard makes
+                      // the document unreadable with no obvious way back.
+                      (c) => c.copyWith(codeFontSize: size.clamp(8.0, 48.0)),
+                    );
               },
             ),
           ),
@@ -324,7 +411,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           SizedBox(
             width: 120,
             child: TextField(
-              controller: TextEditingController(text: config.editorMaxWidth.toString()),
+              controller:
+                  _field('editorMaxWidth', config.editorMaxWidth.toString()),
               keyboardType: TextInputType.number,
               onSubmitted: (v) {
                 final w = int.tryParse(v) ?? 800;
@@ -335,19 +423,69 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ),
         _row(
+          l10n.settingsImageStorage,
+          SizedBox(
+            width: 220,
+            child: DropdownButton<String>(
+              isExpanded: true,
+                value: const {'copy', 'folder', 'link'}.contains(config.imageStorageMode)
+                    ? config.imageStorageMode
+                    : 'copy',
+                items: [
+                  DropdownMenuItem(
+                      value: 'copy', child: Text(l10n.settingsImageStorageCopy)),
+                  DropdownMenuItem(
+                      value: 'folder', child: Text(l10n.settingsImageStorageFolder)),
+                  DropdownMenuItem(
+                      value: 'link', child: Text(l10n.settingsImageStorageLink)),
+                ],
+                onChanged: (v) {
+                  if (v == null) return;
+                  ref
+                      .read(settingsProvider.notifier)
+                      .updateConfig((c) => c.copyWith(imageStorageMode: v));
+                },
+              ),
+          ),
+        ),
+        // Only the shared-folder option has a folder to configure.
+        if (config.imageStorageMode == 'folder')
+          _row(
+            l10n.settingsImageFolder,
+            SizedBox(
+              width: 200,
+              child: TextField(
+                controller: _field('imageFolder', config.imageFolder),
+                onSubmitted: (v) {
+                  final folder = v.trim();
+                  ref.read(settingsProvider.notifier).updateConfig(
+                        (c) => c.copyWith(
+                          imageFolder:
+                              folder.isEmpty ? ImageService.defaultFolder : folder,
+                        ),
+                      );
+                },
+              ),
+            ),
+          ),
+        _row(
           l10n.settingsTextDirection,
-          DropdownButton<String>(
-            value: config.textDirection,
-            items: [
-              DropdownMenuItem(value: 'ltr', child: Text(l10n.settingsTextDirectionLtr)),
-              DropdownMenuItem(value: 'rtl', child: Text(l10n.settingsTextDirectionRtl)),
-            ],
-            onChanged: (v) {
-              if (v != null) {
-                ref.read(settingsProvider.notifier)
-                    .updateConfig((c) => c.copyWith(textDirection: v));
-              }
-            },
+          SizedBox(
+            width: 220,
+            child: DropdownButton<String>(
+              isExpanded: true,
+                value: config.textDirection,
+                items: [
+                  DropdownMenuItem(value: 'ltr', child: Text(l10n.settingsTextDirectionLtr)),
+                  DropdownMenuItem(value: 'rtl', child: Text(l10n.settingsTextDirectionRtl)),
+                ],
+                onChanged: (v) {
+                  if (v != null) {
+                    ref.read(settingsProvider.notifier)
+                        .updateConfig((c) => c.copyWith(textDirection: v));
+                  }
+                },
+              ),
           ),
         ),
       ],
@@ -366,20 +504,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         const SizedBox(height: 24),
         _row(
           l10n.settingsBulletListMarker,
-          DropdownButton<String>(
-            value: config.bulletListMarker,
-            items: const [
-              DropdownMenuItem(value: '-', child: Text('-')),
-              DropdownMenuItem(value: '*', child: Text('*')),
-              DropdownMenuItem(value: '+', child: Text('+')),
-            ],
-            onChanged: (v) {
-              if (v != null) {
-                ref
-                    .read(settingsProvider.notifier)
-                    .updateConfig((c) => c.copyWith(bulletListMarker: v));
-              }
-            },
+          SizedBox(
+            width: 220,
+            child: DropdownButton<String>(
+              isExpanded: true,
+                value: config.bulletListMarker,
+                items: const [
+                  DropdownMenuItem(value: '-', child: Text('-')),
+                  DropdownMenuItem(value: '*', child: Text('*')),
+                  DropdownMenuItem(value: '+', child: Text('+')),
+                ],
+                onChanged: (v) {
+                  if (v != null) {
+                    ref
+                        .read(settingsProvider.notifier)
+                        .updateConfig((c) => c.copyWith(bulletListMarker: v));
+                  }
+                },
+              ),
           ),
         ),
         _row(
@@ -389,6 +531,51 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             onChanged: (v) => ref
                 .read(settingsProvider.notifier)
                 .updateConfig((c) => c.copyWith(enableHtml: v)),
+          ),
+        ),
+        _row(
+          l10n.settingsWrapCodeBlocks,
+          Switch(
+            value: config.wrapCodeBlocks,
+            onChanged: (v) => ref
+                .read(settingsProvider.notifier)
+                .updateConfig((c) => c.copyWith(wrapCodeBlocks: v)),
+          ),
+        ),
+        _row(
+          l10n.settingsCodeBlockLineNumbers,
+          Switch(
+            value: config.codeBlockLineNumbers,
+            onChanged: (v) => ref
+                .read(settingsProvider.notifier)
+                .updateConfig((c) => c.copyWith(codeBlockLineNumbers: v)),
+          ),
+        ),
+        _row(
+          l10n.settingsAutoPairBracket,
+          Switch(
+            value: config.autoPairBracket,
+            onChanged: (v) => ref
+                .read(settingsProvider.notifier)
+                .updateConfig((c) => c.copyWith(autoPairBracket: v)),
+          ),
+        ),
+        _row(
+          l10n.settingsAutoPairQuote,
+          Switch(
+            value: config.autoPairQuote,
+            onChanged: (v) => ref
+                .read(settingsProvider.notifier)
+                .updateConfig((c) => c.copyWith(autoPairQuote: v)),
+          ),
+        ),
+        _row(
+          l10n.settingsAutoPairMarkdown,
+          Switch(
+            value: config.autoPairMarkdownSyntax,
+            onChanged: (v) => ref
+                .read(settingsProvider.notifier)
+                .updateConfig((c) => c.copyWith(autoPairMarkdownSyntax: v)),
           ),
         ),
       ],
@@ -418,7 +605,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       children: [
         Text(l10n.settingsTheme,
             style: Theme.of(context).textTheme.headlineSmall),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
+        _row(
+          l10n.settingsFollowSystemTheme,
+          Switch(
+            value: config.followSystemTheme,
+            onChanged: (v) => ref
+                .read(settingsProvider.notifier)
+                .updateConfig((c) => c.copyWith(followSystemTheme: v)),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          config.followSystemTheme
+              ? l10n.settingsFollowSystemThemeHint
+              : '',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        const SizedBox(height: 16),
         Text(l10n.settingsLightThemes,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w600,
@@ -428,7 +632,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           spacing: 16,
           runSpacing: 16,
           children: AppTheme.lightThemeNames.map((name) {
-            return _buildThemeCard(name, config, l10n);
+            return _buildThemeCard(name, config, l10n, isDarkGroup: false);
           }).toList(),
         ),
         const SizedBox(height: 24),
@@ -441,18 +645,42 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           spacing: 16,
           runSpacing: 16,
           children: AppTheme.darkThemeNames.map((name) {
-            return _buildThemeCard(name, config, l10n);
+            return _buildThemeCard(name, config, l10n, isDarkGroup: true);
           }).toList(),
         ),
       ],
     );
   }
 
-  Widget _buildThemeCard(String name, AppConfig config, AppLocalizations l10n) {
+  /// One theme card.
+  ///
+  /// [isDarkGroup] says which of the two lists it came from. While the theme
+  /// follows the system, a card no longer sets *the* theme: the light cards
+  /// choose what is used when the system is light and the dark cards what is
+  /// used when it is dark, so which card looks selected has to follow the same
+  /// rule. Getting that wrong would show a tick next to a theme that is not in
+  /// use.
+  Widget _buildThemeCard(
+    String name,
+    AppConfig config,
+    AppLocalizations l10n, {
+    required bool isDarkGroup,
+  }) {
     final tokens = AppTheme.getTokens(name);
-    final selected = config.themeName == name;
+    final selected = config.followSystemTheme
+        ? (isDarkGroup ? config.darkModeTheme : config.lightModeTheme) == name
+        : config.themeName == name;
     return InkWell(
-      onTap: () => ref.read(settingsProvider.notifier).setTheme(name),
+      onTap: () {
+        final notifier = ref.read(settingsProvider.notifier);
+        if (!config.followSystemTheme) {
+          notifier.setTheme(name);
+        } else if (isDarkGroup) {
+          notifier.updateConfig((c) => c.copyWith(darkModeTheme: name));
+        } else {
+          notifier.updateConfig((c) => c.copyWith(lightModeTheme: name));
+        }
+      },
       borderRadius: BorderRadius.circular(8),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
@@ -517,6 +745,42 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       'selectAll' => l10n.keybindingSelectAll,
       'duplicateLine' => l10n.keybindingDuplicateLine,
       'highlight' => l10n.keybindingHighlight,
+      'closeTab' => l10n.fileCloseTab,
+      'findNext' => l10n.editFindNext,
+      'findPrevious' => l10n.editFindPrevious,
+      // These two had been in the map since it gained promote and demote
+      // heading, but never here, so the settings list showed their raw action
+      // names next to every other row's translated one.
+      'promoteHeading' => l10n.paragraphPromoteHeading,
+      'demoteHeading' => l10n.paragraphDemoteHeading,
+      // The twenty-four that used to be hard-coded on their menu items or had
+      // no shortcut at all. They reuse the menu's own labels, so the settings
+      // list names them the same way the menu does.
+      'sourceMode' => l10n.viewSourceCode,
+      'previewMode' => l10n.viewPreview,
+      'splitMode' => l10n.viewSplitView,
+      'toggleSidebar' => l10n.viewHideSidebar,
+      'toggleTabBar' => l10n.viewHideTabBar,
+      'commandPalette' => l10n.viewCommandPalette,
+      'focusMode' => l10n.viewFocusMode,
+      'typewriterMode' => l10n.viewTypewriterMode,
+      'zoomIn' => l10n.viewZoomIn,
+      'zoomOut' => l10n.viewZoomOut,
+      'resetZoom' => l10n.viewResetZoom,
+      'newWindow' => l10n.fileNewWindow,
+      'settings' => l10n.fileSettings,
+      'quit' => l10n.fileQuit,
+      'print' => l10n.filePrint,
+      'exportPdf' => l10n.fileExportPdf,
+      'reloadImages' => l10n.viewReloadImages,
+      'fullScreen' => l10n.windowFullScreen,
+      'clearFormatting' => l10n.formatClearFormatting,
+      'createParagraph' => l10n.editCreateParagraph,
+      'deleteParagraph' => l10n.editDeleteParagraph,
+      'toParagraph' => l10n.paragraphToParagraph,
+      'looseList' => l10n.paragraphLooseList,
+      'frontMatter' => l10n.formatFrontMatter,
+      'htmlBlock' => l10n.formatHtmlBlock,
       _ => action,
     };
   }
@@ -542,9 +806,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(_translateKeybindingAction(entry.key, l10n), style: const TextStyle(fontSize: 16)),
+                  // Same as _row: the action's name is the only part that can
+                  // give way, so it is the part that does. Fifty-nine of
+                  // these rows overflowed together as soon as the window was
+                  // narrower than about a thousand pixels.
+                  Expanded(
+                    child: Text(
+                      _translateKeybindingAction(entry.key, l10n),
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
                   Row(
                     children: [
                       Container(
@@ -649,15 +922,40 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   // -- Helpers --
+  /// Below this much room a row stacks instead of sitting side by side.
+  static const _stackRowsBelow = 420.0;
+
   Widget _row(String label, Widget control) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(fontSize: 16)),
-          control,
-        ],
+      // Side by side while there is room, stacked when there is not.
+      //
+      // A dropdown is as wide as its longest option and a field has a width
+      // it needs to be usable; only the label can give way. Laid out with
+      // neither able to, the page overflowed to the right as soon as the
+      // window was narrower than about 1000 pixels — striped, not scrollable,
+      // and worse in every language whose words run longer than English's.
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final label0 = Text(label, style: const TextStyle(fontSize: 16));
+          if (constraints.maxWidth < _stackRowsBelow) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                label0,
+                const SizedBox(height: 8),
+                Align(alignment: Alignment.centerLeft, child: control),
+              ],
+            );
+          }
+          return Row(
+            children: [
+              Expanded(child: label0),
+              const SizedBox(width: 16),
+              control,
+            ],
+          );
+        },
       ),
     );
   }

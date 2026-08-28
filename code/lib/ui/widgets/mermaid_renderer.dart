@@ -6,6 +6,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
+import '../../core/i18n/l10n/app_localizations.dart';
+import '../editor/mermaid/parser/mermaid_parser.dart';
 import '../editor/mermaid/widgets/mermaid_diagram.dart';
 import '../editor/mermaid/models/style.dart';
 import '../editor/mermaid/models/node.dart' show NodeStyle;
@@ -16,10 +18,19 @@ class MermaidRenderer extends StatefulWidget {
   final String code;
   final bool isDarkMode;
 
+  /// Opens this block for editing, when the preview allows it.
+  ///
+  /// A diagram cannot be edited by double tap the way every other block can:
+  /// its own recogniser claims the gesture for fullscreen, and being deeper in
+  /// the tree it wins the arena. Null in a read-only preview, where no block
+  /// is editable.
+  final VoidCallback? onEditSource;
+
   const MermaidRenderer({
     super.key,
     required this.code,
     required this.isDarkMode,
+    this.onEditSource,
   });
 
   @override
@@ -57,12 +68,16 @@ class _MermaidRendererState extends State<MermaidRenderer> {
   }
 
   Future<void> _saveAsImage(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       final boundary = _diagramKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
       if (boundary == null) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to capture diagram')),
+            SnackBar(
+              content:
+                  Text(AppLocalizations.of(context)!.mermaidCaptureFailed),
+            ),
           );
         }
         return;
@@ -76,7 +91,7 @@ class _MermaidRendererState extends State<MermaidRenderer> {
 
       // Let user pick save location
       final savePath = await FilePicker.platform.saveFile(
-        dialogTitle: 'Save Diagram As',
+        dialogTitle: l10n.mermaidSaveAs,
         fileName: 'mermaid_diagram.png',
         type: FileType.custom,
         allowedExtensions: ['png'],
@@ -90,13 +105,21 @@ class _MermaidRendererState extends State<MermaidRenderer> {
 
       if (context.mounted && savePath != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Saved to $savePath')),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.imageSavedTo(savePath),
+            ),
+          ),
         );
       }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Save failed: $e')),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.imageSaveFailed('$e'),
+            ),
+          ),
         );
       }
     }
@@ -105,6 +128,7 @@ class _MermaidRendererState extends State<MermaidRenderer> {
   @override
   Widget build(BuildContext context) {
     final style = _buildStyle();
+    final l10n = AppLocalizations.of(context)!;
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
@@ -129,43 +153,69 @@ class _MermaidRendererState extends State<MermaidRenderer> {
                   'Mermaid',
                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                 ),
-                const Spacer(),
-                Tooltip(
-                  message: '双击图表全屏查看',
-                  child: TextButton.icon(
-                    onPressed: () => _openFullscreen(context, style),
-                    icon: const Icon(Icons.fullscreen, size: 16),
-                    label: const Text('全屏'),
-                    style: TextButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      textStyle: const TextStyle(fontSize: 12),
+                // A Wrap rather than a Spacer and a run of buttons: four of
+                // them no longer fit a narrow preview pane, and a Row that
+                // does not fit overflows rather than reflowing.
+                Expanded(
+                  child: Wrap(
+                    alignment: WrapAlignment.end,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                    Tooltip(
+                      message: l10n.mermaidFullscreenHint,
+                      child: TextButton.icon(
+                        key: const Key('mermaid-fullscreen'),
+                        onPressed: () => _openFullscreen(context, style),
+                        icon: const Icon(Icons.fullscreen, size: 16),
+                        label: Text(l10n.mermaidFullscreen),
+                        style: TextButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          textStyle: const TextStyle(fontSize: 12),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                Tooltip(
-                  message: '保存图表为 PNG',
-                  child: TextButton.icon(
-                    onPressed: () => _saveAsImage(context),
-                    icon: const Icon(Icons.download_outlined, size: 16),
-                    label: const Text('另存为'),
-                    style: TextButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      textStyle: const TextStyle(fontSize: 12),
+                    Tooltip(
+                      message: l10n.mermaidSaveAsHint,
+                      child: TextButton.icon(
+                        key: const Key('mermaid-save-as'),
+                        onPressed: () => _saveAsImage(context),
+                        icon: const Icon(Icons.download_outlined, size: 16),
+                        label: Text(l10n.mermaidSaveAs),
+                        style: TextButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          textStyle: const TextStyle(fontSize: 12),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                TextButton.icon(
-                  onPressed: () async {
-                    await Clipboard.setData(ClipboardData(text: widget.code));
-                  },
-                  icon: const Icon(Icons.copy_outlined, size: 16),
-                  label: const Text('复制源码'),
-                  style: TextButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    textStyle: const TextStyle(fontSize: 12),
+                    if (widget.onEditSource != null)
+                      TextButton.icon(
+                        key: const Key('mermaid-edit-source'),
+                        onPressed: widget.onEditSource,
+                        icon: const Icon(Icons.edit_outlined, size: 16),
+                        label: Text(l10n.mermaidEditSource),
+                        style: TextButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          textStyle: const TextStyle(fontSize: 12),
+                        ),
+                      ),
+                    TextButton.icon(
+                      key: const Key('mermaid-copy-source'),
+                      onPressed: () async {
+                        await Clipboard.setData(ClipboardData(text: widget.code));
+                      },
+                      icon: const Icon(Icons.copy_outlined, size: 16),
+                      label: Text(l10n.mermaidCopySource),
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        textStyle: const TextStyle(fontSize: 12),
+                      ),
+                    ),
+                    ],
                   ),
                 ),
               ],
@@ -212,15 +262,41 @@ class _MermaidRendererState extends State<MermaidRenderer> {
     );
   }
 
+  /// The parse failure, worded in the reader's language.
+  String _localisedFailure(BuildContext context, String code) {
+    final l10n = AppLocalizations.of(context)!;
+    final failure = const MermaidParser().describeFailure(code);
+    switch (failure.kind) {
+      case MermaidFailureKind.empty:
+        return l10n.mermaidErrorEmpty;
+      case MermaidFailureKind.unknownType:
+        // The type names stay as they are: they are what has to be typed.
+        return '${l10n.mermaidErrorUnknownType(failure.detail)}\n'
+            '${l10n.mermaidSupportedTypes(MermaidParser.supportedTypes.join(', '))}';
+      case MermaidFailureKind.headerOnly:
+        return l10n.mermaidErrorHeaderOnly;
+      case MermaidFailureKind.unparsedBody:
+        return l10n.mermaidErrorBadBody;
+    }
+  }
+
   Widget _buildDiagram(MermaidStyle style) {
     return MermaidDiagram(
       code: widget.code,
       style: style,
       errorBuilder: (context, error) {
+        // Through the colour scheme rather than a fixed red: the pale red wash
+        // was painted the same in every theme, so on a dark one the message
+        // arrived as a bright panel in the middle of the document.
+        final scheme = Theme.of(context).colorScheme;
+        // `error` is the package's own English sentence. The package depends on
+        // nothing but Flutter and so cannot reach these translations; ask it
+        // for the reason instead and word it here.
+        final detail = _localisedFailure(context, widget.code);
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.red.shade50,
+            color: scheme.errorContainer,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Column(
@@ -229,19 +305,24 @@ class _MermaidRendererState extends State<MermaidRenderer> {
             children: [
               Row(
                 children: [
-                  Icon(Icons.error_outline, color: Colors.red.shade700),
+                  Icon(Icons.error_outline, color: scheme.onErrorContainer),
                   const SizedBox(width: 8),
-                  Text(
-                    'Mermaid Parse Error',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.red.shade700,
+                  Flexible(
+                    child: Text(
+                      AppLocalizations.of(context)!.mermaidParseError,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: scheme.onErrorContainer,
+                      ),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 8),
-              Text(error, style: TextStyle(color: Colors.red.shade900, fontSize: 12)),
+              Text(
+                detail,
+                style: TextStyle(color: scheme.onErrorContainer, fontSize: 12),
+              ),
             ],
           ),
         );
@@ -284,6 +365,7 @@ class _MermaidFullscreenViewState extends State<_MermaidFullscreenView> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final l10n = AppLocalizations.of(context)!;
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: EdgeInsets.symmetric(
@@ -322,14 +404,17 @@ class _MermaidFullscreenViewState extends State<_MermaidFullscreenView> {
                   children: [
                     const Icon(Icons.schema_outlined, size: 20),
                     const SizedBox(width: 8),
-                    const Text(
-                      'Mermaid 图表查看',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                    Text(
+                      l10n.mermaidViewerTitle,
+                      style: const TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.w600),
                     ),
                     const Spacer(),
-                    _toolbarButton(Icons.zoom_out_map, '重置', _resetZoom),
+                    _toolbarButton(
+                        Icons.zoom_out_map, l10n.viewResetZoom, _resetZoom),
                     const SizedBox(width: 8),
-                    _toolbarButton(Icons.close, '关闭', () => Navigator.of(context).pop()),
+                    _toolbarButton(Icons.close, l10n.close,
+                        () => Navigator.of(context).pop()),
                   ],
                 ),
               ),
@@ -348,7 +433,7 @@ class _MermaidFullscreenViewState extends State<_MermaidFullscreenView> {
                       final dy = focal.dy * (1 - scaleFactor);
                       final m = Matrix4.identity()
                         ..setTranslationRaw(dx, dy, 0)
-                        ..scale(scaleFactor, scaleFactor, 1.0);
+                        ..scaleByDouble(scaleFactor, scaleFactor, 1.0, 1.0);
                       _controller.value = m * _controller.value;
                     }
                   },
@@ -373,10 +458,10 @@ class _MermaidFullscreenViewState extends State<_MermaidFullscreenView> {
                   color: Colors.grey.shade100,
                   borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
                 ),
-                child: const Center(
+                child: Center(
                   child: Text(
-                    'Ctrl+滚轮缩放    拖动平移    Esc 关闭',
-                    style: TextStyle(color: Colors.black54, fontSize: 12),
+                    l10n.mermaidViewerHint,
+                    style: const TextStyle(color: Colors.black54, fontSize: 12),
                   ),
                 ),
               ),

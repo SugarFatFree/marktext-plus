@@ -1,16 +1,131 @@
+import '../../utils/file_utils.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
+import '../../app.dart';
 import '../../core/i18n/l10n/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/tab_info.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/tab_provider.dart';
+import '../../services/file_service.dart';
+
+/// What the user chose when asked about unsaved work.
+enum _UnsavedChoice { cancel, discard, save }
 
 class EditorTabBar extends ConsumerWidget {
   const EditorTabBar({super.key});
+
+  /// Closes [tab], asking first when it has unsaved changes.
+  ///
+  /// Closing used to discard the tab outright. That is survivable for a file
+  /// on disk, which auto-save has usually written by then, but a new document
+  /// has no path — auto-save skips it entirely — so its contents were lost for
+  /// good with nothing asked and nothing said.
+  ///
+  /// Static so the File menu's Close Tab can go through the same confirmation
+  /// rather than growing a second, subtly different copy of it.
+  static Future<void> closeTab(
+    BuildContext context,
+    WidgetRef ref,
+    TabInfo tab,
+  ) async {
+    if (!tab.isModified) {
+      ref.read(tabProvider.notifier).removeTab(tab.id);
+      return;
+    }
+
+    final choice = await _askAboutUnsavedChanges(context, tab);
+    if (choice == null || choice == _UnsavedChoice.cancel) return;
+
+    if (choice == _UnsavedChoice.save) {
+      final saved = await saveTab(ref, tab);
+      // Abandoning the save location prompt means abandoning the close too.
+      if (!saved) return;
+    }
+
+    ref.read(tabProvider.notifier).removeTab(tab.id);
+  }
+
+  static Future<_UnsavedChoice?> _askAboutUnsavedChanges(
+    BuildContext context,
+    TabInfo tab,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    return showDialog<_UnsavedChoice>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.unsavedChanges),
+        content: Text('${tab.fileName}\n\n${l10n.unsavedChangesMessage}'),
+        actions: [
+          TextButton(
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(_UnsavedChoice.cancel),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(_UnsavedChoice.discard),
+            child: Text(l10n.dontSave),
+          ),
+          FilledButton(
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(_UnsavedChoice.save),
+            child: Text(l10n.save),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Writes [tab] to disk, prompting for a location if it has never had one.
+  ///
+  /// Returns false when the user cancels that prompt or the write fails.
+  static Future<bool> saveTab(WidgetRef ref, TabInfo tab) async {
+    var path = tab.filePath;
+
+    if (path == null) {
+      // The picker's title is drawn by the operating system, so it takes a
+      // string; this call site is static and reaches the localisations
+      // through the navigator, falling back to English if it has no context.
+      final context = navigatorKey.currentContext;
+      path = await FilePicker.platform.saveFile(
+        dialogTitle: context == null
+            ? 'Save As'
+            : AppLocalizations.of(context)!.fileSaveAs,
+        fileName: tab.fileName,
+        type: FileType.custom,
+        allowedExtensions: FileUtils.markdownExtensions,
+      );
+      if (path == null) return false;
+    }
+
+    try {
+      await FileService.saveDocument(path, tab.content,
+          lineEnding: tab.lineEnding, encoding: tab.encoding);
+    } catch (e) {
+      // Closing on a failed write would lose the content the save was meant
+      // to protect. The reader is told why the tab refused to close.
+      reportSaveFailure(e);
+      return false;
+    }
+
+    // The same three steps the Save As in the menu takes. That one was fixed
+    // to rebind the tab and remember the path; this copy of the branch was
+    // not, so a document saved through the close prompt stayed untitled and
+    // never reached the recent files list.
+    if (tab.filePath != path) {
+      ref
+          .read(tabProvider.notifier)
+          .updateTabPath(tab.id, path, p.basename(path));
+      ref.read(settingsProvider.notifier).addRecentFile(path);
+    }
+    ref.read(tabProvider.notifier).markSaved(tab.id);
+    return true;
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -34,7 +149,7 @@ class EditorTabBar extends ConsumerWidget {
               scrollDirection: Axis.horizontal,
               buildDefaultDragHandles: false,
               itemCount: tabs.length,
-              onReorder: (oldIndex, newIndex) {
+              onReorderItem: (oldIndex, newIndex) {
                 ref.read(tabProvider.notifier).reorderTabs(oldIndex, newIndex);
               },
               itemBuilder: (context, index) {
@@ -48,7 +163,7 @@ class EditorTabBar extends ConsumerWidget {
                     isActive: isActive,
                     tokens: tokens,
                     onTap: () => ref.read(tabProvider.notifier).setActiveTab(tab.id),
-                    onClose: () => ref.read(tabProvider.notifier).removeTab(tab.id),
+                    onClose: () => closeTab(context, ref, tab),
                   ),
                 );
               },
@@ -152,11 +267,20 @@ class _TabItemState extends ConsumerState<_TabItem> with SingleTickerProviderSta
       case 'close':
         widget.onClose();
       case 'close_others':
-        ref.read(tabProvider.notifier).closeOtherTabs(tab.id);
+        await _closeMany(
+          ref.read(tabProvider).tabs.where((t) => t.id != tab.id).toList(),
+          () => ref.read(tabProvider.notifier).closeOtherTabs(tab.id),
+        );
       case 'close_right':
-        ref.read(tabProvider.notifier).closeTabsToRight(tab.id);
+        await _closeMany(
+          _tabsRightOf(ref, tab.id),
+          () => ref.read(tabProvider.notifier).closeTabsToRight(tab.id),
+        );
       case 'close_all':
-        ref.read(tabProvider.notifier).closeAllTabs();
+        await _closeMany(
+          ref.read(tabProvider).tabs.toList(),
+          () => ref.read(tabProvider.notifier).closeAllTabs(),
+        );
       case 'copy_name':
         await Clipboard.setData(ClipboardData(text: tab.fileName));
       case 'copy_path':
@@ -175,6 +299,74 @@ class _TabItemState extends ConsumerState<_TabItem> with SingleTickerProviderSta
           }
         }
     }
+  }
+
+  List<TabInfo> _tabsRightOf(WidgetRef ref, String id) {
+    final tabs = ref.read(tabProvider).tabs;
+    final index = tabs.indexWhere((t) => t.id == id);
+    return index < 0 ? const [] : tabs.sublist(index + 1);
+  }
+
+  /// Runs [close] after asking about any unsaved tabs among [closing].
+  ///
+  /// Closing several tabs at once used to discard all of them without asking,
+  /// which loses more than the single-tab case it mirrors.
+  Future<void> _closeMany(List<TabInfo> closing, void Function() close) async {
+    final unsaved = closing.where((t) => t.isModified).toList();
+    if (unsaved.isEmpty) {
+      close();
+      return;
+    }
+
+    final choice = await _askAboutUnsavedTabs(unsaved);
+    if (choice == null || choice == _UnsavedChoice.cancel) return;
+
+    if (choice == _UnsavedChoice.save) {
+      for (final tab in unsaved) {
+        final saved = await EditorTabBar.saveTab(ref, tab);
+        // Abandoning one save abandons the whole operation: closing the rest
+        // would still lose this tab's work.
+        if (!saved) return;
+      }
+    }
+
+    close();
+  }
+
+  Future<_UnsavedChoice?> _askAboutUnsavedTabs(List<TabInfo> unsaved) {
+    final l10n = AppLocalizations.of(context)!;
+    // Naming the files matters here: with several tabs the user cannot
+    // otherwise tell what they are about to discard.
+    const maxListed = 5;
+    final names = unsaved.take(maxListed).map((t) => t.fileName).join('\n');
+    final extra = unsaved.length > maxListed
+        ? '\n… ${unsaved.length - maxListed}'
+        : '';
+
+    return showDialog<_UnsavedChoice>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.unsavedChanges),
+        content: Text('$names$extra\n\n${l10n.unsavedChangesMessage}'),
+        actions: [
+          TextButton(
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(_UnsavedChoice.cancel),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(_UnsavedChoice.discard),
+            child: Text(l10n.dontSave),
+          ),
+          FilledButton(
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(_UnsavedChoice.save),
+            child: Text(l10n.save),
+          ),
+        ],
+      ),
+    );
   }
 
   @override

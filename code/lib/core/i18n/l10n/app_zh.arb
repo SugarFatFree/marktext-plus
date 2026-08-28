@@ -1,5 +1,76 @@
 {
   "@@locale": "zh",
+  "settingsWrapCodeBlocks": "代码块内长行自动换行",
+  "settingsCodeBlockLineNumbers": "代码块行号",
+  "settingsSaveFailed": "设置保存失败：{message}",
+  "@settingsSaveFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsFollowSystemTheme": "跟随系统深浅色",
+  "settingsFollowSystemThemeHint": "分别选一个浅色主题和一个深色主题，由系统决定显示哪个。",
+  "settingsAutoPairBracket": "自动补全括号",
+  "settingsAutoPairQuote": "自动补全引号",
+  "settingsAutoPairMarkdown": "自动补全 Markdown 语法（`、*、~）",
+  "helpOpenDiagnosticLog": "打开诊断日志",
+  "diagnosticLogMissing": "还没有写出诊断日志",
+  "mermaidCaptureFailed": "无法截取图表",
+  "mermaidErrorEmpty": "图表是空的。",
+  "mermaidErrorUnknownType": "无法识别的图表类型：“{type}”。",
+  "@mermaidErrorUnknownType": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "mermaidErrorHeaderOnly": "这个图表只有表头，没有内容。",
+  "mermaidErrorBadBody": "表头是认得的，请检查下面的语法。",
+  "mermaidSupportedTypes": "支持的类型：{list}",
+  "@mermaidSupportedTypes": {
+    "placeholders": {
+      "list": {
+        "type": "String"
+      }
+    }
+  },
+  "mermaidParseError": "Mermaid 解析错误",
+  "imageSavedTo": "已保存到 {path}",
+  "@imageSavedTo": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "imageSaveFailed": "图片保存失败：{message}",
+  "@imageSaveFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "saveFailed": "保存失败：{message}",
+  "@saveFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "fileOperationFailed": "文件操作失败：{message}",
+  "fileNameTaken": "已存在同名的文件或文件夹",
+  "@fileOperationFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "appTitle": "MarkText Plus",
   "menuFile": "文件",
   "menuEdit": "编辑",
@@ -18,6 +89,7 @@
   "fileExport": "导出",
   "fileExportHtml": "HTML",
   "fileExportPdf": "PDF",
+  "filePrint": "打印",
   "fileExportWord": "Word (.docx)",
   "fileSettings": "设置",
   "fileQuit": "退出",
@@ -99,7 +171,6 @@
   "settingsLightThemes": "浅色主题",
   "settingsDarkThemes": "深色主题",
   "confirmResetMessage": "确定要恢复所有设置为默认值吗？",
-  "comingSoon": "即将推出",
   "noFiles": "没有文件",
   "noOpenFolder": "打开文件夹以浏览文件",
   "searchPlaceholder": "在文件中搜索...",
@@ -114,10 +185,10 @@
   "editRegex": "正则表达式",
   "editCopyAsMarkdown": "复制为 Markdown",
   "editCopyAsHtml": "复制为 HTML",
-  "previewCopyAsHtmlTooltip": "复制为 HTML（用于 Word/WPS）",
-  "previewCopyAsHtmlSuccess": "已复制为 HTML 格式，现在可以粘贴到 Word/WPS 并保留格式。",
   "editSelectAll": "全选",
   "editDuplicateLine": "复制行",
+  "editCreateParagraph": "在下方插入段落",
+  "editDeleteParagraph": "删除当前段落",
   "formatUnderline": "下划线",
   "formatSuperscript": "上标",
   "formatSubscript": "下标",
@@ -126,6 +197,8 @@
   "formatInlineMath": "行内公式",
   "formatClearFormatting": "清除格式",
   "settingsCodeFontFamily": "代码字体",
+  "settingsCodeFontSize": "代码字体大小",
+  "settingsEditorFontFamily": "正文字体",
   "settingsEditorMaxWidth": "编辑器最大宽度",
   "settingsTextDirection": "文本方向",
   "keybindingsEdit": "编辑快捷键",
@@ -134,11 +207,6 @@
   "statusWords": "单词",
   "statusChars": "字符",
   "statusParagraphs": "段落",
-  "themeCadmiumLight": "镉黄浅色",
-  "themeOneDark": "One Dark",
-  "themeMaterialDark": "Material 深色",
-  "themeGraphiteLight": "石墨浅色",
-  "themeUlyssesLight": "Ulysses 浅色",
   "themeRedGraphite": "红石墨",
   "themeShibuya": "涩谷",
   "themePinkBlossom": "粉樱",
@@ -182,7 +250,13 @@
   "copyFilePath": "复制文件路径",
   "deleteFile": "删除文件",
   "confirmDeleteFile": "确定要删除 \"{fileName}\" 吗？",
-  "@confirmDeleteFile": { "placeholders": { "fileName": { "type": "String" } } },
+  "@confirmDeleteFile": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
   "newFolder": "新建文件夹",
   "rename": "重命名",
   "delete": "删除",
@@ -207,9 +281,21 @@
   "settingsTextDirectionLtr": "从左到右",
   "settingsTextDirectionRtl": "从右到左",
   "commandFormatLabel": "格式：{action}",
-  "@commandFormatLabel": { "placeholders": { "action": { "type": "String" } } },
+  "@commandFormatLabel": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
   "commandFormatDesc": "应用{action}格式",
-  "@commandFormatDesc": { "placeholders": { "action": { "type": "String" } } },
+  "@commandFormatDesc": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
   "commandNewFile": "新建文件",
   "commandNewFileDesc": "创建一个新的无标题文件",
   "commandSave": "保存",
@@ -228,19 +314,43 @@
   "commandToggleSidebarDesc": "显示或隐藏侧边栏",
   "commandToggleTabBar": "切换标签栏",
   "commandToggleTabBarDesc": "显示或隐藏标签栏",
-
   "welcomeNewFile": "新建文件",
   "welcomeOpenFile": "打开文件",
   "welcomeDragHint": "拖拽文件到此处打开",
-
   "fileOpenBehavior": "文件打开行为",
-  "fileOpenBehaviorTitle": "如何打开文件？",
-  "fileOpenBehaviorMessage": "当应用已运行时，双击文件：",
   "fileOpenBehaviorNewWindow": "在新窗口打开",
-  "fileOpenBehaviorNewWindowDesc": "允许多个应用实例",
   "fileOpenBehaviorExistingWindow": "在当前窗口打开",
-  "fileOpenBehaviorExistingWindowDesc": "添加到现有标签页（单实例）",
   "fileOpenBehaviorNotSet": "未配置",
   "updateAvailable": "发现新版本",
-  "updateDismiss": "忽略"
+  "updateDismiss": "忽略",
+  "mermaidFullscreen": "全屏",
+  "mermaidSaveAs": "另存为",
+  "mermaidCopySource": "复制源码",
+  "mermaidEditSource": "编辑源码",
+  "mermaidFullscreenHint": "双击图表全屏查看",
+  "mermaidSaveAsHint": "保存图表为 PNG",
+  "menuParagraph": "段落",
+  "paragraphPromoteHeading": "提升标题",
+  "paragraphDemoteHeading": "降低标题",
+  "paragraphToParagraph": "转为段落",
+  "paragraphLooseList": "松散列表项",
+  "close": "关闭",
+  "mermaidViewerTitle": "Mermaid 图表查看",
+  "mermaidViewerHint": "Ctrl+滚轮缩放    拖动平移    Esc 关闭",
+  "statusHighlightOff": "大文件已关闭语法高亮",
+  "settingsImageStorage": "拖入的图片保存位置",
+  "settingsImageStorageCopy": "复制到文档旁边",
+  "settingsImageStorageFolder": "统一放到一个文件夹",
+  "settingsImageStorageLink": "不复制，直接引用原位置",
+  "settingsImageFolder": "图片文件夹",
+  "fileCloseTab": "关闭标签页",
+  "fileClearRecentFiles": "清空最近文件",
+  "viewCommandPalette": "命令面板",
+  "viewReloadImages": "重新加载图片",
+  "formatFrontMatter": "前置元数据",
+  "formatHtmlBlock": "HTML 块",
+  "updateUpToDate": "已经是最新版本",
+  "updateCheckFailed": "检查更新失败",
+  "linkOpenFailed": "无法打开链接",
+  "recentFileMissing": "该文件已不存在，已从列表中移除"
 }

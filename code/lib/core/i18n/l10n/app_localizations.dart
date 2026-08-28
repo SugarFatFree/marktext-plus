@@ -117,6 +117,138 @@ abstract class AppLocalizations {
     Locale('zh'),
   ];
 
+  /// No description provided for @settingsWrapCodeBlocks.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrap long lines in code blocks'**
+  String get settingsWrapCodeBlocks;
+
+  /// No description provided for @settingsCodeBlockLineNumbers.
+  ///
+  /// In en, this message translates to:
+  /// **'Code Block Line Numbers'**
+  String get settingsCodeBlockLineNumbers;
+
+  /// No description provided for @settingsSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save your settings: {message}'**
+  String settingsSaveFailed(String message);
+
+  /// No description provided for @settingsFollowSystemTheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow the system light/dark setting'**
+  String get settingsFollowSystemTheme;
+
+  /// No description provided for @settingsFollowSystemThemeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick one light theme and one dark theme; the system decides which is shown.'**
+  String get settingsFollowSystemThemeHint;
+
+  /// No description provided for @settingsAutoPairBracket.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-close brackets'**
+  String get settingsAutoPairBracket;
+
+  /// No description provided for @settingsAutoPairQuote.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-close quotes'**
+  String get settingsAutoPairQuote;
+
+  /// No description provided for @settingsAutoPairMarkdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-close Markdown syntax (`, *, ~)'**
+  String get settingsAutoPairMarkdown;
+
+  /// No description provided for @helpOpenDiagnosticLog.
+  ///
+  /// In en, this message translates to:
+  /// **'Open diagnostic log'**
+  String get helpOpenDiagnosticLog;
+
+  /// No description provided for @diagnosticLogMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'No diagnostic log has been written yet'**
+  String get diagnosticLogMissing;
+
+  /// No description provided for @mermaidCaptureFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not capture the diagram'**
+  String get mermaidCaptureFailed;
+
+  /// No description provided for @mermaidErrorEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'The diagram is empty.'**
+  String get mermaidErrorEmpty;
+
+  /// No description provided for @mermaidErrorUnknownType.
+  ///
+  /// In en, this message translates to:
+  /// **'Unrecognised diagram type: \"{type}\".'**
+  String mermaidErrorUnknownType(String type);
+
+  /// No description provided for @mermaidErrorHeaderOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'This diagram has a header but no content.'**
+  String get mermaidErrorHeaderOnly;
+
+  /// No description provided for @mermaidErrorBadBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The header is recognised, so check the syntax below it.'**
+  String get mermaidErrorBadBody;
+
+  /// No description provided for @mermaidSupportedTypes.
+  ///
+  /// In en, this message translates to:
+  /// **'Supported types: {list}'**
+  String mermaidSupportedTypes(String list);
+
+  /// No description provided for @mermaidParseError.
+  ///
+  /// In en, this message translates to:
+  /// **'Mermaid parse error'**
+  String get mermaidParseError;
+
+  /// No description provided for @imageSavedTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved to {path}'**
+  String imageSavedTo(String path);
+
+  /// No description provided for @imageSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save the image: {message}'**
+  String imageSaveFailed(String message);
+
+  /// No description provided for @saveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save the file: {message}'**
+  String saveFailed(String message);
+
+  /// No description provided for @fileOperationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'File operation failed: {message}'**
+  String fileOperationFailed(String message);
+
+  /// No description provided for @fileNameTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'A file or folder with that name already exists'**
+  String get fileNameTaken;
+
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:
@@ -224,6 +356,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'PDF'**
   String get fileExportPdf;
+
+  /// No description provided for @filePrint.
+  ///
+  /// In en, this message translates to:
+  /// **'Print'**
+  String get filePrint;
 
   /// No description provided for @fileExportWord.
   ///
@@ -711,12 +849,6 @@ abstract class AppLocalizations {
   /// **'Are you sure you want to reset all settings to defaults?'**
   String get confirmResetMessage;
 
-  /// No description provided for @comingSoon.
-  ///
-  /// In en, this message translates to:
-  /// **'Coming soon'**
-  String get comingSoon;
-
   /// No description provided for @noFiles.
   ///
   /// In en, this message translates to:
@@ -801,18 +933,6 @@ abstract class AppLocalizations {
   /// **'Copy as HTML'**
   String get editCopyAsHtml;
 
-  /// No description provided for @previewCopyAsHtmlTooltip.
-  ///
-  /// In en, this message translates to:
-  /// **'Copy as HTML (for Word/WPS)'**
-  String get previewCopyAsHtmlTooltip;
-
-  /// No description provided for @previewCopyAsHtmlSuccess.
-  ///
-  /// In en, this message translates to:
-  /// **'Copied as HTML. You can now paste into Word/WPS with formatting.'**
-  String get previewCopyAsHtmlSuccess;
-
   /// No description provided for @editSelectAll.
   ///
   /// In en, this message translates to:
@@ -824,6 +944,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Duplicate Line'**
   String get editDuplicateLine;
+
+  /// Edit menu item that opens an empty paragraph below the current block
+  ///
+  /// In en, this message translates to:
+  /// **'Create Paragraph Below'**
+  String get editCreateParagraph;
+
+  /// Edit menu item that removes the block the caret is in
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Paragraph'**
+  String get editDeleteParagraph;
 
   /// No description provided for @formatUnderline.
   ///
@@ -873,6 +1005,18 @@ abstract class AppLocalizations {
   /// **'Code Font Family'**
   String get settingsCodeFontFamily;
 
+  /// No description provided for @settingsCodeFontSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Code Font Size'**
+  String get settingsCodeFontSize;
+
+  /// Settings row for the font the editor's body text is drawn in
+  ///
+  /// In en, this message translates to:
+  /// **'Editor Font Family'**
+  String get settingsEditorFontFamily;
+
   /// No description provided for @settingsEditorMaxWidth.
   ///
   /// In en, this message translates to:
@@ -920,36 +1064,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Paragraphs'**
   String get statusParagraphs;
-
-  /// No description provided for @themeCadmiumLight.
-  ///
-  /// In en, this message translates to:
-  /// **'Cadmium Light'**
-  String get themeCadmiumLight;
-
-  /// No description provided for @themeOneDark.
-  ///
-  /// In en, this message translates to:
-  /// **'One Dark'**
-  String get themeOneDark;
-
-  /// No description provided for @themeMaterialDark.
-  ///
-  /// In en, this message translates to:
-  /// **'Material Dark'**
-  String get themeMaterialDark;
-
-  /// No description provided for @themeGraphiteLight.
-  ///
-  /// In en, this message translates to:
-  /// **'Graphite Light'**
-  String get themeGraphiteLight;
-
-  /// No description provided for @themeUlyssesLight.
-  ///
-  /// In en, this message translates to:
-  /// **'Ulysses Light'**
-  String get themeUlyssesLight;
 
   /// No description provided for @themeRedGraphite.
   ///
@@ -1491,41 +1605,17 @@ abstract class AppLocalizations {
   /// **'File Opening Behavior'**
   String get fileOpenBehavior;
 
-  /// No description provided for @fileOpenBehaviorTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'How to Open Files?'**
-  String get fileOpenBehaviorTitle;
-
-  /// No description provided for @fileOpenBehaviorMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'When you double-click a file while the app is already running:'**
-  String get fileOpenBehaviorMessage;
-
   /// No description provided for @fileOpenBehaviorNewWindow.
   ///
   /// In en, this message translates to:
   /// **'Open in New Window'**
   String get fileOpenBehaviorNewWindow;
 
-  /// No description provided for @fileOpenBehaviorNewWindowDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Allow multiple app instances'**
-  String get fileOpenBehaviorNewWindowDesc;
-
   /// No description provided for @fileOpenBehaviorExistingWindow.
   ///
   /// In en, this message translates to:
   /// **'Open in Current Window'**
   String get fileOpenBehaviorExistingWindow;
-
-  /// No description provided for @fileOpenBehaviorExistingWindowDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Add to existing tabs (single instance)'**
-  String get fileOpenBehaviorExistingWindowDesc;
 
   /// No description provided for @fileOpenBehaviorNotSet.
   ///
@@ -1544,6 +1634,186 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Dismiss'**
   String get updateDismiss;
+
+  /// No description provided for @mermaidFullscreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Fullscreen'**
+  String get mermaidFullscreen;
+
+  /// No description provided for @mermaidSaveAs.
+  ///
+  /// In en, this message translates to:
+  /// **'Save As'**
+  String get mermaidSaveAs;
+
+  /// No description provided for @mermaidCopySource.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy Source'**
+  String get mermaidCopySource;
+
+  /// Toolbar button that opens a diagram's markdown source for editing
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Source'**
+  String get mermaidEditSource;
+
+  /// No description provided for @mermaidFullscreenHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Double-tap the diagram to view fullscreen'**
+  String get mermaidFullscreenHint;
+
+  /// No description provided for @mermaidSaveAsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Save the diagram as PNG'**
+  String get mermaidSaveAsHint;
+
+  /// No description provided for @menuParagraph.
+  ///
+  /// In en, this message translates to:
+  /// **'Paragraph'**
+  String get menuParagraph;
+
+  /// No description provided for @paragraphPromoteHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Promote Heading'**
+  String get paragraphPromoteHeading;
+
+  /// No description provided for @paragraphDemoteHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Demote Heading'**
+  String get paragraphDemoteHeading;
+
+  /// No description provided for @paragraphToParagraph.
+  ///
+  /// In en, this message translates to:
+  /// **'Convert to Paragraph'**
+  String get paragraphToParagraph;
+
+  /// Paragraph menu item that spaces a list's items apart or runs them together
+  ///
+  /// In en, this message translates to:
+  /// **'Loose List Item'**
+  String get paragraphLooseList;
+
+  /// Generic label for a button that closes a dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get close;
+
+  /// Title of the fullscreen Mermaid diagram dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Mermaid Diagram Viewer'**
+  String get mermaidViewerTitle;
+
+  /// Hint line listing the fullscreen diagram viewer gestures
+  ///
+  /// In en, this message translates to:
+  /// **'Ctrl+Scroll to zoom    Drag to pan    Esc to close'**
+  String get mermaidViewerHint;
+
+  /// Status bar note shown when a document is too large to highlight
+  ///
+  /// In en, this message translates to:
+  /// **'Syntax highlighting off (large file)'**
+  String get statusHighlightOff;
+
+  /// Setting that chooses where a dropped or pasted image is stored
+  ///
+  /// In en, this message translates to:
+  /// **'Where to put dropped images'**
+  String get settingsImageStorage;
+
+  /// Image storage option: copy next to the markdown file
+  ///
+  /// In en, this message translates to:
+  /// **'Beside the document'**
+  String get settingsImageStorageCopy;
+
+  /// Image storage option: copy into one configured folder
+  ///
+  /// In en, this message translates to:
+  /// **'In one shared folder'**
+  String get settingsImageStorageFolder;
+
+  /// Image storage option: reference the file in place
+  ///
+  /// In en, this message translates to:
+  /// **'Link where they are'**
+  String get settingsImageStorageLink;
+
+  /// Setting for the folder used by the shared-folder image option
+  ///
+  /// In en, this message translates to:
+  /// **'Image folder'**
+  String get settingsImageFolder;
+
+  /// File menu item that closes the active tab
+  ///
+  /// In en, this message translates to:
+  /// **'Close Tab'**
+  String get fileCloseTab;
+
+  /// Menu item that empties the recent files list
+  ///
+  /// In en, this message translates to:
+  /// **'Clear Recent Files'**
+  String get fileClearRecentFiles;
+
+  /// View menu item that opens the command palette
+  ///
+  /// In en, this message translates to:
+  /// **'Command Palette'**
+  String get viewCommandPalette;
+
+  /// View menu item that drops cached images so pictures edited outside the app are read from disk again
+  ///
+  /// In en, this message translates to:
+  /// **'Reload Images'**
+  String get viewReloadImages;
+
+  /// Paragraph menu item that inserts a YAML front matter block
+  ///
+  /// In en, this message translates to:
+  /// **'Front Matter'**
+  String get formatFrontMatter;
+
+  /// Paragraph menu item that inserts an HTML block
+  ///
+  /// In en, this message translates to:
+  /// **'HTML Block'**
+  String get formatHtmlBlock;
+
+  /// Shown when a manual update check finds nothing newer
+  ///
+  /// In en, this message translates to:
+  /// **'You are on the latest version'**
+  String get updateUpToDate;
+
+  /// Shown when a manual update check could not reach the server
+  ///
+  /// In en, this message translates to:
+  /// **'Could not check for updates'**
+  String get updateCheckFailed;
+
+  /// Shown when a link in the preview cannot be opened
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open the link'**
+  String get linkOpenFailed;
+
+  /// No description provided for @recentFileMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'That file is no longer there; it has been removed from the list'**
+  String get recentFileMissing;
 }
 
 class _AppLocalizationsDelegate

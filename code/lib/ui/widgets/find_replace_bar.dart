@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/i18n/l10n/app_localizations.dart';
 import '../../providers/editor_provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../services/text_search_service.dart';
 import '../editor/highlighting_controller.dart';
 
 class FindReplaceBar extends ConsumerStatefulWidget {
@@ -16,6 +17,49 @@ class FindReplaceBar extends ConsumerStatefulWidget {
     this.rawContent,
     this.isSplitMode = false,
   }) : assert(textController != null || rawContent != null, 'Either textController or rawContent must be provided');
+
+  /// Writes [replacement] over each of [ranges] in [text].
+  ///
+  /// Back to front, so replacing one range does not move the next. [ranges]
+  /// must be non-overlapping and in document order, which is what
+  /// [findMatches] returns.
+  @visibleForTesting
+  static String replaceRanges(
+    String text,
+    List<TextRange> ranges,
+    String replacement,
+  ) {
+    var out = text;
+    for (var i = ranges.length - 1; i >= 0; i--) {
+      final range = ranges[i];
+      out = out.substring(0, range.start) +
+          replacement +
+          out.substring(range.end);
+    }
+    return out;
+  }
+
+  /// Scans [text] for [pattern], returning non-overlapping ranges in document
+  /// order.
+  ///
+  /// Delegates to [TextSearch]: the preview's highlighter needs the same
+  /// answer, and when each had its own copy they disagreed about overlapping
+  /// hits. Kept here because the existing tests address it by this name.
+  @visibleForTesting
+  static List<TextRange> findMatches(
+    String text,
+    String pattern, {
+    bool caseSensitive = false,
+    bool wholeWord = false,
+    bool useRegex = false,
+  }) =>
+      TextSearch.matches(
+        text,
+        pattern,
+        caseSensitive: caseSensitive,
+        wholeWord: wholeWord,
+        useRegex: useRegex,
+      );
 
   @override
   ConsumerState<FindReplaceBar> createState() => _FindReplaceBarState();
@@ -31,21 +75,74 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
   bool _useRegex = false;
   bool _showReplace = false;
 
+  /// The notifier, kept for dispose. See initState.
+  late final EditorNotifier _editor;
+
   List<TextRange> _matches = [];
   int _currentMatchIndex = -1;
+
+  /// The document text the current [_matches] offsets were computed against.
+  /// The bar stays open while the user keeps editing, so offsets go stale and
+  /// must not be used to splice text.
+  String _scannedText = '';
 
   @override
   void initState() {
     super.initState();
+    // Held rather than read on demand, because dispose() has to clear the
+    // preview highlight and `ref` is already gone by then: Riverpod marks the
+    // element disposed before State.dispose runs, so every teardown of this
+    // bar threw and the highlight it was meant to clear stayed on screen.
+    _editor = ref.read(editorProvider.notifier);
     _findController.addListener(_onFindTextChanged);
+    widget.textController?.addListener(_onDocumentChanged);
+
+    // Find Next and Find Previous live in the Edit menu and on a shortcut, but
+    // the match list is here, so they arrive as a request to step.
+    ref.listenManual(editorProvider.select((s) => s.findStepRequest),
+        (previous, next) {
+      if (previous == null || next <= previous) return;
+      if (ref.read(editorProvider).findStepForward) {
+        _findNext();
+      } else {
+        _findPrevious();
+      }
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _findFocusNode.requestFocus();
     });
   }
 
   @override
+  void didUpdateWidget(FindReplaceBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.textController != widget.textController) {
+      oldWidget.textController?.removeListener(_onDocumentChanged);
+      widget.textController?.addListener(_onDocumentChanged);
+      _findMatches();
+    } else if (widget.rawContent != oldWidget.rawContent) {
+      _findMatches(jumpToMatch: false);
+    }
+  }
+
+  @override
   void dispose() {
-    _clearHighlighting();
+    // The controller is ours to clear now; the provider is not. Telling it
+    // during dispose makes it notify listeners, and this widget is one of
+    // them — a rebuild of an element the framework has already finished with.
+    // After the frame it is simply gone, and the preview still stops
+    // highlighting.
+    if (widget.textController is HighlightingController) {
+      (widget.textController as HighlightingController)
+          .updateSearchMatches([], -1);
+    }
+    final editor = _editor;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (editor.mounted) editor.clearPreviewSearch();
+    });
+
+    widget.textController?.removeListener(_onDocumentChanged);
     _findController.dispose();
     _replaceController.dispose();
     _findFocusNode.dispose();
@@ -57,11 +154,18 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
       (widget.textController as HighlightingController)
           .updateSearchMatches([], -1);
     }
-    ref.read(editorProvider.notifier).clearPreviewSearch();
+    _editor.clearPreviewSearch();
   }
 
   void _onFindTextChanged() {
     _findMatches();
+  }
+
+  /// The editor's controller also notifies on selection changes, so compare the
+  /// text before rescanning. Never moves the caret: the user is typing.
+  void _onDocumentChanged() {
+    if (_getSearchText() == _scannedText) return;
+    _findMatches(jumpToMatch: false);
   }
 
   /// Get the text to search based on current search target.
@@ -84,68 +188,31 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
     return widget.textController != null;
   }
 
-  void _findMatches() {
+  void _findMatches({bool jumpToMatch = true}) {
     final text = _getSearchText();
-    final pattern = _findController.text;
+    _scannedText = text;
 
-    if (pattern.isEmpty) {
-      setState(() {
-        _matches = [];
-        _currentMatchIndex = -1;
-      });
-      _updateHighlighting();
-      return;
-    }
+    final matches = FindReplaceBar.findMatches(
+      text,
+      _findController.text,
+      caseSensitive: _caseSensitive,
+      wholeWord: _wholeWord,
+      useRegex: _useRegex,
+    );
 
-    final matches = <TextRange>[];
-
-    if (_useRegex) {
-      try {
-        final regex = RegExp(pattern, caseSensitive: _caseSensitive);
-        for (final match in regex.allMatches(text)) {
-          matches.add(TextRange(start: match.start, end: match.end));
-        }
-      } catch (e) {
-        // Invalid regex
-      }
-    } else {
-      String searchText = text;
-      String searchPattern = pattern;
-
-      if (!_caseSensitive) {
-        searchText = text.toLowerCase();
-        searchPattern = pattern.toLowerCase();
-      }
-
-      int index = 0;
-      while (index < searchText.length) {
-        final pos = searchText.indexOf(searchPattern, index);
-        if (pos == -1) break;
-
-        if (_wholeWord) {
-          final isWordStart = pos == 0 || !_isWordChar(text[pos - 1]);
-          final isWordEnd = pos + pattern.length >= text.length ||
-              !_isWordChar(text[pos + pattern.length]);
-
-          if (isWordStart && isWordEnd) {
-            matches.add(TextRange(start: pos, end: pos + pattern.length));
-          }
-        } else {
-          matches.add(TextRange(start: pos, end: pos + pattern.length));
-        }
-
-        index = pos + 1;
-      }
-    }
+    // Keep the user's place across a rescan triggered by typing.
+    final selected = matches.isEmpty
+        ? -1
+        : (jumpToMatch ? 0 : _currentMatchIndex.clamp(0, matches.length - 1));
 
     setState(() {
       _matches = matches;
-      _currentMatchIndex = matches.isNotEmpty ? 0 : -1;
+      _currentMatchIndex = selected;
     });
 
     _updateHighlighting();
 
-    if (matches.isNotEmpty) {
+    if (jumpToMatch && matches.isNotEmpty) {
       _highlightMatch(0);
     }
   }
@@ -165,10 +232,6 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
         currentMatchIndex: _currentMatchIndex,
       );
     }
-  }
-
-  bool _isWordChar(String char) {
-    return RegExp(r'[a-zA-Z0-9_]').hasMatch(char);
   }
 
   void _highlightMatch(int index) {
@@ -228,8 +291,14 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
 
     final match = _matches[_currentMatchIndex];
     final text = widget.textController!.text;
-    final replacement = _replaceController.text;
+    // The offsets were computed against an earlier revision if the document
+    // changed underneath us; splicing them would overwrite unrelated text.
+    if (match.end > text.length || text != _scannedText) {
+      _findMatches();
+      return;
+    }
 
+    final replacement = _replaceController.text;
     final newText = text.substring(0, match.start) +
         replacement +
         text.substring(match.end);
@@ -241,7 +310,17 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
       ),
     );
 
-    _findMatches();
+    // Settle on the first match after what we just wrote, so pressing Replace
+    // repeatedly walks through the document instead of snapping back to the
+    // top — and cannot loop forever when the replacement contains the pattern.
+    final resumeFrom = match.start + replacement.length;
+    _findMatches(jumpToMatch: false);
+    if (_matches.isNotEmpty) {
+      var next = _matches.indexWhere((m) => m.start >= resumeFrom);
+      if (next == -1) next = 0;
+      setState(() => _currentMatchIndex = next);
+      _highlightMatch(next);
+    }
   }
 
   void _replaceAll() {
@@ -249,29 +328,22 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
     if (_matches.isEmpty) return;
 
     final text = widget.textController!.text;
-    final replacement = _replaceController.text;
-    final pattern = _findController.text;
-
-    String newText = text;
-
-    if (_useRegex) {
-      try {
-        final regex = RegExp(
-          pattern,
-          caseSensitive: _caseSensitive,
-        );
-        newText = text.replaceAll(regex, replacement);
-      } catch (e) {
-        return;
-      }
-    } else {
-      for (int i = _matches.length - 1; i >= 0; i--) {
-        final match = _matches[i];
-        newText = newText.substring(0, match.start) +
-            replacement +
-            newText.substring(match.end);
-      }
+    if (text != _scannedText) {
+      _findMatches();
+      return;
     }
+
+    final replacement = _replaceController.text;
+
+    // Both kinds of search replace exactly the ranges that were counted and
+    // highlighted, back to front so the earlier offsets stay valid.
+    //
+    // The regular-expression case used to call `String.replaceAll` instead,
+    // which finds its own matches — including the empty ones this deliberately
+    // skips. Searching `x*` in `axbxc` reported two matches and then wrote
+    // `YaYYbYYcY`: six replacements, in a document the user had been shown two.
+    final newText =
+        FindReplaceBar.replaceRanges(text, _matches, replacement);
 
     widget.textController!.value = TextEditingValue(
       text: newText,
@@ -290,6 +362,11 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
+    // Replacing is only possible where the text is editable. Matches are
+    // counted in the preview too, so both buttons were enabled while the
+    // search was aimed at it — and both returned at their first line, which
+    // the reader saw as a button that does nothing.
+    final canReplace = _isSourceTarget();
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
@@ -313,16 +390,18 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
             children: [
               if (widget.isSplitMode) ...[
                 SegmentedButton<SearchTarget>(
-                  segments: const [
+                  segments: [
                     ButtonSegment(
                       value: SearchTarget.source,
-                      label: Text('源代码', style: TextStyle(fontSize: 12)),
-                      icon: Icon(Icons.code, size: 14),
+                      label: Text(l10n.viewSourceCode,
+                          style: const TextStyle(fontSize: 12)),
+                      icon: const Icon(Icons.code, size: 14),
                     ),
                     ButtonSegment(
                       value: SearchTarget.preview,
-                      label: Text('预览', style: TextStyle(fontSize: 12)),
-                      icon: Icon(Icons.visibility, size: 14),
+                      label: Text(l10n.viewPreview,
+                          style: const TextStyle(fontSize: 12)),
+                      icon: const Icon(Icons.visibility, size: 14),
                     ),
                   ],
                   selected: {ref.watch(editorProvider).searchTarget},
@@ -377,13 +456,18 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
               _buildOptionButton(
                 label: '\\b',
                 tooltip: l10n.editWholeWord,
-                isActive: _wholeWord,
-                onPressed: () {
-                  setState(() {
-                    _wholeWord = !_wholeWord;
-                  });
-                  _findMatches();
-                },
+                isActive: _wholeWord && !_useRegex,
+                // The regex scan never applies the word test, so leaving the
+                // button live would show it lit while doing nothing. Regex
+                // users can write \b themselves.
+                onPressed: _useRegex
+                    ? null
+                    : () {
+                        setState(() {
+                          _wholeWord = !_wholeWord;
+                        });
+                        _findMatches();
+                      },
               ),
               const SizedBox(width: 2),
               _buildOptionButton(
@@ -466,12 +550,13 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
                       ),
                     ),
                     style: const TextStyle(fontSize: 13),
+                    enabled: canReplace,
                     onSubmitted: (_) => _replace(),
                   ),
                 ),
                 const SizedBox(width: 8),
                 TextButton(
-                  onPressed: _matches.isNotEmpty ? _replace : null,
+                  onPressed: canReplace && _matches.isNotEmpty ? _replace : null,
                   style: TextButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     minimumSize: const Size(0, 28),
@@ -480,7 +565,8 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
                   child: Text(l10n.editReplace),
                 ),
                 TextButton(
-                  onPressed: _matches.isNotEmpty ? _replaceAll : null,
+                  onPressed:
+                      canReplace && _matches.isNotEmpty ? _replaceAll : null,
                   style: TextButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     minimumSize: const Size(0, 28),
@@ -500,36 +586,43 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
     required String label,
     required String tooltip,
     required bool isActive,
-    required VoidCallback onPressed,
+    required VoidCallback? onPressed,
   }) {
     final theme = Theme.of(context);
+    final enabled = onPressed != null;
 
-    return InkWell(
-      onTap: onPressed,
-      borderRadius: BorderRadius.circular(4),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: isActive
-              ? theme.colorScheme.primary.withValues(alpha: 0.2)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(
+    // The tooltip was accepted but never rendered, so these three buttons —
+    // labelled only "Aa", "\\b" and ".*" — had nothing explaining them.
+    return Tooltip(
+      message: tooltip,
+      child: Opacity(
+      opacity: enabled ? 1 : 0.4,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(4),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
             color: isActive
-                ? theme.colorScheme.primary
-                : theme.dividerColor,
+                ? theme.colorScheme.primary.withValues(alpha: 0.2)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(
+              color: isActive ? theme.colorScheme.primary : theme.dividerColor,
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: isActive
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
           ),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: isActive
-                ? theme.colorScheme.primary
-                : theme.colorScheme.onSurface.withValues(alpha: 0.6),
-          ),
-        ),
+      ),
       ),
     );
   }

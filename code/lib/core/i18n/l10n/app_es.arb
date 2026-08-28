@@ -1,5 +1,76 @@
 {
   "@@locale": "es",
+  "settingsWrapCodeBlocks": "Ajustar las líneas largas en los bloques de código",
+  "settingsCodeBlockLineNumbers": "Números de línea en bloques de código",
+  "settingsSaveFailed": "No se pudo guardar la configuración: {message}",
+  "@settingsSaveFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsFollowSystemTheme": "Seguir el modo claro/oscuro del sistema",
+  "settingsFollowSystemThemeHint": "Elija un tema claro y uno oscuro; el sistema decide cuál se muestra.",
+  "settingsAutoPairBracket": "Cerrar corchetes automáticamente",
+  "settingsAutoPairQuote": "Cerrar comillas automáticamente",
+  "settingsAutoPairMarkdown": "Cerrar la sintaxis de Markdown automáticamente (`, *, ~)",
+  "helpOpenDiagnosticLog": "Abrir el registro de diagnóstico",
+  "diagnosticLogMissing": "Todavía no se ha escrito ningún registro de diagnóstico",
+  "mermaidCaptureFailed": "No se pudo capturar el diagrama",
+  "mermaidErrorEmpty": "El diagrama está vacío.",
+  "mermaidErrorUnknownType": "Tipo de diagrama no reconocido: «{type}».",
+  "@mermaidErrorUnknownType": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "mermaidErrorHeaderOnly": "Este diagrama tiene encabezado pero no contenido.",
+  "mermaidErrorBadBody": "El encabezado se reconoce; revise la sintaxis debajo.",
+  "mermaidSupportedTypes": "Tipos admitidos: {list}",
+  "@mermaidSupportedTypes": {
+    "placeholders": {
+      "list": {
+        "type": "String"
+      }
+    }
+  },
+  "mermaidParseError": "Error de análisis de Mermaid",
+  "imageSavedTo": "Guardado en {path}",
+  "@imageSavedTo": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "imageSaveFailed": "No se pudo guardar la imagen: {message}",
+  "@imageSaveFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "saveFailed": "No se pudo guardar el archivo: {message}",
+  "@saveFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "fileOperationFailed": "Error en la operación de archivo: {message}",
+  "fileNameTaken": "Ya existe un archivo o una carpeta con ese nombre",
+  "@fileOperationFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "appTitle": "MarkText Plus",
   "menuFile": "Archivo",
   "menuEdit": "Editar",
@@ -13,11 +84,12 @@
   "fileOpenFolder": "Abrir carpeta",
   "fileSave": "Guardar",
   "fileSaveAs": "Guardar como",
-  "fileRecentFiles": "Recent Files",
-  "fileNoRecentFiles": "No Recent Files",
+  "fileRecentFiles": "Archivos recientes",
+  "fileNoRecentFiles": "No hay archivos recientes",
   "fileExport": "Exportar",
   "fileExportHtml": "HTML",
   "fileExportPdf": "PDF",
+  "filePrint": "Imprimir",
   "fileExportWord": "Word (.docx)",
   "fileSettings": "Configuración",
   "fileQuit": "Salir",
@@ -99,7 +171,6 @@
   "settingsLightThemes": "Temas claros",
   "settingsDarkThemes": "Temas oscuros",
   "confirmResetMessage": "¿Está seguro de que desea restablecer toda la configuración?",
-  "comingSoon": "Próximamente",
   "noFiles": "Sin archivos",
   "noOpenFolder": "Abra una carpeta para explorar archivos",
   "searchPlaceholder": "Buscar en archivos...",
@@ -116,6 +187,8 @@
   "editCopyAsHtml": "Copiar como HTML",
   "editSelectAll": "Seleccionar todo",
   "editDuplicateLine": "Duplicar línea",
+  "editCreateParagraph": "Crear párrafo debajo",
+  "editDeleteParagraph": "Eliminar párrafo",
   "formatUnderline": "Subrayado",
   "formatSuperscript": "Superíndice",
   "formatSubscript": "Subíndice",
@@ -124,6 +197,8 @@
   "formatInlineMath": "Fórmula en línea",
   "formatClearFormatting": "Borrar formato",
   "settingsCodeFontFamily": "Fuente de código",
+  "settingsCodeFontSize": "Tamaño de fuente de código",
+  "settingsEditorFontFamily": "Fuente del editor",
   "settingsEditorMaxWidth": "Ancho máximo del editor",
   "settingsTextDirection": "Dirección del texto",
   "keybindingsEdit": "Editar atajo",
@@ -132,11 +207,6 @@
   "statusWords": "Palabras",
   "statusChars": "Caracteres",
   "statusParagraphs": "Párrafos",
-  "themeCadmiumLight": "Cadmio Claro",
-  "themeOneDark": "One Dark",
-  "themeMaterialDark": "Material Oscuro",
-  "themeGraphiteLight": "Grafito Claro",
-  "themeUlyssesLight": "Ulysses Claro",
   "themeRedGraphite": "Grafito Rojo",
   "themeShibuya": "Shibuya",
   "themePinkBlossom": "Flor Rosa",
@@ -180,7 +250,13 @@
   "copyFilePath": "Copiar ruta de archivo",
   "deleteFile": "Eliminar archivo",
   "confirmDeleteFile": "¿Está seguro de que desea eliminar \"{fileName}\"?",
-  "@confirmDeleteFile": { "placeholders": { "fileName": { "type": "String" } } },
+  "@confirmDeleteFile": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
   "newFolder": "Nueva carpeta",
   "rename": "Renombrar",
   "delete": "Eliminar",
@@ -205,9 +281,21 @@
   "settingsTextDirectionLtr": "Izquierda a derecha",
   "settingsTextDirectionRtl": "Derecha a izquierda",
   "commandFormatLabel": "Formato: {action}",
-  "@commandFormatLabel": { "placeholders": { "action": { "type": "String" } } },
+  "@commandFormatLabel": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
   "commandFormatDesc": "Aplicar formato {action}",
-  "@commandFormatDesc": { "placeholders": { "action": { "type": "String" } } },
+  "@commandFormatDesc": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
   "commandNewFile": "Nuevo archivo",
   "commandNewFileDesc": "Crear un nuevo archivo sin título",
   "commandSave": "Guardar",
@@ -226,8 +314,43 @@
   "commandToggleSidebarDesc": "Mostrar u ocultar la barra lateral",
   "commandToggleTabBar": "Alternar barra de pestañas",
   "commandToggleTabBarDesc": "Mostrar u ocultar la barra de pestañas",
-
   "welcomeNewFile": "Nuevo archivo",
   "welcomeOpenFile": "Abrir archivo",
-  "welcomeDragHint": "Arrastra archivos aquí para abrirlos"
+  "welcomeDragHint": "Arrastra archivos aquí para abrirlos",
+  "mermaidFullscreen": "Pantalla completa",
+  "mermaidSaveAs": "Guardar como",
+  "mermaidCopySource": "Copiar código fuente",
+  "mermaidEditSource": "Editar código fuente",
+  "mermaidFullscreenHint": "Toca dos veces el diagrama para verlo en pantalla completa",
+  "mermaidSaveAsHint": "Guardar el diagrama como PNG",
+  "menuParagraph": "Párrafo",
+  "paragraphPromoteHeading": "Subir nivel de título",
+  "paragraphDemoteHeading": "Bajar nivel de título",
+  "paragraphToParagraph": "Convertir en párrafo",
+  "paragraphLooseList": "Elemento de lista espaciado",
+  "close": "Cerrar",
+  "mermaidViewerTitle": "Visor de diagramas Mermaid",
+  "mermaidViewerHint": "Ctrl+Rueda para ampliar    Arrastrar para desplazar    Esc para cerrar",
+  "statusHighlightOff": "Resaltado de sintaxis desactivado (archivo grande)",
+  "settingsImageStorage": "Dónde guardar las imágenes arrastradas",
+  "settingsImageStorageCopy": "Junto al documento",
+  "settingsImageStorageFolder": "En una carpeta compartida",
+  "settingsImageStorageLink": "Enlazar donde están",
+  "settingsImageFolder": "Carpeta de imágenes",
+  "fileCloseTab": "Cerrar pestaña",
+  "fileClearRecentFiles": "Borrar archivos recientes",
+  "viewCommandPalette": "Paleta de comandos",
+  "viewReloadImages": "Recargar imágenes",
+  "formatFrontMatter": "Front matter",
+  "formatHtmlBlock": "Bloque HTML",
+  "updateUpToDate": "Está usando la última versión",
+  "updateCheckFailed": "No se pudo buscar actualizaciones",
+  "fileOpenBehavior": "Comportamiento al abrir archivos",
+  "fileOpenBehaviorExistingWindow": "Abrir en la ventana actual",
+  "fileOpenBehaviorNewWindow": "Abrir en una ventana nueva",
+  "fileOpenBehaviorNotSet": "Sin configurar",
+  "updateAvailable": "Nueva versión disponible",
+  "updateDismiss": "Descartar",
+  "linkOpenFailed": "No se pudo abrir el enlace",
+  "recentFileMissing": "Ese archivo ya no existe; se ha quitado de la lista"
 }
