@@ -78,8 +78,28 @@ class TabNotifier extends StateNotifier<TabState> {
   /// left to drift.
   @override
   set state(TabState value) {
+    // What a closed tab leaves behind is released here for the same reason
+    // the watch set is kept here: removeTab did both by hand, and the three
+    // ways of closing several at once — others, to the right, all — did
+    // neither, so their undo histories stayed for the rest of the session.
+    final gone = state.tabs.map((tab) => tab.id).toSet()
+      ..removeAll(value.tabs.map((tab) => tab.id));
+
     super.state = value;
+
+    for (final id in gone) {
+      _releaseTab(id);
+    }
     _syncDiskWatch();
+  }
+
+  /// Lets go of everything kept for a tab that is no longer open.
+  void _releaseTab(String id) {
+    // A closed tab's undo history would otherwise sit in memory for the rest
+    // of the session.
+    _ref.read(editorProvider.notifier).forgetHistory(id);
+    // Its pending auto-save would fire against a tab that no longer exists.
+    _autoSaveTimers.remove(id)?.cancel();
   }
 
   void _syncDiskWatch() {
@@ -216,12 +236,6 @@ class TabNotifier extends StateNotifier<TabState> {
   }
 
   void removeTab(String id) {
-    // A closed tab's undo history would otherwise sit in memory for the rest
-    // of the session.
-    _ref.read(editorProvider.notifier).forgetHistory(id);
-    // Its pending auto-save would fire against a tab that no longer exists.
-    _autoSaveTimers.remove(id)?.cancel();
-
     final tabs = state.tabs.where((t) => t.id != id).toList();
     String? newActiveId = state.activeTabId;
     if (state.activeTabId == id) {
