@@ -45,7 +45,25 @@ class MarkTextPlusApp extends ConsumerWidget {
     // Only the theme name matters here. Watching the whole config rebuilt the
     // entire app whenever any setting was written — the split divider
     // position, the list of open files, the last update check.
-    final themeName = ref.watch(settingsProvider.select((c) => c.themeName));
+    // The four fields the theme depends on, as one record: `select` compares
+    // with `==`, and a record of strings and a bool compares by value, so this
+    // still rebuilds only when one of them actually changes.
+    final (chosen, followSystem, lightChoice, darkChoice) =
+        ref.watch(settingsProvider.select(
+      (c) => (c.themeName, c.followSystemTheme, c.lightModeTheme,
+          c.darkModeTheme),
+    ));
+    // Reading it here is what subscribes this widget to the operating system's
+    // light/dark switch: without the dependency the app would keep whichever
+    // theme it started with until the next launch.
+    final systemBrightness = MediaQuery.platformBrightnessOf(context);
+    final themeName = AppTheme.resolveThemeName(
+      followSystem: followSystem,
+      chosen: chosen,
+      lightChoice: lightChoice,
+      darkChoice: darkChoice,
+      systemBrightness: systemBrightness,
+    );
     final textDirection =
         ref.watch(settingsProvider.select((c) => c.textDirection));
     final locale = ref.watch(localeProvider);

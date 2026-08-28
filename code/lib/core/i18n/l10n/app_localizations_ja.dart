@@ -9,6 +9,13 @@ class AppLocalizationsJa extends AppLocalizations {
   AppLocalizationsJa([String locale = 'ja']) : super(locale);
 
   @override
+  String get settingsFollowSystemTheme => 'システムのライト/ダーク設定に従う';
+
+  @override
+  String get settingsFollowSystemThemeHint =>
+      'ライトとダークのテーマをそれぞれ選ぶと、どちらを表示するかはシステムが決めます。';
+
+  @override
   String get settingsAutoPairBracket => '括弧を自動で閉じる';
 
   @override

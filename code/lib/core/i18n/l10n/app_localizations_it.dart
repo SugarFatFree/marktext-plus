@@ -9,6 +9,14 @@ class AppLocalizationsIt extends AppLocalizations {
   AppLocalizationsIt([String locale = 'it']) : super(locale);
 
   @override
+  String get settingsFollowSystemTheme =>
+      'Segui l\'impostazione chiaro/scuro del sistema';
+
+  @override
+  String get settingsFollowSystemThemeHint =>
+      'Scegli un tema chiaro e uno scuro: il sistema decide quale mostrare.';
+
+  @override
   String get settingsAutoPairBracket => 'Chiudi automaticamente le parentesi';
 
   @override

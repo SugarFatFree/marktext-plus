@@ -1,5 +1,7 @@
 {
   "@@locale": "it",
+  "settingsFollowSystemTheme": "Segui l'impostazione chiaro/scuro del sistema",
+  "settingsFollowSystemThemeHint": "Scegli un tema chiaro e uno scuro: il sistema decide quale mostrare.",
   "settingsAutoPairBracket": "Chiudi automaticamente le parentesi",
   "settingsAutoPairQuote": "Chiudi automaticamente le virgolette",
   "settingsAutoPairMarkdown": "Chiudi automaticamente la sintassi Markdown (`, *, ~)",

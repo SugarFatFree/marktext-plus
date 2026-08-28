@@ -9,6 +9,14 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get settingsFollowSystemTheme =>
+      'Follow the system light/dark setting';
+
+  @override
+  String get settingsFollowSystemThemeHint =>
+      'Pick one light theme and one dark theme; the system decides which is shown.';
+
+  @override
   String get settingsAutoPairBracket => 'Auto-close brackets';
 
   @override

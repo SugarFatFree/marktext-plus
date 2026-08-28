@@ -507,7 +507,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       children: [
         Text(l10n.settingsTheme,
             style: Theme.of(context).textTheme.headlineSmall),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
+        _row(
+          l10n.settingsFollowSystemTheme,
+          Switch(
+            value: config.followSystemTheme,
+            onChanged: (v) => ref
+                .read(settingsProvider.notifier)
+                .updateConfig((c) => c.copyWith(followSystemTheme: v)),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          config.followSystemTheme
+              ? l10n.settingsFollowSystemThemeHint
+              : '',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        const SizedBox(height: 16),
         Text(l10n.settingsLightThemes,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w600,
@@ -517,7 +534,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           spacing: 16,
           runSpacing: 16,
           children: AppTheme.lightThemeNames.map((name) {
-            return _buildThemeCard(name, config, l10n);
+            return _buildThemeCard(name, config, l10n, isDarkGroup: false);
           }).toList(),
         ),
         const SizedBox(height: 24),
@@ -530,18 +547,42 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           spacing: 16,
           runSpacing: 16,
           children: AppTheme.darkThemeNames.map((name) {
-            return _buildThemeCard(name, config, l10n);
+            return _buildThemeCard(name, config, l10n, isDarkGroup: true);
           }).toList(),
         ),
       ],
     );
   }
 
-  Widget _buildThemeCard(String name, AppConfig config, AppLocalizations l10n) {
+  /// One theme card.
+  ///
+  /// [isDarkGroup] says which of the two lists it came from. While the theme
+  /// follows the system, a card no longer sets *the* theme: the light cards
+  /// choose what is used when the system is light and the dark cards what is
+  /// used when it is dark, so which card looks selected has to follow the same
+  /// rule. Getting that wrong would show a tick next to a theme that is not in
+  /// use.
+  Widget _buildThemeCard(
+    String name,
+    AppConfig config,
+    AppLocalizations l10n, {
+    required bool isDarkGroup,
+  }) {
     final tokens = AppTheme.getTokens(name);
-    final selected = config.themeName == name;
+    final selected = config.followSystemTheme
+        ? (isDarkGroup ? config.darkModeTheme : config.lightModeTheme) == name
+        : config.themeName == name;
     return InkWell(
-      onTap: () => ref.read(settingsProvider.notifier).setTheme(name),
+      onTap: () {
+        final notifier = ref.read(settingsProvider.notifier);
+        if (!config.followSystemTheme) {
+          notifier.setTheme(name);
+        } else if (isDarkGroup) {
+          notifier.updateConfig((c) => c.copyWith(darkModeTheme: name));
+        } else {
+          notifier.updateConfig((c) => c.copyWith(lightModeTheme: name));
+        }
+      },
       borderRadius: BorderRadius.circular(8),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),

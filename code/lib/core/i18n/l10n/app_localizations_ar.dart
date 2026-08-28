@@ -9,6 +9,13 @@ class AppLocalizationsAr extends AppLocalizations {
   AppLocalizationsAr([String locale = 'ar']) : super(locale);
 
   @override
+  String get settingsFollowSystemTheme => 'اتّباع وضع الفاتح/الداكن في النظام';
+
+  @override
+  String get settingsFollowSystemThemeHint =>
+      'اختر سمة فاتحة وأخرى داكنة، ويقرّر النظام أيّهما يظهر.';
+
+  @override
   String get settingsAutoPairBracket => 'إغلاق الأقواس تلقائيًا';
 
   @override

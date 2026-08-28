@@ -9,6 +9,14 @@ class AppLocalizationsFr extends AppLocalizations {
   AppLocalizationsFr([String locale = 'fr']) : super(locale);
 
   @override
+  String get settingsFollowSystemTheme =>
+      'Suivre le mode clair/sombre du système';
+
+  @override
+  String get settingsFollowSystemThemeHint =>
+      'Choisissez un thème clair et un thème sombre ; le système décide lequel s\'affiche.';
+
+  @override
   String get settingsAutoPairBracket =>
       'Fermer les parenthèses automatiquement';
 

@@ -117,6 +117,18 @@ abstract class AppLocalizations {
     Locale('zh'),
   ];
 
+  /// No description provided for @settingsFollowSystemTheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow the system light/dark setting'**
+  String get settingsFollowSystemTheme;
+
+  /// No description provided for @settingsFollowSystemThemeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick one light theme and one dark theme; the system decides which is shown.'**
+  String get settingsFollowSystemThemeHint;
+
   /// No description provided for @settingsAutoPairBracket.
   ///
   /// In en, this message translates to:

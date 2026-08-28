@@ -9,6 +9,13 @@ class AppLocalizationsKo extends AppLocalizations {
   AppLocalizationsKo([String locale = 'ko']) : super(locale);
 
   @override
+  String get settingsFollowSystemTheme => '시스템 밝기 설정 따르기';
+
+  @override
+  String get settingsFollowSystemThemeHint =>
+      '밝은 테마와 어두운 테마를 하나씩 고르면 어느 쪽을 보여줄지는 시스템이 정합니다.';
+
+  @override
   String get settingsAutoPairBracket => '괄호 자동 닫기';
 
   @override

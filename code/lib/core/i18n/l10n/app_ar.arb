@@ -1,5 +1,7 @@
 {
   "@@locale": "ar",
+  "settingsFollowSystemTheme": "اتّباع وضع الفاتح/الداكن في النظام",
+  "settingsFollowSystemThemeHint": "اختر سمة فاتحة وأخرى داكنة، ويقرّر النظام أيّهما يظهر.",
   "settingsAutoPairBracket": "إغلاق الأقواس تلقائيًا",
   "settingsAutoPairQuote": "إغلاق علامات الاقتباس تلقائيًا",
   "settingsAutoPairMarkdown": "إغلاق صياغة Markdown تلقائيًا (`، *، ~)",

@@ -1,5 +1,7 @@
 {
   "@@locale": "es",
+  "settingsFollowSystemTheme": "Seguir el modo claro/oscuro del sistema",
+  "settingsFollowSystemThemeHint": "Elija un tema claro y uno oscuro; el sistema decide cuál se muestra.",
   "settingsAutoPairBracket": "Cerrar corchetes automáticamente",
   "settingsAutoPairQuote": "Cerrar comillas automáticamente",
   "settingsAutoPairMarkdown": "Cerrar la sintaxis de Markdown automáticamente (`, *, ~)",

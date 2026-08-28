@@ -1,5 +1,7 @@
 {
   "@@locale": "en",
+  "settingsFollowSystemTheme": "Follow the system light/dark setting",
+  "settingsFollowSystemThemeHint": "Pick one light theme and one dark theme; the system decides which is shown.",
   "settingsAutoPairBracket": "Auto-close brackets",
   "settingsAutoPairQuote": "Auto-close quotes",
   "settingsAutoPairMarkdown": "Auto-close Markdown syntax (`, *, ~)",

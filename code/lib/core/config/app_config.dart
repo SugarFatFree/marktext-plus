@@ -15,6 +15,18 @@ class AppConfig {
   bool autoSave;
   int autoSaveDelay;
   String themeName;
+
+  /// Whether the theme follows the operating system's light/dark setting.
+  ///
+  /// Off by default: turning it on for an existing reader would change the
+  /// look of their editor on the next launch without them asking.
+  bool followSystemTheme;
+
+  /// The theme used while the system is light, when [followSystemTheme] is on.
+  String lightModeTheme;
+
+  /// The theme used while the system is dark, when [followSystemTheme] is on.
+  String darkModeTheme;
   String locale;
   String bulletListMarker;
   int tabSize;
@@ -64,6 +76,9 @@ class AppConfig {
     this.autoSave = true,
     this.autoSaveDelay = 5000,
     this.themeName = 'redGraphite',
+    this.followSystemTheme = false,
+    this.lightModeTheme = 'redGraphite',
+    this.darkModeTheme = 'darkGraphite',
     this.locale = '',
     this.bulletListMarker = '-',
     this.tabSize = 4,
@@ -102,6 +117,9 @@ class AppConfig {
     'autoSave': autoSave,
     'autoSaveDelay': autoSaveDelay,
     'themeName': themeName,
+    'followSystemTheme': followSystemTheme,
+    'lightModeTheme': lightModeTheme,
+    'darkModeTheme': darkModeTheme,
     'locale': locale,
     'bulletListMarker': bulletListMarker,
     'tabSize': tabSize,
@@ -141,6 +159,11 @@ class AppConfig {
       autoSave: json['autoSave'] as bool? ?? true,
       autoSaveDelay: json['autoSaveDelay'] as int? ?? 5000,
       themeName: AppTheme.migrateName(json['themeName'] as String? ?? 'redGraphite'),
+      followSystemTheme: json['followSystemTheme'] as bool? ?? false,
+      lightModeTheme: AppTheme.migrateName(
+          json['lightModeTheme'] as String? ?? 'redGraphite'),
+      darkModeTheme: AppTheme.migrateName(
+          json['darkModeTheme'] as String? ?? 'darkGraphite'),
       locale: json['locale'] as String? ?? '',
       bulletListMarker: json['bulletListMarker'] as String? ?? '-',
       tabSize: json['tabSize'] as int? ?? 4,
@@ -204,6 +227,9 @@ class AppConfig {
     bool? autoSave,
     int? autoSaveDelay,
     String? themeName,
+    bool? followSystemTheme,
+    String? lightModeTheme,
+    String? darkModeTheme,
     String? locale,
     String? bulletListMarker,
     int? tabSize,
@@ -241,6 +267,9 @@ class AppConfig {
       autoSave: autoSave ?? this.autoSave,
       autoSaveDelay: autoSaveDelay ?? this.autoSaveDelay,
       themeName: themeName ?? this.themeName,
+      followSystemTheme: followSystemTheme ?? this.followSystemTheme,
+      lightModeTheme: lightModeTheme ?? this.lightModeTheme,
+      darkModeTheme: darkModeTheme ?? this.darkModeTheme,
       locale: locale ?? this.locale,
       bulletListMarker: bulletListMarker ?? this.bulletListMarker,
       tabSize: tabSize ?? this.tabSize,

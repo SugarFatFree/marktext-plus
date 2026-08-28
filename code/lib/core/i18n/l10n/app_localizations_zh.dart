@@ -9,6 +9,12 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
+  String get settingsFollowSystemTheme => '跟随系统深浅色';
+
+  @override
+  String get settingsFollowSystemThemeHint => '分别选一个浅色主题和一个深色主题，由系统决定显示哪个。';
+
+  @override
   String get settingsAutoPairBracket => '自动补全括号';
 
   @override

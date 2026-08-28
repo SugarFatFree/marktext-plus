@@ -1,5 +1,7 @@
 {
   "@@locale": "fr",
+  "settingsFollowSystemTheme": "Suivre le mode clair/sombre du système",
+  "settingsFollowSystemThemeHint": "Choisissez un thème clair et un thème sombre ; le système décide lequel s'affiche.",
   "settingsAutoPairBracket": "Fermer les parenthèses automatiquement",
   "settingsAutoPairQuote": "Fermer les guillemets automatiquement",
   "settingsAutoPairMarkdown": "Fermer la syntaxe Markdown automatiquement (`, *, ~)",

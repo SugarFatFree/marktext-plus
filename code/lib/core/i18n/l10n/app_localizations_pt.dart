@@ -9,6 +9,14 @@ class AppLocalizationsPt extends AppLocalizations {
   AppLocalizationsPt([String locale = 'pt']) : super(locale);
 
   @override
+  String get settingsFollowSystemTheme =>
+      'Seguir o modo claro/escuro do sistema';
+
+  @override
+  String get settingsFollowSystemThemeHint =>
+      'Escolha um tema claro e um escuro; o sistema decide qual é mostrado.';
+
+  @override
   String get settingsAutoPairBracket => 'Fechar parênteses automaticamente';
 
   @override
@@ -911,6 +919,14 @@ class AppLocalizationsPt extends AppLocalizations {
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
 class AppLocalizationsPtBr extends AppLocalizationsPt {
   AppLocalizationsPtBr() : super('pt_BR');
+
+  @override
+  String get settingsFollowSystemTheme =>
+      'Seguir o modo claro/escuro do sistema';
+
+  @override
+  String get settingsFollowSystemThemeHint =>
+      'Escolha um tema claro e um escuro; o sistema decide qual é mostrado.';
 
   @override
   String get settingsAutoPairBracket => 'Fechar parênteses automaticamente';

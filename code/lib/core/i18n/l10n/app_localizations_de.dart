@@ -9,6 +9,13 @@ class AppLocalizationsDe extends AppLocalizations {
   AppLocalizationsDe([String locale = 'de']) : super(locale);
 
   @override
+  String get settingsFollowSystemTheme => 'Hell/Dunkel des Systems folgen';
+
+  @override
+  String get settingsFollowSystemThemeHint =>
+      'Wählen Sie je ein helles und ein dunkles Design; das System entscheidet, welches erscheint.';
+
+  @override
   String get settingsAutoPairBracket => 'Klammern automatisch schließen';
 
   @override

@@ -9,6 +9,14 @@ class AppLocalizationsRu extends AppLocalizations {
   AppLocalizationsRu([String locale = 'ru']) : super(locale);
 
   @override
+  String get settingsFollowSystemTheme =>
+      'Следовать светлой/тёмной теме системы';
+
+  @override
+  String get settingsFollowSystemThemeHint =>
+      'Выберите по одной светлой и тёмной теме — система решит, какая будет показана.';
+
+  @override
   String get settingsAutoPairBracket => 'Автоматически закрывать скобки';
 
   @override

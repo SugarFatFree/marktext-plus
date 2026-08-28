@@ -1,5 +1,7 @@
 {
   "@@locale": "pt",
+  "settingsFollowSystemTheme": "Seguir o modo claro/escuro do sistema",
+  "settingsFollowSystemThemeHint": "Escolha um tema claro e um escuro; o sistema decide qual é mostrado.",
   "settingsAutoPairBracket": "Fechar parênteses automaticamente",
   "settingsAutoPairQuote": "Fechar aspas automaticamente",
   "settingsAutoPairMarkdown": "Fechar a sintaxe Markdown automaticamente (`, *, ~)",

@@ -1,5 +1,7 @@
 {
   "@@locale": "zh",
+  "settingsFollowSystemTheme": "跟随系统深浅色",
+  "settingsFollowSystemThemeHint": "分别选一个浅色主题和一个深色主题，由系统决定显示哪个。",
   "settingsAutoPairBracket": "自动补全括号",
   "settingsAutoPairQuote": "自动补全引号",
   "settingsAutoPairMarkdown": "自动补全 Markdown 语法（`、*、~）",

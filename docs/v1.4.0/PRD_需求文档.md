@@ -18,6 +18,7 @@
 | FEAT-014 | 2026-08-28 | 评估：Mermaid 渲染抽成独立开源包的可行性 | 低 | — | 已评估，待决策 |
 | FEAT-015 | 2026-08-28 | 预览里的可编辑块给出光标与悬停提示 | 中 | 简单 | 已实现 |
 | FEAT-016 | 2026-08-28 | 自动补全括号/引号/Markdown 语法可以分别关掉 | 中 | 简单 | 已实现 |
+| FEAT-017 | 2026-08-28 | 主题可以跟随系统深浅色 | 高 | 中等 | 已实现 |
 
 ## 详细需求
 
@@ -333,5 +334,21 @@
 | 涉及文件 | `code/lib/core/config/app_config.dart`、`code/lib/ui/editor/source_editor.dart`、`code/lib/ui/screens/settings_screen.dart`、`code/lib/core/i18n/l10n/app_*.arb`（12 个文件各 3 键） |
 | 验收标准 | 三个开关默认打开，关掉后对应字符不再自动补全；关掉 Markdown 那一项后 `` ` `` `*` `~` 仍可正常输入；旧版本写的配置文件读进来后三项都是打开的 |
 | 测试 | `code/test/core/config/auto_pair_config_test.dart`，4 条。其中一条专门守**旧配置**：`AppConfig.fromJson` 缺这三个键时必须回到 true —— 否则老用户升级后行为会突变；另一条守**往返**：能写进去读不回来的设置，会在每次启动后复原，用户就得反复关它 |
+
+---
+
+### FEAT-017 — 主题可以跟随系统深浅色
+
+| 字段 | 内容 |
+|------|------|
+| 实现日期 | 2026-08-28 |
+| 需求来源 | 与上游设置项对照时发现的四个"完全没有实现"之一（另三个是代码块行号、保存时处理末尾换行、侧边栏排序方式）。上游有 `followSystemTheme` + `lightModeTheme` + `darkModeTheme` |
+| 问题 | Windows 切到深色模式，编辑器还是浅色，只能进设置手动换。这是日常使用中最容易被注意到的一处缺失 |
+| 实现方案 | ① `AppConfig` 增加 `followSystemTheme`（默认 **false**）、`lightModeTheme`、`darkModeTheme`；② `AppTheme.resolveThemeName(...)` 做成**纯函数**；③ `app.dart` 里读 `MediaQuery.platformBrightnessOf(context)` —— 读它本身就建立了依赖，系统切换时这个组件会自动重建，不需要手动监听；④ 设置页顶部加开关 |
+| 默认为什么是关的 | 给已有用户打开它，会在下一次启动时无缘无故改变编辑器的样子。这应该是一次主动的选择 |
+| 界面上的一个设计 | 主题区本来就分「浅色主题」「深色主题」两组卡片。开了跟随之后，**同一批卡片的含义变了**：点浅色卡是在选"系统浅色时用哪个"，点深色卡是在选"系统深色时用哪个"。所以选中标记也必须跟着变 —— 否则会在一个当前根本没在用的主题上打勾 |
+| 关于 `select` 的一个细节 | 主题现在依赖四个字段。`select` 用 `==` 比较，Dart 3 的记录是按值比较的，所以 `(themeName, followSystemTheme, lightModeTheme, darkModeTheme)` 这样一个记录仍然只在真正变化时触发重建 —— 换成 `Set` 或 `List` 就会每次都不相等（这个坑在 BUG-046/047 踩过） |
+| 涉及文件 | `code/lib/core/config/app_config.dart`、`code/lib/core/theme/app_theme.dart`、`code/lib/app.dart`、`code/lib/ui/screens/settings_screen.dart`、`code/lib/core/i18n/l10n/app_*.arb`（12 个文件各 2 键） |
+| 测试 | `code/test/core/theme/follow_system_theme_test.dart`，5 条。做成纯函数正是为了能测 —— **"系统切到深色"不是靠看屏幕能安排出来的事**。其中两条针对特定失效方式：默认的一对必须真的是一浅一深（系统深色时给个浅色主题反而更刺眼）；旧配置读进来后不能自己开始跟随系统 |
 
 ---
