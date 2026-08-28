@@ -400,6 +400,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsCodeFontFamily => '코드 글꼴';
 
   @override
+  String get settingsEditorFontFamily => '본문 글꼴';
+
+  @override
   String get settingsEditorMaxWidth => '편집기 최대 너비';
 
   @override

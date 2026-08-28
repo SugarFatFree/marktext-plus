@@ -402,6 +402,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsCodeFontFamily => 'Police de code';
 
   @override
+  String get settingsEditorFontFamily => 'Police de l\'éditeur';
+
+  @override
   String get settingsEditorMaxWidth => 'Largeur maximale de l\'éditeur';
 
   @override

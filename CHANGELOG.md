@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Front matter written as TOML (`+++`) or JSON (`;;;`, `{ … }`) is recognised, not just YAML — a Hugo file no longer shows its metadata as a paragraph of plus signs
 - A mermaid timeline groups its periods under `section` bands, drawn above the period titles and coloured per band
 - A diagram can be edited from the preview: its toolbar has an "Edit Source" button, since its own double tap opens fullscreen
+- The editor's body font can be chosen in Settings; the setting was read all along but had no row of its own
 - Paragraph ▸ Loose List Item spaces a list's items apart, or runs them together again — the last entry the upstream paragraph menu had and this one did not
 - Edit ▸ Create Paragraph Below and Delete Paragraph, anchored on the outermost block as upstream anchors them
 
@@ -57,6 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The same kind of line no longer freezes the preview either: parsing 60,000 unmatched brackets went from 51 seconds to 55 milliseconds
 - A long line inside a `pie` or `erDiagram` block no longer freezes the preview for fourteen and twenty-seven seconds respectively
 - A whole-word search over a large document is twenty times faster
+- Dismissing the update badge remembers the version, instead of showing it again on the next launch
 - Renaming or deleting a file from the sidebar takes its open tab with it — renaming used to leave the tab on the old path, where the next save wrote the old file back out; a folder does it to every file beneath it
 - Saving a new document from the close prompt names the tab after the file it wrote and adds it to the recent files, as Save As from the menu already did
 - Closing a file from the sidebar asks about unsaved work, as closing its tab already did — the cross on the row, the context menu, closing a file or a whole folder all used to discard it silently

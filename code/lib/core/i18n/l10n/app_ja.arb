@@ -126,6 +126,7 @@
   "formatInlineMath": "インライン数式",
   "formatClearFormatting": "書式をクリア",
   "settingsCodeFontFamily": "コードフォント",
+  "settingsEditorFontFamily": "本文フォント",
   "settingsEditorMaxWidth": "エディタの最大幅",
   "settingsTextDirection": "テキスト方向",
   "keybindingsEdit": "キーバインドを編集",

@@ -885,6 +885,12 @@ abstract class AppLocalizations {
   /// **'Code Font Family'**
   String get settingsCodeFontFamily;
 
+  /// Settings row for the font the editor's body text is drawn in
+  ///
+  /// In en, this message translates to:
+  /// **'Editor Font Family'**
+  String get settingsEditorFontFamily;
+
   /// No description provided for @settingsEditorMaxWidth.
   ///
   /// In en, this message translates to:

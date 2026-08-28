@@ -400,6 +400,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsCodeFontFamily => 'コードフォント';
 
   @override
+  String get settingsEditorFontFamily => '本文フォント';
+
+  @override
   String get settingsEditorMaxWidth => 'エディタの最大幅';
 
   @override

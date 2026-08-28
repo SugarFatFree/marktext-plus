@@ -308,6 +308,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ),
         _row(
+          // The editor's body font was applied all along but had nowhere to be
+          // chosen: only the code font had a row, so the setting sat at
+          // 'monospace' whatever anyone wanted.
+          l10n.settingsEditorFontFamily,
+          SizedBox(
+            width: 200,
+            child: TextField(
+              controller: TextEditingController(text: config.fontFamily),
+              onSubmitted: (v) {
+                ref.read(settingsProvider.notifier).updateConfig(
+                      (c) => c.copyWith(
+                        fontFamily: v.isEmpty ? 'monospace' : v,
+                      ),
+                    );
+              },
+            ),
+          ),
+        ),
+        _row(
           l10n.settingsCodeFontFamily,
           SizedBox(
             width: 200,

@@ -402,6 +402,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get settingsCodeFontFamily => 'Fuente de código';
 
   @override
+  String get settingsEditorFontFamily => 'Fuente del editor';
+
+  @override
   String get settingsEditorMaxWidth => 'Ancho máximo del editor';
 
   @override

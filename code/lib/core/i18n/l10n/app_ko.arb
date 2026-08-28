@@ -126,6 +126,7 @@
   "formatInlineMath": "인라인 수식",
   "formatClearFormatting": "서식 지우기",
   "settingsCodeFontFamily": "코드 글꼴",
+  "settingsEditorFontFamily": "본문 글꼴",
   "settingsEditorMaxWidth": "편집기 최대 너비",
   "settingsTextDirection": "텍스트 방향",
   "keybindingsEdit": "키 바인딩 편집",

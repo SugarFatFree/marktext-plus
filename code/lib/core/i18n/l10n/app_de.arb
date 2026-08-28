@@ -126,6 +126,7 @@
   "formatInlineMath": "Inline-Formel",
   "formatClearFormatting": "Formatierung löschen",
   "settingsCodeFontFamily": "Code-Schriftart",
+  "settingsEditorFontFamily": "Editor-Schriftart",
   "settingsEditorMaxWidth": "Maximale Editorbreite",
   "settingsTextDirection": "Textrichtung",
   "keybindingsEdit": "Tastenkürzel bearbeiten",

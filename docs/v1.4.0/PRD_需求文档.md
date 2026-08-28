@@ -14,6 +14,7 @@
 | FEAT-010 | 2026-08-28 | 预览里可以编辑 Mermaid 图表的源码 | 高 | 简单 | 已实现 |
 | FEAT-011 | 2026-08-28 | 段落菜单补上「松散列表项」（对齐上游最后一项缺口） | 中 | 中等 | 已实现 |
 | FEAT-012 | 2026-08-28 | 编辑菜单补上「在下方插入段落」与「删除当前段落」 | 中 | 中等 | 已实现 |
+| FEAT-013 | 2026-08-28 | 设置里可以选编辑器正文字体 | 中 | 简单 | 已实现 |
 
 ## 详细需求
 
@@ -265,5 +266,22 @@
 | 涉及文件 | `lib/providers/editor_provider.dart`、`lib/ui/editor/source_editor.dart`、`lib/ui/widgets/app_menu_bar.dart`、12 份 `app_*.arb`、11 份 `app_localizations*.dart`、`test/ui/editor/source_editor_prefix_test.dart` |
 | 验收标准 | 插入后光标落在新的空行上；引用块/列表等多行块整体处理；删除后不留多余空行；删掉唯一的块得到空文档；光标在空行上时两个动作都不改动文档 |
 | 验证方式 | 沙盘原型 13 组形态；**本机 `dart analyze --fatal-infos` 通过**；**本机 `flutter test` 跑该文件 30 条全过**；l10n 五项一致性检查通过；新增 9 条测试 |
+
+---
+
+### FEAT-013 — 设置里可以选编辑器正文字体
+
+| 字段 | 内容 |
+|------|------|
+| 实现日期 | 2026-08-28 |
+| 优先级 | 中 |
+| 难易度 | 简单 |
+| 状态 | 已实现 |
+| 需求来源 | 扫描「每个设置项是否有界面入口」时发现的缺口，上游 MarkText 也有字体设置 |
+| 现象 | `AppConfig.fontFamily` 一直被读取并应用到编辑器正文（`source_editor.dart` 两处），但设置页只有「代码字体」一行 —— 正文字体永远停在默认的 `monospace`，用户无从更改 |
+| 实现方案 | 设置页加一行「正文字体」，与已有的「代码字体」并列，留空则回到 `monospace` |
+| 新增文案 | `settingsEditorFontFamily`，12 种语言全部给译文 |
+| 涉及文件 | `lib/ui/screens/settings_screen.dart`、12 份 `app_*.arb`、11 份 `app_localizations*.dart` |
+| 验证方式 | 本机 `dart analyze --fatal-infos lib` 通过；12 份 arb 逐份复验键集与原有条目未被改动 |
 
 ---

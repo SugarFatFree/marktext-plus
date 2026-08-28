@@ -126,6 +126,7 @@
   "formatInlineMath": "Formule en ligne",
   "formatClearFormatting": "Effacer le formatage",
   "settingsCodeFontFamily": "Police de code",
+  "settingsEditorFontFamily": "Police de l'éditeur",
   "settingsEditorMaxWidth": "Largeur maximale de l'éditeur",
   "settingsTextDirection": "Direction du texte",
   "keybindingsEdit": "Modifier le raccourci",

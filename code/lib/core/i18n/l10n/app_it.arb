@@ -126,6 +126,7 @@
   "formatInlineMath": "Formula in linea",
   "formatClearFormatting": "Cancella formattazione",
   "settingsCodeFontFamily": "Font del codice",
+  "settingsEditorFontFamily": "Font dell'editor",
   "settingsEditorMaxWidth": "Larghezza massima editor",
   "settingsTextDirection": "Direzione del testo",
   "keybindingsEdit": "Modifica scorciatoia",

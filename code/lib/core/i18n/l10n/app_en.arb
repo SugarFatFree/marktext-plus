@@ -158,6 +158,10 @@
   "formatInlineMath": "Inline Math",
   "formatClearFormatting": "Clear Formatting",
   "settingsCodeFontFamily": "Code Font Family",
+  "settingsEditorFontFamily": "Editor Font Family",
+  "@settingsEditorFontFamily": {
+    "description": "Settings row for the font the editor's body text is drawn in"
+  },
   "settingsEditorMaxWidth": "Editor Max Width",
   "settingsTextDirection": "Text Direction",
   "keybindingsEdit": "Edit Keybinding",

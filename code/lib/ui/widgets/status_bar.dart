@@ -146,10 +146,20 @@ class StatusBar extends ConsumerWidget {
           const SizedBox(width: 6),
           // UpdateNotifier.dismiss and its label both existed, with nothing
           // calling them: the badge could not be got rid of.
+          //
+          // Dismissing also records the version. `skipVersion` was written
+          // into the config, read when deciding whether to show the badge, and
+          // never set by anything — so the badge came back on the next launch
+          // however many times it was waved away.
           Tooltip(
             message: l10n.updateDismiss,
             child: InkWell(
-              onTap: () => ref.read(updateProvider.notifier).dismiss(),
+              onTap: () {
+                ref.read(updateProvider.notifier).dismiss();
+                ref.read(settingsProvider.notifier).updateConfig(
+                      (c) => c.copyWith(skipVersion: update.version),
+                    );
+              },
               child: Icon(Icons.close, size: 12, color: tokens.colorAccent),
             ),
           ),

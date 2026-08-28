@@ -128,6 +128,7 @@
   "formatInlineMath": "行内公式",
   "formatClearFormatting": "清除格式",
   "settingsCodeFontFamily": "代码字体",
+  "settingsEditorFontFamily": "正文字体",
   "settingsEditorMaxWidth": "编辑器最大宽度",
   "settingsTextDirection": "文本方向",
   "keybindingsEdit": "编辑快捷键",
