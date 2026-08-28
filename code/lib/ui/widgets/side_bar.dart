@@ -12,12 +12,12 @@ import '../../models/tab_info.dart';
 import '../../models/file_encoding.dart';
 import '../../providers/editor_provider.dart';
 import '../../providers/file_provider.dart';
+import '../../providers/outline_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/tab_provider.dart';
 import '../screens/settings_screen.dart';
 import '../../providers/sidebar_provider.dart';
 import '../../services/file_service.dart';
-import '../../services/markdown_parser.dart';
 import 'editor_tab_bar.dart';
 
 
@@ -972,14 +972,11 @@ class _SideBarState extends ConsumerState<SideBar> {
   // -- TOC Panel --
 
   Widget _buildTocPanel(AppLocalizations l10n) {
-    final activeTab = ref.watch(activeTabProvider);
-    final content = activeTab?.content ?? '';
-
-    // Shared with the preview, which maps its Nth heading widget to the Nth
-    // entry here: two readings of the same document would put every entry
-    // after the first disagreement on the wrong line.
+    // Through the provider rather than computed here: reading the outline out
+    // of the document costs 402 ms on a five megabyte one, and doing it in
+    // build meant paying that for every keystroke.
     final headings = [
-      for (final heading in MarkdownParser.headingOutline(content))
+      for (final heading in ref.watch(outlineProvider))
         _TocEntry(
           level: heading.level,
           text: heading.text,

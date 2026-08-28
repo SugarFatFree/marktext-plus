@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -99,13 +100,21 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   /// GlobalKey appearing twice in one tree is a crash.
   final _headingKeysByIndex = <int, GlobalKey>{};
 
-  /// Parse raw markdown to find heading line numbers (1-based),
-  /// matching the same logic used by the TOC panel.
-  List<int> _findHeadingLines(String markdown) {
-    return md.MarkdownParser.headingOutline(markdown)
-        .map((heading) => heading.line)
-        .toList();
-  }
+  /// Heading line numbers (1-based), taken from the blocks that were parsed.
+  ///
+  /// Read out of the AST rather than by scanning the text a second time. The
+  /// second reading was a second implementation of "what counts as a heading",
+  /// and the two had already disagreed twice — over a `#` inside front matter
+  /// and over setext headings — each time putting every scroll target after
+  /// the first disagreement on the wrong line. Taken from the nodes the
+  /// preview actually drew, they cannot disagree.
+  ///
+  /// It is also 402 ms of work on a five megabyte document, and it ran on
+  /// every content change, in build.
+  List<int> _headingLinesOf(List<md.MarkdownNode> nodes) => [
+        for (final node in nodes)
+          if (node is md.HeadingNode) node.sourceStart + 1,
+      ];
 
   @override
   void initState() {
@@ -298,7 +307,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       if (_awaitingFullParse != null) {
         WidgetsBinding.instance.addPostFrameCallback((_) => _finishParse());
       }
-      _cachedHeadingLines = _findHeadingLines(widget.markdown);
+      _cachedHeadingLines = _headingLinesOf(_cachedNodes!);
       // Keep what is already on screen. Restarting from the first batch made
       // the preview collapse to the top of the document and re-expand on
       // every keystroke in split mode.
@@ -537,17 +546,49 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   /// Gives up quietly if the document changed in the meantime — the next build
   /// has already started its own parse, and finishing this one would put the
   /// previous document back on screen.
-  void _finishParse() {
+  void _finishParse() async {
     final source = _awaitingFullParse;
     if (source == null || !mounted || source != widget.markdown) return;
     _awaitingFullParse = null;
 
-    final config = ref.read(settingsProvider);
-    final nodes =
-        md.MarkdownParser(enableHtml: config.enableHtml).parse(source);
-    if (!mounted) return;
+    final enableHtml = ref.read(settingsProvider).enableHtml;
+
+    // Off this isolate. Parsing five megabytes takes about 3.5 seconds, and
+    // it used to take them here, with the window frozen for every one of
+    // them. Handing the finished blocks back costs about 140 ms of that —
+    // measured, not assumed — so the freeze goes from three and a half
+    // seconds to a seventh of one.
+    //
+    // Only large documents reach this at all: a document small enough for
+    // `safePrefix` to decline is parsed whole on the first pass and never
+    // schedules this.
+    final List<md.MarkdownNode> nodes;
+    try {
+      nodes = await Isolate.run(
+        () => md.MarkdownParser(enableHtml: enableHtml).parse(source),
+      );
+    } catch (_) {
+      // An isolate that could not be spawned is not a reason to show half a
+      // document forever: parse it here instead, slowly but correctly.
+      if (!mounted || source != widget.markdown) return;
+      final here = md.MarkdownParser(enableHtml: enableHtml).parse(source);
+      _adoptFullParse(source, here);
+      return;
+    }
+
+    _adoptFullParse(source, nodes);
+  }
+
+  /// Puts the finished blocks on screen, if they still describe the document.
+  ///
+  /// The check is repeated after the await: the reader may have typed while
+  /// the other isolate was working, and the blocks it produced then describe
+  /// a document that is no longer there.
+  void _adoptFullParse(String source, List<md.MarkdownNode> nodes) {
+    if (!mounted || source != widget.markdown) return;
     setState(() {
       _cachedNodes = nodes;
+      _cachedHeadingLines = _headingLinesOf(nodes);
       // Whatever is already on screen stays on screen; the rest fills in the
       // way it does for a document that was parsed in one go.
       _renderedNodeCount = _renderedNodeCount.clamp(0, nodes.length);

@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - File ▸ Move To…, the one menu command upstream MarkText has that this one did not
 
 ### Fixed
+- A large document no longer freezes the window for seconds at a time when typing pauses. Parsing five megabytes takes about 3.5 s and ran on the UI isolate; it now runs on another one, of which only the ~140 ms of handing the blocks back is felt here
+- The table of contents no longer reads the whole document's outline during build — 402 ms per keystroke on a five megabyte file, whether or not the panel was even open
+- The preview takes heading positions from the blocks it parsed instead of scanning the text a second time. That second reading was a second definition of what counts as a heading, and it had already disagreed with the first twice
 - Customised keyboard shortcuts survive a crash. The file was written in place, so a process killed mid-write left it truncated; a truncated file failed to parse and was silently replaced by the defaults, and the next save overwrote the only copy. It is now written and quarantined the way the settings file already was
 - The sidebar tree shows folders and markdown documents, as upstream MarkText does, rather than everything a directory holds. Tapping a `.png` or a `.pdf` opened it as a text tab full of mojibake — one stray keystroke away from an auto-save writing that back over the original
 - The tree and the folder search now skip the same directories; the search stepped over `node_modules` while the tree listed all of it

@@ -6,6 +6,7 @@
 | BUG-107 | 2026-08-29 | 菜单里的"重命名"绕开了守卫，会静默覆盖同名文件 | P1 | 已修复 |
 | BUG-108 | 2026-08-29 | 文件树列出所有文件，点开二进制会当文本打开并可能被写坏 | P1 | 已修复 |
 | BUG-109 | 2026-08-29 | 快捷键文件非原子写，损坏时自定义快捷键被无声重置且原文件被覆盖 | P2 | 已修复 |
+| BUG-110 | 2026-08-29 | 大文档打字时窗口冻结数秒：整篇解析与整篇大纲都在 UI isolate 上跑 | P1 | 已修复 |
 
 ---
 
@@ -198,3 +199,70 @@ return !hasMarkdownExtension(pathname)
 - `code/lib/core/config/config_service.dart`
 - `code/lib/services/keybinding_service.dart`
 - `code/test/core/config/json_store_test.dart`（新增，7 条）
+
+
+---
+
+## BUG-110：大文档打字时窗口冻结数秒：整篇解析与整篇大纲都在 UI isolate 上跑
+
+### 现象
+
+打开一个几 MB 的 markdown 文档，**打字停顿一下窗口就卡住好几秒**。文档越大越明显。
+
+### 实测数据
+
+先量再改。生成结构均匀的文档，在本机测各环节耗时：
+
+| 文档大小 | `countWords` | `parse` | `headingOutline` | `safePrefix` |
+|---|---|---|---|---|
+| 1 MB | 18 ms | 909 ms | 90 ms | 12 ms |
+| 5 MB | 64 ms | **3537 ms** | **402 ms** | 33 ms |
+
+字数统计已有 300 ms 防抖，64 ms 可以接受。问题在另外两处。
+
+### 根因分析
+
+**其一：整篇解析在 UI isolate 上。** 预览对大文档采用两段式——先用
+`safePrefix` 解析开头保证首帧，再在下一帧 `_finishParse()` 解析整篇。但这第二
+次解析是**同步**的，5 MB 就是 3.5 秒的窗口无响应。而且它由内容变化触发：
+打字时 `_finishParse` 会因为文本已变而提前退出（便宜），**一旦停下来，
+那 3.5 秒就来了**。这正是"打字停顿一下就卡住"的由来。
+
+**其二：目录面板在 `build()` 里算整篇大纲。** `_buildTocPanel` 直接调
+`MarkdownParser.headingOutline(content)`，而它 `watch` 的是 activeTab。
+于是**每一次击键**都要付 402 ms——面板甚至不需要展开，只要被 build 到。
+
+**其三（顺带）：预览为了标题行号又把全文扫了第二遍。** `_findHeadingLines`
+再调一次 `headingOutline`，同样 402 ms，同样在 build 里。
+
+### 修复方案
+
+**整篇解析挪到另一个 isolate。** 这可行是因为 `markdown_parser.dart` 只依赖
+`dart:convert` 与 `dart:math`，AST 全是普通对象。
+
+值不值先量过了——把"解析但不回传 AST"和"解析并回传"分开测：
+
+| 文档 | 解析（不回传） | 解析+回传 | **回传本身** |
+|---|---|---|---|
+| 1 MB | 841 ms | 808 ms | ~0 |
+| 5 MB | 3432 ms | 3572 ms | **约 140 ms** |
+
+只有回传那 140 ms 会阻塞 UI。**3.5 秒的冻结变成 0.14 秒。** 小文档根本走不到
+这里（`safePrefix` 对小文档返回 null，一次解析到底）。isolate 起不来时退回本
+isolate 解析——起不了 isolate 不是让文档永远只显示一半的理由。
+
+**标题行号改为直接从 AST 取**（`HeadingNode.sourceStart + 1`），不再扫第二遍。
+这不只是省掉 402 ms：那第二遍本身就是"什么算标题"的第二份实现，
+**它和第一份已经不一致过两次**（front matter 里的 `#`、setext 标题），
+每次都让第一处分歧之后的每个滚动目标都跳错行。取自实际画出来的节点，
+两者不可能不一致。
+
+**目录面板改用 `outlineProvider`**，与字数统计同一个形状：300 ms 防抖，
+算一次给所有人用。
+
+### 涉及文件
+
+- `code/lib/ui/editor/markdown_renderer.dart`
+- `code/lib/providers/outline_provider.dart`（新增）
+- `code/lib/ui/widgets/side_bar.dart`
+- `code/test/services/large_document_cost_test.dart`（新增，6 条）
