@@ -43,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The size code is drawn at can be set, independently of the body text; raising the reading size used to enlarge the prose and leave code at a fixed 14
 - Edit ▸ Find in Files, which searches every file in the open folder. The search itself was there all along, reachable only by finding the magnifying glass in the sidebar, and the label was already translated into all twelve languages
 - A mermaid diagram can be titled with `---\ntitle: …\n---`, which is how mermaid documents it for every type and the only way a flowchart can be titled at all
+- A fenced code block is drawn with a gutter of line numbers, as upstream draws one, and can be turned off in Settings. A line that wraps keeps its number level with it, and when the block scrolls sideways the numbers stay put
 
 ### Fixed
 - Clicking a folder-search result now scrolls to the line that matched, instead of opening the file at the top
@@ -89,6 +90,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Closing the find bar no longer throws, and the highlight it draws in the preview is cleared as it was meant to be
 - The settings page keeps what is being typed into it: its text fields were rebuilt on every rebuild, so flipping any switch discarded whatever had not yet been submitted
 - The window can be made narrow without the settings page, the menu bar or the status bar spilling over their right edge. There is no minimum window size, and the striping started at about a thousand pixels
+- Renaming a file onto a name already in use no longer destroys the file that had it, and asking for a new file under a name already in use no longer empties it. Both wrote over what was there without a prompt, an undo, or anything on screen to say it had happened
+- The sidebar's outline scrolls to the heading it names. It and the preview disagreed about which lines are headings — a `# comment` inside front matter was listed although nothing is drawn for it, and an underlined heading was drawn although nothing was listed — so from the first disagreement on, every entry went to the wrong place
+- A diagram written under a numbered step is exported with its picture, and a formula written there is exported as a formula rather than as the dollar signs it was written with. A local picture written there is carried into the file too, instead of being left as a path that breaks anywhere else
+- Clicking a recent file that has been moved or deleted says so and takes it off the list, instead of doing nothing at all
+- Export and Print are greyed out with no document open, where they used to be offered and then do nothing
+- A task list is written with the bullet chosen in Settings, as an ordinary list already was; choosing `*` gave one list written with stars and the next with dashes
+- Print answers to Ctrl+P. The palette went on taking that key from a shortcut written into the window itself, so Print had none — and rebinding any of the view shortcuts left the old key working there too
 
 ## [v1.3.0] - 2026-08-27
 
