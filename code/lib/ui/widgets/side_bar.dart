@@ -853,14 +853,6 @@ class _SideBarState extends ConsumerState<SideBar> {
 
   /// Directories that are never the user's own notes and can hold tens of
   /// thousands of files.
-  static const _skippedDirectories = {
-    'node_modules',
-    'vendor',
-    'build',
-    'dist',
-    'target',
-  };
-
   /// Beyond this the result list stops being useful and starts being a
   /// memory problem: a common word across a large folder runs to tens of
   /// thousands of hits, each one a string in a list widget.
@@ -941,9 +933,7 @@ class _SideBarState extends ConsumerState<SideBar> {
 
       if (entity is Directory) {
         final name = p.basename(entity.path);
-        if (name.startsWith('.') || _skippedDirectories.contains(name)) {
-          continue;
-        }
+        if (FileUtils.isSkippedDirectory(name)) continue;
         await _searchInDirectory(entity, lowercaseQuery, results, generation);
         continue;
       }

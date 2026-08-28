@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - File ▸ Move To…, the one menu command upstream MarkText has that this one did not
 
 ### Fixed
+- The sidebar tree shows folders and markdown documents, as upstream MarkText does, rather than everything a directory holds. Tapping a `.png` or a `.pdf` opened it as a text tab full of mojibake — one stray keystroke away from an auto-save writing that back over the original
+- The tree and the folder search now skip the same directories; the search stepped over `node_modules` while the tree listed all of it
 - Renaming from the File menu no longer destroys a file that already has the name. The service grew a guard against that and the sidebar adopted it; the menu kept its own `File.rename` call and so kept the bug
 - The macOS download is named for what it is. The published app has always carried both x86_64 and arm64, but it was called `macos-arm64`, and the release listed two `macos-x64` files that no job ever built — the release action skips a file it cannot find and still reports success
 

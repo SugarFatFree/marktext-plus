@@ -36,6 +36,27 @@ class FileUtils {
     'txt',
   ];
 
+  /// Directories a folder view has no business walking into.
+  ///
+  /// Shared by the file tree and the folder search rather than written out in
+  /// each: the search had this list and the tree had none, so opening a
+  /// project folder filled the sidebar with `node_modules` while searching it
+  /// correctly skipped the same directory.
+  static const skippedDirectories = <String>{
+    'node_modules',
+    'vendor',
+    'build',
+    'dist',
+    'target',
+  };
+
+  /// Whether a folder view should walk into a directory named [name].
+  ///
+  /// Hidden directories are skipped too: `.git` alone holds thousands of
+  /// files, none of which this editor can open.
+  static bool isSkippedDirectory(String name) =>
+      name.startsWith('.') || skippedDirectories.contains(name);
+
   /// The same list with leading dots, which is how [getExtension] reports them.
   static final markdownExtensionsWithDot =
       List<String>.unmodifiable(markdownExtensions.map((e) => '.$e'));

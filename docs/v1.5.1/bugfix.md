@@ -4,6 +4,7 @@
 |------|------|------|--------|------|
 | BUG-106 | 2026-08-29 | 发布清单列了两个从没被产出的 macOS x64 文件，且通用二进制被命名为 arm64 | P2 | 已修复 |
 | BUG-107 | 2026-08-29 | 菜单里的"重命名"绕开了守卫，会静默覆盖同名文件 | P1 | 已修复 |
+| BUG-108 | 2026-08-29 | 文件树列出所有文件，点开二进制会当文本打开并可能被写坏 | P1 | 已修复 |
 
 ---
 
@@ -94,3 +95,54 @@ service 与 config 内部，只有这一处在 UI 层。
 
 - `code/lib/ui/widgets/app_menu_bar.dart`
 - `code/test/services/menu_rename_guard_test.dart`（新增，3 条）
+
+
+---
+
+## BUG-108：文件树列出所有文件，点开二进制会当文本打开并可能被写坏
+
+### 现象
+
+在侧边栏打开一个项目文件夹，树里列着 `.git`、`node_modules`、`build`、
+`.DS_Store`、图片、PDF——本编辑器一个都打不开。
+
+而且点其中任何一个，**它会被当作文本打开**：`_openFileInTab` 不检查扩展名，
+文件内容经 `FileEncoding.decode` 变成一堆乱码填进标签页。到这一步只是难看，
+但**再往前一步就是数据丢失**——只要有一次误触键盘，自动保存（默认开启的设置）
+就会把这堆乱码写回原文件，图片或 PDF 就此损坏。
+
+### 根因分析
+
+`FileService.listDirectory` 把目录里的一切都变成 `FileNode`，只排除了
+保存中的临时文件。没有扩展名过滤，也没有目录排除。
+
+对照源项目 `main/filesystem/watcher.ts` 的 `ignored` 回调：
+
+```ts
+if (fileInfo.isDirectory()) { return false }
+return !hasMarkdownExtension(pathname)
+```
+
+**目录和 markdown 文件，别的都不显示**，另外硬排除 `node_modules` 与 `.asar`。
+
+同时这里还是一处"清单只有一份副本"的老问题：`side_bar.dart` 里有一份
+`_skippedDirectories`（node_modules / vendor / build / dist / target）
+**只用于搜索**。于是同一个文件夹，**搜索会正确跳过 `node_modules`，
+而文件树把它整个列出来**。
+
+### 修复方案
+
+- `listDirectory` 只返回目录与 markdown 文件（走共享的
+  `FileUtils.isMarkdownFile`，不是第 N 份扩展名清单）；
+- 排除目录清单从 `side_bar.dart` 移到 `FileUtils.skippedDirectories`，
+  加上 `isSkippedDirectory()`（含隐藏目录——单是 `.git` 就有上千个文件），
+  文件树与搜索共用；
+- **以点开头的 markdown 文件仍然显示**：隐藏点开头的*目录*是为了 `.git`，
+  而某人自己命名的 `.todo.md` 仍然是他的笔记。
+
+### 涉及文件
+
+- `code/lib/services/file_service.dart`
+- `code/lib/utils/file_utils.dart`
+- `code/lib/ui/widgets/side_bar.dart`
+- `code/test/services/file_tree_filter_test.dart`（新增，6 条）
