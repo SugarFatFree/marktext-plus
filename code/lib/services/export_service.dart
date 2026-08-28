@@ -1,6 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:docx_creator/docx_creator.dart' hide MarkdownParser;
 import 'package:pdf/pdf.dart';
@@ -732,8 +732,64 @@ class ExportService {
 
       case NodeType.htmlBlock:
         final html = node as HtmlBlockNode;
-        return html.html;
+        return sanitiseHtmlForExport(html.html);
     }
+  }
+
+  /// Removes what would run by itself from a block of raw HTML.
+  ///
+  /// A document may contain raw HTML, and the exported file is meant to look
+  /// like the document — so this keeps `<details>`, `<kbd>`, `<img>` and the
+  /// rest. What it takes out is the handful of things that execute rather than
+  /// display: a script, a frame, an embedded object, an `onclick=` attribute,
+  /// an address that is really code.
+  ///
+  /// It matters because an exported file is opened in a browser. A note written
+  /// by someone else — a README, a shared document — can carry a script that
+  /// the reader never sees in the editor (the preview shows an HTML block as
+  /// plain monospace text) and that runs the moment they open the export.
+  /// Upstream MarkText sanitises the same path and has a test named for it.
+  ///
+  /// **Best effort, not a security boundary.** This works on the text with
+  /// regular expressions, which is not how HTML is properly parsed; it is here
+  /// because passing everything straight through was worse, not because it can
+  /// be relied on to stop a determined attempt.
+  @visibleForTesting
+  static String sanitiseHtmlForExport(String html) {
+    var out = html;
+
+    // Elements whose content is code or an external document, taken out
+    // whether or not they are closed properly.
+    for (final tag in const ['script', 'iframe', 'object', 'embed', 'applet']) {
+      out = out.replaceAll(
+        RegExp('<$tag\\b[^>]*>.*?</$tag\\s*>',
+            caseSensitive: false, dotAll: true),
+        '',
+      );
+      out = out.replaceAll(
+        RegExp('</?$tag\\b[^>]*>', caseSensitive: false),
+        '',
+      );
+    }
+
+    // Event handlers: onclick, onerror, onload and every other on… attribute.
+    out = out.replaceAll(
+      RegExp(r'''\son\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)''',
+          caseSensitive: false),
+      '',
+    );
+
+    // Addresses that execute instead of pointing somewhere.
+    out = out.replaceAll(
+      RegExp(
+          r'''\s+(?:href|src|xlink:href)\s*=\s*(?:"\s*(?:javascript|vbscript):[^"]*"'''
+          r"""|'\s*(?:javascript|vbscript):[^']*'"""
+          r'''|(?:javascript|vbscript):[^\s>]*)''',
+          caseSensitive: false),
+      '',
+    );
+
+    return out;
   }
 
   /// Renders a list, opening and closing a nested list as the depth changes.

