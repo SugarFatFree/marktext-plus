@@ -54,6 +54,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
   @override
   void initState() {
     super.initState();
+    StartupTrace.mark('home screen initState');
     // The listener lives here rather than above MaterialApp because closing
     // has to be able to show a dialog, which needs a Navigator and the
     // localisations in scope.
@@ -105,9 +106,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
       // only ever be saved when something was left unsaved.
       await _saveWindowGeometry();
       StartupTrace.mark('window geometry saved');
+      StartupTrace.mark('stopping file watches');
       ref.read(tabProvider.notifier).stopWatchingFiles();
+      StartupTrace.mark('file watches stopped');
       // Written before destroy: the call may not return.
       StartupTrace.flush();
+      StartupTrace.armShutdownWatchdog();
       await windowManager.destroy();
       StartupTrace.mark('window destroyed');
       StartupTrace.flush();
@@ -128,8 +132,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
 
     await _saveWindowGeometry();
     StartupTrace.mark('window geometry saved (after prompt)');
+    StartupTrace.mark('stopping file watches');
     ref.read(tabProvider.notifier).stopWatchingFiles();
+    StartupTrace.mark('file watches stopped');
     StartupTrace.flush();
+    StartupTrace.armShutdownWatchdog();
     await windowManager.destroy();
     StartupTrace.mark('window destroyed');
     StartupTrace.flush();
@@ -142,9 +149,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
   /// wrote zeros and false over whatever had been stored.
   Future<void> _saveWindowGeometry() async {
     try {
-      final maximized = await windowManager.isMaximized();
-      final size = await windowManager.getSize();
-      final position = await windowManager.getPosition();
+      // Together rather than one after another: three independent reads over
+      // the platform channel, each a round trip to the Windows thread, and
+      // they were being waited on in sequence while the window sat there.
+      final (maximized, size, position) = await (
+        windowManager.isMaximized(),
+        windowManager.getSize(),
+        windowManager.getPosition(),
+      ).wait;
+      StartupTrace.mark('window bounds read');
 
       await ref
           .read(settingsProvider.notifier)
@@ -155,8 +168,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
             y: position.dy,
             isMaximized: maximized,
           );
+      StartupTrace.mark('window state written to config');
     } catch (_) {
       // Nothing to record without a window; closing continues regardless.
+      StartupTrace.mark('window geometry could not be read');
     }
   }
 
@@ -595,6 +610,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
 
   @override
   Widget build(BuildContext context) {
+    StartupTrace.markOnce('home screen first build');
     final config = ref.watch(settingsProvider);
     // Only the find bar's visibility is read here. Watching the whole editor
     // state rebuilt this entire screen on every cursor move.

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:window_manager/window_manager.dart';
+import 'core/diagnostics/startup_trace.dart';
 import 'core/i18n/l10n/app_localizations.dart';
 import 'core/theme/app_theme.dart';
 import 'providers/settings_provider.dart';
@@ -49,6 +50,7 @@ class MarkTextPlusApp extends ConsumerWidget {
         ref.watch(settingsProvider.select((c) => c.textDirection));
     final locale = ref.watch(localeProvider);
     final tokens = AppTheme.getTokens(themeName);
+    StartupTrace.markOnce('app root built (theme and locale resolved)');
 
     // Sync window brightness with theme
     if (_appliedBrightness != tokens.brightness) {

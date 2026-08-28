@@ -63,7 +63,10 @@ jobs:
       # Catches native/plugin breakage that `flutter analyze` cannot see.
       - name: Build
         working-directory: code
-        run: flutter build linux --release
+        run: |
+          flutter build linux --release \
+            --dart-define=BUILD_SHA=${GITHUB_SHA} \
+            --dart-define=BUILD_RUN=${GITHUB_RUN_NUMBER}
 
       - name: Package
         run: |
@@ -96,7 +99,10 @@ jobs:
 
       - name: Build
         working-directory: code
-        run: flutter build windows --release
+        run: |
+          flutter build windows --release `
+            --dart-define=BUILD_SHA=$env:GITHUB_SHA `
+            --dart-define=BUILD_RUN=$env:GITHUB_RUN_NUMBER
 
       # An installer as well as the loose files. A folder unzipped from a
       # downloaded artifact carries the mark of the web and is unsigned, so
