@@ -1,5 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'dart:io';
+
+import 'package:marktext_plus/core/config/app_config.dart';
+import 'package:marktext_plus/core/config/config_service.dart';
+import 'package:marktext_plus/core/i18n/l10n/app_localizations.dart';
+import 'package:marktext_plus/providers/editor_provider.dart';
+import 'package:marktext_plus/providers/settings_provider.dart';
 import 'package:marktext_plus/ui/widgets/find_replace_bar.dart';
 
 /// Splices matches back into the document the way replace-all does, so a
@@ -127,5 +136,104 @@ void main() {
       final matches = FindReplaceBar.findMatches('a-b-c', '-');
       expect(FindReplaceBar.replaceRanges('a-b-c', matches, ''), 'abc');
     });
+  });
+
+  group('replace availability', _replaceAvailability);
+}
+
+/// The Replace buttons offer only what they can do.
+///
+/// The expand toggle is already hidden unless the source is the target, so a
+/// preview-only search never shows them. Split mode can reach the state all
+/// the same: expand Replace while the search is aimed at the source, then aim
+/// it at the preview. The row stays open, both buttons stay live, and both
+/// return at their first line — a button that does nothing when pressed.
+void _replaceAvailability() {
+  Future<ProviderContainer> pump(
+    WidgetTester tester, {
+    required SearchTarget target,
+  }) async {
+    final configDir = Directory.systemTemp.createTempSync('find_bar');
+    addTearDown(() {
+      if (configDir.existsSync()) configDir.deleteSync(recursive: true);
+    });
+    final container = ProviderContainer(
+      overrides: [
+        settingsProvider.overrideWith(
+          (ref) => SettingsNotifier(
+            ConfigService(configDir: configDir.path),
+            AppConfig(),
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    container.read(editorProvider.notifier).setSearchTarget(target);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: FindReplaceBar(
+              textController: TextEditingController(text: 'one two one'),
+              rawContent: 'one two one',
+              isSplitMode: true,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    return container;
+  }
+
+  /// Opens the replace row and searches for something that is there.
+  Future<void> searchAndExpand(WidgetTester tester) async {
+    await tester.enterText(find.byType(TextField).first, 'one');
+    await tester.pump();
+    final toggle = find.byIcon(Icons.expand_more);
+    if (toggle.evaluate().isNotEmpty) {
+      await tester.tap(toggle);
+      await tester.pump();
+    }
+  }
+
+  /// The two Replace buttons, found by their labels rather than by type:
+  /// the bar has other buttons that are rightly live either way.
+  List<bool> replaceButtonsLive(WidgetTester tester) => [
+        for (final label in ['Replace', 'Replace All'])
+          tester
+                  .widget<TextButton>(find.widgetWithText(TextButton, label))
+                  .onPressed !=
+              null,
+      ];
+
+  testWidgets('are live while the source is the target', (tester) async {
+    await pump(tester, target: SearchTarget.source);
+    await searchAndExpand(tester);
+
+    expect(replaceButtonsLive(tester), [true, true],
+        reason: '源码是搜索目标且有匹配，替换应当可用');
+  });
+
+  testWidgets('go dead when the search is aimed at the preview',
+      (tester) async {
+    final container = await pump(tester, target: SearchTarget.source);
+    await searchAndExpand(tester);
+
+    container.read(editorProvider.notifier)
+        .setSearchTarget(SearchTarget.preview);
+    await tester.pump();
+
+    expect(replaceButtonsLive(tester), [false, false],
+        reason: '搜索指向预览时按钮仍可点，但按下去什么都不会发生');
   });
 }

@@ -84,6 +84,8 @@
 | BUG-080 | 2026-08-28 | 表格列对齐在三种导出里全部丢失；Word 单元格还把 `**粗**` 原样输出 | **P1** | 已修复 |
 | BUG-081 | 2026-08-28 | 导出的嵌套列表是无效 HTML，子列表成了父项的兄弟 | P2 | 已修复 |
 | BUG-082 | 2026-08-28 | 任务列表勾选框在续行/松散/带块的列表里点了没反应 | **P1** | 已修复 |
+| BUG-083 | 2026-08-28 | 关闭查找栏时在 dispose 里用 ref，每次都抛异常且预览高亮清不掉 | **P1** | 已修复 |
+| BUG-084 | 2026-08-28 | 分屏把搜索切到预览后，替换按钮仍可点却什么都不做 | P3 | 已修复 |
 
 ## 详细记录
 
@@ -3185,5 +3187,75 @@ HTML 规范里 `<ul>`/`<ol>` 的合法子元素只有 `<li>`。浏览器容错�
 - `code/lib/ui/editor/markdown_renderer.dart`
 - `code/lib/services/markdown_parser.dart`（公开 `startsListItem`）
 - `code/test/ui/editor/markdown_renderer_edit_test.dart`
+
+---
+
+## BUG-083：查找栏销毁时 `dispose()` 里用 `ref`，每次都抛
+
+### 现象
+
+关闭查找栏、切换标签、关闭文档——只要 `FindReplaceBar` 被销毁，就会抛一次
+`Bad state: Cannot use "ref" after the widget was disposed`，而它本要执行的
+`clearPreviewSearch()` **从来没有执行过**，预览里的搜索高亮因此残留。
+
+因为异常发生在 widget 树拆除阶段，被框架接住报到控制台，界面不崩，所以一直
+没人注意。
+
+### 根因
+
+```dart
+void dispose() {
+  _clearHighlighting();   // 里面是 ref.read(editorProvider.notifier)
+  ...
+}
+```
+
+Riverpod 的 `ConsumerStatefulElement` 在 `unmount()` 里**先**把自己标记为
+disposed，**再**调 `State.dispose()`。所以 `dispose()` 里的 `ref` 必然已经失效。
+
+修的过程中还撞出第二层：把 notifier 提前存下来、在 `dispose()` 里调用它，
+仍然会炸——通知监听者会触发**已销毁组件**的 `markNeedsBuild`。
+
+### 修复方案
+
+- notifier 在 `initState` 里读一次存起来（`ref` 那时有效）；
+- `dispose()` 里同步清掉**自己的**控制器高亮；
+- 属于 provider 的那部分推迟到当前帧之后：`addPostFrameCallback` 里执行，
+  并先检查 `notifier.mounted`——那时这个组件已经不在监听列表里，预览照样
+  会停止高亮。
+
+### 怎么发现的
+
+不是读代码看出来的，是**给另一个问题（BUG-084）写组件测试时炸出来的**。
+这个查找栏此前只有纯逻辑测试，从没被真正挂载过；一挂载，销毁路径立刻报错。
+"给没有组件测试的组件补第一个组件测试"本身就是一种有效的排查手段。
+
+---
+
+## BUG-084：分屏把搜索切到预览后，替换按钮仍可点却什么都不做
+
+### 现象
+
+分屏模式下先展开"替换"、再把搜索目标切到预览：替换与全部替换两个按钮**保持
+可点**，但 `_replace()` / `_replaceAll()` 第一行就 `if (!_isSourceTarget()) return;`。
+按下去没有任何反应，也没有提示。
+
+### 收窄后的结论
+
+我最初以为"预览模式下替换全都是摆设"，**这是错的**：展开替换的那个箭头按钮
+本身就带 `if (_isSourceTarget())` 守卫，纯预览模式下根本看不到替换行。真正
+能走到的只有上面那条分屏路径——先展开、再切目标，行留在原地而按钮没跟着变。
+
+### 修复方案
+
+两个按钮与替换输入框的可用性都取自 `_isSourceTarget()`，而不是只看有没有
+匹配。新增 2 条组件测试（源码为目标时两个按钮都活、切到预览后都禁用），
+按**标签**定位这两个按钮——按类型取会把栏里其它本就该可用的按钮也算进来，
+我第一版断言就是这么写错的。
+
+### 涉及文件
+
+- `code/lib/ui/widgets/find_replace_bar.dart`
+- `code/test/ui/widgets/find_replace_bar_test.dart`
 
 ---

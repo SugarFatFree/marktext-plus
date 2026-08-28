@@ -75,6 +75,9 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
   bool _useRegex = false;
   bool _showReplace = false;
 
+  /// The notifier, kept for dispose. See initState.
+  late final EditorNotifier _editor;
+
   List<TextRange> _matches = [];
   int _currentMatchIndex = -1;
 
@@ -86,6 +89,11 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
   @override
   void initState() {
     super.initState();
+    // Held rather than read on demand, because dispose() has to clear the
+    // preview highlight and `ref` is already gone by then: Riverpod marks the
+    // element disposed before State.dispose runs, so every teardown of this
+    // bar threw and the highlight it was meant to clear stayed on screen.
+    _editor = ref.read(editorProvider.notifier);
     _findController.addListener(_onFindTextChanged);
     widget.textController?.addListener(_onDocumentChanged);
 
@@ -120,7 +128,20 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
 
   @override
   void dispose() {
-    _clearHighlighting();
+    // The controller is ours to clear now; the provider is not. Telling it
+    // during dispose makes it notify listeners, and this widget is one of
+    // them — a rebuild of an element the framework has already finished with.
+    // After the frame it is simply gone, and the preview still stops
+    // highlighting.
+    if (widget.textController is HighlightingController) {
+      (widget.textController as HighlightingController)
+          .updateSearchMatches([], -1);
+    }
+    final editor = _editor;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (editor.mounted) editor.clearPreviewSearch();
+    });
+
     widget.textController?.removeListener(_onDocumentChanged);
     _findController.dispose();
     _replaceController.dispose();
@@ -133,7 +154,7 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
       (widget.textController as HighlightingController)
           .updateSearchMatches([], -1);
     }
-    ref.read(editorProvider.notifier).clearPreviewSearch();
+    _editor.clearPreviewSearch();
   }
 
   void _onFindTextChanged() {
@@ -341,6 +362,11 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
+    // Replacing is only possible where the text is editable. Matches are
+    // counted in the preview too, so both buttons were enabled while the
+    // search was aimed at it — and both returned at their first line, which
+    // the reader saw as a button that does nothing.
+    final canReplace = _isSourceTarget();
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
@@ -524,12 +550,13 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
                       ),
                     ),
                     style: const TextStyle(fontSize: 13),
+                    enabled: canReplace,
                     onSubmitted: (_) => _replace(),
                   ),
                 ),
                 const SizedBox(width: 8),
                 TextButton(
-                  onPressed: _matches.isNotEmpty ? _replace : null,
+                  onPressed: canReplace && _matches.isNotEmpty ? _replace : null,
                   style: TextButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     minimumSize: const Size(0, 28),
@@ -538,7 +565,8 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
                   child: Text(l10n.editReplace),
                 ),
                 TextButton(
-                  onPressed: _matches.isNotEmpty ? _replaceAll : null,
+                  onPressed:
+                      canReplace && _matches.isNotEmpty ? _replaceAll : null,
                   style: TextButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     minimumSize: const Size(0, 28),
