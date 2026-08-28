@@ -936,12 +936,19 @@ class AppMenuBar extends ConsumerWidget {
       allowedExtensions: ['html'],
     );
     if (path == null) return;
+    // Diagrams are drawn here and carried into the file, the same way the PDF
+    // and Word exports have always done it. Without them the export described
+    // each diagram and left a script from a CDN to draw it, so the diagrams
+    // were blank for anyone offline — or on a network that does not reach
+    // jsdelivr, which is most company networks.
+    final mermaidImages = await _renderMermaidImages(activeTab.content);
     // The tab's own path is what relative image references resolve against.
     await ExportService.exportToHtml(
       activeTab.content,
       path,
       sourcePath: activeTab.filePath,
       enableHtml: ref.read(settingsProvider).enableHtml,
+      mermaidImages: mermaidImages,
     );
   }
 

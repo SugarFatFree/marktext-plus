@@ -126,12 +126,28 @@ class ExportService {
     String savePath, {
     String? sourcePath,
     bool enableHtml = false,
+    Map<String, Uint8List>? mermaidImages,
   }) async {
     // Threaded through so the export reads the document the same way the
     // preview does; two different readings of one file is how they drift.
     final parser = MarkdownParser(enableHtml: enableHtml);
     final ast = parser.parse(markdown);
     final images = await _collectInlineImages(ast, sourcePath);
+
+    // Whether anything still needs the mermaid script from the CDN. When every
+    // diagram came through as a picture there is nothing left for it to draw,
+    // and a file that reaches out to the network to render nothing is worse
+    // than one that does not reach out at all.
+    var needsMermaidScript = false;
+    var scanIndex = 0;
+    for (final node in ast) {
+      if (node is CodeBlockNode && _isMermaidLanguage(node.language)) {
+        if (mermaidImages?['mermaid_$scanIndex'] == null) {
+          needsMermaidScript = true;
+        }
+        scanIndex++;
+      }
+    }
 
     final buffer = StringBuffer();
     buffer.writeln('<!DOCTYPE html>');
@@ -145,12 +161,15 @@ class ExportService {
     buffer.writeln('  <style>');
     buffer.writeln(_getGitHubStyleCss());
     buffer.writeln('  </style>');
-    buffer.writeln(
-      '  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>',
-    );
-    buffer.writeln(
-      '  <script>mermaid.initialize({startOnLoad: true, securityLevel: "strict"});</script>',
-    );
+    if (needsMermaidScript) {
+      buffer.writeln(
+        '  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>',
+      );
+      buffer.writeln(
+        '  <script>mermaid.initialize('
+        '{startOnLoad: true, securityLevel: "strict"});</script>',
+      );
+    }
 
     // Maths and code highlighting were rendered in the preview but not in the
     // export, so a document that looked right in the app arrived as raw LaTeX
@@ -167,8 +186,19 @@ class ExportService {
     buffer.writeln('<body>');
     buffer.writeln('  <div class="markdown-body">');
 
+    var mermaidIndex = 0;
     for (final node in ast) {
-      buffer.writeln(nodeToHtml(node, inlinedImages: images));
+      Uint8List? diagram;
+      if (node is CodeBlockNode && _isMermaidLanguage(node.language)) {
+        // Counted exactly as the images were keyed when they were rendered;
+        // a diagram that failed to draw still takes its number, so the ones
+        // after it keep their own.
+        diagram = mermaidImages?['mermaid_$mermaidIndex'];
+        mermaidIndex++;
+      }
+      buffer.writeln(
+        nodeToHtml(node, inlinedImages: images, mermaidImage: diagram),
+      );
     }
 
     buffer.writeln('  </div>');
@@ -644,6 +674,7 @@ class ExportService {
   static String nodeToHtml(
     MarkdownNode node, {
     Map<String, String> inlinedImages = const {},
+    Uint8List? mermaidImage,
   }) {
     switch (node.type) {
       case NodeType.heading:
@@ -664,8 +695,18 @@ class ExportService {
 
       case NodeType.codeBlock:
         final code = node as CodeBlockNode;
-        // The mermaid script loaded in the head renders these.
         if (_isMermaidLanguage(code.language)) {
+          // The picture the app drew, carried inside the file. The exported
+          // HTML used to describe the diagram and leave a script from a CDN to
+          // draw it, so the diagrams were blank for anyone reading offline —
+          // or on a network that does not reach jsdelivr, which is most
+          // company networks. Falls back to the script only for a diagram the
+          // app could not draw.
+          if (mermaidImage != null) {
+            final data = base64Encode(mermaidImage);
+            return '<p class="mermaid-image">'
+                '<img src="data:image/png;base64,$data" alt="diagram"></p>';
+          }
           return '<pre class="mermaid">${_escapeHtml(code.code)}</pre>';
         }
         final langClass = code.language.isNotEmpty
