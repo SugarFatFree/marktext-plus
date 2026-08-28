@@ -143,4 +143,72 @@ void main() {
       expect(controller.selection.isValid, isTrue);
     });
   });
+  group('each tab has its own history', () {
+    // The stacks are kept per tab and the editor points them at the tab it is
+    // showing. Both editors that host one are keyed by tab id, so a switch
+    // builds a fresh state and the pointing happens again — but nothing said
+    // so, and undo reaching into another document is a silent way to lose work.
+    test('undoing in one tab does not reach into another', () {
+      notifier.setHistoryTab('a');
+      notifier.pushHistory('a one');
+      notifier.pushHistory('a two');
+
+      notifier.setHistoryTab('b');
+      notifier.pushHistory('b one');
+      notifier.pushHistory('b two');
+
+      controller.text = 'b two';
+      notifier.undo();
+
+      expect(controller.text, 'b one', reason: '撤销拿到了别的标签页的历史');
+    });
+
+    test('coming back to a tab finds its history where it was left', () {
+      notifier.setHistoryTab('a');
+      notifier.pushHistory('a one');
+      notifier.pushHistory('a two');
+
+      notifier.setHistoryTab('b');
+      notifier.pushHistory('b one');
+
+      notifier.setHistoryTab('a');
+      controller.text = 'a two';
+      notifier.undo();
+
+      expect(controller.text, 'a one');
+    });
+
+    test('closing a tab drops its history', () {
+      notifier.setHistoryTab('a');
+      notifier.pushHistory('a one');
+      notifier.pushHistory('a two');
+
+      notifier.forgetHistory('a');
+      notifier.setHistoryTab('a');
+      controller.text = 'a two';
+      notifier.undo();
+
+      expect(controller.text, 'a two', reason: '关掉的标签页的历史还留着');
+    });
+  });
+
+  test('redo survives the editor being rebuilt', () {
+    // Switching between source and split view rebuilds the editor, which
+    // records the document it is given. pushHistory clears the redo stack —
+    // the one thing that must not happen when nothing was edited — and only
+    // does not here because the content it records is the one already on top.
+    notifier.pushHistory('one');
+    notifier.pushHistory('two');
+    controller.text = 'two';
+    notifier.undo();
+    expect(controller.text, 'one');
+
+    // What a rebuilt editor does with the tab's current content.
+    notifier.setHistoryTab('tab');
+    notifier.pushHistory(controller.text);
+
+    notifier.redo();
+    expect(controller.text, 'two', reason: '重建编辑器把重做栈清掉了');
+  });
+
 }
