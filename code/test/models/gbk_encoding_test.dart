@@ -107,4 +107,23 @@ void main() {
       expect(read(const []).$2, FileEncoding.utf8Encoding);
     });
   });
+  group('a short word with accents is not mistaken for Chinese', () {
+    // The share of paired bytes alone lets these through: in a word this
+    // short two accented letters are a third of the file. Two things settle
+    // it — the decoder marks what it cannot read, and the mark lands in the
+    // private use area; and below a dozen bytes there is not enough evidence
+    // to prefer GBK at all, which is what `Öl` needs, its two bytes being a
+    // valid sequence for a real character.
+    for (final entry in {
+      'Grüße': [0x47, 0x72, 0xFC, 0xDF, 0x65, 0x0A],
+      'Öl': [0xD6, 0x6C, 0x0A],
+      'ÿ alone': [0xFF, 0x0A],
+    }.entries) {
+      test(entry.key, () {
+        expect(read(entry.value).$2, FileEncoding.latin1Encoding,
+            reason: '${entry.key} 被当成了中文');
+      });
+    }
+  });
+
 }

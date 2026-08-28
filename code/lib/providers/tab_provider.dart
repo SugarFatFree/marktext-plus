@@ -287,6 +287,34 @@ class TabNotifier extends StateNotifier<TabState> {
     state = state.copyWith(tabs: tabs);
   }
 
+  /// Reads the file again as [encoding] and shows what it says.
+  ///
+  /// Detection is a guess, so the reader needs a way to correct it. Rereading
+  /// from disk rather than re-interpreting what is on screen: the text in
+  /// memory has already been through one decoder, and running it through a
+  /// second cannot recover what the first one lost.
+  ///
+  /// A tab with unsaved edits is left alone — rereading would throw them away
+  /// — and so is one with no file behind it.
+  Future<bool> rereadAs(String id, FileEncoding encoding) async {
+    final tab = state.tabs.where((t) => t.id == id).firstOrNull;
+    if (tab == null || tab.filePath == null || tab.isModified) return false;
+
+    try {
+      final bytes = await File(tab.filePath!).readAsBytes();
+      final text = FileEncoding.decodeAs(bytes, encoding);
+      loadTabContent(
+        id,
+        FileService.normalizeLineEndings(text),
+        lineEnding: LineEnding.detect(text),
+        encoding: encoding,
+      );
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   void updateContent(String id, String content) {
     final tabs = state.tabs.map((tab) {
       if (tab.id == id) {

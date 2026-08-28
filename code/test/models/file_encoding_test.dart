@@ -45,11 +45,18 @@ void main() {
       // It used to open as Latin-1 — two wrong characters for every real one
       // — because Latin-1 at least re-encoded to the same bytes. Reading it
       // properly does that too, and shows what was written.
-      final bytes = Uint8List.fromList([0x23, 0x20, 0xB1, 0xEA, 0xCC, 0xE2]);
+      // A real document rather than a fragment: below a dozen bytes there is
+      // not enough evidence to prefer GBK, and Latin-1 — which writes back
+      // byte for byte — is the safer answer.
+      final bytes = Uint8List.fromList([
+        0x23, 0x20, 0xB1, 0xEA, 0xCC, 0xE2, 0x0A, 0x0A, 0xD5, 0xE2, 0xCA,
+        0xC7, 0xD2, 0xBB, 0xB6, 0xCE, 0xD6, 0xD0, 0xCE, 0xC4, 0xA1, 0xA3,
+        0x0A,
+      ]);
       final (text, encoding) = FileEncoding.decode(bytes);
 
       expect(encoding, FileEncoding.gbk);
-      expect(text, '# 标题');
+      expect(text, '# 标题\n\n这是一段中文。\n');
       expect(encoding.encode(text), bytes);
     });
 

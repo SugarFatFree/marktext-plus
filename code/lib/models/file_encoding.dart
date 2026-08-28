@@ -72,7 +72,14 @@ enum FileEncoding {
     } on FormatException {
       if (_looksLikeGbk(bytes)) {
         try {
-          return (charset.gbk.decode(bytes), FileEncoding.gbk);
+          final text = charset.gbk.decode(bytes);
+          // The decoder marks what it cannot read rather than refusing, and
+          // the mark lands in the private use area — where nothing a document
+          // is actually written in belongs. `Grüße` is the case that needs
+          // this: 0xFC 0xDF has the shape of a pair without being one, and in
+          // a word that short it is a third of the bytes, so the share test
+          // lets it through.
+          if (!_hasPrivateUse(text)) return (text, FileEncoding.gbk);
         } catch (_) {
           // The shape fitted but the bytes did not; Latin-1 still reads them.
         }
@@ -80,6 +87,45 @@ enum FileEncoding {
       return (latin1.decode(bytes), FileEncoding.latin1Encoding);
     }
   }
+
+  /// Reads [bytes] as [encoding], whatever the guess would have been.
+  ///
+  /// Detection is a guess — the share of double-byte pairs tells GBK from
+  /// Latin-1 well but not perfectly — so the reader has to be able to say
+  /// what a file really is. Malformed bytes are shown rather than thrown:
+  /// picking the wrong encoding should look wrong, not close the document.
+  static String decodeAs(Uint8List bytes, FileEncoding encoding) {
+    switch (encoding) {
+      case FileEncoding.utf8Encoding:
+      case FileEncoding.utf8Bom:
+        return utf8.decode(bytes, allowMalformed: true);
+      case FileEncoding.utf16le:
+        return _decodeUtf16(
+          _hasUtf16Bom(bytes, big: false) ? bytes.sublist(2) : bytes,
+          big: false,
+        );
+      case FileEncoding.utf16be:
+        return _decodeUtf16(
+          _hasUtf16Bom(bytes, big: true) ? bytes.sublist(2) : bytes,
+          big: true,
+        );
+      case FileEncoding.gbk:
+        try {
+          return charset.gbk.decode(bytes);
+        } catch (_) {
+          return latin1.decode(bytes);
+        }
+      case FileEncoding.latin1Encoding:
+        return latin1.decode(bytes);
+    }
+  }
+
+  /// Whether [text] holds a character from the private use area.
+  ///
+  /// That is where the decoder puts bytes it could not read, and nothing a
+  /// document is genuinely written in lives there.
+  static bool _hasPrivateUse(String text) =>
+      text.runes.any((rune) => rune >= 0xE000 && rune <= 0xF8FF);
 
   /// Whether [bytes] look like GBK rather than a single-byte encoding.
   ///
@@ -90,7 +136,12 @@ enum FileEncoding {
   /// double-byte, and accented European text is mostly ASCII, which is what
   /// the share measures.
   static bool _looksLikeGbk(Uint8List bytes) {
-    if (bytes.isEmpty) return false;
+    // Too short to tell. `Öl` is three bytes, two of which are a valid GBK
+    // sequence for a real character — no test can separate that from German
+    // on the evidence available. Latin-1 is the safer answer because it
+    // writes back byte for byte, and the status bar lets the reader say
+    // otherwise.
+    if (bytes.length < 12) return false;
 
     var paired = 0;
     var i = 0;

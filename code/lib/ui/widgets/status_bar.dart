@@ -77,7 +77,7 @@ class StatusBar extends ConsumerWidget {
           // used to tell. A document that opened as mojibake is otherwise a
           // mystery, and "Latin-1" here is the explanation.
           if (showEncoding) ...[
-            Text(encoding.label, style: style),
+            _EncodingButton(encoding: encoding, style: style),
             _divider(tokens),
           ],
           if (showDocumentKind) ...[
@@ -202,6 +202,71 @@ class StatusBar extends ConsumerWidget {
 }
 
 /// The line ending indicator, which switches convention when clicked.
+/// The encoding the document was read as, and a way to say it read it wrong.
+///
+/// Detection is a guess: the share of double-byte pairs tells GBK from
+/// Latin-1 well but not perfectly, and nothing tells apart two single-byte
+/// encodings at all. Without this the reader could see that a file had opened
+/// as mojibake and do nothing about it.
+class _EncodingButton extends ConsumerWidget {
+  const _EncodingButton({required this.encoding, required this.style});
+
+  final FileEncoding encoding;
+  final TextStyle style;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final activeTab = ref.watch(activeTabProvider);
+    // Rereading throws away unsaved edits, so it is offered only when there
+    // are none — and only for a tab that has a file to read again.
+    final canReread = activeTab != null &&
+        activeTab.filePath != null &&
+        !activeTab.isModified;
+
+    return MouseRegion(
+      cursor: canReread ? SystemMouseCursors.click : SystemMouseCursors.basic,
+      child: GestureDetector(
+        onTap: canReread ? () => _choose(context, ref, activeTab.id) : null,
+        child: Text(encoding.label, style: style),
+      ),
+    );
+  }
+
+  Future<void> _choose(BuildContext context, WidgetRef ref, String id) async {
+    final box = context.findRenderObject() as RenderBox?;
+    if (box == null) return;
+    final origin = box.localToGlobal(Offset.zero);
+
+    final chosen = await showMenu<FileEncoding>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        origin.dx,
+        origin.dy - 8 * FileEncoding.values.length,
+        origin.dx + box.size.width,
+        origin.dy,
+      ),
+      items: [
+        for (final option in FileEncoding.values)
+          PopupMenuItem(
+            value: option,
+            height: 32,
+            child: Text(
+              option.label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight:
+                    option == encoding ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ),
+      ],
+    );
+    if (chosen == null || chosen == encoding) return;
+
+    await ref.read(tabProvider.notifier).rereadAs(id, chosen);
+  }
+}
+
 class _LineEndingButton extends ConsumerWidget {
   const _LineEndingButton({required this.lineEnding, required this.style});
 
