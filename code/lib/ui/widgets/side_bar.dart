@@ -25,6 +25,33 @@ class SideBar extends ConsumerStatefulWidget {
 
   @override
   ConsumerState<SideBar> createState() => _SideBarState();
+
+  /// Which files are open, and which of them is showing.
+  ///
+  /// A `String` because that is what `select` can compare: rebuilding only
+  /// when this changes is the point. The sidebar shows names and highlights,
+  /// so the document's text and its modified flag are none of its business —
+  /// and watching the whole of `tabProvider` had it rebuilding the entire file
+  /// tree on every keystroke.
+  @visibleForTesting
+  static String openFilesKey(TabState state) {
+    final buffer = StringBuffer(state.activeTabId ?? '');
+    for (final tab in state.tabs) {
+      buffer
+        ..write('\u0001')
+        ..write(tab.id)
+        ..write('\u0002')
+        ..write(tab.filePath ?? '');
+    }
+    return buffer.toString();
+  }
+
+  /// The path of the tab in the foreground, or null.
+  @visibleForTesting
+  static String? activePath(TabState state) => state.tabs
+      .where((t) => t.id == state.activeTabId)
+      .map((t) => t.filePath)
+      .firstOrNull;
 }
 
 class _SideBarState extends ConsumerState<SideBar> {
@@ -173,14 +200,17 @@ class _SideBarState extends ConsumerState<SideBar> {
 
   Widget _buildFileTree(AppLocalizations l10n) {
     final fileNodes = ref.watch(fileProvider);
-    final tabState = ref.watch(tabProvider);
+    // Narrow, deliberately: see [SideBar.openFilesKey].
+    ref.watch(tabProvider.select(SideBar.openFilesKey));
+    final openedFiles = ref.watch(tabProvider.select((s) => s.openedFiles));
+    final activePath = ref.watch(tabProvider.select(SideBar.activePath));
     final currentDir = ref.watch(fileProvider.notifier).currentDirectory;
 
     if (fileNodes.isNotEmpty) {
       // Collect opened files that are NOT inside the current directory
       final externalFiles = <OpenedFileEntry>[];
       if (currentDir != null) {
-        for (final file in tabState.openedFiles) {
+        for (final file in openedFiles) {
           if (!file.filePath.startsWith(currentDir)) {
             externalFiles.add(file);
           }
@@ -202,14 +232,14 @@ class _SideBarState extends ConsumerState<SideBar> {
                 ),
               ),
             ),
-            ...externalFiles.map((file) => _buildExternalFileItem(file, tabState, l10n)),
+            ...externalFiles.map((file) => _buildExternalFileItem(file, activePath, l10n)),
           ],
         ],
       );
     }
 
     // No folder opened – show opened files list
-    if (tabState.openedFiles.isEmpty) {
+    if (openedFiles.isEmpty) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -237,14 +267,15 @@ class _SideBarState extends ConsumerState<SideBar> {
     }
 
     return ListView(
-      children: tabState.openedFiles.map((file) {
-        return _buildExternalFileItem(file, tabState, l10n);
+      children: openedFiles.map((file) {
+        return _buildExternalFileItem(file, activePath, l10n);
       }).toList(),
     );
   }
 
-  Widget _buildExternalFileItem(OpenedFileEntry file, TabState tabState, AppLocalizations l10n) {
-    final isActive = tabState.tabs.any((t) => t.filePath == file.filePath && t.id == tabState.activeTabId);
+  Widget _buildExternalFileItem(
+      OpenedFileEntry file, String? activePath, AppLocalizations l10n) {
+    final isActive = activePath == file.filePath;
     return GestureDetector(
       onSecondaryTapUp: (details) {
         _showOpenedFileContextMenu(context, details.globalPosition, file);
@@ -300,9 +331,13 @@ class _SideBarState extends ConsumerState<SideBar> {
 
   Widget _buildFileNode(FileNode node, int depth) {
     final l10n = AppLocalizations.of(context)!;
-    final tabState = ref.watch(tabProvider);
-    final isOpenedInTab = !node.isDirectory &&
-        tabState.tabs.any((t) => t.filePath == node.path);
+    final openPaths = ref.watch(
+      tabProvider.select(
+        (s) => s.tabs.map((t) => t.filePath).whereType<String>().join('\u0001'),
+      ),
+    );
+    final isOpenedInTab =
+        !node.isDirectory && openPaths.split('\u0001').contains(node.path);
     final isRootFolder = depth == 0 && node.isDirectory;
 
     return Column(

@@ -59,6 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A long line inside a `pie` or `erDiagram` block no longer freezes the preview for fourteen and twenty-seven seconds respectively
 - A whole-word search over a large document is twenty times faster
 - Moving the caret no longer rebuilds the whole preview: in split view every arrow key used to rebuild every block that had been rendered
+- Typing no longer rebuilds the whole file tree in the sidebar
 - Dismissing the update badge remembers the version, instead of showing it again on the next launch
 - Renaming or deleting a file from the sidebar takes its open tab with it — renaming used to leave the tab on the old path, where the next save wrote the old file back out; a folder does it to every file beneath it
 - Saving a new document from the close prompt names the tab after the file it wrote and adds it to the recent files, as Save As from the menu already did

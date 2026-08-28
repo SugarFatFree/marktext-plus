@@ -48,6 +48,7 @@
 | BUG-044 | 2026-08-28 | 从侧边栏重命名/删除文件，打开着的标签页不跟着走 | **P0** | 已修复 |
 | BUG-045 | 2026-08-28 | 「消除」更新提示后，下次启动它又回来 | P2 | 已修复 |
 | BUG-046 | 2026-08-28 | 光标每移动一格，整个预览的所有块都重建一遍 | **P1** | 已修复 |
+| BUG-047 | 2026-08-28 | 每次按键都重建整棵文件树 | P1 | 已修复 |
 
 ## 详细记录
 
@@ -903,5 +904,24 @@
 | 涉及文件 | `lib/ui/editor/markdown_renderer.dart`、`lib/ui/widgets/app_menu_bar.dart`、`lib/providers/editor_provider.dart`、`lib/ui/editor/source_editor.dart` |
 | 验证方式 | 本机 `dart analyze --fatal-infos lib test` 通过；本机 `flutter test test/ui/editor/ test/providers/` **314 条全过** |
 | 待用户确认 | 这条改的是「打字/移动光标时的流畅度」，本机没有 GUI 无法直接测量。分屏模式下的手感变化需要在 Windows 上体感确认 |
+
+---
+
+### BUG-047 每次按键都重建整棵文件树
+
+| 字段 | 内容 |
+|------|------|
+| 发现日期 | 2026-08-28 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+| 怎么发现的 | 修完 BUG-046 之后，把「整体监听 provider」这个模式在全项目扫了一遍 —— 它已经在 `settingsProvider`（v1.4.0 早先修过）和 `editorProvider`（BUG-046）上各踩过一次，值得看看还有没有第三处 |
+| 现象 | 文档内容存在 `TabState` 里，所以**打字的每一下**都会更新 `tabProvider`。而侧边栏的 `_buildFileTree` 与 `_buildFileNode` 都在整体监听它 —— 于是每敲一个字，整棵文件树（含每个节点）重建一次 |
+| 侧边栏其实只需要什么 | 通读下来只用到三样：`openedFiles` 列表、每个标签页的 `filePath` 与 `id`、以及 `activeTabId`。**跟内容和修改标记完全无关** |
+| 为什么 `select` 能奏效 | `TabState.copyWith` 在 `openedFiles` 未变时复用**同一个 list 实例**，所以 `select((s) => s.openedFiles)` 在打字时稳定不触发。标签页那部分改为投影成一个 `String`（`select` 只按 `==` 比较，每次新建的 `Set`/`List` 永远不相等，字符串才能比出「没变」） |
+| 修复方案 | 抽出两个投影 `SideBar.openFilesKey(state)` 与 `SideBar.activePath(state)`，三处监听全部改为窄订阅；`_buildExternalFileItem` 的入参从整个 `TabState` 换成 `activePath` |
+| 一个必须写对的边界 | 拼 key 时字段之间要有分隔符，否则 `/ab`+`/c` 与 `/a`+`/bc` 会拼成同一个字符串，文件树该刷新时不刷新。测试里专门有这一条 |
+| 涉及文件 | `lib/ui/widgets/side_bar.dart`、`test/ui/widgets/side_bar_rebuild_test.dart`（新增） |
+| 验证方式 | 本机 `dart analyze --fatal-infos lib` 通过；新增 **10 条测试**（打字不变、开/关/切换/重命名都变、无分隔符会撞的反例、`activePath` 的三种取值）本机全过；`test/ui/` 与 `test/providers/` 合计 **339 条全过** |
+| 这一模式的第三次 | `settingsProvider` → `editorProvider` → `tabProvider`。三次都是「组件需要状态里的一小部分，却订阅了整体」，而共享状态里恰好有个每次按键都变的字段 |
 
 ---
