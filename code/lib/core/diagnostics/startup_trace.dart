@@ -374,6 +374,52 @@ class StartupTrace {
     return cut <= 0 ? null : executable.substring(0, cut);
   }
 
+  /// Records how much there was to load, and what the biggest pieces were.
+  ///
+  /// Windows has to read all of this before the first line of Dart runs, so
+  /// when a launch takes seconds this is the first thing worth knowing. It was
+  /// asked of the person reporting the slow start twice, when the program was
+  /// sitting in the folder and could have measured it itself.
+  ///
+  /// Called after the window is on screen: it walks a few dozen files, which
+  /// is nothing next to what has already happened, but there is no reason for
+  /// it to happen first.
+  static void recordInstallSize() {
+    try {
+      final directory = _beside(Platform.resolvedExecutable);
+      if (directory == null) return;
+      final files = Directory(directory)
+          .listSync(recursive: true)
+          .whereType<File>()
+          .toList();
+      if (files.isEmpty) return;
+
+      var total = 0;
+      final sizes = <String, int>{};
+      for (final file in files) {
+        int length;
+        try {
+          length = file.lengthSync();
+        } on FileSystemException {
+          continue;
+        }
+        total += length;
+        sizes[file.uri.pathSegments.last] = length;
+      }
+
+      String mb(int bytes) => (bytes / (1024 * 1024)).toStringAsFixed(1);
+      final biggest = sizes.entries.toList()
+        ..sort((a, b) => b.value.compareTo(a.value));
+      final top = biggest
+          .take(6)
+          .map((e) => '${e.key} ${mb(e.value)}MB')
+          .join(', ');
+      mark('installed size ${mb(total)}MB in ${files.length} files — $top');
+    } catch (_) {
+      // A diagnostic is never worth failing a launch over.
+    }
+  }
+
   /// Times [body] and records it as [phase].
   static Future<T> time<T>(String phase, Future<T> Function() body) async {
     final result = await body();

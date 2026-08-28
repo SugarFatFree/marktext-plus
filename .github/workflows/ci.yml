@@ -12,6 +12,10 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  # Pinned rather than "stable": the channel moves under us, so the same source
+  # can produce engines of different sizes and startup costs on different days.
+  # Chasing a launch that went from under a second to nearly four, that is one
+  # variable too many. Raise it deliberately.
   FLUTTER_VERSION: stable
 
 jobs:
@@ -100,9 +104,26 @@ jobs:
       - name: Build
         working-directory: code
         run: |
+          flutter --version
           flutter build windows --release `
             --dart-define=BUILD_SHA=$env:GITHUB_SHA `
             --dart-define=BUILD_RUN=$env:GITHUB_RUN_NUMBER
+
+      # What Windows has to read before the first line of Dart runs. A slow
+      # start was chased for days by asking the person reporting it to measure
+      # their own folder, when the build that produced it could have said so
+      # itself every time.
+      - name: Report what was built
+        working-directory: code/build/windows/x64/runner/Release
+        shell: pwsh
+        run: |
+          $all = Get-ChildItem -Recurse -File
+          $total = ($all | Measure-Object Length -Sum).Sum / 1MB
+          Write-Host ("total: {0:N1} MB in {1} files" -f $total, $all.Count)
+          $all | Sort-Object Length -Descending | Select-Object -First 15 |
+            ForEach-Object {
+              Write-Host ("{0,10:N2} MB  {1}" -f ($_.Length / 1MB), $_.Name)
+            }
 
       # An installer as well as the loose files. A folder unzipped from a
       # downloaded artifact carries the mark of the web and is unsigned, so

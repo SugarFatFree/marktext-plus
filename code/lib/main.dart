@@ -132,6 +132,11 @@ void main(List<String> args) async {
     await windowManager.show();
     await windowManager.focus();
     StartupTrace.mark('window shown');
+    // After the window, never before it: this is a measurement, and it costs a
+    // directory walk. What Windows had to read before Dart started is the first
+    // thing worth knowing when a launch takes seconds, and the program is
+    // sitting in that folder.
+    StartupTrace.recordInstallSize();
   });
   final initialLocale = LocaleNotifier.parseLocale(config.locale);
 
