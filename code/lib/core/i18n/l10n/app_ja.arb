@@ -176,6 +176,7 @@
   "searchPlaceholder": "ファイル内を検索...",
   "searchTooLarge": "{count} 個のファイルは大きすぎるため検索しませんでした",
   "dropNotMarkdown": "{count} 個のファイルは開きませんでした：markdown 文書ではありません",
+  "previewStartWriting": "書き始めましょう…",
   "searchNoResults": "結果が見つかりません",
   "searchResultCount": "{count} 件の結果",
   "tocEmpty": "見出しが見つかりません",

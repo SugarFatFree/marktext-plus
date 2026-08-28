@@ -176,6 +176,7 @@
   "searchPlaceholder": "Cerca nei file...",
   "searchTooLarge": "{count} file troppo grandi per essere cercati",
   "dropNotMarkdown": "{count} file rilasciati non aperti: non sono documenti markdown",
+  "previewStartWriting": "Inizia a scrivere…",
   "searchNoResults": "Nessun risultato",
   "searchResultCount": "{count} risultati trovati",
   "tocEmpty": "Nessuna intestazione trovata",

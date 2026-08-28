@@ -424,6 +424,9 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get previewStartWriting => 'Commencez à écrire…';
+
+  @override
   String get searchNoResults => 'Aucun résultat';
 
   @override

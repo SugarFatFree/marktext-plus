@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - v1.5.0
 
 ### Added
+- The preview takes new writing, not only edits to what is already there: the space under the last block starts a paragraph at the end of the document. An empty document rendered nothing at all, so there was no target to tap and not one character could be typed into it
 - The five markdown extensions upstream MarkText accepts and this editor did not: `mkd`, `mkdn`, `mdwn`, `mdx`, `text`
 - Mermaid `architecture-beta` diagrams render: icon-bearing service boxes, dashed group frames, and orthogonal connections. The arrangement is derived from the edges the way mermaid derives it — `db:L -- R:server` puts the server to the *left* of the db, not wherever source order would have put it
 - Mermaid `packet-beta` diagrams render: rows of bit cells with the fields laid over them, explicit ranges (`0-15:`), single bits, and mermaid 11.5's relative widths (`+16:`). A field that straddles a row is drawn one box per row, the way mermaid draws it

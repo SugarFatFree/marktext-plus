@@ -420,6 +420,9 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get previewStartWriting => 'Hier schreiben …';
+
+  @override
   String get searchNoResults => 'Keine Ergebnisse gefunden';
 
   @override

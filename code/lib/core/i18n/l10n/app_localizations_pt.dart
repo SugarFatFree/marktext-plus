@@ -422,6 +422,9 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get previewStartWriting => 'Comece a escrever…';
+
+  @override
   String get searchNoResults => 'Sem resultados';
 
   @override
@@ -1328,6 +1331,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String dropNotMarkdown(int count) {
     return '$count arquivo(s) soltos não foram abertos: não são documentos markdown';
   }
+
+  @override
+  String get previewStartWriting => 'Comece a escrever…';
 
   @override
   String get searchNoResults => 'Sem resultados';

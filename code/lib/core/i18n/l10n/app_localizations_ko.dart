@@ -413,6 +413,9 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get previewStartWriting => '여기에 작성하세요…';
+
+  @override
   String get searchNoResults => '결과 없음';
 
   @override

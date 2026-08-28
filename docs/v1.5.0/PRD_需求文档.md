@@ -4,6 +4,7 @@
 |------|------|------|--------|--------|------|
 | FEAT-035 | 2026-08-29 | Mermaid packet-beta 图型渲染 | P2 | 中 | 已完成 |
 | FEAT-036 | 2026-08-29 | Mermaid architecture-beta 图型渲染 | P2 | 高 | 已完成 |
+| FEAT-037 | 2026-08-29 | 预览模式可以在末尾写入新内容 | P1 | 中 | 已完成 |
 
 ---
 
@@ -38,3 +39,18 @@
 | **涉及文件** | `code/lib/ui/editor/mermaid/models/architecture.dart`（新增）<br>`code/lib/ui/editor/mermaid/parser/architecture_parser.dart`（新增）<br>`code/lib/ui/editor/mermaid/layout/architecture_layout.dart`（新增）<br>`code/lib/ui/editor/mermaid/painter/architecture_painter.dart`（新增）<br>`code/lib/ui/editor/mermaid/models/diagram.dart`<br>`code/lib/ui/editor/mermaid/parser/mermaid_parser.dart`<br>`code/lib/ui/editor/mermaid/widgets/mermaid_diagram.dart`<br>`code/lib/ui/editor/mermaid/mermaid.dart`<br>`code/test/ui/editor/mermaid/architecture_test.dart`（新增，14 条）<br>`code/test/ui/editor/mermaid/mermaid_parser_test.dart`（夹具更新） |
 | **验收标准** | ① mermaid 官方文档那个 API 样例渲染出四个服务 + 一个分组框；② `db:L -- R:server` 之后 server 确实在 db 左边、`disk1:T -- B:server` 之后 server 确实在 disk1 上方（**几何断言，不是"没崩"**）；③ 任意两个节点框不重叠；④ 分组框包住它全部成员；⑤ 两个分组的框不重叠；⑥ 无边的节点各占各的格；⑦ 上报的尺寸覆盖所有画出来的东西。 |
 | **夹具连带更新** | 三条既有测试拿 `architecture-beta` 当"不支持的图型"的例子，现在它支持了，改用 `zenuml`。同时把 packet 和 architecture 补进"每种已实现的图型都能解析出东西"那张表——那张表也是一份会落后的清单，上一轮加 packet 时就漏了。 |
+
+
+---
+
+## FEAT-037：预览模式可以在末尾写入新内容
+
+| 字段 | 内容 |
+|------|------|
+| **实现日期** | 2026-08-29 |
+| **需求描述** | 预览模式下，正文下方的空白区域可以点击，直接在文档末尾开始写新的一段。 |
+| **背景：这是"无法实现预览页面编辑"里还没解决的那一半** | 预览模式**早就能编辑已有的块**（双击换成源码、失焦提交、Escape 取消，11 种块类型全覆盖）。缺的是**新增**：<br>① **空文档在预览模式下一个字都打不进去**——没有任何块，也就没有任何可以双击的目标，新建文件切到预览等于只读；<br>② 即便文档非空，也只能改已有的块，想在末尾加一段必须切回源码模式。表格、代码块之后尤其明显，没法靠"编辑最后一个块再敲回车"绕过去。<br>上游 MarkText 点击正文下方空白就把光标放到文末，这条就是它。 |
+| **实现方案** | 在全部块之后追加一个落点组件：<br>· **单击而非双击**——这块区域没有文字可选、没有链接可点，没有手势要争，在空白处要求双击是让读者去猜；<br>· 点击后打开的是一个**占位节点**的编辑器，它的行区间是空的且位于文档末尾（`sourceStart == sourceEnd == 行数`），所以提交时 `replaceBlock` 走的是**插入**而不是替换——与其余每一次编辑同一条路径，没有第二套写回逻辑；<br>· 占位节点**复用同一个实例**，因为"这个块是不是正在编辑"全靠 `identical(_editingNode, node)` 判定；<br>· 文档为空时显示一行提示文案（12 语言，`previewStartWriting`），非空时只留空间不留字。 |
+| **只读场景** | `onSourceChanged == null` 时完全不渲染这个落点——不该在只读预览里给出一个点了没反应的目标。 |
+| **涉及文件** | `code/lib/ui/editor/markdown_renderer.dart`<br>`code/lib/core/i18n/l10n/app_*.arb`（12 个）<br>`code/test/ui/editor/preview_append_test.dart`（新增，5 条） |
+| **验收标准** | ① 空文档显示"开始写点什么…"，点击后能敲进第一个字并写回；② 已有文档在末尾追加，且**前面的内容一字不动**；③ 空提交不产生改动（不能因为点了一下就把文档标记为已修改）；④ 只读预览既没有提示也没有输入框。 |

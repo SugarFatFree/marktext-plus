@@ -418,6 +418,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get previewStartWriting => 'Start writing…';
+
+  @override
   String get searchNoResults => 'No results found';
 
   @override

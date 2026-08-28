@@ -879,6 +879,12 @@ abstract class AppLocalizations {
   /// **'{count} dropped file(s) were not opened: not a markdown document'**
   String dropNotMarkdown(int count);
 
+  /// No description provided for @previewStartWriting.
+  ///
+  /// In en, this message translates to:
+  /// **'Start writing…'**
+  String get previewStartWriting;
+
   /// No description provided for @searchNoResults.
   ///
   /// In en, this message translates to:

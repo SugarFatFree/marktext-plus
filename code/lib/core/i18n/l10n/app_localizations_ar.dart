@@ -418,6 +418,9 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get previewStartWriting => 'ابدأ الكتابة…';
+
+  @override
   String get searchNoResults => 'لم يتم العثور على نتائج';
 
   @override

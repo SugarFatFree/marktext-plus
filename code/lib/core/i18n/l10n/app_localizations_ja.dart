@@ -413,6 +413,9 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get previewStartWriting => '書き始めましょう…';
+
+  @override
   String get searchNoResults => '結果が見つかりません';
 
   @override

@@ -419,6 +419,9 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String get previewStartWriting => 'Начните писать…';
+
+  @override
   String get searchNoResults => 'Результатов не найдено';
 
   @override

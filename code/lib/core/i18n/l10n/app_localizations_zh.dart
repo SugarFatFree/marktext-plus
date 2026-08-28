@@ -412,6 +412,9 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get previewStartWriting => '开始写点什么…';
+
+  @override
   String get searchNoResults => '未找到结果';
 
   @override

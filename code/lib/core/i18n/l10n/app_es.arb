@@ -176,6 +176,7 @@
   "searchPlaceholder": "Buscar en archivos...",
   "searchTooLarge": "{count} archivo(s) demasiado grandes para buscar",
   "dropNotMarkdown": "{count} archivo(s) soltados no se abrieron: no son documentos markdown",
+  "previewStartWriting": "Empieza a escribir…",
   "searchNoResults": "Sin resultados",
   "searchResultCount": "{count} resultados encontrados",
   "tocEmpty": "No se encontraron encabezados",
