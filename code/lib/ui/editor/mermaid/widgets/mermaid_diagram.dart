@@ -24,7 +24,9 @@ import '../models/c4_diagram.dart';
 import '../models/sankey.dart';
 import '../models/sequence.dart';
 import '../layout/architecture_layout.dart';
+import '../layout/treemap_layout.dart';
 import '../models/architecture.dart';
+import '../models/treemap.dart';
 import '../models/packet.dart';
 import '../models/radar.dart';
 import '../models/timeline.dart';
@@ -45,6 +47,7 @@ import '../painter/block_painter.dart';
 import '../painter/c4_painter.dart';
 import '../painter/sankey_painter.dart';
 import '../painter/architecture_painter.dart';
+import '../painter/treemap_painter.dart';
 import '../painter/packet_painter.dart';
 import '../painter/radar_painter.dart';
 import '../painter/sequence_painter.dart';
@@ -131,6 +134,8 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
   C4DiagramData? _c4DiagramData;
   SequenceDiagramData? _sequenceData;
   RequirementDiagramData? _requirementDiagramData;
+  TreemapDiagramData? _treemapData;
+  TreemapLayoutResult? _treemapLayout;
   ArchitectureDiagramData? _architectureData;
   ArchitectureLayoutResult? _architectureLayout;
   PacketDiagramData? _packetData;
@@ -271,6 +276,15 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
           _style,
           Size(widget.width ?? availableWidth, widget.height ?? 600),
         );
+      } else if (diagram.type == DiagramType.treemap &&
+          result.treemapData != null) {
+        // A treemap fills whatever it is given: there is no intrinsic size to
+        // compute, only a division of the area. The height is a proportion of
+        // the width so the boxes stay roughly square at any window size.
+        final width = widget.width ?? availableWidth;
+        size = Size(width, widget.height ?? (width * 0.62).clamp(240.0, 720.0));
+        _treemapLayout = const TreemapLayout()
+            .layout(result.treemapData!, size);
       } else if (diagram.type == DiagramType.architecture &&
           result.architectureData != null) {
         // The layout is kept, not recomputed in the painter: it is the same
@@ -395,6 +409,7 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
       _sequenceData = result.sequenceData;
       _packetData = result.packetData;
       _architectureData = result.architectureData;
+      _treemapData = result.treemapData;
       _radarChartData = result.radarChartData;
       _xyChartData = result.xyChartData;
       _classDiagramData = result.classDiagramData;
@@ -530,6 +545,16 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
         if (_sankeyChartData != null) {
           return SankeyPainter(
             sankeyData: _sankeyChartData!,
+            style: _style,
+            deviceConfig: _deviceConfig,
+          );
+        }
+        return FlowchartPainter(diagram: diagram, style: _style);
+      case DiagramType.treemap:
+        if (_treemapData != null && _treemapLayout != null) {
+          return TreemapPainter(
+            treemapData: _treemapData!,
+            layout: _treemapLayout!,
             style: _style,
             deviceConfig: _deviceConfig,
           );
@@ -727,6 +752,7 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
             _quadrantChartData?.title != null ||
             _sankeyChartData?.title != null ||
             _c4DiagramData?.title != null ||
+            _treemapData?.title != null ||
             _architectureData?.title != null ||
             _packetData?.title != null ||
             _radarChartData?.title != null ||

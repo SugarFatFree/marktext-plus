@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - v1.5.1
 
 ### Added
+- Mermaid `treemap-beta` diagrams render: nested rectangles whose area stands for their value, laid out by the squarified algorithm so the boxes stay comparable by eye. The grammar was read out of mermaid 11.16's own definition — indentation length nests a row, and a value may carry thousands separators
 - File ▸ Move To…, the one menu command upstream MarkText has that this one did not
 
 ### Fixed

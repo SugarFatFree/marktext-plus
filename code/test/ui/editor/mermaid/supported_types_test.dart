@@ -41,6 +41,7 @@ void main() {
     DiagramType.packet: 'packet-beta\n  0-15: "Port"\n',
     DiagramType.architecture:
         'architecture-beta\n  service db(database)[DB]\n',
+    DiagramType.treemap: 'treemap-beta\n  "Root"\n    "Leaf": 10\n',
   };
 
   test('every implemented type has a sample here', () {
