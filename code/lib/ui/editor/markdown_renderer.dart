@@ -968,9 +968,10 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     AppThemeTokens tokens,
   ) {
     return Container(
-      // Nested quotes step in, so `>>` reads as being inside `>` rather than
-      // sitting beside it.
-      margin: EdgeInsets.only(left: node.depth * 20.0, top: 8, bottom: 8),
+      // A quote inside a quote is built inside this container, so its own
+      // border and padding already step it in; adding the depth again here
+      // indented the inner quote twice.
+      margin: const EdgeInsets.only(top: 8, bottom: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         border: Border(left: BorderSide(color: tokens.colorAccent, width: 3)),

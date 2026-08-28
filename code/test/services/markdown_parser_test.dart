@@ -1532,16 +1532,22 @@ void _nestedQuoteTests() {
     late MarkdownParser parser;
     setUp(() => parser = MarkdownParser());
 
-    test('a deeper quote becomes its own node', () {
+    test('a deeper line becomes a quote inside the quote', () {
       // Stripping one `>` and keeping the rest as text left the inner marker
       // showing as a literal `>` in the rendered quote.
       final nodes = parser.parse('> outer\n>> inner\n> outer again\n');
 
-      expect(nodes.length, 3);
-      final quotes = nodes.cast<BlockquoteNode>();
-      expect(quotes.map((q) => q.depth).toList(), [0, 1, 0]);
-      expect(quotes[1].content, 'inner');
-      expect(quotes[1].content, isNot(contains('>')));
+      final outer = nodes.single as BlockquoteNode;
+      expect(outer.depth, 0);
+      expect(outer.children.map((c) => c.type).toList(), [
+        NodeType.paragraph,
+        NodeType.blockquote,
+        NodeType.paragraph,
+      ]);
+      final inner = outer.children[1] as BlockquoteNode;
+      expect(inner.depth, 1);
+      expect(inner.content, 'inner');
+      expect(inner.content, isNot(contains('>')));
     });
 
     test('consecutive lines at one depth stay a single quote', () {
@@ -1549,6 +1555,37 @@ void _nestedQuoteTests() {
       final quote = nodes.single as BlockquoteNode;
       expect(quote.depth, 0);
       expect(quote.content, 'a\nb');
+    });
+
+    test('the two spellings of one nesting agree', () {
+      // CommonMark writes a nested quote as `> > inner`, with a space between
+      // the markers, and `>>inner` means the same thing. The two used to take
+      // different paths: one nested, the other made a sibling box.
+      String shape(MarkdownNode node, [int level = 0]) => node
+              is BlockquoteNode
+          ? 'BQ$level(${node.children.map((c) => shape(c, level + 1)).join(',')})'
+          : node.type.name;
+
+      List<String> shapes(String doc) =>
+          parser.parse(doc).map((n) => shape(n)).toList();
+
+      expect(shapes('> a\n> > b\n'), shapes('> a\n>>b\n'));
+      expect(shapes('> a\n> > > b\n'), shapes('> a\n>>> b\n'));
+      expect(shapes('> a\n> > b\n'), ['BQ0(paragraph,BQ1(paragraph))']);
+    });
+
+    test('a quote may be indented, but four spaces make it code', () {
+      final indented = parser.parse('  > quoted\n').single;
+      expect(indented, isA<BlockquoteNode>());
+      expect((indented as BlockquoteNode).content, 'quoted');
+
+      expect(parser.parse('    > quoted\n').single.type, NodeType.codeBlock);
+    });
+
+    test('a `>` in the middle of a line is text, not a level', () {
+      final quote = parser.parse('> a > b\n').single as BlockquoteNode;
+      expect(quote.depth, 0);
+      expect(quote.content, 'a > b');
     });
   });
 }

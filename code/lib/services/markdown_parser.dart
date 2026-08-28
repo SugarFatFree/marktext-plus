@@ -406,7 +406,15 @@ class MarkdownParser {
   /// prefix handling already accepted both — only the parser did not, so a
   /// list written with `[X]` rendered as a bullet with the brackets showing.
   static final _taskRe = RegExp(r'^\[([ xX])\]\s+(.+)$');
-  static final _blockquoteRe = RegExp(r'^(>+)\s?(.*)$');
+  // CommonMark writes a nested quote as `> > inner`, with a space between the
+  // markers; `>>inner` is the same thing. Matching only adjacent `>` read the
+  // spaced form as one level deep and left the inner marker as literal text.
+  // Up to three leading spaces are allowed before a marker; four make it code.
+  static final _blockquoteRe = RegExp(r'^((?:[ \t]{0,3}>)+)[ \t]?(.*)$');
+
+  /// Removes exactly one `>` marker, so a deeper line keeps the rest of its
+  /// markers and becomes a quote again when the content is parsed.
+  static final _blockquoteStripRe = RegExp(r'^[ \t]{0,3}>[ \t]?');
   static final _ulRe = RegExp(r'^[\s]*[-*+]\s+(.+)$');
   /// An ordered list item. CommonMark allows `)` as well as `.` after the
   /// number, and the editor's own prefix handling already accepted both — only
@@ -832,7 +840,9 @@ class MarkdownParser {
   final Map<String, ({String url, String? title})> _linkDefinitions = {};
 
   /// Parse markdown text into a list of block-level nodes.
-  List<MarkdownNode> parse(String markdown) {
+  /// [quoteDepth] is how many blockquotes enclose this text; it is set by
+  /// the parser itself when it descends into a quote, not by callers.
+  List<MarkdownNode> parse(String markdown, {int quoteDepth = 0}) {
     // Strip UTF-8 BOM if present (otherwise heading regex on the first line fails)
     final source = markdown.isNotEmpty && markdown.codeUnitAt(0) == 0xFEFF
         ? markdown.substring(1)
@@ -1046,17 +1056,16 @@ class MarkdownParser {
       // Blockquote
       final bqMatch = _blockquoteRe.firstMatch(line);
       if (bqMatch != null) {
-        // Consecutive lines at the same depth form one quote; a change in
-        // depth starts another. Stripping a single `>` and keeping the rest as
-        // text left the inner marker showing as literal `>`.
-        final depth = bqMatch.group(1)!.length;
+        // One `>` comes off every line of the run, and what is left is parsed
+        // again. A deeper line still starts with a marker, so it comes back as
+        // a quote inside this one. Splitting the run by marker count instead
+        // made `>> inner` a sibling box while `> > inner` — the same thing in
+        // CommonMark — nested, so one document rendered two ways.
         final quoteStart = i;
         final bqLines = <String>[];
 
-        while (i < lines.length) {
-          final m = _blockquoteRe.firstMatch(lines[i]);
-          if (m == null || m.group(1)!.length != depth) break;
-          bqLines.add(m.group(2) ?? '');
+        while (i < lines.length && _blockquoteRe.hasMatch(lines[i])) {
+          bqLines.add(lines[i].replaceFirst(_blockquoteStripRe, ''));
           i++;
         }
 
@@ -1067,9 +1076,9 @@ class MarkdownParser {
             inlineSpans: parseInline(content),
             // Parsed again so a list or a heading inside the quote is one.
             // The spans stay for anything still reading them.
-            children: parse(content),
-            // Depth counts from zero for a single `>`.
-            depth: depth - 1,
+            children: parse(content, quoteDepth: quoteDepth + 1),
+            // Counting from zero for the outermost quote.
+            depth: quoteDepth,
           ),
           quoteStart,
           i,

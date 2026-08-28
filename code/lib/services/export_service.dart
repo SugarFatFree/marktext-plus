@@ -733,11 +733,10 @@ class ExportService {
         final content = quote.children
             .map((child) => nodeToHtml(child, inlinedImages: inlinedImages))
             .join('\n');
-        // Depth is expressed by nesting, which is how HTML says "a quote
-        // inside a quote"; a flat blockquote would lose the level.
-        final open = '<blockquote>' * (quote.depth + 1);
-        final close = '</blockquote>' * (quote.depth + 1);
-        return '$open\n$content\n$close';
+        // One tag per node: a quote inside a quote arrives as a child, so the
+        // nesting HTML needs is already there. Repeating the tag by depth on
+        // top of that wrapped the inner quote twice.
+        return '<blockquote>\n$content\n</blockquote>';
 
       case NodeType.horizontalRule:
         return '<hr>';
