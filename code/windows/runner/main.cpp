@@ -98,6 +98,30 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   // Before anything else this function does: everything up to here is the
   // operating system loading the executable and its libraries.
   const long long runner_entry_ms = MillisecondsSinceProcessStart();
+
+  // Ask the engine for the renderer this app used to have.
+  //
+  // The trace narrowed a two-second launch down to `window.Create()`, which is
+  // where the engine comes up, the snapshot is read and the graphics surface is
+  // made. Making the snapshot smaller moved the number, but not nearly enough:
+  // version 1.2.3 of this same program starts in well under a second on the
+  // same machine, and the only structural difference between them is the
+  // Flutter engine — 1.2.3 was built in June, before Impeller became the
+  // default renderer on Windows.
+  //
+  // Impeller builds its shader pipelines when it starts. On a machine whose
+  // graphics driver cannot supply them from a cache, that is exactly the kind
+  // of fixed, unavoidable, every-launch cost being measured here.
+  //
+  // The engine reads its switches from the environment: FLUTTER_ENGINE_SWITCHES
+  // holds the count and FLUTTER_ENGINE_SWITCH_<n> the switches themselves. An
+  // engine that no longer understands this one ignores it.
+  //
+  // Set here rather than left to whoever launches the program, because the
+  // point is for it to hold however the program is started.
+  ::SetEnvironmentVariableW(L"FLUTTER_ENGINE_SWITCHES", L"1");
+  ::SetEnvironmentVariableW(L"FLUTTER_ENGINE_SWITCH_1",
+                            L"enable-impeller=false");
   // Attach to console when present (e.g., 'flutter run') or create a
   // new console when running with a debugger.
   if (!::AttachConsole(ATTACH_PARENT_PROCESS) && ::IsDebuggerPresent()) {
@@ -117,6 +141,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
       FormatTraceArgument("--mt-trace-runner-entry=", runner_entry_ms));
   command_line_arguments.push_back(FormatTraceArgument(
       "--mt-trace-engine-start=", MillisecondsSinceProcessStart()));
+  // So the trace says which renderer the run was asked for.
+  command_line_arguments.push_back("--mt-trace-impeller=0");
 
   project.set_dart_entrypoint_arguments(std::move(command_line_arguments));
 

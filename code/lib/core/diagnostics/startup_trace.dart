@@ -169,6 +169,14 @@ class StartupTrace {
       lines.add(row(engineStart, engineStart - runnerEntry,
           'runner entry → engine start (console, COM, command line)'));
     }
+    // Which renderer the runner asked the engine for, when it said.
+    final impeller = _runnerMarks.containsKey('impeller')
+        ? (_runnerMark('impeller') == 0 ? 'Impeller off' : 'Impeller on')
+        : null;
+    if (impeller != null) {
+      lines.add('        renderer: $impeller');
+    }
+
     final engine = _engineWindow();
     if (engine != null) {
       final (before, after) = engine;
