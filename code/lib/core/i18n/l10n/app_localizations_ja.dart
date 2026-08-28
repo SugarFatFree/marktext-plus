@@ -9,6 +9,15 @@ class AppLocalizationsJa extends AppLocalizations {
   AppLocalizationsJa([String locale = 'ja']) : super(locale);
 
   @override
+  String get settingsAutoPairBracket => '括弧を自動で閉じる';
+
+  @override
+  String get settingsAutoPairQuote => '引用符を自動で閉じる';
+
+  @override
+  String get settingsAutoPairMarkdown => 'Markdown 記法を自動で閉じる（`、*、~）';
+
+  @override
   String get helpOpenDiagnosticLog => '診断ログを開く';
 
   @override

@@ -453,6 +453,33 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 .updateConfig((c) => c.copyWith(enableHtml: v)),
           ),
         ),
+        _row(
+          l10n.settingsAutoPairBracket,
+          Switch(
+            value: config.autoPairBracket,
+            onChanged: (v) => ref
+                .read(settingsProvider.notifier)
+                .updateConfig((c) => c.copyWith(autoPairBracket: v)),
+          ),
+        ),
+        _row(
+          l10n.settingsAutoPairQuote,
+          Switch(
+            value: config.autoPairQuote,
+            onChanged: (v) => ref
+                .read(settingsProvider.notifier)
+                .updateConfig((c) => c.copyWith(autoPairQuote: v)),
+          ),
+        ),
+        _row(
+          l10n.settingsAutoPairMarkdown,
+          Switch(
+            value: config.autoPairMarkdownSyntax,
+            onChanged: (v) => ref
+                .read(settingsProvider.notifier)
+                .updateConfig((c) => c.copyWith(autoPairMarkdownSyntax: v)),
+          ),
+        ),
       ],
     );
   }

@@ -1,5 +1,8 @@
 {
   "@@locale": "ar",
+  "settingsAutoPairBracket": "إغلاق الأقواس تلقائيًا",
+  "settingsAutoPairQuote": "إغلاق علامات الاقتباس تلقائيًا",
+  "settingsAutoPairMarkdown": "إغلاق صياغة Markdown تلقائيًا (`، *، ~)",
   "helpOpenDiagnosticLog": "فتح سجل التشخيص",
   "diagnosticLogMissing": "لم يُكتب أي سجل تشخيص بعد",
   "mermaidCaptureFailed": "تعذّر التقاط المخطط",

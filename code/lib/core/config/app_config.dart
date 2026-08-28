@@ -19,6 +19,21 @@ class AppConfig {
   String bulletListMarker;
   int tabSize;
   bool enableHtml;
+
+  /// Auto-closing of `(`, `[` and `{`.
+  bool autoPairBracket;
+
+  /// Auto-closing of `"` and `'`.
+  bool autoPairQuote;
+
+  /// Auto-closing of the markdown pairs `` ` ``, `*` and `~`.
+  ///
+  /// Split from the other two because it is the one people disagree about:
+  /// typing `*` to start emphasis and being handed `**` with the caret in the
+  /// middle interrupts the sentence for some and helps others. Upstream
+  /// MarkText offers all three separately; this app offered no way to turn any
+  /// of them off.
+  bool autoPairMarkdownSyntax;
   double windowWidth;
   double windowHeight;
   double windowX;
@@ -53,6 +68,9 @@ class AppConfig {
     this.bulletListMarker = '-',
     this.tabSize = 4,
     this.enableHtml = false,
+    this.autoPairBracket = true,
+    this.autoPairQuote = true,
+    this.autoPairMarkdownSyntax = true,
     this.windowWidth = 1200,
     this.windowHeight = 800,
     this.windowX = 0,
@@ -88,6 +106,9 @@ class AppConfig {
     'bulletListMarker': bulletListMarker,
     'tabSize': tabSize,
     'enableHtml': enableHtml,
+    'autoPairBracket': autoPairBracket,
+    'autoPairQuote': autoPairQuote,
+    'autoPairMarkdownSyntax': autoPairMarkdownSyntax,
     'windowWidth': windowWidth,
     'windowHeight': windowHeight,
     'windowX': windowX,
@@ -124,6 +145,10 @@ class AppConfig {
       bulletListMarker: json['bulletListMarker'] as String? ?? '-',
       tabSize: json['tabSize'] as int? ?? 4,
       enableHtml: json['enableHtml'] as bool? ?? false,
+      autoPairBracket: json['autoPairBracket'] as bool? ?? true,
+      autoPairQuote: json['autoPairQuote'] as bool? ?? true,
+      autoPairMarkdownSyntax:
+          json['autoPairMarkdownSyntax'] as bool? ?? true,
       windowWidth: _parseDouble(json['windowWidth'], 1200),
       windowHeight: _parseDouble(json['windowHeight'], 800),
       windowX: _parseDouble(json['windowX'], 0),
@@ -183,6 +208,9 @@ class AppConfig {
     String? bulletListMarker,
     int? tabSize,
     bool? enableHtml,
+    bool? autoPairBracket,
+    bool? autoPairQuote,
+    bool? autoPairMarkdownSyntax,
     double? windowWidth,
     double? windowHeight,
     double? windowX,
@@ -217,6 +245,10 @@ class AppConfig {
       bulletListMarker: bulletListMarker ?? this.bulletListMarker,
       tabSize: tabSize ?? this.tabSize,
       enableHtml: enableHtml ?? this.enableHtml,
+      autoPairBracket: autoPairBracket ?? this.autoPairBracket,
+      autoPairQuote: autoPairQuote ?? this.autoPairQuote,
+      autoPairMarkdownSyntax:
+          autoPairMarkdownSyntax ?? this.autoPairMarkdownSyntax,
       windowWidth: windowWidth ?? this.windowWidth,
       windowHeight: windowHeight ?? this.windowHeight,
       windowX: windowX ?? this.windowX,

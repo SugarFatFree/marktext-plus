@@ -1,5 +1,8 @@
 {
   "@@locale": "ko",
+  "settingsAutoPairBracket": "괄호 자동 닫기",
+  "settingsAutoPairQuote": "따옴표 자동 닫기",
+  "settingsAutoPairMarkdown": "Markdown 구문 자동 닫기(`, *, ~)",
   "helpOpenDiagnosticLog": "진단 로그 열기",
   "diagnosticLogMissing": "아직 진단 로그가 기록되지 않았습니다",
   "mermaidCaptureFailed": "다이어그램을 캡처하지 못했습니다",

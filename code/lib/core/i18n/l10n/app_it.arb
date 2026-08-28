@@ -1,5 +1,8 @@
 {
   "@@locale": "it",
+  "settingsAutoPairBracket": "Chiudi automaticamente le parentesi",
+  "settingsAutoPairQuote": "Chiudi automaticamente le virgolette",
+  "settingsAutoPairMarkdown": "Chiudi automaticamente la sintassi Markdown (`, *, ~)",
   "helpOpenDiagnosticLog": "Apri il registro diagnostico",
   "diagnosticLogMissing": "Non è ancora stato scritto alcun registro diagnostico",
   "mermaidCaptureFailed": "Impossibile catturare il diagramma",

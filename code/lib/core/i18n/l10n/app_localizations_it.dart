@@ -9,6 +9,16 @@ class AppLocalizationsIt extends AppLocalizations {
   AppLocalizationsIt([String locale = 'it']) : super(locale);
 
   @override
+  String get settingsAutoPairBracket => 'Chiudi automaticamente le parentesi';
+
+  @override
+  String get settingsAutoPairQuote => 'Chiudi automaticamente le virgolette';
+
+  @override
+  String get settingsAutoPairMarkdown =>
+      'Chiudi automaticamente la sintassi Markdown (`, *, ~)';
+
+  @override
   String get helpOpenDiagnosticLog => 'Apri il registro diagnostico';
 
   @override

@@ -17,6 +17,7 @@
 | FEAT-013 | 2026-08-28 | 设置里可以选编辑器正文字体 | 中 | 简单 | 已实现 |
 | FEAT-014 | 2026-08-28 | 评估：Mermaid 渲染抽成独立开源包的可行性 | 低 | — | 已评估，待决策 |
 | FEAT-015 | 2026-08-28 | 预览里的可编辑块给出光标与悬停提示 | 中 | 简单 | 已实现 |
+| FEAT-016 | 2026-08-28 | 自动补全括号/引号/Markdown 语法可以分别关掉 | 中 | 简单 | 已实现 |
 
 ## 详细需求
 
@@ -317,5 +318,20 @@
 | 涉及文件 | `code/lib/ui/editor/markdown_renderer.dart`、`code/test/ui/editor/markdown_renderer_edit_test.dart` |
 | 验收标准 | 预览模式下鼠标移到段落/标题/表格等块上，指针变成文本光标并出现淡色底；任务列表和 mermaid 图不出现（它们不接受双击编辑）；只读预览（没有 `onSourceChanged`）不出现 |
 | 测试上的一个坑 | 第一版断言写的是「找得到文本光标的 MouseRegion」，三条负向测试全挂 —— 预览外面套着 `SelectionArea`，它自己就到处装文本光标的 MouseRegion，那条断言在哪都成立，**什么都没在验证**。改成把包装组件公开出来用 `find.byType` 精确定位才有意义 |
+
+---
+
+### FEAT-016 — 自动补全括号 / 引号 / Markdown 语法可以分别关掉
+
+| 字段 | 内容 |
+|------|------|
+| 实现日期 | 2026-08-28 |
+| 需求来源 | 与上游设置项逐项对照时发现：上游有 71 个设置项，本项目 32 个，其中一部分差异属于「行为已经存在、但被写死、用户无法更改」 |
+| 问题 | `source_editor.dart` 里有一张 `_autoPairs` 映射表，把三类东西**无条件**混在一起：括号 `(` `[` `{`、引号 `"` `'`、Markdown 语法 `` ` `` `*` `~`。上游把它们分成 `autoPairBracket` / `autoPairQuote` / `autoPairMarkdownSyntax` 三个开关，**本项目一个都关不掉** |
+| 为什么 Markdown 那一类最要紧 | 打 `*` 想开始强调、结果被塞回 `**` 且光标停在中间 —— 这件事有人觉得帮忙、有人觉得打断句子。它不是「对不对」的问题，是偏好问题，所以必须能关 |
+| 实现方案 | 一张表拆成三张常量表，加一个按设置拼装的 getter；`AppConfig` 增加三个布尔字段，**默认全部为 true**，也就是保持现有行为不变；设置页加三个开关 |
+| 涉及文件 | `code/lib/core/config/app_config.dart`、`code/lib/ui/editor/source_editor.dart`、`code/lib/ui/screens/settings_screen.dart`、`code/lib/core/i18n/l10n/app_*.arb`（12 个文件各 3 键） |
+| 验收标准 | 三个开关默认打开，关掉后对应字符不再自动补全；关掉 Markdown 那一项后 `` ` `` `*` `~` 仍可正常输入；旧版本写的配置文件读进来后三项都是打开的 |
+| 测试 | `code/test/core/config/auto_pair_config_test.dart`，4 条。其中一条专门守**旧配置**：`AppConfig.fromJson` 缺这三个键时必须回到 true —— 否则老用户升级后行为会突变；另一条守**往返**：能写进去读不回来的设置，会在每次启动后复原，用户就得反复关它 |
 
 ---

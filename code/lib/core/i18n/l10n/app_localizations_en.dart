@@ -9,6 +9,15 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get settingsAutoPairBracket => 'Auto-close brackets';
+
+  @override
+  String get settingsAutoPairQuote => 'Auto-close quotes';
+
+  @override
+  String get settingsAutoPairMarkdown => 'Auto-close Markdown syntax (`, *, ~)';
+
+  @override
   String get helpOpenDiagnosticLog => 'Open diagnostic log';
 
   @override

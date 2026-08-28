@@ -292,16 +292,38 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
   /// never happened at all.
   late final EditorNotifier _editorNotifier;
 
-  static const _autoPairs = <String, String>{
+  static const _bracketPairs = <String, String>{
     '(': ')',
     '[': ']',
     '{': '}',
+  };
+
+  static const _quotePairs = <String, String>{
     '"': '"',
     "'": "'",
+  };
+
+  static const _markdownPairs = <String, String>{
     '`': '`',
     '*': '*',
     '~': '~',
   };
+
+  /// The pairs the reader has actually asked for.
+  ///
+  /// One map used to hold all three kinds unconditionally, so nobody could
+  /// turn any of it off. The markdown ones are the reason it matters: typing
+  /// `*` to begin emphasis and being handed `**` with the caret in the middle
+  /// interrupts the sentence for some people and helps others. Upstream
+  /// MarkText has had these as three separate switches all along.
+  Map<String, String> get _autoPairs {
+    final config = ref.read(settingsProvider);
+    return {
+      if (config.autoPairBracket) ..._bracketPairs,
+      if (config.autoPairQuote) ..._quotePairs,
+      if (config.autoPairMarkdownSyntax) ..._markdownPairs,
+    };
+  }
 
   TextEditingController get controller => _controller;
 

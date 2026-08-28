@@ -9,6 +9,15 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
+  String get settingsAutoPairBracket => '自动补全括号';
+
+  @override
+  String get settingsAutoPairQuote => '自动补全引号';
+
+  @override
+  String get settingsAutoPairMarkdown => '自动补全 Markdown 语法（`、*、~）';
+
+  @override
   String get helpOpenDiagnosticLog => '打开诊断日志';
 
   @override

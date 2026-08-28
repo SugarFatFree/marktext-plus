@@ -9,6 +9,16 @@ class AppLocalizationsAr extends AppLocalizations {
   AppLocalizationsAr([String locale = 'ar']) : super(locale);
 
   @override
+  String get settingsAutoPairBracket => 'إغلاق الأقواس تلقائيًا';
+
+  @override
+  String get settingsAutoPairQuote => 'إغلاق علامات الاقتباس تلقائيًا';
+
+  @override
+  String get settingsAutoPairMarkdown =>
+      'إغلاق صياغة Markdown تلقائيًا (`، *، ~)';
+
+  @override
   String get helpOpenDiagnosticLog => 'فتح سجل التشخيص';
 
   @override

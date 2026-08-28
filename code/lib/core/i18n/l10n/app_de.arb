@@ -1,5 +1,8 @@
 {
   "@@locale": "de",
+  "settingsAutoPairBracket": "Klammern automatisch schließen",
+  "settingsAutoPairQuote": "Anführungszeichen automatisch schließen",
+  "settingsAutoPairMarkdown": "Markdown-Syntax automatisch schließen (`, *, ~)",
   "helpOpenDiagnosticLog": "Diagnoseprotokoll öffnen",
   "diagnosticLogMissing": "Es wurde noch kein Diagnoseprotokoll geschrieben",
   "mermaidCaptureFailed": "Diagramm konnte nicht erfasst werden",

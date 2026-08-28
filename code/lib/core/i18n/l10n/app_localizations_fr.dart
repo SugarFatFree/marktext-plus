@@ -9,6 +9,17 @@ class AppLocalizationsFr extends AppLocalizations {
   AppLocalizationsFr([String locale = 'fr']) : super(locale);
 
   @override
+  String get settingsAutoPairBracket =>
+      'Fermer les parenthèses automatiquement';
+
+  @override
+  String get settingsAutoPairQuote => 'Fermer les guillemets automatiquement';
+
+  @override
+  String get settingsAutoPairMarkdown =>
+      'Fermer la syntaxe Markdown automatiquement (`, *, ~)';
+
+  @override
   String get helpOpenDiagnosticLog => 'Ouvrir le journal de diagnostic';
 
   @override

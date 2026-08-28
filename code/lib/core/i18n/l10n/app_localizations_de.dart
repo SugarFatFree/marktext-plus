@@ -9,6 +9,16 @@ class AppLocalizationsDe extends AppLocalizations {
   AppLocalizationsDe([String locale = 'de']) : super(locale);
 
   @override
+  String get settingsAutoPairBracket => 'Klammern automatisch schließen';
+
+  @override
+  String get settingsAutoPairQuote => 'Anführungszeichen automatisch schließen';
+
+  @override
+  String get settingsAutoPairMarkdown =>
+      'Markdown-Syntax automatisch schließen (`, *, ~)';
+
+  @override
   String get helpOpenDiagnosticLog => 'Diagnoseprotokoll öffnen';
 
   @override

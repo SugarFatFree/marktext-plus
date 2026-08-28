@@ -9,6 +9,16 @@ class AppLocalizationsRu extends AppLocalizations {
   AppLocalizationsRu([String locale = 'ru']) : super(locale);
 
   @override
+  String get settingsAutoPairBracket => 'Автоматически закрывать скобки';
+
+  @override
+  String get settingsAutoPairQuote => 'Автоматически закрывать кавычки';
+
+  @override
+  String get settingsAutoPairMarkdown =>
+      'Автоматически закрывать разметку Markdown (`, *, ~)';
+
+  @override
   String get helpOpenDiagnosticLog => 'Открыть журнал диагностики';
 
   @override

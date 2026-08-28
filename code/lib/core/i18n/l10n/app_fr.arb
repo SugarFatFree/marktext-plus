@@ -1,5 +1,8 @@
 {
   "@@locale": "fr",
+  "settingsAutoPairBracket": "Fermer les parenthèses automatiquement",
+  "settingsAutoPairQuote": "Fermer les guillemets automatiquement",
+  "settingsAutoPairMarkdown": "Fermer la syntaxe Markdown automatiquement (`, *, ~)",
   "helpOpenDiagnosticLog": "Ouvrir le journal de diagnostic",
   "diagnosticLogMissing": "Aucun journal de diagnostic n'a encore été écrit",
   "mermaidCaptureFailed": "Impossible de capturer le diagramme",

@@ -117,6 +117,24 @@ abstract class AppLocalizations {
     Locale('zh'),
   ];
 
+  /// No description provided for @settingsAutoPairBracket.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-close brackets'**
+  String get settingsAutoPairBracket;
+
+  /// No description provided for @settingsAutoPairQuote.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-close quotes'**
+  String get settingsAutoPairQuote;
+
+  /// No description provided for @settingsAutoPairMarkdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-close Markdown syntax (`, *, ~)'**
+  String get settingsAutoPairMarkdown;
+
   /// No description provided for @helpOpenDiagnosticLog.
   ///
   /// In en, this message translates to:

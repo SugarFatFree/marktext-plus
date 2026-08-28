@@ -1,5 +1,8 @@
 {
   "@@locale": "ru",
+  "settingsAutoPairBracket": "Автоматически закрывать скобки",
+  "settingsAutoPairQuote": "Автоматически закрывать кавычки",
+  "settingsAutoPairMarkdown": "Автоматически закрывать разметку Markdown (`, *, ~)",
   "helpOpenDiagnosticLog": "Открыть журнал диагностики",
   "diagnosticLogMissing": "Журнал диагностики ещё не записан",
   "mermaidCaptureFailed": "Не удалось снять изображение диаграммы",

@@ -9,6 +9,15 @@ class AppLocalizationsKo extends AppLocalizations {
   AppLocalizationsKo([String locale = 'ko']) : super(locale);
 
   @override
+  String get settingsAutoPairBracket => '괄호 자동 닫기';
+
+  @override
+  String get settingsAutoPairQuote => '따옴표 자동 닫기';
+
+  @override
+  String get settingsAutoPairMarkdown => 'Markdown 구문 자동 닫기(`, *, ~)';
+
+  @override
   String get helpOpenDiagnosticLog => '진단 로그 열기';
 
   @override

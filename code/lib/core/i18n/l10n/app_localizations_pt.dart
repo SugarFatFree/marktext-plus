@@ -9,6 +9,16 @@ class AppLocalizationsPt extends AppLocalizations {
   AppLocalizationsPt([String locale = 'pt']) : super(locale);
 
   @override
+  String get settingsAutoPairBracket => 'Fechar parênteses automaticamente';
+
+  @override
+  String get settingsAutoPairQuote => 'Fechar aspas automaticamente';
+
+  @override
+  String get settingsAutoPairMarkdown =>
+      'Fechar a sintaxe Markdown automaticamente (`, *, ~)';
+
+  @override
   String get helpOpenDiagnosticLog => 'Abrir o registo de diagnóstico';
 
   @override
@@ -901,6 +911,16 @@ class AppLocalizationsPt extends AppLocalizations {
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
 class AppLocalizationsPtBr extends AppLocalizationsPt {
   AppLocalizationsPtBr() : super('pt_BR');
+
+  @override
+  String get settingsAutoPairBracket => 'Fechar parênteses automaticamente';
+
+  @override
+  String get settingsAutoPairQuote => 'Fechar aspas automaticamente';
+
+  @override
+  String get settingsAutoPairMarkdown =>
+      'Fechar a sintaxe Markdown automaticamente (`, *, ~)';
 
   @override
   String get helpOpenDiagnosticLog => 'Abrir o log de diagnóstico';

@@ -9,6 +9,16 @@ class AppLocalizationsEs extends AppLocalizations {
   AppLocalizationsEs([String locale = 'es']) : super(locale);
 
   @override
+  String get settingsAutoPairBracket => 'Cerrar corchetes automáticamente';
+
+  @override
+  String get settingsAutoPairQuote => 'Cerrar comillas automáticamente';
+
+  @override
+  String get settingsAutoPairMarkdown =>
+      'Cerrar la sintaxis de Markdown automáticamente (`, *, ~)';
+
+  @override
   String get helpOpenDiagnosticLog => 'Abrir el registro de diagnóstico';
 
   @override
