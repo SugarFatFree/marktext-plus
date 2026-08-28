@@ -9,6 +9,11 @@ class AppLocalizationsPt extends AppLocalizations {
   AppLocalizationsPt([String locale = 'pt']) : super(locale);
 
   @override
+  String saveFailed(String message) {
+    return 'Não foi possível guardar o ficheiro: $message';
+  }
+
+  @override
   String fileOperationFailed(String message) {
     return 'Falha na operação de ficheiro: $message';
   }
@@ -852,6 +857,11 @@ class AppLocalizationsPt extends AppLocalizations {
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
 class AppLocalizationsPtBr extends AppLocalizationsPt {
   AppLocalizationsPtBr() : super('pt_BR');
+
+  @override
+  String saveFailed(String message) {
+    return 'Não foi possível salvar o arquivo: $message';
+  }
 
   @override
   String fileOperationFailed(String message) {

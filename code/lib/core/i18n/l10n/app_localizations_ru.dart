@@ -9,6 +9,11 @@ class AppLocalizationsRu extends AppLocalizations {
   AppLocalizationsRu([String locale = 'ru']) : super(locale);
 
   @override
+  String saveFailed(String message) {
+    return 'Не удалось сохранить файл: $message';
+  }
+
+  @override
   String fileOperationFailed(String message) {
     return 'Не удалось выполнить операцию с файлом: $message';
   }

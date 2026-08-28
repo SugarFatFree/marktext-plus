@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:marktext_plus/models/file_encoding.dart';
 import 'package:marktext_plus/models/line_ending.dart';
 import 'package:marktext_plus/services/file_service.dart';
 import 'package:path/path.dart' as p;

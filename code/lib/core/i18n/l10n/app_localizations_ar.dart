@@ -9,6 +9,11 @@ class AppLocalizationsAr extends AppLocalizations {
   AppLocalizationsAr([String locale = 'ar']) : super(locale);
 
   @override
+  String saveFailed(String message) {
+    return 'تعذّر حفظ الملف: $message';
+  }
+
+  @override
   String fileOperationFailed(String message) {
     return 'فشلت عملية الملف: $message';
   }

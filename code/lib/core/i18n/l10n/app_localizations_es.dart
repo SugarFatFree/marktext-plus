@@ -9,6 +9,11 @@ class AppLocalizationsEs extends AppLocalizations {
   AppLocalizationsEs([String locale = 'es']) : super(locale);
 
   @override
+  String saveFailed(String message) {
+    return 'No se pudo guardar el archivo: $message';
+  }
+
+  @override
   String fileOperationFailed(String message) {
     return 'Error en la operación de archivo: $message';
   }

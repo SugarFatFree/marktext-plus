@@ -10,6 +10,26 @@ import 'ui/screens/home_screen.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
+/// Tells the reader that a save did not happen.
+///
+/// All three save paths — the menu, Save As, and the one the tab bar uses when
+/// closing — used to swallow the failure. Ctrl+S on a read-only file, or one
+/// another program holds open, did nothing at all: no message, and the only
+/// clue was the modified dot that stayed put. Upstream MarkText notifies on
+/// every one of these.
+void reportSaveFailure(Object error) {
+  final context = navigatorKey.currentContext;
+  if (context == null || !context.mounted) return;
+  final l10n = AppLocalizations.of(context);
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(l10n == null
+          ? 'Could not save the file: $error'
+          : l10n.saveFailed('$error')),
+    ),
+  );
+}
+
 class MarkTextPlusApp extends ConsumerWidget {
   const MarkTextPlusApp({super.key});
 

@@ -1,5 +1,13 @@
 {
   "@@locale": "ar",
+  "saveFailed": "تعذّر حفظ الملف: {message}",
+  "@saveFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "fileOperationFailed": "فشلت عملية الملف: {message}",
   "@fileOperationFailed": {
     "placeholders": {

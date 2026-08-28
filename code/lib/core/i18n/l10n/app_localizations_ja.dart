@@ -9,6 +9,11 @@ class AppLocalizationsJa extends AppLocalizations {
   AppLocalizationsJa([String locale = 'ja']) : super(locale);
 
   @override
+  String saveFailed(String message) {
+    return 'ファイルを保存できませんでした: $message';
+  }
+
+  @override
   String fileOperationFailed(String message) {
     return 'ファイル操作に失敗しました: $message';
   }

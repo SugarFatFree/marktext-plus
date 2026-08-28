@@ -1,5 +1,13 @@
 {
   "@@locale": "pt",
+  "saveFailed": "Não foi possível guardar o ficheiro: {message}",
+  "@saveFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "fileOperationFailed": "Falha na operação de ficheiro: {message}",
   "@fileOperationFailed": {
     "placeholders": {

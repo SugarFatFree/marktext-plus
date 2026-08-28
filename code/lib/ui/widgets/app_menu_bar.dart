@@ -146,9 +146,12 @@ class AppMenuBar extends ConsumerWidget {
       try {
         await FileService.saveDocument(activeTab.filePath!, activeTab.content,
             lineEnding: activeTab.lineEnding, encoding: activeTab.encoding);
-      } catch (_) {
+      } catch (e) {
         // Left marked as modified, so the dot in the tab bar and the close
-        // confirmation both keep telling the truth about what is on disk.
+        // confirmation both keep telling the truth about what is on disk —
+        // and said out loud, because a silent Ctrl+S is indistinguishable
+        // from one that worked.
+        reportSaveFailure(e);
         return;
       }
       ref.read(tabProvider.notifier).markSaved(activeTab.id);
@@ -181,7 +184,8 @@ class AppMenuBar extends ConsumerWidget {
     try {
       await FileService.saveDocument(path, activeTab.content,
           lineEnding: activeTab.lineEnding, encoding: activeTab.encoding);
-    } catch (_) {
+    } catch (e) {
+      reportSaveFailure(e);
       return;
     }
 

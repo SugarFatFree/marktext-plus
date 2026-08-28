@@ -9,6 +9,11 @@ class AppLocalizationsKo extends AppLocalizations {
   AppLocalizationsKo([String locale = 'ko']) : super(locale);
 
   @override
+  String saveFailed(String message) {
+    return '파일을 저장하지 못했습니다: $message';
+  }
+
+  @override
   String fileOperationFailed(String message) {
     return '파일 작업에 실패했습니다: $message';
   }

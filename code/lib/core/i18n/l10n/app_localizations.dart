@@ -117,6 +117,12 @@ abstract class AppLocalizations {
     Locale('zh'),
   ];
 
+  /// No description provided for @saveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save the file: {message}'**
+  String saveFailed(String message);
+
   /// No description provided for @fileOperationFailed.
   ///
   /// In en, this message translates to:

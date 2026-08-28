@@ -1,5 +1,13 @@
 {
   "@@locale": "en",
+  "saveFailed": "Could not save the file: {message}",
+  "@saveFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "fileOperationFailed": "File operation failed: {message}",
   "@fileOperationFailed": {
     "placeholders": {

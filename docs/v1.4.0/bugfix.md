@@ -53,6 +53,7 @@
 | BUG-049 | 2026-08-28 | 从「已打开文件」删除文件，下面的文件树不刷新，删掉的文件还在 | P2 | 已修复 |
 | BUG-050 | 2026-08-28 | 保存不是原子的：写到一半崩溃会把用户的文档写成空的或半截 | **P0** | 已修复 |
 | BUG-051 | 2026-08-28 | 侧边栏重命名文件夹必然失败（File.rename 对目录报 EISDIR） | **P1** | 已修复 |
+| BUG-052 | 2026-08-28 | 保存失败时一声不吭，Ctrl+S 和成功保存看不出区别 | **P1** | 已修复 |
 
 ## 详细记录
 
@@ -1249,5 +1250,70 @@ Future<void> deleteEntity(String path) async {
 
 - `code/lib/services/file_service.dart`
 - `code/test/services/file_service_atomic_save_test.dart`
+
+---
+
+## BUG-052 — 保存失败时一声不吭
+
+**发现日期**：2026-08-28 　**优先级**：P1 　**状态**：已修复
+
+### 现象
+
+按 Ctrl+S 保存一个只读文件、或者一个正被别的程序独占打开的文件，**界面上没有任何反应**。
+唯一的线索是标签页上那个「已修改」的圆点没有消失 —— 但没人会盯着那个圆点看，
+用户只会以为存好了。
+
+### 根因
+
+三条保存路径的 catch 全是空的：
+
+| 入口 | 位置 |
+|---|---|
+| 菜单「保存」/ Ctrl+S | `AppMenuBar.saveFile` |
+| 菜单「另存为」 | `AppMenuBar._saveFileAs` |
+| 关闭标签页时的「保存」 | `EditorTabBar.saveTab` |
+
+```dart
+} catch (_) {
+  // Left marked as modified, so the dot in the tab bar and the close
+  // confirmation both keep telling the truth about what is on disk.
+  return;
+}
+```
+
+注释本身没错 —— 保持 modified 状态确实是对的，未保存提示才不会说谎。**问题是只做了这一半。**
+状态是诚实的，但用户看不见状态，他看见的是"我按了 Ctrl+S，然后什么都没发生"。
+
+值得一提的是，这三处的 catch 都写了注释、看起来都像是"想清楚了才这么写的"，
+所以之前几轮排查都从它们旁边走过去了。
+
+### 修复方案
+
+在 `app.dart` 里加一个共用的提示函数（`navigatorKey` 就在那儿，两个调用方也都已经
+import 了它，不会产生循环依赖）：
+
+```dart
+void reportSaveFailure(Object error) {
+  final context = navigatorKey.currentContext;
+  if (context == null || !context.mounted) return;
+  final l10n = AppLocalizations.of(context);
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text(l10n == null
+        ? 'Could not save the file: $error'
+        : l10n.saveFailed('$error'))),
+  );
+}
+```
+
+三条路径各接一行 `reportSaveFailure(e)`，原有的"保持 modified / 不关闭标签页"的行为
+一点没动。新增 l10n 键 `saveFailed`（带 `{message}` 占位符），12 种语言补齐 ——
+和 BUG-048 的 `fileOperationFailed` 分开，因为保存失败值得一句明确的话。
+
+### 涉及文件
+
+- `code/lib/app.dart` —— 新增 `reportSaveFailure`
+- `code/lib/ui/widgets/app_menu_bar.dart` —— 两处
+- `code/lib/ui/widgets/editor_tab_bar.dart` —— 一处
+- `code/lib/core/i18n/l10n/app_*.arb` —— 12 个文件新增 `saveFailed`
 
 ---

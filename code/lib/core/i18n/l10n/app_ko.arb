@@ -1,5 +1,13 @@
 {
   "@@locale": "ko",
+  "saveFailed": "파일을 저장하지 못했습니다: {message}",
+  "@saveFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "fileOperationFailed": "파일 작업에 실패했습니다: {message}",
   "@fileOperationFailed": {
     "placeholders": {
