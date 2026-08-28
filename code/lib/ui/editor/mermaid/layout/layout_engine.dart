@@ -34,10 +34,15 @@ abstract class LayoutEngine {
   Size measureNode(MermaidNode node, MermaidStyle style) {
     final nodeStyle = style.getNodeStyle(node.className);
 
-    // Calculate text size
+    // Calculate text size. A label can hold line breaks: `<br/>` in the
+    // source is how mermaid wraps text inside a box, so the widest line sets
+    // the width and the count sets the height.
     final fontSize = nodeStyle.fontSize;
-    final textWidth = node.label.length * fontSize * 0.6;
-    final textHeight = fontSize * 1.4;
+    final lines = node.label.split('\n');
+    final textWidth = lines
+        .map((line) => line.length * fontSize * 0.6)
+        .fold<double>(0, math.max);
+    final textHeight = fontSize * 1.4 * lines.length;
 
     // Add padding based on shape
     double horizontalPadding = 24.0;

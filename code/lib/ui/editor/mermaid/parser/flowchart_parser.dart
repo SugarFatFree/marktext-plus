@@ -2,6 +2,7 @@ import '../models/diagram.dart';
 import '../models/edge.dart';
 import '../models/node.dart';
 import '../models/style.dart';
+import 'label.dart';
 
 /// Helper class for arrow information
 class _ArrowInfo {
@@ -237,7 +238,7 @@ class FlowchartParser {
         head: match.group(5) ?? '',
         bidirectional: match.group(1) != null,
         // Either spelling of the label; only one can be present.
-        label: match.group(3) ?? match.group(6),
+        label: _edgeLabel(match.group(3) ?? match.group(6)),
       ));
       lastEnd = match.end;
     }
@@ -353,15 +354,15 @@ class FlowchartParser {
     return match?.group(1) ?? nodeStr;
   }
 
-  /// Strips the quotes mermaid uses to wrap a label.
-  static String _unquoteLabel(String label) {
-    final trimmed = label.trim();
-    if (trimmed.length >= 2 &&
-        ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
-            (trimmed.startsWith("'") && trimmed.endsWith("'")))) {
-      return trimmed.substring(1, trimmed.length - 1);
-    }
-    return label;
+  /// An edge's own label, or null when it has none.
+  ///
+  /// Null rather than an empty string: the painter draws a label background
+  /// wherever there is a label, and an empty one left a box floating on the
+  /// line.
+  static String? _edgeLabel(String? raw) {
+    if (raw == null) return null;
+    final cleaned = cleanLabel(raw);
+    return cleaned.isEmpty ? null : cleaned;
   }
 
   /// Parses a node definition and returns a MermaidNode
@@ -473,13 +474,10 @@ class FlowchartParser {
       }
     }
 
-    // Handle escaped quotes in labels
-    label = label.replaceAll('\\"', '"').replaceAll("\\'", "'");
-
-    // Quotes around a label are delimiters, not content — they are how a
-    // label containing a bracket, comma or space is written. Keeping them
-    // put the quote marks on screen.
-    label = _unquoteLabel(label);
+    // One helper for every label in every diagram: this used to unescape and
+    // unquote here and nowhere else, so edge labels kept their quotes, and
+    // `<br/>` was drawn as five characters wherever it appeared.
+    label = cleanLabel(label);
 
     return MermaidNode(
       id: id,
