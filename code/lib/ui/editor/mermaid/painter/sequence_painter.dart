@@ -208,8 +208,8 @@ class SequencePainter extends MermaidPainter {
         TextPainter(
             text: TextSpan(
               text: group.label,
-              style: const TextStyle(
-                color: Color(0xFF455A64),
+              style: TextStyle(
+                color: Color(style.onBackgroundTextColor),
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
               ),
@@ -329,7 +329,10 @@ class SequencePainter extends MermaidPainter {
     TextPainter(
         text: TextSpan(
           text: label,
-          style: const TextStyle(color: Color(0xFF546E7A), fontSize: 11),
+          style: TextStyle(
+            color: Color(style.onBackgroundTextColor),
+            fontSize: 11,
+          ),
         ),
         textDirection: TextDirection.ltr,
         maxLines: 1,

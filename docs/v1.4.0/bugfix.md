@@ -59,6 +59,7 @@
 | BUG-055 | 2026-08-28 | 图表解析失败的详细文案 12 种语言下都是英文 | P2 | 已修复 |
 | BUG-056 | 2026-08-28 | 同一个错误框有三份实现，改了一份另两份没跟上 | P2 | 已修复 |
 | BUG-057 | 2026-08-28 | 629 行从未被调用过的死代码，四处精确重复全在里面 | P2 | 已清理 |
+| BUG-058 | 2026-08-28 | 深色主题下时序图的 alt/loop 帧标题与 [else] 标签几乎看不见 | P2 | 已修复 |
 
 ## 详细记录
 
@@ -1607,5 +1608,89 @@ MermaidFailure describeFailure(String source);
 - `code/lib/ui/editor/mermaid/widgets/mermaid_diagram.dart` —— 1382 行减到 753 行
 - `code/lib/ui/editor/mermaid/painter/box_edge_geometry.dart` —— 新增
 - `code/lib/ui/editor/mermaid/painter/{class_diagram,er_diagram}_painter.dart`
+
+---
+
+## BUG-058 — 深色主题下时序图的帧标题与分节标签几乎看不见
+
+**发现日期**：2026-08-28 　**优先级**：P2 　**状态**：已修复
+
+### 现象
+
+在 Dark Graphite、Dieci OLED、Midnight 等深色主题下，时序图里 `alt` / `loop` / `opt`
+框的**标题**，以及 `[else]` 这类**分节标签**，颜色和背景几乎融在一起，看不清写的是什么。
+浅色主题下正常。
+
+```mermaid
+sequenceDiagram
+  Alice->>Bob: 请求
+  alt 成功            %% ← 这个「成功」在深色主题下看不见
+    Bob-->>Alice: 200
+  else 失败           %% ← 这个「失败」也是
+    Bob-->>Alice: 500
+  end
+```
+
+### 是怎么找到的
+
+这一轮做的是近似重复检测（相似度 80%~99% 的方法对），本意是找"一份改了另一份没跟上"。
+其中一组是 `sequence_painter` 的 `_drawParticipant` 与 `_drawParticipantBottom`（96%），
+两者差别只有 y 坐标 —— 没有 bug。但看它们的过程中注意到画笔里有**写死的文字颜色**
+`Color(0xFF37474F)`。
+
+于是换了个角度量：统计每个画笔里 `themeMode` 出现的次数 —— **20 个画笔，全部是 0 次**。
+而 `MermaidStyle.dark()` 会把画布底色改成 `#1E1E1E`。
+
+接着把所有写死的文字颜色逐个算了与深色底的 WCAG 对比度，得到 9 处，其中 7 处低于 3.0。
+
+### 关键的一步：7 处里只有 2 处是真的
+
+**低对比度不等于看不清 —— 要看文字底下垫的是什么。**逐处核对之后：
+
+| 位置 | 颜色 | 对比度 | 底下垫着 | 判定 |
+|---|---|---|---|---|
+| kanban `#212121` | 卡片描述 | 1.04 | 不透明白卡片 `#FFFFFF` | 正常 |
+| sequence `#3E2723` | 便笺文字 | 1.21 | 不透明淡黄 `#FFF5AD` | 正常 |
+| journey `#37474F` | 分数标签 | 1.73 | 彩色圆点填充 | 正常 |
+| sequence `#37474F` ×3 | 参与者名 / 帧角标 | 1.73 | 参与者色块 / `#ECEFF1` 角标底 | 正常 |
+| **sequence `#455A64`** | **alt/loop 帧标题** | **2.30** | **只有 6.7% 透明度的黑色蒙层** | **看不清** |
+| **sequence `#546E7A`** | **[else] 分节标签** | **3.09** | **什么都没有，直接画在背景上** | **偏低** |
+
+如果不做这一步核对，这条会变成"20 个画笔全都不支持深色主题"的夸大报告。
+
+### 修复方案
+
+给 `MermaidStyle` 加一个**计算属性**（不是构造字段）：
+
+```dart
+int get onBackgroundTextColor =>
+    themeMode == MermaidThemeMode.dark ? 0xFFB0BEC5 : 0xFF455A64;
+```
+
+用计算属性是有原因的：`MermaidStyle` 在每个调用点都是**逐字段列出来构造的**，加成
+构造字段就意味着每处都要记得传，而漏掉的那一处正好会是继续看不清的那一处。
+
+时序图那两处改用它。深色下 `#B0BEC5` 对 `#1E1E1E` 的对比度约 9.2。浅色下 `[else]`
+标签从 `#546E7A` 变成略深的 `#455A64`，对比度只增不减。
+
+### 测试
+
+`test/ui/editor/mermaid/diagram_contrast_test.dart`，4 条。第一条先验**测量本身**
+（黑对白必须是 21:1，同色必须是 1:1）—— 不然后面两条可能是在一个算错的公式上通过的。
+最后一条把原来写死的那个颜色单独拎出来断言：它在浅色下 >4.5、在深色下 <3.0，
+这正是整个发现本身。
+
+### 未处理的部分
+
+其余 18 个画笔仍然使用为浅色背景设计的固定调色板（白卡片、淡黄便笺、彩色圆点等）。
+**这是刻意的**：mermaid 自己也是这么做的，图元自带不透明填充，深色主题下它们看起来是
+深色文档上的浅色卡片，读得清楚。只有"直接画在背景上的文字"才需要跟着主题走，
+本次改的就是这一类的全部两处。
+
+### 涉及文件
+
+- `code/lib/ui/editor/mermaid/models/style.dart`
+- `code/lib/ui/editor/mermaid/painter/sequence_painter.dart`
+- `code/test/ui/editor/mermaid/diagram_contrast_test.dart` —— 新增
 
 ---

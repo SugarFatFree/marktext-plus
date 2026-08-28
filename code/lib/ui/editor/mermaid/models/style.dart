@@ -87,6 +87,24 @@ class MermaidStyle {
   /// Theme mode
   final MermaidThemeMode themeMode;
 
+  /// Colour for text painted straight onto the diagram background.
+  ///
+  /// Most labels in a diagram sit on a shape that carries its own fill — a
+  /// white kanban card, a pale yellow note, a coloured journey marker — and
+  /// keep their contrast whatever the theme is. A few do not: a sequence
+  /// diagram's `alt` / `loop` frame title and its `[else]` section labels are
+  /// drawn on the bare background. Those were a fixed slate grey, which on the
+  /// dark background (#1E1E1E) came out at a contrast ratio of 2.3 — below
+  /// even the 3.0 that WCAG allows for large text, and in practice barely
+  /// visible.
+  ///
+  /// A computed getter rather than a constructor field on purpose: every
+  /// caller builds [MermaidStyle] by listing fields, so a new field would have
+  /// to be remembered at each of them, and the one that was forgotten would be
+  /// the one that stayed unreadable.
+  int get onBackgroundTextColor =>
+      themeMode == MermaidThemeMode.dark ? 0xFFB0BEC5 : 0xFF455A64;
+
   /// Custom class definitions (classDef statements)
   final Map<String, NodeStyle> classDefs;
 
