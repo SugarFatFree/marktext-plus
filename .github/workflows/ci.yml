@@ -12,22 +12,19 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # Held at 3.44.9 on purpose, and not to be raised without measuring.
+  # Back on a current SDK, with the renderer switched instead of the SDK.
   #
-  # One source tree (f34574fa) was built on both SDKs and both installers run
-  # on the machine that reported a slow start. Creating the engine view took
-  # 306 and 284 ms on 3.44.9, and 3330 and 3137 ms on 3.47.2 — the same code,
-  # the same machine, the same renderer setting, ten times the cost. That one
-  # span is the whole of the two-to-four second launch that was chased for
-  # days; everything this program does itself adds up to about 150 ms.
+  # 3.44.9 was pinned because it launched ten times faster; the reason turned
+  # out to be that 3.44.9 has no Impeller on Windows at all. The switch meant
+  # to test that on 3.47 was a no-op: it set FLUTTER_ENGINE_SWITCHES, which
+  # the engine reads only outside release builds, so both arms of the A/B ran
+  # Impeller and the difference between them was noise.
   #
-  # An exact version, not "stable": the comment here once said "pinned" while
-  # the value said `stable`, which pins nothing, and two traces from different
-  # weeks were compared as though only the source had changed.
-  #
-  # Before raising it: build both, launch both twice, read `creating the view`.
-  # docs/v1.4.0/启动耗时排查.md has the numbers and how they were taken.
-  FLUTTER_VERSION: 3.44.9
+  # windows/runner now asks through set_impeller_switch, which is read. Two
+  # installers come out of every build — one each way — until the numbers say
+  # which the default should be. flutter/flutter#191860 measures the same
+  # thing on a minimal project: 54 ms on Skia against 1183 ms on Impeller.
+  FLUTTER_VERSION: 3.47.2
 
 jobs:
   analyze:
@@ -100,9 +97,18 @@ jobs:
           retention-days: 14
 
   build-windows:
-    name: Build Windows
+    name: Build Windows (Impeller ${{ matrix.impeller.label }})
     runs-on: windows-latest
     needs: analyze
+    strategy:
+      fail-fast: false
+      matrix:
+        # Baked in at build time rather than set on the machine under test: a
+        # variable left from an earlier experiment already made one set of
+        # measurements report the opposite of what was intended.
+        impeller:
+          - {label: 'off', value: '0'}
+          - {label: 'on', value: '1'}
     steps:
       - uses: actions/checkout@v4
 
@@ -137,6 +143,7 @@ jobs:
           # DLLs, 50 ms of runner prologue, and 2.7 seconds booting the engine
           # and loading app.so. app.so is 13.6 MB, and this is the one way to
           # make it smaller that costs no feature.
+          $env:MARKTEXT_IMPELLER_DEFAULT = '${{ matrix.impeller.value }}'
           flutter build windows --release `
             --build-number=$env:GITHUB_RUN_NUMBER `
             --split-debug-info=build\symbols `
@@ -181,7 +188,7 @@ jobs:
           DefaultDirName={autopf}\MarkText Plus
           DefaultGroupName=MarkText Plus
           OutputDir=${{ github.workspace }}
-          OutputBaseFilename=marktext-plus-setup-flutter-${{ env.FLUTTER_VERSION }}
+          OutputBaseFilename=marktext-plus-setup-impeller-${{ matrix.impeller.label }}
           Compression=lzma2
           SolidCompression=yes
           SetupIconFile=${{ github.workspace }}\code\windows\runner\resources\app_icon.ico
@@ -243,14 +250,14 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: windows-x64-setup-flutter-${{ env.FLUTTER_VERSION }}-${{ github.sha }}
-          path: marktext-plus-setup-flutter-${{ env.FLUTTER_VERSION }}.exe
+          name: windows-x64-setup-impeller-${{ matrix.impeller.label }}-${{ github.sha }}
+          path: marktext-plus-setup-impeller-${{ matrix.impeller.label }}.exe
           retention-days: 14
 
       # Uploaded unzipped: the action zips the directory itself, and a nested
       # archive would need unpacking twice before the exe could be run.
       - uses: actions/upload-artifact@v4
         with:
-          name: windows-x64-flutter-${{ env.FLUTTER_VERSION }}-${{ github.sha }}
+          name: windows-x64-impeller-${{ matrix.impeller.label }}-${{ github.sha }}
           path: code/build/windows/x64/runner/Release/
           retention-days: 14

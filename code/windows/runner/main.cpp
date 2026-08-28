@@ -99,34 +99,38 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   // operating system loading the executable and its libraries.
   const long long runner_entry_ms = MillisecondsSinceProcessStart();
 
-  // Renderer choice, measured rather than assumed.
+  // Renderer choice. Read MARKTEXT_IMPELLER here; applied to the project
+  // below, because only the project can carry it.
   //
-  // The trace narrowed a two-second launch down to `window.Create()`, which is
-  // where the engine comes up, the snapshot is read and the graphics surface is
-  // made. Impeller became the default Windows renderer after version 1.2.3 was
-  // built, so it was the obvious suspect and this switch existed to turn it
-  // off.
+  // The first attempt at this set FLUTTER_ENGINE_SWITCHES and
+  // FLUTTER_ENGINE_SWITCH_1=enable-impeller=false. That does nothing in a
+  // release build: GetSwitchesFromEnvironment in the engine is wrapped in
+  // `#ifndef FLUTTER_RELEASE` and returns an empty list, so every shipped
+  // build ran Impeller no matter what the variable said — and the trace line
+  // reported the request rather than the result, which made an A/B of two
+  // identical runs look like an answer. set_impeller_switch is the supported
+  // way and is read directly by FlutterWindowsEngine.
   //
-  // Four launches of one binary settled it: with Impeller the view took 2154
-  // and 2130 ms, without it 2411 and 2511 ms. Turning it off is 320 ms slower,
-  // and the Dart side that follows slowed with it. Impeller is not the cost,
-  // and forcing it off was a regression — so the default is now to leave the
-  // engine alone.
+  // Off by default on Windows, because Impeller is what the launch cost is:
+  // 3.44.9, which has no Impeller on Windows at all, creates the view in 284
+  // and 306 ms; 3.47.2 with Impeller takes 2130 to 3330 ms on the same
+  // machine and the same source. flutter/flutter#191860 measures the same
+  // thing on a minimal project — 54 ms on Skia against 1183 ms on Impeller.
   //
-  // The switch stays, inverted, because the next renderer question will want
-  // it: MARKTEXT_IMPELLER=0 disables Impeller for one launch. The engine reads
-  // its switches from the environment — FLUTTER_ENGINE_SWITCHES holds the
-  // count, FLUTTER_ENGINE_SWITCH_<n> the switches — and an engine that no
-  // longer understands this one ignores it.
+  // The default is baked in at build time (MARKTEXT_IMPELLER_DEFAULT, set by
+  // CI) so that two installers can be compared without anyone having to set
+  // anything: a variable left over from an earlier experiment has already
+  // made one set of measurements say the opposite of what was intended.
+  // MARKTEXT_IMPELLER=1/0 still overrides it for a single launch.
+#ifndef MARKTEXT_IMPELLER_DEFAULT
+#define MARKTEXT_IMPELLER_DEFAULT 0
+#endif
+  bool enable_impeller = MARKTEXT_IMPELLER_DEFAULT != 0;
   wchar_t impeller_choice[8] = {0};
   const DWORD impeller_len = ::GetEnvironmentVariableW(
       L"MARKTEXT_IMPELLER", impeller_choice, 8);
-  const bool disable_impeller =
-      impeller_len > 0 && impeller_len < 8 && impeller_choice[0] == L'0';
-  if (disable_impeller) {
-    ::SetEnvironmentVariableW(L"FLUTTER_ENGINE_SWITCHES", L"1");
-    ::SetEnvironmentVariableW(L"FLUTTER_ENGINE_SWITCH_1",
-                              L"enable-impeller=false");
+  if (impeller_len > 0 && impeller_len < 8) {
+    enable_impeller = impeller_choice[0] == L'1';
   }
   // Attach to console when present (e.g., 'flutter run') or create a
   // new console when running with a debugger.
@@ -139,6 +143,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   ::CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
 
   flutter::DartProject project(L"data");
+  project.set_impeller_switch(enable_impeller
+                                  ? flutter::ImpellerSwitch::Enabled
+                                  : flutter::ImpellerSwitch::Disabled);
 
   std::vector<std::string> command_line_arguments =
       GetCommandLineArguments();
@@ -148,8 +155,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   command_line_arguments.push_back(FormatTraceArgument(
       "--mt-trace-engine-start=", MillisecondsSinceProcessStart()));
   // So the trace says which renderer the run was asked for.
-  command_line_arguments.push_back(disable_impeller ? "--mt-trace-impeller=0"
-                                                    : "--mt-trace-impeller=1");
+  command_line_arguments.push_back(enable_impeller ? "--mt-trace-impeller=1"
+                                                   : "--mt-trace-impeller=0");
 
   project.set_dart_entrypoint_arguments(std::move(command_line_arguments));
 

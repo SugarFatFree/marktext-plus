@@ -6,6 +6,17 @@ project(marktext_plus LANGUAGES CXX)
 # the on-disk name of your application.
 set(BINARY_NAME "marktext_plus")
 
+# Which renderer the shipped binary asks for, baked in rather than left to a
+# variable on the machine that runs it: two installers built from one source
+# can then be compared without anyone having to set anything, and a leftover
+# variable cannot silently make a measurement say the opposite of what was
+# meant. 0 (Skia) is the default because Impeller is what the Windows launch
+# cost is — see windows/runner/main.cpp and flutter/flutter#191860.
+if(DEFINED ENV{MARKTEXT_IMPELLER_DEFAULT})
+  add_compile_definitions(
+    MARKTEXT_IMPELLER_DEFAULT=$ENV{MARKTEXT_IMPELLER_DEFAULT})
+endif()
+
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
 # versions of CMake.
 cmake_policy(VERSION 3.14...3.25)
