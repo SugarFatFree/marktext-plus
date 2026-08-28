@@ -562,8 +562,49 @@ class ExportService {
 
       case NodeType.table:
         final table = node as TableNode;
-        final rows = <List<String>>[table.headers, ...table.rows];
-        return builder.table(rows, hasHeader: true);
+        // Built cell by cell rather than through builder.table, which takes
+        // plain strings: a cell written `**bold**` reached Word with its
+        // asterisks showing, and the column alignments were dropped along
+        // with them.
+        DocxTableCell cell(String text, int column, {required bool header}) =>
+            DocxTableCell(
+              children: [
+                DocxParagraph(
+                  align: _docxAlign(table.alignments, column),
+                  children: [
+                    for (final run
+                        in _inlineSpansToDocxTexts(_cellParser.parseInline(text)))
+                      // A header row is bold, as builder.table made it; the
+                      // runs keep whatever else the cell asked for.
+                      header
+                          ? run.copyWith(fontWeight: DocxFontWeight.bold)
+                          : run,
+                  ],
+                ),
+              ],
+            );
+
+        final colCount = table.headers.length;
+        return builder.add(
+          DocxTable(
+            rows: [
+              DocxTableRow(
+                isHeader: true,
+                cells: [
+                  for (var i = 0; i < colCount; i++)
+                    cell(table.headers[i], i, header: true),
+                ],
+              ),
+              for (final row in table.rows)
+                DocxTableRow(
+                  cells: [
+                    for (var i = 0; i < colCount; i++)
+                      cell(i < row.length ? row[i] : '', i, header: false),
+                  ],
+                ),
+            ],
+          ),
+        );
 
       case NodeType.mathBlock:
         final math = node as MathBlockNode;
@@ -759,9 +800,11 @@ class ExportService {
       case NodeType.table:
         final table = node as TableNode;
         final buffer = StringBuffer('<table>\n<thead>\n<tr>\n');
-        for (final header in table.headers) {
-          final content = _inlineSpansToHtml(_cellParser.parseInline(header));
-          buffer.write('  <th>$content</th>\n');
+        for (var i = 0; i < table.headers.length; i++) {
+          final content =
+              _inlineSpansToHtml(_cellParser.parseInline(table.headers[i]));
+          buffer.write('  <th${_htmlAlign(table.alignments, i)}>'
+              '$content</th>\n');
         }
         buffer.write('</tr>\n</thead>\n<tbody>\n');
         final colCount = table.headers.length;
@@ -770,7 +813,8 @@ class ExportService {
           for (var i = 0; i < colCount; i++) {
             final cell = i < row.length ? row[i] : '';
             final content = _inlineSpansToHtml(_cellParser.parseInline(cell));
-            buffer.write('  <td>$content</td>\n');
+            buffer.write('  <td${_htmlAlign(table.alignments, i)}>'
+                '$content</td>\n');
           }
           buffer.write('</tr>\n');
         }
@@ -1084,6 +1128,41 @@ class ExportService {
           return '<sup><a href="#fn-$text">[$text]</a></sup>';
       }
     }).join();
+  }
+
+  /// The same column alignment, for Word.
+  static DocxAlign _docxAlign(List<String> alignments, int column) {
+    if (column >= alignments.length) return DocxAlign.left;
+    return switch (alignments[column]) {
+      'center' => DocxAlign.center,
+      'right' => DocxAlign.right,
+      _ => DocxAlign.left,
+    };
+  }
+
+  /// The same column alignment, for the pdf package.
+  static pw.TextAlign _pdfAlign(List<String> alignments, int column) {
+    if (column >= alignments.length) return pw.TextAlign.left;
+    return switch (alignments[column]) {
+      'center' => pw.TextAlign.center,
+      'right' => pw.TextAlign.right,
+      _ => pw.TextAlign.left,
+    };
+  }
+
+  /// The `text-align` a column was given, as an attribute or nothing.
+  ///
+  /// The preview honoured `:--`, `:-:` and `--:` all along and the exports
+  /// ignored them, so a right-aligned column of figures came out left-aligned
+  /// in every file the reader sent on.
+  static String _htmlAlign(List<String> alignments, int column) {
+    if (column >= alignments.length) return '';
+    return switch (alignments[column]) {
+      'left' => ' style="text-align:left"',
+      'center' => ' style="text-align:center"',
+      'right' => ' style="text-align:right"',
+      _ => '',
+    };
   }
 
   static String _escapeHtml(String text) {
@@ -1456,10 +1535,12 @@ class ExportService {
               children: [
                 pw.TableRow(
                   decoration: pw.BoxDecoration(color: _pdfTableHeaderBg),
-                  children: table.headers.map((header) {
+                  children: table.headers.asMap().entries.map((entry) {
+                    final header = entry.value;
                     return pw.Padding(
                       padding: const pw.EdgeInsets.all(8),
                       child: pw.RichText(
+                        textAlign: _pdfAlign(table.alignments, entry.key),
                         text: pw.TextSpan(
                           children: _inlineSpansToPdf(
                             _cellParser.parseInline(header),
@@ -1485,10 +1566,12 @@ class ExportService {
                     decoration: isEvenRow
                         ? pw.BoxDecoration(color: _pdfTableAltBg)
                         : null,
-                    children: row.map((cell) {
+                    children: row.asMap().entries.map((cellEntry) {
+                      final cell = cellEntry.value;
                       return pw.Padding(
                         padding: const pw.EdgeInsets.all(8),
                         child: pw.RichText(
+                          textAlign: _pdfAlign(table.alignments, cellEntry.key),
                           text: pw.TextSpan(
                             children: _inlineSpansToPdf(
                               _cellParser.parseInline(cell),

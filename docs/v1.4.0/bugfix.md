@@ -81,6 +81,7 @@
 | BUG-077 | 2026-08-28 | 一次 CI 静静地挂了而我一直以为看不到结果 | P3 | 已修复 |
 | BUG-078 | 2026-08-28 | Mermaid 节点里的 `<br/>` 被当成文字显示，实体不解码，边标签留着引号 | **P1** | 已修复 |
 | BUG-079 | 2026-08-28 | 上一条只修了流程图，其余十几种图表仍把 `<br/>` 当文字 | **P1** | 已修复 |
+| BUG-080 | 2026-08-28 | 表格列对齐在三种导出里全部丢失；Word 单元格还把 `**粗**` 原样输出 | **P1** | 已修复 |
 
 ## 详细记录
 
@@ -3020,5 +3021,60 @@ BUG-078 修好了流程图，我当时就该问一句"其它图表呢"，但没�
 
 十二个 `code/lib/ui/editor/mermaid/parser/*_parser.dart`、
 `code/test/ui/editor/mermaid/label_test.dart`
+
+---
+
+## BUG-080：表格列对齐在导出里全丢，Word 单元格还输出原始语法
+
+### 现象
+
+```
+| 左 | 中 | 右 |
+|:--|:-:|--:|
+| 1 | 2 | 3 |
+```
+
+预览里三列分别左中右对齐——**导出成 HTML / PDF / Word 后全变左对齐**。
+Word 更严重：单元格是按纯字符串交出去的，所以 `| **粗** |` 在 Word 里
+**原样显示成 `**粗**`**，链接、行内代码同理。
+
+### 根因
+
+`alignments` 字段在 `markdown_renderer.dart` 里用了（`_getAlignment`），
+在 `export_service.dart` 里**一次都没出现**。又是"同一件事只有一处做了"。
+
+Word 那半边是另一回事：`docx_creator` 的 `builder.table()` 只接受
+`List<List<String>>`，而我们直接把解析器留下的原始单元格文本喂了进去。
+
+### 修复方案
+
+三个导出各接一个对齐映射（`_htmlAlign` / `_pdfAlign` / `_docxAlign`），都从
+同一个 `alignments` 列表取值：
+
+- HTML：`<th style="text-align:right">`；无对齐的列不加属性。
+- PDF：`pw.RichText(textAlign: …)`。
+- Word：**不再用 `builder.table()`**，改为手工构造 `DocxTable` →
+  `DocxTableRow` → `DocxTableCell(children: [DocxParagraph(align: …)])`，
+  单元格内容走 `_inlineSpansToDocxTexts`（与段落、列表、引用同一个函数），
+  所以粗体、链接、行内代码这次真的是格式而不是字符。表头保持加粗——
+  `builder.table` 原本靠 `isBold: isHeader` 做到，手工构造后用
+  `copyWith(fontWeight: bold)` 复现。
+
+### 一处方法上的反省
+
+这一轮我先用静态分析找"哪种语法在哪个导出里缺失"，**连错两次**：先是把
+`InlineType` 的覆盖全判成缺失（函数体切分写错），后来又漏掉了 PDF 的
+`_inlineSpansToPdf`（签名跨行，正则没匹配上）。真正查出问题的是**实测**——
+把 13 种行内语法逐一导出成 HTML 看输出。静态扫描适合"列出候选"，
+判定还得跑一遍。
+
+顺带确认干净：三种导出对 14 种行内类型**全部覆盖**；表格解析本身很扎实
+（转义管道、对齐符、多列裁掉/少列补空都正确，`` `x|y` `` 被拆开也符合
+GFM 规范——规范明确要求代码段内的管道同样需要转义）。
+
+### 涉及文件
+
+- `code/lib/services/export_service.dart`
+- `code/test/services/table_export_test.dart` —— 新增
 
 ---
