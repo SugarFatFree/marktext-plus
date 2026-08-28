@@ -88,6 +88,22 @@ T _withSpan<T extends MarkdownNode>(T node, int start, int end) {
   return node;
 }
 
+/// Moves a nested parse's line numbers back into the document's own.
+///
+/// The blocks inside a quote or under a list item are parsed from text that
+/// has been lifted out of the document — the `>` markers stripped, the indent
+/// removed — so they come back numbered from zero. Left that way, a diagram
+/// inside a quote reported the document's *first* lines as its source: its
+/// "copy source" button copied the wrong text, and editing it in the preview
+/// wrote the edit over the top of the document.
+void _shiftSpans(List<MarkdownNode> nodes, int offset) {
+  if (offset == 0) return;
+  for (final node in MarkdownParser.walk(nodes)) {
+    node.sourceStart += offset;
+    node.sourceEnd += offset;
+  }
+}
+
 class HeadingNode extends MarkdownNode {
   final int level;
   final String content;
@@ -775,12 +791,16 @@ class MarkdownParser {
     return '$next. ';
   }
 
-  List<ListItem> _buildListItems(List<List<String>> itemBlocks) {
+  List<ListItem> _buildListItems(
+    List<List<String>> itemBlocks,
+    List<int> itemStarts,
+  ) {
     final widths =
         itemBlocks.map((block) => _indentColumns(block.first)).toSet().toList()
           ..sort();
 
-    return itemBlocks.map((block) {
+    return itemBlocks.indexed.map((entry) {
+      final (index, block) = entry;
       // Each item is read with its own marker, not the list's: a bulleted
       // sub-point under a numbered step is still a bullet.
       final ordered = _olRe.hasMatch(block.first);
@@ -797,6 +817,9 @@ class MarkdownParser {
       final carried = blank < 0
           ? const <MarkdownNode>[]
           : parse(_dedent(block.skip(blank + 1)));
+      // A block's lines are consecutive in the document, so the blocks the
+      // item carries start `blank + 1` lines after the item's own first line.
+      _shiftSpans(carried, itemStarts[index] + blank + 1);
 
       final content = lead.isEmpty
           ? first
@@ -923,11 +946,14 @@ class MarkdownParser {
   /// line, a blank line, or a line inside a carried code block.
   static bool startsListItem(String line) => _startsListItem(line);
 
-  (List<List<String>>, int, bool) _collectListItems(
+  (List<List<String>>, List<int>, int, bool) _collectListItems(
     List<String> lines,
     int start,
   ) {
     final blocks = <List<String>>[];
+    // Where each block began in the document. Not derivable by adding block
+    // lengths: a blank line between two items belongs to neither block.
+    final blockStarts = <int>[];
     var i = start;
     var loose = false;
 
@@ -944,6 +970,7 @@ class MarkdownParser {
       if (_startsListItem(lines[i])) {
         if (_startsAnotherList(lines[i], firstIndent, firstOrdered)) break;
         blocks.add([lines[i]]);
+        blockStarts.add(i);
         i++;
         continue;
       }
@@ -992,7 +1019,7 @@ class MarkdownParser {
       break;
     }
 
-    return (blocks, i, loose);
+    return (blocks, blockStarts, i, loose);
   }
 
   /// Whether [line] begins a list separate from the one being collected.
@@ -1242,13 +1269,22 @@ class MarkdownParser {
         }
 
         final content = bqLines.join('\n').trim();
+        // `trim` drops the blank lines at the top of the quote, so the parse
+        // below starts that many lines further down the document.
+        var quoteBlank = 0;
+        while (quoteBlank < bqLines.length &&
+            bqLines[quoteBlank].trim().isEmpty) {
+          quoteBlank++;
+        }
+        final quoted = parse(content, quoteDepth: quoteDepth + 1);
+        _shiftSpans(quoted, quoteStart + quoteBlank);
         nodes.add(_withSpan(
           BlockquoteNode(
             content: content,
             inlineSpans: parseInline(content),
             // Parsed again so a list or a heading inside the quote is one.
             // The spans stay for anything still reading them.
-            children: parse(content, quoteDepth: quoteDepth + 1),
+            children: quoted,
             // Counting from zero for the outermost quote.
             depth: quoteDepth,
           ),
@@ -1298,12 +1334,13 @@ class MarkdownParser {
       }
       // Unordered list
       if (_ulRe.hasMatch(line)) {
-        final (itemBlocks, next, loose) = _collectListItems(lines, i);
+        final (itemBlocks, itemStarts, next, loose) =
+            _collectListItems(lines, i);
         i = next;
         nodes.add(_withSpan(
           ListNode(
             ordered: false,
-            items: _buildListItems(itemBlocks),
+            items: _buildListItems(itemBlocks, itemStarts),
             isLoose: loose,
           ),
           blockStart,
@@ -1314,12 +1351,13 @@ class MarkdownParser {
 
       // Ordered list
       if (_olRe.hasMatch(line)) {
-        final (itemBlocks, next, loose) = _collectListItems(lines, i);
+        final (itemBlocks, itemStarts, next, loose) =
+            _collectListItems(lines, i);
         i = next;
         nodes.add(_withSpan(
           ListNode(
             ordered: true,
-            items: _buildListItems(itemBlocks),
+            items: _buildListItems(itemBlocks, itemStarts),
             isLoose: loose,
           ),
           blockStart,

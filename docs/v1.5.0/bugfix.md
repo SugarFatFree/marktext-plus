@@ -4,6 +4,7 @@
 |------|------|------|--------|------|
 | BUG-099 | 2026-08-29 | 文件夹搜索会把超大文件整个读进内存 | P2 | 已修复 |
 | BUG-100 | 2026-08-29 | 拖放自带一份私有扩展名清单，且拖入不支持的文件毫无反应 | P2 | 已修复 |
+| BUG-101 | 2026-08-29 | 引用/列表里的块行号从 0 开始，预览编辑会覆盖文档开头 | P0 | 已修复 |
 
 ---
 
@@ -82,3 +83,60 @@ const allowedExtensions = {'.md', '.markdown', '.txt'};
 - `code/lib/ui/screens/home_screen.dart`
 - `code/lib/core/i18n/l10n/app_*.arb`（12 个）
 - `code/test/utils/drop_extensions_test.dart`（新增）
+
+
+---
+
+## BUG-101：引用/列表里的块行号从 0 开始，预览编辑会覆盖文档开头
+
+### 现象
+
+文档里有这么一段：
+
+```markdown
+intro paragraph
+
+> ```mermaid
+> graph TD
+> A-->B
+> ```
+```
+
+引用里的 mermaid 图正常渲染，图上的**"复制源码"按钮复制出来的却是文档开头的
+`intro paragraph`**；在预览里双击这个块进入编辑再提交，**改动会写到文档的
+前四行上，原来的开头被覆盖掉**——这是数据丢失。
+
+列表项下带的块（编号步骤下面的代码围栏、第二段、引用）完全一样。
+
+### 根因分析
+
+`sourceStart` / `sourceEnd` 是**文档的绝对行号**，`sourceOfBlock` 和
+`replaceBlock` 都按它取行、换行。
+
+但嵌套内容是**从文档里抠出来另行解析**的：
+
+- 引用：每行剥掉一个 `>` 后 `parse(content, quoteDepth: quoteDepth + 1)`
+- 列表项：`parse(_dedent(block.skip(blank + 1)))`
+
+这两次 `parse` 拿到的是一段独立文本，行号自然**从 0 开始数**。于是引用里第一个
+块的 `sourceStart` 是 0——指向的是文档的第一行。
+
+探针实测：上面那个文档里，mermaid 块拿到的是 `start=0 end=4`，
+`sourceOfBlock` 返回 `intro paragraph |  | > ```mermaid | > graph TD`。
+
+### 修复方案
+
+嵌套解析完成后，把整棵子树的行号平移回文档坐标（`_shiftSpans`，沿用
+`MarkdownParser.walk` 遍历，所以嵌套的嵌套也一并平移）：
+
+- **引用**：偏移量 = 引用起始行 + `.trim()` 掉的前导空行数。
+  `content` 是 `bqLines.join('\n').trim()`，前导空行被 trim 掉了，
+  不补这几行会整体偏上。
+- **列表项**：偏移量 = 该 item 块的起始行 + `blank + 1`。
+  item 块的起始行**不能靠累加各块长度推出来**——两个 item 之间的空行
+  不属于任何一块，所以 `_collectListItems` 改为额外返回每块的起始行。
+
+### 涉及文件
+
+- `code/lib/services/markdown_parser.dart`
+- `code/test/services/nested_block_spans_test.dart`（新增，5 条）

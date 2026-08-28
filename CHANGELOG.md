@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Fixed
+- Editing a block that sits inside a quote or under a list item in the preview no longer writes the edit over the top of the document — nested blocks were numbered from line zero, so their reported source was the document's first lines
+- The "copy source" button on a diagram inside a quote or a list item copies the diagram, not the opening of the document
 - Folder search no longer reads oversized files into memory whole; files over 2 MiB are skipped and the count of skipped files is shown rather than silently dropped
 - Dropping a `.mmd`, `.mdown`, `.mdtxt` or `.mdtext` file on the window opens it — drag and drop kept a private list holding three of the seven extensions the rest of the program accepts
 - Dropping an unsupported file now says so instead of the window silently swallowing the gesture
