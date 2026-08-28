@@ -23,6 +23,8 @@ import '../models/block_diagram.dart';
 import '../models/c4_diagram.dart';
 import '../models/sankey.dart';
 import '../models/sequence.dart';
+import '../layout/architecture_layout.dart';
+import '../models/architecture.dart';
 import '../models/packet.dart';
 import '../models/radar.dart';
 import '../models/timeline.dart';
@@ -42,6 +44,7 @@ import '../painter/requirement_painter.dart';
 import '../painter/block_painter.dart';
 import '../painter/c4_painter.dart';
 import '../painter/sankey_painter.dart';
+import '../painter/architecture_painter.dart';
 import '../painter/packet_painter.dart';
 import '../painter/radar_painter.dart';
 import '../painter/sequence_painter.dart';
@@ -128,6 +131,8 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
   C4DiagramData? _c4DiagramData;
   SequenceDiagramData? _sequenceData;
   RequirementDiagramData? _requirementDiagramData;
+  ArchitectureDiagramData? _architectureData;
+  ArchitectureLayoutResult? _architectureLayout;
   PacketDiagramData? _packetData;
   RadarChartData? _radarChartData;
   XYChartData? _xyChartData;
@@ -266,6 +271,15 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
           _style,
           Size(widget.width ?? availableWidth, widget.height ?? 600),
         );
+      } else if (diagram.type == DiagramType.architecture &&
+          result.architectureData != null) {
+        // The layout is kept, not recomputed in the painter: it is the same
+        // work either way, and a painter that lays out on every frame repeats
+        // it for every repaint.
+        final archLayout =
+            const ArchitectureLayout().layout(result.architectureData!);
+        _architectureLayout = archLayout;
+        size = archLayout.size;
       } else if (diagram.type == DiagramType.packet &&
           result.packetData != null) {
         // A packet's height follows straight from how many rows of bits it
@@ -380,6 +394,7 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
       _c4DiagramData = result.c4DiagramData;
       _sequenceData = result.sequenceData;
       _packetData = result.packetData;
+      _architectureData = result.architectureData;
       _radarChartData = result.radarChartData;
       _xyChartData = result.xyChartData;
       _classDiagramData = result.classDiagramData;
@@ -515,6 +530,16 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
         if (_sankeyChartData != null) {
           return SankeyPainter(
             sankeyData: _sankeyChartData!,
+            style: _style,
+            deviceConfig: _deviceConfig,
+          );
+        }
+        return FlowchartPainter(diagram: diagram, style: _style);
+      case DiagramType.architecture:
+        if (_architectureData != null && _architectureLayout != null) {
+          return ArchitecturePainter(
+            architectureData: _architectureData!,
+            layout: _architectureLayout!,
             style: _style,
             deviceConfig: _deviceConfig,
           );
@@ -702,6 +727,7 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
             _quadrantChartData?.title != null ||
             _sankeyChartData?.title != null ||
             _c4DiagramData?.title != null ||
+            _architectureData?.title != null ||
             _packetData?.title != null ||
             _radarChartData?.title != null ||
             _xyChartData?.title != null ||

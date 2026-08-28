@@ -2,6 +2,7 @@ import '../models/block_diagram.dart';
 import '../models/c4_diagram.dart';
 import '../models/class_diagram.dart';
 import '../models/diagram.dart';
+import '../models/architecture.dart';
 import '../models/packet.dart';
 import '../models/er_diagram.dart';
 import '../models/gantt.dart';
@@ -31,6 +32,7 @@ import 'pie_chart_parser.dart';
 import 'quadrant_parser.dart';
 import 'requirement_parser.dart';
 import 'sankey_parser.dart';
+import 'architecture_parser.dart';
 import 'packet_parser.dart';
 import 'radar_parser.dart';
 import 'sequence_parser.dart';
@@ -81,6 +83,7 @@ class MermaidParseResult {
     this.sankeyChartData,
     this.blockDiagramData,
     this.c4DiagramData,
+    this.architectureData,
     this.packetData,
     this.radarChartData,
     this.xyChartData,
@@ -117,6 +120,7 @@ class MermaidParseResult {
       sankeyChartData != null ||
       blockDiagramData != null ||
       c4DiagramData != null ||
+      architectureData != null ||
       packetData != null ||
       radarChartData != null ||
       xyChartData != null ||
@@ -154,6 +158,9 @@ class MermaidParseResult {
 
   /// C4 specific data (only set for C4 diagrams)
   final C4DiagramData? c4DiagramData;
+
+  /// Architecture diagram specific data (only set for architecture diagrams)
+  final ArchitectureDiagramData? architectureData;
 
   /// Packet diagram specific data (only set for packet diagrams)
   final PacketDiagramData? packetData;
@@ -195,6 +202,7 @@ class MermaidParseResult {
       quadrantChartData?.title != null ||
       sankeyChartData?.title != null ||
       c4DiagramData?.title != null ||
+      architectureData?.title != null ||
       packetData?.title != null ||
       radarChartData?.title != null ||
       xyChartData?.title != null ||
@@ -216,6 +224,7 @@ class MermaidParseResult {
         sankeyChartData: sankeyChartData,
         blockDiagramData: blockDiagramData,
         c4DiagramData: c4DiagramData,
+        architectureData: architectureData,
         packetData: packetData,
         radarChartData: radarChartData,
         xyChartData: xyChartData,
@@ -376,6 +385,15 @@ class MermaidParser {
           return MermaidParseResult(
             diagram: result.$1,
             c4DiagramData: result.$2,
+          );
+        }
+        return null;
+      case DiagramType.architecture:
+        final result = const ArchitectureParser().parse(body);
+        if (result != null) {
+          return MermaidParseResult(
+            diagram: result.$1,
+            architectureData: result.$2,
           );
         }
         return null;
@@ -642,6 +660,8 @@ class MermaidParser {
         return 'block diagram';
       case DiagramType.c4Diagram:
         return 'C4 diagram';
+      case DiagramType.architecture:
+        return 'architecture diagram';
       case DiagramType.packet:
         return 'packet diagram';
       case DiagramType.radar:
@@ -699,6 +719,11 @@ class MermaidParser {
     // are in the wild.
     if (RegExp(r'^packet(-beta)?\b').hasMatch(firstLine)) {
       return DiagramType.packet;
+    }
+
+    // Architecture diagram
+    if (RegExp(r'^architecture(-beta)?\b').hasMatch(firstLine)) {
+      return DiagramType.architecture;
     }
 
     // XY chart

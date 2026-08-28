@@ -61,6 +61,9 @@ enum DiagramType {
   /// Packet diagram (`packet-beta`)
   packet,
 
+  /// Architecture diagram (`architecture-beta`)
+  architecture,
+
   /// XY chart diagram
   xyChart,
 

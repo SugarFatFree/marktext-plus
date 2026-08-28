@@ -3,6 +3,7 @@
 | 编号 | 日期 | 标题 | 优先级 | 难易度 | 状态 |
 |------|------|------|--------|--------|------|
 | FEAT-035 | 2026-08-29 | Mermaid packet-beta 图型渲染 | P2 | 中 | 已完成 |
+| FEAT-036 | 2026-08-29 | Mermaid architecture-beta 图型渲染 | P2 | 高 | 已完成 |
 
 ---
 
@@ -19,4 +20,21 @@
 | **顺带修复** | `mermaid.dart` 这个 barrel 只导出了 20 种图型里的 11 种（radar / xy / class / er / journey / gitgraph / mindmap / quadrant / requirement / state 的 model、parser、painter 都不在其中）。补全为全部导出，否则从 barrel 引入的代码根本叫不出这些类型的名字。 |
 | **涉及文件** | `code/lib/ui/editor/mermaid/models/packet.dart`（新增）<br>`code/lib/ui/editor/mermaid/parser/packet_parser.dart`（新增）<br>`code/lib/ui/editor/mermaid/painter/packet_painter.dart`（新增）<br>`code/lib/ui/editor/mermaid/models/diagram.dart`<br>`code/lib/ui/editor/mermaid/parser/mermaid_parser.dart`<br>`code/lib/ui/editor/mermaid/widgets/mermaid_diagram.dart`<br>`code/lib/ui/editor/mermaid/mermaid.dart`<br>`code/test/ui/editor/mermaid/packet_parser_test.dart`（新增，10 条）<br>`code/test/ui/editor/mermaid/packet_render_test.dart`（新增，3 条） |
 | **验收标准** | ① 官方 TCP header 样例渲染成两行位域网格；② 跨行字段按行拆开且位对齐；③ `+N` 相对宽度接续正确；④ 标题只画一次（画笔画了组件就不画）；⑤ 只有表头没有字段时不谎称解析成功，退回代码块。 |
-| **已知未覆盖** | `architecture-beta` 仍未实现（需要图标集与分组嵌套布局），留待后续版本。 |
+| **已知未覆盖** | 无（`architecture-beta` 见 FEAT-036）。 |
+
+
+---
+
+## FEAT-036：Mermaid architecture-beta 图型渲染
+
+| 字段 | 内容 |
+|------|------|
+| **实现日期** | 2026-08-29 |
+| **需求描述** | 支持 mermaid 的 `architecture-beta` 图型：带图标的服务方块、虚线分组框、按方位连接的编排图。 |
+| **用户场景** | 画系统架构、部署拓扑、服务依赖。这是 mermaid 11 里最后一个本项目不支持的常用图型（另两个 `zenuml`、`treemap-beta` 暂不做）。 |
+| **实现方案** | 分四层，与其余图型同一套接线：<br>**模型** `models/architecture.dart`：`ArchNode`（service / junction）、`ArchGroup`、`ArchEdge`、`ArchSide`（L/R/T/B，自带网格步长）。<br>**解析** `parser/architecture_parser.dart`：`group id(icon)[Label] in parent`、`service ...`、`junction id in g`、`a:R --> L:b` 四种箭头（`--` `-->` `<--` `<-->`）、端点上的 `{group}` 后缀、`title`、`%%` 注释。图标与标签都可省略，省略标签时用 id 兜底（mermaid 的做法——无标签的方块比标签简陋更糟）。<br>**布局** `layout/architecture_layout.dart`：见下。<br>**画笔** `painter/architecture_painter.dart`：分组框画虚线圆角矩形并在左上写标题；服务方块画图标 + 标签；junction 只画一个小圆点（mermaid 的画法，它是路由拐点不是方块）；连线走**正交折线**而非直线对角线。 |
+| **布局是这个图型唯一的难点** | mermaid 的排布**由边决定，而不是由书写顺序决定**：`db:L -- R:server` 不只是"连起来"，它还说了 server 在 db 的**左边**。按书写顺序摆会画出一张和自己的箭头互相矛盾的图。<br>算法：① 每个分组内部各自 BFS 排格子，边上的方位给出步长，目标格被占就**沿同方向继续走**而不是放弃这条约束；② 负坐标整体平移回非负（指向左/上的边会把节点摆到负格，否则画出左上角外）；③ 分组之间用跨组的边同样排一遍，列宽行高取该行列里最大的块，没有跨组边时退化成从左到右一排。<br>**为什么不一次性对整图排格子**：那样两个分组的成员会在网格上交错，画出来的框会互相重叠，读起来像源文件里从没描述过的嵌套关系。 |
+| **图标** | mermaid 自带的五个（cloud / database / disk / server / internet）映射到 Material 图标，用 `TextPainter` 直接画字体字形。iconify 图标包不支持，遇到不认识的名字**退化成通用方块图标而不是不画**——不认识的图标该让图少一个字形，不该让它少一个节点。 |
+| **涉及文件** | `code/lib/ui/editor/mermaid/models/architecture.dart`（新增）<br>`code/lib/ui/editor/mermaid/parser/architecture_parser.dart`（新增）<br>`code/lib/ui/editor/mermaid/layout/architecture_layout.dart`（新增）<br>`code/lib/ui/editor/mermaid/painter/architecture_painter.dart`（新增）<br>`code/lib/ui/editor/mermaid/models/diagram.dart`<br>`code/lib/ui/editor/mermaid/parser/mermaid_parser.dart`<br>`code/lib/ui/editor/mermaid/widgets/mermaid_diagram.dart`<br>`code/lib/ui/editor/mermaid/mermaid.dart`<br>`code/test/ui/editor/mermaid/architecture_test.dart`（新增，14 条）<br>`code/test/ui/editor/mermaid/mermaid_parser_test.dart`（夹具更新） |
+| **验收标准** | ① mermaid 官方文档那个 API 样例渲染出四个服务 + 一个分组框；② `db:L -- R:server` 之后 server 确实在 db 左边、`disk1:T -- B:server` 之后 server 确实在 disk1 上方（**几何断言，不是"没崩"**）；③ 任意两个节点框不重叠；④ 分组框包住它全部成员；⑤ 两个分组的框不重叠；⑥ 无边的节点各占各的格；⑦ 上报的尺寸覆盖所有画出来的东西。 |
+| **夹具连带更新** | 三条既有测试拿 `architecture-beta` 当"不支持的图型"的例子，现在它支持了，改用 `zenuml`。同时把 packet 和 architecture 补进"每种已实现的图型都能解析出东西"那张表——那张表也是一份会落后的清单，上一轮加 packet 时就漏了。 |
