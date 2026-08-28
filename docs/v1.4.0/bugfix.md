@@ -60,6 +60,8 @@
 | BUG-056 | 2026-08-28 | 同一个错误框有三份实现，改了一份另两份没跟上 | P2 | 已修复 |
 | BUG-057 | 2026-08-28 | 629 行从未被调用过的死代码，四处精确重复全在里面 | P2 | 已清理 |
 | BUG-058 | 2026-08-28 | 深色主题下时序图的 alt/loop 帧标题与 [else] 标签几乎看不见 | P2 | 已修复 |
+| BUG-059 | 2026-08-28 | 11 个快捷键写死在菜单里，设置页看不见也改不了，其中两个还和已有键位撞车 | **P1** | 已修复 |
+| BUG-060 | 2026-08-28 | 标题升级/降级在设置页显示成原始动作名 | P3 | 已修复 |
 
 ## 详细记录
 
@@ -1692,5 +1694,127 @@ int get onBackgroundTextColor =>
 - `code/lib/ui/editor/mermaid/models/style.dart`
 - `code/lib/ui/editor/mermaid/painter/sequence_painter.dart`
 - `code/test/ui/editor/mermaid/diagram_contrast_test.dart` —— 新增
+
+---
+
+## BUG-059 — 11 个快捷键写死在菜单里，设置页看不见也改不了
+
+**发现日期**：2026-08-28 　**优先级**：P1 　**状态**：已修复
+
+### 现象
+
+设置里的「快捷键」列表少了 11 项。用户看不到源码模式、预览模式、分屏、
+显示/隐藏侧边栏、显示/隐藏标签栏、命令面板、专注模式、打字机模式、
+放大、缩小、重置缩放这些功能到底绑在哪个键上，**也无法修改**。
+
+更糟的是其中两个和列表里的键**撞车**：
+
+| 写死的 | 表里的 | 冲突键 |
+|---|---|---|
+| 放大 | 标题升级 | **Ctrl+=** |
+| 缩小 | 标题降级 | **Ctrl+-** |
+
+两个动作抢同一个键，只有一个会响应，**而应用里没有任何地方能显示出这件事** ——
+设置页只列出标题升降级，看起来一切正常。
+
+### 根因
+
+这 11 项在菜单上直接写了 `SingleActivator`，绕过了 `KeybindingService`：
+
+```dart
+MenuItemButton(
+  shortcut: SingleActivator(
+    LogicalKeyboardKey.digit1,
+    control: !isMac, meta: isMac, alt: true,
+  ),
+  child: Text(l10n.viewSourceCode),
+```
+
+而 `AppMenuBar._shortcut` 的注释恰恰写着：
+
+> 菜单显示的标签和实际触发的键现在来自同一处，所以重绑之后不会显示一套、执行另一套。
+
+**这句话对走 `_shortcut()` 的 29 项成立，对这 11 项完全不成立。**
+
+### 我上一轮的错误结论
+
+上一轮我做过一次"内部键位冲突"检查，结论是"无冲突"。**那个结论是错的** —— 我只检查了
+`defaultKeybindings` 这张表，而冲突的另一方根本不在表里。表不是全部事实。
+
+### 修复方案
+
+11 项全部纳入 `KeybindingService`，**键位原样保留**，只有撞车的两个动了：
+
+```dart
+// 从 Ctrl+= 和 Ctrl+- 挪开，那两个键标题升降级已经占着。上游用的办法是
+// 干脆不给缩放默认键位，让标题保留 —— 写文档才是这个程序的本分，而缩放命令
+// 在视图菜单里仍然点得到。
+'zoomIn': 'Ctrl+Shift+=',
+'zoomOut': 'Ctrl+Shift+-',
+```
+
+顺带把另外 13 个**上游有快捷键、本项目菜单里完全没有**的动作也补上（新建窗口、设置、
+退出、导出 PDF、重新加载图片、全屏、清除格式、新建段落、删除段落、转为段落、松散列表、
+Front Matter、HTML 块）。选键的原则是**只取上游那个键在本项目当前完全空闲的**：上游另有
+19 个键会撞车（Ctrl+T 在上游是新建标签页、在这里是插入表格；Ctrl+Shift+S 在上游是另存为、
+在这里是删除线），照搬会打断本项目现有用户的习惯，那是用户的决定而不是对齐练习。
+
+键位表从 37 条增加到 59 条，菜单里写死的快捷键归零。
+
+### 一个自我验证的信号
+
+替换完成后 `dart analyze` 报了一条 `isMac` 变量未使用 —— **只有那些写死的
+`SingleActivator` 用它**。这条告警本身就是"清干净了"的证明。
+
+### 测试
+
+`test/services/keybinding_wiring_test.dart`，4 条：
+① 菜单里不允许再出现写死的 `SingleActivator`；② 表内任意两个动作不得抢同一个键；
+③ 每条默认键位都要能解析成真实组合键（否则设置里就是一条按不动的项）；
+④ 设置页必须能给出每个动作的名字。
+
+**第 4 条当场抓出了一个已存在的 bug**（见 BUG-060）。
+
+### 涉及文件
+
+- `code/lib/services/keybinding_service.dart`
+- `code/lib/ui/widgets/app_menu_bar.dart`
+- `code/lib/ui/screens/settings_screen.dart`
+- `code/test/services/keybinding_wiring_test.dart` —— 新增
+
+---
+
+## BUG-060 — 标题升级/降级在设置页显示成原始动作名
+
+**发现日期**：2026-08-28 　**优先级**：P3 　**状态**：已修复
+
+### 现象
+
+设置的快捷键列表里，别的行都是中文名，只有两行显示英文标识符
+`promoteHeading` 和 `demoteHeading`。
+
+### 根因
+
+`_translateKeybindingAction` 是一个 `switch`，兜底分支是 `_ => action` —— 返回原始动作名。
+这两个动作加进键位表时，没有同时在这里加 `case`，而兜底让它看起来"还能用"，
+所以一直没被发现。
+
+### 是怎么发现的
+
+不是看出来的，是 BUG-059 那条测试抓出来的：
+
+```dart
+for (final action in KeybindingService.defaultKeybindings.keys) {
+  expect(settings, contains("'$action' =>"),
+      reason: '$action 在设置里会显示成原始动作名');
+}
+```
+
+写这条断言的本意是守住新加的 24 条，结果它先揪出了两条早就存在的。
+**「有兜底所以不会崩」的地方，正是最容易长期带病的地方。**
+
+### 涉及文件
+
+- `code/lib/ui/screens/settings_screen.dart`
 
 ---

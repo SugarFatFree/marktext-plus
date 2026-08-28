@@ -582,6 +582,38 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       'closeTab' => l10n.fileCloseTab,
       'findNext' => l10n.editFindNext,
       'findPrevious' => l10n.editFindPrevious,
+      // These two had been in the map since it gained promote and demote
+      // heading, but never here, so the settings list showed their raw action
+      // names next to every other row's translated one.
+      'promoteHeading' => l10n.paragraphPromoteHeading,
+      'demoteHeading' => l10n.paragraphDemoteHeading,
+      // The twenty-four that used to be hard-coded on their menu items or had
+      // no shortcut at all. They reuse the menu's own labels, so the settings
+      // list names them the same way the menu does.
+      'sourceMode' => l10n.viewSourceCode,
+      'previewMode' => l10n.viewPreview,
+      'splitMode' => l10n.viewSplitView,
+      'toggleSidebar' => l10n.viewHideSidebar,
+      'toggleTabBar' => l10n.viewHideTabBar,
+      'commandPalette' => l10n.viewCommandPalette,
+      'focusMode' => l10n.viewFocusMode,
+      'typewriterMode' => l10n.viewTypewriterMode,
+      'zoomIn' => l10n.viewZoomIn,
+      'zoomOut' => l10n.viewZoomOut,
+      'resetZoom' => l10n.viewResetZoom,
+      'newWindow' => l10n.fileNewWindow,
+      'settings' => l10n.fileSettings,
+      'quit' => l10n.fileQuit,
+      'exportPdf' => l10n.fileExportPdf,
+      'reloadImages' => l10n.viewReloadImages,
+      'fullScreen' => l10n.windowFullScreen,
+      'clearFormatting' => l10n.formatClearFormatting,
+      'createParagraph' => l10n.editCreateParagraph,
+      'deleteParagraph' => l10n.editDeleteParagraph,
+      'toParagraph' => l10n.paragraphToParagraph,
+      'looseList' => l10n.paragraphLooseList,
+      'frontMatter' => l10n.formatFrontMatter,
+      'htmlBlock' => l10n.formatHtmlBlock,
       _ => action,
     };
   }

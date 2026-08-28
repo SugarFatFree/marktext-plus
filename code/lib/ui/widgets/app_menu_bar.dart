@@ -241,6 +241,7 @@ class AppMenuBar extends ConsumerWidget {
           onPressed: () => newFile(ref, l10n),
         ),
         MenuItemButton(
+          shortcut: _shortcut('newWindow'),
           child: Text(l10n.fileNewWindow),
           onPressed: () => _newWindow(),
         ),
@@ -283,6 +284,7 @@ class AppMenuBar extends ConsumerWidget {
               onPressed: () => _exportHtml(ref),
             ),
             MenuItemButton(
+              shortcut: _shortcut('exportPdf'),
               child: Text(l10n.fileExportPdf),
               onPressed: () => _exportPdf(ref),
             ),
@@ -295,6 +297,7 @@ class AppMenuBar extends ConsumerWidget {
         ),
         const Divider(height: 1),
         MenuItemButton(
+          shortcut: _shortcut('settings'),
           child: Text(l10n.fileSettings),
           onPressed: () {
             navigatorKey.currentState?.push(
@@ -323,6 +326,7 @@ class AppMenuBar extends ConsumerWidget {
         ),
         const Divider(height: 1),
         MenuItemButton(
+          shortcut: _shortcut('quit'),
           // `close`, not `exit(0)`: the window is set to prevent closing, so
           // this reaches the same handler the title bar's close button does —
           // which asks about unsaved work and records the window geometry.
@@ -426,12 +430,14 @@ class AppMenuBar extends ConsumerWidget {
         ),
         // Beside "duplicate line", which is where upstream puts them.
         MenuItemButton(
+          shortcut: _shortcut('createParagraph'),
           child: Text(l10n.editCreateParagraph),
           onPressed: () => ref
               .read(editorProvider.notifier)
               .applyFormat(FormatAction.createParagraph),
         ),
         MenuItemButton(
+          shortcut: _shortcut('deleteParagraph'),
           child: Text(l10n.editDeleteParagraph),
           onPressed: () => ref
               .read(editorProvider.notifier)
@@ -470,36 +476,26 @@ class AppMenuBar extends ConsumerWidget {
   Widget _buildViewMenu(
       BuildContext context, AppLocalizations l10n, WidgetRef ref) {
     final config = ref.watch(settingsProvider);
-    final isMac = PlatformUtils.isMacOS;
     return SubmenuButton(
       menuChildren: [
         SubmenuButton(
           menuChildren: [
             MenuItemButton(
-              shortcut: SingleActivator(
-                LogicalKeyboardKey.digit1,
-                control: !isMac, meta: isMac, alt: true,
-              ),
+              shortcut: _shortcut('sourceMode'),
               child: Text(l10n.viewSourceCode),
               onPressed: () {
                 ref.read(settingsProvider.notifier).setEditMode(EditMode.source);
               },
             ),
             MenuItemButton(
-              shortcut: SingleActivator(
-                LogicalKeyboardKey.digit2,
-                control: !isMac, meta: isMac, alt: true,
-              ),
+              shortcut: _shortcut('previewMode'),
               child: Text(l10n.viewPreview),
               onPressed: () {
                 ref.read(settingsProvider.notifier).setEditMode(EditMode.preview);
               },
             ),
             MenuItemButton(
-              shortcut: SingleActivator(
-                LogicalKeyboardKey.digit3,
-                control: !isMac, meta: isMac, alt: true,
-              ),
+              shortcut: _shortcut('splitMode'),
               child: Text(l10n.viewSplitView),
               onPressed: () {
                 ref.read(settingsProvider.notifier).setEditMode(EditMode.split);
@@ -510,20 +506,14 @@ class AppMenuBar extends ConsumerWidget {
         ),
         const Divider(height: 1),
         MenuItemButton(
-          shortcut: SingleActivator(
-            LogicalKeyboardKey.keyB,
-            control: !isMac, meta: isMac, shift: true,
-          ),
+          shortcut: _shortcut('toggleSidebar'),
           child: Text(config.sideBarVisible ? l10n.viewHideSidebar : l10n.viewShowSidebar),
           onPressed: () {
             ref.read(settingsProvider.notifier).toggleSideBar();
           },
         ),
         MenuItemButton(
-          shortcut: SingleActivator(
-            LogicalKeyboardKey.keyT,
-            control: !isMac, meta: isMac, alt: true,
-          ),
+          shortcut: _shortcut('toggleTabBar'),
           child: Text(config.tabBarVisible ? l10n.viewHideTabBar : l10n.viewShowTabBar),
           onPressed: () {
             ref.read(settingsProvider.notifier).toggleTabBar();
@@ -532,6 +522,7 @@ class AppMenuBar extends ConsumerWidget {
         // The table of contents was reachable only by finding its icon in the
         // sidebar; the command palette had no entry at all.
         MenuItemButton(
+          shortcut: _shortcut('reloadImages'),
           // A picture edited outside the app kept showing its old self:
           // Flutter caches a decoded image against its path.
           child: Text(l10n.viewReloadImages),
@@ -548,29 +539,20 @@ class AppMenuBar extends ConsumerWidget {
           },
         ),
         MenuItemButton(
-          shortcut: SingleActivator(
-            LogicalKeyboardKey.keyP,
-            control: !isMac, meta: isMac,
-          ),
+          shortcut: _shortcut('commandPalette'),
           child: Text(l10n.viewCommandPalette),
           onPressed: () => CommandPalette.show(context),
         ),
         const Divider(height: 1),
         MenuItemButton(
-          shortcut: SingleActivator(
-            LogicalKeyboardKey.keyF,
-            control: !isMac, meta: isMac, shift: true,
-          ),
+          shortcut: _shortcut('focusMode'),
           child: Text(config.focusMode ? '${l10n.viewFocusMode} \u2713' : l10n.viewFocusMode),
           onPressed: () {
             ref.read(settingsProvider.notifier).toggleFocusMode();
           },
         ),
         MenuItemButton(
-          shortcut: SingleActivator(
-            LogicalKeyboardKey.keyW,
-            control: !isMac, meta: isMac, shift: true,
-          ),
+          shortcut: _shortcut('typewriterMode'),
           child: Text(config.typewriterMode ? '${l10n.viewTypewriterMode} \u2713' : l10n.viewTypewriterMode),
           onPressed: () {
             ref.read(settingsProvider.notifier).toggleTypewriterMode();
@@ -578,10 +560,7 @@ class AppMenuBar extends ConsumerWidget {
         ),
         const Divider(height: 1),
         MenuItemButton(
-          shortcut: SingleActivator(
-            LogicalKeyboardKey.equal,
-            control: !isMac, meta: isMac,
-          ),
+          shortcut: _shortcut('zoomIn'),
           child: Text(l10n.viewZoomIn),
           onPressed: () {
             final newSize = (config.fontSize + 2).clamp(12.0, 32.0);
@@ -589,10 +568,7 @@ class AppMenuBar extends ConsumerWidget {
           },
         ),
         MenuItemButton(
-          shortcut: SingleActivator(
-            LogicalKeyboardKey.minus,
-            control: !isMac, meta: isMac,
-          ),
+          shortcut: _shortcut('zoomOut'),
           child: Text(l10n.viewZoomOut),
           onPressed: () {
             final newSize = (config.fontSize - 2).clamp(12.0, 32.0);
@@ -600,10 +576,7 @@ class AppMenuBar extends ConsumerWidget {
           },
         ),
         MenuItemButton(
-          shortcut: SingleActivator(
-            LogicalKeyboardKey.digit0,
-            control: !isMac, meta: isMac,
-          ),
+          shortcut: _shortcut('resetZoom'),
           child: Text(l10n.viewResetZoom),
           onPressed: () {
             ref.read(settingsProvider.notifier).setFontSize(16.0);
@@ -651,6 +624,7 @@ class AppMenuBar extends ConsumerWidget {
               onPressed: () => fmt(FormatAction.highlight),
             ),
             MenuItemButton(
+              shortcut: _shortcut('clearFormatting'),
               child: Text(l10n.formatClearFormatting),
               onPressed: () => fmt(FormatAction.clearFormatting),
             ),
@@ -681,20 +655,24 @@ class AppMenuBar extends ConsumerWidget {
               onPressed: () => fmt(FormatAction.demoteHeading),
             ),
             MenuItemButton(
+              shortcut: _shortcut('frontMatter'),
               // Front matter only counts as front matter at the very top of
               // the file, so this ignores the caret and inserts there.
               child: Text(l10n.formatFrontMatter),
               onPressed: () => fmt(FormatAction.frontMatter),
             ),
             MenuItemButton(
+              shortcut: _shortcut('htmlBlock'),
               child: Text(l10n.formatHtmlBlock),
               onPressed: () => fmt(FormatAction.htmlBlock),
             ),
             MenuItemButton(
+              shortcut: _shortcut('toParagraph'),
               child: Text(l10n.paragraphToParagraph),
               onPressed: () => fmt(FormatAction.toParagraph),
             ),
             MenuItemButton(
+              shortcut: _shortcut('looseList'),
               // Upstream carries this as a checkbox; a menu here has no state
               // to check against, so it reads as the action it performs.
               child: Text(l10n.paragraphLooseList),
@@ -803,6 +781,7 @@ class AppMenuBar extends ConsumerWidget {
           onPressed: () => windowManager.minimize(),
         ),
         MenuItemButton(
+          shortcut: _shortcut('fullScreen'),
           child: Text(
             isFullScreen ? '${l10n.windowFullScreen} \u2713' : l10n.windowFullScreen,
           ),
