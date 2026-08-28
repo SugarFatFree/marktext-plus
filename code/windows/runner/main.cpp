@@ -119,9 +119,21 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   //
   // Set here rather than left to whoever launches the program, because the
   // point is for it to hold however the program is started.
-  ::SetEnvironmentVariableW(L"FLUTTER_ENGINE_SWITCHES", L"1");
-  ::SetEnvironmentVariableW(L"FLUTTER_ENGINE_SWITCH_1",
-                            L"enable-impeller=false");
+  //
+  // Overridable, so one build can be measured both ways in one sitting:
+  // setting MARKTEXT_IMPELLER=1 before launching leaves the new renderer on.
+  // Comparing two builds means comparing two binaries; comparing two launches
+  // of the same binary compares only the thing under test.
+  wchar_t impeller_choice[8] = {0};
+  const DWORD impeller_len = ::GetEnvironmentVariableW(
+      L"MARKTEXT_IMPELLER", impeller_choice, 8);
+  const bool keep_impeller =
+      impeller_len > 0 && impeller_len < 8 && impeller_choice[0] == L'1';
+  if (!keep_impeller) {
+    ::SetEnvironmentVariableW(L"FLUTTER_ENGINE_SWITCHES", L"1");
+    ::SetEnvironmentVariableW(L"FLUTTER_ENGINE_SWITCH_1",
+                              L"enable-impeller=false");
+  }
   // Attach to console when present (e.g., 'flutter run') or create a
   // new console when running with a debugger.
   if (!::AttachConsole(ATTACH_PARENT_PROCESS) && ::IsDebuggerPresent()) {
@@ -142,7 +154,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   command_line_arguments.push_back(FormatTraceArgument(
       "--mt-trace-engine-start=", MillisecondsSinceProcessStart()));
   // So the trace says which renderer the run was asked for.
-  command_line_arguments.push_back("--mt-trace-impeller=0");
+  command_line_arguments.push_back(keep_impeller ? "--mt-trace-impeller=1"
+                                                 : "--mt-trace-impeller=0");
 
   project.set_dart_entrypoint_arguments(std::move(command_line_arguments));
 
