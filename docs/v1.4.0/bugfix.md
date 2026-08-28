@@ -3874,3 +3874,26 @@ if (event.logicalKey == LogicalKeyboardKey.keyP && isCtrl) { ... }
 - `code/test/services/palette_binding_test.dart`
 
 ---
+
+## BUG-097 补记：我自己引入的第二套查表，已合并
+
+修 BUG-097 时我新写了一个 `_runGlobalShortcut`：拿七个动作，逐个向
+`KeybindingService` 要绑定，再用 `SingleActivator.accepts` 匹配。
+
+**但主界面里本来就有 `_runShortcut`，而它已经是表驱动的**——用
+`actionForEvent` 做"事件 → 动作"的反查，走的是索引。两者覆盖的动作不重叠，
+所以没有死代码、也没有可见故障，但**同一个文件里出现了两套把按键变成动作的
+机制**：一套正查、一套反查。
+
+这正是我这两轮一直在批评的东西，只不过这次是我自己写的。已把七个动作并进
+`_runShortcut` 的 switch，删掉 `_runGlobalShortcut`——现在只剩一次查表、一处
+分发。
+
+守护测试也跟着改了，并加了一条新的：主界面源码里**必须有 `actionForEvent`、
+必须没有 `activatorFor`**。它守的不是某个行为，而是"只能有一套查表方式"。
+
+**记这一笔是因为过程本身值得记**：上一轮我说"修一处而不看同族是这个项目反复
+吃亏的地方"，紧接着自己就在同一个文件里加了一处同族的重复。先看清现场已有
+什么，再决定加什么。
+
+---

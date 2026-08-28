@@ -82,14 +82,26 @@ void main() {
     });
 
     test('none of them is written out in the screen as a key comparison', () {
+      // What this guards is not a behaviour but a shape: keys belong in the
+      // table, and the screen should ask the table what was pressed.
       final source = File('lib/ui/screens/home_screen.dart').readAsStringSync();
-      final handler = source.substring(
-        source.indexOf('KeyEventResult _runGlobalShortcut'),
-      );
+      final handler = source.substring(source.indexOf('bool _runShortcut'));
 
-      expect(handler.contains('LogicalKeyboardKey.digit1'), isFalse);
-      expect(handler.contains('LogicalKeyboardKey.keyB'), isFalse);
-      expect(handler.contains('LogicalKeyboardKey.keyP'), isFalse);
+      for (final key in ['digit1', 'digit2', 'digit3', 'keyB', 'keyT', 'keyP']) {
+        expect(handler.contains('LogicalKeyboardKey.$key'), isFalse,
+            reason: '$key 又被写死了一遍');
+      }
+    });
+
+    test('one place turns a key press into an action', () {
+      // Two lookups grew here: one asking the table what a press means, one
+      // asking it what each action is bound to. Either works; having both is
+      // how they drift.
+      final source = File('lib/ui/screens/home_screen.dart').readAsStringSync();
+
+      expect(source.contains('actionForEvent'), isTrue);
+      expect(source.contains('activatorFor'), isFalse,
+          reason: '主界面里出现了第二套查表方式');
     });
   });
 

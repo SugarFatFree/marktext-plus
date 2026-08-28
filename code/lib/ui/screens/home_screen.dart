@@ -585,45 +585,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
         final tab = ref.read(activeTabProvider);
         if (tab != null) EditorTabBar.closeTab(context, ref, tab);
         return true;
+
+      // The view actions, answered here as well as by the menu because focus
+      // mode takes the menu bar out of the tree — and with it every shortcut
+      // the menu registers, including the one that leaves focus mode.
+      //
+      // Written out as key comparisons once (Ctrl+Alt+1, Ctrl+Shift+B and the
+      // rest), which held only while the table said the same thing: rebinding
+      // one in Settings left the old key working here.
+      case 'commandPalette':
+        CommandPalette.show(context);
+        return true;
+      case 'sourceMode':
+        ref.read(settingsProvider.notifier).setEditMode(EditMode.source);
+        return true;
+      case 'previewMode':
+        ref.read(settingsProvider.notifier).setEditMode(EditMode.preview);
+        return true;
+      case 'splitMode':
+        ref.read(settingsProvider.notifier).setEditMode(EditMode.split);
+        return true;
+      case 'toggleTabBar':
+        ref.read(settingsProvider.notifier).toggleTabBar();
+        return true;
+      case 'toggleSidebar':
+        ref.read(settingsProvider.notifier).toggleSideBar();
+        return true;
+      case 'focusMode':
+        ref.read(settingsProvider.notifier).toggleFocusMode();
+        return true;
     }
     return false;
-  }
-
-  /// The view shortcuts the menus advertise. These are not user-configurable,
-  /// so they are matched against the same combinations the menu displays.
-  /// The shortcuts this screen answers to, taken from the keybinding table.
-  ///
-  /// Written out as key comparisons once — Ctrl+Alt+1, Ctrl+Shift+B and the
-  /// rest — which held only while the table said the same thing. Rebinding
-  /// one of them in Settings left the old key working here and the new key
-  /// working only through the menu, and the same duplication had already sent
-  /// Ctrl+P to the palette after Print was given it.
-  ///
-  /// Answered here as well as by the menu because focus mode takes the menu
-  /// bar out of the tree, and with it every shortcut the menu registers.
-  KeyEventResult _runGlobalShortcut(KeyEvent event) {
-    final settings = ref.read(settingsProvider.notifier);
-    final actions = <String, VoidCallback>{
-      'commandPalette': () => CommandPalette.show(context),
-      'sourceMode': () => settings.setEditMode(EditMode.source),
-      'previewMode': () => settings.setEditMode(EditMode.preview),
-      'splitMode': () => settings.setEditMode(EditMode.split),
-      'toggleTabBar': settings.toggleTabBar,
-      'toggleSidebar': settings.toggleSideBar,
-      'focusMode': settings.toggleFocusMode,
-    };
-
-    final service = KeybindingService();
-    for (final entry in actions.entries) {
-      final activator =
-          service.activatorFor(entry.key, isMacOS: PlatformUtils.isMacOS);
-      if (activator != null &&
-          activator.accepts(event, HardwareKeyboard.instance)) {
-        entry.value();
-        return KeyEventResult.handled;
-      }
-    }
-    return KeyEventResult.ignored;
   }
 
   @override
@@ -654,8 +646,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
           return KeyEventResult.handled;
         }
 
-        if (_runShortcut(event)) return KeyEventResult.handled;
-        return _runGlobalShortcut(event);
+        return _runShortcut(event)
+            ? KeyEventResult.handled
+            : KeyEventResult.ignored;
       },
       child: Scaffold(
         body: DropTarget(
