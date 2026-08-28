@@ -1,5 +1,13 @@
 {
   "@@locale": "es",
+  "fileOperationFailed": "Error en la operación de archivo: {message}",
+  "@fileOperationFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "appTitle": "MarkText Plus",
   "menuFile": "Archivo",
   "menuEdit": "Editar",

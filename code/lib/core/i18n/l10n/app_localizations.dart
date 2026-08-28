@@ -117,6 +117,12 @@ abstract class AppLocalizations {
     Locale('zh'),
   ];
 
+  /// No description provided for @fileOperationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'File operation failed: {message}'**
+  String fileOperationFailed(String message);
+
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:

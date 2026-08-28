@@ -1,5 +1,13 @@
 {
   "@@locale": "ru",
+  "fileOperationFailed": "Не удалось выполнить операцию с файлом: {message}",
+  "@fileOperationFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "appTitle": "MarkText Plus",
   "menuFile": "Файл",
   "menuEdit": "Правка",

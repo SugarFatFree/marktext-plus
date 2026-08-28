@@ -9,6 +9,11 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
+  String fileOperationFailed(String message) {
+    return '文件操作失败：$message';
+  }
+
+  @override
   String get appTitle => 'MarkText Plus';
 
   @override

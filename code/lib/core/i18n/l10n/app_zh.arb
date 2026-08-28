@@ -1,5 +1,13 @@
 {
   "@@locale": "zh",
+  "fileOperationFailed": "文件操作失败：{message}",
+  "@fileOperationFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "appTitle": "MarkText Plus",
   "menuFile": "文件",
   "menuEdit": "编辑",

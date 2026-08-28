@@ -480,20 +480,27 @@ class _SideBarState extends ConsumerState<SideBar> {
         if (!mounted) return;
         final name = await _showInputDialog(this.context, l10n.fileNew, l10n.fileNameHint);
         if (name != null && name.isNotEmpty) {
-          await ref.read(fileProvider.notifier).createNode(p.join(parentDir, name));
+          await _runFileOp(() =>
+              ref.read(fileProvider.notifier).createNode(p.join(parentDir, name)));
         }
       case 'new_folder':
         if (!mounted) return;
         final name = await _showInputDialog(this.context, l10n.newFolder, l10n.folderNameHint);
         if (name != null && name.isNotEmpty) {
-          await ref.read(fileProvider.notifier).createNode(p.join(parentDir, name), isDirectory: true);
+          await _runFileOp(() => ref
+              .read(fileProvider.notifier)
+              .createNode(p.join(parentDir, name), isDirectory: true));
         }
       case 'rename':
         if (!mounted) return;
         final newName = await _showInputDialog(this.context, l10n.rename, l10n.newNameHint, initialValue: node.name);
         if (newName != null && newName.isNotEmpty && newName != node.name) {
           final newPath = p.join(p.dirname(node.path), newName);
-          await ref.read(fileProvider.notifier).renameNode(node.path, newPath);
+          final renamed = await _runFileOp(
+              () => ref.read(fileProvider.notifier).renameNode(node.path, newPath));
+          // Only when the rename actually happened. Moving the tabs after a
+          // failed rename would point them at a path that does not exist.
+          if (!renamed) return;
           // Whatever is open under it moves too — a folder rename takes every
           // file beneath it. Without this the tab pointed at a path that no
           // longer existed and the next save wrote the old file back out.
@@ -503,11 +510,38 @@ class _SideBarState extends ConsumerState<SideBar> {
         if (!mounted) return;
         final confirmed = await _showConfirmDialog(this.context, l10n.confirmDeleteFile(node.name));
         if (confirmed == true) {
-          await ref.read(fileProvider.notifier).deleteNode(node.path);
+          if (!await _runFileOp(
+              () => ref.read(fileProvider.notifier).deleteNode(node.path))) {
+            return;
+          }
           // The opened-files context menu already closed the tab when it
           // deleted a file; this one left it open on a file that was gone.
           ref.read(tabProvider.notifier).pathDeleted(node.path);
         }
+    }
+  }
+
+  /// Runs a file-system operation, reporting failure instead of swallowing it.
+  ///
+  /// Every one of these used to be a bare `await`: a name Windows rejects, a
+  /// read-only folder, a file another program holds open — the dialog closed
+  /// and absolutely nothing happened, because an unhandled exception in an
+  /// async callback is silent in a release build. Upstream MarkText notifies
+  /// on each of these ("Error while deleting", "Error in Side Bar").
+  ///
+  /// Returns whether the operation succeeded, so the caller can skip the
+  /// follow-up work that only makes sense if it did.
+  Future<bool> _runFileOp(Future<void> Function() op) async {
+    try {
+      await op();
+      return true;
+    } catch (e) {
+      if (!mounted) return false;
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.fileOperationFailed('$e'))),
+      );
+      return false;
     }
   }
 
@@ -575,16 +609,19 @@ class _SideBarState extends ConsumerState<SideBar> {
           l10n.confirmDeleteFile(file.fileName),
         );
         if (confirmed == true) {
-          try {
-            await File(file.filePath).delete();
-            // Straight through, unlike the other four ways of closing: the
-            // file has just been deleted at the person's own request, and
-            // asking whether to save changes to a file that no longer exists
-            // would be a strange thing to be asked.
-            ref.read(tabProvider.notifier).removeOpenedFile(file.filePath);
-          } catch (_) {
-            // Ignore delete errors
+          // Through the same provider as the file-tree menu. Deleting the file
+          // directly here skipped the tree refresh, so the file it had just
+          // removed stayed visible in the folder below — and clicking it
+          // opened a document that no longer existed.
+          if (!await _runFileOp(
+              () => ref.read(fileProvider.notifier).deleteNode(file.filePath))) {
+            return;
           }
+          // Straight through, unlike the other four ways of closing: the file
+          // has just been deleted at the person's own request, and asking
+          // whether to save changes to a file that no longer exists would be
+          // a strange thing to be asked.
+          ref.read(tabProvider.notifier).pathDeleted(file.filePath);
         }
     }
   }

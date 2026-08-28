@@ -9,6 +9,11 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String fileOperationFailed(String message) {
+    return 'File operation failed: $message';
+  }
+
+  @override
   String get appTitle => 'MarkText Plus';
 
   @override

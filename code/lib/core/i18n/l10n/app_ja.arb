@@ -1,5 +1,13 @@
 {
   "@@locale": "ja",
+  "fileOperationFailed": "ファイル操作に失敗しました: {message}",
+  "@fileOperationFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "appTitle": "MarkText Plus",
   "menuFile": "ファイル",
   "menuEdit": "編集",

@@ -9,6 +9,11 @@ class AppLocalizationsRu extends AppLocalizations {
   AppLocalizationsRu([String locale = 'ru']) : super(locale);
 
   @override
+  String fileOperationFailed(String message) {
+    return 'Не удалось выполнить операцию с файлом: $message';
+  }
+
+  @override
   String get appTitle => 'MarkText Plus';
 
   @override

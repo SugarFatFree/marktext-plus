@@ -1,5 +1,13 @@
 {
   "@@locale": "ko",
+  "fileOperationFailed": "파일 작업에 실패했습니다: {message}",
+  "@fileOperationFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "appTitle": "MarkText Plus",
   "menuFile": "파일",
   "menuEdit": "편집",

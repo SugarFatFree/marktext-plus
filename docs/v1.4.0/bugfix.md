@@ -49,6 +49,8 @@
 | BUG-045 | 2026-08-28 | 「消除」更新提示后，下次启动它又回来 | P2 | 已修复 |
 | BUG-046 | 2026-08-28 | 光标每移动一格，整个预览的所有块都重建一遍 | **P1** | 已修复 |
 | BUG-047 | 2026-08-28 | 每次按键都重建整棵文件树 | P1 | 已修复 |
+| BUG-048 | 2026-08-28 | 侧边栏的新建/重命名/删除失败时毫无提示，对话框一关什么都没发生 | **P1** | 已修复 |
+| BUG-049 | 2026-08-28 | 从「已打开文件」删除文件，下面的文件树不刷新，删掉的文件还在 | P2 | 已修复 |
 
 ## 详细记录
 
@@ -925,5 +927,173 @@
 | 这一模式的第三次 | `settingsProvider` → `editorProvider` → `tabProvider`。三次都是「组件需要状态里的一小部分，却订阅了整体」，而共享状态里恰好有个每次按键都变的字段 |
 | 同一轮查完**确认没问题**的三处 | ① **`state` setter 覆写**：`TabNotifier` 每次状态变更都会重新同步一次监视集合（打字时每一下都走）。看着可疑，但早先量过：200 次「集合未变」的同步共 5.6 ms，约 **0.03 ms/次**。属于可忽略，**故意不动**。<br>② **字数统计**：有 300 ms 防抖，且只在内容真的变了才重算，状态栏那个整体监听是必要的（它读的就是光标位置）。<br>③ **分屏预览**：`split_editor` 有 300 ms 防抖并传入快照，打字不会让预览重新解析 —— 所以 BUG-046 修的是「光标移动时的无谓重建」，不是重解析 |
 | 顺带复核用户点名的第三个问题 | 「打开时重复出现打开方式的选择」：代码里**已无任何地方显示该对话框**（只剩生成的 l10n 定义，早先扫描已记录为孤立键）。该设置现在只存在于设置页，由第二实例路径读取，与上游一致。**确认已解决** |
+
+---
+
+## BUG-048 — 侧边栏的新建 / 重命名 / 删除失败时毫无提示
+
+**发现日期**：2026-08-28 　**优先级**：P1 　**状态**：已修复
+
+### 现象
+
+在侧边栏文件树上右键做任何文件操作，只要底层失败，**界面上没有任何反应**：对话框关闭，
+文件没建出来 / 没改名 / 没删掉，也没有任何错误提示。用户只会觉得"点了没反应"。
+
+触发条件都很日常：
+
+- 新建时输入了 Windows 不接受的文件名（含 `\ / : * ? " < > |`，或 `CON`、`PRN` 这类保留名）
+- 目标目录只读，或没有写权限
+- 要删除的文件正被别的程序占用（Windows 上会直接 `ERROR_SHARING_VIOLATION`）
+- 重命名的目标名已经存在
+
+### 根因
+
+侧边栏右键菜单里四个操作**全部是裸 `await`**，没有任何 try：
+
+```dart
+case 'new_file':
+  await ref.read(fileProvider.notifier).createNode(p.join(parentDir, name));
+case 'rename':
+  await ref.read(fileProvider.notifier).renameNode(node.path, newPath);
+case 'delete':
+  await ref.read(fileProvider.notifier).deleteNode(node.path);
+```
+
+`createNode` / `renameNode` / `deleteNode` 底下就是 `File.create` / `rename` / `delete`，
+失败会抛。而这些调用位于 `showMenu` 的异步回调里 —— **异步回调里未捕获的异常在 release
+构建下是完全静默的**（走 zone 的错误处理，debug 下只打到控制台，release 下什么都不做）。
+所以异常抛出 → 后面的语句被跳过 → 用户什么都看不到。
+
+还有一处连带问题：重命名一旦失败，`pathRenamed` 因为异常被跳过 —— 这次是**碰巧对了**，
+但它是靠异常传播实现的，而不是显式判断，任何人给它加个 try 就会变成错的。
+
+### 与上游的对照
+
+上游 MarkText 对侧边栏的**每一个**文件操作失败都弹通知，带上真实的错误信息：
+
+```js
+// packages/desktop/src/renderer/src/store/project.ts
+window.electron.ipcRenderer.invoke('mt::fs-trash-item', pathname).catch((err) => {
+  notice.notify({ title: 'Error while deleting', type: 'error',
+                  message: err instanceof Error ? err.message : String(err) })
+})
+```
+
+删除是 `Error while deleting`，粘贴是 `Error while pasting`，新建和重命名是
+`Error in Side Bar`。本项目一个都没有 —— 这是实打实的上游缺口。
+
+### 修复方案
+
+在 `SideBar` 里加一个统一的包装，把失败报出来，并把"是否成功"返回给调用方：
+
+```dart
+Future<bool> _runFileOp(Future<void> Function() op) async {
+  try {
+    await op();
+    return true;
+  } catch (e) {
+    if (!mounted) return false;
+    final l10n = AppLocalizations.of(context)!;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.fileOperationFailed('$e'))),
+    );
+    return false;
+  }
+}
+```
+
+五个文件操作（新建文件、新建文件夹、重命名、文件树删除、已打开文件删除）全部改走它。
+返回值用来把后续的状态改动挡在失败之外——重命名失败就不再去移动标签页的路径，
+删除失败就不再去关标签页：
+
+```dart
+final renamed = await _runFileOp(
+    () => ref.read(fileProvider.notifier).renameNode(node.path, newPath));
+if (!renamed) return;
+ref.read(tabProvider.notifier).pathRenamed(node.path, newPath);
+```
+
+新增 l10n 键 `fileOperationFailed`（带 `{message}` 占位符），12 种语言全部补齐。
+
+### 涉及文件
+
+- `code/lib/ui/widgets/side_bar.dart` —— 新增 `_runFileOp`，五处调用改走它
+- `code/lib/core/i18n/l10n/app_*.arb` —— 12 个文件新增 `fileOperationFailed`
+- `code/test/ui/widgets/side_bar_file_ops_test.dart` —— 新增，4 条断言
+
+---
+
+## BUG-049 — 从「已打开文件」删除文件，下面的文件树不刷新
+
+**发现日期**：2026-08-28 　**优先级**：P2 　**状态**：已修复
+
+### 现象
+
+侧边栏上半部是"已打开文件"列表，下半部是文件树。在**上半部**右键删除一个文件，
+文件确实被删了、标签页也关了，但**下半部的文件树里那个文件还在**。点它会打开一个
+已经不存在的文档。
+
+### 根因
+
+又是同一个动作两套实现。文件树的删除走 provider：
+
+```dart
+// 文件树右键菜单
+await ref.read(fileProvider.notifier).deleteNode(node.path);
+```
+
+而"已打开文件"的删除自己动手：
+
+```dart
+// 已打开文件右键菜单
+await File(file.filePath).delete();
+ref.read(tabProvider.notifier).removeOpenedFile(file.filePath);
+```
+
+差别在 `deleteNode` 比 `File.delete()` 多做两件事：
+
+```dart
+Future<void> deleteNode(String path) async {
+  await _fileService.deleteEntity(path);
+  _expanded.removeWhere((e) => e == path || e.startsWith('$path/'));
+  await _refreshTree();          // ← 这一步，直接删文件就没有
+}
+```
+
+`_refreshTree()` 重读目录并更新 `state`，文件树才会重画。直接 `File.delete()` 绕过了它，
+所以树上的那一项一直留着，直到有别的事情触发刷新（磁盘 watcher 事件、折叠展开某个目录）。
+
+顺带还有两个小差别：`deleteEntity` 会先判断类型，目录走 `delete(recursive: true)`，
+直接 `File.delete()` 删不了目录；以及 `_expanded` 里的陈旧路径不会被清掉。
+
+### 修复方案
+
+删掉那份自己动手的实现，并回 provider，和文件树用同一条路径：
+
+```dart
+if (!await _runFileOp(
+    () => ref.read(fileProvider.notifier).deleteNode(file.filePath))) {
+  return;
+}
+ref.read(tabProvider.notifier).pathDeleted(file.filePath);
+```
+
+标签页那边也从 `removeOpenedFile` 换成 `pathDeleted` —— 后者是前者的超集（同时按前缀
+清理标签页和已打开列表），两条删除路径的收尾动作从此也一致了。
+
+`_refreshTree()` 在没有打开文件夹时会直接 return，所以"只开了文件、没开文件夹"的场景
+不受影响。
+
+### 这是本轮第几次撞上同一个模式
+
+第六次。前面是 BUG-040（菜单退出用 `exit(0)` 绕过未保存提示）、BUG-041（命令面板的保存
+对新文档静默失效）、BUG-042（侧边栏五条关闭路径丢弃未保存改动）、BUG-043（`saveTab`
+少了 `_saveFileAs` 已经补过的重绑定）、BUG-044（重命名/删除后标签页停在旧路径）。
+**排查手段固定下来了：列出一个动作的所有入口，逐个确认它们最终落到同一个函数。**
+
+### 涉及文件
+
+- `code/lib/ui/widgets/side_bar.dart`
+- `code/test/ui/widgets/side_bar_file_ops_test.dart`
 
 ---

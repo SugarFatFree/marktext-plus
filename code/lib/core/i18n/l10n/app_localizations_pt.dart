@@ -9,6 +9,11 @@ class AppLocalizationsPt extends AppLocalizations {
   AppLocalizationsPt([String locale = 'pt']) : super(locale);
 
   @override
+  String fileOperationFailed(String message) {
+    return 'Falha na operação de ficheiro: $message';
+  }
+
+  @override
   String get appTitle => 'MarkText Plus';
 
   @override
@@ -849,6 +854,11 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   AppLocalizationsPtBr() : super('pt_BR');
 
   @override
+  String fileOperationFailed(String message) {
+    return 'Falha na operação de arquivo: $message';
+  }
+
+  @override
   String get appTitle => 'MarkText Plus';
 
   @override
@@ -1212,6 +1222,12 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get editDuplicateLine => 'Duplicar linha';
 
   @override
+  String get editCreateParagraph => 'Criar parágrafo abaixo';
+
+  @override
+  String get editDeleteParagraph => 'Excluir parágrafo';
+
+  @override
   String get formatUnderline => 'Sublinhado';
 
   @override
@@ -1234,6 +1250,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get settingsCodeFontFamily => 'Fonte de código';
+
+  @override
+  String get settingsEditorFontFamily => 'Fonte do editor';
 
   @override
   String get settingsEditorMaxWidth => 'Largura máxima do editor';
@@ -1653,6 +1672,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get viewCommandPalette => 'Paleta de comandos';
+
+  @override
+  String get viewReloadImages => 'Recarregar imagens';
 
   @override
   String get formatFrontMatter => 'Front matter';
