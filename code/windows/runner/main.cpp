@@ -21,18 +21,22 @@ namespace {
 // avoids every library call it does not strictly need, the integer formatting
 // included.
 long long MillisecondsSinceProcessStart() {
-  FILETIME created, exited, kernel, user;
+  // Initialised even though every one of them is an out parameter: this
+  // project builds the runner with /W4 /WX, where a warning is a failed build,
+  // and "potentially uninitialised" is the one warning class this function
+  // could plausibly trip.
+  FILETIME created = {}, exited = {}, kernel = {}, user = {};
   if (!::GetProcessTimes(::GetCurrentProcess(), &created, &exited, &kernel,
                          &user)) {
     return -1;
   }
-  ULARGE_INTEGER start;
+  ULARGE_INTEGER start = {};
   start.LowPart = created.dwLowDateTime;
   start.HighPart = created.dwHighDateTime;
 
-  FILETIME now_file_time;
+  FILETIME now_file_time = {};
   ::GetSystemTimeAsFileTime(&now_file_time);
-  ULARGE_INTEGER now;
+  ULARGE_INTEGER now = {};
   now.LowPart = now_file_time.dwLowDateTime;
   now.HighPart = now_file_time.dwHighDateTime;
 
