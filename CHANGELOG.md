@@ -5,7 +5,7 @@ All notable changes to MarkText Plus will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - v1.5.0
+## [v1.5.0] - 2026-08-29
 
 ### Added
 - The preview takes new writing, not only edits to what is already there: the space under the last block starts a paragraph at the end of the document. An empty document rendered nothing at all, so there was no target to tap and not one character could be typed into it
