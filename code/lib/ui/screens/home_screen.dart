@@ -651,9 +651,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
             ? HardwareKeyboard.instance.isMetaPressed
             : HardwareKeyboard.instance.isControlPressed;
 
-        // Ctrl+P / Cmd+P -> command palette. Not a configurable binding, so
-        // it stays here rather than in the keybinding table.
-        if (event.logicalKey == LogicalKeyboardKey.keyP && isCtrl) {
+        // The palette's binding is taken from the keybinding table, not
+        // written out here. It used to be a hardcoded Ctrl+P, which went on
+        // grabbing that key after Print was given it — the palette answered
+        // to two shortcuts and Print to none.
+        //
+        // Handled here as well as in the menu because focus mode takes the
+        // menu bar out of the tree, and with it every shortcut the menu
+        // registers.
+        final palette = KeybindingService()
+            .activatorFor('commandPalette', isMacOS: PlatformUtils.isMacOS);
+        if (palette != null &&
+            palette.accepts(event, HardwareKeyboard.instance)) {
           CommandPalette.show(context);
           return KeyEventResult.handled;
         }
