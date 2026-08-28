@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - File ▸ Move To…, the one menu command upstream MarkText has that this one did not
 
 ### Fixed
+- A fence tagged `packet-beta`, `architecture-beta`, `stateDiagram-v2` or `xychart-beta` is drawn as a diagram. All four are types the app implements, and all four were missing from the list it derives fence handling from — and shows the reader when a diagram fails to parse, so it was disowning types it supports
 - With the find bar open, a large document is rescanned when typing stops rather than on every keystroke (40–66 ms each on a five megabyte file), and a search matching tens of thousands of places paints a window of them around the one being read instead of all of them — painting 97 000 highlights took 133 ms per rebuild, and a caret move is a rebuild. The match count itself is untouched
 - Moving the caret in a large document is no longer felt. The line and column readout copied everything before the caret and split it into one string per line — 61 ms per keypress on a five megabyte file — while the gutter counted newlines across the whole document again in `build`. A line-start index built once per edit answers both in under a microsecond
 - A large document no longer freezes the window for seconds at a time when typing pauses. Parsing five megabytes takes about 3.5 s and ran on the UI isolate; it now runs on another one, of which only the ~140 ms of handing the blocks back is felt here

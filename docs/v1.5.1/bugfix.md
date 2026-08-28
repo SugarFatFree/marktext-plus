@@ -9,6 +9,7 @@
 | BUG-110 | 2026-08-29 | 大文档打字时窗口冻结数秒：整篇解析与整篇大纲都在 UI isolate 上跑 | P1 | 已修复 |
 | BUG-111 | 2026-08-29 | 大文档每次移动光标都全文扫描两遍，只为算行号列号 | P2 | 已修复 |
 | BUG-112 | 2026-08-29 | 大文档开着查找栏时每次击键全文重扫，且为十万处命中铺高亮 | P2 | 已修复 |
+| BUG-113 | 2026-08-29 | 支持类型清单漏了四种写法，应用对外宣称不支持自己已支持的图 | P2 | 已修复 |
 
 ---
 
@@ -380,3 +381,62 @@ final col = lines.last.length;
 - `code/lib/ui/editor/highlighting_controller.dart`
 - `code/lib/ui/widgets/find_replace_bar.dart`
 - `code/test/ui/editor/search_highlight_window_test.dart`（新增，4 条）
+
+
+---
+
+## BUG-113：支持类型清单漏了四种写法，应用对外宣称不支持自己已支持的图
+
+### 现象
+
+用图型名直接作为围栏标签时，下面四种**会被画成普通代码块而不是图**：
+
+- ` ```packet-beta `
+- ` ```architecture-beta `
+- ` ```stateDiagram-v2 `（mermaid 官方文档里状态图几乎只用这个写法）
+- ` ```xychart-beta `（官方写法同样带 `-beta`）
+
+而且当某个图解析失败时，提示里那句"支持的类型：…"也会把这几种漏掉——
+**应用在告诉读者它不支持自己已经支持的东西**。
+
+### 根因分析
+
+`MermaidParser.supportedTypes` 是一份清单，`handlesLanguage` 由它派生，
+出错提示也直接把它 join 出来给用户看。它上面的注释写着：
+
+> Derived from [supportedTypes] rather than kept as a second hard-coded list,
+> so implementing a type cannot leave the two disagreeing.
+
+**它能，而且已经这样了四次。** 前两次是本会话实现 packet-beta 与
+architecture-beta 时我自己漏的（第八处需要同步的地方）；后两次是既有的——
+`stateDiagram` 与 `xychart` 只登记了不带后缀的写法。
+
+排查触发点：检查本会话新加的两种图在**导出**路径上是否覆盖到时，
+发现导出对"哪些代码块是图"的判断走的正是 `handlesLanguage`。
+
+### 修复方案
+
+清单补齐为：`packet-beta`、`architecture-beta`、
+`stateDiagram / stateDiagram-v2`、`xychart / xychart-beta`。
+
+新增 `test/ui/editor/mermaid/supported_types_test.dart`，把**图型枚举**与
+**这份清单**绑死：
+
+1. `DiagramType` 的每个值（除 `unknown`）都必须在测试表里有样例——否则下面三条
+   形同虚设；
+2. 每个已实现的类型都必须出现在 `supportedTypes` 里；
+3. 每个类型的裸名作围栏标签时 `handlesLanguage` 必须接受；
+4. 每个类型的表头都必须真的解析得出来，且识别成它自己。
+
+第 1 条是关键：没有它，将来新增图型只会让后三条**默默地少检查一项**。
+
+### 顺带记录的设计事实
+
+状态图**有意**以 `DiagramType.flowchart` 的形式返回——它复用流程图的布局与画笔。
+第一版断言写死"类型必须等于自己"因此误报，已在测试里写明这条例外及其原因，
+而不是把断言放宽了事。
+
+### 涉及文件
+
+- `code/lib/ui/editor/mermaid/parser/mermaid_parser.dart`
+- `code/test/ui/editor/mermaid/supported_types_test.dart`（新增，4 条）

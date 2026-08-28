@@ -538,7 +538,7 @@ class MermaidParser {
     'graph / flowchart',
     'sequenceDiagram',
     'classDiagram',
-    'stateDiagram',
+    'stateDiagram / stateDiagram-v2',
     'erDiagram',
     'journey',
     'gitGraph',
@@ -548,12 +548,14 @@ class MermaidParser {
     'timeline',
     'kanban',
     'radar-beta',
-    'xychart',
+    'xychart / xychart-beta',
     'quadrantChart',
     'requirementDiagram',
     'sankey-beta',
     'block-beta',
     'C4Context / C4Container / C4Component / C4Dynamic / C4Deployment',
+    'packet-beta',
+    'architecture-beta',
   ];
 
   /// Whether a fenced code block tagged [language] should be handed to the
