@@ -88,6 +88,9 @@ class StartupTrace {
     // say whether the runner failed to add them or the engine failed to pass
     // them on. The raw list settles that in one line.
     _entrypointArguments = args;
+    // Replace rather than merge: this describes one launch, and a mark left
+    // from a previous call would be read as belonging to this one.
+    _runnerMarks.clear();
     const prefix = '--mt-trace-';
     for (final arg in args) {
       if (!arg.startsWith(prefix)) continue;
@@ -131,6 +134,9 @@ class StartupTrace {
   @visibleForTesting
   static int? runnerMarkForTesting(String name) => _runnerMark(name);
 
+  @visibleForTesting
+  static List<String> preDartLinesForTesting() => _preDartLines();
+
   /// The part of startup that happens before Dart can time anything.
   ///
   /// Split rather than reported as one number: "1.8 seconds before Dart" says
@@ -169,12 +175,20 @@ class StartupTrace {
       lines.add(row(engineStart, engineStart - runnerEntry,
           'runner entry → engine start (console, COM, command line)'));
     }
-    // Which renderer the runner asked the engine for, when it said.
-    final impeller = _runnerMarks.containsKey('impeller')
-        ? (_runnerMark('impeller') == 0 ? 'Impeller off' : 'Impeller on')
-        : null;
-    if (impeller != null) {
-      lines.add('        renderer: $impeller');
+    // Which renderer the runner asked the engine for, and — when they differ —
+    // that an environment variable is why. Two installers built one each way
+    // both reported "off" because a MARKTEXT_IMPELLER left over on the machine
+    // outranks the built-in default, and the line could not say so.
+    final effective = _runnerMark('impeller');
+    if (effective != null) {
+      final built = _runnerMark('impeller-built');
+      final overridden = built != null && built != effective;
+      final how = overridden
+          ? '  (built ${built == 0 ? 'off' : 'on'}, '
+              'overridden by MARKTEXT_IMPELLER)'
+          : '';
+      lines.add('        renderer: Impeller '
+          '${effective == 0 ? 'off' : 'on'}$how');
     }
 
     final engine = _engineWindow();

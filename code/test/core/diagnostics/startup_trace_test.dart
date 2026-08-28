@@ -69,4 +69,50 @@ void main() {
       expect(StartupTrace.runnerMarkForTesting('engine-start'), isNot(-1));
     });
   });
+
+  group('the renderer line', () {
+    String rendererLine(List<String> args) {
+      // The timings come too: without runner-entry the trace reports "not
+      // instrumented" and never reaches the renderer line.
+      StartupTrace.readRunnerArguments([
+        '--mt-trace-runner-entry=100',
+        '--mt-trace-engine-start=150',
+        ...args,
+      ]);
+      return StartupTrace.preDartLinesForTesting()
+          .firstWhere((l) => l.contains('renderer:'), orElse: () => '');
+    }
+
+    test('says which renderer the run got', () {
+      expect(rendererLine(['--mt-trace-impeller=0', '--mt-trace-impeller-built=0']),
+          contains('Impeller off'));
+      expect(rendererLine(['--mt-trace-impeller=1', '--mt-trace-impeller-built=1']),
+          contains('Impeller on'));
+    });
+
+    test('says so when the environment overrode what was built', () {
+      // Two installers were built one each way and both reported "off",
+      // because a MARKTEXT_IMPELLER left over on the machine outranks the
+      // built-in default. The line could not say that, and working it out
+      // cost a round of measurement.
+      final line =
+          rendererLine(['--mt-trace-impeller=0', '--mt-trace-impeller-built=1']);
+
+      expect(line, contains('Impeller off'));
+      expect(line, contains('built on'));
+      expect(line, contains('MARKTEXT_IMPELLER'));
+    });
+
+    test('stays quiet when they agree', () {
+      final line =
+          rendererLine(['--mt-trace-impeller=1', '--mt-trace-impeller-built=1']);
+      expect(line, isNot(contains('overridden')));
+    });
+
+    test('an old runner that sends no built value still reports one', () {
+      final line = rendererLine(['--mt-trace-impeller=0']);
+      expect(line, contains('Impeller off'));
+      expect(line, isNot(contains('overridden')));
+    });
+  });
 }

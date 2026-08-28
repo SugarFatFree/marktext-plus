@@ -97,18 +97,9 @@ jobs:
           retention-days: 14
 
   build-windows:
-    name: Build Windows (Impeller ${{ matrix.impeller.label }})
+    name: Build Windows
     runs-on: windows-latest
     needs: analyze
-    strategy:
-      fail-fast: false
-      matrix:
-        # Baked in at build time rather than set on the machine under test: a
-        # variable left from an earlier experiment already made one set of
-        # measurements report the opposite of what was intended.
-        impeller:
-          - {label: 'off', value: '0'}
-          - {label: 'on', value: '1'}
     steps:
       - uses: actions/checkout@v4
 
@@ -143,7 +134,6 @@ jobs:
           # DLLs, 50 ms of runner prologue, and 2.7 seconds booting the engine
           # and loading app.so. app.so is 13.6 MB, and this is the one way to
           # make it smaller that costs no feature.
-          $env:MARKTEXT_IMPELLER_DEFAULT = '${{ matrix.impeller.value }}'
           flutter build windows --release `
             --build-number=$env:GITHUB_RUN_NUMBER `
             --split-debug-info=build\symbols `
@@ -188,7 +178,7 @@ jobs:
           DefaultDirName={autopf}\MarkText Plus
           DefaultGroupName=MarkText Plus
           OutputDir=${{ github.workspace }}
-          OutputBaseFilename=marktext-plus-setup-impeller-${{ matrix.impeller.label }}
+          OutputBaseFilename=marktext-plus-setup
           Compression=lzma2
           SolidCompression=yes
           SetupIconFile=${{ github.workspace }}\code\windows\runner\resources\app_icon.ico
@@ -250,14 +240,14 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: windows-x64-setup-impeller-${{ matrix.impeller.label }}-${{ github.sha }}
-          path: marktext-plus-setup-impeller-${{ matrix.impeller.label }}.exe
+          name: windows-x64-setup-${{ github.sha }}
+          path: marktext-plus-setup.exe
           retention-days: 14
 
       # Uploaded unzipped: the action zips the directory itself, and a nested
       # archive would need unpacking twice before the exe could be run.
       - uses: actions/upload-artifact@v4
         with:
-          name: windows-x64-impeller-${{ matrix.impeller.label }}-${{ github.sha }}
+          name: windows-x64-${{ github.sha }}
           path: code/build/windows/x64/runner/Release/
           retention-days: 14

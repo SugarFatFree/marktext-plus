@@ -157,6 +157,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   // So the trace says which renderer the run was asked for.
   command_line_arguments.push_back(enable_impeller ? "--mt-trace-impeller=1"
                                                    : "--mt-trace-impeller=0");
+  // What the build asked for, beside what the run got. Two installers were
+  // built one each way and both reported "off", because a MARKTEXT_IMPELLER
+  // left over on the machine outranks the built-in default — and the trace
+  // could not say so, which cost a round of measurement to work out.
+  command_line_arguments.push_back(MARKTEXT_IMPELLER_DEFAULT != 0
+                                       ? "--mt-trace-impeller-built=1"
+                                       : "--mt-trace-impeller-built=0");
 
   project.set_dart_entrypoint_arguments(std::move(command_line_arguments));
 
