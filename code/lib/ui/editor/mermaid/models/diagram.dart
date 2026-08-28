@@ -58,6 +58,9 @@ enum DiagramType {
   /// Radar chart diagram
   radar,
 
+  /// Packet diagram (`packet-beta`)
+  packet,
+
   /// XY chart diagram
   xyChart,
 

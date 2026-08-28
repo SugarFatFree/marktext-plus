@@ -5,6 +5,7 @@
 | BUG-099 | 2026-08-29 | 文件夹搜索会把超大文件整个读进内存 | P2 | 已修复 |
 | BUG-100 | 2026-08-29 | 拖放自带一份私有扩展名清单，且拖入不支持的文件毫无反应 | P2 | 已修复 |
 | BUG-101 | 2026-08-29 | 引用/列表里的块行号从 0 开始，预览编辑会覆盖文档开头 | P0 | 已修复 |
+| BUG-102 | 2026-08-29 | mermaid barrel 只导出 20 种图型里的 11 种 | P3 | 已修复 |
 
 ---
 
@@ -102,9 +103,12 @@ intro paragraph
 > ```
 ```
 
-引用里的 mermaid 图正常渲染，图上的**"复制源码"按钮复制出来的却是文档开头的
-`intro paragraph`**；在预览里双击这个块进入编辑再提交，**改动会写到文档的
-前四行上，原来的开头被覆盖掉**——这是数据丢失。
+引用里的 mermaid 图正常渲染，但图上的**"编辑源码"按钮打开的是文档开头的
+`intro paragraph`**；改完提交，**改动写到文档的前四行上，原来的开头被覆盖掉**
+——这是数据丢失。
+
+（图表工具栏上的"复制源码"按钮取的是 `node.code`，也就是已经剥掉 `>` 的解析
+结果，不走行号，一直是对的。）
 
 列表项下带的块（编号步骤下面的代码围栏、第二段、引用）完全一样。
 
@@ -140,3 +144,34 @@ intro paragraph
 
 - `code/lib/services/markdown_parser.dart`
 - `code/test/services/nested_block_spans_test.dart`（新增，5 条）
+
+
+---
+
+## BUG-102：mermaid barrel 只导出 20 种图型里的 11 种
+
+### 现象
+
+`lib/ui/editor/mermaid/mermaid.dart` 是这个模块对外的入口文件，但它只
+`export` 了 11 种图型的 model / parser / painter。radar、xy、class、er、
+journey、gitGraph、mindmap、quadrant、requirement、state 一个都不在里面——
+从这个 barrel 引入的代码**根本叫不出这些类型的名字**。
+
+发现方式：给 packet 写测试时 `import 'mermaid.dart'` 之后 `PacketDiagramData`
+报"isn't a type"，才注意到不是漏了 packet 一个，而是漏了九个。
+
+### 根因分析
+
+又是"一份清单没跟上"。每加一种图型要动的地方有七处（枚举、模型、解析器、
+画笔、`_detectDiagramType`、`_typeLabel`、组件的尺寸与画笔分支），barrel 是
+第八处，也是唯一一处**漏了不会报错**的——因为模块内部都用相对路径互相引用，
+只有从外面按 barrel 引入时才会发现。
+
+### 修复方案
+
+改为按目录枚举全量导出（models / painter / parser 三个目录下的全部文件），
+新增图型不再需要记得回来补一行。
+
+### 涉及文件
+
+- `code/lib/ui/editor/mermaid/mermaid.dart`

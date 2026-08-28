@@ -23,6 +23,7 @@ import '../models/block_diagram.dart';
 import '../models/c4_diagram.dart';
 import '../models/sankey.dart';
 import '../models/sequence.dart';
+import '../models/packet.dart';
 import '../models/radar.dart';
 import '../models/timeline.dart';
 import '../models/style.dart';
@@ -41,6 +42,7 @@ import '../painter/requirement_painter.dart';
 import '../painter/block_painter.dart';
 import '../painter/c4_painter.dart';
 import '../painter/sankey_painter.dart';
+import '../painter/packet_painter.dart';
 import '../painter/radar_painter.dart';
 import '../painter/sequence_painter.dart';
 import '../painter/timeline_painter.dart';
@@ -126,6 +128,7 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
   C4DiagramData? _c4DiagramData;
   SequenceDiagramData? _sequenceData;
   RequirementDiagramData? _requirementDiagramData;
+  PacketDiagramData? _packetData;
   RadarChartData? _radarChartData;
   XYChartData? _xyChartData;
   ClassDiagramData? _classDiagramData;
@@ -263,6 +266,18 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
           _style,
           Size(widget.width ?? availableWidth, widget.height ?? 600),
         );
+      } else if (diagram.type == DiagramType.packet &&
+          result.packetData != null) {
+        // A packet's height follows straight from how many rows of bits it
+        // needs, and its width is whatever it is given: no layout to run.
+        final packet = result.packetData!;
+        size = Size(
+          widget.width ?? availableWidth,
+          _style.padding * 2 +
+              (packet.title != null ? PacketPainter.titleHeight : 0) +
+              packet.rowCount *
+                  (PacketPainter.rowHeight + PacketPainter.rulerHeight),
+        );
       } else if (diagram.type == DiagramType.radar &&
           result.radarChartData != null) {
         // Use Radar chart layout with responsive config
@@ -364,6 +379,7 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
       _blockDiagramData = result.blockDiagramData;
       _c4DiagramData = result.c4DiagramData;
       _sequenceData = result.sequenceData;
+      _packetData = result.packetData;
       _radarChartData = result.radarChartData;
       _xyChartData = result.xyChartData;
       _classDiagramData = result.classDiagramData;
@@ -499,6 +515,15 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
         if (_sankeyChartData != null) {
           return SankeyPainter(
             sankeyData: _sankeyChartData!,
+            style: _style,
+            deviceConfig: _deviceConfig,
+          );
+        }
+        return FlowchartPainter(diagram: diagram, style: _style);
+      case DiagramType.packet:
+        if (_packetData != null) {
+          return PacketPainter(
+            packetData: _packetData!,
             style: _style,
             deviceConfig: _deviceConfig,
           );
@@ -677,6 +702,7 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
             _quadrantChartData?.title != null ||
             _sankeyChartData?.title != null ||
             _c4DiagramData?.title != null ||
+            _packetData?.title != null ||
             _radarChartData?.title != null ||
             _xyChartData?.title != null ||
             _journeyData?.title != null ||
