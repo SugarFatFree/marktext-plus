@@ -813,6 +813,13 @@ class MarkdownParser {
   static bool _startsListItem(String line) =>
       _ulRe.hasMatch(line) || _olRe.hasMatch(line);
 
+  /// Whether [line] opens a list item, of either kind.
+  ///
+  /// Public because the preview has to find the line an item was written on:
+  /// counting one line per item put the checkbox toggle on a continuation
+  /// line, a blank line, or a line inside a carried code block.
+  static bool startsListItem(String line) => _startsListItem(line);
+
   (List<List<String>>, int, bool) _collectListItems(
     List<String> lines,
     int start,

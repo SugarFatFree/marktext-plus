@@ -282,6 +282,67 @@ void main() {
       expect(updated, '- [ ] first\n- [x] second\n');
     });
 
+    testWidgets('a continuation line does not shift the box', (tester) async {
+      // The toggle counted one line per item, so the second box landed on the
+      // continuation line — which has no marker on it, so ticking silently
+      // did nothing.
+      String? updated;
+      await pumpRenderer(
+        tester,
+        markdown: '- [ ] first\n  and more\n- [ ] second\n',
+        onSourceChanged: (value) => updated = value,
+      );
+
+      await tester.tap(find.byType(Checkbox).at(1));
+      await tester.pump();
+
+      expect(updated, '- [ ] first\n  and more\n- [x] second\n');
+    });
+
+    testWidgets('a blank line between items does not shift it either',
+        (tester) async {
+      String? updated;
+      await pumpRenderer(
+        tester,
+        markdown: '- [ ] first\n\n- [ ] second\n',
+        onSourceChanged: (value) => updated = value,
+      );
+
+      await tester.tap(find.byType(Checkbox).at(1));
+      await tester.pump();
+
+      expect(updated, '- [ ] first\n\n- [x] second\n');
+    });
+
+    testWidgets('a block carried by a step does not shift it', (tester) async {
+      String? updated;
+      await pumpRenderer(
+        tester,
+        markdown: '- [ ] first\n\n  ```sh\n  run\n  ```\n\n- [ ] second\n',
+        onSourceChanged: (value) => updated = value,
+      );
+
+      await tester.tap(find.byType(Checkbox).at(1));
+      await tester.pump();
+
+      expect(updated,
+          '- [ ] first\n\n  ```sh\n  run\n  ```\n\n- [x] second\n');
+    });
+
+    testWidgets('a plain item before a task does not shift it', (tester) async {
+      String? updated;
+      await pumpRenderer(
+        tester,
+        markdown: '- plain\n- [ ] task\n',
+        onSourceChanged: (value) => updated = value,
+      );
+
+      await tester.tap(find.byType(Checkbox));
+      await tester.pump();
+
+      expect(updated, '- plain\n- [x] task\n');
+    });
+
     testWidgets('unticking restores the empty marker', (tester) async {
       String? updated;
       await pumpRenderer(

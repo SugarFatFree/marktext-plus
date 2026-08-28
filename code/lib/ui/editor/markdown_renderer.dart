@@ -441,15 +441,31 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       widget.markdown,
       node,
     ).split('\n');
-    if (index < 0 || index >= lines.length) return;
 
-    final line = lines[index];
+    // The line an item was written on, found by counting item lines rather
+    // than assuming one line per item. A lazy continuation, the blank line of
+    // a loose list, or a block carried under a step all shift the rest of the
+    // items down — and the toggle then landed on a line with no box on it,
+    // where it silently did nothing.
+    var lineIndex = -1;
+    var seen = -1;
+    for (var i = 0; i < lines.length; i++) {
+      if (!md.MarkdownParser.startsListItem(lines[i])) continue;
+      seen++;
+      if (seen == index) {
+        lineIndex = i;
+        break;
+      }
+    }
+    if (lineIndex < 0) return;
+
+    final line = lines[lineIndex];
     final updated = checked
         ? line.replaceFirst(RegExp(r'\[\s\]'), '[x]')
         : line.replaceFirst(RegExp(r'\[[xX]\]'), '[ ]');
     if (updated == line) return;
 
-    lines[index] = updated;
+    lines[lineIndex] = updated;
     onChanged(
       md.MarkdownParser.replaceBlock(widget.markdown, node, lines.join('\n')),
     );
