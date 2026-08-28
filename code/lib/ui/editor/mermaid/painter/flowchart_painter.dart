@@ -500,6 +500,11 @@ class FlowchartPainter extends MermaidPainter {
   }
 
   void _drawEdge(Canvas canvas, MermaidEdge edge, {double parallelOffset = 0.0}) {
+    // A `~~~` link exists to constrain the layout, not to be seen. It was
+    // taken into account when the nodes were placed; drawing it would put a
+    // line where the author asked for none.
+    if (edge.lineType == LineType.invisible) return;
+
     final fromNode = diagram.getNode(edge.from);
     final toNode = diagram.getNode(edge.to);
 

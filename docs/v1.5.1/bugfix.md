@@ -10,6 +10,7 @@
 | BUG-111 | 2026-08-29 | 大文档每次移动光标都全文扫描两遍，只为算行号列号 | P2 | 已修复 |
 | BUG-112 | 2026-08-29 | 大文档开着查找栏时每次击键全文重扫，且为十万处命中铺高亮 | P2 | 已修复 |
 | BUG-113 | 2026-08-29 | 支持类型清单漏了四种写法，应用对外宣称不支持自己已支持的图 | P2 | 已修复 |
+| BUG-114 | 2026-08-29 | 流程图双圆节点标签带括号、隐形连线被整条丢弃 | P2 | 已修复 |
 
 ---
 
@@ -440,3 +441,54 @@ architecture-beta 时我自己漏的（第八处需要同步的地方）；后�
 
 - `code/lib/ui/editor/mermaid/parser/mermaid_parser.dart`
 - `code/test/ui/editor/mermaid/supported_types_test.dart`（新增，4 条）
+
+
+---
+
+## BUG-114：流程图双圆节点标签带括号、隐形连线被整条丢弃
+
+### 排查方式
+
+本机另一个项目里有 mermaid 11.16.0 的完整源码，于是不再靠举例，而是**穷举**
+mermaid 流程图文法定义的全部节点形状与连线写法，逐个过本项目的解析器。
+14 种形状、18 种连线，查出两处。
+
+### 其一：`A(((Double)))` 的标签是 `(Double)`
+
+双圆的正则是 `\(\((.+)\)\)`，而 `.+` 是贪婪的，所以三重括号也会被它匹配上，
+`group(2)` 拿到 `(Double)`——**那对括号被当成文字画进了节点里**，形状也退化
+成普通圆。
+
+有意思的是 `NodeShape.doubleCircle` **枚举里早就有，画笔也早就会画**，
+只是解析器从来没产出过它。修法是在双圆之前先匹配三重括号。
+
+顺带查了一遍：14 种形状现在没有一种是"定义了但没有写法能产生它"。
+
+### 其二：`A ~~~ B` 整条被丢掉
+
+箭头正则里没有 `~`，所以这行既不是连线也不是节点，直接被忽略。
+
+mermaid 的 `destructLink` 原文：
+
+```js
+let l="normal", p=n.length-1;
+n.startsWith("=") && (l="thick");
+n.startsWith("~") && (l="invisible");
+let c=this.countChar(".",n); c && (l="dotted", p=c);
+```
+
+`~` 前缀就是隐形连线。它存在的意义是**在不画任何东西的前提下，把两个节点约束
+成布局上的关联**。所以丢掉它不只是少了一条线——**布局约束也跟着没了，画出来
+的图和写下的图排布不同**。
+
+修法：`~{3,}` 加进箭头正则（标签分支的排除字符集里也要加 `~`，否则标签会把它
+吞掉），线型判定加 `LineType.invisible`（顺序照 mermaid 的 `destructLink`：
+先看起始字符，点号数量覆盖它），画笔遇到 invisible 直接不画——**但边仍然存在
+于图里，布局照样考虑它**，这是单独一条测试钉住的。
+
+### 涉及文件
+
+- `code/lib/ui/editor/mermaid/parser/flowchart_parser.dart`
+- `code/lib/ui/editor/mermaid/models/edge.dart`
+- `code/lib/ui/editor/mermaid/painter/flowchart_painter.dart`
+- `code/test/ui/editor/mermaid/flowchart_syntax_test.dart`（新增，8 条）
