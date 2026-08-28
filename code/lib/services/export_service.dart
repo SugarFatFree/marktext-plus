@@ -517,6 +517,13 @@ class ExportService {
               spacingAfter: 60,
             ),
           );
+
+          // Blocks written under the item follow it, indented with it: a code
+          // fence beneath a numbered step reached Word at the left margin,
+          // outside the step it explains.
+          for (final child in item.children) {
+            result = _addNodeToDocx(result, child, documentImages: documentImages);
+          }
         }
         return result;
 
@@ -1085,6 +1092,16 @@ class ExportService {
           list.isLoose ? '<p>$checkbox$content</p>' : '$checkbox$content';
       buffer.write('  <li>$body');
       itemOpen = true;
+
+      // Blocks written under the item go inside it, the same way a sub-list
+      // does: a code fence beneath a numbered step used to be exported at the
+      // document's left margin, outside the step it explains.
+      if (item.children.isNotEmpty) {
+        buffer.writeln();
+        for (final child in item.children) {
+          buffer.writeln(nodeToHtml(child, inlinedImages: inlinedImages));
+        }
+      }
     }
 
     closeItem();
@@ -1504,6 +1521,29 @@ class ExportService {
               ),
             ),
           );
+
+          // Blocks written under the item, indented to sit with it: a code
+          // fence beneath a numbered step used to be laid out at the page's
+          // left margin, outside the step it explains.
+          if (item.children.isNotEmpty) {
+            items.add(
+              pw.Padding(
+                padding: pw.EdgeInsets.only(left: 34 + item.depth * 18.0),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    for (final child in item.children)
+                      ..._nodeToPdfWidgets(
+                        child,
+                        primaryFont: primaryFont,
+                        fontFallbacks: fontFallbacks,
+                        documentImages: documentImages,
+                      ),
+                  ],
+                ),
+              ),
+            );
+          }
         }
         return [
           pw.Padding(

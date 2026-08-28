@@ -2,6 +2,7 @@
 // Uses regex-based line scanning for block-level and inline parsing.
 
 import 'dart:convert' show LineSplitter;
+import 'dart:math' as math;
 
 // -- Enums --
 
@@ -155,6 +156,14 @@ class ListItem {
   /// rest run on from it however they are written.
   final int? number;
 
+  /// Blocks written under this item — a code fence beneath a numbered step, a
+  /// second paragraph, a quote.
+  ///
+  /// Empty for the ordinary one-line item. Rendering only [inlineSpans] left
+  /// these at the document's left margin, outside the step they belong to,
+  /// and split one list into two around them.
+  final List<MarkdownNode> children;
+
   ListItem({
     required this.content,
     required this.inlineSpans,
@@ -163,6 +172,7 @@ class ListItem {
     this.depth = 0,
     this.number,
     this.ordered = false,
+    this.children = const [],
   });
 }
 
@@ -720,9 +730,18 @@ class MarkdownParser {
           : null;
       final marker = ordered ? _olRe : _ulRe;
       final first = marker.firstMatch(block.first)!.group(1)!;
-      final content = block.length == 1
+
+      // The item's own text runs to the first blank line; anything after it
+      // is a block the item carries, parsed on its own terms.
+      final blank = block.indexWhere((line) => line.trim().isEmpty);
+      final lead = blank < 0 ? block.skip(1) : block.take(blank).skip(1);
+      final carried = blank < 0
+          ? const <MarkdownNode>[]
+          : parse(_dedent(block.skip(blank + 1)));
+
+      final content = lead.isEmpty
           ? first
-          : [first, ...block.skip(1).map((line) => line.trim())].join(' ');
+          : [first, ...lead.map((line) => line.trim())].join(' ');
       final depth = widths.indexOf(_indentColumns(block.first));
 
       final taskMatch = _taskRe.firstMatch(content);
@@ -736,6 +755,7 @@ class MarkdownParser {
           depth: depth,
           ordered: ordered,
           number: number,
+          children: carried,
         );
       }
 
@@ -745,6 +765,7 @@ class MarkdownParser {
         depth: depth,
         ordered: ordered,
         number: number,
+        children: carried,
       );
     }).toList();
   }
@@ -757,6 +778,33 @@ class MarkdownParser {
   /// loop would push out of it: a blank line between items, which used to
   /// split one list into two, and an indented continuation line, which used
   /// to become a paragraph wedged between them.
+  /// Removes the common indentation from an item's carried block, so it is
+  /// parsed as the code fence or quote it is rather than as indented code.
+  static String _dedent(Iterable<String> lines) {
+    final kept = lines.toList();
+    final indents = kept
+        .where((line) => line.trim().isNotEmpty)
+        .map(_indentColumns);
+    final common = indents.isEmpty ? 0 : indents.reduce(math.min);
+    return kept
+        .map((line) => line.length <= common ? '' : line.substring(common))
+        .join('\n');
+  }
+
+  /// The column an item's own text starts at, which is where any block it
+  /// carries has to be indented to.
+  static int _contentColumn(String line) {
+    final match = _olRe.firstMatch(line) ?? _ulRe.firstMatch(line);
+    if (match == null) return 0;
+    // The indentation plus the marker's own width. Measuring the prefix with
+    // _indentColumns alone returned zero for `4. fourth`, which has no leading
+    // space at all — and a column of zero let the next line, whatever it was,
+    // be swallowed as content belonging to the item.
+    final prefix = line.substring(0, line.length - match.group(1)!.length);
+    final indent = _indentColumns(prefix);
+    return indent + prefix.trimLeft().length;
+  }
+
   /// Whether [line] starts a list item of either kind.
   ///
   /// A numbered step may hold bulleted sub-points and vice versa, so a list
@@ -805,6 +853,20 @@ class MarkdownParser {
             !_startsAnotherList(lines[next], firstIndent, firstOrdered)) {
           // A gap between two items is what makes the list loose.
           loose = true;
+          i = next;
+          continue;
+        }
+
+        // Or the item carries a block of its own: a code fence under a
+        // numbered step, a second paragraph, a quote. CommonMark says content
+        // indented to where the item's text begins belongs to that item, and
+        // this used to break the list in three — the fence came out at the
+        // left margin and the steps became two separate lists.
+        if (blocks.isNotEmpty &&
+            next < lines.length &&
+            _indentColumns(lines[next]) >= _contentColumn(blocks.last.first)) {
+          loose = true;
+          blocks.last.addAll(lines.getRange(i, next));
           i = next;
           continue;
         }

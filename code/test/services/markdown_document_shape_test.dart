@@ -47,8 +47,9 @@ void main() {
         NodeType.htmlBlock, // a tag alone on its line, which is
         NodeType.orderedList,
         NodeType.unorderedList,
+        // One list, not a list and a stray fence: the code block written
+        // under the step is carried by the step.
         NodeType.orderedList,
-        NodeType.codeBlock,
       ]);
     });
 
@@ -63,6 +64,9 @@ void main() {
       expect(lists[1].ordered, isFalse);
       expect(lists[1].isLoose, isTrue, reason: 'written with a gap');
       expect(MarkdownParser.listMarkers(lists[2].items), ['1. ']);
+      expect(lists[2].items.single.children.map((c) => c.type).toList(),
+          [NodeType.codeBlock],
+          reason: '写在步骤下面的代码块应当属于那个步骤');
     });
 
     test('the heading drops its closing hashes', () {
@@ -91,9 +95,13 @@ void main() {
     });
 
     test('the indented fence loses the list indentation', () {
-      final code = parser.parse(_document).whereType<CodeBlockNode>().single;
+      // Reached through the item that carries it, and dedented on the way, so
+      // it is the fence the author wrote rather than indented code.
+      final list = parser.parse(_document).whereType<ListNode>().last;
+      final code = list.items.single.children.single as CodeBlockNode;
 
       expect(code.code, 'void main() {}');
+      expect(code.language, 'dart');
     });
 
     test('every block round-trips through the preview editor', () {

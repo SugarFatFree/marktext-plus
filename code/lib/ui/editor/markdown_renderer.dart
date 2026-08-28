@@ -345,7 +345,9 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             _wrapEditable(node, tokens, _buildCodeBlock(node, theme, tokens)),
           );
         case md.ListNode():
-          widgets.add(_wrapEditable(node, tokens, _buildList(node, theme)));
+          widgets.add(
+            _wrapEditable(node, tokens, _buildList(node, theme, tokens)),
+          );
         case md.BlockquoteNode():
           widgets.add(
             _wrapEditable(node, tokens, _buildBlockquote(node, theme, tokens)),
@@ -847,7 +849,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     return spans;
   }
 
-  Widget _buildList(md.ListNode node, ThemeData theme) {
+  Widget _buildList(md.ListNode node, ThemeData theme, AppThemeTokens tokens) {
     final markers = md.MarkdownParser.listMarkers(node.items);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -855,7 +857,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           for (var i = 0; i < node.items.length; i++)
-            _buildListItem(node, node.items[i], i, markers[i], theme),
+            _buildListItem(node, node.items[i], i, markers[i], theme, tokens),
         ],
       ),
     );
@@ -875,6 +877,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     int index,
     String marker,
     ThemeData theme,
+    AppThemeTokens tokens,
   ) {
     if (item.isTask) {
       return Padding(
@@ -893,10 +896,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: Text.rich(
-                _buildInlineSpans(item.inlineSpans, theme, _defaultTextStyle),
-                strutStyle: _defaultStrutStyle,
-              ),
+              child: _itemBody(item, theme, tokens),
             ),
           ],
         ),
@@ -915,13 +915,37 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         children: [
           Text(marker, style: _defaultTextStyle),
           Expanded(
-            child: Text.rich(
-              _buildInlineSpans(item.inlineSpans, theme, _defaultTextStyle),
-              strutStyle: _defaultStrutStyle,
-            ),
+            child: _itemBody(item, theme, tokens),
           ),
         ],
       ),
+    );
+  }
+
+  /// An item's text, and the blocks written underneath it.
+  ///
+  /// A code fence beneath a numbered step, a second paragraph, a quote: these
+  /// used to be rendered at the document's left margin, outside the step they
+  /// belong to, because only [ListItem.inlineSpans] was drawn.
+  Widget _itemBody(
+    md.ListItem item,
+    ThemeData theme,
+    AppThemeTokens tokens,
+  ) {
+    final text = Text.rich(
+      _buildInlineSpans(item.inlineSpans, theme, _defaultTextStyle),
+      strutStyle: _defaultStrutStyle,
+    );
+    if (item.children.isEmpty) return text;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        text,
+        for (final child in item.children)
+          _buildQuotedNode(child, theme, tokens),
+      ],
     );
   }
 
@@ -939,7 +963,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       md.HeadingNode() => _buildHeading(node, theme, tokens),
       md.ParagraphNode() => _buildParagraph(node, theme),
       md.CodeBlockNode() => _buildCodeBlock(node, theme, tokens),
-      md.ListNode() => _buildList(node, theme),
+      md.ListNode() => _buildList(node, theme, tokens),
       md.BlockquoteNode() => _buildBlockquote(node, theme, tokens),
       md.HorizontalRuleNode() => Divider(
         thickness: 1,

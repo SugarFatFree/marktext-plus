@@ -624,7 +624,13 @@ void main() {
           '   }\n'
           '   ```\n';
 
-      expect(codeOf(doc).code, 'void main() {\n  print(1);\n}');
+      // Reached through the step that carries it: a block written under an
+      // item belongs to that item rather than sitting beside the list.
+      final step = parser.parse(doc).single as ListNode;
+      final code = step.items.single.children.single as CodeBlockNode;
+
+      expect(code.code, 'void main() {\n  print(1);\n}');
+      expect(code.language, 'dart');
     });
 
     test('an unindented fence is untouched', () {

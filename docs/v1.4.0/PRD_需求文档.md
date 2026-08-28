@@ -31,6 +31,7 @@
 | FEAT-027 | 2026-08-28 | 「在文件中查找」进编辑菜单，搜索面板自动聚焦 | 中 | 简单 | 已实现 |
 | FEAT-028 | 2026-08-28 | 打印（Ctrl+P，系统打印对话框） | **高** | 中等 | 已实现 |
 | FEAT-029 | 2026-08-28 | Mermaid 的 YAML frontmatter 标题（所有图表类型） | 中 | 中等 | 已实现 |
+| FEAT-030 | 2026-08-28 | 列表项可以携带块级内容（步骤下的代码块等） | **高** | 困难 | 已实现 |
 
 ## 详细需求
 
@@ -541,5 +542,19 @@
 | **顺带收敛的重复** | 桑基图**自己**也读了一遍 frontmatter（因此它是唯一能这样加标题的类型，且与新实现在引号和 `<br/>` 上处理不同）。现已删除，统一由上游读一次。`_firstContentLine` 改为复用 `_withoutFrontMatter`——此前两者对"未闭合的 `---`"看法不一致：一个当 frontmatter、一个当普通行。 |
 | **涉及文件** | `code/lib/ui/editor/mermaid/parser/mermaid_parser.dart`、`sankey_parser.dart`、`code/lib/ui/editor/mermaid/widgets/mermaid_diagram.dart`、`code/test/ui/editor/mermaid/title_test.dart` —— 新增 |
 | **验收标准** | ① 流程图/时序图加 frontmatter 标题后显示在图上方；② 引号与 `<br/>` 正确处理；③ 有 `config:` 而无 `title:` 的块不产生标题；④ 饼图自带 `pie title X` 时以它为准且只画一遍；⑤ 未闭合的 `---` 返回 null（与 mermaid 一致，渲染成可诊断的错误）而不是抛异常或画半张图——**这条我起初断言反了，以为该忽略并照常渲染，查了上游语义才改过来**。 |
+
+---
+
+## FEAT-030：列表项可以携带块级内容
+
+| 字段 | 内容 |
+|---|---|
+| **实现日期** | 2026-08-28 |
+| **需求描述** | 写在列表项下面、缩进到该项文字列的块（代码块、第二段、引用、表格）属于那个项，而不是被甩到文档左边。CommonMark 如此规定，上游亦然。 |
+| **用户场景** | 「编号步骤 + 命令」是技术文档里最常见的写法之一：<br>`1. 第一步` / 空行 / 缩进的代码围栏 / 空行 / `2. 第二步`。<br>此前这被拆成**三个平级块**——列表、代码块、列表。屏幕上代码块贴着左边距，不在步骤下面；导出同样。 |
+| **实现方案** | ① 收集阶段：空行之后若下一非空行缩进 ≥ 该条目的**内容列**，则把这些行并入该条目；② `ListItem` 新增 `children`，条目文字取到第一个空行为止，其后的行去掉公共缩进后**递归 `parse`**（与引用块 `children` 同一模式）；③ 四个消费端各接一处：预览用 `_buildQuotedNode`、HTML 放进 `<li>` 内、PDF 缩进后接 `_nodeToPdfWidgets`、Word 接 `_addNodeToDocx`。 |
+| **过程中自己引入又修掉的 bug** | `_contentColumn` 一开始用 `_indentColumns` 量整个标记前缀，而后者只数**行首空白**——`4. fourth` 没有行首空白，于是返回 0，任何后续行都被当成该条目的内容吞掉。是既有的"文档形状"测试（断言 `3./4.` 那个列表是紧凑的）当场抓住的。已改为"行首缩进 + 标记自身宽度"。 |
+| **涉及文件** | `code/lib/services/markdown_parser.dart`、`code/lib/services/export_service.dart`、`code/lib/ui/editor/markdown_renderer.dart`、`code/test/services/list_item_blocks_test.dart` —— 新增 |
+| **验收标准** | ① 步骤下的代码围栏归属该步骤且保留语言标记（去缩进后才是围栏而非缩进代码）；② 第二段落、引用、表格同样；③ **不能破坏**的既有行为：续行仍并入条目文字、纯粹的空行分隔仍只是让列表变松散、空行后的顶格段落仍然结束列表、空行后另一种标记仍是新列表；④ HTML 里 `<pre>` 出现在 `<li>` 与 `</li>` 之间。 |
 
 ---
