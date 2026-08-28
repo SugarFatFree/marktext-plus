@@ -9,6 +9,30 @@ class AppLocalizationsRu extends AppLocalizations {
   AppLocalizationsRu([String locale = 'ru']) : super(locale);
 
   @override
+  String get mermaidCaptureFailed => 'Не удалось снять изображение диаграммы';
+
+  @override
+  String get mermaidErrorEmpty => 'Диаграмма пуста.';
+
+  @override
+  String mermaidErrorUnknownType(String type) {
+    return 'Неизвестный тип диаграммы: «$type».';
+  }
+
+  @override
+  String get mermaidErrorHeaderOnly =>
+      'У этой диаграммы есть заголовок, но нет содержимого.';
+
+  @override
+  String get mermaidErrorBadBody =>
+      'Заголовок распознан — проверьте синтаксис ниже.';
+
+  @override
+  String mermaidSupportedTypes(String list) {
+    return 'Поддерживаемые типы: $list';
+  }
+
+  @override
   String get mermaidParseError => 'Ошибка разбора Mermaid';
 
   @override

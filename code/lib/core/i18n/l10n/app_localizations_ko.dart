@@ -9,6 +9,28 @@ class AppLocalizationsKo extends AppLocalizations {
   AppLocalizationsKo([String locale = 'ko']) : super(locale);
 
   @override
+  String get mermaidCaptureFailed => '다이어그램을 캡처하지 못했습니다';
+
+  @override
+  String get mermaidErrorEmpty => '다이어그램이 비어 있습니다.';
+
+  @override
+  String mermaidErrorUnknownType(String type) {
+    return '인식할 수 없는 다이어그램 유형: \'$type\'.';
+  }
+
+  @override
+  String get mermaidErrorHeaderOnly => '이 다이어그램에는 헤더만 있고 내용이 없습니다.';
+
+  @override
+  String get mermaidErrorBadBody => '헤더는 인식되었습니다. 그 아래 구문을 확인하세요.';
+
+  @override
+  String mermaidSupportedTypes(String list) {
+    return '지원되는 유형: $list';
+  }
+
+  @override
   String get mermaidParseError => 'Mermaid 구문 분석 오류';
 
   @override

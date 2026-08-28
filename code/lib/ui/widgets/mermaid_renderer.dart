@@ -7,6 +7,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../core/i18n/l10n/app_localizations.dart';
+import '../editor/mermaid/parser/mermaid_parser.dart';
 import '../editor/mermaid/widgets/mermaid_diagram.dart';
 import '../editor/mermaid/models/style.dart';
 import '../editor/mermaid/models/node.dart' show NodeStyle;
@@ -67,12 +68,16 @@ class _MermaidRendererState extends State<MermaidRenderer> {
   }
 
   Future<void> _saveAsImage(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       final boundary = _diagramKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
       if (boundary == null) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to capture diagram')),
+            SnackBar(
+              content:
+                  Text(AppLocalizations.of(context)!.mermaidCaptureFailed),
+            ),
           );
         }
         return;
@@ -86,7 +91,7 @@ class _MermaidRendererState extends State<MermaidRenderer> {
 
       // Let user pick save location
       final savePath = await FilePicker.platform.saveFile(
-        dialogTitle: 'Save Diagram As',
+        dialogTitle: l10n.mermaidSaveAs,
         fileName: 'mermaid_diagram.png',
         type: FileType.custom,
         allowedExtensions: ['png'],
@@ -257,6 +262,24 @@ class _MermaidRendererState extends State<MermaidRenderer> {
     );
   }
 
+  /// The parse failure, worded in the reader's language.
+  String _localisedFailure(BuildContext context, String code) {
+    final l10n = AppLocalizations.of(context)!;
+    final failure = const MermaidParser().describeFailure(code);
+    switch (failure.kind) {
+      case MermaidFailureKind.empty:
+        return l10n.mermaidErrorEmpty;
+      case MermaidFailureKind.unknownType:
+        // The type names stay as they are: they are what has to be typed.
+        return '${l10n.mermaidErrorUnknownType(failure.detail)}\n'
+            '${l10n.mermaidSupportedTypes(MermaidParser.supportedTypes.join(', '))}';
+      case MermaidFailureKind.headerOnly:
+        return l10n.mermaidErrorHeaderOnly;
+      case MermaidFailureKind.unparsedBody:
+        return l10n.mermaidErrorBadBody;
+    }
+  }
+
   Widget _buildDiagram(MermaidStyle style) {
     return MermaidDiagram(
       code: widget.code,
@@ -266,6 +289,10 @@ class _MermaidRendererState extends State<MermaidRenderer> {
         // was painted the same in every theme, so on a dark one the message
         // arrived as a bright panel in the middle of the document.
         final scheme = Theme.of(context).colorScheme;
+        // `error` is the package's own English sentence. The package depends on
+        // nothing but Flutter and so cannot reach these translations; ask it
+        // for the reason instead and word it here.
+        final detail = _localisedFailure(context, widget.code);
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -293,7 +320,7 @@ class _MermaidRendererState extends State<MermaidRenderer> {
               ),
               const SizedBox(height: 8),
               Text(
-                error,
+                detail,
                 style: TextStyle(color: scheme.onErrorContainer, fontSize: 12),
               ),
             ],

@@ -56,6 +56,8 @@
 | BUG-052 | 2026-08-28 | 保存失败时一声不吭，Ctrl+S 和成功保存看不出区别 | **P1** | 已修复 |
 | BUG-053 | 2026-08-28 | Mermaid 语法写错时画成一个空白框，而不是提示错在哪 | **P1** | 已修复 |
 | BUG-054 | 2026-08-28 | Mermaid 的三处提示文案是硬编码英文，错误框在深色主题下刺眼 | P2 | 已修复 |
+| BUG-055 | 2026-08-28 | 图表解析失败的详细文案 12 种语言下都是英文 | P2 | 已修复 |
+| BUG-056 | 2026-08-28 | 同一个错误框有三份实现，改了一份另两份没跟上 | P2 | 已修复 |
 
 ## 详细记录
 
@@ -1443,5 +1445,105 @@ mermaid 11 有四种图表类型本项目没有实现，它们会正确地显示
 
 - `code/lib/ui/widgets/mermaid_renderer.dart`
 - `code/lib/core/i18n/l10n/app_*.arb` —— 12 个文件各新增 3 个键
+
+---
+
+## BUG-055 — 图表解析失败的详细文案，12 种语言下都是英文
+
+**发现日期**：2026-08-28 　**优先级**：P2 　**状态**：已修复
+
+### 现象
+
+BUG-054 把错误框的**标题**翻译了，但框里那句真正说明问题的话仍然是英文。中文用户
+看到的是：
+
+> **Mermaid 解析错误**
+> Could not parse this flowchart. The header is recognised, so check the syntax below it.
+
+### 根因
+
+这句话由 `MermaidParser.describeParseFailure` 生成，而这个方法在 `lib/ui/editor/mermaid/`
+里面 —— 那个目录**刻意对外部零依赖**（只 import 自身与 `package:flutter`，见 FEAT-014），
+所以它够不着应用的 l10n，只能返回英文。
+
+### 修复方案
+
+让解析器**报告原因，不负责措辞**：
+
+```dart
+enum MermaidFailureKind { empty, unknownType, headerOnly, unparsedBody }
+
+class MermaidFailure {
+  const MermaidFailure(this.kind, this.detail);
+  final MermaidFailureKind kind;
+  final String detail;   // 不认识的类型 → 用户写的那一行；其余 → 图表种类名
+}
+
+MermaidFailure describeFailure(String source);
+```
+
+应用层的 `errorBuilder` 拿 kind 去查翻译。`describeParseFailure` 保留，但改成建立在
+`describeFailure` 之上 —— 两边不再各判断一次，也就不会走岔。
+
+新增 6 个 l10n 键（`mermaidErrorEmpty`、`mermaidErrorUnknownType`、
+`mermaidErrorHeaderOnly`、`mermaidErrorBadBody`、`mermaidSupportedTypes`、
+`mermaidCaptureFailed`），12 种语言补齐。**图表类型名保持英文不翻译** —— 那是用户
+要照着敲的关键字。
+
+顺带补上 BUG-054 漏掉的两处：`'Failed to capture diagram'` 和另存为对话框标题
+`'Save Diagram As'`（后者直接复用已有的 `mermaidSaveAs`）。**同一个文件里 5 处硬编码，
+上一轮只修了 3 处。**
+
+### 涉及文件
+
+- `code/lib/ui/editor/mermaid/parser/mermaid_parser.dart`
+- `code/lib/ui/widgets/mermaid_renderer.dart`
+- `code/lib/core/i18n/l10n/app_*.arb` —— 12 个文件各新增 6 个键
+- `code/test/ui/editor/mermaid/mermaid_parser_test.dart` —— 新增 2 条
+
+---
+
+## BUG-056 — 同一个错误框有三份实现
+
+**发现日期**：2026-08-28 　**优先级**：P2 　**状态**：已修复
+
+### 现象
+
+图表解析失败时显示的那个红框，代码里有**三份几乎一样的实现**：
+
+| 位置 | 用在哪 |
+|---|---|
+| `mermaid_renderer.dart` 的 `errorBuilder` | 编辑器预览里 |
+| `mermaid_diagram.dart` 的 `_MermaidDiagramState._buildErrorWidget` | 没传 errorBuilder 时的兜底，**导出 PDF/Word 时截的就是它** |
+| `mermaid_diagram.dart` 的 `InteractiveMermaidDiagram._buildErrorWidget` | 交互式图表 |
+
+三份都用固定的 `Colors.red.shade50` 底色配 `red.shade700/900` 文字，在八个主题下一个样，
+深色主题里就是文档中间一块亮色面板。
+
+### 是怎么发现的
+
+改第二份时 `dart analyze` 报了两条错 —— 因为改调用点的 `sed` 把第三份的调用点也换了，
+参数对不上。**是编译器替我找出了第三份。**如果只改第一份、不动调用点，这三份会一直
+分头存在下去。
+
+### 修复方案
+
+不是把第三份也改一遍，而是合成一份：抽出 `_MermaidErrorBox` 共享组件，配色全部走
+`Theme.of(context).colorScheme` 的 `errorContainer` / `onErrorContainer` /
+`surfaceContainerHighest`，源码块用可选参数（交互式那份原本就不显示源码）。标题加
+`Flexible`，德语俄语那行明显更长。
+
+措辞仍然是英文并且**故意保留** —— 这份在 mermaid 包内部，翻译它就要让那个目录依赖
+应用，那个零依赖性质是它能被抽成独立包的全部前提（FEAT-014）。应用侧的 `errorBuilder`
+已经覆盖了用户实际会看到的每一处。
+
+### 这是本轮第七次撞上同一个模式
+
+前六次：BUG-040 / 041 / 042 / 043 / 044 / 049。这次多了一个新变种：**三份而不是两份**，
+而且是我自己上一轮刚修过一份、以为修完了。
+
+### 涉及文件
+
+- `code/lib/ui/editor/mermaid/widgets/mermaid_diagram.dart`
 
 ---

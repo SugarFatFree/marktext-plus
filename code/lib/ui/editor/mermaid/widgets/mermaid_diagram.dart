@@ -597,7 +597,7 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
 
         if (_error != null) {
           return widget.errorBuilder?.call(context, _error!) ??
-              _buildErrorWidget(_error!);
+              _MermaidErrorBox(error: _error!, code: widget.code);
         }
 
         if (_diagram == null) {
@@ -663,12 +663,35 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
     }
   }
 
-  Widget _buildErrorWidget(String error) {
+}
+
+/// The message shown in a diagram's place when it cannot be parsed.
+///
+/// One widget rather than the three near-copies this file used to carry: the
+/// fixed red-on-white was fixed in one of them and left in the others, which is
+/// how a dark theme ended up with a bright panel in the middle of the document
+/// in some places and not others.
+///
+/// The app supplies its own `errorBuilder` and words the failure in the
+/// reader's language. This is what an export captures — it renders off screen
+/// with no builder — so the wording here stays English: this package depends on
+/// nothing but Flutter, and reaching the app's translations would end that.
+class _MermaidErrorBox extends StatelessWidget {
+  const _MermaidErrorBox({required this.error, this.code});
+
+  final String error;
+
+  /// The diagram source, quoted below the message where there is room for it.
+  final String? code;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.red.shade50,
-        border: Border.all(color: Colors.red.shade200),
+        color: scheme.errorContainer,
+        border: Border.all(color: scheme.error),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -677,13 +700,15 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
         children: [
           Row(
             children: [
-              Icon(Icons.error_outline, color: Colors.red.shade700),
+              Icon(Icons.error_outline, color: scheme.onErrorContainer),
               const SizedBox(width: 8),
-              Text(
-                'Mermaid Parse Error',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.red.shade700,
+              Flexible(
+                child: Text(
+                  'Mermaid parse error',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: scheme.onErrorContainer,
+                  ),
                 ),
               ),
             ],
@@ -691,20 +716,26 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
           const SizedBox(height: 8),
           Text(
             error,
-            style: TextStyle(color: Colors.red.shade900, fontSize: 12),
+            style: TextStyle(color: scheme.onErrorContainer, fontSize: 12),
           ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(4),
+          if (code != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: scheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                code!,
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 11,
+                  color: scheme.onSurface,
+                ),
+              ),
             ),
-            child: Text(
-              widget.code,
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
-            ),
-          ),
+          ],
         ],
       ),
     );
@@ -1313,7 +1344,7 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
     }
 
     if (_error != null) {
-      return _buildErrorWidget(_error!);
+      return _MermaidErrorBox(error: _error!, code: widget.code);
     }
 
     if (_diagram == null) {
@@ -1348,38 +1379,4 @@ class _CenteringMermaidDiagramState extends State<_CenteringMermaidDiagram> {
     }
   }
 
-  Widget _buildErrorWidget(String error) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.red.shade50,
-        border: Border.all(color: Colors.red.shade200),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.error_outline, color: Colors.red.shade700),
-              const SizedBox(width: 8),
-              Text(
-                'Mermaid Parse Error',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.red.shade700,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            error,
-            style: TextStyle(color: Colors.red.shade900, fontSize: 12),
-          ),
-        ],
-      ),
-    );
-  }
 }

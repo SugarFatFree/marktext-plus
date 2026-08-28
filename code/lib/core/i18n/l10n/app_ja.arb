@@ -1,5 +1,25 @@
 {
   "@@locale": "ja",
+  "mermaidCaptureFailed": "図をキャプチャできませんでした",
+  "mermaidErrorEmpty": "図が空です。",
+  "mermaidErrorUnknownType": "認識できない図の種類: 「{type}」。",
+  "@mermaidErrorUnknownType": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "mermaidErrorHeaderOnly": "この図にはヘッダーだけがあり、内容がありません。",
+  "mermaidErrorBadBody": "ヘッダーは認識できています。その下の構文を確認してください。",
+  "mermaidSupportedTypes": "対応している種類: {list}",
+  "@mermaidSupportedTypes": {
+    "placeholders": {
+      "list": {
+        "type": "String"
+      }
+    }
+  },
   "mermaidParseError": "Mermaid の解析エラー",
   "imageSavedTo": "{path} に保存しました",
   "@imageSavedTo": {

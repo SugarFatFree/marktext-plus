@@ -1,5 +1,25 @@
 {
   "@@locale": "pt_BR",
+  "mermaidCaptureFailed": "Não foi possível capturar o diagrama",
+  "mermaidErrorEmpty": "O diagrama está vazio.",
+  "mermaidErrorUnknownType": "Tipo de diagrama não reconhecido: «{type}».",
+  "@mermaidErrorUnknownType": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "mermaidErrorHeaderOnly": "Este diagrama tem cabeçalho mas não tem conteúdo.",
+  "mermaidErrorBadBody": "O cabeçalho é reconhecido; verifique a sintaxe abaixo.",
+  "mermaidSupportedTypes": "Tipos suportados: {list}",
+  "@mermaidSupportedTypes": {
+    "placeholders": {
+      "list": {
+        "type": "String"
+      }
+    }
+  },
   "mermaidParseError": "Erro de análise do Mermaid",
   "imageSavedTo": "Salvo em {path}",
   "@imageSavedTo": {

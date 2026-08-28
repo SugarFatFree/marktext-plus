@@ -9,6 +9,28 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
+  String get mermaidCaptureFailed => '无法截取图表';
+
+  @override
+  String get mermaidErrorEmpty => '图表是空的。';
+
+  @override
+  String mermaidErrorUnknownType(String type) {
+    return '无法识别的图表类型：“$type”。';
+  }
+
+  @override
+  String get mermaidErrorHeaderOnly => '这个图表只有表头，没有内容。';
+
+  @override
+  String get mermaidErrorBadBody => '表头是认得的，请检查下面的语法。';
+
+  @override
+  String mermaidSupportedTypes(String list) {
+    return '支持的类型：$list';
+  }
+
+  @override
   String get mermaidParseError => 'Mermaid 解析错误';
 
   @override

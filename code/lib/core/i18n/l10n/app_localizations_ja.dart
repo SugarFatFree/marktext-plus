@@ -9,6 +9,28 @@ class AppLocalizationsJa extends AppLocalizations {
   AppLocalizationsJa([String locale = 'ja']) : super(locale);
 
   @override
+  String get mermaidCaptureFailed => '図をキャプチャできませんでした';
+
+  @override
+  String get mermaidErrorEmpty => '図が空です。';
+
+  @override
+  String mermaidErrorUnknownType(String type) {
+    return '認識できない図の種類: 「$type」。';
+  }
+
+  @override
+  String get mermaidErrorHeaderOnly => 'この図にはヘッダーだけがあり、内容がありません。';
+
+  @override
+  String get mermaidErrorBadBody => 'ヘッダーは認識できています。その下の構文を確認してください。';
+
+  @override
+  String mermaidSupportedTypes(String list) {
+    return '対応している種類: $list';
+  }
+
+  @override
   String get mermaidParseError => 'Mermaid の解析エラー';
 
   @override

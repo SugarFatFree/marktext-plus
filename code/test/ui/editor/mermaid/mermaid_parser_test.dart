@@ -2223,4 +2223,39 @@ classDiagram
       }
     });
   });
+
+  group('The failure reason is reported without being worded', () {
+    const parser = MermaidParser();
+
+    test('each kind of failure is told apart', () {
+      // The package cannot reach the app's translations without giving up its
+      // one useful property — it depends on nothing but Flutter — so it hands
+      // back the reason and lets the app word it. Twelve languages were all
+      // reading the same English sentence before this.
+      expect(parser.describeFailure('').kind, MermaidFailureKind.empty);
+      expect(parser.describeFailure('   \n  %% just a comment\n').kind,
+          MermaidFailureKind.empty);
+
+      final unknown = parser.describeFailure('architecture-beta\n  group a');
+      expect(unknown.kind, MermaidFailureKind.unknownType);
+      expect(unknown.detail, 'architecture-beta',
+          reason: '要引用回用户自己写的那一行');
+
+      expect(parser.describeFailure('flowchart TD').kind,
+          MermaidFailureKind.headerOnly);
+      expect(parser.describeFailure('graph TD\n  A--->').kind,
+          MermaidFailureKind.unparsedBody);
+    });
+
+    test('the English wording still agrees with the reason', () {
+      // describeParseFailure is now built on describeFailure rather than
+      // repeating the decision, so the two cannot drift apart.
+      expect(parser.describeParseFailure(''), contains('empty'));
+      expect(parser.describeParseFailure('architecture-beta\n  group a'),
+          contains('Unrecognised diagram type'));
+      expect(parser.describeParseFailure('flowchart TD'), contains('no content'));
+      expect(parser.describeParseFailure('graph TD\n  A--->'),
+          contains('check the syntax below it'));
+    });
+  });
 }

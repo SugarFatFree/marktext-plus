@@ -1,5 +1,25 @@
 {
   "@@locale": "ko",
+  "mermaidCaptureFailed": "다이어그램을 캡처하지 못했습니다",
+  "mermaidErrorEmpty": "다이어그램이 비어 있습니다.",
+  "mermaidErrorUnknownType": "인식할 수 없는 다이어그램 유형: '{type}'.",
+  "@mermaidErrorUnknownType": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "mermaidErrorHeaderOnly": "이 다이어그램에는 헤더만 있고 내용이 없습니다.",
+  "mermaidErrorBadBody": "헤더는 인식되었습니다. 그 아래 구문을 확인하세요.",
+  "mermaidSupportedTypes": "지원되는 유형: {list}",
+  "@mermaidSupportedTypes": {
+    "placeholders": {
+      "list": {
+        "type": "String"
+      }
+    }
+  },
   "mermaidParseError": "Mermaid 구문 분석 오류",
   "imageSavedTo": "{path}에 저장했습니다",
   "@imageSavedTo": {

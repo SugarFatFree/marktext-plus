@@ -1,5 +1,25 @@
 {
   "@@locale": "it",
+  "mermaidCaptureFailed": "Impossibile catturare il diagramma",
+  "mermaidErrorEmpty": "Il diagramma è vuoto.",
+  "mermaidErrorUnknownType": "Tipo di diagramma non riconosciuto: «{type}».",
+  "@mermaidErrorUnknownType": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "mermaidErrorHeaderOnly": "Questo diagramma ha un'intestazione ma nessun contenuto.",
+  "mermaidErrorBadBody": "L'intestazione è riconosciuta: controlla la sintassi sottostante.",
+  "mermaidSupportedTypes": "Tipi supportati: {list}",
+  "@mermaidSupportedTypes": {
+    "placeholders": {
+      "list": {
+        "type": "String"
+      }
+    }
+  },
   "mermaidParseError": "Errore di analisi Mermaid",
   "imageSavedTo": "Salvato in {path}",
   "@imageSavedTo": {

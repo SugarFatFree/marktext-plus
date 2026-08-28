@@ -9,6 +9,29 @@ class AppLocalizationsAr extends AppLocalizations {
   AppLocalizationsAr([String locale = 'ar']) : super(locale);
 
   @override
+  String get mermaidCaptureFailed => 'تعذّر التقاط المخطط';
+
+  @override
+  String get mermaidErrorEmpty => 'المخطط فارغ.';
+
+  @override
+  String mermaidErrorUnknownType(String type) {
+    return 'نوع مخطط غير معروف: «$type».';
+  }
+
+  @override
+  String get mermaidErrorHeaderOnly => 'هذا المخطط يحتوي على ترويسة بلا محتوى.';
+
+  @override
+  String get mermaidErrorBadBody =>
+      'تم التعرّف على الترويسة، تحقّق من الصياغة أدناه.';
+
+  @override
+  String mermaidSupportedTypes(String list) {
+    return 'الأنواع المدعومة: $list';
+  }
+
+  @override
   String get mermaidParseError => 'خطأ في تحليل Mermaid';
 
   @override

@@ -1,5 +1,25 @@
 {
   "@@locale": "fr",
+  "mermaidCaptureFailed": "Impossible de capturer le diagramme",
+  "mermaidErrorEmpty": "Le diagramme est vide.",
+  "mermaidErrorUnknownType": "Type de diagramme non reconnu : « {type} ».",
+  "@mermaidErrorUnknownType": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "mermaidErrorHeaderOnly": "Ce diagramme a un en-tête mais aucun contenu.",
+  "mermaidErrorBadBody": "L'en-tête est reconnu ; vérifiez la syntaxe en dessous.",
+  "mermaidSupportedTypes": "Types pris en charge : {list}",
+  "@mermaidSupportedTypes": {
+    "placeholders": {
+      "list": {
+        "type": "String"
+      }
+    }
+  },
   "mermaidParseError": "Erreur d'analyse Mermaid",
   "imageSavedTo": "Enregistré dans {path}",
   "@imageSavedTo": {

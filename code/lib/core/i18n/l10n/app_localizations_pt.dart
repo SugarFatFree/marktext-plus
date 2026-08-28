@@ -9,6 +9,30 @@ class AppLocalizationsPt extends AppLocalizations {
   AppLocalizationsPt([String locale = 'pt']) : super(locale);
 
   @override
+  String get mermaidCaptureFailed => 'Não foi possível capturar o diagrama';
+
+  @override
+  String get mermaidErrorEmpty => 'O diagrama está vazio.';
+
+  @override
+  String mermaidErrorUnknownType(String type) {
+    return 'Tipo de diagrama não reconhecido: «$type».';
+  }
+
+  @override
+  String get mermaidErrorHeaderOnly =>
+      'Este diagrama tem cabeçalho mas não tem conteúdo.';
+
+  @override
+  String get mermaidErrorBadBody =>
+      'O cabeçalho é reconhecido; verifique a sintaxe abaixo.';
+
+  @override
+  String mermaidSupportedTypes(String list) {
+    return 'Tipos suportados: $list';
+  }
+
+  @override
   String get mermaidParseError => 'Erro de análise do Mermaid';
 
   @override
@@ -870,6 +894,30 @@ class AppLocalizationsPt extends AppLocalizations {
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
 class AppLocalizationsPtBr extends AppLocalizationsPt {
   AppLocalizationsPtBr() : super('pt_BR');
+
+  @override
+  String get mermaidCaptureFailed => 'Não foi possível capturar o diagrama';
+
+  @override
+  String get mermaidErrorEmpty => 'O diagrama está vazio.';
+
+  @override
+  String mermaidErrorUnknownType(String type) {
+    return 'Tipo de diagrama não reconhecido: «$type».';
+  }
+
+  @override
+  String get mermaidErrorHeaderOnly =>
+      'Este diagrama tem cabeçalho mas não tem conteúdo.';
+
+  @override
+  String get mermaidErrorBadBody =>
+      'O cabeçalho é reconhecido; verifique a sintaxe abaixo.';
+
+  @override
+  String mermaidSupportedTypes(String list) {
+    return 'Tipos suportados: $list';
+  }
 
   @override
   String get mermaidParseError => 'Erro de análise do Mermaid';

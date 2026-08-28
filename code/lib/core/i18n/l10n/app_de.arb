@@ -1,5 +1,25 @@
 {
   "@@locale": "de",
+  "mermaidCaptureFailed": "Diagramm konnte nicht erfasst werden",
+  "mermaidErrorEmpty": "Das Diagramm ist leer.",
+  "mermaidErrorUnknownType": "Unbekannter Diagrammtyp: „{type}“.",
+  "@mermaidErrorUnknownType": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "mermaidErrorHeaderOnly": "Dieses Diagramm hat eine Kopfzeile, aber keinen Inhalt.",
+  "mermaidErrorBadBody": "Die Kopfzeile wird erkannt – prüfen Sie die Syntax darunter.",
+  "mermaidSupportedTypes": "Unterstützte Typen: {list}",
+  "@mermaidSupportedTypes": {
+    "placeholders": {
+      "list": {
+        "type": "String"
+      }
+    }
+  },
   "mermaidParseError": "Mermaid-Analysefehler",
   "imageSavedTo": "Gespeichert unter {path}",
   "@imageSavedTo": {

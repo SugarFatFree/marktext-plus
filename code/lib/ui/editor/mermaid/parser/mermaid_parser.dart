@@ -37,6 +37,34 @@ import 'timeline_parser.dart';
 import 'xy_chart_parser.dart';
 
 /// Result of parsing a Mermaid diagram
+/// Why a diagram could not be parsed. See [MermaidParser.describeFailure].
+enum MermaidFailureKind {
+  /// Nothing but blank lines and comments.
+  empty,
+
+  /// The first line names no diagram type this package implements.
+  unknownType,
+
+  /// The header is understood and there is nothing after it.
+  headerOnly,
+
+  /// The header is understood but nothing below it could be read.
+  unparsedBody,
+}
+
+/// A parse failure and the one piece of text worth quoting back.
+///
+/// [detail] is the offending first line for [MermaidFailureKind.unknownType],
+/// and the diagram's own name — "flowchart", "sequence diagram" — otherwise.
+/// Both are left untranslated on purpose: one is the reader's own text and the
+/// other is Mermaid's vocabulary.
+class MermaidFailure {
+  const MermaidFailure(this.kind, this.detail);
+
+  final MermaidFailureKind kind;
+  final String detail;
+}
+
 class MermaidParseResult {
   /// Creates a parse result
   const MermaidParseResult({
@@ -428,23 +456,46 @@ class MermaidParser {
   /// do support" matters: a bare "unable to parse" leaves the author with no
   /// idea which of the two they are looking at.
   String describeParseFailure(String source) {
+    final failure = describeFailure(source);
+    switch (failure.kind) {
+      case MermaidFailureKind.empty:
+        return 'The diagram is empty.';
+      case MermaidFailureKind.unknownType:
+        return 'Unrecognised diagram type: "${failure.detail}".\n'
+            'Supported: ${supportedTypes.join(', ')}.';
+      case MermaidFailureKind.headerOnly:
+        return 'This ${failure.detail} has a header but no content.';
+      case MermaidFailureKind.unparsedBody:
+        return 'Could not parse this ${failure.detail}. '
+            'The header is recognised, so check the syntax below it.';
+    }
+  }
+
+  /// Why [source] could not be turned into a diagram, without wording it.
+  ///
+  /// The wording belongs to whoever is showing it: this package deliberately
+  /// depends on nothing but Flutter, so it cannot reach the app's translations,
+  /// and [describeParseFailure] can only ever answer in English. That left a
+  /// reader working in any of the other eleven languages with an English
+  /// sentence in the middle of their document.
+  MermaidFailure describeFailure(String source) {
     final cleaned = _cleanLines(source.split('\n'));
-    if (cleaned.isEmpty) return 'The diagram is empty.';
+    if (cleaned.isEmpty) {
+      return const MermaidFailure(MermaidFailureKind.empty, '');
+    }
 
     final firstLine = _firstContentLine(cleaned);
     final type = _detectDiagramType(firstLine);
 
     if (type == DiagramType.unknown) {
-      return 'Unrecognised diagram type: "$firstLine".\n'
-          'Supported: ${supportedTypes.join(', ')}.';
+      return MermaidFailure(MermaidFailureKind.unknownType, firstLine);
     }
 
     if (cleaned.length <= 1) {
-      return 'This ${_typeLabel(type)} has a header but no content.';
+      return MermaidFailure(MermaidFailureKind.headerOnly, _typeLabel(type));
     }
 
-    return 'Could not parse this ${_typeLabel(type)}. '
-        'The header is recognised, so check the syntax below it.';
+    return MermaidFailure(MermaidFailureKind.unparsedBody, _typeLabel(type));
   }
 
   String _typeLabel(DiagramType type) {

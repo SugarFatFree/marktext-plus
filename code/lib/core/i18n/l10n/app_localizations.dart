@@ -117,6 +117,42 @@ abstract class AppLocalizations {
     Locale('zh'),
   ];
 
+  /// No description provided for @mermaidCaptureFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not capture the diagram'**
+  String get mermaidCaptureFailed;
+
+  /// No description provided for @mermaidErrorEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'The diagram is empty.'**
+  String get mermaidErrorEmpty;
+
+  /// No description provided for @mermaidErrorUnknownType.
+  ///
+  /// In en, this message translates to:
+  /// **'Unrecognised diagram type: \"{type}\".'**
+  String mermaidErrorUnknownType(String type);
+
+  /// No description provided for @mermaidErrorHeaderOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'This diagram has a header but no content.'**
+  String get mermaidErrorHeaderOnly;
+
+  /// No description provided for @mermaidErrorBadBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The header is recognised, so check the syntax below it.'**
+  String get mermaidErrorBadBody;
+
+  /// No description provided for @mermaidSupportedTypes.
+  ///
+  /// In en, this message translates to:
+  /// **'Supported types: {list}'**
+  String mermaidSupportedTypes(String list);
+
   /// No description provided for @mermaidParseError.
   ///
   /// In en, this message translates to:

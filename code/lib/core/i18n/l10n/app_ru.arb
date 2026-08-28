@@ -1,5 +1,25 @@
 {
   "@@locale": "ru",
+  "mermaidCaptureFailed": "Не удалось снять изображение диаграммы",
+  "mermaidErrorEmpty": "Диаграмма пуста.",
+  "mermaidErrorUnknownType": "Неизвестный тип диаграммы: «{type}».",
+  "@mermaidErrorUnknownType": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "mermaidErrorHeaderOnly": "У этой диаграммы есть заголовок, но нет содержимого.",
+  "mermaidErrorBadBody": "Заголовок распознан — проверьте синтаксис ниже.",
+  "mermaidSupportedTypes": "Поддерживаемые типы: {list}",
+  "@mermaidSupportedTypes": {
+    "placeholders": {
+      "list": {
+        "type": "String"
+      }
+    }
+  },
   "mermaidParseError": "Ошибка разбора Mermaid",
   "imageSavedTo": "Сохранено в {path}",
   "@imageSavedTo": {

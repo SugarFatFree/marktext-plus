@@ -1,5 +1,25 @@
 {
   "@@locale": "ar",
+  "mermaidCaptureFailed": "تعذّر التقاط المخطط",
+  "mermaidErrorEmpty": "المخطط فارغ.",
+  "mermaidErrorUnknownType": "نوع مخطط غير معروف: «{type}».",
+  "@mermaidErrorUnknownType": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "mermaidErrorHeaderOnly": "هذا المخطط يحتوي على ترويسة بلا محتوى.",
+  "mermaidErrorBadBody": "تم التعرّف على الترويسة، تحقّق من الصياغة أدناه.",
+  "mermaidSupportedTypes": "الأنواع المدعومة: {list}",
+  "@mermaidSupportedTypes": {
+    "placeholders": {
+      "list": {
+        "type": "String"
+      }
+    }
+  },
   "mermaidParseError": "خطأ في تحليل Mermaid",
   "imageSavedTo": "تم الحفظ في {path}",
   "@imageSavedTo": {

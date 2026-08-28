@@ -9,6 +9,30 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get mermaidCaptureFailed => 'Could not capture the diagram';
+
+  @override
+  String get mermaidErrorEmpty => 'The diagram is empty.';
+
+  @override
+  String mermaidErrorUnknownType(String type) {
+    return 'Unrecognised diagram type: \"$type\".';
+  }
+
+  @override
+  String get mermaidErrorHeaderOnly =>
+      'This diagram has a header but no content.';
+
+  @override
+  String get mermaidErrorBadBody =>
+      'The header is recognised, so check the syntax below it.';
+
+  @override
+  String mermaidSupportedTypes(String list) {
+    return 'Supported types: $list';
+  }
+
+  @override
   String get mermaidParseError => 'Mermaid parse error';
 
   @override
