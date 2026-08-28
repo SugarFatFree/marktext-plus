@@ -71,6 +71,7 @@
 | BUG-067 | 2026-08-28 | 撤销之后光标被丢到文档末尾 | P2 | 已修复 |
 | BUG-068 | 2026-08-28 | 安装包从不覆盖 exe，三轮原生修复从未到达用户机器 | **P0** | 已修复 |
 | BUG-069 | 2026-08-28 | 「打开方式」选完仍然反复出现；扩展名清单散在七处 | **P1** | 已修复 |
+| BUG-070 | 2026-08-28 | 比编辑器宽的图表右边被裁掉，既不缩放也不滚动 | **P1** | 已修复 |
 
 ## 详细记录
 
@@ -2438,5 +2439,83 @@ Windows 正是用这组键来记住「用其他应用打开」的选择的 —�
   `code/lib/ui/widgets/{side_bar,editor_tab_bar,app_menu_bar}.dart`
 - `.github/workflows/ci.yml`
 - `code/test/utils/file_types_test.dart` —— 新增
+
+---
+
+## BUG-070 — 比编辑器宽的图表右边被裁掉
+
+**发现日期**：2026-08-28 　**优先级**：P1 　**状态**：已修复
+
+### 现象
+
+一个节点多一点的流程图、或者参与者多几个的时序图，**右边直接被切掉**，没有任何提示，
+也没有办法看到剩下的部分。窗口越窄丢得越多。
+
+这很可能是用户所说「mermaid 渲染有问题」里最直观的一种。
+
+### 根因
+
+```dart
+final displayWidth = _computedSize.width.clamp(0.0, maxWidth);   // 盒子被夹到容器宽
+
+Container(
+  width: displayWidth,                                    // 例如 700
+  child: CustomPaint(painter: painter, size: _computedSize),  // 仍按 2000 宽绘制
+);
+```
+
+**盒子夹到了容器宽度，里面的绘制却仍是完整尺寸** —— 超出的部分就这么没了。
+
+代码里唯一处理过宽的地方是：
+
+```dart
+if (_deviceConfig?.deviceType == DeviceType.mobile && ...) {
+  diagramWidget = SingleChildScrollView(...);
+}
+```
+
+**只有 mobile 才有横向滚动**（断点是 600px）。桌面端既不缩放也不滚动，只有裁切。
+
+### 与上游的对照
+
+上游踩过同一个坑并留了回归测试
+（`packages/muya/e2e/tests/diagrams/sequence-overflow-3560.spec.ts`）：
+
+> marktext #3560: a wide rendered sequence-diagram `<svg>` overflowed the block
+> and was clipped. The fix gives the fixed-size (no-viewBox) `<svg>` a viewBox
+> derived from its width/height so `max-width: 100%` **SCALES** it to fit
+> (rather than just clipping the box).
+
+他们的做法是**缩放**，不是裁切。
+
+### 修复方案
+
+超出容器时用 `FittedBox(fit: BoxFit.contain)` 把绘制整体缩小到容器宽度，容器高度按同一
+比例收缩，纵横比不变。**小屏仍然滚动而不缩放** —— 把一张流程图压进手机宽度，得到的是
+一张什么都看不清的图。
+
+### 一处必须同步改的地方
+
+`_handleTap` 用 `details.localPosition` 直接和节点矩形比对。缩放之后，点击坐标是组件坐标、
+节点坐标是图表坐标，**不除以缩放比例就会选中偏右的另一个节点，而且越往右偏得越多**。
+所以缩放比例存了下来，点击时先还原。
+
+### 测试
+
+`code/test/ui/editor/mermaid/wide_diagram_test.dart`，3 条。
+
+断言的是**有没有发生缩放**，而不是像素尺寸 —— 组件的宽度是外面的窗格给的，无论内容有没有
+被裁掉都一样，量它等于什么都没量。
+
+其中一条守反向：**放得下的图不能被放大**（`BoxFit.contain` 会乐意把小图撑满窗格），
+所以只在需要缩小时才插入 `FittedBox`。
+
+写测试时先用 320px 宽，结果三条全过不了 —— 320 小于 600 的 mobile 断点，走的是滚动分支。
+改成 700px（宽于断点、窄于图表）才测到目标路径。**已确认这三条对旧实现会失败。**
+
+### 涉及文件
+
+- `code/lib/ui/editor/mermaid/widgets/mermaid_diagram.dart`
+- `code/test/ui/editor/mermaid/wide_diagram_test.dart` —— 新增
 
 ---

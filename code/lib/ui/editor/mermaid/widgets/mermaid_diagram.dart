@@ -623,17 +623,39 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
                   : widget.height!)
             : _computedSize.height;
 
-        // For mobile, wrap in horizontal scroll if needed
+        // A small screen scrolls a wide diagram rather than shrinking it: a
+        // flowchart squeezed into a phone's width is a picture of nothing.
+        final scrolls = _deviceConfig?.deviceType == DeviceType.mobile &&
+            _computedSize.width > availableWidth;
+
+        // Everywhere else it is scaled down to fit. The box used to be clamped
+        // to the available width while the painting inside kept its full size,
+        // so a diagram wider than the editor simply had its right-hand side
+        // cut off — with nothing to say so, and no way to see the rest.
+        // Upstream MarkText fixed the same fault by scaling (#3560).
+        _paintScale = (!scrolls && _computedSize.width > displayWidth)
+            ? displayWidth / _computedSize.width
+            : 1.0;
+
         Widget diagramWidget = Container(
           width: displayWidth,
-          height: displayHeight,
+          height: _paintScale < 1.0
+              ? _computedSize.height * _paintScale
+              : displayHeight,
           color: Color(_style.backgroundColor),
-          child: CustomPaint(painter: painter, size: _computedSize),
+          child: _paintScale < 1.0
+              ? FittedBox(
+                  fit: BoxFit.contain,
+                  child: SizedBox(
+                    width: _computedSize.width,
+                    height: _computedSize.height,
+                    child: CustomPaint(painter: painter, size: _computedSize),
+                  ),
+                )
+              : CustomPaint(painter: painter, size: _computedSize),
         );
 
-        // Enable horizontal scrolling on mobile if diagram is wider than screen
-        if (_deviceConfig?.deviceType == DeviceType.mobile &&
-            _computedSize.width > availableWidth) {
+        if (scrolls) {
           diagramWidget = SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: diagramWidget,
@@ -648,10 +670,20 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
     );
   }
 
+  /// How much the painting is shrunk to fit the space it was given.
+  ///
+  /// Kept because a tap arrives in the widget's coordinates and the nodes are
+  /// in the diagram's: without dividing by this, tapping a node in a scaled
+  /// diagram selects whichever node happens to sit at the unscaled position —
+  /// further and further off towards the right of the picture.
+  double _paintScale = 1.0;
+
   void _handleTap(TapDownDetails details) {
     if (_diagram == null || widget.onNodeTap == null) return;
 
-    final localPosition = details.localPosition;
+    final localPosition = _paintScale == 1.0
+        ? details.localPosition
+        : details.localPosition / _paintScale;
 
     for (final node in _diagram!.nodes) {
       final nodeRect = Rect.fromLTWH(node.x, node.y, node.width, node.height);
