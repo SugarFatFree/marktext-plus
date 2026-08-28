@@ -403,7 +403,13 @@ class MarkdownParser {
 
       // Text underlined with `===` or `---`, which parse() reads as a heading
       // for the same reason: real text precedes the rule.
+      // Unindented, as the ATX pattern above also insists: what the preview
+      // counts is a heading at the top level of the document, and an indented
+      // one belongs to the list item or quote that carries it. Listing those
+      // put an entry in the outline that the preview had no heading for, and
+      // every entry after it then scrolled to the wrong place.
       if (lines[i].trim().isNotEmpty &&
+          !lines[i].startsWith(RegExp(r'\s')) &&
           !_hrRe.hasMatch(lines[i]) &&
           i + 1 < lines.length &&
           _setextRe.hasMatch(lines[i + 1])) {

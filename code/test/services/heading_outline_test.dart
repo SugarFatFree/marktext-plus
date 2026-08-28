@@ -38,6 +38,27 @@ void main() {
     agree('a bare rule, which is not a heading', 'para\n\n---\n\n# real\n');
   });
 
+  group('the outline counts what the preview counts', () {
+    // The preview allocates one anchor per top-level heading and maps the Nth
+    // to the Nth outline entry, so anything the outline lists that the
+    // preview does not draw at the top level shifts every entry after it.
+    List<String> topLevel(String source) => [
+          for (final node in parser.parse(source))
+            if (node is HeadingNode) 'L${node.level}:${node.content}',
+        ];
+
+    void matchesTopLevel(String name, String source) {
+      test(name, () => expect(listed(source), topLevel(source), reason: source));
+    }
+
+    matchesTopLevel('a heading carried by a step is neither counted',
+        '# one\n\n1. step\n\n   ### inside\n\n## two\n');
+    matchesTopLevel('nor a setext one carried by a step',
+        '# one\n\n1. step\n\n   Title\n   ===\n');
+    matchesTopLevel('nor one inside a quote',
+        '# one\n\n> ## quoted\n\n## two\n');
+  });
+
   group('the line numbers point at the heading', () {
     test('an atx heading', () {
       expect(MarkdownParser.headingOutline('a\n\n# two\n').single.line, 3);
