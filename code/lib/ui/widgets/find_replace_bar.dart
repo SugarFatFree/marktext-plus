@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/i18n/l10n/app_localizations.dart';
@@ -128,6 +129,7 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
 
   @override
   void dispose() {
+    _rescan?.cancel();
     // The controller is ours to clear now; the provider is not. Telling it
     // during dispose makes it notify listeners, and this widget is one of
     // them — a rebuild of an element the framework has already finished with.
@@ -163,9 +165,24 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
 
   /// The editor's controller also notifies on selection changes, so compare the
   /// text before rescanning. Never moves the caret: the user is typing.
+  /// Rescans after the reader stops typing, not on every character.
+  ///
+  /// Scanning a five megabyte document takes 40 to 65 ms, which was paid per
+  /// keystroke for as long as the find bar was open. Everything that acts on
+  /// the matches already refuses to work on a stale list — both replace paths
+  /// compare the text against [_scannedText] and rescan on the spot — so
+  /// letting the list lag behind the typing costs nothing but the highlight
+  /// catching up a moment later.
+  Timer? _rescan;
+
   void _onDocumentChanged() {
     if (_getSearchText() == _scannedText) return;
-    _findMatches(jumpToMatch: false);
+    _rescan?.cancel();
+    _rescan = Timer(const Duration(milliseconds: 250), () {
+      if (!mounted) return;
+      if (_getSearchText() == _scannedText) return;
+      _findMatches(jumpToMatch: false);
+    });
   }
 
   /// Get the text to search based on current search target.
