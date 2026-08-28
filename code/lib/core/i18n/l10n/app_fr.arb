@@ -174,6 +174,7 @@
   "noFiles": "Aucun fichier",
   "noOpenFolder": "Ouvrir un dossier pour parcourir les fichiers",
   "searchPlaceholder": "Rechercher dans les fichiers...",
+  "searchTooLarge": "{count} fichier(s) trop volumineux pour être parcourus",
   "searchNoResults": "Aucun résultat",
   "searchResultCount": "{count} résultats trouvés",
   "tocEmpty": "Aucun titre trouvé",

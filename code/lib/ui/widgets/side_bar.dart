@@ -766,6 +766,24 @@ class _SideBarState extends ConsumerState<SideBar> {
               ),
             ),
           ),
+        // Said out loud for the same reason the count above is capped with a
+        // `+`: a file that was never read is not a file with no matches.
+        if (_skippedTooLarge > 0)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                l10n.searchTooLarge(_skippedTooLarge),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.6),
+                ),
+              ),
+            ),
+          ),
         Expanded(
           child: _searchResults.isEmpty
               ? Center(
@@ -848,6 +866,18 @@ class _SideBarState extends ConsumerState<SideBar> {
   /// thousands of hits, each one a string in a list widget.
   static const _maxSearchResults = 500;
 
+  /// The largest file the folder search will read.
+  ///
+  /// It reads a file whole and splits it into lines, so one large one — a log
+  /// or an export that happens to end in `.txt` — costs its own size in
+  /// memory and freezes the search while it is scanned. Notes are not this
+  /// big; anything that is gets counted and reported rather than skipped
+  /// quietly.
+  static const _maxSearchableBytes = 2 * 1024 * 1024;
+
+  /// How many files the last search was too large to read.
+  int _skippedTooLarge = 0;
+
   /// Distinguishes one search from the next.
   ///
   /// Starting a second search while the first is still walking the tree used
@@ -868,6 +898,7 @@ class _SideBarState extends ConsumerState<SideBar> {
     });
 
     final results = <_SearchResult>[];
+    _skippedTooLarge = 0;
     await _searchInDirectory(
       Directory(rootPath),
       query.toLowerCase(),
@@ -924,6 +955,10 @@ class _SideBarState extends ConsumerState<SideBar> {
       }
 
       try {
+        if (await entity.length() > _maxSearchableBytes) {
+          _skippedTooLarge++;
+          continue;
+        }
         // Through the shared decode: `readAsString` throws on anything but
         // UTF-8, and the catch below then skipped the file entirely — a
         // legacy document was simply unsearchable.

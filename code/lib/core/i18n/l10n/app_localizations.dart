@@ -867,6 +867,12 @@ abstract class AppLocalizations {
   /// **'Search in files...'**
   String get searchPlaceholder;
 
+  /// No description provided for @searchTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} file(s) too large to search'**
+  String searchTooLarge(int count);
+
   /// No description provided for @searchNoResults.
   ///
   /// In en, this message translates to:

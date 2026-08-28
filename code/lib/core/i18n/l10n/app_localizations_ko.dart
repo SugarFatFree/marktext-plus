@@ -403,6 +403,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get searchPlaceholder => '파일에서 검색...';
 
   @override
+  String searchTooLarge(int count) {
+    return '$count개 파일이 너무 커서 검색하지 않았습니다';
+  }
+
+  @override
   String get searchNoResults => '결과 없음';
 
   @override

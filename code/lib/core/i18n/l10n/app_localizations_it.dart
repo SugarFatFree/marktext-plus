@@ -412,6 +412,11 @@ class AppLocalizationsIt extends AppLocalizations {
   String get searchPlaceholder => 'Cerca nei file...';
 
   @override
+  String searchTooLarge(int count) {
+    return '$count file troppo grandi per essere cercati';
+  }
+
+  @override
   String get searchNoResults => 'Nessun risultato';
 
   @override

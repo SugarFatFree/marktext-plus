@@ -408,6 +408,11 @@ class AppLocalizationsAr extends AppLocalizations {
   String get searchPlaceholder => 'البحث في الملفات...';
 
   @override
+  String searchTooLarge(int count) {
+    return '$count من الملفات أكبر من أن تُبحث';
+  }
+
+  @override
   String get searchNoResults => 'لم يتم العثور على نتائج';
 
   @override

@@ -174,6 +174,7 @@
   "noFiles": "ファイルなし",
   "noOpenFolder": "フォルダを開いてファイルを参照",
   "searchPlaceholder": "ファイル内を検索...",
+  "searchTooLarge": "{count} 個のファイルは大きすぎるため検索しませんでした",
   "searchNoResults": "結果が見つかりません",
   "searchResultCount": "{count} 件の結果",
   "tocEmpty": "見出しが見つかりません",
