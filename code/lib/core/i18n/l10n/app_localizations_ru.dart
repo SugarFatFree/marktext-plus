@@ -391,9 +391,6 @@ class AppLocalizationsRu extends AppLocalizations {
       'Вы уверены, что хотите сбросить все настройки?';
 
   @override
-  String get comingSoon => 'Скоро';
-
-  @override
   String get noFiles => 'Нет файлов';
 
   @override
@@ -436,13 +433,6 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get editCopyAsHtml => 'Копировать как HTML';
-
-  @override
-  String get previewCopyAsHtmlTooltip => 'Копировать как HTML (для Word/WPS)';
-
-  @override
-  String get previewCopyAsHtmlSuccess =>
-      'Скопировано как HTML. Теперь можно вставить в Word/WPS с форматированием.';
 
   @override
   String get editSelectAll => 'Выделить всё';
@@ -509,21 +499,6 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get statusParagraphs => 'Абзацы';
-
-  @override
-  String get themeCadmiumLight => 'Кадмий светлый';
-
-  @override
-  String get themeOneDark => 'One Dark';
-
-  @override
-  String get themeMaterialDark => 'Material тёмный';
-
-  @override
-  String get themeGraphiteLight => 'Графит светлый';
-
-  @override
-  String get themeUlyssesLight => 'Ulysses светлый';
 
   @override
   String get themeRedGraphite => 'Красный графит';
@@ -805,25 +780,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get fileOpenBehavior => 'Поведение при открытии файлов';
 
   @override
-  String get fileOpenBehaviorTitle => 'Как открывать файлы?';
-
-  @override
-  String get fileOpenBehaviorMessage =>
-      'При двойном щелчке по файлу, когда приложение уже запущено:';
-
-  @override
   String get fileOpenBehaviorNewWindow => 'Открывать в новом окне';
 
   @override
-  String get fileOpenBehaviorNewWindowDesc =>
-      'Разрешить несколько экземпляров приложения';
-
-  @override
   String get fileOpenBehaviorExistingWindow => 'Открывать в текущем окне';
-
-  @override
-  String get fileOpenBehaviorExistingWindowDesc =>
-      'Добавлять к существующим вкладкам (один экземпляр)';
 
   @override
   String get fileOpenBehaviorNotSet => 'Не настроено';

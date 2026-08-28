@@ -394,9 +394,6 @@ class AppLocalizationsFr extends AppLocalizations {
       'Voulez-vous vraiment réinitialiser tous les paramètres ?';
 
   @override
-  String get comingSoon => 'Bientôt disponible';
-
-  @override
   String get noFiles => 'Aucun fichier';
 
   @override
@@ -439,13 +436,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get editCopyAsHtml => 'Copier en HTML';
-
-  @override
-  String get previewCopyAsHtmlTooltip => 'Copier en HTML (pour Word/WPS)';
-
-  @override
-  String get previewCopyAsHtmlSuccess =>
-      'Copié en HTML. Vous pouvez maintenant coller dans Word/WPS en conservant la mise en forme.';
 
   @override
   String get editSelectAll => 'Tout sélectionner';
@@ -513,21 +503,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get statusParagraphs => 'Paragraphes';
-
-  @override
-  String get themeCadmiumLight => 'Cadmium Clair';
-
-  @override
-  String get themeOneDark => 'One Dark';
-
-  @override
-  String get themeMaterialDark => 'Material Sombre';
-
-  @override
-  String get themeGraphiteLight => 'Graphite Clair';
-
-  @override
-  String get themeUlyssesLight => 'Ulysses Clair';
 
   @override
   String get themeRedGraphite => 'Graphite Rouge';
@@ -810,26 +785,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get fileOpenBehavior => 'Comportement à l\'ouverture des fichiers';
 
   @override
-  String get fileOpenBehaviorTitle => 'Comment ouvrir les fichiers ?';
-
-  @override
-  String get fileOpenBehaviorMessage =>
-      'Lorsque vous double-cliquez sur un fichier alors que l\'application est déjà lancée :';
-
-  @override
   String get fileOpenBehaviorNewWindow => 'Ouvrir dans une nouvelle fenêtre';
-
-  @override
-  String get fileOpenBehaviorNewWindowDesc =>
-      'Autoriser plusieurs instances de l\'application';
 
   @override
   String get fileOpenBehaviorExistingWindow =>
       'Ouvrir dans la fenêtre actuelle';
-
-  @override
-  String get fileOpenBehaviorExistingWindowDesc =>
-      'Ajouter aux onglets existants (instance unique)';
 
   @override
   String get fileOpenBehaviorNotSet => 'Non configuré';

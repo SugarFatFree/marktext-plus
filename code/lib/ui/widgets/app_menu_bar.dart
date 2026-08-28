@@ -469,6 +469,20 @@ class AppMenuBar extends ConsumerWidget {
           child: Text(l10n.editReplace),
           onPressed: () => ref.read(editorProvider.notifier).toggleFindReplace(),
         ),
+        // Searching every file in the folder was only ever reachable by
+        // finding the magnifying glass in the sidebar. Upstream puts it in
+        // this menu next to Find, the label was already translated into all
+        // twelve languages, and nothing referred to it.
+        MenuItemButton(
+          child: Text(l10n.editFindInFiles),
+          onPressed: () {
+            final settings = ref.read(settingsProvider.notifier);
+            if (!ref.read(settingsProvider).sideBarVisible) {
+              settings.toggleSideBar();
+            }
+            ref.read(sideBarTabProvider.notifier).state = SideBarTab.search;
+          },
+        ),
       ],
       child: Text(l10n.menuEdit, style: const TextStyle(fontSize: 13)),
     );

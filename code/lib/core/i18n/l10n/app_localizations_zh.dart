@@ -384,9 +384,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get confirmResetMessage => '确定要恢复所有设置为默认值吗？';
 
   @override
-  String get comingSoon => '即将推出';
-
-  @override
   String get noFiles => '没有文件';
 
   @override
@@ -429,12 +426,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get editCopyAsHtml => '复制为 HTML';
-
-  @override
-  String get previewCopyAsHtmlTooltip => '复制为 HTML（用于 Word/WPS）';
-
-  @override
-  String get previewCopyAsHtmlSuccess => '已复制为 HTML 格式，现在可以粘贴到 Word/WPS 并保留格式。';
 
   @override
   String get editSelectAll => '全选';
@@ -501,21 +492,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get statusParagraphs => '段落';
-
-  @override
-  String get themeCadmiumLight => '镉黄浅色';
-
-  @override
-  String get themeOneDark => 'One Dark';
-
-  @override
-  String get themeMaterialDark => 'Material 深色';
-
-  @override
-  String get themeGraphiteLight => '石墨浅色';
-
-  @override
-  String get themeUlyssesLight => 'Ulysses 浅色';
 
   @override
   String get themeRedGraphite => '红石墨';
@@ -794,22 +770,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get fileOpenBehavior => '文件打开行为';
 
   @override
-  String get fileOpenBehaviorTitle => '如何打开文件？';
-
-  @override
-  String get fileOpenBehaviorMessage => '当应用已运行时，双击文件：';
-
-  @override
   String get fileOpenBehaviorNewWindow => '在新窗口打开';
 
   @override
-  String get fileOpenBehaviorNewWindowDesc => '允许多个应用实例';
-
-  @override
   String get fileOpenBehaviorExistingWindow => '在当前窗口打开';
-
-  @override
-  String get fileOpenBehaviorExistingWindowDesc => '添加到现有标签页（单实例）';
 
   @override
   String get fileOpenBehaviorNotSet => '未配置';

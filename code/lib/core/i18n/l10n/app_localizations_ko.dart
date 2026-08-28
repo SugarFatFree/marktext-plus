@@ -385,9 +385,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get confirmResetMessage => '모든 설정을 기본값으로 되돌리시겠습니까?';
 
   @override
-  String get comingSoon => '곧 출시';
-
-  @override
   String get noFiles => '파일 없음';
 
   @override
@@ -430,13 +427,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get editCopyAsHtml => 'HTML로 복사';
-
-  @override
-  String get previewCopyAsHtmlTooltip => 'HTML로 복사 (Word/WPS용)';
-
-  @override
-  String get previewCopyAsHtmlSuccess =>
-      'HTML로 복사했습니다. 이제 Word/WPS에 서식을 유지한 채 붙여넣을 수 있습니다.';
 
   @override
   String get editSelectAll => '모두 선택';
@@ -503,21 +493,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get statusParagraphs => '단락';
-
-  @override
-  String get themeCadmiumLight => '카드뮴 라이트';
-
-  @override
-  String get themeOneDark => 'One Dark';
-
-  @override
-  String get themeMaterialDark => 'Material 다크';
-
-  @override
-  String get themeGraphiteLight => '그래파이트 라이트';
-
-  @override
-  String get themeUlyssesLight => 'Ulysses 라이트';
 
   @override
   String get themeRedGraphite => '레드 그래파이트';
@@ -796,22 +771,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get fileOpenBehavior => '파일 열기 동작';
 
   @override
-  String get fileOpenBehaviorTitle => '파일을 어떻게 열까요?';
-
-  @override
-  String get fileOpenBehaviorMessage => '앱이 실행 중일 때 파일을 두 번 클릭하면:';
-
-  @override
   String get fileOpenBehaviorNewWindow => '새 창에서 열기';
 
   @override
-  String get fileOpenBehaviorNewWindowDesc => '앱 다중 실행 허용';
-
-  @override
   String get fileOpenBehaviorExistingWindow => '현재 창에서 열기';
-
-  @override
-  String get fileOpenBehaviorExistingWindowDesc => '기존 탭에 추가 (단일 인스턴스)';
 
   @override
   String get fileOpenBehaviorNotSet => '설정되지 않음';

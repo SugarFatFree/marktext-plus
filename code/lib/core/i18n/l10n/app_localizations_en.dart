@@ -390,9 +390,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Are you sure you want to reset all settings to defaults?';
 
   @override
-  String get comingSoon => 'Coming soon';
-
-  @override
   String get noFiles => 'No files';
 
   @override
@@ -435,13 +432,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get editCopyAsHtml => 'Copy as HTML';
-
-  @override
-  String get previewCopyAsHtmlTooltip => 'Copy as HTML (for Word/WPS)';
-
-  @override
-  String get previewCopyAsHtmlSuccess =>
-      'Copied as HTML. You can now paste into Word/WPS with formatting.';
 
   @override
   String get editSelectAll => 'Select All';
@@ -508,21 +498,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get statusParagraphs => 'Paragraphs';
-
-  @override
-  String get themeCadmiumLight => 'Cadmium Light';
-
-  @override
-  String get themeOneDark => 'One Dark';
-
-  @override
-  String get themeMaterialDark => 'Material Dark';
-
-  @override
-  String get themeGraphiteLight => 'Graphite Light';
-
-  @override
-  String get themeUlyssesLight => 'Ulysses Light';
 
   @override
   String get themeRedGraphite => 'Red Graphite';
@@ -802,24 +777,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fileOpenBehavior => 'File Opening Behavior';
 
   @override
-  String get fileOpenBehaviorTitle => 'How to Open Files?';
-
-  @override
-  String get fileOpenBehaviorMessage =>
-      'When you double-click a file while the app is already running:';
-
-  @override
   String get fileOpenBehaviorNewWindow => 'Open in New Window';
 
   @override
-  String get fileOpenBehaviorNewWindowDesc => 'Allow multiple app instances';
-
-  @override
   String get fileOpenBehaviorExistingWindow => 'Open in Current Window';
-
-  @override
-  String get fileOpenBehaviorExistingWindowDesc =>
-      'Add to existing tabs (single instance)';
 
   @override
   String get fileOpenBehaviorNotSet => 'Not configured';

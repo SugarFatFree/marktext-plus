@@ -389,9 +389,6 @@ class AppLocalizationsAr extends AppLocalizations {
       'هل أنت متأكد من إعادة تعيين جميع الإعدادات؟';
 
   @override
-  String get comingSoon => 'قريباً';
-
-  @override
   String get noFiles => 'لا توجد ملفات';
 
   @override
@@ -434,13 +431,6 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get editCopyAsHtml => 'نسخ كـ HTML';
-
-  @override
-  String get previewCopyAsHtmlTooltip => 'نسخ بصيغة HTML (لـ Word/WPS)';
-
-  @override
-  String get previewCopyAsHtmlSuccess =>
-      'تم النسخ بصيغة HTML. يمكنك الآن اللصق في Word/WPS مع الحفاظ على التنسيق.';
 
   @override
   String get editSelectAll => 'تحديد الكل';
@@ -507,21 +497,6 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get statusParagraphs => 'فقرات';
-
-  @override
-  String get themeCadmiumLight => 'كادميوم فاتح';
-
-  @override
-  String get themeOneDark => 'One Dark';
-
-  @override
-  String get themeMaterialDark => 'Material داكن';
-
-  @override
-  String get themeGraphiteLight => 'جرافيت فاتح';
-
-  @override
-  String get themeUlyssesLight => 'Ulysses فاتح';
 
   @override
   String get themeRedGraphite => 'جرافيت أحمر';
@@ -801,25 +776,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get fileOpenBehavior => 'سلوك فتح الملفات';
 
   @override
-  String get fileOpenBehaviorTitle => 'كيف تريد فتح الملفات؟';
-
-  @override
-  String get fileOpenBehaviorMessage =>
-      'عند النقر المزدوج على ملف والتطبيق قيد التشغيل:';
-
-  @override
   String get fileOpenBehaviorNewWindow => 'الفتح في نافذة جديدة';
 
   @override
-  String get fileOpenBehaviorNewWindowDesc =>
-      'السماح بتشغيل عدة نسخ من التطبيق';
-
-  @override
   String get fileOpenBehaviorExistingWindow => 'الفتح في النافذة الحالية';
-
-  @override
-  String get fileOpenBehaviorExistingWindowDesc =>
-      'الإضافة إلى علامات التبويب الحالية (نسخة واحدة)';
 
   @override
   String get fileOpenBehaviorNotSet => 'غير مُهيَّأ';

@@ -713,6 +713,11 @@ class _SideBarState extends ConsumerState<SideBar> {
           padding: const EdgeInsets.all(8),
           child: TextField(
             controller: _searchController,
+            // The panel is rebuilt whenever it is switched to (AnimatedSwitcher
+            // keys it by tab), so this fires each time it is opened — from the
+            // sidebar icon or from Edit ▸ Find in Files. Showing a search box
+            // and making the reader click it first is a wasted step.
+            autofocus: true,
             decoration: InputDecoration(
               hintText: l10n.searchPlaceholder,
               isDense: true,

@@ -393,9 +393,6 @@ class AppLocalizationsPt extends AppLocalizations {
       'Tem a certeza de que pretende repor todas as definições?';
 
   @override
-  String get comingSoon => 'Em breve';
-
-  @override
   String get noFiles => 'Sem ficheiros';
 
   @override
@@ -438,13 +435,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get editCopyAsHtml => 'Copiar como HTML';
-
-  @override
-  String get previewCopyAsHtmlTooltip => 'Copiar como HTML (para Word/WPS)';
-
-  @override
-  String get previewCopyAsHtmlSuccess =>
-      'Copiado como HTML. Já pode colar no Word/WPS com formatação.';
 
   @override
   String get editSelectAll => 'Selecionar tudo';
@@ -511,21 +501,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get statusParagraphs => 'Parágrafos';
-
-  @override
-  String get themeCadmiumLight => 'Cádmio Claro';
-
-  @override
-  String get themeOneDark => 'One Dark';
-
-  @override
-  String get themeMaterialDark => 'Material Escuro';
-
-  @override
-  String get themeGraphiteLight => 'Grafite Claro';
-
-  @override
-  String get themeUlyssesLight => 'Ulysses Claro';
 
   @override
   String get themeRedGraphite => 'Grafite Vermelho';
@@ -808,25 +783,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get fileOpenBehavior => 'Comportamento ao abrir ficheiros';
 
   @override
-  String get fileOpenBehaviorTitle => 'Como abrir os ficheiros?';
-
-  @override
-  String get fileOpenBehaviorMessage =>
-      'Ao fazer duplo clique num ficheiro com a aplicação já aberta:';
-
-  @override
   String get fileOpenBehaviorNewWindow => 'Abrir numa nova janela';
 
   @override
-  String get fileOpenBehaviorNewWindowDesc =>
-      'Permitir várias instâncias da aplicação';
-
-  @override
   String get fileOpenBehaviorExistingWindow => 'Abrir na janela atual';
-
-  @override
-  String get fileOpenBehaviorExistingWindowDesc =>
-      'Adicionar aos separadores existentes (instância única)';
 
   @override
   String get fileOpenBehaviorNotSet => 'Não configurado';
@@ -1317,9 +1277,6 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
       'Tem certeza de que deseja redefinir todas as configurações?';
 
   @override
-  String get comingSoon => 'Em breve';
-
-  @override
   String get noFiles => 'Sem arquivos';
 
   @override
@@ -1362,13 +1319,6 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get editCopyAsHtml => 'Copiar como HTML';
-
-  @override
-  String get previewCopyAsHtmlTooltip => 'Copiar como HTML (para Word/WPS)';
-
-  @override
-  String get previewCopyAsHtmlSuccess =>
-      'Copiado como HTML. Agora você pode colar no Word/WPS com formatação.';
 
   @override
   String get editSelectAll => 'Selecionar tudo';
@@ -1435,21 +1385,6 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get statusParagraphs => 'Parágrafos';
-
-  @override
-  String get themeCadmiumLight => 'Cádmio Claro';
-
-  @override
-  String get themeOneDark => 'One Dark';
-
-  @override
-  String get themeMaterialDark => 'Material Escuro';
-
-  @override
-  String get themeGraphiteLight => 'Grafite Claro';
-
-  @override
-  String get themeUlyssesLight => 'Ulysses Claro';
 
   @override
   String get themeRedGraphite => 'Grafite Vermelho';
@@ -1730,25 +1665,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get fileOpenBehavior => 'Comportamento ao abrir arquivos';
 
   @override
-  String get fileOpenBehaviorTitle => 'Como abrir os arquivos?';
-
-  @override
-  String get fileOpenBehaviorMessage =>
-      'Ao dar dois cliques em um arquivo com o aplicativo já aberto:';
-
-  @override
   String get fileOpenBehaviorNewWindow => 'Abrir em uma nova janela';
 
   @override
-  String get fileOpenBehaviorNewWindowDesc =>
-      'Permitir várias instâncias do aplicativo';
-
-  @override
   String get fileOpenBehaviorExistingWindow => 'Abrir na janela atual';
-
-  @override
-  String get fileOpenBehaviorExistingWindowDesc =>
-      'Adicionar às abas existentes (instância única)';
 
   @override
   String get fileOpenBehaviorNotSet => 'Não configurado';

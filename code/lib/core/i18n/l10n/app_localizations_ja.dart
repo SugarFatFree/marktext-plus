@@ -385,9 +385,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get confirmResetMessage => 'すべての設定をデフォルトに戻しますか？';
 
   @override
-  String get comingSoon => '近日公開';
-
-  @override
   String get noFiles => 'ファイルなし';
 
   @override
@@ -430,13 +427,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get editCopyAsHtml => 'HTMLとしてコピー';
-
-  @override
-  String get previewCopyAsHtmlTooltip => 'HTML としてコピー（Word/WPS 用）';
-
-  @override
-  String get previewCopyAsHtmlSuccess =>
-      'HTML としてコピーしました。Word/WPS に書式付きで貼り付けられます。';
 
   @override
   String get editSelectAll => 'すべて選択';
@@ -503,21 +493,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get statusParagraphs => '段落';
-
-  @override
-  String get themeCadmiumLight => 'カドミウムライト';
-
-  @override
-  String get themeOneDark => 'One Dark';
-
-  @override
-  String get themeMaterialDark => 'Material ダーク';
-
-  @override
-  String get themeGraphiteLight => 'グラファイトライト';
-
-  @override
-  String get themeUlyssesLight => 'Ulysses ライト';
 
   @override
   String get themeRedGraphite => 'レッドグラファイト';
@@ -796,22 +771,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get fileOpenBehavior => 'ファイルを開くときの動作';
 
   @override
-  String get fileOpenBehaviorTitle => 'ファイルをどのように開きますか？';
-
-  @override
-  String get fileOpenBehaviorMessage => 'アプリの起動中にファイルをダブルクリックしたとき:';
-
-  @override
   String get fileOpenBehaviorNewWindow => '新しいウィンドウで開く';
 
   @override
-  String get fileOpenBehaviorNewWindowDesc => 'アプリの複数起動を許可する';
-
-  @override
   String get fileOpenBehaviorExistingWindow => '現在のウィンドウで開く';
-
-  @override
-  String get fileOpenBehaviorExistingWindowDesc => '既存のタブに追加する（単一インスタンス）';
 
   @override
   String get fileOpenBehaviorNotSet => '未設定';

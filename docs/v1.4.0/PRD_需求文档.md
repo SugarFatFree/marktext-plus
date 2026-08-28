@@ -28,6 +28,7 @@
 | FEAT-024 | 2026-08-28 | 只注册常用语言的语法高亮，砍掉 80% 的定义体积 | **高** | 简单 | 已实现 |
 | FEAT-025 | 2026-08-28 | 「编辑器最大宽度」现在也作用于源码编辑器 | 中 | 简单 | 已实现 |
 | FEAT-026 | 2026-08-28 | 代码字号可单独设置（对齐上游 codeFontSize） | 中 | 简单 | 已实现 |
+| FEAT-027 | 2026-08-28 | 「在文件中查找」进编辑菜单，搜索面板自动聚焦 | 中 | 简单 | 已实现 |
 
 ## 详细需求
 
@@ -497,5 +498,18 @@
 | **实现方案** | `AppConfig` 增加 `codeFontSize`（默认 14.0，用既有的 `_parseDouble` 容错解析）；上一条修复刚建的 `_codeStyle()` 入口把字号参数化，围栏代码块、front matter 块、HTML 块三处不再写死 14/13，统一取设置值；设置页新增一行数字输入，写入时 `clamp(8, 48)`——键盘上手滑打出 0 或 400 会让文档没法看且没有明显退路。12 种语言各补一条 `settingsCodeFontSize` 词条。 |
 | **涉及文件** | `code/lib/core/config/app_config.dart`、`code/lib/ui/editor/markdown_renderer.dart`、`code/lib/ui/screens/settings_screen.dart`、`code/lib/core/i18n/l10n/app_*.arb`（12 个）、`code/test/ui/editor/code_font_test.dart`、`code/test/core/config/app_config_test.dart` |
 | **验收标准** | ① 设为 22 后围栏块、front matter、HTML 块都按 22 绘制，且不再出现写死的 14/13；② 配置能往返序列化，缺键回落 14、脏值（字符串）也回落 14 而不是抛异常；③ 行内代码仍随正文字号按 0.9 缩放——它要坐在一行散文里，也会出现在标题里，跟着周围文字走才对，不跟代码字号。 |
+
+---
+
+## FEAT-027：「在文件中查找」进编辑菜单，搜索面板自动聚焦
+
+| 字段 | 内容 |
+|---|---|
+| **实现日期** | 2026-08-28 |
+| **需求描述** | 全文件夹搜索出现在编辑菜单里（上游 MarkText 放在同一位置），并且打开搜索面板时输入框自动获得焦点。 |
+| **用户场景** | 这个功能一直**有**——侧边栏的放大镜逐行搜整个文件夹的内容——但只能靠发现那个图标才用得到，菜单里找不着。而 `editFindInFiles` 这条标签**十二种语言都已经翻译好了，却没有任何代码引用它**：翻译做了，接线没做。 |
+| **实现方案** | 编辑菜单在「替换」之后加一项，复用视图菜单里「目录」那一项已有的写法：侧边栏若隐藏则先展开，再把 `sideBarTabProvider` 置为 `SideBarTab.search`。搜索框加 `autofocus: true`——面板由 `AnimatedSwitcher` 按 `ValueKey(selectedTab)` 键控，每次切过去都是新建的子树，所以从图标进和从菜单进都会聚焦。 |
+| **涉及文件** | `code/lib/ui/widgets/app_menu_bar.dart`、`code/lib/ui/widgets/side_bar.dart` |
+| **验收标准** | ① 编辑 ▸ 在文件中查找 → 侧边栏展开并停在搜索面板，光标已在输入框里；② 点侧边栏放大镜同样自动聚焦。**未写组件测试**：仓库里没有挂载 `AppMenuBar` 或 `SideBar` 的测试脚手架，为一个菜单项搭一套（MenuAnchor + 全套 provider + l10n）代价不成比例，此处如实记录而不是假装覆盖到了。 |
 
 ---

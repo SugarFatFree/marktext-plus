@@ -831,12 +831,6 @@ abstract class AppLocalizations {
   /// **'Are you sure you want to reset all settings to defaults?'**
   String get confirmResetMessage;
 
-  /// No description provided for @comingSoon.
-  ///
-  /// In en, this message translates to:
-  /// **'Coming soon'**
-  String get comingSoon;
-
   /// No description provided for @noFiles.
   ///
   /// In en, this message translates to:
@@ -920,18 +914,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Copy as HTML'**
   String get editCopyAsHtml;
-
-  /// No description provided for @previewCopyAsHtmlTooltip.
-  ///
-  /// In en, this message translates to:
-  /// **'Copy as HTML (for Word/WPS)'**
-  String get previewCopyAsHtmlTooltip;
-
-  /// No description provided for @previewCopyAsHtmlSuccess.
-  ///
-  /// In en, this message translates to:
-  /// **'Copied as HTML. You can now paste into Word/WPS with formatting.'**
-  String get previewCopyAsHtmlSuccess;
 
   /// No description provided for @editSelectAll.
   ///
@@ -1064,36 +1046,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Paragraphs'**
   String get statusParagraphs;
-
-  /// No description provided for @themeCadmiumLight.
-  ///
-  /// In en, this message translates to:
-  /// **'Cadmium Light'**
-  String get themeCadmiumLight;
-
-  /// No description provided for @themeOneDark.
-  ///
-  /// In en, this message translates to:
-  /// **'One Dark'**
-  String get themeOneDark;
-
-  /// No description provided for @themeMaterialDark.
-  ///
-  /// In en, this message translates to:
-  /// **'Material Dark'**
-  String get themeMaterialDark;
-
-  /// No description provided for @themeGraphiteLight.
-  ///
-  /// In en, this message translates to:
-  /// **'Graphite Light'**
-  String get themeGraphiteLight;
-
-  /// No description provided for @themeUlyssesLight.
-  ///
-  /// In en, this message translates to:
-  /// **'Ulysses Light'**
-  String get themeUlyssesLight;
 
   /// No description provided for @themeRedGraphite.
   ///
@@ -1635,41 +1587,17 @@ abstract class AppLocalizations {
   /// **'File Opening Behavior'**
   String get fileOpenBehavior;
 
-  /// No description provided for @fileOpenBehaviorTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'How to Open Files?'**
-  String get fileOpenBehaviorTitle;
-
-  /// No description provided for @fileOpenBehaviorMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'When you double-click a file while the app is already running:'**
-  String get fileOpenBehaviorMessage;
-
   /// No description provided for @fileOpenBehaviorNewWindow.
   ///
   /// In en, this message translates to:
   /// **'Open in New Window'**
   String get fileOpenBehaviorNewWindow;
 
-  /// No description provided for @fileOpenBehaviorNewWindowDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Allow multiple app instances'**
-  String get fileOpenBehaviorNewWindowDesc;
-
   /// No description provided for @fileOpenBehaviorExistingWindow.
   ///
   /// In en, this message translates to:
   /// **'Open in Current Window'**
   String get fileOpenBehaviorExistingWindow;
-
-  /// No description provided for @fileOpenBehaviorExistingWindowDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Add to existing tabs (single instance)'**
-  String get fileOpenBehaviorExistingWindowDesc;
 
   /// No description provided for @fileOpenBehaviorNotSet.
   ///

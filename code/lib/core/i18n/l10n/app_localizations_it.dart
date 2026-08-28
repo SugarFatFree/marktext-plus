@@ -392,9 +392,6 @@ class AppLocalizationsIt extends AppLocalizations {
       'Ripristinare tutte le impostazioni ai valori predefiniti?';
 
   @override
-  String get comingSoon => 'Prossimamente';
-
-  @override
   String get noFiles => 'Nessun file';
 
   @override
@@ -437,13 +434,6 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get editCopyAsHtml => 'Copia come HTML';
-
-  @override
-  String get previewCopyAsHtmlTooltip => 'Copia come HTML (per Word/WPS)';
-
-  @override
-  String get previewCopyAsHtmlSuccess =>
-      'Copiato come HTML. Ora puoi incollarlo in Word/WPS mantenendo la formattazione.';
 
   @override
   String get editSelectAll => 'Seleziona tutto';
@@ -510,21 +500,6 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get statusParagraphs => 'Paragrafi';
-
-  @override
-  String get themeCadmiumLight => 'Cadmium Chiaro';
-
-  @override
-  String get themeOneDark => 'One Dark';
-
-  @override
-  String get themeMaterialDark => 'Material Scuro';
-
-  @override
-  String get themeGraphiteLight => 'Grafite Chiaro';
-
-  @override
-  String get themeUlyssesLight => 'Ulysses Chiaro';
 
   @override
   String get themeRedGraphite => 'Grafite Rosso';
@@ -808,25 +783,10 @@ class AppLocalizationsIt extends AppLocalizations {
   String get fileOpenBehavior => 'Comportamento all\'apertura dei file';
 
   @override
-  String get fileOpenBehaviorTitle => 'Come aprire i file?';
-
-  @override
-  String get fileOpenBehaviorMessage =>
-      'Quando fai doppio clic su un file mentre l\'applicazione è già in esecuzione:';
-
-  @override
   String get fileOpenBehaviorNewWindow => 'Apri in una nuova finestra';
 
   @override
-  String get fileOpenBehaviorNewWindowDesc =>
-      'Consenti più istanze dell\'applicazione';
-
-  @override
   String get fileOpenBehaviorExistingWindow => 'Apri nella finestra corrente';
-
-  @override
-  String get fileOpenBehaviorExistingWindowDesc =>
-      'Aggiungi alle schede esistenti (istanza singola)';
 
   @override
   String get fileOpenBehaviorNotSet => 'Non configurato';

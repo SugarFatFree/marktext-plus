@@ -393,9 +393,6 @@ class AppLocalizationsEs extends AppLocalizations {
       '¿Está seguro de que desea restablecer toda la configuración?';
 
   @override
-  String get comingSoon => 'Próximamente';
-
-  @override
   String get noFiles => 'Sin archivos';
 
   @override
@@ -438,13 +435,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get editCopyAsHtml => 'Copiar como HTML';
-
-  @override
-  String get previewCopyAsHtmlTooltip => 'Copiar como HTML (para Word/WPS)';
-
-  @override
-  String get previewCopyAsHtmlSuccess =>
-      'Copiado como HTML. Ya puede pegarlo en Word/WPS con formato.';
 
   @override
   String get editSelectAll => 'Seleccionar todo';
@@ -511,21 +501,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get statusParagraphs => 'Párrafos';
-
-  @override
-  String get themeCadmiumLight => 'Cadmio Claro';
-
-  @override
-  String get themeOneDark => 'One Dark';
-
-  @override
-  String get themeMaterialDark => 'Material Oscuro';
-
-  @override
-  String get themeGraphiteLight => 'Grafito Claro';
-
-  @override
-  String get themeUlyssesLight => 'Ulysses Claro';
 
   @override
   String get themeRedGraphite => 'Grafito Rojo';
@@ -808,25 +783,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get fileOpenBehavior => 'Comportamiento al abrir archivos';
 
   @override
-  String get fileOpenBehaviorTitle => '¿Cómo abrir los archivos?';
-
-  @override
-  String get fileOpenBehaviorMessage =>
-      'Cuando haga doble clic en un archivo con la aplicación ya abierta:';
-
-  @override
   String get fileOpenBehaviorNewWindow => 'Abrir en una ventana nueva';
 
   @override
-  String get fileOpenBehaviorNewWindowDesc =>
-      'Permitir varias instancias de la aplicación';
-
-  @override
   String get fileOpenBehaviorExistingWindow => 'Abrir en la ventana actual';
-
-  @override
-  String get fileOpenBehaviorExistingWindowDesc =>
-      'Añadir a las pestañas existentes (instancia única)';
 
   @override
   String get fileOpenBehaviorNotSet => 'Sin configurar';

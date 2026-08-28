@@ -391,9 +391,6 @@ class AppLocalizationsDe extends AppLocalizations {
       'Möchten Sie alle Einstellungen auf die Standardwerte zurücksetzen?';
 
   @override
-  String get comingSoon => 'Demnächst';
-
-  @override
   String get noFiles => 'Keine Dateien';
 
   @override
@@ -436,13 +433,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get editCopyAsHtml => 'Als HTML kopieren';
-
-  @override
-  String get previewCopyAsHtmlTooltip => 'Als HTML kopieren (für Word/WPS)';
-
-  @override
-  String get previewCopyAsHtmlSuccess =>
-      'Als HTML kopiert. Sie können es jetzt formatiert in Word/WPS einfügen.';
 
   @override
   String get editSelectAll => 'Alles auswählen';
@@ -509,21 +499,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get statusParagraphs => 'Absätze';
-
-  @override
-  String get themeCadmiumLight => 'Cadmium Hell';
-
-  @override
-  String get themeOneDark => 'One Dark';
-
-  @override
-  String get themeMaterialDark => 'Material Dunkel';
-
-  @override
-  String get themeGraphiteLight => 'Graphit Hell';
-
-  @override
-  String get themeUlyssesLight => 'Ulysses Hell';
 
   @override
   String get themeRedGraphite => 'Rot Graphit';
@@ -805,25 +780,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get fileOpenBehavior => 'Verhalten beim Öffnen von Dateien';
 
   @override
-  String get fileOpenBehaviorTitle => 'Wie sollen Dateien geöffnet werden?';
-
-  @override
-  String get fileOpenBehaviorMessage =>
-      'Wenn Sie eine Datei doppelklicken, während die App bereits läuft:';
-
-  @override
   String get fileOpenBehaviorNewWindow => 'In neuem Fenster öffnen';
 
   @override
-  String get fileOpenBehaviorNewWindowDesc =>
-      'Mehrere Instanzen der App zulassen';
-
-  @override
   String get fileOpenBehaviorExistingWindow => 'Im aktuellen Fenster öffnen';
-
-  @override
-  String get fileOpenBehaviorExistingWindowDesc =>
-      'Zu vorhandenen Tabs hinzufügen (Einzelinstanz)';
 
   @override
   String get fileOpenBehaviorNotSet => 'Nicht konfiguriert';
