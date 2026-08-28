@@ -70,6 +70,10 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   // per frame made the total work quadratic: a 5000-block document took 100
   // frames and built about 250000 widgets. Doubling gets to the same place in
   // eight frames.
+  /// The document whose full parse is still owed, when only a prefix of it has
+  /// been parsed so far. Null when what is cached is the whole thing.
+  String? _awaitingFullParse;
+
   int _renderedNodeCount = 0;
   bool _batchScheduled = false;
   static const _initialBatchSize = 50;
@@ -270,7 +274,19 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     if (_cachedMarkdown != widget.markdown) {
       _cachedMarkdown = widget.markdown;
       final parser = md.MarkdownParser(enableHtml: config.enableHtml);
-      _cachedNodes = parser.parse(widget.markdown);
+      // A long document is parsed in two goes: enough of the top to put
+      // something on screen, then the whole of it on the next frame. Parsing
+      // costs about 0.02–0.04 ms a block and has no hot spot left to remove,
+      // so a five megabyte document took about three seconds during which
+      // there was nothing to look at. The prefix keeps the document's own line
+      // numbering, so the blocks it yields carry the ranges that editing a
+      // block in the preview depends on.
+      final prefix = md.MarkdownParser.safePrefix(widget.markdown);
+      _cachedNodes = parser.parse(prefix ?? widget.markdown);
+      _awaitingFullParse = prefix == null ? null : widget.markdown;
+      if (_awaitingFullParse != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _finishParse());
+      }
       _cachedHeadingLines = _findHeadingLines(widget.markdown);
       // Keep what is already on screen. Restarting from the first batch made
       // the preview collapse to the top of the document and re-expand on
@@ -473,6 +489,28 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       onEdit: () => _startEditing(node),
       child: child,
     );
+  }
+
+  /// Replaces the prefix parsed for the first frame with the whole document.
+  ///
+  /// Gives up quietly if the document changed in the meantime — the next build
+  /// has already started its own parse, and finishing this one would put the
+  /// previous document back on screen.
+  void _finishParse() {
+    final source = _awaitingFullParse;
+    if (source == null || !mounted || source != widget.markdown) return;
+    _awaitingFullParse = null;
+
+    final config = ref.read(settingsProvider);
+    final nodes =
+        md.MarkdownParser(enableHtml: config.enableHtml).parse(source);
+    if (!mounted) return;
+    setState(() {
+      _cachedNodes = nodes;
+      // Whatever is already on screen stays on screen; the rest fills in the
+      // way it does for a document that was parsed in one go.
+      _renderedNodeCount = _renderedNodeCount.clamp(0, nodes.length);
+    });
   }
 
   void _startEditing(md.MarkdownNode node) {

@@ -503,6 +503,69 @@ class MarkdownParser {
 
   /// Splits [source] the same way [parse] does, so line indices recorded on a
   /// node line up with the returned list.
+  /// How much of [source] can be shown while the rest is still being parsed.
+  ///
+  /// Parsing costs about 0.02–0.04 ms per block and there is no hot spot to
+  /// remove — it is the inline pass and the spans it builds. A five megabyte
+  /// document therefore takes about three seconds, and until it finishes there
+  /// is nothing on screen. Parsing a prefix first puts the top of the document
+  /// up straight away; the full parse then replaces it.
+  ///
+  /// A *prefix* rather than a chunk on purpose: line numbers in a prefix are
+  /// the same numbers as in the whole document, so the blocks it yields carry
+  /// the right source ranges with no arithmetic — and those ranges are what
+  /// editing a block in the preview depends on.
+  ///
+  /// The cut is moved forward to a blank line that is not inside a fenced code
+  /// block or front matter, so the prefix never ends mid-block and never shows
+  /// half a code fence. Returns the whole of [source] when it is short enough
+  /// to be worth parsing in one go, or when no safe cut exists.
+  static String? safePrefix(String source, {int minimumLines = 1500}) {
+    final lines = _sourceLines(source);
+    if (lines.length <= minimumLines) return null;
+
+    var inFence = false;
+    var fenceMarker = '';
+    String? frontMatterCloser;
+
+    for (var i = 0; i < lines.length; i++) {
+      final line = lines[i];
+      final trimmed = line.trimRight();
+
+      if (frontMatterCloser != null) {
+        if (trimmed == frontMatterCloser) frontMatterCloser = null;
+        continue;
+      }
+      if (i == 0) {
+        final opener = _frontMatterDelimiters[trimmed];
+        if (opener != null) {
+          frontMatterCloser = opener.close;
+          continue;
+        }
+      }
+
+      final fence = RegExp(r'^\s{0,3}(`{3,}|~{3,})').firstMatch(line);
+      if (fence != null) {
+        final marker = fence.group(1)![0];
+        if (!inFence) {
+          inFence = true;
+          fenceMarker = marker;
+        } else if (marker == fenceMarker) {
+          inFence = false;
+        }
+        continue;
+      }
+
+      // A blank line outside everything is where one block ends and the next
+      // has not started: the only place a prefix can stop without cutting
+      // something in half.
+      if (!inFence && i >= minimumLines && trimmed.isEmpty) {
+        return lines.sublist(0, i).join('\n');
+      }
+    }
+    return null;
+  }
+
   static List<String> _sourceLines(String source) {
     return const LineSplitter().convert(_stripBom(source));
   }
