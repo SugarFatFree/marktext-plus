@@ -74,6 +74,7 @@
 | BUG-070 | 2026-08-28 | 宽度超过窗格 3 倍的图表右边被裁掉（原描述已更正） | P2 | 已修复 |
 | BUG-071 | 2026-08-28 | 导出时离屏渲染写死 800 宽，宽图表在 PDF/Word/HTML 里都是残的 | **P1** | 已修复 |
 | BUG-072 | 2026-08-28 | 拖入/粘贴文件名带空格的图片，插入的是坏链接 | **P1** | 已修复 |
+| BUG-073 | 2026-08-28 | 一条写错的公式会把库的英文异常当正文显示在文档里 | P2 | 已修复 |
 
 ## 详细记录
 
@@ -2652,5 +2653,66 @@ _insertAtCursor('![image]($link)');
 - `code/lib/services/image_service.dart`
 - `code/lib/ui/editor/source_editor.dart`
 - `code/test/services/image_link_test.dart` —— 新增
+
+---
+
+## BUG-073 — 一条写错的公式会把库的英文异常当正文显示
+
+**发现日期**：2026-08-28 　**优先级**：P2 　**状态**：已修复
+
+### 现象
+
+文档里写了一条 `flutter_math_fork` 读不懂的公式，预览里出现的不是公式，也不是提示，
+而是**一行英文异常**：
+
+```
+ParseException: Undefined control sequence: \undefinedcommand
+```
+
+它以**正文样式**呈现，和读者自己写的字看不出区别。**行内公式更糟**：那段消息是多行的，
+夹在句子中间会把整行撑开。
+
+### 根因
+
+两处 `Math.tex(...)` 都没有传 `onErrorFallback`，而这个包的默认值是：
+
+```dart
+static Widget defaultOnErrorFallback(FlutterMathException error) =>
+    SelectableText(error.messageWithType);
+```
+
+### 是怎么找到的
+
+在上游那批带 issue 编号的回归测试里翻到 `blocks/math-error-nowrap-4100`：
+
+> an invalid inline-math formula renders a KaTeX parse-error message inside the
+> narrow inline-math popup; without `white-space: nowrap` the message wrapped
+> across several lines and overflowed.
+
+上游解决的是「错误信息换行溢出」。**顺着这条线去查我们的，发现的是更前面一步的问题：
+我们连「这是个错误」都没有表达出来**，直接把库的异常字符串当文档内容画了出来。
+
+### 修复方案
+
+- **公式块**：退回显示**读者自己写的那条公式**，等宽字体、错误色。他能看见自己打了什么，
+  以及它没有生效
+- **行内公式**：同样显示原文，但 `maxLines: 1` + 不换行 + 省略号 —— 公式是嵌在句子里的，
+  一段会换行的东西放在那里会把整行撑开（这正是上游 #4100 那条测试的关切）
+
+### 顺带确认没问题的
+
+一条坏公式**不会让整篇预览崩掉** —— 这个包的默认行为就是返回一个组件而不是抛异常。
+所以这条是「显示得不对」，不是「用不了」。
+
+### 测试
+
+`code/test/ui/editor/math_error_test.dart`，3 条。**已确认对旧实现有 2 条会失败。**
+其中第三条是反向的：**能正确解析的公式不能走进兜底** —— 否则「显示原文」就从修复变成了
+把所有公式都退化成纯文本。
+
+### 涉及文件
+
+- `code/lib/ui/editor/markdown_renderer.dart`
+- `code/test/ui/editor/math_error_test.dart` —— 新增
 
 ---

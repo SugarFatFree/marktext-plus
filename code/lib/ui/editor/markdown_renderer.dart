@@ -1082,7 +1082,22 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       margin: const EdgeInsets.symmetric(vertical: 8),
       padding: const EdgeInsets.all(12),
       child: Center(
-        child: Math.tex(node.expression, textStyle: theme.textTheme.bodyLarge),
+        child: Math.tex(
+          node.expression,
+          textStyle: theme.textTheme.bodyLarge,
+          // Without this the package prints its own exception into the page —
+          // `ParseException: Undefined control sequence: \foo`, in English, in
+          // body text, indistinguishable from something the reader wrote. What
+          // they need to see is the formula they typed and that it did not
+          // come out.
+          onErrorFallback: (_) => Text(
+            node.expression,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              fontFamily: 'monospace',
+              color: theme.colorScheme.error,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -1289,7 +1304,27 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
           }
         case md.InlineType.mathInline:
           children.add(
-            WidgetSpan(child: Math.tex(span.text, textStyle: baseStyle)),
+            WidgetSpan(
+              child: Math.tex(
+                span.text,
+                textStyle: baseStyle,
+                // On one line, always. A formula sits inside a sentence, and
+                // the package's default is a multi-line English exception —
+                // which wraps, pushes the line apart and buries the sentence.
+                // The reader's own text, in the error colour, says the same
+                // thing without any of that.
+                onErrorFallback: (_) => Text(
+                  span.text,
+                  maxLines: 1,
+                  softWrap: false,
+                  overflow: TextOverflow.ellipsis,
+                  style: baseStyle?.copyWith(
+                    fontFamily: 'monospace',
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                ),
+              ),
+            ),
           );
         case md.InlineType.highlight:
           final s = baseStyle?.copyWith(
