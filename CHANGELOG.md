@@ -5,6 +5,13 @@ All notable changes to MarkText Plus will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - v1.5.1
+
+### Added
+
+### Fixed
+- The macOS download is named for what it is. The published app has always carried both x86_64 and arm64, but it was called `macos-arm64`, and the release listed two `macos-x64` files that no job ever built — the release action skips a file it cannot find and still reports success
+
 ## [v1.5.0] - 2026-08-29
 
 ### Added
