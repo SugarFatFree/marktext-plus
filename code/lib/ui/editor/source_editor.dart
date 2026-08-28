@@ -656,7 +656,8 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
       folder: prefs.folder,
     );
     if (imagePath != null && mounted) {
-      _insertAtCursor('![image]($imagePath)');
+      _insertAtCursor(
+          '![image](${ImageService.markdownDestination(imagePath)})');
     }
   }
 
@@ -673,7 +674,8 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
         folder: prefs.folder,
       );
       if (!mounted) return;
-      _insertAtCursor('![image]($link)');
+      _insertAtCursor(
+          '![image](${ImageService.markdownDestination(link)})');
     }
   }
 

@@ -154,6 +154,22 @@ class ImageService {
     return toMarkdownSeparators(path.relative(target, from: mdDir));
   }
 
+  /// Wraps a link for use as a markdown destination.
+  ///
+  /// A bare destination cannot contain a space: `![](my photo.png)` is not an
+  /// image at all, it is that text. Angle brackets are how CommonMark says to
+  /// write one that does — and the parser here reads them. This matters
+  /// because the names come from the reader's own files, and on Windows a
+  /// screenshot arrives called "屏幕截图 2026-08-28.png".
+  ///
+  /// Percent-encoding is the fallback for the one case brackets cannot cover:
+  /// a path that already contains `>`.
+  static String markdownDestination(String link) {
+    if (!link.contains(RegExp(r'\s'))) return link;
+    if (!link.contains('>')) return '<$link>';
+    return link.replaceAll(' ', '%20');
+  }
+
   /// Rewrites a filesystem path for use inside a markdown link.
   ///
   /// A markdown link is a URL, and Windows' backslash is an escape character
