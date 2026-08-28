@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -58,4 +60,37 @@ void main() {
 
     expect(byKey.entries.where((e) => e.value.length > 1), isEmpty);
   });
+  group('the screen answers to the table, not to keys written out in it', () {
+    // Six view shortcuts were compared key by key in the home screen —
+    // Ctrl+Alt+1, Ctrl+Shift+B and the rest — which held only while the table
+    // agreed. Rebinding one in Settings left the old key working there.
+    const answered = [
+      'commandPalette',
+      'sourceMode',
+      'previewMode',
+      'splitMode',
+      'toggleTabBar',
+      'toggleSidebar',
+      'focusMode',
+    ];
+
+    test('every action it answers to is in the table', () {
+      for (final action in answered) {
+        expect(KeybindingService.defaultKeybindings.containsKey(action), isTrue,
+            reason: '$action 不在表里，改绑就管不到它');
+      }
+    });
+
+    test('none of them is written out in the screen as a key comparison', () {
+      final source = File('lib/ui/screens/home_screen.dart').readAsStringSync();
+      final handler = source.substring(
+        source.indexOf('KeyEventResult _runGlobalShortcut'),
+      );
+
+      expect(handler.contains('LogicalKeyboardKey.digit1'), isFalse);
+      expect(handler.contains('LogicalKeyboardKey.keyB'), isFalse);
+      expect(handler.contains('LogicalKeyboardKey.keyP'), isFalse);
+    });
+  });
+
 }

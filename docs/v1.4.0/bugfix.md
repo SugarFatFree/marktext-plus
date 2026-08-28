@@ -98,6 +98,7 @@
 | BUG-094 | 2026-08-28 | 关掉所有标签页后，导出与打印仍可点却什么都不做 | P2 | 已修复 |
 | BUG-095 | 2026-08-28 | 任务列表忽略「列表标记」设置，同一文档里出现两种标记 | P3 | 已修复 |
 | BUG-096 | 2026-08-28 | Ctrl+P 仍被写死的分支抢走，打印的快捷键从未生效 | **P1** | 已修复 |
+| BUG-097 | 2026-08-28 | 六个视图快捷键写死在主界面里，改绑之后旧键仍然生效 | P2 | 已修复 |
 
 ## 详细记录
 
@@ -3832,5 +3833,44 @@ if (event.logicalKey == LogicalKeyboardKey.keyP && isCtrl) { ... }
 
 - `code/lib/ui/screens/home_screen.dart`
 - `code/test/services/palette_binding_test.dart` —— 新增
+
+---
+
+## BUG-097：改了快捷键，旧键仍然生效
+
+### 现象
+
+设置里可以改快捷键（`setKeybinding` 就是设置页调的）。但把这六个动作之一改绑
+之后——源码/预览/分屏模式、标签栏、侧边栏、专注模式——**旧的键位仍然管用**，
+而新键只在菜单栏挂着时才管用（专注模式下菜单栏被移出组件树，新键就完全按不动）。
+
+### 根因
+
+`home_screen._runViewShortcut` 把这六个键位**逐个写死**：`Ctrl+Alt+1`、
+`Ctrl+Shift+B`……它们**恰好与表里一致**，所以肉眼看不出问题，只有改绑时才现形。
+
+这是 BUG-096 的同一处代码、同一个毛病：**表一处、写死的判断一处**。上一轮我
+只修了被自己踩坏的那一条（Ctrl+P），没有回头看它旁边那六条——**修一处而不看
+同族，正是这个项目反复吃亏的地方**。
+
+### 修复方案
+
+`_runViewShortcut` 改名 `_runGlobalShortcut`，用一张"动作 → 回调"的表，逐个
+向 `KeybindingService` 要当前绑定并用 `SingleActivator.accepts` 匹配。上一轮
+单独加的命令面板分支也并了进来，现在全局处理器只有一处、只认表。
+
+保留在全局处理器里的理由不变：专注模式会把菜单栏移出组件树，这些视图快捷键
+（尤其是退出专注模式）在那时最该能用。
+
+### 测试
+
+新增 2 条：这七个动作必须都在表里；`_runGlobalShortcut` 的源码里**不得再出现
+`LogicalKeyboardKey.digit1/keyB/keyP` 这样的字面比较**——后一条直接读源文件，
+因为它要守的正是"不要把键位再写死一遍"。
+
+### 涉及文件
+
+- `code/lib/ui/screens/home_screen.dart`
+- `code/test/services/palette_binding_test.dart`
 
 ---

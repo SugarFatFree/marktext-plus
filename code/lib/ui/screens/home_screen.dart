@@ -591,41 +591,38 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
 
   /// The view shortcuts the menus advertise. These are not user-configurable,
   /// so they are matched against the same combinations the menu displays.
-  KeyEventResult _runViewShortcut(KeyEvent event, bool isCtrl) {
-    if (!isCtrl) return KeyEventResult.ignored;
-
+  /// The shortcuts this screen answers to, taken from the keybinding table.
+  ///
+  /// Written out as key comparisons once — Ctrl+Alt+1, Ctrl+Shift+B and the
+  /// rest — which held only while the table said the same thing. Rebinding
+  /// one of them in Settings left the old key working here and the new key
+  /// working only through the menu, and the same duplication had already sent
+  /// Ctrl+P to the palette after Print was given it.
+  ///
+  /// Answered here as well as by the menu because focus mode takes the menu
+  /// bar out of the tree, and with it every shortcut the menu registers.
+  KeyEventResult _runGlobalShortcut(KeyEvent event) {
     final settings = ref.read(settingsProvider.notifier);
-    final alt = HardwareKeyboard.instance.isAltPressed;
-    final shift = HardwareKeyboard.instance.isShiftPressed;
+    final actions = <String, VoidCallback>{
+      'commandPalette': () => CommandPalette.show(context),
+      'sourceMode': () => settings.setEditMode(EditMode.source),
+      'previewMode': () => settings.setEditMode(EditMode.preview),
+      'splitMode': () => settings.setEditMode(EditMode.split),
+      'toggleTabBar': settings.toggleTabBar,
+      'toggleSidebar': settings.toggleSideBar,
+      'focusMode': settings.toggleFocusMode,
+    };
 
-    if (alt && !shift) {
-      switch (event.logicalKey) {
-        case LogicalKeyboardKey.digit1:
-          settings.setEditMode(EditMode.source);
-          return KeyEventResult.handled;
-        case LogicalKeyboardKey.digit2:
-          settings.setEditMode(EditMode.preview);
-          return KeyEventResult.handled;
-        case LogicalKeyboardKey.digit3:
-          settings.setEditMode(EditMode.split);
-          return KeyEventResult.handled;
-        case LogicalKeyboardKey.keyT:
-          settings.toggleTabBar();
-          return KeyEventResult.handled;
+    final service = KeybindingService();
+    for (final entry in actions.entries) {
+      final activator =
+          service.activatorFor(entry.key, isMacOS: PlatformUtils.isMacOS);
+      if (activator != null &&
+          activator.accepts(event, HardwareKeyboard.instance)) {
+        entry.value();
+        return KeyEventResult.handled;
       }
     }
-
-    if (shift && !alt) {
-      switch (event.logicalKey) {
-        case LogicalKeyboardKey.keyB:
-          settings.toggleSideBar();
-          return KeyEventResult.handled;
-        case LogicalKeyboardKey.keyF:
-          settings.toggleFocusMode();
-          return KeyEventResult.handled;
-      }
-    }
-
     return KeyEventResult.ignored;
   }
 
@@ -647,26 +644,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
       onKeyEvent: (node, event) {
         if (event is! KeyDownEvent) return KeyEventResult.ignored;
 
-        final isCtrl = PlatformUtils.isMacOS
-            ? HardwareKeyboard.instance.isMetaPressed
-            : HardwareKeyboard.instance.isControlPressed;
-
-        // The palette's binding is taken from the keybinding table, not
-        // written out here. It used to be a hardcoded Ctrl+P, which went on
-        // grabbing that key after Print was given it — the palette answered
-        // to two shortcuts and Print to none.
-        //
-        // Handled here as well as in the menu because focus mode takes the
-        // menu bar out of the tree, and with it every shortcut the menu
-        // registers.
-        final palette = KeybindingService()
-            .activatorFor('commandPalette', isMacOS: PlatformUtils.isMacOS);
-        if (palette != null &&
-            palette.accepts(event, HardwareKeyboard.instance)) {
-          CommandPalette.show(context);
-          return KeyEventResult.handled;
-        }
-
+        // Escape is not a rebindable action; the rest come from the table.
         if (config.focusMode && event.logicalKey == LogicalKeyboardKey.escape) {
           ref.read(settingsProvider.notifier).toggleFocusMode();
           return KeyEventResult.handled;
@@ -677,7 +655,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
         }
 
         if (_runShortcut(event)) return KeyEventResult.handled;
-        return _runViewShortcut(event, isCtrl);
+        return _runGlobalShortcut(event);
       },
       child: Scaffold(
         body: DropTarget(
