@@ -117,8 +117,15 @@ jobs:
           # snapshot was ever updated. `ignoreversion` in the installer fixes
           # that outright; this removes the reason it happened, and makes the
           # file's properties say which build it came from.
+          # --split-debug-info takes the symbol tables out of the AOT snapshot
+          # and writes them beside the build instead. The runner's own trace
+          # showed where a launch actually goes: 90 ms to load the exe and its
+          # DLLs, 50 ms of runner prologue, and 2.7 seconds booting the engine
+          # and loading app.so. app.so is 13.6 MB, and this is the one way to
+          # make it smaller that costs no feature.
           flutter build windows --release `
             --build-number=$env:GITHUB_RUN_NUMBER `
+            --split-debug-info=build\symbols `
             --dart-define=BUILD_SHA=$env:GITHUB_SHA `
             --dart-define=BUILD_RUN=$env:GITHUB_RUN_NUMBER `
             --dart-define=BUILD_SDK=$sdk

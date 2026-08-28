@@ -1030,12 +1030,16 @@ class AppMenuBar extends ConsumerWidget {
         top: -9999,
         child: RepaintBoundary(
           key: key,
+          // No width: this is drawn off screen for an export, so it should be
+          // the whole diagram at its own size. Forcing 800 meant a diagram
+          // wider than that was laid out at its full width inside a box that
+          // was not — and the capture kept only the left 800 pixels. Every
+          // export of a wide diagram was missing its right-hand side, in the
+          // PDF, the Word file and the HTML alike.
           child: Container(
             color: Colors.white,
-            width: 800,
             child: MermaidDiagram(
               code: code,
-              width: 800,
               style: const MermaidStyle(),
             ),
           ),
