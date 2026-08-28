@@ -735,7 +735,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       );
     }
 
-    final baseCodeStyle = _codeStyle(fontSize: 14);
+    final baseCodeStyle = _codeStyle();
     // Skip highlighting for very large blocks to keep first-render responsive
     final canHighlight = node.language.isNotEmpty && node.code.length <= 20000;
 
@@ -1106,13 +1106,16 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   /// `code`, front matter, html blocks and the block editor in the platform's
   /// generic face — the same font setting producing two different fonts on
   /// one screen. One source, so the next place to draw code cannot drift.
-  TextStyle _codeStyle({required double fontSize, Color? color}) => TextStyle(
-        fontFamily: ref.read(settingsProvider).codeFontFamily,
-        // A face that is not installed falls back rather than to the UI font.
-        fontFamilyFallback: const ['monospace'],
-        fontSize: fontSize,
-        color: color,
-      );
+  TextStyle _codeStyle({double? fontSize, Color? color}) {
+    final config = ref.read(settingsProvider);
+    return TextStyle(
+      fontFamily: config.codeFontFamily,
+      // A face that is not installed falls back rather than to the UI font.
+      fontFamilyFallback: const ['monospace'],
+      fontSize: fontSize ?? config.codeFontSize,
+      color: color,
+    );
+  }
 
   Widget _buildFrontMatter(md.FrontMatterNode node, ThemeData theme) {
     return Container(
@@ -1123,7 +1126,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         borderRadius: BorderRadius.circular(4),
         border: Border.all(color: theme.dividerColor),
       ),
-      child: Text(node.content, style: _codeStyle(fontSize: 13)),
+      child: Text(node.content, style: _codeStyle()),
     );
   }
 
@@ -1157,7 +1160,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(4),
       ),
-      child: Text(node.html, style: _codeStyle(fontSize: 13)),
+      child: Text(node.html, style: _codeStyle()),
     );
   }
 

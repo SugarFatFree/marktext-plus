@@ -38,6 +38,17 @@ void main() {
       expect(restored.locale, 'zh_CN');
     });
 
+    test('the code font size survives a round trip', () {
+      // Code was fixed at 14 whatever the body font was set to, so anyone who
+      // enlarged the text got large prose and small code.
+      final restored =
+          AppConfig.fromJson(AppConfig(codeFontSize: 22.0).toJson());
+      expect(restored.codeFontSize, 22.0);
+      expect(AppConfig.fromJson(const {}).codeFontSize, 14.0);
+      expect(AppConfig.fromJson(const {'codeFontSize': 'bad'}).codeFontSize,
+          14.0);
+    });
+
     test('fromJson handles missing keys with defaults', () {
       final config = AppConfig.fromJson({'fontSize': 24.0});
       expect(config.fontSize, 24.0);

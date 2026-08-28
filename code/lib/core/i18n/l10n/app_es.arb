@@ -195,6 +195,7 @@
   "formatInlineMath": "Fórmula en línea",
   "formatClearFormatting": "Borrar formato",
   "settingsCodeFontFamily": "Fuente de código",
+  "settingsCodeFontSize": "Tamaño de fuente de código",
   "settingsEditorFontFamily": "Fuente del editor",
   "settingsEditorMaxWidth": "Ancho máximo del editor",
   "settingsTextDirection": "Dirección del texto",

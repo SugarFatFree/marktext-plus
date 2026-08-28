@@ -340,6 +340,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ),
         _row(
+          l10n.settingsCodeFontSize,
+          SizedBox(
+            width: 120,
+            child: TextField(
+              controller: TextEditingController(
+                text: config.codeFontSize.toStringAsFixed(0),
+              ),
+              keyboardType: TextInputType.number,
+              onSubmitted: (v) {
+                final size = double.tryParse(v);
+                if (size == null) return;
+                ref.read(settingsProvider.notifier).updateConfig(
+                      // Clamped: a zero or a stray 400 from the keyboard makes
+                      // the document unreadable with no obvious way back.
+                      (c) => c.copyWith(codeFontSize: size.clamp(8.0, 48.0)),
+                    );
+              },
+            ),
+          ),
+        ),
+        _row(
           l10n.settingsEditorMaxWidth,
           SizedBox(
             width: 120,

@@ -195,6 +195,7 @@
   "formatInlineMath": "Встроенная формула",
   "formatClearFormatting": "Очистить форматирование",
   "settingsCodeFontFamily": "Шрифт кода",
+  "settingsCodeFontSize": "Размер шрифта кода",
   "settingsEditorFontFamily": "Шрифт редактора",
   "settingsEditorMaxWidth": "Максимальная ширина редактора",
   "settingsTextDirection": "Направление текста",

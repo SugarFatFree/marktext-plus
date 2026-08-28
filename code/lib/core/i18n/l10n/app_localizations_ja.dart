@@ -475,6 +475,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsCodeFontFamily => 'コードフォント';
 
   @override
+  String get settingsCodeFontSize => 'コードフォントサイズ';
+
+  @override
   String get settingsEditorFontFamily => '本文フォント';
 
   @override

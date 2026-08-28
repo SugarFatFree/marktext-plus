@@ -481,6 +481,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get settingsCodeFontFamily => 'Шрифт кода';
 
   @override
+  String get settingsCodeFontSize => 'Размер шрифта кода';
+
+  @override
   String get settingsEditorFontFamily => 'Шрифт редактора';
 
   @override

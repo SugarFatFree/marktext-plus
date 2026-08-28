@@ -25,14 +25,18 @@ void main() {
     if (configDir.existsSync()) configDir.deleteSync(recursive: true);
   });
 
-  Future<void> pump(WidgetTester tester, String markdown) async {
+  Future<void> pump(WidgetTester tester, String markdown,
+      {double? codeFontSize}) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           settingsProvider.overrideWith(
             (ref) => SettingsNotifier(
               ConfigService(configDir: configDir.path),
-              AppConfig(codeFontFamily: chosen),
+              AppConfig(
+                codeFontFamily: chosen,
+                codeFontSize: codeFontSize ?? 14.0,
+              ),
             ),
           ),
         ],
@@ -69,6 +73,43 @@ void main() {
     }
     return families;
   }
+
+  /// Every font size named by any Text or Text.rich in the tree.
+  Set<double?> sizesOf(WidgetTester tester) {
+    final sizes = <double?>{};
+    void walk(InlineSpan span) {
+      sizes.add(span.style?.fontSize);
+      span.visitChildren((child) {
+        if (child != span) walk(child);
+        return true;
+      });
+    }
+
+    for (final text in tester.widgetList<Text>(find.byType(Text))) {
+      if (text.style != null) sizes.add(text.style!.fontSize);
+      final span = text.textSpan;
+      if (span != null) walk(span);
+    }
+    return sizes;
+  }
+
+  testWidgets('a fenced block is drawn at the chosen size', (tester) async {
+    // The size was fixed at 14 whatever anyone set, so enlarging the text
+    // gave large prose and small code.
+    await pump(tester, '```\nplain\n```\n', codeFontSize: 22);
+    expect(sizesOf(tester), contains(22.0));
+    expect(sizesOf(tester), isNot(contains(14.0)));
+  });
+
+  testWidgets('front matter and html blocks follow the same size',
+      (tester) async {
+    // They were drawn a point smaller than fenced blocks for no stated
+    // reason, so one setting produced two sizes.
+    await pump(tester, '---\ntitle: x\n---\n\n<div>\n  raw\n</div>\n',
+        codeFontSize: 22);
+    expect(sizesOf(tester), contains(22.0));
+    expect(sizesOf(tester), isNot(contains(13.0)));
+  });
 
   testWidgets('a fenced block uses the chosen face', (tester) async {
     await pump(tester, '```\nplain\n```\n');

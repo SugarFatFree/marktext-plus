@@ -1005,6 +1005,12 @@ abstract class AppLocalizations {
   /// **'Code Font Family'**
   String get settingsCodeFontFamily;
 
+  /// No description provided for @settingsCodeFontSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Code Font Size'**
+  String get settingsCodeFontSize;
+
   /// Settings row for the font the editor's body text is drawn in
   ///
   /// In en, this message translates to:

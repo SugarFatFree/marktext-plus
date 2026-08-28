@@ -480,6 +480,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsCodeFontFamily => 'Code Font Family';
 
   @override
+  String get settingsCodeFontSize => 'Code Font Size';
+
+  @override
   String get settingsEditorFontFamily => 'Editor Font Family';
 
   @override

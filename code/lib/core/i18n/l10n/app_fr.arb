@@ -195,6 +195,7 @@
   "formatInlineMath": "Formule en ligne",
   "formatClearFormatting": "Effacer le formatage",
   "settingsCodeFontFamily": "Police de code",
+  "settingsCodeFontSize": "Taille de police du code",
   "settingsEditorFontFamily": "Police de l'éditeur",
   "settingsEditorMaxWidth": "Largeur maximale de l'éditeur",
   "settingsTextDirection": "Direction du texte",

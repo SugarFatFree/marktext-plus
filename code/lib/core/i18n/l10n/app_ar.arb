@@ -195,6 +195,7 @@
   "formatInlineMath": "صيغة مضمّنة",
   "formatClearFormatting": "مسح التنسيق",
   "settingsCodeFontFamily": "خط الكود",
+  "settingsCodeFontSize": "حجم خط الكود",
   "settingsEditorFontFamily": "خط المحرر",
   "settingsEditorMaxWidth": "أقصى عرض للمحرر",
   "settingsTextDirection": "اتجاه النص",

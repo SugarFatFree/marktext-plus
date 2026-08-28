@@ -63,6 +63,14 @@ class AppConfig {
   bool focusMode;
   bool typewriterMode;
   String codeFontFamily;
+
+  /// The size code is drawn at, independent of the body font size.
+  ///
+  /// Separate because raising the reading size of prose and raising the size
+  /// of code are different wishes: code was fixed at 14 whatever the body was
+  /// set to, so anyone who enlarged the text got large prose and small code.
+  /// Upstream keeps the two apart for the same reason.
+  double codeFontSize;
   int editorMaxWidth;
   String textDirection;
   String imageStorageMode;
@@ -104,6 +112,7 @@ class AppConfig {
     this.focusMode = false,
     this.typewriterMode = false,
     this.codeFontFamily = 'Courier New',
+    this.codeFontSize = 14.0,
     this.editorMaxWidth = 800,
     this.textDirection = 'ltr',
     this.imageStorageMode = 'copy',
@@ -146,6 +155,7 @@ class AppConfig {
     'focusMode': focusMode,
     'typewriterMode': typewriterMode,
     'codeFontFamily': codeFontFamily,
+    'codeFontSize': codeFontSize,
     'editorMaxWidth': editorMaxWidth,
     'textDirection': textDirection,
     'imageStorageMode': imageStorageMode,
@@ -194,6 +204,7 @@ class AppConfig {
       focusMode: json['focusMode'] as bool? ?? false,
       typewriterMode: json['typewriterMode'] as bool? ?? false,
       codeFontFamily: json['codeFontFamily'] as String? ?? 'Courier New',
+      codeFontSize: _parseDouble(json['codeFontSize'], 14.0),
       editorMaxWidth: json['editorMaxWidth'] as int? ?? 800,
       textDirection: json['textDirection'] as String? ?? 'ltr',
       imageStorageMode: json['imageStorageMode'] as String? ?? 'copy',
@@ -258,6 +269,7 @@ class AppConfig {
     bool? focusMode,
     bool? typewriterMode,
     String? codeFontFamily,
+    double? codeFontSize,
     int? editorMaxWidth,
     String? textDirection,
     String? imageStorageMode,
@@ -300,6 +312,7 @@ class AppConfig {
       focusMode: focusMode ?? this.focusMode,
       typewriterMode: typewriterMode ?? this.typewriterMode,
       codeFontFamily: codeFontFamily ?? this.codeFontFamily,
+      codeFontSize: codeFontSize ?? this.codeFontSize,
       editorMaxWidth: editorMaxWidth ?? this.editorMaxWidth,
       textDirection: textDirection ?? this.textDirection,
       imageStorageMode: imageStorageMode ?? this.imageStorageMode,
