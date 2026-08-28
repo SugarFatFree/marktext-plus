@@ -380,6 +380,15 @@ class IncrementalMarkdownHighlighter {
   /// string per line, and doing that for every line of a large document was
   /// the single most expensive part of a keystroke.
   List<List<TextSpan>> _lineFlat = const [];
+
+  /// Each line as a single span holding its own children.
+  ///
+  /// What [build] returns is a list with one entry per line rather than one
+  /// entry per styled run. On a one megabyte document that is thirty thousand
+  /// entries instead of half a million, and the list was being built from
+  /// scratch on every keystroke — the copying, not the highlighting, was what
+  /// made typing in a large file cost about 47 ms a key.
+  List<TextSpan> _lineNodes = const [];
   HighlightColors? _colors;
   bool _suspended = false;
 
@@ -394,6 +403,7 @@ class IncrementalMarkdownHighlighter {
       _lineSpans = const [];
       _lineFences = const [];
       _lineFlat = const [];
+      _lineNodes = const [];
       _colors = colors;
       return [TextSpan(text: text, style: TextStyle(color: colors.defaultColor))];
     }
@@ -406,6 +416,7 @@ class IncrementalMarkdownHighlighter {
       _lineSpans = const [];
       _lineFences = const [];
       _lineFlat = const [];
+      _lineNodes = const [];
     }
 
     final next = text.split('\n');
@@ -431,13 +442,16 @@ class IncrementalMarkdownHighlighter {
 
     final rebuilt = List<List<TextSpan>>.filled(next.length, const []);
     final flat = List<List<TextSpan>>.filled(next.length, const []);
+    final nodes = List<TextSpan>.filled(next.length, const TextSpan());
     for (int i = 0; i < head; i++) {
       rebuilt[i] = _lineSpans[i];
       flat[i] = _lineFlat[i];
+      nodes[i] = _lineNodes[i];
     }
     for (int i = 0; i < tail; i++) {
       rebuilt[next.length - 1 - i] = _lineSpans[_lines.length - 1 - i];
       flat[next.length - 1 - i] = _lineFlat[_lines.length - 1 - i];
+      nodes[next.length - 1 - i] = _lineNodes[_lines.length - 1 - i];
     }
     for (int i = head; i < next.length - tail; i++) {
       final spans = MarkdownSyntaxHighlighter.highlightLine(
@@ -447,22 +461,51 @@ class IncrementalMarkdownHighlighter {
       );
       rebuilt[i] = spans;
       flat[i] = MarkdownSyntaxHighlighter.withNewline(spans, colors);
+      nodes[i] = TextSpan(children: flat[i]);
+    }
+
+    // Two lines need their node rebuilt whatever the diff said, because a
+    // node's contents depend on whether its line is the last one — the last
+    // line is the only one with no newline after it.
+    //
+    // The line that is last now: its spans must come from the form without a
+    // newline.
+    //
+    // And the line that *was* last: adding a line after it leaves it textually
+    // unchanged, so the head scan reuses it — handing back the node built when
+    // it had no newline, and dropping a line break out of the document. The
+    // existing tests caught this, which is the whole reason they compare the
+    // incremental result against a full re-highlight rather than against
+    // themselves.
+    final wasLast = _lines.length - 1;
+    if (wasLast >= 0 && wasLast < next.length - 1) {
+      nodes[wasLast] = TextSpan(children: flat[wasLast]);
+    }
+    if (next.isNotEmpty) {
+      nodes[next.length - 1] = TextSpan(children: rebuilt[next.length - 1]);
     }
 
     _lines = next;
     _lineSpans = rebuilt;
     _lineFences = fences;
     _lineFlat = flat;
+    _lineNodes = nodes;
 
-    // The final line carries no newline, so it is the one place the cached
-    // form cannot be used.
-    final out = <TextSpan>[];
-    for (int i = 0; i < next.length - 1; i++) {
-      out.addAll(flat[i]);
-    }
-    if (next.isNotEmpty) out.addAll(rebuilt[next.length - 1]);
-    return out;
+    return nodes;
   }
+
+  /// The line spans laid out end to end.
+  ///
+  /// Only what needs a flat view asks for one — painting a search highlight
+  /// across the document. Typing does not, and paying for the flattening on
+  /// every keystroke is what this class exists to avoid.
+  static List<TextSpan> flatten(List<TextSpan> lineNodes) => [
+        for (final line in lineNodes)
+          if (line.children == null)
+            line
+          else
+            ...line.children!.cast<TextSpan>(),
+      ];
 }
 
 enum _PatternType {

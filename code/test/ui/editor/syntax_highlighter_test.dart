@@ -502,7 +502,13 @@ void main() {
       ).children!.cast<TextSpan>();
     }
 
-    void expectSameAsFull(List<TextSpan> incremental, String text) {
+    void expectSameAsFull(List<TextSpan> lineNodes, String text) {
+      // build() now returns one span per line, each holding its runs, because
+      // rebuilding a flat list of every run on every keystroke was what made
+      // typing in a large file cost tens of milliseconds. What the incremental
+      // path has to produce is unchanged once the lines are laid end to end,
+      // which is exactly what this compares.
+      final incremental = IncrementalMarkdownHighlighter.flatten(lineNodes);
       final reference = full(text);
       expect(
         incremental.map((s) => s.text).toList(),
@@ -540,12 +546,14 @@ void main() {
       final first = highlighter.build('aaa\nbbb\nccc', colors);
       final second = highlighter.build('aaX\nbbb\nccc', colors);
 
-      // Only the edited first line is rescanned; the last line's span object
-      // is handed back untouched. (Lines before the last get a fresh span so
-      // their newline can carry the line's style, so identity only holds for
-      // the last line.)
-      expect(identical(first.last, second.last), isTrue);
-      expect(identical(first.first, second.first), isFalse);
+      // build() returns one span per line. A line the edit did not touch is
+      // handed back as the very same object — that reuse is the whole point of
+      // this class. The last line is the exception: its span carries no
+      // newline, and which line is last can change, so it is always rebuilt.
+      expect(identical(first[1], second[1]), isTrue,
+          reason: '没被改动的行应该原样复用');
+      expect(identical(first[0], second[0]), isFalse,
+          reason: '被改动的行必须重新扫描');
     });
 
     test('handles blank lines and a trailing newline', () {
@@ -568,7 +576,9 @@ void main() {
       );
       final recoloured = highlighter.build('# Title', other);
 
-      expect(recoloured.single.style?.color, Colors.orange);
+      // One line, one span, holding the heading's runs.
+      final runs = IncrementalMarkdownHighlighter.flatten(recoloured);
+      expect(runs.single.style?.color, Colors.orange);
     });
 
     test('opening a fence restyles every line below it', () {
@@ -584,7 +594,8 @@ void main() {
       final inside = highlighter.build(fenced, colors);
       expectSameAsFull(inside, fenced);
       expect(
-        inside.every((s) => s.style?.color == colors.code),
+        IncrementalMarkdownHighlighter.flatten(inside)
+            .every((s) => s.style?.color == colors.code),
         isTrue,
         reason: 'everything between the fences is code',
       );
@@ -629,7 +640,10 @@ void main() {
       // And it starts highlighting again once the document is small.
       final back = highlighter.build('# h', colors);
       expect(highlighter.isSuspended, isFalse);
-      expect(back.single.style?.color, colors.heading);
+      expect(
+        IncrementalMarkdownHighlighter.flatten(back).single.style?.color,
+        colors.heading,
+      );
     });
   });
 }

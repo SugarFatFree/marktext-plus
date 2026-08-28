@@ -91,9 +91,17 @@ class HighlightingController extends TextEditingController {
     // so their combined length has to equal the controller's text. If a
     // highlighting bug ever breaks that, an unstyled document is far better
     // than misplaced selection rectangles.
+    // Each entry is one line, holding its own runs as children, so the count
+    // has to descend one level. Summing `child.text` alone would come to zero
+    // and quietly drop the reader back to an unstyled document.
     int spanTextLen = 0;
     for (final child in children) {
       spanTextLen += child.text?.length ?? 0;
+      final runs = child.children;
+      if (runs == null) continue;
+      for (final run in runs) {
+        if (run is TextSpan) spanTextLen += run.text?.length ?? 0;
+      }
     }
     if (spanTextLen != text.length) {
       if (_searchMatches.isEmpty) {
@@ -111,7 +119,14 @@ class HighlightingController extends TextEditingController {
       return TextSpan(style: style, children: children);
     }
 
-    return TextSpan(style: style, children: _applySearchHighlight(children));
+    // Flattened only here: painting a match across the document needs the runs
+    // end to end. Typing does not, which is the whole point of returning lines.
+    return TextSpan(
+      style: style,
+      children: _applySearchHighlight(
+        IncrementalMarkdownHighlighter.flatten(children),
+      ),
+    );
   }
 
   /// Paints the search highlight over the syntax spans.
