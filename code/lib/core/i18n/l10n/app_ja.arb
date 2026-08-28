@@ -87,6 +87,7 @@
   "fileExport": "エクスポート",
   "fileExportHtml": "HTML",
   "fileExportPdf": "PDF",
+  "filePrint": "印刷",
   "fileExportWord": "Word (.docx)",
   "fileSettings": "設定",
   "fileQuit": "終了",

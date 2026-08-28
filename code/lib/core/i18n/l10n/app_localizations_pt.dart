@@ -144,6 +144,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get fileExportPdf => 'PDF';
 
   @override
+  String get filePrint => 'Imprimir';
+
+  @override
   String get fileExportWord => 'Word (.docx)';
 
   @override
@@ -1026,6 +1029,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get fileExportPdf => 'PDF';
+
+  @override
+  String get filePrint => 'Imprimir';
 
   @override
   String get fileExportWord => 'Word (.docx)';

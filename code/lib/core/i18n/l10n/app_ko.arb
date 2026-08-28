@@ -87,6 +87,7 @@
   "fileExport": "내보내기",
   "fileExportHtml": "HTML",
   "fileExportPdf": "PDF",
+  "filePrint": "인쇄",
   "fileExportWord": "Word (.docx)",
   "fileSettings": "설정",
   "fileQuit": "종료",

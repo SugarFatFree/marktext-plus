@@ -143,6 +143,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get fileExportPdf => 'PDF';
 
   @override
+  String get filePrint => 'Печать';
+
+  @override
   String get fileExportWord => 'Word (.docx)';
 
   @override

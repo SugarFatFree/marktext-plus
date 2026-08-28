@@ -345,6 +345,12 @@ abstract class AppLocalizations {
   /// **'PDF'**
   String get fileExportPdf;
 
+  /// No description provided for @filePrint.
+  ///
+  /// In en, this message translates to:
+  /// **'Print'**
+  String get filePrint;
+
   /// No description provided for @fileExportWord.
   ///
   /// In en, this message translates to:

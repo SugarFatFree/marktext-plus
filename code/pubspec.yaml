@@ -21,6 +21,8 @@ dependencies:
   flutter_highlight: ^0.7.0
   highlight: ^0.7.0
   pdf: ^3.11.1
+  # 系统打印对话框。依赖的 pdf 本就在用，导出 PDF 与打印共用同一套排版。
+  printing: ^5.14.3
   desktop_drop: ^0.4.4
   pasteboard: ^0.5.0
   window_manager: ^0.4.3

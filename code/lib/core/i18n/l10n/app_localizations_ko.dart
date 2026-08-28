@@ -138,6 +138,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get fileExportPdf => 'PDF';
 
   @override
+  String get filePrint => '인쇄';
+
+  @override
   String get fileExportWord => 'Word (.docx)';
 
   @override

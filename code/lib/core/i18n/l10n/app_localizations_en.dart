@@ -141,6 +141,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fileExportPdf => 'PDF';
 
   @override
+  String get filePrint => 'Print';
+
+  @override
   String get fileExportWord => 'Word (.docx)';
 
   @override

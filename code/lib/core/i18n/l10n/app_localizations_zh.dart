@@ -137,6 +137,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get fileExportPdf => 'PDF';
 
   @override
+  String get filePrint => '打印';
+
+  @override
   String get fileExportWord => 'Word (.docx)';
 
   @override

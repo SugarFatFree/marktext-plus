@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:printing/printing.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:url_launcher/url_launcher.dart';
@@ -295,6 +296,13 @@ class AppMenuBar extends ConsumerWidget {
             ),
           ],
           child: Text(l10n.fileExport),
+        ),
+        // Beside Export, which is where upstream puts it, and laid out by the
+        // same code the PDF export uses so the paper matches the file.
+        MenuItemButton(
+          shortcut: _shortcut('print'),
+          child: Text(l10n.filePrint),
+          onPressed: () => _print(ref),
         ),
         const Divider(height: 1),
         MenuItemButton(
@@ -984,6 +992,29 @@ class AppMenuBar extends ConsumerWidget {
       mermaidImages: mermaidImages,
       sourcePath: activeTab.filePath,
       enableHtml: ref.read(settingsProvider).enableHtml,
+    );
+  }
+
+  /// Hands the document to the system print dialog.
+  ///
+  /// Through the printing plugin rather than by writing a PDF and opening it:
+  /// the dialog's own page setup — printer, paper, range, copies — only
+  /// reaches a document that is laid out for it.
+  void _print(WidgetRef ref) async {
+    final activeTab = ref.read(activeTabProvider);
+    if (activeTab == null) return;
+    final mermaidImages = await _renderMermaidImages(activeTab.content);
+    final enableHtml = ref.read(settingsProvider).enableHtml;
+    await Printing.layoutPdf(
+      name: p.basenameWithoutExtension(activeTab.fileName),
+      onLayout: (_) async => Uint8List.fromList(
+        await ExportService.pdfBytes(
+          activeTab.content,
+          mermaidImages: mermaidImages,
+          sourcePath: activeTab.filePath,
+          enableHtml: enableHtml,
+        ),
+      ),
     );
   }
 

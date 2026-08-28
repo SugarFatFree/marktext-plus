@@ -87,6 +87,7 @@
   "fileExport": "Esporta",
   "fileExportHtml": "HTML",
   "fileExportPdf": "PDF",
+  "filePrint": "Stampa",
   "fileExportWord": "Word (.docx)",
   "fileSettings": "Impostazioni",
   "fileQuit": "Esci",

@@ -702,6 +702,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       'newWindow' => l10n.fileNewWindow,
       'settings' => l10n.fileSettings,
       'quit' => l10n.fileQuit,
+      'print' => l10n.filePrint,
       'exportPdf' => l10n.fileExportPdf,
       'reloadImages' => l10n.viewReloadImages,
       'fullScreen' => l10n.windowFullScreen,

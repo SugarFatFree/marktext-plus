@@ -67,7 +67,9 @@ class KeybindingService {
     'splitMode': 'Ctrl+Alt+3',
     'toggleSidebar': 'Ctrl+Shift+B',
     'toggleTabBar': 'Ctrl+Alt+T',
-    'commandPalette': 'Ctrl+P',
+    // Ctrl+P prints, here as everywhere else; the palette takes
+    // Ctrl+Shift+P, which is what upstream and VS Code both use.
+    'commandPalette': 'Ctrl+Shift+P',
     'focusMode': 'Ctrl+Shift+F',
     'typewriterMode': 'Ctrl+Shift+W',
     // Moved off Ctrl+= and Ctrl+-, which promote and demote heading already
@@ -87,6 +89,7 @@ class KeybindingService {
     'newWindow': 'Ctrl+N',
     'settings': 'Ctrl+,',
     'quit': 'Ctrl+Q',
+    'print': 'Ctrl+P',
     'exportPdf': 'Ctrl+Alt+E',
     'reloadImages': 'F5',
     'fullScreen': 'F11',

@@ -29,6 +29,7 @@
 | FEAT-025 | 2026-08-28 | 「编辑器最大宽度」现在也作用于源码编辑器 | 中 | 简单 | 已实现 |
 | FEAT-026 | 2026-08-28 | 代码字号可单独设置（对齐上游 codeFontSize） | 中 | 简单 | 已实现 |
 | FEAT-027 | 2026-08-28 | 「在文件中查找」进编辑菜单，搜索面板自动聚焦 | 中 | 简单 | 已实现 |
+| FEAT-028 | 2026-08-28 | 打印（Ctrl+P，系统打印对话框） | **高** | 中等 | 已实现 |
 
 ## 详细需求
 
@@ -511,5 +512,19 @@
 | **实现方案** | 编辑菜单在「替换」之后加一项，复用视图菜单里「目录」那一项已有的写法：侧边栏若隐藏则先展开，再把 `sideBarTabProvider` 置为 `SideBarTab.search`。搜索框加 `autofocus: true`——面板由 `AnimatedSwitcher` 按 `ValueKey(selectedTab)` 键控，每次切过去都是新建的子树，所以从图标进和从菜单进都会聚焦。 |
 | **涉及文件** | `code/lib/ui/widgets/app_menu_bar.dart`、`code/lib/ui/widgets/side_bar.dart` |
 | **验收标准** | ① 编辑 ▸ 在文件中查找 → 侧边栏展开并停在搜索面板，光标已在输入框里；② 点侧边栏放大镜同样自动聚焦。**未写组件测试**：仓库里没有挂载 `AppMenuBar` 或 `SideBar` 的测试脚手架，为一个菜单项搭一套（MenuAnchor + 全套 provider + l10n）代价不成比例，此处如实记录而不是假装覆盖到了。 |
+
+---
+
+## FEAT-028：打印
+
+| 字段 | 内容 |
+|---|---|
+| **实现日期** | 2026-08-28 |
+| **需求描述** | 文件 ▸ 打印，Ctrl+P 唤起系统打印对话框，排版与导出 PDF 完全一致。对齐上游 `file.print`。 |
+| **用户场景** | 上游有打印，我们没有——一份写好的文档想打出来，只能先导出 PDF、再去文件管理器里找到它、再用别的程序打开来打印。Ctrl+P 是所有桌面程序都有的动作。 |
+| **实现方案** | 加 `printing: ^5.14.3` 依赖（**不是最新的 5.15.0**：它要 `pdf >=3.13`，而 `pdf 3.13` 要 `xml ^7`，与 Word 导出用的 `docx_creator` 锁定的 `xml ^6.6.1` 冲突）。`ExportService.exportToPdf` 里负责排版的部分抽成 `pdfBytes()`，导出与打印共用——走"先写临时 PDF 再打开"那条路会丢掉对话框自己的纸张/范围/份数设置。菜单项放在「导出」旁边（上游的位置）。 |
+| **快捷键调整** | `print` 取 **Ctrl+P**，命令面板从 Ctrl+P 改为 **Ctrl+Shift+P**。这与上游一致（`file.print`=Ctrl+P、`view.command-palette`=Ctrl+Shift+P），也与 VS Code 一致——原先把 Ctrl+P 给命令面板是这两者里的异类。 |
+| **涉及文件** | `code/pubspec.yaml`、`code/lib/services/export_service.dart`、`code/lib/ui/widgets/app_menu_bar.dart`、`code/lib/services/keybinding_service.dart`、`code/lib/ui/screens/settings_screen.dart`、`code/lib/core/i18n/l10n/app_*.arb`（12 个）、`code/test/services/pdf_bytes_test.dart` —— 新增 |
+| **验收标准** | ① Ctrl+P 弹出系统打印对话框，预览内容与导出的 PDF 一致（含 Mermaid 图与本地图片）；② `pdfBytes` 产出以 `%PDF-` 开头、与 `exportToPdf` 写出的文件同等长度（不逐字节比：pdf 包会盖创建时间戳）；③ 空文档也出文件而不是抛异常；④ 设置里的快捷键列表能显示「打印」而不是原始动作名 `print`（仓库里已有测试强制这一点，我一开始正是漏了这步被它抓到）。 |
 
 ---

@@ -252,6 +252,26 @@ class ExportService {
     String? sourcePath,
     bool enableHtml = false,
   }) async {
+    final bytes = await pdfBytes(
+      markdown,
+      mermaidImages: mermaidImages,
+      sourcePath: sourcePath,
+      enableHtml: enableHtml,
+    );
+    await File(savePath).writeAsBytes(bytes);
+  }
+
+  /// The same document the PDF export writes, as bytes.
+  ///
+  /// Split out so printing lays out exactly what exporting would: the two
+  /// used to be one method that could only end in a file, and printing
+  /// through a temporary file loses the page setup the dialog offers.
+  static Future<List<int>> pdfBytes(
+    String markdown, {
+    Map<String, Uint8List>? mermaidImages,
+    String? sourcePath,
+    bool enableHtml = false,
+  }) async {
     final parser = MarkdownParser(enableHtml: enableHtml);
     final ast = parser.parse(markdown);
 
@@ -260,23 +280,18 @@ class ExportService {
     final primaryFont = fontFallbacks.isNotEmpty ? fontFallbacks.first : null;
 
     try {
-      final bytes = await _buildPdf(
+      return await _buildPdf(
         ast,
         primaryFont,
         fontFallbacks,
         mermaidImages,
         documentImages,
       );
-      await File(savePath).writeAsBytes(bytes);
     } catch (e) {
-      final bytes = await _buildPdf(
-        ast,
-        null,
-        [],
-        mermaidImages,
-        documentImages,
-      );
-      await File(savePath).writeAsBytes(bytes);
+      // A system font that will not parse takes the whole export down with
+      // it; the built-in faces cannot render every script but they always
+      // produce a document.
+      return _buildPdf(ast, null, [], mermaidImages, documentImages);
     }
   }
 
