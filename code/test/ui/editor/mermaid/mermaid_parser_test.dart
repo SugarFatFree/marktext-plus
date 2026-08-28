@@ -2004,12 +2004,15 @@ quadrantChart
     });
 
     test('the title comes from YAML frontmatter', () {
+      // Read once, by MermaidParser, and carried on the diagram: this parser
+      // used to read the block a second time, which is why only this diagram
+      // type could be titled that way.
       final result = parser.parseWithData(
         '---\ntitle: 能源流向\n---\nsankey-beta\n煤炭,发电,100',
       )!;
 
       expect(result.diagram.type, DiagramType.sankey);
-      expect(result.sankeyChartData!.title, '能源流向');
+      expect(result.diagram.title, '能源流向');
     });
 
     test('a row with an unparseable value is skipped, not fatal', () {

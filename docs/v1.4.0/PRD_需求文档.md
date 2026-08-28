@@ -30,6 +30,7 @@
 | FEAT-026 | 2026-08-28 | 代码字号可单独设置（对齐上游 codeFontSize） | 中 | 简单 | 已实现 |
 | FEAT-027 | 2026-08-28 | 「在文件中查找」进编辑菜单，搜索面板自动聚焦 | 中 | 简单 | 已实现 |
 | FEAT-028 | 2026-08-28 | 打印（Ctrl+P，系统打印对话框） | **高** | 中等 | 已实现 |
+| FEAT-029 | 2026-08-28 | Mermaid 的 YAML frontmatter 标题（所有图表类型） | 中 | 中等 | 已实现 |
 
 ## 详细需求
 
@@ -526,5 +527,19 @@
 | **快捷键调整** | `print` 取 **Ctrl+P**，命令面板从 Ctrl+P 改为 **Ctrl+Shift+P**。这与上游一致（`file.print`=Ctrl+P、`view.command-palette`=Ctrl+Shift+P），也与 VS Code 一致——原先把 Ctrl+P 给命令面板是这两者里的异类。 |
 | **涉及文件** | `code/pubspec.yaml`、`code/lib/services/export_service.dart`、`code/lib/ui/widgets/app_menu_bar.dart`、`code/lib/services/keybinding_service.dart`、`code/lib/ui/screens/settings_screen.dart`、`code/lib/core/i18n/l10n/app_*.arb`（12 个）、`code/test/services/pdf_bytes_test.dart` —— 新增 |
 | **验收标准** | ① Ctrl+P 弹出系统打印对话框，预览内容与导出的 PDF 一致（含 Mermaid 图与本地图片）；② `pdfBytes` 产出以 `%PDF-` 开头、与 `exportToPdf` 写出的文件同等长度（不逐字节比：pdf 包会盖创建时间戳）；③ 空文档也出文件而不是抛异常；④ 设置里的快捷键列表能显示「打印」而不是原始动作名 `print`（仓库里已有测试强制这一点，我一开始正是漏了这步被它抓到）。 |
+
+---
+
+## FEAT-029：Mermaid 的 YAML frontmatter 标题
+
+| 字段 | 内容 |
+|---|---|
+| **实现日期** | 2026-08-28 |
+| **需求描述** | `---\ntitle: 标题\n---` 给任意类型的图表加标题，并真正画出来。 |
+| **用户场景** | 这是 mermaid 文档里给图表加标题的通用写法，**流程图更是只能这样加**。此前 frontmatter 只被用来"跳过去找表头行"，标题读都没读，所有类型都丢。而且类图和 ER 图的 `title` 行一直解析进了 `diagram.title`，却**没有任何画笔会画它**。 |
+| **实现方案** | ① `MermaidParser` 读 frontmatter 的 `title:`（支持引号、走 `cleanLabel` 所以 `<br/>` 同样有效）；② **解析前把 frontmatter 块剥掉再交给各类型解析器**——此前整块 YAML 会一路传下去，各解析器得自己绕开它，而且 `pie title X` 这种表头行内标题因为"第一行是 `---`"根本找不到；③ 图表自身语法已给标题时不覆盖（`hasOwnTitle`）；④ 组件层绘制 `diagram.title`，但当 payload 自带标题时跳过，避免画笔和组件各画一遍。 |
+| **顺带收敛的重复** | 桑基图**自己**也读了一遍 frontmatter（因此它是唯一能这样加标题的类型，且与新实现在引号和 `<br/>` 上处理不同）。现已删除，统一由上游读一次。`_firstContentLine` 改为复用 `_withoutFrontMatter`——此前两者对"未闭合的 `---`"看法不一致：一个当 frontmatter、一个当普通行。 |
+| **涉及文件** | `code/lib/ui/editor/mermaid/parser/mermaid_parser.dart`、`sankey_parser.dart`、`code/lib/ui/editor/mermaid/widgets/mermaid_diagram.dart`、`code/test/ui/editor/mermaid/title_test.dart` —— 新增 |
+| **验收标准** | ① 流程图/时序图加 frontmatter 标题后显示在图上方；② 引号与 `<br/>` 正确处理；③ 有 `config:` 而无 `title:` 的块不产生标题；④ 饼图自带 `pie title X` 时以它为准且只画一遍；⑤ 未闭合的 `---` 返回 null（与 mermaid 一致，渲染成可诊断的错误）而不是抛异常或画半张图——**这条我起初断言反了，以为该忽略并照常渲染，查了上游语义才改过来**。 |
 
 ---

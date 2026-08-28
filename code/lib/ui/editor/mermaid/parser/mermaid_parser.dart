@@ -35,6 +35,7 @@ import 'sequence_parser.dart';
 import 'state_diagram_parser.dart';
 import 'timeline_parser.dart';
 import 'xy_chart_parser.dart';
+import 'label.dart';
 
 /// Result of parsing a Mermaid diagram
 /// Why a diagram could not be parsed. See [MermaidParser.describeFailure].
@@ -173,6 +174,50 @@ class MermaidParseResult {
 
   /// Sequence specific data (only set for sequence diagrams)
   final SequenceDiagramData? sequenceData;
+  /// Whether the diagram's own syntax already gave it a title.
+  ///
+  /// Checked before a frontmatter title is applied: a chart that draws the
+  /// title it parsed would otherwise show two, one from its painter and one
+  /// from the widget.
+  bool get hasOwnTitle =>
+      diagram.title != null ||
+      pieChartData?.title != null ||
+      ganttChartData?.title != null ||
+      timelineChartData?.title != null ||
+      kanbanChartData?.title != null ||
+      quadrantChartData?.title != null ||
+      sankeyChartData?.title != null ||
+      c4DiagramData?.title != null ||
+      radarChartData?.title != null ||
+      xyChartData?.title != null ||
+      journeyData?.title != null ||
+      gitGraphData?.title != null;
+
+  /// The same result, carrying a diagram title it did not have.
+  ///
+  /// Only the diagram changes; every payload is passed through untouched, so
+  /// a type that draws its own title keeps the one it parsed.
+  MermaidParseResult withDiagramTitle(String title) => MermaidParseResult(
+        diagram: diagram.copyWith(title: title),
+        pieChartData: pieChartData,
+        ganttChartData: ganttChartData,
+        timelineChartData: timelineChartData,
+        kanbanChartData: kanbanChartData,
+        quadrantChartData: quadrantChartData,
+        requirementDiagramData: requirementDiagramData,
+        sankeyChartData: sankeyChartData,
+        blockDiagramData: blockDiagramData,
+        c4DiagramData: c4DiagramData,
+        radarChartData: radarChartData,
+        xyChartData: xyChartData,
+        classDiagramData: classDiagramData,
+        erDiagramData: erDiagramData,
+        journeyData: journeyData,
+        gitGraphData: gitGraphData,
+        mindmapData: mindmapData,
+        sequenceData: sequenceData,
+      );
+
 }
 
 /// Main parser for Mermaid diagrams
@@ -201,7 +246,13 @@ class MermaidParser {
   /// that said nothing.
   MermaidParseResult? parseWithData(String source) {
     final result = _parseWithData(source);
-    return (result != null && result.hasContent) ? result : null;
+    if (result == null || !result.hasContent) return null;
+
+    // A frontmatter title applies to whatever came out, and only when the
+    // diagram's own syntax did not already give one.
+    final title = _frontMatterTitle(source.split('\n'));
+    if (title == null || result.hasOwnTitle) return result;
+    return result.withDiagramTitle(title);
   }
 
   MermaidParseResult? _parseWithData(String source) {
@@ -213,19 +264,24 @@ class MermaidParser {
     if (cleanedLines.isEmpty) return null;
 
     final firstLine = _firstContentLine(cleanedLines);
+    // The frontmatter block is read here and does not go any further: handed
+    // on, it made every type parser step over YAML it has no grammar for, and
+    // `pie title X` on the header line stopped being found at all because the
+    // first line was `---` rather than the header.
+    final body = _withoutFrontMatter(cleanedLines);
 
     // Detect diagram type
     final type = _detectDiagramType(firstLine);
 
     switch (type) {
       case DiagramType.flowchart:
-        final diagram = FlowchartParser().parse(cleanedLines);
+        final diagram = FlowchartParser().parse(body);
         if (diagram != null) {
           return MermaidParseResult(diagram: diagram);
         }
         return null;
       case DiagramType.sequence:
-        final result = SequenceParser().parse(cleanedLines);
+        final result = SequenceParser().parse(body);
         if (result != null) {
           return MermaidParseResult(
             diagram: result.$1,
@@ -234,7 +290,7 @@ class MermaidParser {
         }
         return null;
       case DiagramType.pieChart:
-        final result = const PieChartParser().parse(cleanedLines);
+        final result = const PieChartParser().parse(body);
         if (result != null) {
           return MermaidParseResult(
             diagram: result.$1,
@@ -243,7 +299,7 @@ class MermaidParser {
         }
         return null;
       case DiagramType.ganttChart:
-        final result = const GanttParser().parse(cleanedLines);
+        final result = const GanttParser().parse(body);
         if (result != null) {
           return MermaidParseResult(
             diagram: result.$1,
@@ -252,7 +308,7 @@ class MermaidParser {
         }
         return null;
       case DiagramType.timeline:
-        final result = const TimelineParser().parse(cleanedLines);
+        final result = const TimelineParser().parse(body);
         if (result != null) {
           return MermaidParseResult(
             diagram: result.$1,
@@ -261,7 +317,7 @@ class MermaidParser {
         }
         return null;
       case DiagramType.kanban:
-        final result = const KanbanParser().parse(cleanedLines);
+        final result = const KanbanParser().parse(body);
         if (result != null) {
           return MermaidParseResult(
             diagram: result.$1,
@@ -270,7 +326,7 @@ class MermaidParser {
         }
         return null;
       case DiagramType.requirementDiagram:
-        final result = const RequirementParser().parse(cleanedLines);
+        final result = const RequirementParser().parse(body);
         if (result != null) {
           return MermaidParseResult(
             diagram: result.$1,
@@ -279,7 +335,7 @@ class MermaidParser {
         }
         return null;
       case DiagramType.quadrantChart:
-        final result = const QuadrantParser().parse(cleanedLines);
+        final result = const QuadrantParser().parse(body);
         if (result != null) {
           return MermaidParseResult(
             diagram: result.$1,
@@ -288,7 +344,7 @@ class MermaidParser {
         }
         return null;
       case DiagramType.sankey:
-        final result = const SankeyParser().parse(cleanedLines);
+        final result = const SankeyParser().parse(body);
         if (result != null) {
           return MermaidParseResult(
             diagram: result.$1,
@@ -297,7 +353,7 @@ class MermaidParser {
         }
         return null;
       case DiagramType.blockDiagram:
-        final result = const BlockParser().parse(cleanedLines);
+        final result = const BlockParser().parse(body);
         if (result != null) {
           return MermaidParseResult(
             diagram: result.$1,
@@ -306,7 +362,7 @@ class MermaidParser {
         }
         return null;
       case DiagramType.c4Diagram:
-        final result = const C4Parser().parse(cleanedLines);
+        final result = const C4Parser().parse(body);
         if (result != null) {
           return MermaidParseResult(
             diagram: result.$1,
@@ -315,7 +371,7 @@ class MermaidParser {
         }
         return null;
       case DiagramType.radar:
-        final result = const RadarParser().parse(cleanedLines);
+        final result = const RadarParser().parse(body);
         if (result != null) {
           return MermaidParseResult(
             diagram: result.$1,
@@ -324,7 +380,7 @@ class MermaidParser {
         }
         return null;
       case DiagramType.xyChart:
-        final result = const XYChartParser().parse(cleanedLines);
+        final result = const XYChartParser().parse(body);
         if (result != null) {
           return MermaidParseResult(
             diagram: result.$1,
@@ -333,7 +389,7 @@ class MermaidParser {
         }
         return null;
       case DiagramType.classDiagram:
-        final result = ClassDiagramParser().parse(cleanedLines);
+        final result = ClassDiagramParser().parse(body);
         if (result != null) {
           return MermaidParseResult(
             diagram: result.$1,
@@ -344,7 +400,7 @@ class MermaidParser {
       case DiagramType.mindmap:
         // Mindmaps are structured by indentation, so this parser gets the
         // lines with their leading whitespace intact.
-        final result = const MindmapParser().parse(cleanedLines);
+        final result = const MindmapParser().parse(body);
         if (result != null) {
           return MermaidParseResult(
             diagram: result.$1,
@@ -353,7 +409,7 @@ class MermaidParser {
         }
         return null;
       case DiagramType.gitGraph:
-        final result = const GitGraphParser().parse(cleanedLines);
+        final result = const GitGraphParser().parse(body);
         if (result != null) {
           return MermaidParseResult(
             diagram: result.$1,
@@ -362,7 +418,7 @@ class MermaidParser {
         }
         return null;
       case DiagramType.journey:
-        final result = const JourneyParser().parse(cleanedLines);
+        final result = const JourneyParser().parse(body);
         if (result != null) {
           return MermaidParseResult(
             diagram: result.$1,
@@ -371,7 +427,7 @@ class MermaidParser {
         }
         return null;
       case DiagramType.erDiagram:
-        final result = ErDiagramParser().parse(cleanedLines);
+        final result = ErDiagramParser().parse(body);
         if (result != null) {
           return MermaidParseResult(
             diagram: result.$1,
@@ -380,7 +436,7 @@ class MermaidParser {
         }
         return null;
       case DiagramType.stateDiagram:
-        final result = StateDiagramParser().parse(cleanedLines);
+        final result = StateDiagramParser().parse(body);
         if (result != null) {
           return MermaidParseResult(diagram: result);
         }
@@ -390,20 +446,54 @@ class MermaidParser {
     }
   }
 
-  /// The header line, skipping YAML frontmatter (used by Kanban and others).
-  String _firstContentLine(List<String> cleanedLines) {
-    var first = cleanedLines.first.trim().toLowerCase();
-    if (first != '---') return first;
-
+  /// The lines after a YAML frontmatter block, or all of them if there is none.
+  List<String> _withoutFrontMatter(List<String> cleanedLines) {
+    if (cleanedLines.isEmpty || cleanedLines.first.trim() != '---') {
+      return cleanedLines;
+    }
     for (var i = 1; i < cleanedLines.length; i++) {
       if (cleanedLines[i].trim() == '---') {
-        if (i + 1 < cleanedLines.length) {
-          first = cleanedLines[i + 1].trim().toLowerCase();
-        }
-        break;
+        return cleanedLines.sublist(i + 1);
       }
     }
-    return first;
+    // An unterminated block is not frontmatter; leave the lines alone.
+    return cleanedLines;
+  }
+
+  /// The `title:` a YAML frontmatter block gives the diagram.
+  ///
+  /// Mermaid's documented way to title any diagram, including the ones whose
+  /// own syntax has no `title` line — a flowchart is titled this way and no
+  /// other. The block was being skipped to find the header line and never
+  /// read, so the title silently disappeared for every diagram type.
+  String? _frontMatterTitle(List<String> cleanedLines) {
+    if (cleanedLines.isEmpty || cleanedLines.first.trim() != '---') return null;
+
+    for (var i = 1; i < cleanedLines.length; i++) {
+      final line = cleanedLines[i].trim();
+      if (line == '---') return null;
+      if (!line.startsWith('title:')) continue;
+
+      var value = line.substring('title:'.length).trim();
+      // YAML lets the value be quoted; the quotes are not part of it.
+      if (value.length >= 2 &&
+          ((value.startsWith('"') && value.endsWith('"')) ||
+              (value.startsWith("'") && value.endsWith("'")))) {
+        value = value.substring(1, value.length - 1);
+      }
+      return value.isEmpty ? null : cleanLabel(value);
+    }
+    return null;
+  }
+
+  /// The header line, skipping YAML frontmatter (used by Kanban and others).
+  String _firstContentLine(List<String> cleanedLines) {
+    // Reads whatever _withoutFrontMatter hands the type parsers, so the two
+    // cannot disagree about where the diagram starts. They did: a block that
+    // never closed was frontmatter to one and ordinary text to the other, and
+    // the header line came back as `---`, so the whole diagram was dropped.
+    final body = _withoutFrontMatter(cleanedLines);
+    return body.isEmpty ? '' : body.first.trim().toLowerCase();
   }
 
   /// Diagram types this renderer knows how to draw, in the spelling a header

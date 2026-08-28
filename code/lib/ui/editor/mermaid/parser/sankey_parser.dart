@@ -21,21 +21,11 @@ class SankeyParser {
     if (lines.isEmpty) return null;
 
     var i = 0;
-    String? title;
 
-    // YAML frontmatter is the only place a Sankey diagram can carry a title.
-    if (lines[i].trim() == '---') {
-      i++;
-      while (i < lines.length && lines[i].trim() != '---') {
-        final line = lines[i].trim();
-        final colon = line.indexOf(':');
-        if (colon > 0 && line.substring(0, colon).trim() == 'title') {
-          title = _unquote(line.substring(colon + 1).trim());
-        }
-        i++;
-      }
-      if (i < lines.length) i++;
-    }
+    // The frontmatter block is read once, by MermaidParser, and never reaches
+    // here: this parser used to read it a second time, so the two disagreed
+    // about quoting and about `<br/>`, and only this diagram type could carry
+    // a title that way. The title now arrives on the diagram itself.
 
     if (i < lines.length &&
         lines[i].trim().toLowerCase().startsWith('sankey-beta')) {
@@ -71,9 +61,8 @@ class SankeyParser {
         type: DiagramType.sankey,
         nodes: const [],
         edges: const [],
-        title: title,
-      ),
-      SankeyChartData(nodes: nodes, links: links, title: title),
+        ),
+      SankeyChartData(nodes: nodes, links: links),
     );
   }
 
@@ -120,12 +109,4 @@ class SankeyParser {
     return fields;
   }
 
-  String _unquote(String text) {
-    if (text.length >= 2 &&
-        ((text.startsWith('"') && text.endsWith('"')) ||
-            (text.startsWith("'") && text.endsWith("'")))) {
-      return text.substring(1, text.length - 1);
-    }
-    return text;
-  }
 }

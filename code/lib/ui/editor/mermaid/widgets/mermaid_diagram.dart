@@ -662,6 +662,54 @@ class _MermaidDiagramState extends State<MermaidDiagram> {
           );
         }
 
+        // A diagram-level title, which nothing drew. The charts paint the
+        // title their own syntax gives them, but `---\ntitle: …\n---` — the
+        // only way a flowchart can be titled, and the way mermaid documents
+        // for every type — reached the widget and stopped there. Class and
+        // entity-relationship diagrams parsed a `title` line all along and
+        // had nowhere to put it either.
+        // Skipped when a chart drew the title itself: the pie parser records
+        // its title in both places, and drawing both put it on screen twice.
+        final paintsOwnTitle = _pieChartData?.title != null ||
+            _ganttChartData?.title != null ||
+            _timelineChartData?.title != null ||
+            _kanbanChartData?.title != null ||
+            _quadrantChartData?.title != null ||
+            _sankeyChartData?.title != null ||
+            _c4DiagramData?.title != null ||
+            _radarChartData?.title != null ||
+            _xyChartData?.title != null ||
+            _journeyData?.title != null ||
+            _gitGraphData?.title != null;
+        final title = paintsOwnTitle ? null : _diagram?.title;
+        if (title != null && title.isNotEmpty) {
+          diagramWidget = Container(
+            width: displayWidth,
+            color: Color(_style.backgroundColor),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 12, 8, 4),
+                  child: Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: (_deviceConfig?.fontSize ?? 14) + 3,
+                      fontWeight: FontWeight.w600,
+                      color: Color(
+                        _style.defaultNodeStyle.textColor ??
+                            MermaidColors.defaultTextColor,
+                      ),
+                    ),
+                  ),
+                ),
+                diagramWidget,
+              ],
+            ),
+          );
+        }
+
         return GestureDetector(
           onTapDown: widget.onNodeTap != null ? _handleTap : null,
           child: diagramWidget,
