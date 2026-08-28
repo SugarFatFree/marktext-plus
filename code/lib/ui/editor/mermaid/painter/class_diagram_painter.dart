@@ -1,3 +1,4 @@
+import 'box_edge_geometry.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -183,13 +184,13 @@ class ClassDiagramPainter extends MermaidPainter {
     final toRect =
         Rect.fromLTWH(toNode.x, toNode.y, toNode.width, toNode.height);
 
-    final start = _rectEdgePoint(fromRect, toRect.center);
-    final end = _rectEdgePoint(toRect, fromRect.center);
+    final start = rectEdgePoint(fromRect, toRect.center);
+    final end = rectEdgePoint(toRect, fromRect.center);
 
     final paint = createEdgePaint(edge);
 
     if (edge.lineType == LineType.dotted) {
-      _drawDashedLine(canvas, start, end, paint);
+      drawDashedLine(canvas, start, end, paint);
     } else {
       canvas.drawLine(start, end, paint);
     }
@@ -289,48 +290,5 @@ class ClassDiagramPainter extends MermaidPainter {
       canvas,
       Offset(centre.dx - painter.width / 2, centre.dy - painter.height / 2),
     );
-  }
-
-  /// Where the segment from [rect]'s centre towards [target] crosses the border.
-  Offset _rectEdgePoint(Rect rect, Offset target) {
-    final centre = rect.center;
-    final dx = target.dx - centre.dx;
-    final dy = target.dy - centre.dy;
-    if (dx == 0 && dy == 0) return centre;
-
-    final halfWidth = rect.width / 2;
-    final halfHeight = rect.height / 2;
-    final scaleX = dx == 0 ? double.infinity : halfWidth / dx.abs();
-    final scaleY = dy == 0 ? double.infinity : halfHeight / dy.abs();
-    final scale = math.min(scaleX, scaleY);
-
-    return Offset(centre.dx + dx * scale, centre.dy + dy * scale);
-  }
-
-  void _drawDashedLine(Canvas canvas, Offset from, Offset to, Paint paint) {
-    const dashLength = 6.0;
-    const gapLength = 4.0;
-
-    final dx = to.dx - from.dx;
-    final dy = to.dy - from.dy;
-    final distance = math.sqrt(dx * dx + dy * dy);
-    if (distance == 0) return;
-
-    final stepX = dx / distance;
-    final stepY = dy / distance;
-
-    var travelled = 0.0;
-    while (travelled < distance) {
-      final segment = math.min(dashLength, distance - travelled);
-      canvas.drawLine(
-        Offset(from.dx + stepX * travelled, from.dy + stepY * travelled),
-        Offset(
-          from.dx + stepX * (travelled + segment),
-          from.dy + stepY * (travelled + segment),
-        ),
-        paint,
-      );
-      travelled += dashLength + gapLength;
-    }
   }
 }

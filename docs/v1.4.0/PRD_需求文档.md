@@ -295,7 +295,7 @@
 | 评估日期 | 2026-08-28 |
 | 状态 | **已评估，等用户决定是否执行** |
 | 需求来源 | 用户原始要求：「mermaid 渲染你看看有没有什么 flutter 开放的组件，如果没有你就仿照 mermaid 的 js 库自己使用 flutter 完全实现一个新的开源项目」 |
-| 「完全实现」这部分已完成 | `lib/ui/editor/mermaid/` 共 **72 个文件、21832 行**纯 Dart/Flutter 实现，覆盖 19 种图表类型（流程图、时序、类、状态、ER、旅程、gitGraph、脑图、饼图、甘特、时间线、看板、雷达、xy、象限、需求、桑基、块图、C4 五种），不依赖 WebView |
+| 「完全实现」这部分已完成 | `lib/ui/editor/mermaid/` 共 **73 个文件、21261 行**纯 Dart/Flutter 实现（2026-08-28 删掉 629 行死代码后），覆盖 19 种图表类型（流程图、时序、类、状态、ER、旅程、gitGraph、脑图、饼图、甘特、时间线、看板、雷达、xy、象限、需求、桑基、块图、C4 五种），不依赖 WebView |
 | 耦合度实测 | **对外部零依赖** —— 该目录下所有文件只 import 自身与 `package:flutter` / `dart:*`，没有一处引用应用的其它部分 |
 | 反向接口面 | 应用只用到 5 个文件：`parser/mermaid_parser.dart`、`widgets/mermaid_diagram.dart`、`models/{node,edge,style}.dart`；符号只有 `MermaidParser.handlesLanguage` / `.parseWithData` / `.supportedTypes` 与 `MermaidDiagram` 组件 |
 | 因此抽包需要做的 | ① 新建 `packages/flutter_mermaid/`，把该目录整体 `git mv` 过去；② 写 `pubspec.yaml` 与一个 barrel 导出文件（把上述 5 个文件的公开符号 re-export）；③ 应用改为 path 依赖，导入语句从相对路径换成 `package:flutter_mermaid/...`。**应用逻辑一行不用改** |

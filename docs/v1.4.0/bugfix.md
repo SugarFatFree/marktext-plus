@@ -58,6 +58,7 @@
 | BUG-054 | 2026-08-28 | Mermaid 的三处提示文案是硬编码英文，错误框在深色主题下刺眼 | P2 | 已修复 |
 | BUG-055 | 2026-08-28 | 图表解析失败的详细文案 12 种语言下都是英文 | P2 | 已修复 |
 | BUG-056 | 2026-08-28 | 同一个错误框有三份实现，改了一份另两份没跟上 | P2 | 已修复 |
+| BUG-057 | 2026-08-28 | 629 行从未被调用过的死代码，四处精确重复全在里面 | P2 | 已清理 |
 
 ## 详细记录
 
@@ -1545,5 +1546,66 @@ MermaidFailure describeFailure(String source);
 ### 涉及文件
 
 - `code/lib/ui/editor/mermaid/widgets/mermaid_diagram.dart`
+
+---
+
+## BUG-057 — 629 行从未被调用过的死代码
+
+**发现日期**：2026-08-28 　**优先级**：P2 　**状态**：已清理
+
+### 这次是怎么找的
+
+前面连着七次撞上「一个东西多份实现，其中几份没跟上」（BUG-040/041/042/043/044/049/056），
+而 BUG-056 的第三份还是**编译器替我找出来的** —— 说明靠读代码判断「改完了」不可靠。
+所以这轮不再靠直觉，直接对全仓库做机械检测：把每个方法体去掉注释、字符串字面量和数字，
+求哈希，找碰撞。
+
+结果 5 组：
+
+| 规模 | 位置 |
+|---|---|
+| **164 行 × 2** | `mermaid_diagram.dart` 的两个 `_getPainter()` |
+| 24 行 × 2 | class / ER 两个画笔的 `_drawDashedLine()` |
+| 12 行 × 2 | `mermaid_diagram.dart` 的两个 `_handleTap()` |
+| 12 行 × 2 | class / ER 两个画笔的 `_rectEdgePoint()` |
+| 8 行 × 2 | `mermaid_diagram.dart` 的两个 `_getLayoutEngine()` |
+
+**注意归一化会掩盖差异**（字符串和数字都被抹掉了），所以逐一做了精确 diff：五组全部
+**逐字节相同**，目前没有一处已经走岔 —— 但这正是 BUG-056 出事前一天的样子。
+
+### 根因
+
+`mermaid_diagram.dart` 里的三组重复，全部来自 `InteractiveMermaidDiagram` ——
+它是 `MermaidDiagram` 的整体拷贝，只在外面多套了一个 `InteractiveViewer`。
+
+而这个类**全仓库零引用**：`lib/`、`test/`、`docs/` 都搜不到调用点，
+`git log -S 'InteractiveMermaidDiagram('` 也证明**它从来没有过调用点**。
+连同它的两个私有辅助类，一共 629 行，占这个文件的 45%。
+
+应用里的缩放/平移由 `mermaid_renderer.dart` 的 `_MermaidFullscreenView` 提供，
+和它无关。
+
+### 处理
+
+**删掉**，而不是去重。理由：给一个从未被调用过的类做重构，等于给一段没有验证途径的
+代码增加改动风险。如果将来 mermaid 目录真的抽成独立包（FEAT-014）需要一个可缩放的
+组件，那时应该写成**包着 `MermaidDiagram` 的 30 行外壳**，而不是再拷一份 —— 这条
+写在这里，是为了那时候不会有人再从这份历史里把拷贝捡回去。
+
+两个画笔的几何函数则抽成共享文件 `painter/box_edge_geometry.dart`
+（`rectEdgePoint` / `drawDashedLine`）。
+
+### 验证
+
+- 删除与抽取后 `dart analyze --fatal-infos` 干净，`flutter test` 全量 710 条通过
+- 画笔改动逐行核对过：两个文件的新增行**只有一句 import 和三处函数改名**，没有别的
+- 重复检测复跑：5 组 → 0 组
+- mermaid 目录的**零外部依赖**性质复核仍然成立（那是它能抽成独立包的前提）
+
+### 涉及文件
+
+- `code/lib/ui/editor/mermaid/widgets/mermaid_diagram.dart` —— 1382 行减到 753 行
+- `code/lib/ui/editor/mermaid/painter/box_edge_geometry.dart` —— 新增
+- `code/lib/ui/editor/mermaid/painter/{class_diagram,er_diagram}_painter.dart`
 
 ---
