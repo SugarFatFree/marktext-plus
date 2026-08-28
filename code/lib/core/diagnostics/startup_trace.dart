@@ -131,6 +131,21 @@ class StartupTrace {
 
   static final List<String> _lines = <String>[];
   static final List<String> _logPaths = <String>[];
+
+  /// Traces from earlier runs, kept above this one.
+  ///
+  /// The file used to be overwritten on every launch, so answering "is this
+  /// only the first launch, or every launch?" meant starting the program,
+  /// copying the file, starting it again and copying it again. That question
+  /// decides whether a slow start is Windows reading a cold binary off disk or
+  /// something the program itself is doing, so it should not cost the person
+  /// reporting it four steps.
+  static String _earlierRuns = '';
+
+  /// How many launches the file keeps. Enough to compare a cold start with the
+  /// warm ones after it.
+  static const _runsKept = 4;
+
   static int _last = 0;
 
   static Timer? _flushTimer;
@@ -252,7 +267,8 @@ class StartupTrace {
   /// to be destroyed there, and a pending timer would never fire.
   static bool flush() {
     if (_logPaths.isEmpty) return false;
-    final body = 'MarkText Plus startup trace\n'
+    final body = '$_earlierRuns'
+        '$_runSeparator\n'
         '${DateTime.now().toIso8601String()}\n'
         '$buildStamp\n'
         'log: ${_logPaths.join('  |  ')}\n'
@@ -279,6 +295,28 @@ class StartupTrace {
   /// finds the log next to the program; hunting through `%APPDATA%` for it is
   /// its own small ordeal, and one the person reporting a slow start should
   /// not have to go through.
+  /// The line that starts each run's block in the file.
+  @visibleForTesting
+  static const runSeparator = '=== MarkText Plus startup trace ===';
+  static const _runSeparator = runSeparator;
+
+  /// Keeps the last few runs from [existing], oldest first.
+  @visibleForTesting
+  static String recentRuns(String existing) => _recentRuns(existing);
+
+  static String _recentRuns(String existing) {
+    final runs = existing
+        .split(_runSeparator)
+        .map((run) => run.trim())
+        .where((run) => run.isNotEmpty)
+        .toList();
+    final kept = runs.length <= _runsKept - 1
+        ? runs
+        : runs.sublist(runs.length - (_runsKept - 1));
+    if (kept.isEmpty) return '';
+    return '${kept.map((run) => '$_runSeparator\n$run').join('\n\n')}\n\n';
+  }
+
   static void useDirectory(String directory) {
     _logPaths.clear();
     // The config directory first and unconditionally. Trying beside the
@@ -291,6 +329,19 @@ class StartupTrace {
       if (candidate == null) continue;
       final path = '$candidate${Platform.pathSeparator}startup-trace.log';
       if (_logPaths.contains(path)) continue;
+      // Read before the first write, and only from the first location that
+      // has anything: the copies are identical, so the earliest readable one
+      // carries the history.
+      if (_earlierRuns.isEmpty) {
+        try {
+          final previous = File(path);
+          if (previous.existsSync()) {
+            _earlierRuns = _recentRuns(previous.readAsStringSync());
+          }
+        } catch (_) {
+          // An unreadable previous log is not worth failing over.
+        }
+      }
       _logPaths.add(path);
       if (!flush()) _logPaths.remove(path);
     }

@@ -51,6 +51,52 @@ class KeybindingService {
     // Upstream uses F3 on Linux and Windows for these.
     'findNext': 'F3',
     'findPrevious': 'Shift+F3',
+
+    // These eleven were hard-coded as SingleActivators on their menu items,
+    // which meant they fired but did not exist as far as this service was
+    // concerned: they never appeared in the settings list, so nobody could see
+    // what they were or change them. Worse, two of them silently competed with
+    // bindings that *were* in this map — zoom in and zoom out sat on Ctrl+=
+    // and Ctrl+-, the same two keys as promote and demote heading — and
+    // nothing in the app could have shown that.
+    //
+    // The keys are kept exactly as they were, so nobody's habits change, with
+    // the single exception of the two that collided.
+    'sourceMode': 'Ctrl+Alt+1',
+    'previewMode': 'Ctrl+Alt+2',
+    'splitMode': 'Ctrl+Alt+3',
+    'toggleSidebar': 'Ctrl+Shift+B',
+    'toggleTabBar': 'Ctrl+Alt+T',
+    'commandPalette': 'Ctrl+P',
+    'focusMode': 'Ctrl+Shift+F',
+    'typewriterMode': 'Ctrl+Shift+W',
+    // Moved off Ctrl+= and Ctrl+-, which promote and demote heading already
+    // held. Upstream resolves the same clash by giving zoom no default at all
+    // and letting the headings keep the keys; writing a document is what the
+    // program is for, and the zoom commands are still in the View menu.
+    'zoomIn': 'Ctrl+Shift+=',
+    'zoomOut': 'Ctrl+Shift+-',
+    'resetZoom': 'Ctrl+0',
+
+    // Matching upstream MarkText's Windows defaults, and only where the key is
+    // not already spoken for here. Upstream binds nineteen more that would
+    // collide — Ctrl+T is a new tab there and a table here, Ctrl+Shift+S is
+    // Save As there and strikethrough here — and taking those would break the
+    // habits of whoever already uses this app, which is its users' decision
+    // rather than a parity exercise.
+    'newWindow': 'Ctrl+N',
+    'settings': 'Ctrl+,',
+    'quit': 'Ctrl+Q',
+    'exportPdf': 'Ctrl+Alt+E',
+    'reloadImages': 'F5',
+    'fullScreen': 'F11',
+    'clearFormatting': 'Ctrl+Shift+R',
+    'createParagraph': 'Ctrl+Shift+N',
+    'deleteParagraph': 'Ctrl+Shift+D',
+    'toParagraph': 'Ctrl+Shift+0',
+    'looseList': 'Ctrl+Alt+L',
+    'frontMatter': 'Ctrl+Alt+Y',
+    'htmlBlock': 'Ctrl+Alt+H',
   };
 
   Map<String, String> _keybindings = Map.from(defaultKeybindings);
@@ -197,6 +243,12 @@ class KeybindingService {
       '4' => LogicalKeyboardKey.digit4,
       '5' => LogicalKeyboardKey.digit5,
       '6' => LogicalKeyboardKey.digit6,
+      '7' => LogicalKeyboardKey.digit7,
+      '8' => LogicalKeyboardKey.digit8,
+      '9' => LogicalKeyboardKey.digit9,
+      '0' => LogicalKeyboardKey.digit0,
+      ',' => LogicalKeyboardKey.comma,
+      '.' => LogicalKeyboardKey.period,
       '`' => LogicalKeyboardKey.backquote,
       '=' => LogicalKeyboardKey.equal,
       '-' => LogicalKeyboardKey.minus,
