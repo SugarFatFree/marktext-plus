@@ -873,6 +873,12 @@ abstract class AppLocalizations {
   /// **'{count} file(s) too large to search'**
   String searchTooLarge(int count);
 
+  /// No description provided for @dropNotMarkdown.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} dropped file(s) were not opened: not a markdown document'**
+  String dropNotMarkdown(int count);
+
   /// No description provided for @searchNoResults.
   ///
   /// In en, this message translates to:

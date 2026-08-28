@@ -407,6 +407,11 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String dropNotMarkdown(int count) {
+    return '$count 个拖入的文件未打开：不是 markdown 文档';
+  }
+
+  @override
   String get searchNoResults => '未找到结果';
 
   @override

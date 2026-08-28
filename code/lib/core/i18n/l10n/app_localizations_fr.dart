@@ -419,6 +419,11 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String dropNotMarkdown(int count) {
+    return '$count fichier(s) déposé(s) non ouverts : ce ne sont pas des documents markdown';
+  }
+
+  @override
   String get searchNoResults => 'Aucun résultat';
 
   @override

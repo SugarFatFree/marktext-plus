@@ -413,6 +413,11 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String dropNotMarkdown(int count) {
+    return '$count من الملفات المسحوبة لم تُفتح: ليست مستندات markdown';
+  }
+
+  @override
   String get searchNoResults => 'لم يتم العثور على نتائج';
 
   @override

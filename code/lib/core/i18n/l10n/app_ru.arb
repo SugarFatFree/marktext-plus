@@ -175,6 +175,7 @@
   "noOpenFolder": "Откройте папку для просмотра файлов",
   "searchPlaceholder": "Поиск в файлах...",
   "searchTooLarge": "{count} файл(ов) слишком велики для поиска",
+  "dropNotMarkdown": "{count} перетащенных файл(ов) не открыты: это не markdown-документы",
   "searchNoResults": "Результатов не найдено",
   "searchResultCount": "Найдено результатов: {count}",
   "tocEmpty": "Заголовки не найдены",

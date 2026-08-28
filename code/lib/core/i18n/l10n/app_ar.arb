@@ -175,6 +175,7 @@
   "noOpenFolder": "افتح مجلداً لتصفح الملفات",
   "searchPlaceholder": "البحث في الملفات...",
   "searchTooLarge": "{count} من الملفات أكبر من أن تُبحث",
+  "dropNotMarkdown": "{count} من الملفات المسحوبة لم تُفتح: ليست مستندات markdown",
   "searchNoResults": "لم يتم العثور على نتائج",
   "searchResultCount": "تم العثور على {count} نتيجة",
   "tocEmpty": "لم يتم العثور على عناوين",

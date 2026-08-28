@@ -414,6 +414,11 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String dropNotMarkdown(int count) {
+    return '$count перетащенных файл(ов) не открыты: это не markdown-документы';
+  }
+
+  @override
   String get searchNoResults => 'Результатов не найдено';
 
   @override

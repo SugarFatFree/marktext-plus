@@ -408,6 +408,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String dropNotMarkdown(int count) {
+    return '$count 個のファイルは開きませんでした：markdown 文書ではありません';
+  }
+
+  @override
   String get searchNoResults => '結果が見つかりません';
 
   @override

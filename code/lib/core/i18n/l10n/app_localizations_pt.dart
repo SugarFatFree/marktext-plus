@@ -417,6 +417,11 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String dropNotMarkdown(int count) {
+    return '$count arquivo(s) soltos não foram abertos: não são documentos markdown';
+  }
+
+  @override
   String get searchNoResults => 'Sem resultados';
 
   @override
@@ -1317,6 +1322,11 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String searchTooLarge(int count) {
     return '$count arquivo(s) grandes demais para pesquisar';
+  }
+
+  @override
+  String dropNotMarkdown(int count) {
+    return '$count arquivo(s) soltos não foram abertos: não são documentos markdown';
   }
 
   @override

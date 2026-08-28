@@ -408,6 +408,11 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String dropNotMarkdown(int count) {
+    return '$count개 파일을 열지 않았습니다: markdown 문서가 아닙니다';
+  }
+
+  @override
   String get searchNoResults => '결과 없음';
 
   @override

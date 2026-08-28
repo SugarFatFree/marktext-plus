@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Fixed
+- Folder search no longer reads oversized files into memory whole; files over 2 MiB are skipped and the count of skipped files is shown rather than silently dropped
+- Dropping a `.mmd`, `.mdown`, `.mdtxt` or `.mdtext` file on the window opens it — drag and drop kept a private list holding three of the seven extensions the rest of the program accepts
+- Dropping an unsupported file now says so instead of the window silently swallowing the gesture
 
 ## [v1.4.0] - 2026-08-28
 
