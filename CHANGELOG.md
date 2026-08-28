@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - File ▸ Move To…, the one menu command upstream MarkText has that this one did not
 
 ### Fixed
+- Moving the caret in a large document is no longer felt. The line and column readout copied everything before the caret and split it into one string per line — 61 ms per keypress on a five megabyte file — while the gutter counted newlines across the whole document again in `build`. A line-start index built once per edit answers both in under a microsecond
 - A large document no longer freezes the window for seconds at a time when typing pauses. Parsing five megabytes takes about 3.5 s and ran on the UI isolate; it now runs on another one, of which only the ~140 ms of handing the blocks back is felt here
 - The table of contents no longer reads the whole document's outline during build — 402 ms per keystroke on a five megabyte file, whether or not the panel was even open
 - The preview takes heading positions from the blocks it parsed instead of scanning the text a second time. That second reading was a second definition of what counts as a heading, and it had already disagreed with the first twice

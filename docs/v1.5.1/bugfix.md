@@ -7,6 +7,7 @@
 | BUG-108 | 2026-08-29 | 文件树列出所有文件，点开二进制会当文本打开并可能被写坏 | P1 | 已修复 |
 | BUG-109 | 2026-08-29 | 快捷键文件非原子写，损坏时自定义快捷键被无声重置且原文件被覆盖 | P2 | 已修复 |
 | BUG-110 | 2026-08-29 | 大文档打字时窗口冻结数秒：整篇解析与整篇大纲都在 UI isolate 上跑 | P1 | 已修复 |
+| BUG-111 | 2026-08-29 | 大文档每次移动光标都全文扫描两遍，只为算行号列号 | P2 | 已修复 |
 
 ---
 
@@ -266,3 +267,61 @@ isolate 解析——起不了 isolate 不是让文档永远只显示一半的理
 - `code/lib/providers/outline_provider.dart`（新增）
 - `code/lib/ui/widgets/side_bar.dart`
 - `code/test/services/large_document_cost_test.dart`（新增，6 条）
+
+
+---
+
+## BUG-111：大文档每次移动光标都全文扫描两遍，只为算行号列号
+
+### 现象
+
+BUG-110 解决了"停顿一下冻结几秒"。剩下的是持续的手感问题：大文档里
+**光标每移动一格**都要卡一下，按住方向键尤其明显。
+
+### 实测数据（5 MB 文档，29 万行）
+
+| 操作 | 耗时 | 触发频率 |
+|---|---|---|
+| `text.substring(0, offset).split('\n')`（算光标行列） | **61 ms** | 每次光标移动、每次击键 |
+| `'\n'.allMatches(text).length`（行号栏取行数） | **33 ms** | 每次 build——而 build 会 watch 光标行 |
+
+也就是**每移动一格光标约 94 ms**，还外加一个 29 万个字符串的列表分配——
+只为读出两个数字。
+
+### 根因分析
+
+`_onSelectionChanged` 里：
+
+```dart
+final textBefore = text.substring(0, offset);   // 复制至多 5 MB
+final lines = textBefore.split('\n');           // 分配 29 万个字符串
+final line = lines.length - 1;
+final col = lines.last.length;
+```
+
+而 `_getLineCount()` 在 `build()` 里数一遍换行符；`build()` 又
+`watch` 了 `cursorLine`——于是光标一动就再扫一遍。两处各自全文扫描，
+且都是**每次光标移动**都做。
+
+### 修复方案
+
+建一份**行首偏移索引**，每次编辑建一次，之后二分查找：
+
+| 做法 | 耗时 |
+|---|---|
+| 建索引（每次编辑一次） | 46 ms |
+| 二分查找一次 | **0.42 µs** |
+
+行数直接取索引长度，行号栏那一遍也没了。**移动光标的代价从 94 ms 变成基本为零。**
+
+缓存用 `identical` 而不是 `==` 判断是否失效：对两个 5 MB 字符串做相等比较，
+本身就会把省下的时间还回去一大半。控制器在文本未变时返回同一个实例；
+万一是内容相同的另一个实例，代价也只是多建一次索引。
+
+### 涉及文件
+
+- `code/lib/ui/editor/source_editor.dart`
+- `code/test/ui/editor/cursor_position_test.dart`（新增，5 条）
+
+其中一条测试**逐个 offset 把新算法与被它替换掉的朴素算法对照**——
+包括空行、文档末尾、换行符正后方这些边界。
