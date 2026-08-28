@@ -2,6 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/material.dart' show Color, FontStyle, FontWeight;
+import 'package:flutter_highlight/themes/github.dart';
+import 'package:highlight/highlight.dart' show highlight, Node;
 import 'package:docx_creator/docx_creator.dart' hide MarkdownParser;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -160,6 +163,8 @@ class ExportService {
     buffer.writeln('  <title>Exported Markdown</title>');
     buffer.writeln('  <style>');
     buffer.writeln(_getGitHubStyleCss());
+    // The highlighting theme travels with the file rather than being fetched.
+    buffer.writeln(highlightCss());
     buffer.writeln('  </style>');
     if (needsMermaidScript) {
       buffer.writeln(
@@ -177,10 +182,6 @@ class ExportService {
     buffer.writeln(
       '  <link rel="stylesheet" '
       'href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">',
-    );
-    buffer.writeln(
-      '  <link rel="stylesheet" '
-      'href="https://cdn.jsdelivr.net/npm/highlight.js@11/styles/github.min.css">',
     );
     buffer.writeln('</head>');
     buffer.writeln('<body>');
@@ -222,11 +223,6 @@ class ExportService {
     buffer.writeln('      ]');
     buffer.writeln('    });');
     buffer.writeln('  </script>');
-    buffer.writeln(
-      '  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11/lib/'
-      'common.min.js"></script>',
-    );
-    buffer.writeln('  <script>hljs.highlightAll();</script>');
     buffer.writeln('</body>');
     buffer.writeln('</html>');
 
@@ -710,10 +706,10 @@ class ExportService {
           return '<pre class="mermaid">${_escapeHtml(code.code)}</pre>';
         }
         final langClass = code.language.isNotEmpty
-            ? ' class="language-${code.language}"'
-            : '';
-        final escaped = _escapeHtml(code.code);
-        return '<pre><code$langClass>$escaped</code></pre>';
+            ? ' class="hljs language-${code.language}"'
+            : ' class="hljs"';
+        final body = highlightCodeToHtml(code.code, code.language);
+        return '<pre><code$langClass>$body</code></pre>';
 
       case NodeType.orderedList:
       case NodeType.unorderedList:
@@ -775,6 +771,79 @@ class ExportService {
         final html = node as HtmlBlockNode;
         return sanitiseHtmlForExport(html.html);
     }
+  }
+
+  /// Colours a code block using the highlighter the app already carries.
+  ///
+  /// The export used to emit plain `<pre><code>` and leave highlight.js to be
+  /// fetched from a CDN and run in the reader's browser. Offline — or on a
+  /// network that does not reach jsdelivr — the code arrived uncoloured, and
+  /// two of the file's external dependencies existed only for this.
+  ///
+  /// `package:highlight` is compiled into the app for the preview, with every
+  /// language it supports. Using it here costs nothing that has not already
+  /// been paid for and leaves the exported file self-contained.
+  static String highlightCodeToHtml(String code, String language) {
+    if (language.isEmpty) return _escapeHtml(code);
+    try {
+      final result = highlight.parse(code, language: language);
+      final nodes = result.nodes;
+      if (nodes == null || nodes.isEmpty) return _escapeHtml(code);
+      return _highlightNodesToHtml(nodes);
+    } catch (_) {
+      // An unknown language is not a reason to lose the code.
+      return _escapeHtml(code);
+    }
+  }
+
+  static String _highlightNodesToHtml(List<Node> nodes) {
+    final buffer = StringBuffer();
+    for (final node in nodes) {
+      final inner = node.value != null
+          ? _escapeHtml(node.value!)
+          : _highlightNodesToHtml(node.children ?? const []);
+      if (node.className == null || node.className!.isEmpty) {
+        buffer.write(inner);
+      } else {
+        buffer.write('<span class="hljs-${node.className}">$inner</span>');
+      }
+    }
+    return buffer.toString();
+  }
+
+  /// The highlighting theme as a stylesheet, so it travels with the file.
+  ///
+  /// Generated from the same theme map the preview paints with, rather than
+  /// copied out into a second list of colours that would drift from it.
+  static String highlightCss() {
+    final buffer = StringBuffer();
+    githubTheme.forEach((key, style) {
+      final declarations = <String>[];
+      final color = style.color;
+      if (color != null) {
+        declarations.add('color: ${_cssColor(color)}');
+      }
+      final background = style.backgroundColor;
+      if (background != null) {
+        declarations.add('background: ${_cssColor(background)}');
+      }
+      if (style.fontWeight == FontWeight.bold) {
+        declarations.add('font-weight: bold');
+      }
+      if (style.fontStyle == FontStyle.italic) {
+        declarations.add('font-style: italic');
+      }
+      if (declarations.isEmpty) return;
+      final selector = key == 'root' ? '.hljs' : '.hljs-$key';
+      buffer.writeln('    $selector { ${declarations.join('; ')}; }');
+    });
+    return buffer.toString();
+  }
+
+  static String _cssColor(Color color) {
+    final argb = color.toARGB32();
+    final rgb = (argb & 0xFFFFFF).toRadixString(16).padLeft(6, '0');
+    return '#$rgb';
   }
 
   /// Removes what would run by itself from a block of raw HTML.
