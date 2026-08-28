@@ -581,7 +581,8 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         maxLines: null,
         autofocus: true,
         style: TextStyle(
-          fontFamily: 'monospace',
+          fontFamily: config.codeFontFamily,
+          fontFamilyFallback: const ['monospace'],
           fontSize: config.fontSize,
           height: config.lineHeight,
           color: tokens.colorText,
@@ -734,13 +735,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       );
     }
 
-    // The code font setting had nothing reading it: code was always rendered
-    // in the platform's generic monospace face whatever was chosen.
-    final baseCodeStyle = TextStyle(
-      fontFamily: ref.read(settingsProvider).codeFontFamily,
-      fontFamilyFallback: const ['monospace'],
-      fontSize: 14,
-    );
+    final baseCodeStyle = _codeStyle(fontSize: 14);
     // Skip highlighting for very large blocks to keep first-render responsive
     final canHighlight = node.language.isNotEmpty && node.code.length <= 20000;
 
@@ -1103,6 +1098,22 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     );
   }
 
+  /// The face chosen for code, wherever code is shown.
+  ///
+  /// The setting had nothing reading it at all once; then the fenced code
+  /// block started reading it and the other four places that draw monospace
+  /// text did not. Picking a code font changed the blocks and left inline
+  /// `code`, front matter, html blocks and the block editor in the platform's
+  /// generic face — the same font setting producing two different fonts on
+  /// one screen. One source, so the next place to draw code cannot drift.
+  TextStyle _codeStyle({required double fontSize, Color? color}) => TextStyle(
+        fontFamily: ref.read(settingsProvider).codeFontFamily,
+        // A face that is not installed falls back rather than to the UI font.
+        fontFamilyFallback: const ['monospace'],
+        fontSize: fontSize,
+        color: color,
+      );
+
   Widget _buildFrontMatter(md.FrontMatterNode node, ThemeData theme) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -1112,10 +1123,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         borderRadius: BorderRadius.circular(4),
         border: Border.all(color: theme.dividerColor),
       ),
-      child: Text(
-        node.content,
-        style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
-      ),
+      child: Text(node.content, style: _codeStyle(fontSize: 13)),
     );
   }
 
@@ -1149,10 +1157,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(4),
       ),
-      child: Text(
-        node.html,
-        style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
-      ),
+      child: Text(node.html, style: _codeStyle(fontSize: 13)),
     );
   }
 
@@ -1260,7 +1265,8 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
           }
         case md.InlineType.code:
           final s = baseStyle?.copyWith(
-            fontFamily: 'monospace',
+            fontFamily: ref.read(settingsProvider).codeFontFamily,
+            fontFamilyFallback: const ['monospace'],
             fontSize: (baseStyle.fontSize ?? 16) * 0.9,
             height: baseStyle.height,
             backgroundColor: theme.colorScheme.surfaceContainerHighest

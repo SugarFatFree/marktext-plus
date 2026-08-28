@@ -77,6 +77,7 @@
 | BUG-073 | 2026-08-28 | 一条写错的公式会把库的英文异常当正文显示在文档里 | P2 | 已修复 |
 | BUG-074 | 2026-08-28 | 嵌套引用的两种标准写法渲染成两个样子 | P2 | 已修复 |
 | BUG-075 | 2026-08-28 | 状态图的起点和终点画得一模一样 | P2 | 已修复 |
+| BUG-076 | 2026-08-28 | 选了代码字体只有代码块变，行内代码等四处不变 | P2 | 已修复 |
 
 ## 详细记录
 
@@ -2825,5 +2826,56 @@ mermaid 的画法是：起点一个实心圆，终点是实心圆外面再套一
 
 - `code/lib/ui/editor/mermaid/parser/state_diagram_parser.dart`
 - `code/test/ui/editor/mermaid/mermaid_parser_test.dart`
+
+---
+
+## BUG-076：选了代码字体只有代码块变，行内代码等四处不变
+
+### 现象
+
+设置里挑一个代码字体（比如 Fira Code），只有围栏代码块换了字体；同一屏上的
+行内 `code`、front matter 块、HTML 块、以及双击块进入的源码编辑框，全都还是
+平台默认等宽字体。**一个设置，一屏两种字**。
+
+### 根因
+
+`codeFontFamily` 一度**完全没人读**——代码在哪儿都用平台通用等宽字体。后来
+修的时候只改了围栏代码块一处，另外四处继续写死 `fontFamily: 'monospace'`。
+
+这是本项目反复出现的同一个根因：**同一个行为散落在多处实现，改的时候副本
+没跟上**。之前的重复渲染、扩展名清单散落七处、快捷键表与处理器脱节，都是它。
+
+### 修复方案
+
+加一个唯一入口 `_codeStyle({fontSize, color})`，从设置读字体并带
+`fontFamilyFallback: ['monospace']`（选了个没装的字体时退回等宽，而不是退回
+界面字体），四处全部改走它。新增 4 条组件测试，分别断言围栏块、行内代码、
+front matter、HTML 块用的都是所选字体**且不再是 `'monospace'`**。
+
+公式解析失败时的兜底显示（两处）保持写死等宽：那是用来标示"这不是正文"的
+错误样式，不是用户配置的代码字体。
+
+### 与上游的差距（本轮对比 `../marktext` 得到）
+
+上游 `preferences/schema.json` 有 **71 个设置项**，我们有 39 个。扣掉改了名的
+（`sideBarVisibility`↔`sideBarVisible`、`theme`↔`themeName`、`language`↔`locale`、
+`editorLineWidth`↔`editorMaxWidth`、`isHtmlEnabled`↔`enableHtml` 等），真正缺的
+里值得先做的几项：
+
+| 上游项 | 默认 | 说明 |
+|---|---|---|
+| `codeFontSize` | 14 | 我们有代码字体却**没有代码字号**，现在写死 14/13 |
+| `codeBlockLineNumbers` | true | 上游默认开，我们没有行号 |
+| `preferHeadingStyle` | atx | 标题风格 |
+| `orderListDelimiter` | `.` | 我们固定 `.`，与默认一致 |
+| `trimTrailingNewline` | 2 | 保存时尾部空行处理 |
+| `endOfLine` | default | 换行符策略（我们出过 CRLF 的事故） |
+
+其余多为拼写检查、搜索选项、PlantUML 等本项目尚未涉足的领域。
+
+### 涉及文件
+
+- `code/lib/ui/editor/markdown_renderer.dart`
+- `code/test/ui/editor/code_font_test.dart` —— 新增
 
 ---
