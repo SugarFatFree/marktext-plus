@@ -252,6 +252,7 @@ class AppMenuBar extends ConsumerWidget {
 
   Widget _buildFileMenu(
       BuildContext context, AppLocalizations l10n, WidgetRef ref) {
+    final hasDocument = ref.watch(activeTabProvider) != null;
     return SubmenuButton(
       menuChildren: [
         MenuItemButton(
@@ -295,20 +296,24 @@ class AppMenuBar extends ConsumerWidget {
           onPressed: () => _closeActiveTab(context, ref),
         ),
         const Divider(height: 1),
+        // Greyed out with nothing open. Closing the last tab leaves no
+        // document at all, and each of these began by returning quietly when
+        // it found none — the reader clicked Export and nothing happened,
+        // with nothing to say why.
         SubmenuButton(
           menuChildren: [
             MenuItemButton(
+              onPressed: hasDocument ? () => _exportHtml(ref) : null,
               child: Text(l10n.fileExportHtml),
-              onPressed: () => _exportHtml(ref),
             ),
             MenuItemButton(
               shortcut: _shortcut('exportPdf'),
+              onPressed: hasDocument ? () => _exportPdf(ref) : null,
               child: Text(l10n.fileExportPdf),
-              onPressed: () => _exportPdf(ref),
             ),
             MenuItemButton(
+              onPressed: hasDocument ? () => _exportWord(ref) : null,
               child: Text(l10n.fileExportWord),
-              onPressed: () => _exportWord(ref),
             ),
           ],
           child: Text(l10n.fileExport),
@@ -317,8 +322,8 @@ class AppMenuBar extends ConsumerWidget {
         // same code the PDF export uses so the paper matches the file.
         MenuItemButton(
           shortcut: _shortcut('print'),
+          onPressed: hasDocument ? () => _print(ref) : null,
           child: Text(l10n.filePrint),
-          onPressed: () => _print(ref),
         ),
         const Divider(height: 1),
         MenuItemButton(

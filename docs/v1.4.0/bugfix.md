@@ -95,6 +95,7 @@
 | BUG-091 | 2026-08-28 | 上一条修复引入：写在步骤里的 setext 标题被大纲多算一条 | P2 | 已修复 |
 | BUG-092 | 2026-08-28 | 重命名或新建时撞上同名文件会直接覆盖，无提示无撤销 | **P0** | 已修复 |
 | BUG-093 | 2026-08-28 | 点已删除的最近文件毫无反应，失效条目永远留在列表里 | P2 | 已修复 |
+| BUG-094 | 2026-08-28 | 关掉所有标签页后，导出与打印仍可点却什么都不做 | P2 | 已修复 |
 
 ## 详细记录
 
@@ -3689,5 +3690,46 @@ void _openRecentFile(WidgetRef ref, String filePath) async {
 
 - `code/lib/ui/widgets/app_menu_bar.dart`
 - `code/lib/core/i18n/l10n/app_*.arb`（12 个）
+
+---
+
+## BUG-094：没有文档时导出与打印仍可点
+
+### 现象
+
+关掉最后一个标签页之后（`removeTab` 会把 `activeTabId` 置为 null，这个状态是
+可达的），文件 ▸ 导出 ▸ HTML/PDF/Word 和文件 ▸ 打印**四项仍然可以点**，点了
+什么都不会发生——四个处理函数的第一行都是 `if (activeTab == null) return;`。
+
+### 这是同一个模式的第四次
+
+BUG-082（勾选框）、BUG-084（替换按钮）、BUG-093（失效的最近文件），加上这四项。
+所以这轮没有再靠肉眼找，而是**把这个模式写成了扫描**：先从 `onPressed`/`onTap`
+反查出由点击直接触发的方法（30 个），再筛出其中"含失败即裸 `return`、且整个
+方法体里没有任何提示"的。
+
+扫出 7 处，逐条判断后**只有 4 处是真问题**：
+
+| 命中 | 判断 |
+|---|---|
+| `_performSearch` ← `query.isEmpty` | 正常，没内容可搜 |
+| `_findNext` ← `_matches.isEmpty` | 正常，按钮本就禁用 |
+| `_openFolder` ← `result == null` | 正常，用户取消了选择框 |
+| 导出三项与打印 ← `activeTab == null` | **真问题** |
+
+### 修复方案
+
+菜单在构建时取一次 `hasDocument`，四项的 `onPressed` 在没有文档时为 `null`
+——`onPressed: null` 正是这个项目里其它菜单项表示"当前不可用"的写法。
+
+### 一处记录
+
+改完 analyze 报了四条 `sort_child_properties_last`（`child:` 应当放在参数表
+最后）。这几行原先就是那个顺序却没报过，我没有深究是什么触发了它——**照 lint
+说的调整顺序即可，不必为一条风格提示编一个解释**。
+
+### 涉及文件
+
+- `code/lib/ui/widgets/app_menu_bar.dart`
 
 ---
