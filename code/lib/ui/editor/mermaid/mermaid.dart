@@ -53,7 +53,7 @@ library;
 
 export 'config/responsive_config.dart';
 export 'layout/layout_engine.dart';
-export 'layout/sugiyama_layout.dart';
+export 'layout/sequence_layout.dart';
 export 'models/diagram.dart';
 export 'models/edge.dart';
 export 'models/gantt.dart';

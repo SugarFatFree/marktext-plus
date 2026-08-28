@@ -7,7 +7,7 @@ import '../layout/er_diagram_layout.dart';
 import '../layout/mindmap_layout.dart';
 import '../layout/dagre_layout.dart';
 import '../layout/layout_engine.dart';
-import '../layout/sugiyama_layout.dart';
+import '../layout/sequence_layout.dart';
 import '../models/class_diagram.dart';
 import '../models/er_diagram.dart';
 import '../models/diagram.dart';
