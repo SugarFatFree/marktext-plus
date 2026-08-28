@@ -1484,6 +1484,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
 class PreviewEditableBlock extends StatefulWidget {
   @visibleForTesting
   const PreviewEditableBlock({
+    super.key,
     required this.hoverColor,
     required this.onEdit,
     required this.child,

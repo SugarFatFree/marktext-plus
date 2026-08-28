@@ -78,6 +78,7 @@
 | BUG-074 | 2026-08-28 | 嵌套引用的两种标准写法渲染成两个样子 | P2 | 已修复 |
 | BUG-075 | 2026-08-28 | 状态图的起点和终点画得一模一样 | P2 | 已修复 |
 | BUG-076 | 2026-08-28 | 选了代码字体只有代码块变，行内代码等四处不变 | P2 | 已修复 |
+| BUG-077 | 2026-08-28 | 一次 CI 静静地挂了而我一直以为看不到结果 | P3 | 已修复 |
 
 ## 详细记录
 
@@ -2877,5 +2878,39 @@ front matter、HTML 块用的都是所选字体**且不再是 `'monospace'`**。
 
 - `code/lib/ui/editor/markdown_renderer.dart`
 - `code/test/ui/editor/code_font_test.dart` —— 新增
+
+---
+
+## BUG-077：一次 CI 静静地挂了，而我一直以为看不到结果
+
+### 现象
+
+`60a2fe8`（代码字号那次）的 CI **失败了**，后续三次都成功。我连续几轮都在说
+"本机没有 `gh`，CI 结果看不到"，所以完全不知道挂过。
+
+### 根因（两层）
+
+**表层**：`flutter analyze` 报 `use_key_in_widget_constructors` —— 公开组件
+`PreviewEditableBlock` 的构造函数没有 `key` 参数。这条 info 级提示**只有
+3.44.9 的 analyzer 会报**，3.47 不报；而 `60a2fe8` 恰好是唯一一个用 3.44.9
+构建的提交（当时 SDK 被固定在那），所以只有它挂。后来解除固定回 3.47.2，
+问题就自己消失了——但代码里的缺陷还在。
+
+本机跑 `dart analyze --fatal-infos` 用的是 3.47.1，因此本地与 CI 在那一轮
+**用的不是同一个 analyzer**，本地过了 CI 没过。
+
+**深层**：我一直以为查不到 CI。实际上本机虽然没有 `gh`，但网络通、
+`~/.config/gh/hosts.yml` 里有 token，直接调 Actions API 就能看运行状态、
+失败 job、完整日志。**能力一直在，是我没去试。**
+
+### 修复方案
+
+- `PreviewEditableBlock` 加 `super.key`。
+- 机械扫了一遍全仓公开 Widget，缺 `key` 的只有这一个。
+- 查 CI 的方法已记进长期记忆，此后每次推送后查一次。
+
+### 涉及文件
+
+- `code/lib/ui/editor/markdown_renderer.dart`
 
 ---
