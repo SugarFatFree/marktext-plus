@@ -25,23 +25,46 @@ List<String> _filterStartupFiles(List<dynamic> args) {
   }).cast<String>().toList();
 }
 
-/// Matches kFilesChannel in linux/runner/my_application.cc.
-const _linuxFilesChannel = MethodChannel('com.marktextplus/files');
+/// Matches kFilesChannel in linux/runner/my_application.cc and
+/// AppDelegate.filesChannelName in macos/Runner/AppDelegate.swift.
+const _filesChannel = MethodChannel('com.marktextplus/files');
 
-/// Receives file paths from a second launch on Linux.
+/// Receives file paths the desktop hands to an already-running app.
 ///
-/// GTK forwards them to the process already holding the application ID, which
-/// pushes them over this channel rather than starting another window.
-void _listenForLinuxFileOpens(ProviderContainer container) {
-  if (!Platform.isLinux) return;
+/// On Linux, GTK forwards a second launch's arguments to the process holding
+/// the application ID. On macOS nothing arrives in `argv` at all: Finder sends
+/// an Apple event, which the app delegate turns into a call on this channel —
+/// including for the launch that opened the app in the first place, which is
+/// why the queue is drained rather than only listened to.
+void _listenForFileOpens(ProviderContainer container) {
+  if (!Platform.isLinux && !Platform.isMacOS) return;
 
-  _linuxFilesChannel.setMethodCallHandler((call) async {
+  Future<void> open(List<String> paths) async {
+    if (paths.isEmpty) return;
+    await container.read(tabProvider.notifier).openFilesFromSecondInstance(paths);
+  }
+
+  _filesChannel.setMethodCallHandler((call) async {
     if (call.method != 'openFiles') return null;
     final paths = (call.arguments as List?)?.whereType<String>().toList();
-    if (paths == null || paths.isEmpty) return null;
-    await container.read(tabProvider.notifier).openFilesFromSecondInstance(paths);
+    if (paths == null) return null;
+    await open(paths);
     return null;
   });
+
+  if (!Platform.isMacOS) return;
+  // Whatever Finder delivered before this handler existed. Asking is also how
+  // the native side learns that pushing is safe from now on.
+  () async {
+    try {
+      final queued = await _filesChannel
+          .invokeMethod<List<dynamic>>('drainPendingFiles');
+      await open(queued?.whereType<String>().toList() ?? const []);
+    } catch (_) {
+      // An older build of the app bundle has no such method; a launch with no
+      // document is not a reason to fail startup either way.
+    }
+  }();
 }
 
 /// Brings the running window forward.
@@ -150,7 +173,7 @@ void main(List<String> args) async {
   );
 
   _globalContainer = container;
-  _listenForLinuxFileOpens(container);
+  _listenForFileOpens(container);
 
   StartupTrace.mark('provider container built');
 

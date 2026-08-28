@@ -403,6 +403,19 @@ class AppLocalizationsJa extends AppLocalizations {
   String get searchPlaceholder => 'ファイル内を検索...';
 
   @override
+  String searchTooLarge(int count) {
+    return '$count 個のファイルは大きすぎるため検索しませんでした';
+  }
+
+  @override
+  String dropNotMarkdown(int count) {
+    return '$count 個のファイルは開きませんでした：markdown 文書ではありません';
+  }
+
+  @override
+  String get previewStartWriting => '書き始めましょう…';
+
+  @override
   String get searchNoResults => '結果が見つかりません';
 
   @override

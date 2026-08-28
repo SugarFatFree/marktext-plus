@@ -35,6 +35,7 @@ import '../../services/file_service.dart';
 import '../../models/file_encoding.dart';
 import '../../models/line_ending.dart';
 import '../../core/diagnostics/startup_trace.dart';
+import '../../utils/file_utils.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -489,7 +490,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
   }
 
   void _handleDrop(DropDoneDetails details) async {
-    final allowedExtensions = {'.md', '.markdown', '.txt'};
+    // The shared list, not a private copy: this one had three of the seven
+    // extensions the rest of the program accepts, so dropping a `.mmd` or a
+    // `.mdown` did nothing whatever.
+    final allowedExtensions = FileUtils.markdownExtensionsWithDot;
+    var refused = 0;
 
     for (final file in details.files) {
       final path = file.path;
@@ -507,7 +512,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
 
       // Handle files
       final ext = p.extension(path).toLowerCase();
-      if (!allowedExtensions.contains(ext)) continue;
+      if (!allowedExtensions.contains(ext)) {
+        // Counted rather than passed over: a window that swallows what is
+        // dropped on it and says nothing looks broken.
+        refused++;
+        continue;
+      }
 
       try {
         // Create tab with loading state first
@@ -543,6 +553,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
       } catch (_) {
         // Skip files that can't be read
       }
+    }
+
+    if (refused > 0 && mounted) {
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.dropNotMarkdown(refused))),
+      );
     }
   }
 

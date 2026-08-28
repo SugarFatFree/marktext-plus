@@ -410,6 +410,19 @@ class AppLocalizationsDe extends AppLocalizations {
   String get searchPlaceholder => 'In Dateien suchen...';
 
   @override
+  String searchTooLarge(int count) {
+    return '$count Datei(en) zu groß zum Durchsuchen';
+  }
+
+  @override
+  String dropNotMarkdown(int count) {
+    return '$count abgelegte Datei(en) nicht geöffnet: kein Markdown-Dokument';
+  }
+
+  @override
+  String get previewStartWriting => 'Hier schreiben …';
+
+  @override
   String get searchNoResults => 'Keine Ergebnisse gefunden';
 
   @override

@@ -191,6 +191,15 @@
   "noFiles": "No files",
   "noOpenFolder": "Open a folder to browse files",
   "searchPlaceholder": "Search in files...",
+  "searchTooLarge": "{count} file(s) too large to search",
+  "dropNotMarkdown": "{count} dropped file(s) were not opened: not a markdown document",
+  "previewStartWriting": "Start writing…",
+  "@dropNotMarkdown": {
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "@searchTooLarge": {
+    "placeholders": {"count": {"type": "int"}}
+  },
   "searchNoResults": "No results found",
   "searchResultCount": "{count} results found",
   "@searchResultCount": {

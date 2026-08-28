@@ -409,6 +409,19 @@ class AppLocalizationsRu extends AppLocalizations {
   String get searchPlaceholder => 'Поиск в файлах...';
 
   @override
+  String searchTooLarge(int count) {
+    return '$count файл(ов) слишком велики для поиска';
+  }
+
+  @override
+  String dropNotMarkdown(int count) {
+    return '$count перетащенных файл(ов) не открыты: это не markdown-документы';
+  }
+
+  @override
+  String get previewStartWriting => 'Начните писать…';
+
+  @override
   String get searchNoResults => 'Результатов не найдено';
 
   @override

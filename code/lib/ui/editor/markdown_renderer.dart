@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/gestures.dart';
@@ -65,6 +66,14 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   md.MarkdownNode? _editingNode;
   final _editController = TextEditingController();
   late final FocusNode _editFocusNode;
+
+  /// Stand-in for the block being appended at the end of the document.
+  ///
+  /// Reused rather than rebuilt so that `identical(_editingNode, node)` — how
+  /// every other block decides whether it is the one being edited — keeps
+  /// working for it too.
+  final md.MarkdownNode _appendNode =
+      md.ParagraphNode(content: '', inlineSpans: const []);
 
   // Progressive rendering state.
   //
@@ -375,6 +384,18 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       }
     }
 
+    // Somewhere to start writing.
+    //
+    // Until now the preview could only edit blocks that already existed: an
+    // empty document rendered nothing at all, so there was no target to tap
+    // and not a single character could be typed into it. Even in a written
+    // document there was no way to add a block at the end — you had to switch
+    // to the source pane. Upstream MarkText puts the caret at the end when the
+    // space below the text is clicked, and this is that.
+    if (widget.onSourceChanged != null && _renderedNodeCount >= nodes.length) {
+      widgets.add(_buildAppendTarget(nodes.isEmpty, tokens));
+    }
+
     // Add loading indicator if more nodes are pending
     if (_renderedNodeCount < nodes.length) {
       widgets.add(
@@ -573,6 +594,54 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       return;
     }
     widget.onSourceChanged?.call(updated);
+  }
+
+  /// The tap target under the last block.
+  ///
+  /// A single tap, not the double tap every block uses: there is no text here
+  /// to select and no link to follow, so nothing for the gesture to fight,
+  /// and asking for a double tap on blank space is asking the reader to guess.
+  Widget _buildAppendTarget(bool documentIsEmpty, AppThemeTokens tokens) {
+    if (identical(_editingNode, _appendNode)) {
+      return _buildBlockEditor(_appendNode);
+    }
+    final l10n = AppLocalizations.of(context);
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: _startEditingAtEnd,
+      child: Container(
+        width: double.infinity,
+        constraints: BoxConstraints(minHeight: documentIsEmpty ? 160 : 96),
+        alignment: Alignment.topLeft,
+        padding: const EdgeInsets.only(top: 12),
+        child: documentIsEmpty && l10n != null
+            ? Text(
+                l10n.previewStartWriting,
+                style: TextStyle(
+                  color: tokens.colorTextMuted,
+                  fontStyle: FontStyle.italic,
+                ),
+              )
+            : null,
+      ),
+    );
+  }
+
+  /// Opens an editor for a block that does not exist yet.
+  ///
+  /// The node is a stand-in whose line range is empty and sits at the end of
+  /// the document, so committing it inserts rather than replaces — the same
+  /// `replaceBlock` every other edit goes through.
+  void _startEditingAtEnd() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    final lineCount = const LineSplitter().convert(widget.markdown).length;
+    _appendNode.sourceStart = lineCount;
+    _appendNode.sourceEnd = lineCount;
+    _editController.value = const TextEditingValue(text: '');
+    setState(() => _editingNode = _appendNode);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _editFocusNode.requestFocus();
+    });
   }
 
   void _cancelEdit() {

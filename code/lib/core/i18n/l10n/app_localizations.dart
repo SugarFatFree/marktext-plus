@@ -867,6 +867,24 @@ abstract class AppLocalizations {
   /// **'Search in files...'**
   String get searchPlaceholder;
 
+  /// No description provided for @searchTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} file(s) too large to search'**
+  String searchTooLarge(int count);
+
+  /// No description provided for @dropNotMarkdown.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} dropped file(s) were not opened: not a markdown document'**
+  String dropNotMarkdown(int count);
+
+  /// No description provided for @previewStartWriting.
+  ///
+  /// In en, this message translates to:
+  /// **'Start writing…'**
+  String get previewStartWriting;
+
   /// No description provided for @searchNoResults.
   ///
   /// In en, this message translates to:

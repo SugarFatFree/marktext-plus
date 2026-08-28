@@ -402,6 +402,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get searchPlaceholder => '在文件中搜索...';
 
   @override
+  String searchTooLarge(int count) {
+    return '$count 个文件太大，未搜索';
+  }
+
+  @override
+  String dropNotMarkdown(int count) {
+    return '$count 个拖入的文件未打开：不是 markdown 文档';
+  }
+
+  @override
+  String get previewStartWriting => '开始写点什么…';
+
+  @override
   String get searchNoResults => '未找到结果';
 
   @override

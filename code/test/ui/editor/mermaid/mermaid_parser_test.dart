@@ -2200,12 +2200,11 @@ classDiagram
     });
 
     test('an unknown type still names what is supported', () {
-      // zenuml, packet-beta, architecture-beta and treemap-beta are the four
-      // mermaid 11 types not implemented here.
-      expect(parser.parseWithData('architecture-beta\n  group api(cloud)[API]'),
-          isNull);
+      // zenuml and treemap-beta are the two mermaid 11 types not implemented
+      // here; packet-beta and architecture-beta now are.
+      expect(parser.parseWithData('zenuml\n  Alice->Bob: hi'), isNull);
       expect(
-        parser.describeParseFailure('architecture-beta\n  group api(cloud)[API]'),
+        parser.describeParseFailure('zenuml\n  Alice->Bob: hi'),
         contains('Unrecognised diagram type'),
       );
     });
@@ -2233,6 +2232,9 @@ classDiagram
         'sankey': 'sankey-beta\n\nA,B,124.729',
         'block': 'block-beta\n  columns 3\n  a b c',
         'c4': 'C4Context\n  Person(a, "User", "d")\n  System(b, "Sys", "d")\n  Rel(a, b, "uses")',
+        'packet': 'packet-beta\n  0-15: "Source Port"\n  16-31: "Dest Port"',
+        'architecture': 'architecture-beta\n  group api(cloud)[API]\n'
+            '  service db(database)[Database] in api',
       };
       for (final entry in samples.entries) {
         expect(parser.parseWithData(entry.value), isNotNull,
@@ -2253,9 +2255,9 @@ classDiagram
       expect(parser.describeFailure('   \n  %% just a comment\n').kind,
           MermaidFailureKind.empty);
 
-      final unknown = parser.describeFailure('architecture-beta\n  group a');
+      final unknown = parser.describeFailure('zenuml\n  Alice->Bob: hi');
       expect(unknown.kind, MermaidFailureKind.unknownType);
-      expect(unknown.detail, 'architecture-beta',
+      expect(unknown.detail, 'zenuml',
           reason: '要引用回用户自己写的那一行');
 
       expect(parser.describeFailure('flowchart TD').kind,
@@ -2268,7 +2270,7 @@ classDiagram
       // describeParseFailure is now built on describeFailure rather than
       // repeating the decision, so the two cannot drift apart.
       expect(parser.describeParseFailure(''), contains('empty'));
-      expect(parser.describeParseFailure('architecture-beta\n  group a'),
+      expect(parser.describeParseFailure('zenuml\n  Alice->Bob: hi'),
           contains('Unrecognised diagram type'));
       expect(parser.describeParseFailure('flowchart TD'), contains('no content'));
       expect(parser.describeParseFailure('graph TD\n  A--->'),

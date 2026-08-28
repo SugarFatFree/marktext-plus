@@ -2,6 +2,8 @@ import '../models/block_diagram.dart';
 import '../models/c4_diagram.dart';
 import '../models/class_diagram.dart';
 import '../models/diagram.dart';
+import '../models/architecture.dart';
+import '../models/packet.dart';
 import '../models/er_diagram.dart';
 import '../models/gantt.dart';
 import '../models/git_graph.dart';
@@ -30,6 +32,8 @@ import 'pie_chart_parser.dart';
 import 'quadrant_parser.dart';
 import 'requirement_parser.dart';
 import 'sankey_parser.dart';
+import 'architecture_parser.dart';
+import 'packet_parser.dart';
 import 'radar_parser.dart';
 import 'sequence_parser.dart';
 import 'state_diagram_parser.dart';
@@ -79,6 +83,8 @@ class MermaidParseResult {
     this.sankeyChartData,
     this.blockDiagramData,
     this.c4DiagramData,
+    this.architectureData,
+    this.packetData,
     this.radarChartData,
     this.xyChartData,
     this.classDiagramData,
@@ -114,6 +120,8 @@ class MermaidParseResult {
       sankeyChartData != null ||
       blockDiagramData != null ||
       c4DiagramData != null ||
+      architectureData != null ||
+      packetData != null ||
       radarChartData != null ||
       xyChartData != null ||
       classDiagramData != null ||
@@ -150,6 +158,12 @@ class MermaidParseResult {
 
   /// C4 specific data (only set for C4 diagrams)
   final C4DiagramData? c4DiagramData;
+
+  /// Architecture diagram specific data (only set for architecture diagrams)
+  final ArchitectureDiagramData? architectureData;
+
+  /// Packet diagram specific data (only set for packet diagrams)
+  final PacketDiagramData? packetData;
 
   /// Radar chart specific data (only set for Radar charts)
   final RadarChartData? radarChartData;
@@ -188,6 +202,8 @@ class MermaidParseResult {
       quadrantChartData?.title != null ||
       sankeyChartData?.title != null ||
       c4DiagramData?.title != null ||
+      architectureData?.title != null ||
+      packetData?.title != null ||
       radarChartData?.title != null ||
       xyChartData?.title != null ||
       journeyData?.title != null ||
@@ -208,6 +224,8 @@ class MermaidParseResult {
         sankeyChartData: sankeyChartData,
         blockDiagramData: blockDiagramData,
         c4DiagramData: c4DiagramData,
+        architectureData: architectureData,
+        packetData: packetData,
         radarChartData: radarChartData,
         xyChartData: xyChartData,
         classDiagramData: classDiagramData,
@@ -367,6 +385,24 @@ class MermaidParser {
           return MermaidParseResult(
             diagram: result.$1,
             c4DiagramData: result.$2,
+          );
+        }
+        return null;
+      case DiagramType.architecture:
+        final result = const ArchitectureParser().parse(body);
+        if (result != null) {
+          return MermaidParseResult(
+            diagram: result.$1,
+            architectureData: result.$2,
+          );
+        }
+        return null;
+      case DiagramType.packet:
+        final result = const PacketParser().parse(body);
+        if (result != null) {
+          return MermaidParseResult(
+            diagram: result.$1,
+            packetData: result.$2,
           );
         }
         return null;
@@ -624,6 +660,10 @@ class MermaidParser {
         return 'block diagram';
       case DiagramType.c4Diagram:
         return 'C4 diagram';
+      case DiagramType.architecture:
+        return 'architecture diagram';
+      case DiagramType.packet:
+        return 'packet diagram';
       case DiagramType.radar:
         return 'radar chart';
       case DiagramType.xyChart:
@@ -672,6 +712,18 @@ class MermaidParser {
     // Radar chart
     if (firstLine.startsWith('radar-beta')) {
       return DiagramType.radar;
+    }
+
+    // Packet diagram. `packet` on its own is accepted alongside the beta
+    // spelling: mermaid dropped the suffix, and documents written either way
+    // are in the wild.
+    if (RegExp(r'^packet(-beta)?\b').hasMatch(firstLine)) {
+      return DiagramType.packet;
+    }
+
+    // Architecture diagram
+    if (RegExp(r'^architecture(-beta)?\b').hasMatch(firstLine)) {
+      return DiagramType.architecture;
     }
 
     // XY chart
