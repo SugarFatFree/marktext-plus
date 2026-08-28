@@ -25,6 +25,8 @@
 | FEAT-021 | 2026-08-28 | 导出时就把代码着色，不再向 CDN 取 highlight.js | 中 | 简单 | 已实现 |
 | FEAT-022 | 2026-08-28 | 没有公式的文档导出后零外部依赖 | 中 | 简单 | 已实现 |
 | FEAT-023 | 2026-08-28 | 代码块内长行可以选择不换行（改为横向滚动） | 中 | 简单 | 已实现 |
+| FEAT-024 | 2026-08-28 | 只注册常用语言的语法高亮，砍掉 80% 的定义体积 | **高** | 简单 | 已实现 |
+| FEAT-025 | 2026-08-28 | 「编辑器最大宽度」现在也作用于源码编辑器 | 中 | 简单 | 已实现 |
 
 ## 详细需求
 
@@ -451,5 +453,35 @@
 | 涉及文件 | `code/lib/core/config/app_config.dart`、`code/lib/ui/editor/markdown_renderer.dart`、`code/lib/ui/screens/settings_screen.dart`、`code/lib/core/i18n/l10n/app_*.arb` |
 | 测试 | 3 条，与 FEAT-016 同一套路：默认为开、关掉后能存回来、**旧配置读进来仍然是开的**（否则老用户升级后代码块的样子会突变） |
 | 同时发现、尚未实现 | 上游的 `codeBlockLineNumbers` 默认也是 **true**，也就是说**上游预览里的代码块是带行号的，我们完全没有**。没有一并做，是因为行号要和换行后的软换行对齐（一行折成三行时不能出现三个行号），那是独立的一件事 |
+
+---
+
+### FEAT-024 — 只注册常用语言的语法高亮
+
+| 字段 | 内容 |
+|------|------|
+| 实现日期 | 2026-08-28 |
+| 需求来源 | 用户明确要求：「还是把那个 190 种语言优化下吧」 |
+| 问题 | `package:highlight/highlight.dart` 的入口第一行就是 `import 'languages/all.dart'` 并 `registerLanguages(allLanguages)` —— **只要 import 它，189 种语言定义全部进包**，AOT 摇树优化不掉，因为那张映射表引用了每一个。我们从来没做过这个选择 |
+| 为什么现在做（有了数据） | 上一个构建加了 `--split-debug-info`，把 app.so 从 **13.6 MB 降到 11.4 MB**，而日志里「创建视图」那一段从平均约 2700 ms 降到约 2250 ms。**减 2.2 MB 换来约 450 ms，约 200 ms/MB** —— 快照体积确实是主因，而且新日志证明那 2 秒**全部在 `window.Create()` 内**（插件注册 0 ms、视图建好到第一行 Dart 只有 3~7 ms） |
+| 砍掉的是什么 | 体积最大的几个：`isbl` 244 KB（俄罗斯某文档管理系统的内部脚本）、`solidity` 196 KB、`mathematica` 96 KB、`1c` 60 KB、`gml`（GameMaker）、`sqf`（Arma 游戏脚本）、`mel`（Maya 建模）…… 没有一个会出现在 Markdown 的代码围栏里 |
+| 保留了什么 | 54 种：Dart、JS/TS、Python、Java、Kotlin、Swift、Objective-C、C++/C#、Go、Rust、Ruby、PHP、Scala、Perl、Lua、R、Shell/Bash、PowerShell、SQL/PgSQL、JSON/YAML/XML、Markdown、CSS/SCSS/Less、HTTP、Dockerfile、Makefile、INI、Nginx、Apache、diff、GraphQL、Groovy、Vim、plaintext、properties、protobuf、Haskell、Elixir、Erlang、Clojure、CoffeeScript、MATLAB、Julia、Fortran、VB.NET、Delphi、Lisp |
+| 体积 | 语言定义源码 **1496 KB → 286 KB，去掉 80%** |
+| 降级方式 | 未注册的语言**不会报错**：`package:highlight` 内部是 `_getLanguage(language) ?? plaintext`，退回纯文本 —— 代码照样显示，只是没有颜色，和这套机制存在之前对所有语言的表现一样 |
+| 一处刻意的设计 | 注册表**只有一份**，预览和 HTML 导出共用（`CodeHighlighting.instance`）。写成两份就会出现「预览有颜色、导出没有」这类差异 —— 本会话已经反复见过同一份清单散在多处的后果 |
+| 涉及文件 | `code/lib/ui/editor/code_highlighting.dart`（新增）、`code/lib/ui/editor/markdown_renderer.dart`、`code/lib/services/export_service.dart` |
+| 测试 | 3 条。其中一条专门验证**未注册语言不会把代码弄丢**（那才是砍语言唯一可能造成的真实损害）；另一条给列表长度设了上下界 —— 太长就失去意义，太短会让常见语言失去高亮 |
+
+---
+
+### FEAT-025 — 「编辑器最大宽度」现在也作用于源码编辑器
+
+| 字段 | 内容 |
+|------|------|
+| 实现日期 | 2026-08-28 |
+| 需求来源 | 逐项核对「每个设置是否真的被读取」时发现的。39 个配置字段没有一个是死开关，但 `editorMaxWidth` **只被预览读取** |
+| 问题 | 设置页里这一项叫「编辑器最大宽度」，设成 800 之后：预览被约束到 800，**源码模式仍然铺满整个窗口**；分屏时左右两半宽度对不上。上游对同一设置的描述是「the maximum **editor area** width」—— 指的是编辑区，不只是预览 |
+| 实现方案 | 源码编辑器的整体（行号栏 + 文本区）一起包进 `Center` + `ConstrainedBox`，和预览用同一个值。行号栏必须一起包，否则它会和文本分离 |
+| 涉及文件 | `code/lib/ui/editor/source_editor.dart` |
 
 ---

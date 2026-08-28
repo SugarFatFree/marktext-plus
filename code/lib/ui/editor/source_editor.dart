@@ -1254,82 +1254,95 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
         : (lineCount < 100 ? 2 : (lineCount < 1000 ? 3 : 4));
     final gutterWidth = (digits * 10.0 + 20).clamp(50.0, 70.0);
 
+    // The same limit the preview applies. The setting is called "editor
+    // maximum width" and only the preview honoured it, so a wide window put
+    // the preview in a measured column and left the source spanning the whole
+    // screen — and in split view the two halves did not line up. Upstream
+    // describes the setting as "the maximum editor area width", which is both
+    // of them.
+    final maxWidth = ref.watch(settingsProvider).editorMaxWidth.toDouble();
+
     // Current line for highlighting
     final currentLine = ref.watch(editorProvider.select((s) => s.cursorLine));
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: gutterWidth,
-          decoration: BoxDecoration(
-            color: tokens.colorSurface,
-            border: Border(
-              right: BorderSide(color: tokens.colorBorder, width: 1),
-            ),
-          ),
-          child: ScrollConfiguration(
-            behavior: ScrollConfiguration.of(context).copyWith(
-              scrollbars: false,
-              physics: const ClampingScrollPhysics(),
-            ),
-            child: ListView.builder(
-              controller: _gutterScrollController,
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              itemCount: lineCount,
-              itemExtent: config.fontSize * config.lineHeight,
-              itemBuilder: (context, index) => Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  '${index + 1}',
-                  style: TextStyle(
-                    color: index == currentLine
-                        ? tokens.colorText
-                        : tokens.colorTextMuted,
-                    fontFamily: config.fontFamily,
-                    fontSize: 12,
-                    height: config.lineHeight,
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: gutterWidth,
+              decoration: BoxDecoration(
+                color: tokens.colorSurface,
+                border: Border(
+                  right: BorderSide(color: tokens.colorBorder, width: 1),
+                ),
+              ),
+              child: ScrollConfiguration(
+                behavior: ScrollConfiguration.of(context).copyWith(
+                  scrollbars: false,
+                  physics: const ClampingScrollPhysics(),
+                ),
+                child: ListView.builder(
+                  controller: _gutterScrollController,
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  itemCount: lineCount,
+                  itemExtent: config.fontSize * config.lineHeight,
+                  itemBuilder: (context, index) => Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      '${index + 1}',
+                      style: TextStyle(
+                        color: index == currentLine
+                            ? tokens.colorText
+                            : tokens.colorTextMuted,
+                        fontFamily: config.fontFamily,
+                        fontSize: 12,
+                        height: config.lineHeight,
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ),
-        Expanded(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted) {
-                  ref
-                      .read(editorProvider.notifier)
-                      .setEditorTextFieldWidth(constraints.maxWidth);
-                }
-              });
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) {
+                      ref
+                          .read(editorProvider.notifier)
+                          .setEditorTextFieldWidth(constraints.maxWidth);
+                    }
+                  });
 
-              return Focus(
-                onKeyEvent: _handleKeyEvent,
-                child: DropTarget(
-                  onDragDone: _handleImageDrop,
-                  child: TextField(
-                    controller: _controller,
-                    scrollController: _editorScrollController,
-                    maxLines: null,
-                    expands: true,
-                    style: editorStyle,
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.all(8),
+                  return Focus(
+                    onKeyEvent: _handleKeyEvent,
+                    child: DropTarget(
+                      onDragDone: _handleImageDrop,
+                      child: TextField(
+                        controller: _controller,
+                        scrollController: _editorScrollController,
+                        maxLines: null,
+                        expands: true,
+                        style: editorStyle,
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.all(8),
+                        ),
+                        onChanged: (value) {
+                          setState(() {});
+                        },
+                      ),
                     ),
-                    onChanged: (value) {
-                      setState(() {});
-                    },
-                  ),
-                ),
-              );
-            },
-          ),
+                  );
+                },
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

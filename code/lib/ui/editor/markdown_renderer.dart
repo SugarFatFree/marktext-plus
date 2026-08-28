@@ -3,7 +3,9 @@ import 'dart:io';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:highlight/highlight.dart' show highlight, Node;
+import 'package:highlight/highlight_core.dart' show Node;
+
+import 'code_highlighting.dart';
 import 'package:flutter_highlight/themes/github.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -793,7 +795,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     String language, {
     int tabSize = 8,
   }) {
-    final nodes = highlight
+    final nodes = CodeHighlighting.instance
         .parse(source.replaceAll('\t', ' ' * tabSize), language: language)
         .nodes;
     if (nodes == null || nodes.isEmpty) {

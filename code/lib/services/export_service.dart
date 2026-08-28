@@ -4,12 +4,13 @@ import 'dart:io';
 
 import 'package:flutter/material.dart' show Color, FontStyle, FontWeight;
 import 'package:flutter_highlight/themes/github.dart';
-import 'package:highlight/highlight.dart' show highlight, Node;
+import 'package:highlight/highlight_core.dart' show Node;
 import 'package:docx_creator/docx_creator.dart' hide MarkdownParser;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import 'markdown_parser.dart';
+import '../ui/editor/code_highlighting.dart';
 import '../ui/editor/mermaid/parser/mermaid_parser.dart';
 
 class ExportService {
@@ -829,7 +830,8 @@ class ExportService {
   static String highlightCodeToHtml(String code, String language) {
     if (language.isEmpty) return _escapeHtml(code);
     try {
-      final result = highlight.parse(code, language: language);
+      final result =
+          CodeHighlighting.instance.parse(code, language: language);
       final nodes = result.nodes;
       if (nodes == null || nodes.isEmpty) return _escapeHtml(code);
       return _highlightNodesToHtml(nodes);
