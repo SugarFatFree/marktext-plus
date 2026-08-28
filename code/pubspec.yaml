@@ -23,6 +23,8 @@ dependencies:
   pdf: ^3.11.1
   # 系统打印对话框。依赖的 pdf 本就在用，导出 PDF 与打印共用同一套排版。
   printing: ^5.14.3
+  # GBK 等中日韩传统编码的解码。内置的 dart:convert 只有 UTF-8/16 与 Latin-1。
+  charset: ^2.0.1
   desktop_drop: ^0.4.4
   pasteboard: ^0.5.0
   window_manager: ^0.4.3

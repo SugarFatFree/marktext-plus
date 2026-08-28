@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:charset/charset.dart' as charset;
 
 /// The byte encoding a document uses on disk.
 ///
@@ -22,6 +23,14 @@ enum FileEncoding {
 
   /// UTF-16, big-endian.
   utf16be('UTF-16 BE'),
+
+  /// The encoding most Chinese documents were written in before UTF-8.
+  ///
+  /// Read as Latin-1 it comes out as two wrong characters per real one, which
+  /// is what every legacy note looked like. Told apart from Latin-1 by the
+  /// share of high bytes: Chinese is almost all double-byte, while French or
+  /// German is ordinary ASCII with the occasional accent.
+  gbk('GBK'),
 
   /// One byte per character, used as the last resort.
   ///
@@ -61,8 +70,43 @@ enum FileEncoding {
         hasUtf8Bom ? FileEncoding.utf8Bom : FileEncoding.utf8Encoding,
       );
     } on FormatException {
+      if (_looksLikeGbk(bytes)) {
+        try {
+          return (charset.gbk.decode(bytes), FileEncoding.gbk);
+        } catch (_) {
+          // The shape fitted but the bytes did not; Latin-1 still reads them.
+        }
+      }
       return (latin1.decode(bytes), FileEncoding.latin1Encoding);
     }
+  }
+
+  /// Whether [bytes] look like GBK rather than a single-byte encoding.
+  ///
+  /// Every byte at or above 0x80 has to open a valid two-byte sequence, and
+  /// enough of the file has to be made of them. The first test alone is not
+  /// enough: `é` followed by a letter is a valid-looking pair too, so French
+  /// read this way would come out as Chinese. Chinese text is mostly
+  /// double-byte, and accented European text is mostly ASCII, which is what
+  /// the share measures.
+  static bool _looksLikeGbk(Uint8List bytes) {
+    if (bytes.isEmpty) return false;
+
+    var paired = 0;
+    var i = 0;
+    while (i < bytes.length) {
+      final lead = bytes[i];
+      if (lead < 0x80) {
+        i++;
+        continue;
+      }
+      if (lead < 0x81 || lead > 0xFE || i + 1 >= bytes.length) return false;
+      final trail = bytes[i + 1];
+      if (trail < 0x40 || trail > 0xFE || trail == 0x7F) return false;
+      paired += 2;
+      i += 2;
+    }
+    return paired * 10 >= bytes.length * 3;
   }
 
   /// Turns [content] back into bytes in this encoding.
@@ -72,6 +116,16 @@ enum FileEncoding {
         return Uint8List.fromList(utf8.encode(content));
       case FileEncoding.utf8Bom:
         return Uint8List.fromList([0xEF, 0xBB, 0xBF, ...utf8.encode(content)]);
+      case FileEncoding.gbk:
+        try {
+          return Uint8List.fromList(charset.gbk.encode(content));
+        } catch (_) {
+          // A character GBK cannot hold — an emoji, say, typed into an old
+          // note. Writing UTF-8 keeps the character; refusing would lose the
+          // save.
+          return Uint8List.fromList(utf8.encode(content));
+        }
+
       case FileEncoding.latin1Encoding:
         // A character outside Latin-1 cannot be written; those bytes were
         // never Latin-1 to begin with, so fall back rather than throw and

@@ -41,15 +41,29 @@ void main() {
       }
     });
 
-    test('bytes that are not UTF-8 open as Latin-1 rather than throwing', () {
-      // A GBK document. Refusing to open it made the tab vanish without a
-      // word; Latin-1 shows it wrongly but re-encodes to the same bytes, so
-      // nothing outside the edit is corrupted.
-      final gbk = Uint8List.fromList([0x23, 0x20, 0xB1, 0xEA, 0xCC, 0xE2]);
-      final (text, encoding) = FileEncoding.decode(gbk);
+    test('a GBK document is read as GBK, not as Latin-1', () {
+      // It used to open as Latin-1 — two wrong characters for every real one
+      // — because Latin-1 at least re-encoded to the same bytes. Reading it
+      // properly does that too, and shows what was written.
+      final bytes = Uint8List.fromList([0x23, 0x20, 0xB1, 0xEA, 0xCC, 0xE2]);
+      final (text, encoding) = FileEncoding.decode(bytes);
+
+      expect(encoding, FileEncoding.gbk);
+      expect(text, '# 标题');
+      expect(encoding.encode(text), bytes);
+    });
+
+    test('bytes in no encoding it knows open as Latin-1 rather than throwing',
+        () {
+      // 0xFF opens no GBK sequence, so the shape test rejects it and the
+      // last resort takes over. Refusing to open made the tab vanish without
+      // a word; Latin-1 re-encodes to the same bytes, so nothing outside the
+      // edit is corrupted.
+      final bytes = Uint8List.fromList([0x23, 0x20, 0xFF, 0xFE, 0x41]);
+      final (text, encoding) = FileEncoding.decode(bytes);
 
       expect(encoding, FileEncoding.latin1Encoding);
-      expect(encoding.encode(text), gbk);
+      expect(encoding.encode(text), bytes);
     });
 
     test('a Latin-1 file keeps its accents', () {
