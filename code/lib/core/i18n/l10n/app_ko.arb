@@ -350,5 +350,6 @@
   "fileOpenBehaviorNotSet": "설정되지 않음",
   "updateAvailable": "새 버전이 있습니다",
   "updateDismiss": "닫기",
-  "linkOpenFailed": "링크를 열 수 없습니다"
+  "linkOpenFailed": "링크를 열 수 없습니다",
+  "recentFileMissing": "해당 파일이 없습니다. 목록에서 제거했습니다"
 }

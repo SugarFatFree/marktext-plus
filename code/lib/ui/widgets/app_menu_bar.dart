@@ -273,7 +273,7 @@ class AppMenuBar extends ConsumerWidget {
           child: Text(l10n.fileOpenFolder),
           onPressed: () => _openFolder(ref),
         ),
-        _buildRecentFilesMenu(l10n, ref),
+        _buildRecentFilesMenu(context, l10n, ref),
         const Divider(height: 1),
         MenuItemButton(
           onPressed: () => saveFile(ref),
@@ -1153,7 +1153,11 @@ class AppMenuBar extends ConsumerWidget {
     return '$export $format';
   }
 
-  Widget _buildRecentFilesMenu(AppLocalizations l10n, WidgetRef ref) {
+  Widget _buildRecentFilesMenu(
+    BuildContext context,
+    AppLocalizations l10n,
+    WidgetRef ref,
+  ) {
     final recentFiles = ref.watch(settingsProvider).recentFiles;
     return SubmenuButton(
       menuChildren: recentFiles.isEmpty
@@ -1169,7 +1173,8 @@ class AppMenuBar extends ConsumerWidget {
                       p.basename(filePath),
                       overflow: TextOverflow.ellipsis,
                     ),
-                    onPressed: () => _openRecentFile(ref, filePath),
+                    onPressed: () =>
+                        _openRecentFile(context, ref, filePath),
                   )),
               const Divider(height: 1),
               // The list only ever grew; there was no way to empty it.
@@ -1192,9 +1197,29 @@ class AppMenuBar extends ConsumerWidget {
     EditorTabBar.closeTab(context, ref, tab);
   }
 
-  void _openRecentFile(WidgetRef ref, String filePath) async {
+  void _openRecentFile(
+    BuildContext context,
+    WidgetRef ref,
+    String filePath,
+  ) async {
     final file = File(filePath);
-    if (!await file.exists()) return;
+    if (!await file.exists()) {
+      // Returning quietly left the entry in the list and the reader clicking
+      // it again. A recent file that has been moved or deleted is the
+      // commonest thing to find in this menu, and the list is the one place
+      // that can put it right.
+      final settings = ref.read(settingsProvider.notifier);
+      final remaining = [
+        ...ref.read(settingsProvider).recentFiles.where((p) => p != filePath),
+      ];
+      await settings.updateConfig((c) => c.copyWith(recentFiles: remaining));
+      if (!context.mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.recentFileMissing)),
+      );
+      return;
+    }
     final opened = await FileService().readFileWithLineEnding(filePath);
     final tab = TabInfo(
       id: DateTime.now().millisecondsSinceEpoch.toString(),

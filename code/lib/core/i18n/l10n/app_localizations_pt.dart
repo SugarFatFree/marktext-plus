@@ -892,6 +892,10 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get linkOpenFailed => 'Não foi possível abrir a ligação';
+
+  @override
+  String get recentFileMissing =>
+      'Esse arquivo não existe mais; foi removido da lista';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -1780,4 +1784,8 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get linkOpenFailed => 'Não foi possível abrir o link';
+
+  @override
+  String get recentFileMissing =>
+      'Esse arquivo não existe mais; foi removido da lista';
 }

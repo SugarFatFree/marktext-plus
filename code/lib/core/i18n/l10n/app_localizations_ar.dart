@@ -884,4 +884,8 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get linkOpenFailed => 'تعذّر فتح الرابط';
+
+  @override
+  String get recentFileMissing =>
+      'لم يعد هذا الملف موجودًا، وقد أُزيل من القائمة';
 }

@@ -350,5 +350,6 @@
   "fileOpenBehaviorNotSet": "Не настроено",
   "updateAvailable": "Доступна новая версия",
   "updateDismiss": "Скрыть",
-  "linkOpenFailed": "Не удалось открыть ссылку"
+  "linkOpenFailed": "Не удалось открыть ссылку",
+  "recentFileMissing": "Этого файла больше нет; он удалён из списка"
 }

@@ -350,5 +350,6 @@
   "fileOpenBehaviorNotSet": "غير مُهيَّأ",
   "updateAvailable": "يتوفر إصدار جديد",
   "updateDismiss": "تجاهل",
-  "linkOpenFailed": "تعذّر فتح الرابط"
+  "linkOpenFailed": "تعذّر فتح الرابط",
+  "recentFileMissing": "لم يعد هذا الملف موجودًا، وقد أُزيل من القائمة"
 }

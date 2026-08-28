@@ -877,4 +877,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get linkOpenFailed => 'リンクを開けませんでした';
+
+  @override
+  String get recentFileMissing => 'そのファイルは存在しません。一覧から削除しました';
 }

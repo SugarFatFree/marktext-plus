@@ -350,5 +350,6 @@
   "formatHtmlBlock": "HTML 块",
   "updateUpToDate": "已经是最新版本",
   "updateCheckFailed": "检查更新失败",
-  "linkOpenFailed": "无法打开链接"
+  "linkOpenFailed": "无法打开链接",
+  "recentFileMissing": "该文件已不存在，已从列表中移除"
 }

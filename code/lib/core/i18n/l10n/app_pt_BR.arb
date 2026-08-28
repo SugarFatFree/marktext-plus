@@ -350,5 +350,6 @@
   "fileOpenBehaviorNotSet": "Não configurado",
   "updateAvailable": "Nova versão disponível",
   "updateDismiss": "Dispensar",
-  "linkOpenFailed": "Não foi possível abrir o link"
+  "linkOpenFailed": "Não foi possível abrir o link",
+  "recentFileMissing": "Esse arquivo não existe mais; foi removido da lista"
 }

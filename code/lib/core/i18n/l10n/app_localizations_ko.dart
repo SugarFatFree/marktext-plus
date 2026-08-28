@@ -877,4 +877,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get linkOpenFailed => '링크를 열 수 없습니다';
+
+  @override
+  String get recentFileMissing => '해당 파일이 없습니다. 목록에서 제거했습니다';
 }

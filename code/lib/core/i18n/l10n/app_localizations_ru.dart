@@ -889,4 +889,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get linkOpenFailed => 'Не удалось открыть ссылку';
+
+  @override
+  String get recentFileMissing => 'Этого файла больше нет; он удалён из списка';
 }

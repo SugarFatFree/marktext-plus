@@ -876,4 +876,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get linkOpenFailed => '无法打开链接';
+
+  @override
+  String get recentFileMissing => '该文件已不存在，已从列表中移除';
 }

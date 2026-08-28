@@ -1802,6 +1802,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not open the link'**
   String get linkOpenFailed;
+
+  /// No description provided for @recentFileMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'That file is no longer there; it has been removed from the list'**
+  String get recentFileMissing;
 }
 
 class _AppLocalizationsDelegate

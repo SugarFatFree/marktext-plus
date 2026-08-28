@@ -885,4 +885,8 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get linkOpenFailed => 'Could not open the link';
+
+  @override
+  String get recentFileMissing =>
+      'That file is no longer there; it has been removed from the list';
 }

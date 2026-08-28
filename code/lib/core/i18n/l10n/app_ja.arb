@@ -350,5 +350,6 @@
   "fileOpenBehaviorNotSet": "未設定",
   "updateAvailable": "新しいバージョンがあります",
   "updateDismiss": "閉じる",
-  "linkOpenFailed": "リンクを開けませんでした"
+  "linkOpenFailed": "リンクを開けませんでした",
+  "recentFileMissing": "そのファイルは存在しません。一覧から削除しました"
 }
