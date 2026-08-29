@@ -28,43 +28,44 @@ class ClassDiagramParser {
   DiagramDirection _direction = DiagramDirection.topToBottom;
   String? _title;
 
-  /// Relationship tokens, longest first so that `<|--` is matched before `--`.
-  static final List<_RelationPattern> _relationPatterns = [
-    // Bidirectional / two-headed forms.
-    _RelationPattern('<|--|>', ClassRelationType.inheritance,
-        startHead: ArrowType.hollowTriangle, endHead: ArrowType.hollowTriangle),
-    _RelationPattern('<-->', ClassRelationType.association,
-        startHead: ArrowType.arrow, endHead: ArrowType.arrow),
-    // Head on the left-hand side.
-    _RelationPattern('<|..', ClassRelationType.realization,
-        startHead: ArrowType.hollowTriangle, dashed: true),
-    _RelationPattern('<|--', ClassRelationType.inheritance,
-        startHead: ArrowType.hollowTriangle),
-    _RelationPattern('<..', ClassRelationType.dependency,
-        startHead: ArrowType.openArrow, dashed: true),
-    _RelationPattern('<--', ClassRelationType.association,
-        startHead: ArrowType.arrow),
-    _RelationPattern('*--', ClassRelationType.composition,
-        startHead: ArrowType.filledDiamond),
-    _RelationPattern('o--', ClassRelationType.aggregation,
-        startHead: ArrowType.hollowDiamond),
-    // Head on the right-hand side.
-    _RelationPattern('..|>', ClassRelationType.realization,
-        endHead: ArrowType.hollowTriangle, dashed: true),
-    _RelationPattern('--|>', ClassRelationType.inheritance,
-        endHead: ArrowType.hollowTriangle),
-    _RelationPattern('--*', ClassRelationType.composition,
-        endHead: ArrowType.filledDiamond),
-    _RelationPattern('--o', ClassRelationType.aggregation,
-        endHead: ArrowType.hollowDiamond),
-    _RelationPattern('..>', ClassRelationType.dependency,
-        endHead: ArrowType.openArrow, dashed: true),
-    _RelationPattern('-->', ClassRelationType.association,
-        endHead: ArrowType.arrow),
-    // Plain links, matched last.
-    _RelationPattern('--', ClassRelationType.link),
-    _RelationPattern('..', ClassRelationType.dashedLink, dashed: true),
-  ];
+  /// One relation, read the way mermaid's own grammar defines it.
+  ///
+  /// Its production is `[relationType] lineType [relationType]` — any of the
+  /// five relation types may sit at either end of either kind of line. This
+  /// was a hand-written list of the sixteen spellings someone thought of, and
+  /// thirty-nine of the legal combinations were missing from it: `..o` and
+  /// `..*` (a dotted aggregation or composition), every two-ended form such as
+  /// `o--o`, and the lollipop `()` entirely. A missing spelling did not fail
+  /// loudly — the line still matched the bare `--` at the end of the list, so
+  /// the relation was drawn as a plain line with its meaning silently gone.
+  static final _relationRe = RegExp(
+    r'^(<\||\*|o|\(\)|<)?(--|\.\.)(\|>|\*|o|\(\)|>)?$',
+  );
+
+  /// The head each relation token draws.
+  ///
+  /// The plain arrow is the one exception to "token decides head": UML draws a
+  /// dependency — a dotted line with an arrow — with an open head, and an
+  /// association with a closed one, so the line type has to be looked at as
+  /// well. Everything else is the token alone.
+  static const _heads = <String, ArrowType>{
+    '<|': ArrowType.hollowTriangle,
+    '|>': ArrowType.hollowTriangle,
+    '*': ArrowType.filledDiamond,
+    'o': ArrowType.hollowDiamond,
+    '()': ArrowType.circle,
+  };
+
+  static ArrowType _headFor(String? token, {required bool dotted}) {
+    if (token == null) return ArrowType.none;
+    if (token == '<' || token == '>') {
+      return dotted ? ArrowType.openArrow : ArrowType.arrow;
+    }
+    return _heads[token] ?? ArrowType.none;
+  }
+
+  /// The longest relation that could sit inside a line, for the scan below.
+  static const _maxRelationLength = 6;
 
   /// Parses the cleaned lines of a class diagram.
   ///
@@ -365,36 +366,42 @@ class ClassDiagramParser {
       text = text.substring(0, colon).trim();
     }
 
-    for (final pattern in _relationPatterns) {
-      final index = text.indexOf(pattern.token);
-      if (index <= 0) continue;
+    // Longest first: `<|--|>` has to be tried before `<|--`, which has to be
+    // tried before `--`, or a two-ended relation loses its second head.
+    for (var length = _maxRelationLength; length >= 2; length--) {
+      for (var index = 1; index + length <= text.length; index++) {
+        final token = text.substring(index, index + length);
+        final relation = _relationRe.firstMatch(token);
+        if (relation == null) continue;
 
-      final leftRaw = text.substring(0, index).trim();
-      final rightRaw = text.substring(index + pattern.token.length).trim();
-      if (leftRaw.isEmpty || rightRaw.isEmpty) continue;
+        final dotted = relation.group(2) == '..';
+        final leftRaw = text.substring(0, index).trim();
+        final rightRaw = text.substring(index + length).trim();
+        if (leftRaw.isEmpty || rightRaw.isEmpty) continue;
 
-      final left = _splitCardinality(leftRaw, cardinalityTrails: true);
-      final right = _splitCardinality(rightRaw, cardinalityTrails: false);
-      if (left.name.isEmpty || right.name.isEmpty) continue;
+        final left = _splitCardinality(leftRaw, cardinalityTrails: true);
+        final right = _splitCardinality(rightRaw, cardinalityTrails: false);
+        if (left.name.isEmpty || right.name.isEmpty) continue;
 
-      final fromId = _normalizeId(left.name);
-      final toId = _normalizeId(right.name);
-      _ensureClass(fromId, left.name);
-      _ensureClass(toId, right.name);
+        final fromId = _normalizeId(left.name);
+        final toId = _normalizeId(right.name);
+        _ensureClass(fromId, left.name);
+        _ensureClass(toId, right.name);
 
-      _edges.add(MermaidEdge(
-        from: fromId,
-        to: toId,
-        // Empty rather than null: the painter draws a label background
-        // wherever there is one, and an empty label left a box on the line.
-        label: (label == null || label.isEmpty) ? null : cleanLabel(label),
-        arrowType: pattern.endHead,
-        startArrowType: pattern.startHead,
-        lineType: pattern.dashed ? LineType.dotted : LineType.solid,
-        startLabel: left.cardinality,
-        endLabel: right.cardinality,
-      ));
-      return true;
+        _edges.add(MermaidEdge(
+          from: fromId,
+          to: toId,
+          // Empty rather than null: the painter draws a label background
+          // wherever there is one, and an empty label left a box on the line.
+          label: (label == null || label.isEmpty) ? null : cleanLabel(label),
+          arrowType: _headFor(relation.group(3), dotted: dotted),
+          startArrowType: _headFor(relation.group(1), dotted: dotted),
+          lineType: dotted ? LineType.dotted : LineType.solid,
+          startLabel: left.cardinality,
+          endLabel: right.cardinality,
+        ));
+        return true;
+      }
     }
 
     return false;
@@ -439,23 +446,6 @@ class ClassDiagramParser {
   String _normalizeId(String raw) {
     return normalizeMermaidId(_stripGenerics(raw));
   }
-}
-
-/// A relationship token and the arrow heads it implies.
-class _RelationPattern {
-  const _RelationPattern(
-    this.token,
-    this.type, {
-    this.startHead = ArrowType.none,
-    this.endHead = ArrowType.none,
-    this.dashed = false,
-  });
-
-  final String token;
-  final ClassRelationType type;
-  final ArrowType startHead;
-  final ArrowType endHead;
-  final bool dashed;
 }
 
 /// One side of a relationship line.

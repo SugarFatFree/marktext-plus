@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - File ▸ Move To…, the one menu command upstream MarkText has that this one did not
 
 ### Fixed
+- Class diagram relations are read the way mermaid's grammar defines them — any relation type at either end of either line — instead of being matched against a hand-written list of sixteen spellings. Thirty-nine legal combinations were missing from it, including `..o`, every two-ended form such as `o--o`, and the lollipop `()` entirely; each still matched the bare `--` at the end of the list, so the line was drawn with its meaning silently gone
 - Copying from the preview and pasting into Word keeps headings, bold and links. The HTML was produced by re-parsing the copied text as markdown, but a selection in the preview returns the *rendered* text — a heading arrives as `My Heading` with no `#` — so the formatting was gone before the conversion started. It is now built from the blocks the preview drew
 - A bidirectional sequence message `A<<->>B` draws two participants and a head at each end. The sender pattern did not exclude `<`, so it swallowed the `<<` and gave the diagram a third lifeline named `A<<` — silently, since what remained still parsed as an ordinary message
 - Asking for a list or a quote marks every line the selection touches, not just the one under the caret (#3)
