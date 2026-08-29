@@ -5,12 +5,39 @@ import 'package:ffi/ffi.dart';
 import 'package:flutter/services.dart';
 
 class ClipboardService {
+  /// Matches kClipboardChannel in linux/runner/my_application.cc and
+  /// AppDelegate.clipboardChannelName in macos/Runner/AppDelegate.swift.
+  static const _clipboardChannel = MethodChannel('com.marktextplus/clipboard');
+
+  /// Puts [plainText] on the clipboard with [html] beside it.
+  ///
+  /// A word processor takes the HTML and keeps the headings and the bold; a
+  /// text editor takes the text. Windows goes through the FFI below because
+  /// its `HTML Format` flavour needs a header no channel would write for us;
+  /// the other two hand the pair to their own native clipboard.
+  ///
+  /// The plain text is written whatever happens: if the rich flavour cannot
+  /// be attached, a copy that pastes as text is the right outcome, and a copy
+  /// that does nothing at all is not.
   static Future<void> copyWithHtml(String plainText, String html) async {
     if (Platform.isWindows) {
       await _copyWithHtmlWindows(plainText, html);
-    } else {
-      await Clipboard.setData(ClipboardData(text: plainText));
+      return;
     }
+
+    if (Platform.isMacOS || Platform.isLinux) {
+      try {
+        final ok = await _clipboardChannel.invokeMethod<bool>(
+          'copyWithHtml',
+          {'text': plainText, 'html': html},
+        );
+        if (ok == true) return;
+      } catch (_) {
+        // An older build of the runner has no such channel.
+      }
+    }
+
+    await Clipboard.setData(ClipboardData(text: plainText));
   }
 
   static Future<void> _copyWithHtmlWindows(String plainText, String html) async {

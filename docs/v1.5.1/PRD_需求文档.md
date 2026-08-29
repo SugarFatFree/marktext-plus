@@ -5,6 +5,7 @@
 | FEAT-038 | 2026-08-29 | 文件菜单补上"移动到…" | P3 | 低 | 已完成 |
 | FEAT-039 | 2026-08-29 | Mermaid treemap-beta 图型渲染 | P2 | 中 | 已完成 |
 | FEAT-040 | 2026-08-29 | 编辑区与预览区底部留白（issue #2） | P2 | 低 | 已完成 |
+| FEAT-041 | 2026-08-29 | macOS 与 Linux 的富文本复制 | P2 | 中 | 已完成 |
 
 ---
 
@@ -49,3 +50,19 @@
 | **实现方案** | 底部留白取视口高度的 60%，上限 600 px——固定值在高窗口上几乎看不出来，在矮窗口上又会占掉大半屏。<br>**源码模式下行号栏必须拿到完全相同的留白**：它是与正文分开的另一个滚动视图、靠监听同步，若两者可滚动范围不同，滚到底部时行号会停住而正文继续走。 |
 | **涉及文件** | `code/lib/ui/editor/source_editor.dart`<br>`code/lib/ui/editor/markdown_renderer.dart` |
 | **验收标准** | 预览外层内边距的 bottom 明显大于 200；源码区与行号栏底部留白一致。 |
+
+
+---
+
+## FEAT-041：macOS 与 Linux 的富文本复制
+
+| 字段 | 内容 |
+|------|------|
+| **实现日期** | 2026-08-29 |
+| **需求描述** | 从预览复制内容，粘贴到富文本编辑器时保留标题与加粗——在 macOS 和 Linux 上也生效。 |
+| **背景** | BUG-119 修好了"HTML 从哪来"的问题，但 `ClipboardService.copyWithHtml` **只在 Windows 上真正写入 HTML**（走 user32/kernel32 的 FFI 写 `HTML Format`），另外两个平台直接退化为纯文本。当时把这条记为已知限制，这次补上。 |
+| **实现方案** | 新增通道 `com.marktextplus/clipboard`，两端各自用系统原生接口：<br>**Linux（GTK）**：`gtk_clipboard_set_with_data` 同时登记 `text/html` 与文本目标。GTK **不会拷贝**交给它的数据——它在别的程序来要的时候才回调，所以两份字符串必须活过这次调用，由 clear 回调释放；设置失败时没有人会调 clear，因此那条路径里手动释放。<br>**macOS**：`NSPasteboard.declareTypes([.html, .string])` 后分别 `setString`。两种类型**必须在一次 declare 里声明**——分两次写只会在剪贴板上留下后写的那个。<br>**Windows** 保持原样：它的 `HTML Format` 需要一段带偏移量的头，不是通道能替我们写的。 |
+| **失败时的行为** | 无论哪个平台，**纯文本一定会被写入**。富文本贴不上去时，"粘贴出纯文本"是对的结果；"什么都没发生"不是。旧版 runner 没有这条通道时会抛异常，也走这条兜底。 |
+| **涉及文件** | `code/lib/services/clipboard_service.dart`<br>`code/linux/runner/my_application.cc`<br>`code/macos/Runner/AppDelegate.swift`<br>`code/test/services/clipboard_channel_test.dart`（新增，3 条） |
+| **验收标准** | ① 通道名在 Dart / C++ / Swift 三处一致（测试直接读源码比对）；② 两种内容都以 runner 读取的键名发送；③ 通道不可用时纯文本仍然落地。 |
+| **本机无法验证的部分** | C++ 与 Swift 本机编译不了。Linux 由每次推送的 CI 构建验证；macOS 只在打 tag 时构建，即 v1.5.1 发布时验证。 |

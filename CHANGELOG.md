@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - v1.5.1
 
 ### Added
+- Rich copy works on macOS and Linux, not only Windows: copying from the preview and pasting into a word processor keeps headings and bold there too
 - Ctrl (or Cmd) and the mouse wheel change the text size, in both the source and the preview (#4)
 - Room under the last line, so it can be scrolled up to where the eye is instead of sitting on the bottom edge (#2)
 - Mermaid `treemap-beta` diagrams render: nested rectangles whose area stands for their value, laid out by the squarified algorithm so the boxes stay comparable by eye. The grammar was read out of mermaid 11.16's own definition — indentation length nests a row, and a value may carry thousands separators
