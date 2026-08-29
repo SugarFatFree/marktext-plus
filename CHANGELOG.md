@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - File ▸ Move To…, the one menu command upstream MarkText has that this one did not
 
 ### Fixed
+- A link whose address is `javascript:`, `vbscript:` or `data:text/html` no longer keeps that address when the document is exported to HTML. The export is a file other people open in a browser, and such a link runs code on whoever clicks it. The same check now covers an image's source and a badge's outer link; ordinary addresses, including inline `data:image/png` diagrams, are untouched
+- Clicking a `mailto:` or `tel:` link in the preview does something. Neither is an http address, so both used to fall through to the open-a-neighbouring-file branch, find no such file, and silently do nothing
 - An input method's candidate strings are no longer treated as typing. Undo after composing 你好 could hand back `hao,` — a string that only ever existed in the candidate window — and the insert menu could open over it. Nothing is recorded or triggered until the composition is committed
 - Undo takes back a word, not everything typed since the last pause. Snapshots were driven by a 300 ms debounce alone, so a paragraph written without pausing was a single undo step and one press took all of it away. Chinese punctuation ends a step too, since a Chinese sentence has no spaces to end one
 - A heading indented by one to three spaces is a heading, and `#` on its own — the state a heading passes through while it is being typed — no longer shows as a paragraph with a hash in it

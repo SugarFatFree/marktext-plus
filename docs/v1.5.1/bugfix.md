@@ -30,6 +30,8 @@
 | BUG-131 | 2026-08-29 | 缩进 1-3 格的标题被当成段落；空标题不成立 | P3 | 已修复 |
 | BUG-132 | 2026-08-29 | 一次撤销把整段打掉：快照只按停顿切分，不按词 | P2 | 已修复 |
 | BUG-133 | 2026-08-29 | 输入法选字过程被当成正式输入：撤销拿回拼音候选串 | P1 | 已修复 |
+| BUG-134 | 2026-08-29 | 导出的 HTML 保留 `javascript:` 等可执行协议的链接与图片地址 | P1 | 已修复 |
+| BUG-135 | 2026-08-29 | 预览里点 `mailto:` / `tel:` 链接毫无反应 | P3 | 已修复 |
 
 ---
 
@@ -1473,3 +1475,88 @@ _debounce = Timer(const Duration(milliseconds: 300), () {
 
 - `code/lib/ui/editor/source_editor.dart`
 - `code/test/ui/editor/ime_composition_test.dart`（新增，4 条）
+
+---
+
+## BUG-134：导出的 HTML 保留可执行协议的链接地址
+
+**优先级**：P1　**状态**：已修复　**日期**：2026-08-29
+
+### 现象
+
+`[点我](javascript:alert(1))` 导出成 HTML 后，得到的是
+
+```html
+<p><a href="javascript:alert(1)">点我</a></p>
+```
+
+用浏览器打开这份导出文件并点击该链接，脚本就会执行。`vbscript:`、大小写混写的
+`JaVaScRiPt:`、以及图片的 `src`（`![x](javascript:...)`）同样不受检查。
+`data:text/html,...` 则是把一整个页面塞进属性里。
+
+### 根因分析
+
+对照上游 MarkText 的 `packages/muya/e2e/tests/security/sanitize.spec.ts`，
+其安全约定有三条：html 块里的 `<script>` 不得执行、`javascript:` 链接的地址要被
+清洗、`<img onerror>` 的属性要被丢弃。
+
+本项目的 HTML 白名单已经覆盖了第一条和第三条——探针实测 `<script>`、`<iframe>`、
+`onerror`、`onclick` 都被正确清除。**唯独第二条没有做**：
+`ExportService.nodeToHtml` 里链接与图片的地址只经过 `_escapeHtml`。转义只处理
+`< > & "`，它保证的是"这段文本不会跑出属性去改变 HTML 结构"，而 `javascript:`
+从来不需要跑出属性——它作为一个合法的属性值就已经能执行了。**转义和协议校验是
+两件事，这里把前者当成了后者。**
+
+导出的文件常常是发给别人、由别人用浏览器打开的，所以这条是真实的注入面，
+不是理论风险。
+
+### 修复方案
+
+`export_service.dart` 新增 `_safeUrl(url)`，链接 `href`、图片 `src`、以及外层
+badge 链接三处出口统一走它：
+
+- `^(javascript|vbscript):` → 返回空串（保留链接文字，只是地址为空，**可见但失效**，
+  而不是把用户写的文字一起吞掉）
+- `data:` 只放行位图 `^data:image/(png|jpe?g|gif|webp|bmp|avif)[;,]`。
+  **`svg+xml` 不在放行之列**——SVG 里可以写 `<script>`，那是一个顶着图片名字的页面
+- 判定前先去掉空白与控制字符：`java\tscript:` 是浏览器历史上接受过的写法，
+  拿原串去比对是看不见它的
+
+正常地址完全不受影响（探针逐条确认）：`https://` 带 query、相对路径、`#中文锚点`、
+`mailto:`、以及 mermaid 内联的 `data:image/png;base64,`（后者走 `inlinedImages`
+分支，本就不经过转义，base64 的 `=` 补位不会被变成实体）。
+
+### 涉及文件
+
+- `code/lib/services/export_service.dart`
+- `code/test/services/export_sanitize_test.dart`（新增，16 条：8 条拒绝、5 条放行、
+  3 条内联 HTML 回归）
+
+---
+
+## BUG-135：预览里点 mailto / tel 链接毫无反应
+
+**优先级**：P3　**状态**：已修复　**日期**：2026-08-29
+
+### 现象
+
+预览模式下点一个 `[联系](mailto:a@b.com)`，什么都不会发生——不打开邮件客户端，
+也不报错。
+
+### 根因分析
+
+排查 BUG-134 时顺带读到的。`markdown_renderer._followLink` 只对
+`http://` / `https://` 调 `launchUrl`，**其余一律当作相对文件路径**去
+`File(...).existsSync()`。`mailto:a@b.com` 于是变成一个不存在的文件名，
+`existsSync()` 为假就直接 `return` ——静默地什么都不做。
+
+### 修复方案
+
+- 放行清单改为 `^(https?|mailto|tel):`，这些交给桌面去处理
+- 同时补上拒绝清单 `^(javascript|vbscript|data):`，抛出后由既有的
+  `_openLink` 兜底显示"打开失败"。这一条在修改前其实已经安全（它们同样掉进
+  文件路径分支而找不到文件），但依赖"恰好不存在这个文件"是没有道理的，写明更好
+
+### 涉及文件
+
+- `code/lib/ui/editor/markdown_renderer.dart`
