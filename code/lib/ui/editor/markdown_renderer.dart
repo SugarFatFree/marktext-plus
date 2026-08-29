@@ -121,9 +121,24 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     super.initState();
     _editFocusNode = FocusNode(
       onKeyEvent: (node, event) {
-        if (event is KeyDownEvent &&
-            event.logicalKey == LogicalKeyboardKey.escape) {
+        if (event is! KeyDownEvent) return KeyEventResult.ignored;
+        if (event.logicalKey == LogicalKeyboardKey.escape) {
           _cancelEdit();
+          return KeyEventResult.handled;
+        }
+        // Down from the last line, or up from the first, carries on into the
+        // next block. Without it a reader has to press Escape and find the
+        // next block with the mouse for every paragraph, which is not how
+        // anyone writes. Only at the edges, so the arrows still move the
+        // caret inside a block that has more than one line.
+        if (event.logicalKey == LogicalKeyboardKey.arrowDown &&
+            _caretAtLastLine()) {
+          _moveEditing(down: true);
+          return KeyEventResult.handled;
+        }
+        if (event.logicalKey == LogicalKeyboardKey.arrowUp &&
+            _caretAtFirstLine()) {
+          _moveEditing(down: false);
           return KeyEventResult.handled;
         }
         return KeyEventResult.ignored;
@@ -680,6 +695,93 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
 
   /// Writes the edited text back into the document.
   ///
+  /// Whether the caret has no line below it inside the block being edited.
+  bool _caretAtLastLine() {
+    final selection = _editController.selection;
+    if (!selection.isValid || !selection.isCollapsed) return false;
+    final text = _editController.text;
+    final at = selection.baseOffset.clamp(0, text.length);
+    return !text.substring(at).contains('\n');
+  }
+
+  /// Whether the caret has no line above it inside the block being edited.
+  bool _caretAtFirstLine() {
+    final selection = _editController.selection;
+    if (!selection.isValid || !selection.isCollapsed) return false;
+    final text = _editController.text;
+    final at = selection.baseOffset.clamp(0, text.length);
+    return !text.substring(0, at).contains('\n');
+  }
+
+  /// Whether there is a block on the other side of [node] to move into.
+  ///
+  /// Below the last block there is always the blank space under the document,
+  /// which is where the next paragraph goes — unless that is already what is
+  /// being edited.
+  bool _hasNeighbourBlock(
+    md.MarkdownNode node, {
+    required bool down,
+    required bool wasAppend,
+  }) {
+    if (down) return !wasAppend;
+    if (wasAppend) return (_cachedNodes ?? const []).isNotEmpty;
+    for (final candidate in _cachedNodes ?? const <md.MarkdownNode>[]) {
+      if (candidate.sourceEnd <= node.sourceStart) return true;
+    }
+    return false;
+  }
+
+  /// Commits the block being edited and opens the one before or after it.
+  ///
+  /// The neighbour is found by source line rather than by index, because
+  /// committing may have changed how many blocks there are — a paragraph
+  /// edited to contain a blank line becomes two — and an index captured
+  /// beforehand would then point at the wrong one.
+  void _moveEditing({required bool down}) {
+    final node = _editingNode;
+    if (node == null) return;
+    final wasAppend = identical(node, _appendNode);
+
+    // Is there anywhere to go? Asked before committing, because committing
+    // closes the editor: pressing up in the document's first block used to
+    // shut it and leave the reader with nothing focused, having asked only to
+    // move the caret.
+    if (!_hasNeighbourBlock(node, down: down, wasAppend: wasAppend)) return;
+
+    // Where the edited block now ends, counted from the text as it stands
+    // rather than from the node, whose range describes the document before
+    // the edit.
+    final lineCount = '\n'.allMatches(_editController.text).length + 1;
+    final anchor = down ? node.sourceStart + lineCount : node.sourceStart;
+
+    _commitEdit();
+    if (mounted) setState(() {});
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final nodes = _cachedNodes;
+      if (nodes == null) return;
+      md.MarkdownNode? target;
+      for (final candidate in nodes) {
+        if (down) {
+          if (candidate.sourceStart >= anchor) {
+            target = candidate;
+            break;
+          }
+        } else if (candidate.sourceEnd <= anchor) {
+          target = candidate;
+        }
+      }
+      if (target != null) {
+        _startEditing(target);
+      } else if (down && !wasAppend) {
+        // Past the last block is the blank space under the document, which is
+        // where the next paragraph would go.
+        _startEditingAtEnd();
+      }
+    });
+  }
+
   /// Clearing [_editingNode] before unfocusing is what stops [_cancelEdit]
   /// from committing through the focus listener.
   void _commitEdit() {
