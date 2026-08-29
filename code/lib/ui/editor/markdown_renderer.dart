@@ -19,6 +19,7 @@ import '../../core/config/app_config.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/tab_info.dart';
 import '../../providers/editor_provider.dart';
+import 'source_editor.dart';
 import '../../providers/settings_provider.dart';
 import '../../services/text_search_service.dart';
 import '../../providers/tab_provider.dart';
@@ -296,6 +297,20 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   Widget build(BuildContext context) {
     _disposeRecognizers();
     final theme = Theme.of(context);
+
+    // A format command while a block is open belongs to that block. The
+    // source pane stands aside for it (it checks `previewBlockEditing`), so
+    // exactly one of the two panes acts on it in split view.
+    final pendingFormat =
+        ref.watch(editorProvider.select((s) => s.pendingFormat));
+    if (pendingFormat != null && _editingNode != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _applyFormatToBlock(pendingFormat);
+        ref.read(editorProvider.notifier).clearFormat();
+      });
+    }
+
     final config = ref.watch(settingsProvider);
     final tokens = AppTheme.getTokens(config.themeName);
     // Read every build: the zoom commands change this setting, and the
@@ -687,6 +702,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       selection: TextSelection.collapsed(offset: source.length),
     );
     setState(() => _editingNode = node);
+    ref.read(editorProvider.notifier).setPreviewBlockEditing(true);
     // Focus after the editor exists in the tree.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _editFocusNode.requestFocus();
@@ -788,6 +804,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     final node = _editingNode;
     if (node == null) return;
     _editingNode = null;
+    ref.read(editorProvider.notifier).setPreviewBlockEditing(false);
 
     final updated = md.MarkdownParser.replaceBlock(
       widget.markdown,
@@ -853,7 +870,56 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   void _cancelEdit() {
     if (_editingNode == null) return;
     setState(() => _editingNode = null);
+    ref.read(editorProvider.notifier).setPreviewBlockEditing(false);
     _editFocusNode.unfocus();
+  }
+
+  /// The inline commands a block editor can carry out, and what they wrap
+  /// the selection in.
+  ///
+  /// The block editor holds the block's markdown, so wrapping a selection here
+  /// is exactly what it is in the source pane, and it goes through the same
+  /// [SourceEditor.toggleWrap] rather than a second implementation of it.
+  static const _blockEditorWraps = <FormatAction, (String, String)>{
+    FormatAction.bold: ('**', '**'),
+    FormatAction.italic: ('*', '*'),
+    FormatAction.strikethrough: ('~~', '~~'),
+    FormatAction.inlineCode: ('`', '`'),
+    FormatAction.inlineMath: (r'$', r'$'),
+    FormatAction.highlight: ('==', '=='),
+    FormatAction.underline: ('++', '++'),
+    FormatAction.superscript: ('^', '^'),
+    FormatAction.subscript: ('~', '~'),
+  };
+
+  /// Carries out a format command inside the block being edited.
+  ///
+  /// Without this the Format menu and every formatting shortcut were dead
+  /// while a block was open in the preview — the reader was typing into a
+  /// text field and Ctrl+B did nothing — and the command stayed pending, to
+  /// go off later at whatever the caret happened to be when a source pane
+  /// next appeared.
+  void _applyFormatToBlock(FormatAction action) {
+    final wrap = _blockEditorWraps[action];
+    // Anything else — inserting a table, changing a heading level — is a
+    // command about the document rather than about this block's text. It is
+    // cleared rather than left pending, so it cannot fire somewhere else
+    // later.
+    if (wrap == null) return;
+
+    final text = _editController.text;
+    final selection = _editController.selection;
+    if (!selection.isValid) return;
+    final start = selection.start.clamp(0, text.length);
+    final end = selection.end.clamp(start, text.length);
+
+    final result = SourceEditor.toggleWrap(text, start, end, wrap.$1, wrap.$2);
+    _editController.value = TextEditingValue(
+      text: result.text,
+      selection: result.start == result.end
+          ? TextSelection.collapsed(offset: result.start)
+          : TextSelection(baseOffset: result.start, extentOffset: result.end),
+    );
   }
 
   Widget _buildBlockEditor(md.MarkdownNode node) {

@@ -5,6 +5,12 @@ All notable changes to MarkText Plus will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - v1.5.3
+
+### Fixed
+- About shows the version that was built. v1.5.2 shipped saying 1.5.1, so the update check — which compares against that same constant — told everyone on it that an update was waiting, the very thing issue #1 reported. A test has guarded the two version numbers since that issue, but it runs with the test suite on a push while releases run from a tag, so nothing on the release path ever looked. The release workflow now checks the tag, `pubspec.yaml` and `AppConstants` against each other before it builds anything
+- Formatting commands work while a block is open for editing in the preview. Ctrl+B there did nothing — the command was recorded for a source pane to carry out and there is no source pane in preview mode — and it stayed recorded, to go off later at whatever caret a source pane next had. In split view only the pane being typed in acts on the command
+
 ## [v1.5.2] - 2026-08-30
 
 ### Added
