@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - File ▸ Move To…, the one menu command upstream MarkText has that this one did not
 
 ### Fixed
+- Typing a closing bracket over the one auto-pairing just inserted steps past it instead of adding a second. Finishing `(x` by typing `)` left `(x))`, because only symmetric characters like `"` were stepped over and `)` was not
+- Auto-pairing no longer fires when the caret is right against a word. Typing `(` in front of `foo` gave `()foo`, and a quote gave `""foo`, so the spurious closing character had to be deleted straight away. As upstream does, a pair is inserted only at the end of a line, before whitespace, or before a closing bracket — wrapping a selection is unaffected
 - A link whose address is `javascript:`, `vbscript:` or `data:text/html` no longer keeps that address when the document is exported to HTML. The export is a file other people open in a browser, and such a link runs code on whoever clicks it. The same check now covers an image's source and a badge's outer link; ordinary addresses, including inline `data:image/png` diagrams, are untouched
 - Clicking a `mailto:` or `tel:` link in the preview does something. Neither is an http address, so both used to fall through to the open-a-neighbouring-file branch, find no such file, and silently do nothing
 - An input method's candidate strings are no longer treated as typing. Undo after composing 你好 could hand back `hao,` — a string that only ever existed in the candidate window — and the insert menu could open over it. Nothing is recorded or triggered until the composition is committed

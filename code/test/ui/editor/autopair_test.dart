@@ -34,7 +34,7 @@ void main() {
 
   /// Types [character] into a fresh editor built with [config], starting from
   /// [initial] and with [selection] in place, and returns the resulting text.
-  Future<String> type(
+  Future<TextEditingValue> typeValue(
     WidgetTester tester,
     String character, {
     required AppConfig config,
@@ -85,8 +85,20 @@ void main() {
     await simulateKeyDownEvent(LogicalKeyboardKey.keyA, character: character);
     await simulateKeyUpEvent(LogicalKeyboardKey.keyA);
     await tester.pump();
-    return controller.text;
+    return controller.value;
   }
+
+  /// The resulting text alone, for the cases where the caret does not matter.
+  Future<String> type(
+    WidgetTester tester,
+    String character, {
+    required AppConfig config,
+    String initial = '',
+    TextSelection? selection,
+  }) async =>
+      (await typeValue(tester, character,
+              config: config, initial: initial, selection: selection))
+          .text;
 
   AppConfig config({bool bracket = true, bool quote = true, bool md = true}) =>
       AppConfig()
@@ -140,5 +152,115 @@ void main() {
           selection: const TextSelection(baseOffset: 0, extentOffset: 2)),
       '*重点*',
     );
+  });
+
+  group('a closing bracket types over the one already there', () {
+    // Upstream's `shouldRemoveClosingChar` lists `[}\])]` alongside the
+    // quotes: when the character being typed is the one already sitting after
+    // the caret, the new one is dropped and the caret steps past it. Without
+    // that, finishing `(x` by typing `)` — which is what a person does, the
+    // auto-inserted bracket being invisible to the fingers — leaves `(x))`.
+    //
+    // The caret is asserted, not just the text. An unhandled key inserts
+    // nothing in a widget test, so the text alone cannot tell "stepped over"
+    // apart from "the editor ignored it" — both leave `(x)`.
+    for (final pair in [('(', ')'), ('[', ']'), ('{', '}')]) {
+      testWidgets('${pair.$2} is stepped over, not doubled', (tester) async {
+        final result = await typeValue(tester, pair.$2,
+            config: config(),
+            initial: '${pair.$1}x${pair.$2}',
+            selection: const TextSelection.collapsed(offset: 2));
+        expect(result.text, '${pair.$1}x${pair.$2}',
+            reason: '多出了一个 ${pair.$2}');
+        expect(result.selection.baseOffset, 3,
+            reason: '光标没有跨过去，说明这个键根本没被处理');
+      });
+    }
+
+    testWidgets('a closing bracket elsewhere is left to the framework',
+        (tester) async {
+      // Only the character immediately after the caret is stepped over. A `)`
+      // typed anywhere else is an ordinary character: the editor must report
+      // the key unhandled and leave the caret alone, so the framework inserts
+      // it as usual.
+      final result = await typeValue(tester, ')', config: config(),
+          initial: 'ab');
+      expect(result.text, 'ab');
+      expect(result.selection.baseOffset, 2, reason: '光标不该动');
+    });
+
+    testWidgets('the switch governs it: off means an ordinary character',
+        (tester) async {
+      final result = await typeValue(tester, ')',
+          config: config(bracket: false),
+          initial: '(x)',
+          selection: const TextSelection.collapsed(offset: 2));
+      expect(result.text, '(x)');
+      expect(result.selection.baseOffset, 2,
+          reason: '开关关掉后仍然跨过去了');
+    });
+  });
+
+  group('pairing only where a closing character would not be in the way', () {
+    // Upstream: "Only pair quotes/brackets when the cursor is at end-of-line
+    // or before whitespace. Inserting `\"foo` would otherwise become `\"\"foo`
+    // and force the user to immediately delete the spurious closing char."
+    testWidgets('no closing character is added right before a word',
+        (tester) async {
+      expect(
+        await type(tester, '(',
+            config: config(),
+            initial: 'foo',
+            selection: const TextSelection.collapsed(offset: 0)),
+        'foo',
+        reason: '光标紧贴文字时不该配对，应交回框架只插入一个字符',
+      );
+    });
+
+    testWidgets('before whitespace it still pairs', (tester) async {
+      expect(
+        await type(tester, '(',
+            config: config(),
+            initial: ' foo',
+            selection: const TextSelection.collapsed(offset: 0)),
+        '() foo',
+      );
+    });
+
+    testWidgets('at the end of the text it still pairs', (tester) async {
+      expect(
+        await type(tester, '(',
+            config: config(),
+            initial: 'foo',
+            selection: const TextSelection.collapsed(offset: 3)),
+        'foo()',
+      );
+    });
+
+    testWidgets('before a closing bracket it still pairs', (tester) async {
+      // `(|)` — the caret between an existing pair — is not "touching a word",
+      // and typing `(` there is how a nested call gets written.
+      expect(
+        await type(tester, '(',
+            config: config(),
+            initial: '()',
+            selection: const TextSelection.collapsed(offset: 1)),
+        '(())',
+      );
+    });
+
+    testWidgets('wrapping a selection is unaffected by what follows it',
+        (tester) async {
+      // The rule is about a lone closing character getting in the way. When
+      // there is a selection there is no lone character — both ends are being
+      // written — so `hello` selected inside `hello world` still wraps.
+      expect(
+        await type(tester, '(',
+            config: config(),
+            initial: 'hello world',
+            selection: const TextSelection(baseOffset: 0, extentOffset: 5)),
+        '(hello) world',
+      );
+    });
   });
 }

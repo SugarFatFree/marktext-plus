@@ -32,6 +32,8 @@
 | BUG-133 | 2026-08-29 | 输入法选字过程被当成正式输入：撤销拿回拼音候选串 | P1 | 已修复 |
 | BUG-134 | 2026-08-29 | 导出的 HTML 保留 `javascript:` 等可执行协议的链接与图片地址 | P1 | 已修复 |
 | BUG-135 | 2026-08-29 | 预览里点 `mailto:` / `tel:` 链接毫无反应 | P3 | 已修复 |
+| BUG-136 | 2026-08-29 | 输入右括号会多出一个：`(x` 补全后再打 `)` 变成 `(x))` | P2 | 已修复 |
+| BUG-137 | 2026-08-29 | 光标紧贴文字时也自动配对：在 `foo` 前打 `(` 得到 `()foo` | P2 | 已修复 |
 
 ---
 
@@ -1560,3 +1562,84 @@ badge 链接三处出口统一走它：
 ### 涉及文件
 
 - `code/lib/ui/editor/markdown_renderer.dart`
+
+---
+
+## BUG-136：输入右括号会多出一个
+
+**优先级**：P2　**状态**：已修复　**日期**：2026-08-29
+
+### 现象
+
+打开自动配对，输入 `(x`，编辑器已经补上了 `)`，光标停在中间。此时手指自然会
+继续敲 `)` 把括号收掉——**那个自动补上的括号不是自己敲出来的，手不知道它在**
+——结果得到 `(x))`。`[` `{` 同样。
+
+### 根因分析
+
+`source_editor._handleKeyEvent` 只对**对称**符号做了跨过：
+
+```dart
+if (char == closing && selection.isCollapsed) { ... }
+```
+
+`"` `'` `` ` `` `*` `~` 的开合是同一个字符，所以走得到这条；而 `)` 根本不是
+`_autoPairs` 的键，`_autoPairs[')']` 为 null，直接 `return ignored`，框架就老老实实
+又插了一个。
+
+对照上游 MarkText 的 `muya/src/block/base/content.ts`，其 `shouldRemoveClosingChar`
+把 `/[}\])]/` 和引号并列，命中时"把刚输入的这个字符删掉"（等价于跨过）。
+本项目漏的正是这一半。
+
+### 修复方案
+
+新增 `_closingBrackets`（`)`→`(`、`]`→`[`、`}`→`{`）。输入的字符若是右括号且
+光标后正好是它、且**对应的左括号在当前开关下确实会配对**，就只把光标前移一格；
+其余位置的右括号交回框架当普通字符插入（`return ignored`，不能吞键）。
+
+### 测试上的坑
+
+第一版测试只断言文本，**三条全是空跑**：编辑器不处理该键时，widget test 里框架
+并不会真的插入字符，文本原样不变，于是"没修"和"修好了"给出同一个结果。
+改成同时断言光标位置（跨过 → 偏移 3；未处理 → 停在 2）才能把两种情况分开。
+这正是本仓库那条"断言要能区分假设"的老问题。
+
+### 涉及文件
+
+- `code/lib/ui/editor/source_editor.dart`
+- `code/test/ui/editor/autopair_test.dart`（+10 条）
+
+---
+
+## BUG-137：光标紧贴文字时也自动配对
+
+**优先级**：P2　**状态**：已修复　**日期**：2026-08-29
+
+### 现象
+
+已有一行 `foo`，把光标放到最前面想给它加个括号，输入 `(` 得到 `()foo` ——
+必须马上退格删掉那个多余的 `)`。引号更常见：想写 `"foo"`，在 `foo` 前打引号
+得到 `""foo`。
+
+### 根因分析
+
+配对是无条件做的，没有看光标后面是什么。上游 MarkText 在
+`collapsedInputAutoPair` 里有一条明确的前置条件，注释写得很直白：
+
+> Only pair quotes/brackets when the cursor is at end-of-line or before
+> whitespace. Inserting `"foo` would otherwise become `""foo` and force the
+> user to immediately delete the spurious closing char.
+
+### 修复方案
+
+光标折叠且后面还有字符时，只有下一个字符是**空白**或**右括号**才配对，否则
+`return ignored`，由框架插入单个字符。右括号要算进去：`(|)` 中间再打 `(`
+是写嵌套调用的常规动作，不该被挡。
+
+**有选择区时不受此限制**——包裹选中文字时两端都是自己写的，不存在"多出来一个
+挡路的字符"，所以 `hello world` 里选中 `hello` 打 `(` 仍然得到 `(hello) world`。
+
+### 涉及文件
+
+- `code/lib/ui/editor/source_editor.dart`
+- `code/test/ui/editor/autopair_test.dart`

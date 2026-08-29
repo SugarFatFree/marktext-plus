@@ -326,6 +326,20 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     '~': '~',
   };
 
+  /// Closing characters back to their opening ones, for the pairs that are
+  /// not symmetric.
+  ///
+  /// Typing `)` to finish `(x` is what fingers do — the bracket that was
+  /// inserted automatically is not something anyone sees themselves type — so
+  /// the one already sitting there has to be stepped over rather than doubled.
+  /// Upstream MarkText does the same in `shouldRemoveClosingChar`, where
+  /// `[}\])]` sits next to the quotes.
+  static const _closingBrackets = <String, String>{
+    ')': '(',
+    ']': '[',
+    '}': '{',
+  };
+
   /// The pairs the reader has actually asked for.
   ///
   /// One map used to hold all three kinds unconditionally, so nobody could
@@ -938,6 +952,23 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     final char = event.character;
     if (char == null || char.isEmpty) return KeyEventResult.ignored;
 
+    // A closing bracket typed onto the one already there steps past it
+    // instead of adding a second. Symmetric characters are handled further
+    // down, where they are their own closing character.
+    final opener = _closingBrackets[char];
+    if (opener != null && selection.isCollapsed) {
+      final offset = selection.baseOffset;
+      if (_autoPairs.containsKey(opener) &&
+          offset < text.length &&
+          text[offset] == char) {
+        _controller.selection = TextSelection.collapsed(offset: offset + 1);
+        return KeyEventResult.handled;
+      }
+      // Any other closing bracket is an ordinary character; leave it to the
+      // framework rather than swallowing the key.
+      return KeyEventResult.ignored;
+    }
+
     // Check if it's an opening/self-closing pair character
     final closing = _autoPairs[char];
     if (closing == null) return KeyEventResult.ignored;
@@ -956,8 +987,19 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     }
 
     if (selection.isCollapsed) {
-      // Insert pair and place cursor in the middle
       final offset = selection.baseOffset;
+      // Only pair where the closing character would not land in the way.
+      // Typing `"` in front of `foo` used to give `""foo`, so the spurious
+      // one had to be deleted straight away. Upstream MarkText pairs only at
+      // the end of the line or before whitespace; a closing bracket counts as
+      // out of the way too, since `(|)` is how a nested call gets written.
+      if (offset < text.length) {
+        final next = text[offset];
+        final isSpace = next.trim().isEmpty;
+        final isClosing = _closingBrackets.containsKey(next);
+        if (!isSpace && !isClosing) return KeyEventResult.ignored;
+      }
+      // Insert pair and place cursor in the middle
       _controller.value = TextEditingValue(
         text:
             text.substring(0, offset) + char + closing + text.substring(offset),
