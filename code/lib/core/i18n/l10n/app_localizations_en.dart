@@ -257,6 +257,45 @@ class AppLocalizationsEn extends AppLocalizations {
   String get formatTable => 'Table';
 
   @override
+  String get formatTableSubmenu => 'Edit Table';
+
+  @override
+  String get formatTableInsertRowAbove => 'Insert Row Above';
+
+  @override
+  String get formatTableInsertRowBelow => 'Insert Row Below';
+
+  @override
+  String get formatTableDeleteRow => 'Delete Row';
+
+  @override
+  String get formatTableInsertColumnLeft => 'Insert Column Left';
+
+  @override
+  String get formatTableInsertColumnRight => 'Insert Column Right';
+
+  @override
+  String get formatTableDeleteColumn => 'Delete Column';
+
+  @override
+  String get formatTableAlignLeft => 'Align Column Left';
+
+  @override
+  String get formatTableAlignCenter => 'Align Column Center';
+
+  @override
+  String get formatTableAlignRight => 'Align Column Right';
+
+  @override
+  String get formatTableAlignNone => 'Clear Column Alignment';
+
+  @override
+  String get paragraphMoveBlockUp => 'Move Block Up';
+
+  @override
+  String get paragraphMoveBlockDown => 'Move Block Down';
+
+  @override
   String get formatLink => 'Link';
 
   @override

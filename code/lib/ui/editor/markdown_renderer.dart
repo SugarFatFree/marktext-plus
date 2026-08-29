@@ -121,9 +121,24 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     super.initState();
     _editFocusNode = FocusNode(
       onKeyEvent: (node, event) {
-        if (event is KeyDownEvent &&
-            event.logicalKey == LogicalKeyboardKey.escape) {
+        if (event is! KeyDownEvent) return KeyEventResult.ignored;
+        if (event.logicalKey == LogicalKeyboardKey.escape) {
           _cancelEdit();
+          return KeyEventResult.handled;
+        }
+        // Down from the last line, or up from the first, carries on into the
+        // next block. Without it a reader has to press Escape and find the
+        // next block with the mouse for every paragraph, which is not how
+        // anyone writes. Only at the edges, so the arrows still move the
+        // caret inside a block that has more than one line.
+        if (event.logicalKey == LogicalKeyboardKey.arrowDown &&
+            _caretAtLastLine()) {
+          _moveEditing(down: true);
+          return KeyEventResult.handled;
+        }
+        if (event.logicalKey == LogicalKeyboardKey.arrowUp &&
+            _caretAtFirstLine()) {
+          _moveEditing(down: false);
           return KeyEventResult.handled;
         }
         return KeyEventResult.ignored;
@@ -680,6 +695,93 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
 
   /// Writes the edited text back into the document.
   ///
+  /// Whether the caret has no line below it inside the block being edited.
+  bool _caretAtLastLine() {
+    final selection = _editController.selection;
+    if (!selection.isValid || !selection.isCollapsed) return false;
+    final text = _editController.text;
+    final at = selection.baseOffset.clamp(0, text.length);
+    return !text.substring(at).contains('\n');
+  }
+
+  /// Whether the caret has no line above it inside the block being edited.
+  bool _caretAtFirstLine() {
+    final selection = _editController.selection;
+    if (!selection.isValid || !selection.isCollapsed) return false;
+    final text = _editController.text;
+    final at = selection.baseOffset.clamp(0, text.length);
+    return !text.substring(0, at).contains('\n');
+  }
+
+  /// Whether there is a block on the other side of [node] to move into.
+  ///
+  /// Below the last block there is always the blank space under the document,
+  /// which is where the next paragraph goes — unless that is already what is
+  /// being edited.
+  bool _hasNeighbourBlock(
+    md.MarkdownNode node, {
+    required bool down,
+    required bool wasAppend,
+  }) {
+    if (down) return !wasAppend;
+    if (wasAppend) return (_cachedNodes ?? const []).isNotEmpty;
+    for (final candidate in _cachedNodes ?? const <md.MarkdownNode>[]) {
+      if (candidate.sourceEnd <= node.sourceStart) return true;
+    }
+    return false;
+  }
+
+  /// Commits the block being edited and opens the one before or after it.
+  ///
+  /// The neighbour is found by source line rather than by index, because
+  /// committing may have changed how many blocks there are — a paragraph
+  /// edited to contain a blank line becomes two — and an index captured
+  /// beforehand would then point at the wrong one.
+  void _moveEditing({required bool down}) {
+    final node = _editingNode;
+    if (node == null) return;
+    final wasAppend = identical(node, _appendNode);
+
+    // Is there anywhere to go? Asked before committing, because committing
+    // closes the editor: pressing up in the document's first block used to
+    // shut it and leave the reader with nothing focused, having asked only to
+    // move the caret.
+    if (!_hasNeighbourBlock(node, down: down, wasAppend: wasAppend)) return;
+
+    // Where the edited block now ends, counted from the text as it stands
+    // rather than from the node, whose range describes the document before
+    // the edit.
+    final lineCount = '\n'.allMatches(_editController.text).length + 1;
+    final anchor = down ? node.sourceStart + lineCount : node.sourceStart;
+
+    _commitEdit();
+    if (mounted) setState(() {});
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final nodes = _cachedNodes;
+      if (nodes == null) return;
+      md.MarkdownNode? target;
+      for (final candidate in nodes) {
+        if (down) {
+          if (candidate.sourceStart >= anchor) {
+            target = candidate;
+            break;
+          }
+        } else if (candidate.sourceEnd <= anchor) {
+          target = candidate;
+        }
+      }
+      if (target != null) {
+        _startEditing(target);
+      } else if (down && !wasAppend) {
+        // Past the last block is the blank space under the document, which is
+        // where the next paragraph would go.
+        _startEditingAtEnd();
+      }
+    });
+  }
+
   /// Clearing [_editingNode] before unfocusing is what stops [_cancelEdit]
   /// from committing through the focus listener.
   void _commitEdit() {
@@ -1824,6 +1926,30 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     return TextSpan(children: children);
   }
 
+  /// Turns a path written in the document into one the file system can use.
+  ///
+  /// `![](./img/x.png)` is how an image is ordinarily written, and the path is
+  /// relative to the file the markdown is in. `File('./img/x.png')` resolves
+  /// against the process's working directory — wherever the application was
+  /// started from — so the picture was simply not found and the preview showed
+  /// the alt text in red.
+  ///
+  /// The export side has resolved these correctly all along
+  /// (`ExportService._resolveImagePath`), and following a relative *link* in
+  /// this same file does too. This was the third place and the one that had
+  /// not been given the same treatment.
+  String _resolveAgainstDocument(String href) {
+    if (p.isAbsolute(href)) return href;
+    final state = ref.read(tabProvider);
+    final tab =
+        state.tabs.where((t) => t.id == state.activeTabId).firstOrNull;
+    final path = tab?.filePath;
+    // An unsaved document has no folder to be relative to; leaving the path
+    // alone at least lets an absolute one keep working.
+    if (path == null) return href;
+    return p.normalize(p.join(p.dirname(path), href));
+  }
+
   InlineSpan _buildImageSpan(md.InlineSpan span, ThemeData theme) {
     final href = span.href;
     if (href == null || href.isEmpty) {
@@ -1851,7 +1977,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         ),
       );
     } else {
-      final file = File(href);
+      final file = File(_resolveAgainstDocument(href));
       imageWidget = Image.file(
         file,
         key: ValueKey('image:$revision:$href'),

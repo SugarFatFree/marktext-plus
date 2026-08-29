@@ -14,5 +14,12 @@
     <glob pattern="*.mdtext"/>
     <glob pattern="*.mdx"/>
     <glob pattern="*.mmd"/>
+    <!--
+      `.text` and `.txt` are deliberately absent, though the editor opens both
+      and `FileUtils.markdownExtensions` lists them. A glob here does not say
+      "this application can open the file", it says "a file with this name IS
+      text/markdown" — system-wide, for every application. Claiming `*.txt`
+      would retype every plain text file on the machine.
+    -->
   </mime-type>
 </mime-info>

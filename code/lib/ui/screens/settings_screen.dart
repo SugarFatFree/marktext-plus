@@ -779,6 +779,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       'deleteParagraph' => l10n.editDeleteParagraph,
       'toParagraph' => l10n.paragraphToParagraph,
       'looseList' => l10n.paragraphLooseList,
+      'moveBlockUp' => l10n.paragraphMoveBlockUp,
+      'moveBlockDown' => l10n.paragraphMoveBlockDown,
       'frontMatter' => l10n.formatFrontMatter,
       'htmlBlock' => l10n.formatHtmlBlock,
       _ => action,

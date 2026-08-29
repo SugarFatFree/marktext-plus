@@ -259,6 +259,45 @@ class AppLocalizationsDe extends AppLocalizations {
   String get formatTable => 'Tabelle';
 
   @override
+  String get formatTableSubmenu => 'Tabelle bearbeiten';
+
+  @override
+  String get formatTableInsertRowAbove => 'Zeile oberhalb einfügen';
+
+  @override
+  String get formatTableInsertRowBelow => 'Zeile unterhalb einfügen';
+
+  @override
+  String get formatTableDeleteRow => 'Zeile löschen';
+
+  @override
+  String get formatTableInsertColumnLeft => 'Spalte links einfügen';
+
+  @override
+  String get formatTableInsertColumnRight => 'Spalte rechts einfügen';
+
+  @override
+  String get formatTableDeleteColumn => 'Spalte löschen';
+
+  @override
+  String get formatTableAlignLeft => 'Spalte linksbündig';
+
+  @override
+  String get formatTableAlignCenter => 'Spalte zentriert';
+
+  @override
+  String get formatTableAlignRight => 'Spalte rechtsbündig';
+
+  @override
+  String get formatTableAlignNone => 'Spaltenausrichtung aufheben';
+
+  @override
+  String get paragraphMoveBlockUp => 'Block nach oben';
+
+  @override
+  String get paragraphMoveBlockDown => 'Block nach unten';
+
+  @override
   String get formatLink => 'Link';
 
   @override

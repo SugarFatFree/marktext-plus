@@ -258,6 +258,45 @@ class AppLocalizationsAr extends AppLocalizations {
   String get formatTable => 'جدول';
 
   @override
+  String get formatTableSubmenu => 'تحرير الجدول';
+
+  @override
+  String get formatTableInsertRowAbove => 'إدراج صف أعلى';
+
+  @override
+  String get formatTableInsertRowBelow => 'إدراج صف أسفل';
+
+  @override
+  String get formatTableDeleteRow => 'حذف الصف';
+
+  @override
+  String get formatTableInsertColumnLeft => 'إدراج عمود إلى اليمين';
+
+  @override
+  String get formatTableInsertColumnRight => 'إدراج عمود إلى اليسار';
+
+  @override
+  String get formatTableDeleteColumn => 'حذف العمود';
+
+  @override
+  String get formatTableAlignLeft => 'محاذاة العمود لليسار';
+
+  @override
+  String get formatTableAlignCenter => 'توسيط العمود';
+
+  @override
+  String get formatTableAlignRight => 'محاذاة العمود لليمين';
+
+  @override
+  String get formatTableAlignNone => 'إزالة محاذاة العمود';
+
+  @override
+  String get paragraphMoveBlockUp => 'نقل الكتلة لأعلى';
+
+  @override
+  String get paragraphMoveBlockDown => 'نقل الكتلة لأسفل';
+
+  @override
   String get formatLink => 'رابط';
 
   @override

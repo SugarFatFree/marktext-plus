@@ -259,6 +259,45 @@ class AppLocalizationsRu extends AppLocalizations {
   String get formatTable => 'Таблица';
 
   @override
+  String get formatTableSubmenu => 'Редактировать таблицу';
+
+  @override
+  String get formatTableInsertRowAbove => 'Вставить строку выше';
+
+  @override
+  String get formatTableInsertRowBelow => 'Вставить строку ниже';
+
+  @override
+  String get formatTableDeleteRow => 'Удалить строку';
+
+  @override
+  String get formatTableInsertColumnLeft => 'Вставить столбец слева';
+
+  @override
+  String get formatTableInsertColumnRight => 'Вставить столбец справа';
+
+  @override
+  String get formatTableDeleteColumn => 'Удалить столбец';
+
+  @override
+  String get formatTableAlignLeft => 'Выровнять столбец по левому краю';
+
+  @override
+  String get formatTableAlignCenter => 'Выровнять столбец по центру';
+
+  @override
+  String get formatTableAlignRight => 'Выровнять столбец по правому краю';
+
+  @override
+  String get formatTableAlignNone => 'Убрать выравнивание столбца';
+
+  @override
+  String get paragraphMoveBlockUp => 'Переместить блок вверх';
+
+  @override
+  String get paragraphMoveBlockDown => 'Переместить блок вниз';
+
+  @override
   String get formatLink => 'Ссылка';
 
   @override

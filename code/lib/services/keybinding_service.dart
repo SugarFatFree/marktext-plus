@@ -100,6 +100,9 @@ class KeybindingService {
     'looseList': 'Ctrl+Alt+L',
     'frontMatter': 'Ctrl+Alt+Y',
     'htmlBlock': 'Ctrl+Alt+H',
+    // The combination every editor uses for this.
+    'moveBlockUp': 'Alt+Up',
+    'moveBlockDown': 'Alt+Down',
   };
 
   Map<String, String> _keybindings = Map.from(defaultKeybindings);
@@ -267,6 +270,13 @@ class KeybindingService {
       'F10' => LogicalKeyboardKey.f10,
       'F11' => LogicalKeyboardKey.f11,
       'F12' => LogicalKeyboardKey.f12,
+      // Arrow keys, so a binding can use one. Without them `Alt+Up` parsed to
+      // nothing and the command it names had no shortcut at all — silently,
+      // since an unparsed binding is indistinguishable from an unbound one.
+      'Up' => LogicalKeyboardKey.arrowUp,
+      'Down' => LogicalKeyboardKey.arrowDown,
+      'Left' => LogicalKeyboardKey.arrowLeft,
+      'Right' => LogicalKeyboardKey.arrowRight,
       _ => null,
     };
   }

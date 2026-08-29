@@ -17,6 +17,7 @@ import '../../core/i18n/l10n/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/tab_info.dart';
 import '../../providers/editor_provider.dart';
+import '../../services/table_edit_service.dart';
 import '../../providers/file_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/tab_provider.dart';
@@ -691,8 +692,42 @@ class AppMenuBar extends ConsumerWidget {
     );
   }
 
+  /// Where the caret is, as an offset into the active document.
+  ///
+  /// The editor keeps the caret as a line and a column for the status bar;
+  /// the table commands need an offset into the same text the menu can see.
+  static int? _caretOffset(WidgetRef ref) {
+    final tab = ref.watch(activeTabProvider);
+    if (tab == null) return null;
+    final editor = ref.watch(editorProvider);
+    final lines = tab.content.split('\n');
+    if (editor.cursorLine >= lines.length) return null;
+    var offset = 0;
+    for (var i = 0; i < editor.cursorLine; i++) {
+      offset += lines[i].length + 1;
+    }
+    return offset + editor.cursorCol.clamp(0, lines[editor.cursorLine].length);
+  }
+
   Widget _buildFormatMenu(AppLocalizations l10n, WidgetRef ref) {
     void fmt(FormatAction action) => ref.read(editorProvider.notifier).applyFormat(action);
+
+    // The table commands only mean anything inside a table, and two of them
+    // do not apply even there. Greying them out says so before they are
+    // pressed, rather than leaving the reader with a menu entry that does
+    // nothing — which is how the replace buttons used to read.
+    final caret = _caretOffset(ref);
+    final tab = ref.watch(activeTabProvider);
+    final table = (caret == null || tab == null)
+        ? null
+        : TableEditService.locate(tab.content, caret);
+
+    MenuItemButton tableItem(String label, FormatAction action, TableEdit edit) =>
+        MenuItemButton(
+          onPressed:
+              (table != null && table.can(edit)) ? () => fmt(action) : null,
+          child: Text(label),
+        );
     final headingActions = [
       FormatAction.heading1, FormatAction.heading2, FormatAction.heading3,
       FormatAction.heading4, FormatAction.heading5, FormatAction.heading6,
@@ -782,6 +817,17 @@ class AppMenuBar extends ConsumerWidget {
               child: Text(l10n.paragraphLooseList),
               onPressed: () => fmt(FormatAction.looseList),
             ),
+            const Divider(height: 1),
+            MenuItemButton(
+              shortcut: _shortcut('moveBlockUp'),
+              child: Text(l10n.paragraphMoveBlockUp),
+              onPressed: () => fmt(FormatAction.moveBlockUp),
+            ),
+            MenuItemButton(
+              shortcut: _shortcut('moveBlockDown'),
+              child: Text(l10n.paragraphMoveBlockDown),
+              onPressed: () => fmt(FormatAction.moveBlockDown),
+            ),
           ],
           child: Text(l10n.menuParagraph),
         ),
@@ -841,6 +887,37 @@ class AppMenuBar extends ConsumerWidget {
               shortcut: _shortcut('table'),
               child: Text(l10n.formatTable),
               onPressed: () => fmt(FormatAction.table),
+            ),
+            SubmenuButton(
+              menuChildren: [
+                tableItem(l10n.formatTableInsertRowAbove,
+                    FormatAction.tableInsertRowAbove, TableEdit.insertRowAbove),
+                tableItem(l10n.formatTableInsertRowBelow,
+                    FormatAction.tableInsertRowBelow, TableEdit.insertRowBelow),
+                tableItem(l10n.formatTableDeleteRow,
+                    FormatAction.tableDeleteRow, TableEdit.deleteRow),
+                const Divider(height: 1),
+                tableItem(
+                    l10n.formatTableInsertColumnLeft,
+                    FormatAction.tableInsertColumnLeft,
+                    TableEdit.insertColumnLeft),
+                tableItem(
+                    l10n.formatTableInsertColumnRight,
+                    FormatAction.tableInsertColumnRight,
+                    TableEdit.insertColumnRight),
+                tableItem(l10n.formatTableDeleteColumn,
+                    FormatAction.tableDeleteColumn, TableEdit.deleteColumn),
+                const Divider(height: 1),
+                tableItem(l10n.formatTableAlignLeft,
+                    FormatAction.tableAlignLeft, TableEdit.alignLeft),
+                tableItem(l10n.formatTableAlignCenter,
+                    FormatAction.tableAlignCenter, TableEdit.alignCenter),
+                tableItem(l10n.formatTableAlignRight,
+                    FormatAction.tableAlignRight, TableEdit.alignRight),
+                tableItem(l10n.formatTableAlignNone,
+                    FormatAction.tableAlignNone, TableEdit.alignNone),
+              ],
+              child: Text(l10n.formatTableSubmenu),
             ),
             MenuItemButton(
               shortcut: _shortcut('link'),

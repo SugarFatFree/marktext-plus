@@ -398,4 +398,163 @@ void main() {
       expect(updated, '- [ ] done\n');
     });
   });
+
+  group('every kind of block can be opened in the preview', () {
+    // Editing in the preview is the first thing this project was asked for,
+    // and the tests above cover four block kinds. A new kind added to the
+    // renderer without `_wrapEditable` would be silently uneditable — the
+    // block would simply not respond to a double tap, with nothing to say
+    // why. This walks all of them.
+    //
+    // Task lists and diagrams are deliberately absent: they carry their own
+    // tap targets and are exempt on purpose, which the tests above assert.
+    const blocks = <String, String>{
+      '标题': '# Heading\n',
+      '段落': 'A paragraph.\n',
+      '无序列表': '- one\n- two\n',
+      '有序列表': '1. one\n2. two\n',
+      '引用': '> quoted\n',
+      '代码块': '```dart\nvoid main() {}\n```\n',
+      '表格': '| A | B |\n| --- | --- |\n| 1 | 2 |\n',
+      '数学块': '\$\$\nx = 1\n\$\$\n',
+      '分隔线': '---\n',
+      'front matter': '---\ntitle: x\n---\n',
+      '脚注定义': '[^a]: note\n',
+      'HTML 块': '<div>raw</div>\n',
+    };
+
+    blocks.forEach((name, markdown) {
+      testWidgets('$name responds to a double tap', (tester) async {
+        await pumpRenderer(
+          tester,
+          markdown: markdown,
+          onSourceChanged: (_) {},
+        );
+        expect(editableCursors(), findsWidgets,
+            reason: '$name 没有被包成可编辑块');
+
+        await doubleTap(tester, editableCursors().first);
+        await tester.pump();
+
+        final field = find.byType(TextField);
+        expect(field, findsOneWidget, reason: '$name 双击后没有打开编辑器');
+        expect(
+          tester.widget<TextField>(field).controller!.text.trim(),
+          markdown.trim(),
+          reason: '$name 打开的不是它自己的源码',
+        );
+      });
+    });
+  });
+
+  group('the arrows carry on into the next block', () {
+    // Editing one block at a time is only usable if you can leave it without
+    // reaching for the mouse. Down from the last line and up from the first
+    // commit and open the neighbour; anywhere else they move the caret, so a
+    // block of several lines is still navigable inside itself.
+    const doc = 'first paragraph\n'
+        '\n'
+        'second paragraph\n'
+        '\n'
+        'third paragraph\n';
+
+    /// Opens the block at [index] and returns the live editor's controller.
+    Future<TextEditingController> openBlock(
+      WidgetTester tester,
+      int index, {
+      required ValueChanged<String> onChanged,
+    }) async {
+      await doubleTap(tester, editableCursors().at(index));
+      await tester.pump();
+      return tester
+          .widget<TextField>(find.byType(TextField))
+          .controller!;
+    }
+
+    testWidgets('down from the last line opens the block below',
+        (tester) async {
+      await pumpRenderer(tester, markdown: doc, onSourceChanged: (_) {});
+      final controller = await openBlock(tester, 0, onChanged: (_) {});
+      expect(controller.text.trim(), 'first paragraph');
+
+      controller.selection =
+          TextSelection.collapsed(offset: controller.text.length);
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pump();
+      await tester.pump();
+
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller!.text.trim(),
+        'second paragraph',
+        reason: '↓ 没有跳到下一个块',
+      );
+    });
+
+    testWidgets('up from the first line opens the block above', (tester) async {
+      await pumpRenderer(tester, markdown: doc, onSourceChanged: (_) {});
+      final controller = await openBlock(tester, 1, onChanged: (_) {});
+      expect(controller.text.trim(), 'second paragraph');
+
+      controller.selection = const TextSelection.collapsed(offset: 0);
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+      await tester.pump();
+      await tester.pump();
+
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller!.text.trim(),
+        'first paragraph',
+        reason: '↑ 没有跳到上一个块',
+      );
+    });
+
+    testWidgets('up from the very first block stays where it is',
+        (tester) async {
+      await pumpRenderer(tester, markdown: doc, onSourceChanged: (_) {});
+      final controller = await openBlock(tester, 0, onChanged: (_) {});
+      controller.selection = const TextSelection.collapsed(offset: 0);
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+      await tester.pump();
+      await tester.pump();
+
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller!.text.trim(),
+        'first paragraph',
+        reason: '文档第一个块上面没有东西，不该跳走',
+      );
+    });
+
+    testWidgets('inside a block of several lines the arrows still move the '
+        'caret', (tester) async {
+      const multi = '```\nline one\nline two\n```\n\nafter\n';
+      await pumpRenderer(tester, markdown: multi, onSourceChanged: (_) {});
+      final controller = await openBlock(tester, 0, onChanged: (_) {});
+      expect(controller.text.trim(), '```\nline one\nline two\n```');
+
+      // Caret on the first line: down must stay inside this block, which
+      // means the handler declines the key and Flutter moves the caret.
+      controller.selection = const TextSelection.collapsed(offset: 0);
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pump();
+      await tester.pump();
+
+      // Flutter's own vertical caret action throws inside a widget test —
+      // `_ContextActionToActionAdapter<DirectionalCaretMovementIntent> is not
+      // a subtype of Action<ExtendSelectionVerticallyToAdjacentLineIntent>`.
+      // That is the framework handling the key, which is exactly what this
+      // test wants to see happen; taking the exception is what lets the
+      // assertion below run. It is not this editor's error, and the app does
+      // not hit it.
+      tester.takeException();
+
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller!.text.trim(),
+        '```\nline one\nline two\n```',
+        reason: '块中间按 ↓ 不该离开这个块',
+      );
+    });
+  });
 }
