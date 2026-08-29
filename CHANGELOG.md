@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - File ▸ Move To…, the one menu command upstream MarkText has that this one did not
 
 ### Fixed
+- Asking for a list or a quote marks every line the selection touches, not just the one under the caret (#3)
 - About shows the version that was actually built, and the update check compares against it. The constant had drifted to 1.3.0 while the app shipped 1.5.0, so anyone on a current build was told forever that an update was waiting (#1)
 - The preview honours the font size and line height that were chosen. Both were compile-time constants there, which is why zooming did nothing to it (#4)
 - A flowchart node written `A(((Double)))` is drawn as a double circle labelled `Double`. The greedy double-circle pattern matched it too and drew a plain circle whose label included the inner parentheses — the shape existed in the model and the painter all along, and nothing ever produced it

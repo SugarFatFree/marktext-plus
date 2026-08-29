@@ -1237,29 +1237,69 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     );
   }
 
+  /// Adds or removes [prefix] on every line the selection touches.
+  ///
+  /// It used to act on the line holding the caret and nothing else, so
+  /// selecting three lines and asking for a bullet list bulleted one of them
+  /// (#3). Turning a block of lines into a list is the ordinary reason anyone
+  /// selects several lines at once.
+  ///
+  /// Whether it adds or removes is decided for the block as a whole: if every
+  /// line already carries the prefix it comes off all of them, otherwise it
+  /// goes on all of them. Deciding line by line would toggle a half-marked
+  /// block into its own inverse, which never leaves it uniform.
   void _applyLinePrefixAtCursor(String prefix) {
     final selection = _controller.selection;
     final text = _controller.text;
-    final offset = selection.baseOffset.clamp(0, text.length);
+    final anchor = selection.baseOffset.clamp(0, text.length);
+    final head = selection.isValid
+        ? selection.extentOffset.clamp(0, text.length)
+        : anchor;
+    final from = anchor < head ? anchor : head;
+    final to = anchor < head ? head : anchor;
 
-    var lineStart = text.lastIndexOf('\n', offset > 0 ? offset - 1 : 0);
-    lineStart = lineStart == -1 ? 0 : lineStart + 1;
-    var lineEnd = text.indexOf('\n', lineStart);
-    if (lineEnd == -1) lineEnd = text.length;
+    var blockStart = text.lastIndexOf('\n', from > 0 ? from - 1 : 0);
+    blockStart = blockStart == -1 ? 0 : blockStart + 1;
+    // A selection that ends exactly at a line start does not include that
+    // line: dragging down to the beginning of the next line should not mark
+    // it too.
+    final searchFrom = to > from && to > 0 && text[to - 1] == '\n' ? to - 1 : to;
+    var blockEnd = text.indexOf('\n', searchFrom);
+    if (blockEnd == -1) blockEnd = text.length;
 
-    final line = text.substring(lineStart, lineEnd);
-    final replacement = SourceEditor.applyLinePrefix(line, prefix);
-    final delta = replacement.length - line.length;
+    final lines = text.substring(blockStart, blockEnd).split('\n');
+    final allMarked = lines.every(
+      (line) => SourceEditor.applyLinePrefix(line, prefix).length < line.length,
+    );
+    final replaced = [
+      for (final line in lines)
+        allMarked || SourceEditor.applyLinePrefix(line, prefix).length >
+                line.length
+            ? SourceEditor.applyLinePrefix(line, prefix)
+            : line,
+    ].join('\n');
+
+    final replacement = replaced;
+    final delta = replacement.length - (blockEnd - blockStart);
 
     _controller.value = TextEditingValue(
-      text:
-          text.substring(0, lineStart) + replacement + text.substring(lineEnd),
-      selection: TextSelection.collapsed(
-        offset: (offset + delta).clamp(
-          lineStart,
-          lineStart + replacement.length,
-        ),
-      ),
+      text: text.substring(0, blockStart) +
+          replacement +
+          text.substring(blockEnd),
+      // The block stays selected, so the same key can be pressed again to
+      // take the markers off; a collapsed caret would make that impossible
+      // without reselecting.
+      selection: from == to
+          ? TextSelection.collapsed(
+              offset: (anchor + delta).clamp(
+                blockStart,
+                blockStart + replacement.length,
+              ),
+            )
+          : TextSelection(
+              baseOffset: blockStart,
+              extentOffset: blockStart + replacement.length,
+            ),
     );
   }
 
