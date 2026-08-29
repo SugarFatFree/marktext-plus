@@ -177,4 +177,75 @@ void main() {
           reason: '边界字符 一 被漏掉了');
     });
   });
+
+  group('the other layout engines put their boxes somewhere sensible too', () {
+    // The flowchart is not the only thing with a layout. A sequence diagram,
+    // a class diagram and an ER diagram each have their own engine, and each
+    // can produce boxes that overlap or sit off the canvas — all of which
+    // pass a parser test perfectly well.
+    //
+    // Which of these assertions can actually fail, checked by breaking the
+    // code on purpose: shrinking a returned canvas is caught at once, on
+    // three of the six. The overlap check is not discriminating for a
+    // sequence diagram — participants are placed with a gap between them
+    // rather than on a stride, so squeezing the spacing to five pixels still
+    // leaves them apart. It is kept because the same test body covers class
+    // and ER diagrams, where boxes are placed from a grid and can collide.
+    const diagrams = <String, String>{
+      'a sequence of two': 'sequenceDiagram\n A->>B: hi\n B-->>A: ok\n',
+      'a sequence of four': 'sequenceDiagram\n A->>B: 1\n B->>C: 2\n'
+          ' C->>D: 3\n A->>D: 4\n',
+      'a sequence in Chinese': 'sequenceDiagram\n'
+          ' 用户->>服务器: 这是一条比较长的请求消息\n 服务器-->>用户: 响应\n',
+      'a class hierarchy': 'classDiagram\n A <|-- B\n B <|-- C\n',
+      'a class with members': 'classDiagram\n class 账户 {\n'
+          '  +String 编号\n  +存款(double) void\n }\n 账户 <|-- 储蓄账户\n',
+      'an ER diagram': 'erDiagram\n 客户 ||--o{ 订单 : 下单\n'
+          ' 订单 ||--|{ 明细 : 包含\n',
+    };
+
+    diagrams.forEach((name, source) {
+      test('$name lays out without overlaps or strays', () {
+        final result = MermaidParser().parseWithData(source);
+        expect(result, isNotNull, reason: '解析失败：$source');
+
+        final LayoutEngine engine = result!.classDiagramData != null
+            ? ClassDiagramLayout(classData: result.classDiagramData!)
+            : result.erDiagramData != null
+                ? ErDiagramLayout(erData: result.erDiagramData!)
+                : SequenceLayout(
+                    rowCount: result.sequenceData?.steps.length ?? 0);
+
+        final diagram = result.diagram;
+        final size =
+            engine.computeLayout(diagram, style, const Size(800, 600));
+        expect(size.width, greaterThan(0));
+        expect(size.height, greaterThan(0));
+
+        for (final node in diagram.nodes) {
+          expect(node.width, greaterThan(0), reason: '${node.id} 宽度为零');
+          expect(node.height, greaterThan(0), reason: '${node.id} 高度为零');
+          expect(node.x, greaterThanOrEqualTo(-1), reason: '${node.id} x 为负');
+          expect(node.y, greaterThanOrEqualTo(-1), reason: '${node.id} y 为负');
+          expect(node.x + node.width, lessThanOrEqualTo(size.width + 1),
+              reason: '${node.id} 超出画布右侧');
+          expect(node.y + node.height, lessThanOrEqualTo(size.height + 1),
+              reason: '${node.id} 超出画布底部');
+        }
+
+        for (var i = 0; i < diagram.nodes.length; i++) {
+          for (var j = i + 1; j < diagram.nodes.length; j++) {
+            final a = diagram.nodes[i];
+            final b = diagram.nodes[j];
+            final overlapX =
+                math.min(a.x + a.width, b.x + b.width) - math.max(a.x, b.x);
+            final overlapY =
+                math.min(a.y + a.height, b.y + b.height) - math.max(a.y, b.y);
+            expect(overlapX > 1 && overlapY > 1, isFalse,
+                reason: '${a.id} 与 ${b.id} 的方框重叠了');
+          }
+        }
+      });
+    });
+  });
 }
