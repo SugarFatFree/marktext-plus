@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import '../../../../utils/text_width.dart';
 
 import 'package:flutter/material.dart';
 
@@ -95,7 +96,7 @@ class GanttPainter extends CustomPainter {
     var maxLabelWidth = 0.0;
 
     for (final task in ganttData.tasks) {
-      final estimatedWidth = task.name.length * fontSize * 0.6;
+      final estimatedWidth = estimatedTextWidth(task.name, fontSize);
       if (estimatedWidth > maxLabelWidth) {
         maxLabelWidth = estimatedWidth;
       }
@@ -665,7 +666,7 @@ class GanttChartLayout {
     final fontSize = deviceConfig?.fontSize ?? 12.0;
     var maxLabelWidth = 0.0;
     for (final task in ganttData.tasks) {
-      final estimatedWidth = task.name.length * fontSize * 0.6;
+      final estimatedWidth = estimatedTextWidth(task.name, fontSize);
       if (estimatedWidth > maxLabelWidth) {
         maxLabelWidth = estimatedWidth;
       }

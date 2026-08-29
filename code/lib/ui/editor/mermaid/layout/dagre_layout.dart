@@ -516,8 +516,14 @@ class DagreLayout extends LayoutEngine {
       if (edge.label != null && edge.label!.isNotEmpty) {
         final edgeStyle = edge.style ?? style.defaultEdgeStyle;
         final fontSize = edgeStyle.labelFontSize;
-        // Account for line wrapping at ~120px max width
-        final rawWidth = edge.label!.length * fontSize * 0.7; // Chinese chars wider
+        // Account for line wrapping at ~120px max width.
+        //
+        // The 0.7 was a compromise between Latin and CJK — the comment beside
+        // it said "Chinese chars wider" and then charged every character the
+        // same. It over-reserves for an English label and under-reserves for a
+        // Chinese one, and the wrap count is derived from it, so a Chinese
+        // label was also given too few lines to wrap into.
+        final rawWidth = estimatedTextWidth(edge.label!, fontSize);
         final wrappedWidth = math.min(rawWidth, 120.0);
         final wrapLines = (rawWidth / 120.0).ceil().clamp(1, 4);
         final labelHeight = fontSize * 1.5 * wrapLines;
@@ -625,6 +631,18 @@ class DagreLayout extends LayoutEngine {
     } else {
       totalHeight = mainOffset - rankSep + style.padding;
       totalWidth += style.padding;
+    }
+
+    // The canvas was measured from the nodes alone. An edge label is drawn
+    // centred on its edge, so on a chain one node wide — `A -->|长标签| B` —
+    // it reached past both sides of the diagram's own bounds and was cut off
+    // by whatever the diagram is drawn inside. Only the label's own width can
+    // say how much room it needs, and nothing else here knows about it.
+    if (maxLabelWidth > 0) {
+      totalWidth = math.max(totalWidth, maxLabelWidth + style.padding * 2);
+    }
+    if (maxLabelHeight > 0) {
+      totalHeight = math.max(totalHeight, maxLabelHeight + style.padding * 2);
     }
 
     // Apply direction reversal

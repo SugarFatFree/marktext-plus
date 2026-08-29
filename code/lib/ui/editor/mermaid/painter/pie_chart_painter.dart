@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import '../../../../utils/text_width.dart';
 
 import 'package:flutter/material.dart';
 
@@ -127,8 +128,10 @@ class PieChartPainter extends CustomPainter {
       }
       labelText += ' (${percentage.toStringAsFixed(1)}%)';
 
-      // Estimate text width based on font size (roughly 0.6 * fontSize per character)
-      final textWidth = labelText.length * fontSize * 0.6;
+      // Through the shared table: a CJK label is about one em per
+      // character, not six tenths, and the space reserved for it here
+      // decides whether it lands on the chart or over it.
+      final textWidth = estimatedTextWidth(labelText, fontSize);
       final totalWidth = colorBoxSize + spacing + textWidth;
 
       if (totalWidth > maxWidth) {
@@ -403,8 +406,10 @@ class PieChartLayout {
       }
       labelText += ' (${percentage.toStringAsFixed(1)}%)';
 
-      // Estimate text width based on font size (roughly 0.6 * fontSize per character)
-      final textWidth = labelText.length * fontSize * 0.6;
+      // Through the shared table: a CJK label is about one em per
+      // character, not six tenths, and the space reserved for it here
+      // decides whether it lands on the chart or over it.
+      final textWidth = estimatedTextWidth(labelText, fontSize);
       final totalWidth = colorBoxSize + spacing + textWidth;
 
       if (totalWidth > maxWidth) {

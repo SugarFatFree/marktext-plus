@@ -115,4 +115,66 @@ void main() {
       });
     }
   });
+
+  group('the space reserved for a label is enough for a CJK one', () {
+    // Five places measured text by character count times a fixed ratio —
+    // 0.5, 0.6 or 0.7 depending on where. All of them are short for CJK,
+    // which is about one em per character, and each one decides how much room
+    // a label gets: a node's box, an edge's gap, a Gantt row's left column, a
+    // pie chart's legend. Too little room does not clip anything here; the
+    // text is drawn anyway, over whatever is beside it.
+
+    /// The width the layout gave the widest thing it had to fit.
+    double widestNode(MermaidDiagramData d) =>
+        d.nodes.map((n) => n.width).fold<double>(0, math.max);
+
+    test('a flowchart edge label gets room for its characters', () {
+      const label = '这是一条相当长的中文连线标签';
+      final (diagram, size) = layout('graph TD\n A -->|$label| B\n');
+      // The label sits between the ranks, so the canvas has to be at least as
+      // wide as the label needs — capped by the wrap width the layout uses.
+      final needed = math.min(
+        estimatedTextWidth(label, style.defaultEdgeStyle.labelFontSize),
+        120.0,
+      );
+      expect(size.width, greaterThanOrEqualTo(needed),
+          reason: '画布 ${size.width} 容不下约 $needed 宽的连线标签');
+      expect(widestNode(diagram), greaterThan(0));
+    });
+
+    test('a sequence message in Chinese gets more room than Latin of the '
+        'same length', () async {
+      // Same number of characters, so the only thing that can move the answer
+      // is the per-character width. Comparing a short message with a long one
+      // would pass under any ratio at all.
+      final (_, latin) = layout('sequenceDiagram\nA->>B: abcdefghijklmn\n');
+      final (_, cjk) = layout('sequenceDiagram\nA->>B: 这是一条中文消息内容测试甲\n');
+      expect(cjk.width, greaterThan(latin.width),
+          reason: '同样 14 个字符，中文没有换来更宽的间距，消息会压到生命线上');
+    });
+
+    // The Gantt chart's label column and the pie chart's legend are measured
+    // inside their painters, not by a layout that returns a size, so there is
+    // nothing to assert about them from here. What changed in both is which
+    // function they ask, and that function is checked directly below.
+    test('the shared measurement charges CJK about an em and Latin about '
+        'half', () {
+      const fontSize = 14.0;
+      // Fourteen characters either way, so only the per-character width can
+      // separate them.
+      final latin = estimatedTextWidth('abcdefghijklmn', fontSize);
+      final chinese = estimatedTextWidth('这是一条中文消息内容测试甲', fontSize);
+      expect(chinese, greaterThan(latin * 1.5),
+          reason: '中文没有被算得更宽，靠它留白的地方都会不够');
+
+      // The blocks that used to fall through to the narrow case.
+      for (final wide in ['ひらがな', '한국어입니다', '（全角）', '㐀㐁㐂']) {
+        expect(estimatedTextWidth(wide, fontSize),
+            estimatedTextWidth('中' * wide.length, fontSize),
+            reason: '$wide 没有被当作宽字符');
+      }
+      expect(estimatedTextWidth('一', fontSize), fontSize,
+          reason: '边界字符 一 被漏掉了');
+    });
+  });
 }
