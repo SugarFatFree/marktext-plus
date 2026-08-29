@@ -55,6 +55,12 @@
     }
   },
   "saveFailed": "Datei konnte nicht gespeichert werden: {message}",
+  "saveConflictTitle": "Datei auf der Festplatte geändert",
+  "saveConflictBody": "Etwas anderes hat „{name}“ seit dem Öffnen geändert. Jetzt zu speichern würde diese Änderung überschreiben.",
+  "saveConflictOverwrite": "Überschreiben",
+  "saveConflictReload": "Meine Änderungen verwerfen und neu laden",
+  "saveConflictCancel": "Abbrechen",
+  "saveConflictBanner": "Auf der Festplatte geändert – automatisches Speichern für diese Datei pausiert",
   "@saveFailed": {
     "placeholders": {
       "message": {

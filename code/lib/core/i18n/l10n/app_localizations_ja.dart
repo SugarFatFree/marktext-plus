@@ -82,6 +82,26 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get saveConflictTitle => 'ファイルがディスク上で変更されました';
+
+  @override
+  String saveConflictBody(String name) {
+    return '開いた後に他のプログラムが「$name」を変更しました。今保存するとその変更を上書きします。';
+  }
+
+  @override
+  String get saveConflictOverwrite => '上書き';
+
+  @override
+  String get saveConflictReload => '編集を破棄して読み込み直す';
+
+  @override
+  String get saveConflictCancel => 'キャンセル';
+
+  @override
+  String get saveConflictBanner => 'ディスク上で変更されました — このファイルの自動保存は停止中です';
+
+  @override
   String fileOperationFailed(String message) {
     return 'ファイル操作に失敗しました: $message';
   }

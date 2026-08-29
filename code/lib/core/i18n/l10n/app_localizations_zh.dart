@@ -81,6 +81,26 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get saveConflictTitle => '文件已在磁盘上被修改';
+
+  @override
+  String saveConflictBody(String name) {
+    return '打开之后，别的程序修改了“$name”。现在保存会覆盖掉那些改动。';
+  }
+
+  @override
+  String get saveConflictOverwrite => '覆盖';
+
+  @override
+  String get saveConflictReload => '丢弃我的编辑并重新载入';
+
+  @override
+  String get saveConflictCancel => '取消';
+
+  @override
+  String get saveConflictBanner => '文件已在磁盘上被修改——此文件的自动保存已暂停';
+
+  @override
   String fileOperationFailed(String message) {
     return '文件操作失败：$message';
   }

@@ -89,6 +89,27 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get saveConflictTitle => 'O ficheiro mudou no disco';
+
+  @override
+  String saveConflictBody(String name) {
+    return 'Algo mais alterou «$name» desde que foi aberto. Guardar agora escreveria por cima dessa alteração.';
+  }
+
+  @override
+  String get saveConflictOverwrite => 'Substituir';
+
+  @override
+  String get saveConflictReload => 'Descartar as minhas edições e recarregar';
+
+  @override
+  String get saveConflictCancel => 'Cancelar';
+
+  @override
+  String get saveConflictBanner =>
+      'Alterado no disco — a gravação automática está em pausa para este ficheiro';
+
+  @override
   String fileOperationFailed(String message) {
     return 'Falha na operação de ficheiro: $message';
   }
@@ -1043,6 +1064,27 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String saveFailed(String message) {
     return 'Não foi possível salvar o arquivo: $message';
   }
+
+  @override
+  String get saveConflictTitle => 'O arquivo mudou no disco';
+
+  @override
+  String saveConflictBody(String name) {
+    return 'Algo mais alterou “$name” desde que foi aberto. Salvar agora sobrescreveria essa alteração.';
+  }
+
+  @override
+  String get saveConflictOverwrite => 'Sobrescrever';
+
+  @override
+  String get saveConflictReload => 'Descartar minhas edições e recarregar';
+
+  @override
+  String get saveConflictCancel => 'Cancelar';
+
+  @override
+  String get saveConflictBanner =>
+      'Alterado no disco — o salvamento automático está pausado para este arquivo';
 
   @override
   String fileOperationFailed(String message) {

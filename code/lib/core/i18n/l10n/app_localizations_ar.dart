@@ -86,6 +86,27 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get saveConflictTitle => 'تغيّر الملف على القرص';
+
+  @override
+  String saveConflictBody(String name) {
+    return 'غيّر برنامج آخر «$name» بعد فتحه. الحفظ الآن سيكتب فوق ذلك التغيير.';
+  }
+
+  @override
+  String get saveConflictOverwrite => 'الكتابة فوقه';
+
+  @override
+  String get saveConflictReload => 'تجاهل تعديلاتي وإعادة التحميل';
+
+  @override
+  String get saveConflictCancel => 'إلغاء';
+
+  @override
+  String get saveConflictBanner =>
+      'تغيّر على القرص — الحفظ التلقائي متوقف مؤقتًا لهذا الملف';
+
+  @override
   String fileOperationFailed(String message) {
     return 'فشلت عملية الملف: $message';
   }

@@ -89,6 +89,27 @@ class AppLocalizationsIt extends AppLocalizations {
   }
 
   @override
+  String get saveConflictTitle => 'File modificato sul disco';
+
+  @override
+  String saveConflictBody(String name) {
+    return 'Qualcos’altro ha modificato «$name» dopo l’apertura. Salvare ora sovrascriverebbe quella modifica.';
+  }
+
+  @override
+  String get saveConflictOverwrite => 'Sovrascrivi';
+
+  @override
+  String get saveConflictReload => 'Scarta le mie modifiche e ricarica';
+
+  @override
+  String get saveConflictCancel => 'Annulla';
+
+  @override
+  String get saveConflictBanner =>
+      'Modificato sul disco — salvataggio automatico sospeso per questo file';
+
+  @override
   String fileOperationFailed(String message) {
     return 'Operazione sul file non riuscita: $message';
   }

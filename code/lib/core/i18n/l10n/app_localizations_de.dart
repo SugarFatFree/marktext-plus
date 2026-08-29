@@ -86,6 +86,27 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get saveConflictTitle => 'Datei auf der Festplatte geändert';
+
+  @override
+  String saveConflictBody(String name) {
+    return 'Etwas anderes hat „$name“ seit dem Öffnen geändert. Jetzt zu speichern würde diese Änderung überschreiben.';
+  }
+
+  @override
+  String get saveConflictOverwrite => 'Überschreiben';
+
+  @override
+  String get saveConflictReload => 'Meine Änderungen verwerfen und neu laden';
+
+  @override
+  String get saveConflictCancel => 'Abbrechen';
+
+  @override
+  String get saveConflictBanner =>
+      'Auf der Festplatte geändert – automatisches Speichern für diese Datei pausiert';
+
+  @override
   String fileOperationFailed(String message) {
     return 'Dateivorgang fehlgeschlagen: $message';
   }

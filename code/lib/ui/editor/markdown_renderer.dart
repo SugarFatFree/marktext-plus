@@ -874,24 +874,6 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     _editFocusNode.unfocus();
   }
 
-  /// The inline commands a block editor can carry out, and what they wrap
-  /// the selection in.
-  ///
-  /// The block editor holds the block's markdown, so wrapping a selection here
-  /// is exactly what it is in the source pane, and it goes through the same
-  /// [SourceEditor.toggleWrap] rather than a second implementation of it.
-  static const _blockEditorWraps = <FormatAction, (String, String)>{
-    FormatAction.bold: ('**', '**'),
-    FormatAction.italic: ('*', '*'),
-    FormatAction.strikethrough: ('~~', '~~'),
-    FormatAction.inlineCode: ('`', '`'),
-    FormatAction.inlineMath: (r'$', r'$'),
-    FormatAction.highlight: ('==', '=='),
-    FormatAction.underline: ('++', '++'),
-    FormatAction.superscript: ('^', '^'),
-    FormatAction.subscript: ('~', '~'),
-  };
-
   /// Carries out a format command inside the block being edited.
   ///
   /// Without this the Format menu and every formatting shortcut were dead
@@ -900,7 +882,9 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   /// go off later at whatever the caret happened to be when a source pane
   /// next appeared.
   void _applyFormatToBlock(FormatAction action) {
-    final wrap = _blockEditorWraps[action];
+    // The same table the source pane reads, so a command added there cannot
+    // quietly do nothing here.
+    final wrap = SourceEditor.wrapMarkers[action];
     // Anything else — inserting a table, changing a heading level — is a
     // command about the document rather than about this block's text. It is
     // cleared rather than left pending, so it cannot fire somewhere else

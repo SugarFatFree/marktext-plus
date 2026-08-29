@@ -237,6 +237,42 @@ abstract class AppLocalizations {
   /// **'Could not save the file: {message}'**
   String saveFailed(String message);
 
+  /// No description provided for @saveConflictTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'File changed on disk'**
+  String get saveConflictTitle;
+
+  /// No description provided for @saveConflictBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Something else changed “{name}” since it was opened. Saving now would write over that change.'**
+  String saveConflictBody(String name);
+
+  /// No description provided for @saveConflictOverwrite.
+  ///
+  /// In en, this message translates to:
+  /// **'Overwrite'**
+  String get saveConflictOverwrite;
+
+  /// No description provided for @saveConflictReload.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard my edits and reload'**
+  String get saveConflictReload;
+
+  /// No description provided for @saveConflictCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get saveConflictCancel;
+
+  /// No description provided for @saveConflictBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Changed on disk — auto-save is paused for this file'**
+  String get saveConflictBanner;
+
   /// No description provided for @fileOperationFailed.
   ///
   /// In en, this message translates to:

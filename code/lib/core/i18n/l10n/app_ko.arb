@@ -55,6 +55,12 @@
     }
   },
   "saveFailed": "파일을 저장하지 못했습니다: {message}",
+  "saveConflictTitle": "디스크에서 파일이 변경되었습니다",
+  "saveConflictBody": "연 뒤에 다른 프로그램이 “{name}”을(를) 변경했습니다. 지금 저장하면 그 변경을 덮어씁니다.",
+  "saveConflictOverwrite": "덮어쓰기",
+  "saveConflictReload": "내 편집을 버리고 다시 불러오기",
+  "saveConflictCancel": "취소",
+  "saveConflictBanner": "디스크에서 변경됨 — 이 파일의 자동 저장이 일시 중지되었습니다",
   "@saveFailed": {
     "placeholders": {
       "message": {

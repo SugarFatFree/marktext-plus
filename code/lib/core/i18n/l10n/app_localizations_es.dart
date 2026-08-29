@@ -89,6 +89,27 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String get saveConflictTitle => 'El archivo cambió en el disco';
+
+  @override
+  String saveConflictBody(String name) {
+    return 'Algo más modificó «$name» desde que se abrió. Guardar ahora sobrescribiría ese cambio.';
+  }
+
+  @override
+  String get saveConflictOverwrite => 'Sobrescribir';
+
+  @override
+  String get saveConflictReload => 'Descartar mis cambios y recargar';
+
+  @override
+  String get saveConflictCancel => 'Cancelar';
+
+  @override
+  String get saveConflictBanner =>
+      'Cambió en el disco: el guardado automático está en pausa para este archivo';
+
+  @override
   String fileOperationFailed(String message) {
     return 'Error en la operación de archivo: $message';
   }

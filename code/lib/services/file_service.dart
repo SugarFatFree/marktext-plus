@@ -62,6 +62,40 @@ class FileService {
   ///
   /// Every path that saves a document goes through here, so the choice cannot
   /// be honoured in one place and forgotten in another.
+  /// What a file looked like at a moment, cheaply enough to record on every
+  /// read and compare on every save.
+  ///
+  /// Modification time and size, which is what an editor can afford to check
+  /// before each write. Hashing the contents would be exact and would also
+  /// mean reading the whole file back every few seconds.
+  static Future<({DateTime modified, int size})?> stampOf(String path) async {
+    try {
+      final stat = await File(path).stat();
+      if (stat.type == FileSystemEntityType.notFound) return null;
+      return (modified: stat.modified, size: stat.size);
+    } on FileSystemException {
+      return null;
+    }
+  }
+
+  /// Whether [path] no longer looks the way it did when [stamp] was taken.
+  ///
+  /// A file that did not exist then and does not exist now has not changed.
+  static Future<bool> hasChangedSince(
+    String path,
+    ({DateTime modified, int size})? stamp,
+  ) async {
+    final now = await stampOf(path);
+    if (stamp == null) return now != null;
+    if (now == null) return true;
+    return now.size != stamp.size || now.modified != stamp.modified;
+  }
+
+  /// Writes [content] to [path] unconditionally.
+  ///
+  /// This is what "overwrite" means once the reader has been asked, and what
+  /// Save As does. When the file may have changed underneath the editor —
+  /// which is every ordinary save — use [saveDocumentIfUnchanged] instead.
   static Future<void> saveDocument(
     String path,
     String content, {
@@ -263,4 +297,43 @@ class FileService {
       await File(path).delete();
     }
   }
+
+  /// Writes [content] to [path], but only if the file still looks the way it
+  /// did when [expect] was taken.
+  ///
+  /// Throws [FileChangedOnDiskException] otherwise, without writing.
+  ///
+  /// Two entry points rather than one with a flag: a caller that passed the
+  /// stamp and forgot to switch the check on would get a silent overwrite,
+  /// which is the failure this exists to prevent.
+  ///
+  /// Auto-save is on by default with a five second delay, so the case is not
+  /// hypothetical and needs no deliberate act: open a file, type, have a git
+  /// checkout or a sync client rewrite it, and a few seconds later the editor
+  /// wrote over that change without a word.
+  static Future<void> saveDocumentIfUnchanged(
+    String path,
+    String content, {
+    required ({DateTime modified, int size})? expect,
+    LineEnding lineEnding = LineEnding.lf,
+    FileEncoding encoding = FileEncoding.utf8Encoding,
+  }) async {
+    if (await hasChangedSince(path, expect)) {
+      throw FileChangedOnDiskException(path);
+    }
+    await saveDocument(path, content,
+        lineEnding: lineEnding, encoding: encoding);
+  }
+}
+
+/// Raised when a save would write over a file that changed since it was read.
+///
+/// Carries the path so whoever catches it can name the file to the reader.
+class FileChangedOnDiskException implements Exception {
+  const FileChangedOnDiskException(this.path);
+
+  final String path;
+
+  @override
+  String toString() => 'FileChangedOnDiskException($path)';
 }

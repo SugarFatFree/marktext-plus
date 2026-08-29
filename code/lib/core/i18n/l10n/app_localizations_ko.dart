@@ -82,6 +82,26 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get saveConflictTitle => '디스크에서 파일이 변경되었습니다';
+
+  @override
+  String saveConflictBody(String name) {
+    return '연 뒤에 다른 프로그램이 “$name”을(를) 변경했습니다. 지금 저장하면 그 변경을 덮어씁니다.';
+  }
+
+  @override
+  String get saveConflictOverwrite => '덮어쓰기';
+
+  @override
+  String get saveConflictReload => '내 편집을 버리고 다시 불러오기';
+
+  @override
+  String get saveConflictCancel => '취소';
+
+  @override
+  String get saveConflictBanner => '디스크에서 변경됨 — 이 파일의 자동 저장이 일시 중지되었습니다';
+
+  @override
   String fileOperationFailed(String message) {
     return '파일 작업에 실패했습니다: $message';
   }

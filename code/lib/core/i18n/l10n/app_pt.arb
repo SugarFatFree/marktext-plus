@@ -55,6 +55,12 @@
     }
   },
   "saveFailed": "Não foi possível guardar o ficheiro: {message}",
+  "saveConflictTitle": "O ficheiro mudou no disco",
+  "saveConflictBody": "Algo mais alterou «{name}» desde que foi aberto. Guardar agora escreveria por cima dessa alteração.",
+  "saveConflictOverwrite": "Substituir",
+  "saveConflictReload": "Descartar as minhas edições e recarregar",
+  "saveConflictCancel": "Cancelar",
+  "saveConflictBanner": "Alterado no disco — a gravação automática está em pausa para este ficheiro",
   "@saveFailed": {
     "placeholders": {
       "message": {

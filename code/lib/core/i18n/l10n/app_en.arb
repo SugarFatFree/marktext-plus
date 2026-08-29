@@ -55,6 +55,13 @@
     }
   },
   "saveFailed": "Could not save the file: {message}",
+  "saveConflictTitle": "File changed on disk",
+  "saveConflictBody": "Something else changed “{name}” since it was opened. Saving now would write over that change.",
+  "saveConflictOverwrite": "Overwrite",
+  "saveConflictReload": "Discard my edits and reload",
+  "saveConflictCancel": "Cancel",
+  "saveConflictBanner": "Changed on disk — auto-save is paused for this file",
+  "@saveConflictBody": {"placeholders": {"name": {"type": "String"}}},
   "@saveFailed": {
     "placeholders": {
       "message": {

@@ -55,6 +55,12 @@
     }
   },
   "saveFailed": "No se pudo guardar el archivo: {message}",
+  "saveConflictTitle": "El archivo cambió en el disco",
+  "saveConflictBody": "Algo más modificó «{name}» desde que se abrió. Guardar ahora sobrescribiría ese cambio.",
+  "saveConflictOverwrite": "Sobrescribir",
+  "saveConflictReload": "Descartar mis cambios y recargar",
+  "saveConflictCancel": "Cancelar",
+  "saveConflictBanner": "Cambió en el disco: el guardado automático está en pausa para este archivo",
   "@saveFailed": {
     "placeholders": {
       "message": {

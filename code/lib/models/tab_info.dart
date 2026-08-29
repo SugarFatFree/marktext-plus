@@ -57,7 +57,23 @@ class TabInfo {
     this.lineEnding = LineEnding.lf,
     this.encoding = FileEncoding.utf8Encoding,
     this.externalRevision = 0,
+    this.diskStamp,
+    this.diskConflict = false,
   });
+
+  /// What the file looked like when it was last read or written.
+  ///
+  /// Compared before each save so a document rewritten underneath the editor
+  /// is not silently overwritten. Null for a document that has never been on
+  /// disk.
+  final ({DateTime modified, int size})? diskStamp;
+
+  /// Set when a save was refused because the file had changed underneath.
+  ///
+  /// Auto-save stops for this tab while it is set: retrying every few seconds
+  /// would either keep failing or, worse, succeed once the stamp happened to
+  /// match again.
+  final bool diskConflict;
 
   TabInfo copyWith({
     String? filePath,
@@ -75,6 +91,9 @@ class TabInfo {
     LineEnding? lineEnding,
     FileEncoding? encoding,
     int? externalRevision,
+    ({DateTime modified, int size})? diskStamp,
+    bool? diskConflict,
+    bool clearDiskStamp = false,
   }) {
     return TabInfo(
       id: id,
@@ -94,6 +113,8 @@ class TabInfo {
       lineEnding: lineEnding ?? this.lineEnding,
       encoding: encoding ?? this.encoding,
       externalRevision: externalRevision ?? this.externalRevision,
+      diskStamp: clearDiskStamp ? null : (diskStamp ?? this.diskStamp),
+      diskConflict: diskConflict ?? this.diskConflict,
     );
   }
 }

@@ -55,6 +55,12 @@
     }
   },
   "saveFailed": "保存失败：{message}",
+  "saveConflictTitle": "文件已在磁盘上被修改",
+  "saveConflictBody": "打开之后，别的程序修改了“{name}”。现在保存会覆盖掉那些改动。",
+  "saveConflictOverwrite": "覆盖",
+  "saveConflictReload": "丢弃我的编辑并重新载入",
+  "saveConflictCancel": "取消",
+  "saveConflictBanner": "文件已在磁盘上被修改——此文件的自动保存已暂停",
   "@saveFailed": {
     "placeholders": {
       "message": {

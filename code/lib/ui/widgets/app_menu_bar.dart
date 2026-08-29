@@ -164,8 +164,20 @@ class AppMenuBar extends ConsumerWidget {
     if (activeTab == null) return;
     if (activeTab.filePath != null) {
       try {
-        await FileService.saveDocument(activeTab.filePath!, activeTab.content,
-            lineEnding: activeTab.lineEnding, encoding: activeTab.encoding);
+        await FileService.saveDocumentIfUnchanged(
+          activeTab.filePath!,
+          activeTab.content,
+          expect: activeTab.diskStamp,
+          lineEnding: activeTab.lineEnding,
+          encoding: activeTab.encoding,
+        );
+      } on FileChangedOnDiskException {
+        // Something else rewrote the file while it was open. Which version
+        // wins is the reader's decision, not this function's — writing
+        // anyway is how the other version disappears without anyone seeing
+        // it happen.
+        await _resolveSaveConflict(ref, activeTab);
+        return;
       } catch (e) {
         // Left marked as modified, so the dot in the tab bar and the close
         // confirmation both keep telling the truth about what is on disk —
@@ -177,6 +189,53 @@ class AppMenuBar extends ConsumerWidget {
       ref.read(tabProvider.notifier).markSaved(activeTab.id);
     } else {
       _saveFileAs(ref);
+    }
+  }
+
+  /// Asks which version of a file that changed underneath the editor to keep.
+  ///
+  /// Three answers, and no default: overwrite what is on disk, throw away the
+  /// edits and take what is on disk, or do neither and decide later. Cancel
+  /// leaves the tab modified and in conflict, which is what stops auto-save
+  /// from quietly answering the question instead.
+  static Future<void> _resolveSaveConflict(WidgetRef ref, TabInfo tab) async {
+    final context = navigatorKey.currentContext;
+    if (context == null || !context.mounted) return;
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) return;
+
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.saveConflictTitle),
+        content: Text(l10n.saveConflictBody(tab.fileName)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop('cancel'),
+            child: Text(l10n.saveConflictCancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop('reload'),
+            child: Text(l10n.saveConflictReload),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop('overwrite'),
+            child: Text(l10n.saveConflictOverwrite),
+          ),
+        ],
+      ),
+    );
+
+    final notifier = ref.read(tabProvider.notifier);
+    switch (choice) {
+      case 'overwrite':
+        await notifier.overwriteOnDisk(tab.id);
+      case 'reload':
+        await notifier.reloadFromDisk(tab.id);
+      default:
+        // Neither: the tab keeps the edits and stays in conflict, so the
+        // banner remains and auto-save stays out of it.
+        notifier.markDiskConflict(tab.id);
     }
   }
 

@@ -85,6 +85,27 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get saveConflictTitle => 'File changed on disk';
+
+  @override
+  String saveConflictBody(String name) {
+    return 'Something else changed “$name” since it was opened. Saving now would write over that change.';
+  }
+
+  @override
+  String get saveConflictOverwrite => 'Overwrite';
+
+  @override
+  String get saveConflictReload => 'Discard my edits and reload';
+
+  @override
+  String get saveConflictCancel => 'Cancel';
+
+  @override
+  String get saveConflictBanner =>
+      'Changed on disk — auto-save is paused for this file';
+
+  @override
   String fileOperationFailed(String message) {
     return 'File operation failed: $message';
   }

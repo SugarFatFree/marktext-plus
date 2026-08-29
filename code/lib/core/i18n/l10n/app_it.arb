@@ -55,6 +55,12 @@
     }
   },
   "saveFailed": "Impossibile salvare il file: {message}",
+  "saveConflictTitle": "File modificato sul disco",
+  "saveConflictBody": "Qualcos’altro ha modificato «{name}» dopo l’apertura. Salvare ora sovrascriverebbe quella modifica.",
+  "saveConflictOverwrite": "Sovrascrivi",
+  "saveConflictReload": "Scarta le mie modifiche e ricarica",
+  "saveConflictCancel": "Annulla",
+  "saveConflictBanner": "Modificato sul disco — salvataggio automatico sospeso per questo file",
   "@saveFailed": {
     "placeholders": {
       "message": {

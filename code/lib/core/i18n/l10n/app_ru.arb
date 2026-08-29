@@ -55,6 +55,12 @@
     }
   },
   "saveFailed": "Не удалось сохранить файл: {message}",
+  "saveConflictTitle": "Файл изменён на диске",
+  "saveConflictBody": "После открытия «{name}» был изменён другой программой. Сохранение сейчас перезапишет эти изменения.",
+  "saveConflictOverwrite": "Перезаписать",
+  "saveConflictReload": "Отбросить мои правки и перечитать",
+  "saveConflictCancel": "Отмена",
+  "saveConflictBanner": "Изменён на диске — автосохранение для этого файла приостановлено",
   "@saveFailed": {
     "placeholders": {
       "message": {

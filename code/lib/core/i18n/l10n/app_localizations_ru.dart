@@ -87,6 +87,27 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String get saveConflictTitle => 'Файл изменён на диске';
+
+  @override
+  String saveConflictBody(String name) {
+    return 'После открытия «$name» был изменён другой программой. Сохранение сейчас перезапишет эти изменения.';
+  }
+
+  @override
+  String get saveConflictOverwrite => 'Перезаписать';
+
+  @override
+  String get saveConflictReload => 'Отбросить мои правки и перечитать';
+
+  @override
+  String get saveConflictCancel => 'Отмена';
+
+  @override
+  String get saveConflictBanner =>
+      'Изменён на диске — автосохранение для этого файла приостановлено';
+
+  @override
   String fileOperationFailed(String message) {
     return 'Не удалось выполнить операцию с файлом: $message';
   }

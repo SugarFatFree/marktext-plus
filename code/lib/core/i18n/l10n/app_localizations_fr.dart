@@ -90,6 +90,27 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get saveConflictTitle => 'Fichier modifié sur le disque';
+
+  @override
+  String saveConflictBody(String name) {
+    return 'Quelque chose d’autre a modifié « $name » depuis son ouverture. Enregistrer maintenant écraserait cette modification.';
+  }
+
+  @override
+  String get saveConflictOverwrite => 'Écraser';
+
+  @override
+  String get saveConflictReload => 'Abandonner mes modifications et recharger';
+
+  @override
+  String get saveConflictCancel => 'Annuler';
+
+  @override
+  String get saveConflictBanner =>
+      'Modifié sur le disque — enregistrement automatique suspendu pour ce fichier';
+
+  @override
   String fileOperationFailed(String message) {
     return 'Échec de l\'opération sur le fichier : $message';
   }

@@ -55,6 +55,12 @@
     }
   },
   "saveFailed": "تعذّر حفظ الملف: {message}",
+  "saveConflictTitle": "تغيّر الملف على القرص",
+  "saveConflictBody": "غيّر برنامج آخر «{name}» بعد فتحه. الحفظ الآن سيكتب فوق ذلك التغيير.",
+  "saveConflictOverwrite": "الكتابة فوقه",
+  "saveConflictReload": "تجاهل تعديلاتي وإعادة التحميل",
+  "saveConflictCancel": "إلغاء",
+  "saveConflictBanner": "تغيّر على القرص — الحفظ التلقائي متوقف مؤقتًا لهذا الملف",
   "@saveFailed": {
     "placeholders": {
       "message": {

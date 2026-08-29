@@ -55,6 +55,12 @@
     }
   },
   "saveFailed": "Não foi possível salvar o arquivo: {message}",
+  "saveConflictTitle": "O arquivo mudou no disco",
+  "saveConflictBody": "Algo mais alterou “{name}” desde que foi aberto. Salvar agora sobrescreveria essa alteração.",
+  "saveConflictOverwrite": "Sobrescrever",
+  "saveConflictReload": "Descartar minhas edições e recarregar",
+  "saveConflictCancel": "Cancelar",
+  "saveConflictBanner": "Alterado no disco — o salvamento automático está pausado para este arquivo",
   "@saveFailed": {
     "placeholders": {
       "message": {

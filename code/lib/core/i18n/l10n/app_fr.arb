@@ -55,6 +55,12 @@
     }
   },
   "saveFailed": "Impossible d'enregistrer le fichier : {message}",
+  "saveConflictTitle": "Fichier modifié sur le disque",
+  "saveConflictBody": "Quelque chose d’autre a modifié « {name} » depuis son ouverture. Enregistrer maintenant écraserait cette modification.",
+  "saveConflictOverwrite": "Écraser",
+  "saveConflictReload": "Abandonner mes modifications et recharger",
+  "saveConflictCancel": "Annuler",
+  "saveConflictBanner": "Modifié sur le disque — enregistrement automatique suspendu pour ce fichier",
   "@saveFailed": {
     "placeholders": {
       "message": {

@@ -90,6 +90,25 @@ class SourceEditor extends ConsumerStatefulWidget {
         _ => '$bulletMarker ',
       };
 
+  /// The markers each inline command wraps a selection in.
+  ///
+  /// One table, because two editors carry these commands out: this pane and
+  /// the preview's block editor, which holds a block's markdown and is an
+  /// ordinary text field. Written twice they would drift — a command added
+  /// here and not there would simply do nothing in the preview, silently,
+  /// which is how that whole class of bug in this codebase has looked.
+  static const wrapMarkers = <FormatAction, (String, String)>{
+    FormatAction.bold: ('**', '**'),
+    FormatAction.italic: ('*', '*'),
+    FormatAction.strikethrough: ('~~', '~~'),
+    FormatAction.inlineCode: ('`', '`'),
+    FormatAction.inlineMath: (r'$', r'$'),
+    FormatAction.highlight: ('==', '=='),
+    FormatAction.underline: ('++', '++'),
+    FormatAction.superscript: ('^', '^'),
+    FormatAction.subscript: ('~', '~'),
+  };
+
   static ({String text, int start, int end}) toggleWrap(
     String text,
     int start,
@@ -1303,12 +1322,18 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     if (!selection.isValid) return;
 
     switch (action) {
+      // Every inline wrap, from the one table both editors read.
       case FormatAction.bold:
-        _wrapSelection('**', '**');
       case FormatAction.italic:
-        _wrapSelection('*', '*');
       case FormatAction.strikethrough:
-        _wrapSelection('~~', '~~');
+      case FormatAction.inlineCode:
+      case FormatAction.inlineMath:
+      case FormatAction.highlight:
+      case FormatAction.underline:
+      case FormatAction.superscript:
+      case FormatAction.subscript:
+        final markers = SourceEditor.wrapMarkers[action]!;
+        _wrapSelection(markers.$1, markers.$2);
       case FormatAction.heading1:
         _setHeadingLevel(1);
       case FormatAction.heading2:
@@ -1400,8 +1425,6 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
         }
       case FormatAction.horizontalRule:
         _insertAtCursor('\n---\n');
-      case FormatAction.underline:
-        _wrapSelection('++', '++');
       case FormatAction.frontMatter:
         _insertFrontMatter();
       case FormatAction.htmlBlock:
@@ -1436,16 +1459,6 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
         _moveBlock(up: true);
       case FormatAction.moveBlockDown:
         _moveBlock(up: false);
-      case FormatAction.superscript:
-        _wrapSelection('^', '^');
-      case FormatAction.subscript:
-        _wrapSelection('~', '~');
-      case FormatAction.highlight:
-        _wrapSelection('==', '==');
-      case FormatAction.inlineCode:
-        _wrapSelection('`', '`');
-      case FormatAction.inlineMath:
-        _wrapSelection('\$', '\$');
       case FormatAction.clearFormatting:
         if (!selection.isCollapsed) {
           final selected = text.substring(selection.start, selection.end);
