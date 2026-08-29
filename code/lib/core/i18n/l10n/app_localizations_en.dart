@@ -576,6 +576,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get keybindingsReset => 'Reset to Default';
 
   @override
+  String keybindingsConflict(String action) {
+    return 'Already used by “$action”. Assigning it here leaves that command with no shortcut.';
+  }
+
+  @override
+  String get keybindingsTakeOver => 'Take it over';
+
+  @override
   String get statusWords => 'Words';
 
   @override

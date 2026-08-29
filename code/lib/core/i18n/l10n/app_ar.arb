@@ -227,6 +227,8 @@
   "keybindingsEdit": "تحرير الاختصار",
   "keybindingsPressKeys": "اضغط مجموعة المفاتيح...",
   "keybindingsReset": "إعادة تعيين الافتراضي",
+  "keybindingsConflict": "مستخدم بالفعل بواسطة «{action}». تعيينه هنا يترك ذلك الأمر بلا اختصار.",
+  "keybindingsTakeOver": "الاستحواذ عليه",
   "statusWords": "كلمات",
   "statusChars": "أحرف",
   "statusParagraphs": "فقرات",

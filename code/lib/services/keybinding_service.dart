@@ -114,7 +114,34 @@ class KeybindingService {
     return _keybindings[action] ?? '';
   }
 
+  /// The action already using [keys], if any other one is.
+  ///
+  /// Two actions on one combination is not an error the reader can see: the
+  /// lookup takes whichever comes first, so one of the two simply stops
+  /// working, with the settings screen showing both as bound and nothing
+  /// saying which one lost.
+  ///
+  /// Compared as parsed combinations rather than as strings, so `Ctrl+Shift+K`
+  /// and `Shift+Ctrl+k` are recognised as the same key.
+  String? actionUsing(String keys, {String? excluding}) {
+    final wanted = _Combo.parse(keys, isMacOS: Platform.isMacOS);
+    if (wanted == null) return null;
+    for (final entry in _keybindings.entries) {
+      if (entry.key == excluding) continue;
+      if (_Combo.parse(entry.value, isMacOS: Platform.isMacOS) == wanted) {
+        return entry.key;
+      }
+    }
+    return null;
+  }
+
+  /// Gives [keys] to [action], taking them off whatever had them.
+  ///
+  /// The other action is left unbound rather than sharing: sharing is what
+  /// makes one of them silently stop working.
   void setKeybinding(String action, String keys) {
+    final previous = actionUsing(keys, excluding: action);
+    if (previous != null) _keybindings[previous] = '';
     _keybindings[action] = keys;
     _index = null;
     _pendingWrite = _save();

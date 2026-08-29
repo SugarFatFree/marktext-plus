@@ -570,6 +570,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String get keybindingsReset => 'デフォルトに戻す';
 
   @override
+  String keybindingsConflict(String action) {
+    return '「$action」が使用中です。ここに割り当てると、そのコマンドはショートカットを失います。';
+  }
+
+  @override
+  String get keybindingsTakeOver => '奪う';
+
+  @override
   String get statusWords => '単語';
 
   @override

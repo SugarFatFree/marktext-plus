@@ -227,6 +227,8 @@
   "keybindingsEdit": "Modifier le raccourci",
   "keybindingsPressKeys": "Appuyez sur une combinaison de touches...",
   "keybindingsReset": "Réinitialiser par défaut",
+  "keybindingsConflict": "Déjà utilisé par « {action} ». L’attribuer ici laisse cette commande sans raccourci.",
+  "keybindingsTakeOver": "Le reprendre",
   "statusWords": "Mots",
   "statusChars": "Caractères",
   "statusParagraphs": "Paragraphes",

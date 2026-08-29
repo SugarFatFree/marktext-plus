@@ -583,6 +583,14 @@ class AppLocalizationsFr extends AppLocalizations {
   String get keybindingsReset => 'Réinitialiser par défaut';
 
   @override
+  String keybindingsConflict(String action) {
+    return 'Déjà utilisé par « $action ». L’attribuer ici laisse cette commande sans raccourci.';
+  }
+
+  @override
+  String get keybindingsTakeOver => 'Le reprendre';
+
+  @override
   String get statusWords => 'Mots';
 
   @override

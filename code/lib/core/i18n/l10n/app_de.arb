@@ -227,6 +227,8 @@
   "keybindingsEdit": "Tastenkürzel bearbeiten",
   "keybindingsPressKeys": "Tastenkombination drücken...",
   "keybindingsReset": "Auf Standard zurücksetzen",
+  "keybindingsConflict": "Bereits von „{action}“ belegt. Hier zugewiesen, verliert jener Befehl sein Tastenkürzel.",
+  "keybindingsTakeOver": "Übernehmen",
   "statusWords": "Wörter",
   "statusChars": "Zeichen",
   "statusParagraphs": "Absätze",

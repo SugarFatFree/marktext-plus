@@ -227,6 +227,8 @@
   "keybindingsEdit": "키 바인딩 편집",
   "keybindingsPressKeys": "키 조합을 누르세요...",
   "keybindingsReset": "기본값으로 재설정",
+  "keybindingsConflict": "“{action}”이(가) 이미 사용 중입니다. 여기에 지정하면 그 명령은 단축키를 잃습니다.",
+  "keybindingsTakeOver": "가져오기",
   "statusWords": "단어",
   "statusChars": "문자",
   "statusParagraphs": "단락",

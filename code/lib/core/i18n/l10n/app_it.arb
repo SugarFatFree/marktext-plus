@@ -227,6 +227,8 @@
   "keybindingsEdit": "Modifica scorciatoia",
   "keybindingsPressKeys": "Premi combinazione di tasti...",
   "keybindingsReset": "Ripristina predefinito",
+  "keybindingsConflict": "Già usato da «{action}». Assegnandolo qui, quel comando resta senza scorciatoia.",
+  "keybindingsTakeOver": "Prendilo",
   "statusWords": "Parole",
   "statusChars": "Caratteri",
   "statusParagraphs": "Paragrafi",

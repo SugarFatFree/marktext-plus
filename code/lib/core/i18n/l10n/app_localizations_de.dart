@@ -578,6 +578,14 @@ class AppLocalizationsDe extends AppLocalizations {
   String get keybindingsReset => 'Auf Standard zurücksetzen';
 
   @override
+  String keybindingsConflict(String action) {
+    return 'Bereits von „$action“ belegt. Hier zugewiesen, verliert jener Befehl sein Tastenkürzel.';
+  }
+
+  @override
+  String get keybindingsTakeOver => 'Übernehmen';
+
+  @override
   String get statusWords => 'Wörter';
 
   @override

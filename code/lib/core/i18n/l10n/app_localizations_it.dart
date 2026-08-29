@@ -580,6 +580,14 @@ class AppLocalizationsIt extends AppLocalizations {
   String get keybindingsReset => 'Ripristina predefinito';
 
   @override
+  String keybindingsConflict(String action) {
+    return 'Già usato da «$action». Assegnandolo qui, quel comando resta senza scorciatoia.';
+  }
+
+  @override
+  String get keybindingsTakeOver => 'Prendilo';
+
+  @override
   String get statusWords => 'Parole';
 
   @override

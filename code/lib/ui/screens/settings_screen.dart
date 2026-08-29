@@ -863,7 +863,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
+        builder: (ctx, setDialogState) {
+          // Recomputed as keys are captured, so the warning follows what is
+          // on screen rather than what was there when the dialog opened.
+          final conflict = captured.isEmpty
+              ? null
+              : KeybindingService().actionUsing(captured, excluding: action);
+          return AlertDialog(
           title: Text('${l10n.keybindingsEdit}: ${_translateKeybindingAction(action, l10n)}'),
           content: KeyboardListener(
             focusNode: FocusNode()..requestFocus(),
@@ -884,7 +890,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 }
               }
             },
-            child: Container(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 border: Border.all(color: Theme.of(context).dividerColor),
@@ -903,6 +912,34 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
               ),
             ),
+                // Said before the button is pressed, not discovered afterwards
+                // by finding that a command stopped working. Two actions on
+                // one combination is invisible: the lookup takes whichever
+                // comes first and the other simply never fires.
+                if (conflict != null) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Icon(Icons.warning_amber_rounded,
+                          size: 16,
+                          color: Theme.of(context).colorScheme.error),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          l10n.keybindingsConflict(
+                            _translateKeybindingAction(conflict, l10n),
+                          ),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
           ),
           actions: [
             TextButton(
@@ -915,10 +952,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 Navigator.pop(ctx);
                 setState(() {});
               },
-              child: Text(l10n.ok),
+              // The button names what pressing it does: taking a shortcut off
+              // another command is a different act from assigning a free one.
+              child: Text(conflict == null
+                  ? l10n.ok
+                  : l10n.keybindingsTakeOver),
             ),
           ],
-        ),
+        );
+        },
       ),
     );
   }

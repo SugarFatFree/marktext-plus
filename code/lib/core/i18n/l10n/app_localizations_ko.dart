@@ -570,6 +570,14 @@ class AppLocalizationsKo extends AppLocalizations {
   String get keybindingsReset => '기본값으로 재설정';
 
   @override
+  String keybindingsConflict(String action) {
+    return '“$action”이(가) 이미 사용 중입니다. 여기에 지정하면 그 명령은 단축키를 잃습니다.';
+  }
+
+  @override
+  String get keybindingsTakeOver => '가져오기';
+
+  @override
   String get statusWords => '단어';
 
   @override

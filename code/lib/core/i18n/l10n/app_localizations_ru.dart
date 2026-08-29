@@ -577,6 +577,14 @@ class AppLocalizationsRu extends AppLocalizations {
   String get keybindingsReset => 'Сбросить по умолчанию';
 
   @override
+  String keybindingsConflict(String action) {
+    return 'Уже занято действием «$action». Назначив здесь, вы оставите ту команду без сочетания.';
+  }
+
+  @override
+  String get keybindingsTakeOver => 'Забрать';
+
+  @override
   String get statusWords => 'Слова';
 
   @override

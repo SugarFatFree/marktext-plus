@@ -576,6 +576,14 @@ class AppLocalizationsAr extends AppLocalizations {
   String get keybindingsReset => 'إعادة تعيين الافتراضي';
 
   @override
+  String keybindingsConflict(String action) {
+    return 'مستخدم بالفعل بواسطة «$action». تعيينه هنا يترك ذلك الأمر بلا اختصار.';
+  }
+
+  @override
+  String get keybindingsTakeOver => 'الاستحواذ عليه';
+
+  @override
   String get statusWords => 'كلمات';
 
   @override

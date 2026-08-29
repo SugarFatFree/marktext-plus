@@ -227,6 +227,8 @@
   "keybindingsEdit": "キーバインドを編集",
   "keybindingsPressKeys": "キーの組み合わせを押してください...",
   "keybindingsReset": "デフォルトに戻す",
+  "keybindingsConflict": "「{action}」が使用中です。ここに割り当てると、そのコマンドはショートカットを失います。",
+  "keybindingsTakeOver": "奪う",
   "statusWords": "単語",
   "statusChars": "文字",
   "statusParagraphs": "段落",

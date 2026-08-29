@@ -569,6 +569,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String get keybindingsReset => '恢复默认';
 
   @override
+  String keybindingsConflict(String action) {
+    return '已被“$action”占用。设到这里会让那个命令没有快捷键。';
+  }
+
+  @override
+  String get keybindingsTakeOver => '夺过来';
+
+  @override
   String get statusWords => '单词';
 
   @override

@@ -227,6 +227,8 @@
   "keybindingsEdit": "Editar atajo",
   "keybindingsPressKeys": "Presione combinación de teclas...",
   "keybindingsReset": "Restablecer por defecto",
+  "keybindingsConflict": "Ya lo usa «{action}». Asignarlo aquí deja ese comando sin atajo.",
+  "keybindingsTakeOver": "Quitárselo",
   "statusWords": "Palabras",
   "statusChars": "Caracteres",
   "statusParagraphs": "Párrafos",

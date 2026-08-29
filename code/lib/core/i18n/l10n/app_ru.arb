@@ -227,6 +227,8 @@
   "keybindingsEdit": "Изменить сочетание",
   "keybindingsPressKeys": "Нажмите сочетание клавиш...",
   "keybindingsReset": "Сбросить по умолчанию",
+  "keybindingsConflict": "Уже занято действием «{action}». Назначив здесь, вы оставите ту команду без сочетания.",
+  "keybindingsTakeOver": "Забрать",
   "statusWords": "Слова",
   "statusChars": "Символы",
   "statusParagraphs": "Абзацы",

@@ -580,6 +580,14 @@ class AppLocalizationsPt extends AppLocalizations {
   String get keybindingsReset => 'Repor predefinição';
 
   @override
+  String keybindingsConflict(String action) {
+    return 'Já usado por «$action». Atribuí-lo aqui deixa esse comando sem atalho.';
+  }
+
+  @override
+  String get keybindingsTakeOver => 'Tirar-lho';
+
+  @override
   String get statusWords => 'Palavras';
 
   @override
@@ -1570,6 +1578,14 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get keybindingsReset => 'Restaurar padrão';
+
+  @override
+  String keybindingsConflict(String action) {
+    return 'Já usado por “$action”. Atribuí-lo aqui deixa esse comando sem atalho.';
+  }
+
+  @override
+  String get keybindingsTakeOver => 'Tomar para si';
 
   @override
   String get statusWords => 'Palavras';

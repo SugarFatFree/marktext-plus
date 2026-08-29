@@ -227,6 +227,8 @@
   "keybindingsEdit": "编辑快捷键",
   "keybindingsPressKeys": "按下组合键...",
   "keybindingsReset": "恢复默认",
+  "keybindingsConflict": "已被“{action}”占用。设到这里会让那个命令没有快捷键。",
+  "keybindingsTakeOver": "夺过来",
   "statusWords": "单词",
   "statusChars": "字符",
   "statusParagraphs": "段落",

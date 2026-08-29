@@ -227,6 +227,8 @@
   "keybindingsEdit": "Editar atalho",
   "keybindingsPressKeys": "Pressione combinação de teclas...",
   "keybindingsReset": "Repor predefinição",
+  "keybindingsConflict": "Já usado por «{action}». Atribuí-lo aqui deixa esse comando sem atalho.",
+  "keybindingsTakeOver": "Tirar-lho",
   "statusWords": "Palavras",
   "statusChars": "Caracteres",
   "statusParagraphs": "Parágrafos",

@@ -1185,6 +1185,18 @@ abstract class AppLocalizations {
   /// **'Reset to Default'**
   String get keybindingsReset;
 
+  /// No description provided for @keybindingsConflict.
+  ///
+  /// In en, this message translates to:
+  /// **'Already used by “{action}”. Assigning it here leaves that command with no shortcut.'**
+  String keybindingsConflict(String action);
+
+  /// No description provided for @keybindingsTakeOver.
+  ///
+  /// In en, this message translates to:
+  /// **'Take it over'**
+  String get keybindingsTakeOver;
+
   /// No description provided for @statusWords.
   ///
   /// In en, this message translates to:
