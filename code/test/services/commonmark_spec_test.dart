@@ -89,7 +89,7 @@ void main() {
 
     // Measured 2026-08-29. Raise it whenever the work raises it; never lower
     // it to make a change pass.
-    const floor = 341;
+    const floor = 352;
     expect(passed, greaterThanOrEqualTo(floor),
         reason: '解析能力相比 $floor 例退步了');
     if (passed > floor) {
@@ -99,23 +99,38 @@ void main() {
   });
 
   test('a delimiter with a space just inside it does not emphasise', () {
-    // The single-asterisk branch already refused this — which is why
-    // `2 * 3 * 4` was safe — but `**`, `***`, `__` and `___` did not, so
-    // prose with spaced asterisks in it came out bold.
-    for (final source in ['2 ** 3 ** 4', '** foo bar**', '__ foo bar__']) {
+    // Asserting the text that comes out, not merely that no bold span does.
+    // The first version of this test checked for the absence of bold and
+    // passed while the input was being turned into an *italic* containing a
+    // literal asterisk — the `**` branch had been taught to refuse a space,
+    // and the single-`*` branch picked up the pieces.
+    for (final source in [
+      '2 ** 3 ** 4',
+      '** foo bar**',
+      '__ foo bar__',
+      '**foo bar **',
+    ]) {
       final spans =
           (MarkdownParser().parse('$source\n').single as ParagraphNode)
               .inlineSpans;
-      expect(spans.where((s) => s.type == InlineType.bold), isEmpty,
-          reason: source);
+      expect(spans.single.type, InlineType.text, reason: source);
+      expect(spans.single.text, source,
+          reason: '$source 被拆开或加了样式');
     }
 
     // And still emphasises when there is no space.
-    final bold = (MarkdownParser().parse('**foo bar**\n').single
-            as ParagraphNode)
-        .inlineSpans
-        .where((s) => s.type == InlineType.bold);
-    expect(bold, hasLength(1));
+    for (final entry in {
+      '**foo bar**': InlineType.bold,
+      '*foo bar*': InlineType.italic,
+      '__foo bar__': InlineType.bold,
+      '_foo bar_': InlineType.italic,
+    }.entries) {
+      final spans = (MarkdownParser().parse('${entry.key}\n').single
+              as ParagraphNode)
+          .inlineSpans;
+      expect(spans.single.type, entry.value, reason: entry.key);
+      expect(spans.single.text, 'foo bar', reason: entry.key);
+    }
   });
 
   test('an underscore inside a word does not emphasise, in any script', () {

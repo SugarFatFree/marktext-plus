@@ -1598,8 +1598,12 @@ class MarkdownParser {
       // CommonMark: a delimiter with whitespace just inside it does not open
       // or close emphasis. Without this, "2 * 3 * 4" italicised the 3 and
       // ordinary prose with a stray asterisk came out slanted.
-      r'|\*([^\s].*?[^\s]|[^\s])\*'  // italic *
-      r'|(?<![\p{L}\p{N}_])_([^\s].*?[^\s]|[^\s])_(?![\p{L}\p{N}_])'  // italic _
+      // A delimiter that is part of a longer run belongs to that run, not to
+      // this branch. Without the guards, `2 ** 3 ** 4` failed the `**` branch
+      // on its spaces and was then picked up here as an italic containing a
+      // literal asterisk — visibly worse than the bold it used to produce.
+      r'|\*(?!\*)([^\s].*?[^\s]|[^\s])(?<!\*)\*(?!\*)'  // italic *
+      r'|(?<![\p{L}\p{N}_])_(?!_)([^\s].*?[^\s]|[^\s])(?<!_)_(?![\p{L}\p{N}_])'  // italic _
       // Appended rather than inserted: these add groups 19..21, leaving every
       // existing branch's numbering alone.
       r'|<((?:https?|ftp|mailto):[^>\s]+)>'         // 19 autolink
