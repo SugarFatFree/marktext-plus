@@ -474,6 +474,13 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   ///
   /// The parser consumes exactly one source line per list item, so item
   /// [index] is line [index] of the list's own source.
+  /// A line with any leading blockquote markers taken off.
+  ///
+  /// Only for deciding what the line *is*; what gets written back is the line
+  /// as it was, markers and all.
+  static String _withoutQuoteMarkers(String line) =>
+      line.replaceFirst(RegExp(r'^\s*(?:>\s?)+'), '');
+
   void _toggleTask(md.ListNode node, int index, bool checked) {
     final onChanged = widget.onSourceChanged;
     if (onChanged == null) return;
@@ -491,7 +498,13 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     var lineIndex = -1;
     var seen = -1;
     for (var i = 0; i < lines.length; i++) {
-      if (!md.MarkdownParser.startsListItem(lines[i])) continue;
+      // A list inside a quote arrives with its `>` markers still on, because
+      // that is what has to be written back. Testing the line as it stands
+      // found no list items at all, so `lineIndex` stayed at -1 and ticking a
+      // box inside a quote did nothing whatever — no error, no change.
+      if (!md.MarkdownParser.startsListItem(_withoutQuoteMarkers(lines[i]))) {
+        continue;
+      }
       seen++;
       if (seen == index) {
         lineIndex = i;
@@ -514,6 +527,22 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
 
   // ------------------------------------------------------- in-place editing
 
+  /// Whether [node] draws a checkbox anywhere inside it.
+  ///
+  /// Not only when the node *is* a task list: a quote or a list item that
+  /// carries one draws the same checkboxes, and wrapping it put the same
+  /// recogniser in the arena — so a box inside a quote sat dead until the
+  /// double-tap timeout expired, which reads as a click that did nothing.
+  static bool _holdsATaskList(md.MarkdownNode node) {
+    for (final descendant in md.MarkdownParser.walk([node])) {
+      if (descendant is md.ListNode &&
+          descendant.items.any((item) => item.isTask)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /// Wraps a rendered block so a double tap swaps it for its markdown source.
   ///
   /// Double tap rather than single: the preview sits inside a SelectionArea,
@@ -532,9 +561,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     // sit dead for ~300ms before responding. Ticking a box is the far more
     // frequent action, so it wins: these blocks stay directly interactive and
     // are edited from the source pane instead.
-    if (node is md.ListNode && node.items.any((item) => item.isTask)) {
-      return child;
-    }
+    if (_holdsATaskList(node)) return child;
 
     // A diagram is the same story: its toolbar has four buttons, and every one
     // of them sat dead for the double-tap timeout while the recogniser waited
