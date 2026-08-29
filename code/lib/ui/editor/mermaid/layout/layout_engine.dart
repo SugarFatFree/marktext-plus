@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import '../../../../utils/text_width.dart';
 import 'dart:ui';
 
 import '../config/responsive_config.dart';
@@ -39,8 +40,12 @@ abstract class LayoutEngine {
     // the width and the count sets the height.
     final fontSize = nodeStyle.fontSize;
     final lines = node.label.split('\n');
+    // Not `length * 0.6`: that is about right for Latin and forty per cent
+    // short for CJK, so a Chinese label was given a box it does not fit in —
+    // and the label is drawn at its natural width, so it hung out over the
+    // border of its own node.
     final textWidth = lines
-        .map((line) => line.length * fontSize * 0.6)
+        .map((line) => estimatedTextWidth(line, fontSize))
         .fold<double>(0, math.max);
     final textHeight = fontSize * 1.4 * lines.length;
 

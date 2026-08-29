@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import '../../../../utils/text_width.dart';
 import 'dart:ui';
 
 import '../config/responsive_config.dart';
@@ -218,17 +219,21 @@ class DagreLayout extends LayoutEngine {
     }
   }
 
-  double _measureTextWidth(String text, double fontSize) {
-    double width = 0;
-    for (final char in text.runes) {
-      if (char > 0x4E00 && char < 0x9FFF) {
-        width += fontSize * 1.0; // CJK character
-      } else {
-        width += fontSize * 0.6; // Latin character
-      }
-    }
-    return width;
-  }
+  /// Through the shared table, which knows about more than the one block this
+  /// used to check.
+  ///
+  /// It tested `char > 0x4E00 && char < 0x9FFF`, so Chinese was measured
+  /// correctly and Japanese kana, Korean Hangul, fullwidth punctuation and the
+  /// CJK extension blocks were all counted at six tenths of an em — a little
+  /// over half their real width. The label is painted at its natural width
+  /// with no maxWidth, so it did not wrap or get clipped: it hung out over the
+  /// border of its own node. Short labels were saved by the padding, which is
+  /// why this showed up on a sentence and not on a word.
+  ///
+  /// The bounds were exclusive at both ends too, so 一 and 龿 fell through to
+  /// the narrow case.
+  double _measureTextWidth(String text, double fontSize) =>
+      estimatedTextWidth(text, fontSize);
 
   void _buildGraph(_LayoutContext context) {
     // Initialize adjacency lists

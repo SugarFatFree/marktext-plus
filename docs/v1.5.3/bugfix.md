@@ -9,6 +9,7 @@
 | BUG-148 | 2026-08-30 | 韩文字数统计约为实际的三倍（按字计数，但韩语有词间空格） | P2 | 已修复 |
 | BUG-149 | 2026-08-30 | 没有磁盘戳的标签页永远保存不了（BUG-146 引入，CI 抓到） | P1 | 已修复 |
 | BUG-150 | 2026-08-30 | 自定义快捷键撞键时，其中一个命令永远不触发 | P2 | 已修复 |
+| BUG-151 | 2026-08-30 | 日文/韩文/全角标签伸出 mermaid 节点方框 | P2 | 已修复 |
 
 ---
 
@@ -356,3 +357,65 @@ BUG-146 加冲突检测时，我把两件不同的事都表示成了 `null`：
 - `code/lib/ui/screens/settings_screen.dart`
 - `code/lib/core/i18n/l10n/*.arb`（12 种语言 × 2 个键）
 - `code/test/services/keybinding_conflict_test.dart`（新增，9 条）
+
+---
+
+## BUG-151：日文、韩文、全角符号的图表标签会伸出方框
+
+**优先级**：P2　**状态**：已修复　**日期**：2026-08-30
+
+### 现象
+
+mermaid 节点里写较长的日文或韩文标签，文字会**从方框两侧伸出去**，压在边框和
+连线上。中文和英文正常。
+
+### 根因分析
+
+真正决定方框宽度的是 `DagreLayout._measureTextWidth`：
+
+```dart
+if (char > 0x4E00 && char < 0x9FFF) { width += fontSize; }
+else { width += fontSize * 0.6; }
+```
+
+它**只认基本汉字块**。落在外面按 0.6 em 计算的有：
+
+- 日文假名（0x3040–0x30FF）
+- 韩文谚文（0xAC00–0xD7A3）
+- 全角标点（0xFF00–0xFF60）
+- CJK 扩展 A（0x3400–0x4DBF）与兼容汉字（0xF900–0xFAFF）
+- 以及边界本身：`>` 和 `<` 把「一」和「龿」也漏了
+
+而这些字形实际约 1.0 em 宽，被少算了近一半。绘制端 `drawText` 调用时**没有传
+`maxWidth`**，所以文字按自然宽度画在节点中心——既不换行也不裁切，**直接溢出边框**。
+
+短标签被内边距兜住了，所以 `A[中文]` 看不出问题，一写成句子就露出来。
+
+### 修复方案
+
+新增 `lib/utils/text_width.dart`，把"宽字符"的判定收到一处：
+`isWideCharacter` / `displayWidth` / `estimatedTextWidth`。
+`DagreLayout._measureTextWidth` 与 `LayoutEngine.measureNode`（`SimpleLayoutEngine`
+用的备用引擎）都改为调它；`TableEditService` 里原本自带的一份也换成共享实现。
+
+### 排查过程中的一次自我纠正
+
+我最先改的是 `LayoutEngine.measureNode`，并准备以"流程图标签装不下"提交。
+**实测发现改前改后 `node.width` 都是 134.4** —— 说明流程图根本不走那个函数。
+差一点提交一个故事讲不通的修复。
+
+另外第一版测试用的是**短标签**，退回旧实现后照样通过，等于什么都没测；
+换成句子长度的标签后，旧实现下四条立刻失败（假名、韩文、全角、扩展汉字分别
+溢出 40–70px），中文英文仍通过——旧实现对这两种本来就是对的。
+
+### 涉及文件
+
+- `code/lib/utils/text_width.dart`（新增）
+- `code/lib/ui/editor/mermaid/layout/dagre_layout.dart`、`layout_engine.dart`
+- `code/lib/services/table_edit_service.dart`（改用共享实现）
+- `code/test/ui/editor/mermaid/layout_geometry_test.dart`（新增，17 条）
+
+### 顺带查证、结论为干净的部分
+
+同一份测试还审查了 10 种流程图的布局几何：**没有方框重叠、没有负坐标、
+没有越出画布、每条连线的两端都是真实存在的节点**。
