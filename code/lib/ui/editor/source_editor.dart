@@ -15,6 +15,8 @@ import '../../services/markdown_parser.dart' as md;
 import 'highlighting_controller.dart';
 import '../../services/keybinding_service.dart';
 import '../../utils/platform_utils.dart';
+import '../widgets/slash_menu.dart';
+import '../../core/i18n/l10n/app_localizations.dart';
 
 class SourceEditor extends ConsumerStatefulWidget {
   final String initialContent;
@@ -460,6 +462,82 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
   static final _wordBoundary = RegExp(r'[\s.,;:!?)\]}"\u3001\u3002\uff0c'
       r'\uff1b\uff1a\uff01\uff1f\u201d\u2019\uff09\u3011\u300b]');
 
+  /// Open while the slash menu is showing, so it can be taken down again.
+  OverlayEntry? _slashMenu;
+
+  /// Where the `/` that opened the menu sits, so it can be removed when a
+  /// block is chosen.
+  int _slashOffset = -1;
+
+  /// Opens the quick-insert menu if `/` was just typed where a block can
+  /// start.
+  ///
+  /// Only at the beginning of an otherwise empty line: `/` is an ordinary
+  /// character in prose — a path, a date, "and/or" — and a menu that appeared
+  /// every time one was typed would be in the way far more often than not.
+  void _maybeOpenSlashMenu(String text, String? justTyped) {
+    if (justTyped != '/' || _slashMenu != null) return;
+    final offset = _controller.selection.baseOffset;
+    if (offset < 1) return;
+    // `offset - 2` is negative when the slash is the document's first
+    // character, and `lastIndexOf` throws a RangeError on a negative start —
+    // inside a text-change listener, where nothing reports it. The menu
+    // simply never appeared, with no error anywhere to say why.
+    final searchFrom = offset - 2;
+    final lineStart =
+        searchFrom < 0 ? 0 : text.lastIndexOf('\n', searchFrom) + 1;
+    if (text.substring(lineStart, offset - 1).trim().isNotEmpty) return;
+
+    final context = this.context;
+    final overlay = Overlay.maybeOf(context);
+    final box = context.findRenderObject() as RenderBox?;
+    if (overlay == null || box == null || !box.hasSize) return;
+
+    _slashOffset = offset - 1;
+    final origin = box.localToGlobal(Offset.zero);
+    final l10n = AppLocalizations.of(context)!;
+
+    final entry = OverlayEntry(
+      builder: (_) => Positioned(
+        left: origin.dx + 60,
+        top: origin.dy + 40,
+        child: SlashMenu(
+          commands: slashCommands(l10n),
+          onSelected: _closeSlashMenu,
+        ),
+      ),
+    );
+    _slashMenu = entry;
+    overlay.insert(entry);
+  }
+
+  /// Takes the menu down, and applies [command] if one was chosen.
+  void _closeSlashMenu(SlashCommand? command) {
+    _slashMenu?.remove();
+    _slashMenu = null;
+
+    if (command == null) {
+      _slashOffset = -1;
+      return;
+    }
+
+    // The `/` was the reader asking for the menu, not text they wanted. It
+    // comes out before the block goes in, or every insertion would leave one
+    // behind.
+    final text = _controller.text;
+    if (_slashOffset >= 0 && _slashOffset < text.length &&
+        text[_slashOffset] == '/') {
+      _controller.value = TextEditingValue(
+        text: text.substring(0, _slashOffset) +
+            text.substring(_slashOffset + 1),
+        selection: TextSelection.collapsed(offset: _slashOffset),
+      );
+    }
+    _slashOffset = -1;
+
+    ref.read(editorProvider.notifier).applyFormat(command.action);
+  }
+
   void _onTextChanged() {
     final text = _controller.text;
 
@@ -478,6 +556,8 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
         _wordBoundary.hasMatch(justTyped)) {
       ref.read(editorProvider.notifier).pushHistory(text);
     }
+
+    if (_isInitialized) _maybeOpenSlashMenu(text, justTyped);
 
     if (_debounce?.isActive ?? false) _debounce!.cancel();
     _debounce = Timer(const Duration(milliseconds: 300), () {
