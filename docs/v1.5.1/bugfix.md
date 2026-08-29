@@ -17,6 +17,7 @@
 | BUG-118 | 2026-08-29 | 时序图双向箭头 `A<<->>B` 造出名叫 `A<<` 的幽灵参与者 | P2 | 已修复 |
 | BUG-119 | 2026-08-29 | 预览复制到 Word 丢失标题与加粗：拿渲染后的纯文本反推 markdown | P1 | 已修复 |
 | BUG-120 | 2026-08-29 | 类图关系用手工清单匹配，71 种合法写法里 39 种被当成普通连线 | P2 | 已修复 |
+| BUG-121 | 2026-08-29 | ER 图只认符号基数，用英文写的关系导致整张图解析失败 | P2 | 已修复 |
 
 ---
 
@@ -790,3 +791,54 @@ LOLLIPOP ()}`，`lineType ∈ {LINE --, DOTTED_LINE ..}`——**任意关系类�
 - `code/lib/ui/editor/mermaid/parser/class_diagram_parser.dart`
 - `code/test/ui/editor/mermaid/class_relations_test.dart`（新增，6 条，
   其中一条就是这 71 种的完整叉乘）
+
+
+---
+
+## BUG-121：ER 图只认符号基数，英文写法导致整张图解析失败
+
+### 排查方式
+
+从 mermaid 11.16 的 ER 词法取出基数记号（左端 `|o` `}o` `}|` `||`，
+右端 `o|` `o{` `|{` `||`）与线型（`--` 识别、`..` 非识别），
+做 32 种完整叉乘——**全部正确**。
+
+但词法里还有另一组记号：
+
+```
+one or zero   one or more   one or many
+zero or one   zero or more  zero or many
+one           only one      to            optionally to
+```
+
+也就是同一件事的**英文写法**：`PERSON one to zero or more ADDRESS : has`
+与 `PERSON ||--o{ ADDRESS : has` 等价。
+
+### 现象
+
+`_relationRe` 只匹配符号形式。英文写法不匹配 → 该行不算关系 →
+实体也没被声明 → **整张图返回 null**，退化成一段灰色代码块。
+
+不是画错一条关系，而是**整张图都出不来**。
+
+### 修复方案
+
+**把英文写法规范化成符号形式**，再走原来那条路径——而不是写第二套解析。
+符号那条路径已经验证过 32 种组合全部正确，同一份文法的第二份实现正是它们
+日后走岔的方式（本会话已经因此修过好几处）。
+
+一处顺序要求：`zero or one` 必须在 `one` 之前尝试，否则前面的 `zero or`
+会被当成实体名的一部分留下来。这是单独一条测试钉住的。
+
+### 一处自我纠正
+
+第一版探针写的是 `A one or more to B : has`——**漏了右端的基数**，
+这在 mermaid 里本来就不合法。于是探针显示"所有英文写法都失败"，
+证据是错的。查清文法后改用 `A one to zero or more B` 重测，
+**结论不变**（原解析器确实只认符号），但记录在此，因为错误的证据
+比没有证据更危险。
+
+### 涉及文件
+
+- `code/lib/ui/editor/mermaid/parser/er_diagram_parser.dart`
+- `code/test/ui/editor/mermaid/er_relations_test.dart`（新增，8 条）

@@ -104,8 +104,61 @@ class ErDiagramParser {
     );
   }
 
+  /// The words mermaid accepts in place of the cardinality symbols.
+  ///
+  /// `PERSON one or more to ADDRESS : has` is as valid as `PERSON }|--|{
+  /// ADDRESS : has`, and reading only the symbols meant a diagram written in
+  /// words did not fail one relation — it failed to parse at all, and the
+  /// whole thing fell back to a grey code block.
+  ///
+  /// Longest first: `zero or one` has to be tried before `one`, or the
+  /// leading `zero or` is left behind as part of the entity's name.
+  static const _cardinalityWords = <(String, String, String)>[
+    // (words, left symbol, right symbol)
+    ('zero or one', '|o', 'o|'),
+    ('one or zero', '|o', 'o|'),
+    ('zero or more', '}o', 'o{'),
+    ('zero or many', '}o', 'o{'),
+    ('one or more', '}|', '|{'),
+    ('one or many', '}|', '|{'),
+    ('only one', '||', '||'),
+    ('one', '||', '||'),
+  ];
+
+  /// Rewrites the spelled-out form of a relation into the symbolic one.
+  ///
+  /// Normalising rather than parsing twice: the symbol path already reads all
+  /// thirty-two combinations correctly, and a second implementation of the
+  /// same grammar is how the two come apart later.
+  static String? _fromWords(String line) {
+    final match = RegExp(
+      r'^(.+?)\s+(' +
+          _cardinalityWords.map((c) => c.$1).join('|') +
+          r')\s+(optionally to|to)\s+(' +
+          _cardinalityWords.map((c) => c.$1).join('|') +
+          r')\s+(.+?)\s*(:\s*.*)?$',
+      caseSensitive: false,
+    ).firstMatch(line);
+    if (match == null) return null;
+
+    String? left;
+    String? right;
+    for (final entry in _cardinalityWords) {
+      if (entry.$1 == match.group(2)!.toLowerCase()) left = entry.$2;
+      if (entry.$1 == match.group(4)!.toLowerCase()) right = entry.$3;
+    }
+    if (left == null || right == null) return null;
+
+    // `to` identifies, `optionally to` does not — the same distinction the
+    // `--` and `..` connectors carry.
+    final connector =
+        match.group(3)!.toLowerCase() == 'to' ? '--' : '..';
+    return '${match.group(1)} $left$connector$right '
+        '${match.group(5)}${match.group(6) ?? ''}';
+  }
+
   bool _parseRelation(String line) {
-    final match = _relationRe.firstMatch(line);
+    final match = _relationRe.firstMatch(_fromWords(line) ?? line);
     if (match == null) return false;
 
     final left = _declare(match.group(1)!);
