@@ -917,6 +917,18 @@ class MarkdownParser {
     // the editor to put a marker under one.
     if (RegExp(r'^\s*([-*_])(\s*\1){2,}\s*$').hasMatch(line)) return null;
 
+    // A quote carries on the same way a list does, and upstream MarkText's
+    // own end-to-end test spells out the two steps: Enter inside a quote
+    // opens another line still inside it, and Enter on an empty quote line
+    // ends the quote. Without this a writer retyped `> ` on every line.
+    final quote = RegExp(r'^(\s*)((?:>\s?)+)(.*)$').firstMatch(line);
+    if (quote != null) {
+      return (
+        marker: '${quote.group(1)}${quote.group(2)}',
+        isEmpty: quote.group(3)!.trim().isEmpty,
+      );
+    }
+
     final match = _continuationRe.firstMatch(line);
     if (match == null) return null;
 

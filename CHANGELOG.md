@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - v1.5.1
 
 ### Added
+- Enter inside a blockquote carries the quote on to the next line, and Enter on an empty quote line ends it — the two steps upstream MarkText specifies. Only lists did this before, so `> ` had to be retyped on every line
 - Rich copy works on macOS and Linux, not only Windows: copying from the preview and pasting into a word processor keeps headings and bold there too
 - Ctrl (or Cmd) and the mouse wheel change the text size, in both the source and the preview (#4)
 - Room under the last line, so it can be scrolled up to where the eye is instead of sitting on the bottom edge (#2)
