@@ -349,7 +349,14 @@ class MarkdownParser {
   /// CommonMark drops it, and `## Section ##` was showing the trailing hashes
   /// in the outline and in the rendered heading alike. Whitespace has to
   /// precede it, so `# C#` keeps its hash.
-  static final _headingRe = RegExp(r'^(#{1,6})\s+(.+?)(?:\s+#+)?\s*$');
+  // Up to three spaces of indentation, and content that may be empty.
+  //
+  // `   # 标题` is a heading — CommonMark allows three spaces before any
+  // block, and four makes it indented code — and it used to come out as a
+  // paragraph with a literal `#` in it. `#` on its own is an empty heading,
+  // which is the state a heading passes through while it is being typed.
+  static final _headingRe =
+      RegExp(r'^ {0,3}(#{1,6})(?:\s+(.*?))?(?:\s+#+)?\s*$');
   static final _hrRe = RegExp(r'^(\*{3,}|-{3,}|_{3,})\s*$');
   /// A fence opening a code block.
   ///
@@ -407,12 +414,22 @@ class MarkdownParser {
       }
       if (inFence) continue;
 
-      final match = _headingRe.firstMatch(lines[i]);
+      // Unindented only, which is stricter than the block parser: it accepts
+      // up to three spaces, as CommonMark does. This function reads the raw
+      // text, so it cannot tell a top-level heading written with three spaces
+      // in front of it from one belonging to a list item — and listing a
+      // step's own heading in the document's outline puts an entry there that
+      // the preview has no scroll target for, which moves every entry after
+      // it to the wrong place. Missing an indented top-level heading is the
+      // cheaper of the two mistakes.
+      final match =
+          lines[i].startsWith(' ') ? null : _headingRe.firstMatch(lines[i]);
       if (match != null) {
         headings.add((
           line: i + 1,
           level: match.group(1)!.length,
-          text: match.group(2)!.trim(),
+          // Empty when the heading has no content — `#` on its own.
+          text: (match.group(2) ?? '').trim(),
         ));
         continue;
       }
@@ -1315,7 +1332,7 @@ class MarkdownParser {
       final headingMatch = _headingRe.firstMatch(line);
       if (headingMatch != null) {
         final level = headingMatch.group(1)!.length;
-        final content = headingMatch.group(2)!.trim();
+        final content = (headingMatch.group(2) ?? '').trim();
         nodes.add(_withSpan(
           HeadingNode(
             level: level,

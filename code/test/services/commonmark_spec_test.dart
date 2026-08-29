@@ -89,7 +89,7 @@ void main() {
 
     // Measured 2026-08-29. Raise it whenever the work raises it; never lower
     // it to make a change pass.
-    const floor = 352;
+    const floor = 353;
     expect(passed, greaterThanOrEqualTo(floor),
         reason: '解析能力相比 $floor 例退步了');
     if (passed > floor) {
@@ -244,6 +244,45 @@ void main() {
       expect(spans.single.text, source,
           reason: '$source 被拆成了多个文本 span');
     }
+  });
+
+  test('a heading may be indented by up to three spaces', () {
+    // CommonMark allows three spaces before any block and calls four an
+    // indented code block. `   # 标题` used to come out as a paragraph with a
+    // literal hash in it.
+    for (final indent in ['', ' ', '  ', '   ']) {
+      final ast = MarkdownParser().parse('$indent# 标题\n');
+      expect(ast.single, isA<HeadingNode>(), reason: '缩进 ${indent.length} 格');
+      expect((ast.single as HeadingNode).content, '标题');
+    }
+    // Four is code, not a heading.
+    expect(MarkdownParser().parse('    # 标题\n').single,
+        isA<CodeBlockNode>());
+  });
+
+  test('a heading with nothing after it is still a heading', () {
+    // The state a heading passes through while it is being typed.
+    for (final source in ['#', '# ', '###']) {
+      final ast = MarkdownParser().parse('$source\n');
+      expect(ast.single, isA<HeadingNode>(), reason: source);
+      expect((ast.single as HeadingNode).content, '', reason: source);
+    }
+  });
+
+  test('seven hashes is not a heading', () {
+    expect(MarkdownParser().parse('####### 七个\n').single,
+        isA<ParagraphNode>());
+  });
+
+  test('the outline lists only headings written flush left', () {
+    // It reads the raw text, so it cannot tell a top-level heading written
+    // with three spaces from one belonging to a list item. Listing a step's
+    // heading would put an entry in the outline that the preview has no
+    // scroll target for, and move every entry after it to the wrong place.
+    final outline = MarkdownParser.headingOutline(
+      '# 一\n\n1. 步骤\n\n   ### 步骤里的\n\n## 二\n',
+    );
+    expect(outline.map((h) => h.text).toList(), ['一', '二']);
   });
 
   test('a code span written across two lines is still a code span', () {

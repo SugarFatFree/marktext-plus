@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - File ▸ Move To…, the one menu command upstream MarkText has that this one did not
 
 ### Fixed
+- A heading indented by one to three spaces is a heading, and `#` on its own — the state a heading passes through while it is being typed — no longer shows as a paragraph with a hash in it
 - A diagram inside a quote or a list item answers its toolbar buttons at once. The exemption that keeps the double-tap recogniser away from blocks with controls of their own was written for a diagram at the top level only, so a nested one had all four of its buttons dead for the length of the double-tap timeout
 - A checkbox in a task list inside a blockquote answers the first click. Two things stopped it: the line it had to rewrite was never found, because the quoted line still carries its `>` marker, and the whole quote sat behind the double-tap recogniser that top-level task lists are already exempt from
 - A table written directly under a line of text, with no blank line between them, is drawn as a table. It used to be swallowed into the paragraph and disappear
