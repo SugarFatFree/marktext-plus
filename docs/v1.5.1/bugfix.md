@@ -14,6 +14,7 @@
 | BUG-115 | 2026-08-29 | 预览模式完全不读字号与行高设置，缩放对预览无效（issue #4） | P1 | 已修复 |
 | BUG-116 | 2026-08-29 | 版本常量停在 1.3.0：关于页显示错版本，更新检查永远提示有新版（issue #1） | P1 | 已修复 |
 | BUG-117 | 2026-08-29 | 列表/引用前缀只作用于光标那一行，忽略选区（issue #3 的实际诉求） | P2 | 已修复 |
+| BUG-118 | 2026-08-29 | 时序图双向箭头 `A<<->>B` 造出名叫 `A<<` 的幽灵参与者 | P2 | 已修复 |
 
 ---
 
@@ -627,3 +628,56 @@ Alt+拖拽的列选择是另一件事：Flutter 的 `TextField` 没有列选择�
 
 - `code/lib/ui/editor/source_editor.dart`
 - `code/test/ui/editor/multiline_prefix_test.dart`（新增，9 条）
+
+
+---
+
+## BUG-118：时序图双向箭头造出幽灵参与者
+
+### 排查方式
+
+延续 BUG-114 的做法：从 mermaid 11.16 源码取出**时序图的真实关键字集合**
+（28 个：participant / actor / activate / deactivate / note / loop / alt /
+else / opt / par / and / critical / option / break / rect / end / autonumber /
+links / box / destroy / create / title …），再穷举它的 10 种箭头写法，
+逐条过本项目的解析器。
+
+21 个关键字全部能解析。问题出在箭头上。
+
+### 现象
+
+```
+sequenceDiagram
+  A<<->>B: msg
+```
+
+画出来有**三条生命线**：`A`、`B`，以及一条名叫 **`A<<`** 的。而且箭头退化成单向。
+
+### 根因分析
+
+消息正则里发送方的字符类是 `[^\s\->+:]+`——排除了空白、`-`、`>`、`+`、`:`，
+**唯独没有排除 `<`**。于是 `A<<->>B` 里发送方贪婪地吃到了 `A<<`，
+剩下 `->>B` 正好还能匹配成一条普通消息，所以它**不报错、不丢行**，
+只是安静地画错。
+
+`<<->>`（双向实线）与 `<<-->>`（双向虚线）是 mermaid 11 的语法，
+在它的词法表里紧挨着 `->>` 与 `-->>`，对应 `BIDIRECTIONAL_SOLID_ARROW` 与
+`BIDIRECTIONAL_DOTTED_ARROW`。
+
+### 修复方案
+
+发送方字符类加上 `<`——**这正是 mermaid 自己的 actor 词法所做的**
+（`[^\+<\->\->:\n,;]+`）。正则加一个可选的 `(<<)` 分组，读出双向标记；
+`MermaidEdge.bidirectional` 基类字段早就有，只是时序图这条路径从来没传过它。
+画笔在近端也画一个箭头——只画远端的话，双向与单向看起来一模一样。
+
+### 涉及文件
+
+- `code/lib/ui/editor/mermaid/parser/sequence_parser.dart`
+- `code/lib/ui/editor/mermaid/models/edge.dart`
+- `code/lib/ui/editor/mermaid/painter/sequence_painter.dart`
+- `code/test/ui/editor/mermaid/sequence_syntax_test.dart`（新增，6 条）
+
+其中一条测试断言**任何关键字都不能变成参与者**——这一类失败是无声的：
+没被识别的行会落到消息正则上，画出一条以关键字命名的生命线，
+在读它之前看起来像一张正常的图。

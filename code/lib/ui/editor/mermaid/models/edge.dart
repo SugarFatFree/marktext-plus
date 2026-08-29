@@ -211,6 +211,7 @@ class SequenceMessage extends MermaidEdge {
     super.label,
     super.arrowType = ArrowType.arrow,
     super.lineType = LineType.solid,
+    super.bidirectional,
     this.messageType = MessageType.sync,
     this.activate = false,
     this.deactivate = false,
