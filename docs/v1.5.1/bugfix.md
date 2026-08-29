@@ -19,6 +19,7 @@
 | BUG-120 | 2026-08-29 | 类图关系用手工清单匹配，71 种合法写法里 39 种被当成普通连线 | P2 | 已修复 |
 | BUG-121 | 2026-08-29 | ER 图只认符号基数，用英文写的关系导致整张图解析失败 | P2 | 已修复 |
 | BUG-122 | 2026-08-29 | gitGraph 的 cherry-pick 整行被静默丢弃 | P3 | 已修复 |
+| BUG-123 | 2026-08-29 | 跨行的行内代码不被识别，反引号原样留在正文里 | P2 | 已修复 |
 
 ---
 
@@ -901,3 +902,74 @@ gitGraph
 - `code/lib/ui/editor/mermaid/models/git_graph.dart`
 - `code/lib/ui/editor/mermaid/painter/git_graph_painter.dart`
 - `code/test/ui/editor/mermaid/git_graph_test.dart`（新增，9 条）
+
+
+---
+
+## BUG-123：跨行的行内代码不被识别
+
+### 排查方式
+
+mermaid 的 23 种图型已按真实文法过完，于是转向**这个应用的主体**：自研的
+markdown 解析器。本机 `marktext-light/node_modules` 里有
+`commonmark-spec@0.31.2` 的官方 `spec.txt`，从中抽出 **648 个官方示例**
+逐个跑本项目的解析器。
+
+### 关于那个通过率数字
+
+第一次跑出来是 202/648，但**这个数字不可信**——`ExportService.nodeToHtml`
+是导出用的渲染器，不是 CommonMark 参考实现，HTML 形状不同就算失败。
+`Fenced code blocks 0/29` 全错，一看就是系统性格式差异而非 29 个解析 bug。
+
+逐条看过差异后，把**已知且有意**的分歧归一化掉（每条都要说得出理由）：
+
+- 导出加的 `class="hljs"`——与解析无关；
+- `<hr />` 与 `<hr>`——空元素的两种写法；
+- **段落内单换行渲染成 `<br>`**——这是本项目**有意**的产品选择，
+  代码注释里写明了"预览、Word、HTML 三者一致"，与 CommonMark 把它折成空格
+  的做法不同。
+
+归一化后是 250/648，剩下的才是真差异。
+
+### 找到的真问题
+
+```
+md   : "`foo   bar \nbaz`"
+期望 : "<p><code>foo bar baz</code></p>"
+实得 : "<p>`foo bar baz`</p>"
+```
+
+行内代码的正则是 `` (`+)([^`]|[^`].*?[^`]|`+?)\17(?!`) ``，而这条总正则**不是
+dotAll**，所以 `.` 匹配不了换行——**只要行内代码跨行，反引号就原样留在正文里**。
+长命令换行写是很常见的：
+
+```markdown
+Use `flutter build
+windows` to build.
+```
+
+### 修复方案
+
+中间那一支改用显式的 `[\s\S]`（只影响代码这一支，不动整条正则的 dotAll 语义，
+也不改变组编号——后向引用 `\17` 依赖它）。同时按 CommonMark 把行内代码里的
+换行折成空格：无论源码里怎么折行，它都是一段连续的代码。
+
+修完 250 → 255。
+
+### 常驻回归
+
+语料与比较逻辑固化为 `test/services/commonmark_spec_test.dart`，含四条：
+
+1. 夹具确实是完整的 648 例；
+2. **没有任何一例让解析器抛异常**——与得分分开断言：答案不同是与规范的分歧，
+   抛异常是文档根本打不开；
+3. **得分不得下降**（下限 255）。这是一个棘轮，不是合规声明：数字离 648 很远，
+   且其中一部分差异是有意的，所以它断言的是"不许退步"。别处改坏了解析会在这里
+   表现为掉分，那才是值得抓的；
+4. 跨行行内代码这条本身。
+
+### 涉及文件
+
+- `code/lib/services/markdown_parser.dart`
+- `code/test/fixtures/commonmark_spec.json`（新增，84 KB）
+- `code/test/services/commonmark_spec_test.dart`（新增，4 条）

@@ -1503,7 +1503,10 @@ class MarkdownParser {
       // spans and truncated `` `x` `` at the first inner tick.
       // The backreference is by absolute group number, so it moves whenever a
       // group is added ahead of it — as the angle-bracket destinations did.
-      r'|(`+)([^`]|[^`].*?[^`]|`+?)\17(?!`)'  // inline code
+      // `[\s\S]` rather than `.`: this regex is not dotAll, so a code span
+      // broken across two lines — which is how a long command gets written —
+      // did not match at all and the backticks were left in the text.
+      r'|(`+)([^`]|[^`][\s\S]*?[^`]|`+?)\17(?!`)'  // inline code
       // Requires non-space at both ends, so `$5 and $10` is money, not maths.
       r'|\$(?!\s)([^$\n]+?)(?<!\s)\$'  // inline math
       r'|==(.+?)=='                // highlight
@@ -1613,7 +1616,9 @@ class MarkdownParser {
         // Inline code. CommonMark drops one leading and one trailing space
         // when both are present, so `` ` `` is a single backtick rather than
         // a padded one.
-        var code = match.group(18)!;
+        // CommonMark folds the line endings inside a code span into spaces:
+        // the span is one run of code however it was wrapped in the source.
+        var code = match.group(18)!.replaceAll(RegExp(r'\r?\n'), ' ');
         if (code.length >= 2 &&
             code.startsWith(' ') &&
             code.endsWith(' ') &&

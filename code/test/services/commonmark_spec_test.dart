@@ -1,0 +1,105 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:marktext_plus/services/export_service.dart';
+import 'package:marktext_plus/services/markdown_parser.dart';
+
+/// The 648 examples from the CommonMark 0.31.2 specification.
+///
+/// This parser is written from scratch, so the only honest way to know what it
+/// does with the corner cases is to run the corner cases. The fixture is the
+/// official `spec.txt`, split into its examples.
+///
+/// **This is a ratchet, not a conformance claim.** The number is far from 648
+/// and some of the gap is deliberate — see [_normalise] — so what the test
+/// asserts is that the score does not go *down*. A change that breaks parsing
+/// somewhere unrelated shows up here as a drop, which is the thing worth
+/// catching; raising the number is ordinary work, and the floor moves up with
+/// it.
+void main() {
+  /// Folds away the differences that are known and intended, so what is left
+  /// is a real disagreement. Every rule here needs a reason, or it is just
+  /// hiding a bug.
+  String normalise(String html) {
+    var out = html;
+    // Decoration the exporter adds for syntax highlighting; not parsing.
+    out = out.replaceAll(' class="hljs"', '');
+    out = out.replaceAll(RegExp(r' class="language-[^"]*"'), '');
+    // Two spellings of a void element.
+    out = out.replaceAll('<hr />', '<hr>').replaceAll('<br />', '<br>');
+    // This editor treats a newline inside a paragraph as a line break, in the
+    // preview, in Word and in HTML alike; CommonMark folds it into a space.
+    // That is a product decision, so both sides are folded to a space here.
+    out = out.replaceAll('<br>', ' ');
+    out = out.replaceAll(RegExp(r'\s+'), ' ');
+    out = out.replaceAll('> <', '><');
+    return out.trim();
+  }
+
+  late List<Map<String, dynamic>> examples;
+
+  setUpAll(() {
+    final raw =
+        File('test/fixtures/commonmark_spec.json').readAsStringSync();
+    examples = (jsonDecode(raw) as List).cast<Map<String, dynamic>>();
+  });
+
+  test('the fixture is the whole specification', () {
+    expect(examples, hasLength(648));
+    expect(examples.map((e) => e['section']).toSet().length,
+        greaterThan(20));
+  });
+
+  test('no example makes the parser throw', () {
+    // Separate from the score on purpose: a wrong answer is a difference of
+    // opinion with the spec, and an exception is a document that cannot be
+    // opened at all.
+    final threw = <String>[];
+    for (final example in examples) {
+      try {
+        MarkdownParser().parse(example['markdown'] as String);
+      } catch (e) {
+        threw.add('${example['section']}: $e');
+      }
+    }
+    expect(threw, isEmpty);
+  });
+
+  test('the score does not fall', () {
+    var passed = 0;
+    for (final example in examples) {
+      String produced;
+      try {
+        final ast = MarkdownParser().parse(example['markdown'] as String);
+        produced = ast.map(ExportService.nodeToHtml).join('\n');
+      } catch (_) {
+        continue;
+      }
+      if (normalise(produced) == normalise(example['html'] as String)) {
+        passed++;
+      }
+    }
+
+    // Measured 2026-08-29. Raise it whenever the work raises it; never lower
+    // it to make a change pass.
+    const floor = 255;
+    expect(passed, greaterThanOrEqualTo(floor),
+        reason: '解析能力相比 $floor 例退步了');
+    if (passed > floor) {
+      // ignore: avoid_print
+      print('CommonMark: $passed/648 — 高于下限 $floor，可以把下限提上来');
+    }
+  });
+
+  test('a code span written across two lines is still a code span', () {
+    // The regex is not dotAll, so `[^`].*?[^`]` could not cross a newline and
+    // a wrapped command was left with its backticks showing.
+    final ast = MarkdownParser().parse('Use `flutter build\nwindows` here.\n');
+    final spans = (ast.single as ParagraphNode).inlineSpans;
+    final code = spans.where((s) => s.type == InlineType.code).toList();
+    expect(code, hasLength(1));
+    expect(code.single.text, 'flutter build windows',
+        reason: 'CommonMark 把行内代码里的换行折成空格');
+  });
+}
