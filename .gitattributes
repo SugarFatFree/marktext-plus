@@ -1,0 +1,22 @@
+# Line endings are normalised to LF in the repository.
+#
+# Eight files under code/lib/ui/editor/mermaid/ arrived with CRLF and nothing
+# declared a policy, so any edit made on a machine that writes LF rewrote the
+# whole file: an eighteen-line change once showed up as 1371. Git now stores
+# text as LF and checks it out however the platform wants it.
+* text=auto eol=lf
+
+# Binary, so git never touches the bytes.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+*.pdf binary
+*.zip binary
+*.dmg binary
+*.exe binary
