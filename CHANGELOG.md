@@ -8,10 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - v1.5.1
 
 ### Added
+- Ctrl (or Cmd) and the mouse wheel change the text size, in both the source and the preview (#4)
+- Room under the last line, so it can be scrolled up to where the eye is instead of sitting on the bottom edge (#2)
 - Mermaid `treemap-beta` diagrams render: nested rectangles whose area stands for their value, laid out by the squarified algorithm so the boxes stay comparable by eye. The grammar was read out of mermaid 11.16's own definition — indentation length nests a row, and a value may carry thousands separators
 - File ▸ Move To…, the one menu command upstream MarkText has that this one did not
 
 ### Fixed
+- The preview honours the font size and line height that were chosen. Both were compile-time constants there, which is why zooming did nothing to it (#4)
 - A flowchart node written `A(((Double)))` is drawn as a double circle labelled `Double`. The greedy double-circle pattern matched it too and drew a plain circle whose label included the inner parentheses — the shape existed in the model and the painter all along, and nothing ever produced it
 - The invisible link `A ~~~ B` is read. It was dropped whole, and with it the layout constraint it exists for, so the diagram came out arranged differently from the one that was written
 - A fence tagged `packet-beta`, `architecture-beta`, `stateDiagram-v2` or `xychart-beta` is drawn as a diagram. All four are types the app implements, and all four were missing from the list it derives fence handling from — and shows the reader when a diagram fails to parse, so it was disowning types it supports

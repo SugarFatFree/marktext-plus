@@ -266,6 +266,10 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     final theme = Theme.of(context);
     final config = ref.watch(settingsProvider);
     final tokens = AppTheme.getTokens(config.themeName);
+    // Read every build: the zoom commands change this setting, and the
+    // preview has to follow them.
+    _baseFontSize = config.fontSize;
+    _baseLineHeight = config.lineHeight;
     // Only the preview's search state, not the whole of it. Watching the whole
     // provider meant every cursor move and every change of selection in the
     // source pane rebuilt the entire preview — in split view, on every arrow
@@ -443,9 +447,16 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
                 maxWidth: config.editorMaxWidth.toDouble(),
               ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 24,
+                // Room under the last block, so it can be scrolled up to
+                // where the eye is instead of staying pinned to the bottom
+                // edge (#2). The source pane does the same, and in split view
+                // the two have to agree or they stop lining up at the end of
+                // the document.
+                padding: EdgeInsets.fromLTRB(
+                  24,
+                  24,
+                  24,
+                  24 + _bottomRoom(context),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -769,22 +780,22 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   }) {
     final style = switch (node.level) {
       1 => TextStyle(
-        fontSize: 28,
+        fontSize: _scaled(28),
         fontWeight: FontWeight.w700,
         color: tokens.colorText,
       ),
       2 => TextStyle(
-        fontSize: 24,
+        fontSize: _scaled(24),
         fontWeight: FontWeight.w600,
         color: tokens.colorText,
       ),
       3 => TextStyle(
-        fontSize: 21,
+        fontSize: _scaled(21),
         fontWeight: FontWeight.w600,
         color: tokens.colorText,
       ),
       _ => TextStyle(
-        fontSize: 17,
+        fontSize: _scaled(17),
         fontWeight: FontWeight.w600,
         color: tokens.colorTextMuted,
       ),
@@ -819,19 +830,46 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     );
   }
 
-  static final _defaultTextStyle = TextStyle(
-    fontSize: 16,
-    height: 1.6,
-    leadingDistribution: TextLeadingDistribution.even,
-    fontFamilyFallback: AppTheme.platformFontFallback,
-  );
-  static final _defaultStrutStyle = StrutStyle(
-    fontSize: 16,
-    height: 1.6,
-    forceStrutHeight: true,
-    leadingDistribution: TextLeadingDistribution.even,
-    fontFamilyFallback: AppTheme.platformFontFallback,
-  );
+  /// The size the preview's own sizes were written against.
+  ///
+  /// Everything here used to be a constant: body text at 16, headings at 28,
+  /// 24, 21 and 17. That made the font size setting — and the zoom commands,
+  /// which are that setting under another name — do nothing whatever in
+  /// preview mode (#4). Scaling from the reader's size keeps the proportions
+  /// the design was drawn with while letting them choose how big it all is.
+  static const _designFontSize = 16.0;
+
+  /// The reader's body size, and the line height they asked for.
+  double _baseFontSize = _designFontSize;
+  double _baseLineHeight = 1.6;
+
+  /// How much empty space to leave under the last block.
+  ///
+  /// A share of the viewport rather than a fixed number: on a tall window a
+  /// fixed 200 px is barely noticeable, and on a short one it is most of the
+  /// screen.
+  double _bottomRoom(BuildContext context) {
+    final height = MediaQuery.maybeOf(context)?.size.height ?? 0;
+    return (height * 0.6).clamp(0.0, 600.0);
+  }
+
+  /// A size from the original design, at the reader's scale.
+  double _scaled(double designSize) =>
+      designSize * (_baseFontSize / _designFontSize);
+
+  TextStyle get _defaultTextStyle => TextStyle(
+        fontSize: _baseFontSize,
+        height: _baseLineHeight,
+        leadingDistribution: TextLeadingDistribution.even,
+        fontFamilyFallback: AppTheme.platformFontFallback,
+      );
+  StrutStyle get _defaultStrutStyle => StrutStyle(
+        fontSize: _baseFontSize,
+        height: _baseLineHeight,
+        forceStrutHeight: true,
+        leadingDistribution: TextLeadingDistribution.even,
+        fontFamilyFallback: AppTheme.platformFontFallback,
+      );
 
   Widget _buildParagraph(md.ParagraphNode node, ThemeData theme) {
     return Padding(

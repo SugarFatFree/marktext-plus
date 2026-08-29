@@ -11,6 +11,7 @@
 | BUG-112 | 2026-08-29 | 大文档开着查找栏时每次击键全文重扫，且为十万处命中铺高亮 | P2 | 已修复 |
 | BUG-113 | 2026-08-29 | 支持类型清单漏了四种写法，应用对外宣称不支持自己已支持的图 | P2 | 已修复 |
 | BUG-114 | 2026-08-29 | 流程图双圆节点标签带括号、隐形连线被整条丢弃 | P2 | 已修复 |
+| BUG-115 | 2026-08-29 | 预览模式完全不读字号与行高设置，缩放对预览无效（issue #4） | P1 | 已修复 |
 
 ---
 
@@ -492,3 +493,46 @@ let c=this.countChar(".",n); c && (l="dotted", p=c);
 - `code/lib/ui/editor/mermaid/models/edge.dart`
 - `code/lib/ui/editor/mermaid/painter/flowchart_painter.dart`
 - `code/test/ui/editor/mermaid/flowchart_syntax_test.dart`（新增，8 条）
+
+
+---
+
+## BUG-115：预览模式完全不读字号与行高设置，缩放对预览无效（issue #4）
+
+### 来源
+
+仓库 issue #4（zhangbest5，2026-06-29，从未有人回复）：
+
+> 1. ctrl + = / ctrl + - 不好使（按后无反应），ctrl + 鼠标滚轮更通用
+> 2. 预览不能放大缩小（哪怕操作时通知 只在 预览模式下可用放大缩小也ok，
+>    现在太小了，单独展示时根本看不清，开会使用时的场景）
+
+### 现象与根因
+
+第 2 条属实，而且比报告说的更广。`markdown_renderer.dart` 里：
+
+```dart
+static final _defaultTextStyle = TextStyle(fontSize: 16, height: 1.6, ...);
+```
+
+正文样式是**编译期常量**，标题是写死的 28 / 24 / 21 / 17。所以受影响的不只是
+缩放命令——**设置页里的字号和行高对预览模式根本不起作用**，缩放只是这个设置的
+另一个入口。
+
+第 1 条的 `Ctrl+=` / `Ctrl+-` 是**有意**改掉的：这两个键与"升级/降级标题"
+冲突，缩放已移至 `Ctrl+Shift+=` / `Ctrl+Shift+-`（见 keybinding_service 里的
+注释）。但报告人真正的诉求成立——**滚轮是大家会去试的手势，而且不占用按键**。
+
+### 修复方案
+
+- 正文与行高改为读 `config.fontSize` / `config.lineHeight`；
+- 标题按**同一比例**从基准字号缩放（`_scaled(28)` 等），而不是各自写死——
+  只放大正文不放大标题，版面会走形；
+- 新增 **Ctrl/Cmd + 滚轮**缩放，包住整个编辑区，源码与预览两种模式都生效，
+  范围与菜单命令共用同一对上下限。
+
+### 涉及文件
+
+- `code/lib/ui/editor/markdown_renderer.dart`
+- `code/lib/ui/screens/home_screen.dart`
+- `code/test/ui/editor/zoom_and_bottom_room_test.dart`（新增）

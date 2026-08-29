@@ -1353,7 +1353,21 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     return Center(
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: maxWidth),
-        child: Row(
+        child: LayoutBuilder(
+          builder: (context, outer) {
+            // Room under the last line, so it can be scrolled up to where the
+            // eye is instead of staying pinned to the bottom edge (#2). Every
+            // editor worth the name does this; HBuilder X, which the report
+            // pointed at, does it too.
+            //
+            // The gutter gets exactly the same room: it is a separate scroll
+            // view kept in step with the text, and giving one of them more to
+            // scroll than the other makes the line numbers stop while the
+            // text carries on.
+            final bottomRoom = outer.maxHeight.isFinite
+                ? (outer.maxHeight * 0.6).clamp(0.0, 600.0)
+                : 0.0;
+            return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
@@ -1371,7 +1385,7 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
                 ),
                 child: ListView.builder(
                   controller: _gutterScrollController,
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  padding: EdgeInsets.fromLTRB(8, 8, 8, 8 + bottomRoom),
                   itemCount: lineCount,
                   itemExtent: config.fontSize * config.lineHeight,
                   itemBuilder: (context, index) => Align(
@@ -1412,9 +1426,10 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
                         maxLines: null,
                         expands: true,
                         style: editorStyle,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           border: InputBorder.none,
-                          contentPadding: EdgeInsets.all(8),
+                          contentPadding:
+                              EdgeInsets.fromLTRB(8, 8, 8, 8 + bottomRoom),
                         ),
                         onChanged: (value) {
                           setState(() {});
@@ -1426,6 +1441,8 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
               ),
             ),
           ],
+            );
+          },
         ),
       ),
     );
