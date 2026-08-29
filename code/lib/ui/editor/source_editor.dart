@@ -22,6 +22,7 @@ import '../../services/html_to_markdown.dart';
 import '../../services/clipboard_service.dart';
 import '../../services/table_edit_service.dart';
 import '../../services/block_move_service.dart';
+import '../widgets/format_toolbar.dart';
 
 class SourceEditor extends ConsumerStatefulWidget {
   final String initialContent;
@@ -463,6 +464,9 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     _slashMenu = null;
     _languagePicker?.remove();
     _languagePicker = null;
+    _formatToolbar?.remove();
+    _formatToolbar = null;
+    _fieldFocus.dispose();
     _editorScrollController.dispose();
     _gutterScrollController.dispose();
     super.dispose();
@@ -485,6 +489,23 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
   /// without these its undo steps would be paragraph-sized again.
   static final _wordBoundary = RegExp(r'[\s.,;:!?)\]}"\u3001\u3002\uff0c'
       r'\uff1b\uff1a\uff01\uff1f\u201d\u2019\uff09\u3011\u300b]');
+
+  /// Open while the format toolbar is showing over a selection.
+  OverlayEntry? _formatToolbar;
+
+  /// The selection the toolbar was placed for, so a rebuild that does not move
+  /// it does not tear the overlay down and put it back.
+  TextSelection? _toolbarSelection;
+
+  /// The text field itself, so the toolbar can be positioned against it rather
+  /// than against the widget as a whole — the gutter sits to its left, and the
+  /// difference is exactly the gutter's width.
+  final GlobalKey _fieldKey = GlobalKey();
+
+  /// The field's focus, so the toolbar knows whether the editor is the thing
+  /// being used, and so the caret can be handed back after a button is
+  /// pressed — pressing one takes focus away from the field.
+  final FocusNode _fieldFocus = FocusNode();
 
   /// Open while the slash menu is showing, so it can be taken down again.
   OverlayEntry? _slashMenu;
@@ -534,6 +555,127 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     _slashMenu = entry;
     overlay.insert(entry);
   }
+
+  /// Shows the format toolbar over the selection, or takes it down.
+  ///
+  /// Upstream MarkText shows one on every selection. Here it appears only for
+  /// a selection inside a single line: a strip floating over a paragraph-sized
+  /// block would cover the text it is about, and every command on it is in the
+  /// Format menu and on a shortcut anyway.
+  void _syncFormatToolbar() {
+    final selection = _controller.selection;
+    final text = _controller.text;
+    if (!selection.isValid ||
+        selection.isCollapsed ||
+        !_fieldFocus.hasFocus) {
+      _closeFormatToolbar();
+      return;
+    }
+    final start = selection.start.clamp(0, text.length);
+    final end = selection.end.clamp(0, text.length);
+    if (text.substring(start, end).contains('\n')) {
+      _closeFormatToolbar();
+      return;
+    }
+
+    if (_formatToolbar != null && _toolbarSelection == selection) return;
+    _closeFormatToolbar();
+
+    final position = _toolbarPosition(text, start, end);
+    if (position == null) return;
+
+    final overlay = Overlay.maybeOf(context);
+    if (overlay == null) return;
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) return;
+
+    _toolbarSelection = selection;
+    final entry = OverlayEntry(
+      builder: (_) {
+        // Recomputed on every build so the strip follows the text when the
+        // editor is scrolled.
+        final at = _toolbarPosition(_controller.text, start, end);
+        if (at == null) return const SizedBox.shrink();
+        return Positioned(
+          left: at.dx,
+          top: at.dy,
+          child: FormatToolbar(
+            items: formatToolbarItems(l10n),
+            themeName: ref.read(settingsProvider).themeName,
+            onSelected: (action) {
+              // The selection is what the command is about, and tapping the
+              // toolbar must not be allowed to take it away first.
+              _fieldFocus.requestFocus();
+              _applyFormat(action);
+              _closeFormatToolbar();
+            },
+          ),
+        );
+      },
+    );
+    _formatToolbar = entry;
+    overlay.insert(entry);
+  }
+
+  /// Where the toolbar's top-left corner goes, in screen coordinates.
+  ///
+  /// Measured rather than estimated: the prefix of the line is laid out with
+  /// the editor's own text style, so a proportional font, a CJK character and
+  /// a tab all land where they actually are.
+  Offset? _toolbarPosition(String text, int start, int end) {
+    final box = _fieldKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) return null;
+
+    final config = ref.read(settingsProvider);
+    final style = TextStyle(
+      fontFamily: config.fontFamily,
+      fontSize: config.fontSize,
+      height: config.lineHeight,
+    );
+    final (line, column) = _positionOf(text, start);
+    final lineStart = start - column;
+    final painter = TextPainter(
+      text: TextSpan(text: text.substring(lineStart, start), style: style),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    final prefixWidth = painter.width;
+    painter.dispose();
+
+    final lineHeight = config.fontSize * config.lineHeight;
+    final scroll =
+        _editorScrollController.hasClients ? _editorScrollController.offset : 0.0;
+
+    // `_fieldPadding` is the text field's own content padding, which the text
+    // starts after.
+    // From the toolbar itself, so the two cannot disagree about how tall it
+    // is — a stale copy here would put the strip over the line it is about.
+    const toolbarHeight = FormatToolbar.height;
+    const gap = 4.0;
+    var dx = _fieldPadding + prefixWidth;
+    var dy = _fieldPadding + line * lineHeight - scroll - toolbarHeight - gap;
+
+    // Below the line instead when there is no room above it, which is the
+    // case on the document's first line.
+    if (dy < 0) dy = _fieldPadding + (line + 1) * lineHeight - scroll + gap;
+
+    final origin = box.localToGlobal(Offset.zero);
+    final toolbarWidth = FormatToolbar.widthFor(6);
+    final maxDx = box.size.width - toolbarWidth;
+    return Offset(
+      origin.dx + (maxDx > 0 ? dx.clamp(0.0, maxDx) : 0.0),
+      origin.dy + dy,
+    );
+  }
+
+  void _closeFormatToolbar() {
+    _formatToolbar?.remove();
+    _formatToolbar = null;
+    _toolbarSelection = null;
+  }
+
+  /// The text field's content padding, which the toolbar has to account for
+  /// when it measures from the field's own corner.
+  static const double _fieldPadding = 8;
 
   /// Takes the menu down, and applies [command] if one was chosen.
   void _closeSlashMenu(SlashCommand? command) {
@@ -780,6 +922,8 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
 
     ref.read(editorProvider.notifier).updateCursor(line, col);
 
+    if (_isInitialized) _syncFormatToolbar();
+
     // The selected text used to be pushed into EditorState here, on every
     // change of selection. Nothing ever read it, and each write was a second
     // state change per cursor move on top of the position above.
@@ -809,6 +953,10 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
   }
 
   void _onEditorScroll() {
+    // The toolbar is placed in screen coordinates, so it has to be moved when
+    // the text under it moves. Rebuilding the entry is enough; it recomputes
+    // the position from the current scroll offset.
+    _formatToolbar?.markNeedsBuild();
     if (_isSyncingScroll) return;
     _isSyncingScroll = true;
     if (_gutterScrollController.hasClients &&
@@ -1885,6 +2033,8 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
                     child: DropTarget(
                       onDragDone: _handleImageDrop,
                       child: TextField(
+                        key: _fieldKey,
+                        focusNode: _fieldFocus,
                         controller: _controller,
                         scrollController: _editorScrollController,
                         maxLines: null,
