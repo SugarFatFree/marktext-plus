@@ -416,6 +416,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get previewStartWriting => '여기에 작성하세요…';
 
   @override
+  String get linkOpenHint => 'Ctrl/Cmd + 클릭하여 열기';
+
+  @override
   String get searchNoResults => '결과 없음';
 
   @override

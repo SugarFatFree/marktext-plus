@@ -422,6 +422,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get previewStartWriting => 'Начните писать…';
 
   @override
+  String get linkOpenHint => 'Ctrl/Cmd + щелчок, чтобы открыть';
+
+  @override
   String get searchNoResults => 'Результатов не найдено';
 
   @override

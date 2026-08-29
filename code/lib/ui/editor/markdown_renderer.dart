@@ -439,7 +439,9 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         }
         return KeyEventResult.ignored;
       },
-      child: SingleChildScrollView(
+      child: Stack(
+        children: [
+          SingleChildScrollView(
         child: SelectionArea(
           child: Center(
             child: ConstrainedBox(
@@ -466,6 +468,11 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             ),
           ),
         ),
+      ),
+          // Along the bottom, over the text rather than in it: the hint has to
+          // appear without moving the paragraph the pointer is resting on.
+          _buildLinkHint(tokens),
+        ],
       ),
     );
   }
@@ -771,6 +778,55 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   /// parser, which is what this used to do, could only ever produce a
   /// paragraph. Pasting into Word lost every heading and every bold run, which
   /// is the whole thing rich copy exists to keep.
+  /// The link the pointer is over, shown along the bottom of the preview.
+  String? _hoveredLink;
+
+  void _showLinkHint(String href) {
+    if (_hoveredLink == href || !mounted) return;
+    setState(() => _hoveredLink = href);
+  }
+
+  void _hideLinkHint() {
+    if (_hoveredLink == null || !mounted) return;
+    setState(() => _hoveredLink = null);
+  }
+
+  /// A small bar naming the link under the pointer.
+  ///
+  /// Upstream MarkText floats a toolbar beside the link; a bar along the
+  /// bottom does the part that matters — saying where the link goes before it
+  /// is followed — without a popup that has to be positioned, kept on screen
+  /// and dismissed.
+  Widget _buildLinkHint(AppThemeTokens tokens) {
+    final href = _hoveredLink;
+    if (href == null) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context);
+
+    return Positioned(
+      left: 8,
+      bottom: 8,
+      child: IgnorePointer(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: tokens.colorSurface,
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: tokens.colorBorder),
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Text(
+              l10n == null ? href : '$href  ·  ${l10n.linkOpenHint}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 12, color: tokens.colorTextMuted),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _enhanceClipboardWithHtml() async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     final selectedText = data?.text;
@@ -1624,7 +1680,20 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             children.addAll(_applySearchHighlight(span.text, s, es));
           } else {
             children.add(
-              TextSpan(text: span.text, style: s, recognizer: recognizer),
+              TextSpan(
+                text: span.text,
+                style: s,
+                recognizer: recognizer,
+                // Where it goes, and how to go there. A link that only opens
+                // with a modifier held, and shows neither its target nor that
+                // requirement, is a link most readers will click once and give
+                // up on.
+                mouseCursor: SystemMouseCursors.click,
+                onEnter: span.href == null
+                    ? null
+                    : (_) => _showLinkHint(span.href!),
+                onExit: (_) => _hideLinkHint(),
+              ),
             );
           }
         case md.InlineType.image:

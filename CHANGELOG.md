@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - v1.5.1
 
 ### Added
+- A link in the preview shows a hand cursor, and hovering it names where it goes and that Ctrl/Cmd opens it. It opened only with the modifier held and said neither thing
 - Pasting from a browser keeps its structure: headings, lists, tables, links and emphasis are converted to markdown instead of arriving as flattened text. `Ctrl+Shift+V` pastes the plain flavour, as before
 - A language picker for code fences: type ```` ``` ```` and choose from the languages that can be highlighted, found by abbreviation as well as by name — `ts` finds `typescript`
 - A quick-insert menu: type `/` at the start of an empty line to insert a list, a task list, a table, a code block, a quote, a math block, a rule or front matter. Searchable in Chinese as well as English, and the `/` is taken back out when an entry is chosen

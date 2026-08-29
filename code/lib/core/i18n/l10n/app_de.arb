@@ -177,6 +177,7 @@
   "searchTooLarge": "{count} Datei(en) zu groß zum Durchsuchen",
   "dropNotMarkdown": "{count} abgelegte Datei(en) nicht geöffnet: kein Markdown-Dokument",
   "previewStartWriting": "Hier schreiben …",
+  "linkOpenHint": "Strg/Cmd + Klick zum Öffnen",
   "searchNoResults": "Keine Ergebnisse gefunden",
   "searchResultCount": "{count} Ergebnisse gefunden",
   "tocEmpty": "Keine Überschriften gefunden",

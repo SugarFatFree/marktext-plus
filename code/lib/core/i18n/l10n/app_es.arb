@@ -177,6 +177,7 @@
   "searchTooLarge": "{count} archivo(s) demasiado grandes para buscar",
   "dropNotMarkdown": "{count} archivo(s) soltados no se abrieron: no son documentos markdown",
   "previewStartWriting": "Empieza a escribir…",
+  "linkOpenHint": "Ctrl/Cmd + clic para abrir",
   "searchNoResults": "Sin resultados",
   "searchResultCount": "{count} resultados encontrados",
   "tocEmpty": "No se encontraron encabezados",

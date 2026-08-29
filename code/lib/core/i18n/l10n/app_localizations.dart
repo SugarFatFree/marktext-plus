@@ -885,6 +885,12 @@ abstract class AppLocalizations {
   /// **'Start writing…'**
   String get previewStartWriting;
 
+  /// No description provided for @linkOpenHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ctrl/Cmd + click to open'**
+  String get linkOpenHint;
+
   /// No description provided for @searchNoResults.
   ///
   /// In en, this message translates to:

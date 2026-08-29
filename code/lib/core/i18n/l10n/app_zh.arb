@@ -177,6 +177,7 @@
   "searchTooLarge": "{count} 个文件太大，未搜索",
   "dropNotMarkdown": "{count} 个拖入的文件未打开：不是 markdown 文档",
   "previewStartWriting": "开始写点什么…",
+  "linkOpenHint": "Ctrl/Cmd + 单击打开",
   "searchNoResults": "未找到结果",
   "searchResultCount": "找到 {count} 个结果",
   "tocEmpty": "未找到标题",

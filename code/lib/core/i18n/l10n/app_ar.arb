@@ -177,6 +177,7 @@
   "searchTooLarge": "{count} من الملفات أكبر من أن تُبحث",
   "dropNotMarkdown": "{count} من الملفات المسحوبة لم تُفتح: ليست مستندات markdown",
   "previewStartWriting": "ابدأ الكتابة…",
+  "linkOpenHint": "‏Ctrl/Cmd + نقر للفتح",
   "searchNoResults": "لم يتم العثور على نتائج",
   "searchResultCount": "تم العثور على {count} نتيجة",
   "tocEmpty": "لم يتم العثور على عناوين",

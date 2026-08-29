@@ -177,6 +177,7 @@
   "searchTooLarge": "{count} file troppo grandi per essere cercati",
   "dropNotMarkdown": "{count} file rilasciati non aperti: non sono documenti markdown",
   "previewStartWriting": "Inizia a scrivere…",
+  "linkOpenHint": "Ctrl/Cmd + clic per aprire",
   "searchNoResults": "Nessun risultato",
   "searchResultCount": "{count} risultati trovati",
   "tocEmpty": "Nessuna intestazione trovata",

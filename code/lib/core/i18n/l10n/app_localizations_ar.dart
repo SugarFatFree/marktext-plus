@@ -421,6 +421,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get previewStartWriting => 'ابدأ الكتابة…';
 
   @override
+  String get linkOpenHint => '‏Ctrl/Cmd + نقر للفتح';
+
+  @override
   String get searchNoResults => 'لم يتم العثور على نتائج';
 
   @override

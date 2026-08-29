@@ -421,6 +421,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get previewStartWriting => 'Start writing…';
 
   @override
+  String get linkOpenHint => 'Ctrl/Cmd + click to open';
+
+  @override
   String get searchNoResults => 'No results found';
 
   @override

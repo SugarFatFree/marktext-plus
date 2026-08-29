@@ -425,6 +425,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get previewStartWriting => 'Comece a escrever…';
 
   @override
+  String get linkOpenHint => 'Ctrl/Cmd + clique para abrir';
+
+  @override
   String get searchNoResults => 'Sem resultados';
 
   @override
@@ -1337,6 +1340,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get previewStartWriting => 'Comece a escrever…';
+
+  @override
+  String get linkOpenHint => 'Ctrl/Cmd + clique para abrir';
 
   @override
   String get searchNoResults => 'Sem resultados';
