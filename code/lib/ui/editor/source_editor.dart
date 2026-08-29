@@ -702,6 +702,15 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     );
   }
 
+  /// Whether an input method is in the middle of composing a word.
+  ///
+  /// A pinyin or kana IME rewrites the text on every keystroke while the
+  /// reader is still choosing — `hao`, `hao,`, `hao,s` — and only the final
+  /// choice is what they typed. Recording those as history put candidate
+  /// strings the reader never wrote into undo: pressing undo after typing
+  /// 你好 offered `hao,` back.
+  bool get _isComposing => _controller.value.composing.isValid;
+
   void _onTextChanged() {
     final text = _controller.text;
 
@@ -716,19 +725,25 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     _previousText = text;
 
     if (_isInitialized &&
+        !_isComposing &&
         justTyped != null &&
         _wordBoundary.hasMatch(justTyped)) {
       ref.read(editorProvider.notifier).pushHistory(text);
     }
 
-    if (_isInitialized) {
+    // Neither menu belongs on screen while a word is being composed: the `/`
+    // of a half-typed candidate is not a request for the insert menu.
+    if (_isInitialized && !_isComposing) {
       _maybeOpenSlashMenu(text, justTyped);
       _syncLanguagePicker(text);
     }
 
     if (_debounce?.isActive ?? false) _debounce!.cancel();
     _debounce = Timer(const Duration(milliseconds: 300), () {
-      if (_isInitialized) {
+      // Still composing after the pause — a reader thinking about which
+      // candidate to pick — so the half-written word is not history yet. The
+      // change is still handed on, or the preview would freeze mid-word.
+      if (_isInitialized && !_isComposing) {
         ref.read(editorProvider.notifier).pushHistory(_controller.text);
       }
       widget.onChanged?.call(_controller.text);
