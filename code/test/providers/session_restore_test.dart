@@ -140,4 +140,25 @@ void main() {
       expect(container.read(settingsProvider).sessionTabs, isEmpty);
     });
   });
+
+  test('a restored document is watched like any other', () async {
+    // Restored tabs go through the same state setter as any other, which is
+    // where the watch set is kept — but "it goes through the same place" is
+    // read from the code, and this is the part that checks it.
+    final a = write('a.md', 'first\n');
+    final container = makeContainer();
+    await container.read(tabProvider.notifier).restoreSession([a], a);
+
+    // The watcher needs a moment to start; then a change made by something
+    // else is picked up, since the restored tab has no unsaved edits.
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+    File(a).writeAsStringSync('changed elsewhere\n');
+    await Future<void>.delayed(const Duration(milliseconds: 600));
+
+    expect(
+      container.read(tabProvider).tabs.single.content,
+      'changed elsewhere\n',
+      reason: '恢复出来的标签页没有被监听，外部改动看不到',
+    );
+  });
 }
