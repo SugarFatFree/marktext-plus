@@ -423,6 +423,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get previewStartWriting => 'Hier schreiben …';
 
   @override
+  String get linkOpenHint => 'Strg/Cmd + Klick zum Öffnen';
+
+  @override
   String get searchNoResults => 'Keine Ergebnisse gefunden';
 
   @override
@@ -701,6 +704,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get fileRename => 'Umbenennen';
+
+  @override
+  String get fileMove => 'Verschieben …';
 
   @override
   String get newTab => 'Neuer Tab';

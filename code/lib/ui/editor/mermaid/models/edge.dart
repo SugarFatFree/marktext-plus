@@ -50,6 +50,14 @@ enum LineType {
 
   /// Thick line ===
   thick,
+
+  /// A link written with `~`, which mermaid draws with no stroke at all.
+  ///
+  /// It exists to hold two nodes in a relationship the layout must honour
+  /// without drawing anything between them. Dropping the line — which is what
+  /// failing to parse it amounted to — also drops that constraint, so the
+  /// diagram comes out arranged differently from the one that was written.
+  invisible,
 }
 
 /// Represents an edge/connection between nodes
@@ -203,6 +211,7 @@ class SequenceMessage extends MermaidEdge {
     super.label,
     super.arrowType = ArrowType.arrow,
     super.lineType = LineType.solid,
+    super.bidirectional,
     this.messageType = MessageType.sync,
     this.activate = false,
     this.deactivate = false,

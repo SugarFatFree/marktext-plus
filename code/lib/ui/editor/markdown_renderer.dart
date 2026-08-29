@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -22,7 +23,7 @@ import '../../providers/settings_provider.dart';
 import '../../services/text_search_service.dart';
 import '../../providers/tab_provider.dart';
 import '../../services/markdown_parser.dart' as md;
-import '../../services/export_service.dart';
+import '../../services/rich_copy_service.dart';
 import '../../services/clipboard_service.dart';
 import 'mermaid/parser/mermaid_parser.dart';
 import '../widgets/mermaid_renderer.dart';
@@ -99,13 +100,21 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   /// GlobalKey appearing twice in one tree is a crash.
   final _headingKeysByIndex = <int, GlobalKey>{};
 
-  /// Parse raw markdown to find heading line numbers (1-based),
-  /// matching the same logic used by the TOC panel.
-  List<int> _findHeadingLines(String markdown) {
-    return md.MarkdownParser.headingOutline(markdown)
-        .map((heading) => heading.line)
-        .toList();
-  }
+  /// Heading line numbers (1-based), taken from the blocks that were parsed.
+  ///
+  /// Read out of the AST rather than by scanning the text a second time. The
+  /// second reading was a second implementation of "what counts as a heading",
+  /// and the two had already disagreed twice — over a `#` inside front matter
+  /// and over setext headings — each time putting every scroll target after
+  /// the first disagreement on the wrong line. Taken from the nodes the
+  /// preview actually drew, they cannot disagree.
+  ///
+  /// It is also 402 ms of work on a five megabyte document, and it ran on
+  /// every content change, in build.
+  List<int> _headingLinesOf(List<md.MarkdownNode> nodes) => [
+        for (final node in nodes)
+          if (node is md.HeadingNode) node.sourceStart + 1,
+      ];
 
   @override
   void initState() {
@@ -211,8 +220,25 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     }
   }
 
+  /// Schemes handed to the desktop rather than resolved as a file path.
+  ///
+  /// `mailto:` and `tel:` used to fall through to the relative-path branch,
+  /// where they became a filename that does not exist — so clicking an address
+  /// in the preview did nothing at all, silently.
+  static final _launchableScheme =
+      RegExp(r'^(https?|mailto|tel):', caseSensitive: false);
+
+  /// Schemes that run code instead of going somewhere. A document is data,
+  /// including one someone else wrote and sent over.
+  static final _refusedScheme =
+      RegExp(r'^(javascript|vbscript|data):', caseSensitive: false);
+
   Future<void> _followLink(String href) async {
-    if (href.startsWith('http://') || href.startsWith('https://')) {
+    final collapsed = href.replaceAll(RegExp(r'[\s\u0000-\u001f]'), '');
+    if (_refusedScheme.hasMatch(collapsed)) {
+      throw FormatException('refused scheme', href);
+    }
+    if (_launchableScheme.hasMatch(collapsed)) {
       final uri = Uri.tryParse(href);
       if (uri == null) throw FormatException('not a URI', href);
       final launched =
@@ -257,6 +283,10 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     final theme = Theme.of(context);
     final config = ref.watch(settingsProvider);
     final tokens = AppTheme.getTokens(config.themeName);
+    // Read every build: the zoom commands change this setting, and the
+    // preview has to follow them.
+    _baseFontSize = config.fontSize;
+    _baseLineHeight = config.lineHeight;
     // Only the preview's search state, not the whole of it. Watching the whole
     // provider meant every cursor move and every change of selection in the
     // source pane rebuilt the entire preview — in split view, on every arrow
@@ -298,7 +328,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       if (_awaitingFullParse != null) {
         WidgetsBinding.instance.addPostFrameCallback((_) => _finishParse());
       }
-      _cachedHeadingLines = _findHeadingLines(widget.markdown);
+      _cachedHeadingLines = _headingLinesOf(_cachedNodes!);
       // Keep what is already on screen. Restarting from the first batch made
       // the preview collapse to the top of the document and re-expand on
       // every keystroke in split mode.
@@ -426,7 +456,9 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         }
         return KeyEventResult.ignored;
       },
-      child: SingleChildScrollView(
+      child: Stack(
+        children: [
+          SingleChildScrollView(
         child: SelectionArea(
           child: Center(
             child: ConstrainedBox(
@@ -434,9 +466,16 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
                 maxWidth: config.editorMaxWidth.toDouble(),
               ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 24,
+                // Room under the last block, so it can be scrolled up to
+                // where the eye is instead of staying pinned to the bottom
+                // edge (#2). The source pane does the same, and in split view
+                // the two have to agree or they stop lining up at the end of
+                // the document.
+                padding: EdgeInsets.fromLTRB(
+                  24,
+                  24,
+                  24,
+                  24 + _bottomRoom(context),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -447,6 +486,11 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
           ),
         ),
       ),
+          // Along the bottom, over the text rather than in it: the hint has to
+          // appear without moving the paragraph the pointer is resting on.
+          _buildLinkHint(tokens),
+        ],
+      ),
     );
   }
 
@@ -454,6 +498,13 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   ///
   /// The parser consumes exactly one source line per list item, so item
   /// [index] is line [index] of the list's own source.
+  /// A line with any leading blockquote markers taken off.
+  ///
+  /// Only for deciding what the line *is*; what gets written back is the line
+  /// as it was, markers and all.
+  static String _withoutQuoteMarkers(String line) =>
+      line.replaceFirst(RegExp(r'^\s*(?:>\s?)+'), '');
+
   void _toggleTask(md.ListNode node, int index, bool checked) {
     final onChanged = widget.onSourceChanged;
     if (onChanged == null) return;
@@ -471,7 +522,13 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     var lineIndex = -1;
     var seen = -1;
     for (var i = 0; i < lines.length; i++) {
-      if (!md.MarkdownParser.startsListItem(lines[i])) continue;
+      // A list inside a quote arrives with its `>` markers still on, because
+      // that is what has to be written back. Testing the line as it stands
+      // found no list items at all, so `lineIndex` stayed at -1 and ticking a
+      // box inside a quote did nothing whatever — no error, no change.
+      if (!md.MarkdownParser.startsListItem(_withoutQuoteMarkers(lines[i]))) {
+        continue;
+      }
       seen++;
       if (seen == index) {
         lineIndex = i;
@@ -494,6 +551,25 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
 
   // ------------------------------------------------------- in-place editing
 
+  /// Whether [node] draws something tappable of its own, anywhere inside it.
+  ///
+  /// A task list's checkboxes and a diagram's toolbar are both hit by the same
+  /// gesture-arena problem, and both are reachable from a quote or a list item
+  /// as well as from the top level.
+  static bool _holdsOwnControls(md.MarkdownNode node) {
+    for (final descendant in md.MarkdownParser.walk([node])) {
+      if (descendant is md.ListNode &&
+          descendant.items.any((item) => item.isTask)) {
+        return true;
+      }
+      if (descendant is md.CodeBlockNode &&
+          MermaidParser.handlesLanguage(descendant.language)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /// Wraps a rendered block so a double tap swaps it for its markdown source.
   ///
   /// Double tap rather than single: the preview sits inside a SelectionArea,
@@ -506,24 +582,20 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       return _buildBlockEditor(node);
     }
 
-    // A task list has its own tap targets. Wrapping it in a double-tap
-    // recogniser puts that recogniser in the gesture arena, where it holds on
-    // for the double-tap timeout before conceding — so every checkbox would
-    // sit dead for ~300ms before responding. Ticking a box is the far more
-    // frequent action, so it wins: these blocks stay directly interactive and
-    // are edited from the source pane instead.
-    if (node is md.ListNode && node.items.any((item) => item.isTask)) {
-      return child;
-    }
-
-    // A diagram is the same story: its toolbar has four buttons, and every one
-    // of them sat dead for the double-tap timeout while the recogniser waited
-    // to see whether a second tap was coming. It carries its own "edit source"
-    // button, so it needs the gesture even less than a task list does.
-    if (node is md.CodeBlockNode &&
-        MermaidParser.handlesLanguage(node.language)) {
-      return child;
-    }
+    // Anything with tap targets of its own is left alone. Wrapping it in a
+    // double-tap recogniser puts that recogniser in the gesture arena, where
+    // it holds on for the double-tap timeout before conceding — so a checkbox
+    // or a diagram's toolbar button sits dead for ~300ms before responding,
+    // which reads as a click that did nothing. Ticking a box and pressing a
+    // toolbar button are the far more frequent actions, so they win: these
+    // blocks stay directly interactive and are edited from the source pane.
+    //
+    // The test is on the whole subtree, not on the node itself. Both of these
+    // rules were once written as "the node *is* a task list" and "the node
+    // *is* a diagram", and a quote or a list item carrying one drew the same
+    // controls behind the same recogniser — the fix had been made and then
+    // not carried to the block one level up.
+    if (_holdsOwnControls(node)) return child;
 
     return PreviewEditableBlock(
       hoverColor: tokens.colorSurfaceHover,
@@ -537,17 +609,49 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   /// Gives up quietly if the document changed in the meantime — the next build
   /// has already started its own parse, and finishing this one would put the
   /// previous document back on screen.
-  void _finishParse() {
+  void _finishParse() async {
     final source = _awaitingFullParse;
     if (source == null || !mounted || source != widget.markdown) return;
     _awaitingFullParse = null;
 
-    final config = ref.read(settingsProvider);
-    final nodes =
-        md.MarkdownParser(enableHtml: config.enableHtml).parse(source);
-    if (!mounted) return;
+    final enableHtml = ref.read(settingsProvider).enableHtml;
+
+    // Off this isolate. Parsing five megabytes takes about 3.5 seconds, and
+    // it used to take them here, with the window frozen for every one of
+    // them. Handing the finished blocks back costs about 140 ms of that —
+    // measured, not assumed — so the freeze goes from three and a half
+    // seconds to a seventh of one.
+    //
+    // Only large documents reach this at all: a document small enough for
+    // `safePrefix` to decline is parsed whole on the first pass and never
+    // schedules this.
+    final List<md.MarkdownNode> nodes;
+    try {
+      nodes = await Isolate.run(
+        () => md.MarkdownParser(enableHtml: enableHtml).parse(source),
+      );
+    } catch (_) {
+      // An isolate that could not be spawned is not a reason to show half a
+      // document forever: parse it here instead, slowly but correctly.
+      if (!mounted || source != widget.markdown) return;
+      final here = md.MarkdownParser(enableHtml: enableHtml).parse(source);
+      _adoptFullParse(source, here);
+      return;
+    }
+
+    _adoptFullParse(source, nodes);
+  }
+
+  /// Puts the finished blocks on screen, if they still describe the document.
+  ///
+  /// The check is repeated after the await: the reader may have typed while
+  /// the other isolate was working, and the blocks it produced then describe
+  /// a document that is no longer there.
+  void _adoptFullParse(String source, List<md.MarkdownNode> nodes) {
+    if (!mounted || source != widget.markdown) return;
     setState(() {
       _cachedNodes = nodes;
+      _cachedHeadingLines = _headingLinesOf(nodes);
       // Whatever is already on screen stays on screen; the rest fills in the
       // way it does for a document that was parsed in one go.
       _renderedNodeCount = _renderedNodeCount.clamp(0, nodes.length);
@@ -683,24 +787,77 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     );
   }
 
+  /// Puts an HTML flavour of the selection on the clipboard beside the text.
+  ///
+  /// Built from the blocks this preview drew, not by parsing what was copied.
+  /// A selection here returns the *rendered* text — a heading comes back as
+  /// `My Heading`, without the `#` — so feeding it back through the markdown
+  /// parser, which is what this used to do, could only ever produce a
+  /// paragraph. Pasting into Word lost every heading and every bold run, which
+  /// is the whole thing rich copy exists to keep.
+  /// The link the pointer is over, shown along the bottom of the preview.
+  String? _hoveredLink;
+
+  void _showLinkHint(String href) {
+    if (_hoveredLink == href || !mounted) return;
+    setState(() => _hoveredLink = href);
+  }
+
+  void _hideLinkHint() {
+    if (_hoveredLink == null || !mounted) return;
+    setState(() => _hoveredLink = null);
+  }
+
+  /// A small bar naming the link under the pointer.
+  ///
+  /// Upstream MarkText floats a toolbar beside the link; a bar along the
+  /// bottom does the part that matters — saying where the link goes before it
+  /// is followed — without a popup that has to be positioned, kept on screen
+  /// and dismissed.
+  Widget _buildLinkHint(AppThemeTokens tokens) {
+    final href = _hoveredLink;
+    if (href == null) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context);
+
+    return Positioned(
+      left: 8,
+      bottom: 8,
+      child: IgnorePointer(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: tokens.colorSurface,
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: tokens.colorBorder),
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Text(
+              l10n == null ? href : '$href  ·  ${l10n.linkOpenHint}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 12, color: tokens.colorTextMuted),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _enhanceClipboardWithHtml() async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     final selectedText = data?.text;
     if (selectedText == null || selectedText.isEmpty) return;
 
-    // Convert selected markdown text to HTML
-    final html = _selectedTextToHtml(selectedText);
-    await ClipboardService.copyWithHtml(selectedText, html);
-  }
+    final nodes = _cachedNodes;
+    if (nodes == null) return;
 
-  String _selectedTextToHtml(String markdown) {
-    final parser = md.MarkdownParser();
-    final nodes = parser.parse(markdown);
-    final buffer = StringBuffer();
-    for (final node in nodes) {
-      buffer.writeln(ExportService.nodeToHtml(node));
-    }
-    return buffer.toString();
+    final html = RichCopyService.htmlForSelection(nodes, selectedText);
+    // Nothing written at all rather than something that does not describe what
+    // was copied: the plain text is already on the clipboard and correct.
+    if (html == null) return;
+
+    await ClipboardService.copyWithHtml(selectedText, html);
   }
 
   void _scheduleNextBatch(int totalNodes) {
@@ -728,22 +885,22 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   }) {
     final style = switch (node.level) {
       1 => TextStyle(
-        fontSize: 28,
+        fontSize: _scaled(28),
         fontWeight: FontWeight.w700,
         color: tokens.colorText,
       ),
       2 => TextStyle(
-        fontSize: 24,
+        fontSize: _scaled(24),
         fontWeight: FontWeight.w600,
         color: tokens.colorText,
       ),
       3 => TextStyle(
-        fontSize: 21,
+        fontSize: _scaled(21),
         fontWeight: FontWeight.w600,
         color: tokens.colorText,
       ),
       _ => TextStyle(
-        fontSize: 17,
+        fontSize: _scaled(17),
         fontWeight: FontWeight.w600,
         color: tokens.colorTextMuted,
       ),
@@ -778,19 +935,46 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     );
   }
 
-  static final _defaultTextStyle = TextStyle(
-    fontSize: 16,
-    height: 1.6,
-    leadingDistribution: TextLeadingDistribution.even,
-    fontFamilyFallback: AppTheme.platformFontFallback,
-  );
-  static final _defaultStrutStyle = StrutStyle(
-    fontSize: 16,
-    height: 1.6,
-    forceStrutHeight: true,
-    leadingDistribution: TextLeadingDistribution.even,
-    fontFamilyFallback: AppTheme.platformFontFallback,
-  );
+  /// The size the preview's own sizes were written against.
+  ///
+  /// Everything here used to be a constant: body text at 16, headings at 28,
+  /// 24, 21 and 17. That made the font size setting — and the zoom commands,
+  /// which are that setting under another name — do nothing whatever in
+  /// preview mode (#4). Scaling from the reader's size keeps the proportions
+  /// the design was drawn with while letting them choose how big it all is.
+  static const _designFontSize = 16.0;
+
+  /// The reader's body size, and the line height they asked for.
+  double _baseFontSize = _designFontSize;
+  double _baseLineHeight = 1.6;
+
+  /// How much empty space to leave under the last block.
+  ///
+  /// A share of the viewport rather than a fixed number: on a tall window a
+  /// fixed 200 px is barely noticeable, and on a short one it is most of the
+  /// screen.
+  double _bottomRoom(BuildContext context) {
+    final height = MediaQuery.maybeOf(context)?.size.height ?? 0;
+    return (height * 0.6).clamp(0.0, 600.0);
+  }
+
+  /// A size from the original design, at the reader's scale.
+  double _scaled(double designSize) =>
+      designSize * (_baseFontSize / _designFontSize);
+
+  TextStyle get _defaultTextStyle => TextStyle(
+        fontSize: _baseFontSize,
+        height: _baseLineHeight,
+        leadingDistribution: TextLeadingDistribution.even,
+        fontFamilyFallback: AppTheme.platformFontFallback,
+      );
+  StrutStyle get _defaultStrutStyle => StrutStyle(
+        fontSize: _baseFontSize,
+        height: _baseLineHeight,
+        forceStrutHeight: true,
+        leadingDistribution: TextLeadingDistribution.even,
+        fontFamilyFallback: AppTheme.platformFontFallback,
+      );
 
   Widget _buildParagraph(md.ParagraphNode node, ThemeData theme) {
     return Padding(
@@ -1353,13 +1537,26 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '[${node.id}]: ',
+            // The `^` belongs to the syntax — without it this reads as a link
+            // reference definition, which is a different thing.
+            '[^${node.id}]: ',
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.primary,
               fontWeight: FontWeight.bold,
             ),
           ),
-          Expanded(child: Text(node.content, style: theme.textTheme.bodySmall)),
+          Expanded(
+            child: node.inlineSpans.isEmpty
+                ? Text(node.content, style: theme.textTheme.bodySmall)
+                : Text.rich(
+                    _buildInlineSpans(
+                      node.inlineSpans,
+                      theme,
+                      theme.textTheme.bodySmall ?? const TextStyle(),
+                    ),
+                    style: theme.textTheme.bodySmall,
+                  ),
+          ),
         ],
       ),
     );
@@ -1513,7 +1710,20 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             children.addAll(_applySearchHighlight(span.text, s, es));
           } else {
             children.add(
-              TextSpan(text: span.text, style: s, recognizer: recognizer),
+              TextSpan(
+                text: span.text,
+                style: s,
+                recognizer: recognizer,
+                // Where it goes, and how to go there. A link that only opens
+                // with a modifier held, and shows neither its target nor that
+                // requirement, is a link most readers will click once and give
+                // up on.
+                mouseCursor: SystemMouseCursors.click,
+                onEnter: span.href == null
+                    ? null
+                    : (_) => _showLinkHint(span.href!),
+                onExit: (_) => _hideLinkHint(),
+              ),
             );
           }
         case md.InlineType.image:

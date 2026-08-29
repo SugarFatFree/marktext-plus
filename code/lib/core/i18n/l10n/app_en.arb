@@ -194,6 +194,7 @@
   "searchTooLarge": "{count} file(s) too large to search",
   "dropNotMarkdown": "{count} dropped file(s) were not opened: not a markdown document",
   "previewStartWriting": "Start writing…",
+  "linkOpenHint": "Ctrl/Cmd + click to open",
   "@dropNotMarkdown": {
     "placeholders": {"count": {"type": "int"}}
   },
@@ -315,6 +316,7 @@
   "formatCodeSubmenu": "Code",
   "formatInsertSubmenu": "Insert",
   "fileRename": "Rename",
+  "fileMove": "Move To…",
   "newTab": "New Tab",
   "newNameHintDialog": "New name",
   "commandPaletteHint": "Type a command...",

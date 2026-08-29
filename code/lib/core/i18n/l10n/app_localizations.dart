@@ -885,6 +885,12 @@ abstract class AppLocalizations {
   /// **'Start writing…'**
   String get previewStartWriting;
 
+  /// No description provided for @linkOpenHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ctrl/Cmd + click to open'**
+  String get linkOpenHint;
+
   /// No description provided for @searchNoResults.
   ///
   /// In en, this message translates to:
@@ -1436,6 +1442,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Rename'**
   String get fileRename;
+
+  /// No description provided for @fileMove.
+  ///
+  /// In en, this message translates to:
+  /// **'Move To…'**
+  String get fileMove;
 
   /// No description provided for @newTab.
   ///

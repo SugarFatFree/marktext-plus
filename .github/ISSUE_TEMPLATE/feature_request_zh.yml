@@ -26,6 +26,28 @@ body:
     validations:
       required: true
 
+  - type: input
+    id: version
+    attributes:
+      label: 版本
+      description: >-
+        你使用的 MarkText Plus 版本是？「帮助 ▸ 关于」里可以看到，下载的发行版
+        页面上也有。你想要的功能可能在更新的版本里已经有了。
+      placeholder: 例如 v1.5.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: 操作系统
+      options:
+        - Windows
+        - macOS
+        - Linux
+    validations:
+      required: true
+
   - type: textarea
     id: alternatives
     attributes:

@@ -7,6 +7,9 @@ class AppDelegate: FlutterAppDelegate {
   /// linux/runner/my_application.cc.
   private static let filesChannelName = "com.marktextplus/files"
 
+  /// Matches _clipboardChannel in lib/services/clipboard_service.dart.
+  private static let clipboardChannelName = "com.marktextplus/clipboard"
+
   /// Paths handed over before the Dart side was listening.
   ///
   /// Double-clicking a document in Finder launches the app and delivers the
@@ -39,8 +42,48 @@ class AppDelegate: FlutterAppDelegate {
     sender.reply(toOpenOrPrint: .success)
   }
 
+  /// Puts one selection on the clipboard as both HTML and plain text.
+  ///
+  /// Pasting into Pages or Word then keeps the headings and the bold, while
+  /// pasting into a text editor gets the text. This worked on Windows alone;
+  /// here and on Linux the HTML flavour was simply never written.
+  private func attachClipboardChannel(controller: FlutterViewController) {
+    let channel = FlutterMethodChannel(
+      name: AppDelegate.clipboardChannelName,
+      binaryMessenger: controller.engine.binaryMessenger)
+    channel.setMethodCallHandler { call, result in
+      // Reading the HTML flavour, so a paste from a browser keeps its
+      // structure instead of arriving as the flattened plain-text flavour.
+      if call.method == "readHtml" {
+        result(NSPasteboard.general.string(forType: .html))
+        return
+      }
+
+      guard call.method == "copyWithHtml",
+            let args = call.arguments as? [String: Any],
+            let html = args["html"] as? String,
+            let text = args["text"] as? String
+      else {
+        result(FlutterMethodNotImplemented)
+        return
+      }
+
+      let pasteboard = NSPasteboard.general
+      // Declaring both types in one call is what makes them one item: two
+      // separate writes would leave only the second on the pasteboard.
+      pasteboard.declareTypes([.html, .string], owner: nil)
+      pasteboard.setString(html, forType: .html)
+      pasteboard.setString(text, forType: .string)
+      result(true)
+    }
+    clipboardChannel = channel
+  }
+
+  private var clipboardChannel: FlutterMethodChannel?
+
   /// Called from MainFlutterWindow once the engine exists.
   func attachFileChannel(controller: FlutterViewController) {
+    attachClipboardChannel(controller: controller)
     let channel = FlutterMethodChannel(
       name: AppDelegate.filesChannelName,
       binaryMessenger: controller.engine.binaryMessenger)

@@ -245,8 +245,14 @@ class SequenceParser {
     // `\w` covers neither the space before a target (`A-x B`), the activation
     // markers (`A->>+B`), nor any name outside ASCII — so a diagram written in
     // Chinese produced no participants and no messages at all.
+    //
+    // `<` is excluded from the sender for the same reason mermaid's own actor
+    // token excludes it (`[^\+<\->\->:\n,;]+`): mermaid 11 writes a
+    // bidirectional message as `A<<->>B`, and without that exclusion the
+    // sender greedily became `A<<` — a participant that does not exist got a
+    // lifeline of its own, and the arrow lost its second head.
     final messagePattern = RegExp(
-      r'^([^\s\->+:]+)\s*(--?)(>>?|x|\))?\s*([+-])?\s*([^\s:]+)'
+      r'^([^\s\-<>+:]+)\s*(<<)?(--?)(>>?|x|\))?\s*([+-])?\s*([^\s:]+)'
       r'\s*(?::\s*(.*))?$',
     );
 
@@ -254,14 +260,15 @@ class SequenceParser {
     if (match == null) return;
 
     final from = match.group(1)!;
-    final lineStyle = match.group(2)!;
-    final arrowStyle = match.group(3) ?? '';
+    final bidirectional = match.group(2) != null;
+    final lineStyle = match.group(3)!;
+    final arrowStyle = match.group(4) ?? '';
     // Group 4 is the activation marker, and it always sits in front of the
     // target even though `-` closes the bar on the *sender*: `A->>+B` starts
     // B working, `B-->>-A` is B reporting back and stopping.
-    final marker = match.group(4);
-    final to = match.group(5)!;
-    final messageText = match.group(6)?.trim();
+    final marker = match.group(5);
+    final to = match.group(6)!;
+    final messageText = match.group(7)?.trim();
 
     // Determine line type
     final lineType = lineStyle == '--' ? LineType.dotted : LineType.solid;
@@ -311,6 +318,7 @@ class SequenceParser {
         label: label,
         arrowType: arrowType,
         lineType: lineType,
+        bidirectional: bidirectional,
         messageType: messageType,
         activate: marker == '+',
         deactivate: marker == '-',

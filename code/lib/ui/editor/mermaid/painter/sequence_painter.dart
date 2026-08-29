@@ -609,6 +609,18 @@ class SequencePainter extends MermaidPainter {
     if (edge.arrowType != ArrowType.none) {
       final angle = toX > fromX ? 0.0 : math.pi;
       drawArrowHead(canvas, Offset(toX, y), angle, edge.arrowType, paint);
+      // `A<<->>B` is one message read both ways, so it carries a head at each
+      // end. Drawing only the far one leaves it indistinguishable from the
+      // one-way form.
+      if (edge.bidirectional) {
+        drawArrowHead(
+          canvas,
+          Offset(fromX, y),
+          angle + math.pi,
+          edge.arrowType,
+          paint,
+        );
+      }
     }
 
     // Draw label

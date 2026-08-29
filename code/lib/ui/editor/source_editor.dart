@@ -15,6 +15,11 @@ import '../../services/markdown_parser.dart' as md;
 import 'highlighting_controller.dart';
 import '../../services/keybinding_service.dart';
 import '../../utils/platform_utils.dart';
+import '../widgets/slash_menu.dart';
+import '../../core/i18n/l10n/app_localizations.dart';
+import '../widgets/language_picker.dart';
+import '../../services/html_to_markdown.dart';
+import '../../services/clipboard_service.dart';
 
 class SourceEditor extends ConsumerStatefulWidget {
   final String initialContent;
@@ -321,6 +326,20 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     '~': '~',
   };
 
+  /// Closing characters back to their opening ones, for the pairs that are
+  /// not symmetric.
+  ///
+  /// Typing `)` to finish `(x` is what fingers do — the bracket that was
+  /// inserted automatically is not something anyone sees themselves type — so
+  /// the one already sitting there has to be stepped over rather than doubled.
+  /// Upstream MarkText does the same in `shouldRemoveClosingChar`, where
+  /// `[}\])]` sits next to the quotes.
+  static const _closingBrackets = <String, String>{
+    ')': '(',
+    ']': '[',
+    '}': '{',
+  };
+
   /// The pairs the reader has actually asked for.
   ///
   /// One map used to hold all three kinds unconditionally, so nobody could
@@ -437,15 +456,308 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     _editorNotifier.clearEditorScrollController(_editorScrollController);
 
     _controller.dispose();
+    // Overlay entries outlive the widget unless they are taken down.
+    _slashMenu?.remove();
+    _slashMenu = null;
+    _languagePicker?.remove();
+    _languagePicker = null;
     _editorScrollController.dispose();
     _gutterScrollController.dispose();
     super.dispose();
   }
 
+  /// The text as it stood at the previous change, so the character that was
+  /// just typed can be recognised.
+  String _previousText = '';
+
+  /// Characters that end a word, and so end an undo step.
+  ///
+  /// Undo used to be governed by the 300 ms debounce alone: a paragraph typed
+  /// without pausing produced no snapshot at all until the writer stopped, so
+  /// one press of undo took the whole paragraph away. Upstream MarkText fixed
+  /// the same fault (#3825) and its end-to-end test spells out the result —
+  /// typing `hello world` and pressing undo once leaves `hello`.
+  ///
+  /// The CJK punctuation is here for the same reason the Latin punctuation
+  /// is: a sentence written in Chinese has no spaces to break it up, and
+  /// without these its undo steps would be paragraph-sized again.
+  static final _wordBoundary = RegExp(r'[\s.,;:!?)\]}"\u3001\u3002\uff0c'
+      r'\uff1b\uff1a\uff01\uff1f\u201d\u2019\uff09\u3011\u300b]');
+
+  /// Open while the slash menu is showing, so it can be taken down again.
+  OverlayEntry? _slashMenu;
+
+  /// Where the `/` that opened the menu sits, so it can be removed when a
+  /// block is chosen.
+  int _slashOffset = -1;
+
+  /// Opens the quick-insert menu if `/` was just typed where a block can
+  /// start.
+  ///
+  /// Only at the beginning of an otherwise empty line: `/` is an ordinary
+  /// character in prose — a path, a date, "and/or" — and a menu that appeared
+  /// every time one was typed would be in the way far more often than not.
+  void _maybeOpenSlashMenu(String text, String? justTyped) {
+    if (justTyped != '/' || _slashMenu != null) return;
+    final offset = _controller.selection.baseOffset;
+    if (offset < 1) return;
+    // `offset - 2` is negative when the slash is the document's first
+    // character, and `lastIndexOf` throws a RangeError on a negative start —
+    // inside a text-change listener, where nothing reports it. The menu
+    // simply never appeared, with no error anywhere to say why.
+    final searchFrom = offset - 2;
+    final lineStart =
+        searchFrom < 0 ? 0 : text.lastIndexOf('\n', searchFrom) + 1;
+    if (text.substring(lineStart, offset - 1).trim().isNotEmpty) return;
+
+    final context = this.context;
+    final overlay = Overlay.maybeOf(context);
+    final box = context.findRenderObject() as RenderBox?;
+    if (overlay == null || box == null || !box.hasSize) return;
+
+    _slashOffset = offset - 1;
+    final origin = box.localToGlobal(Offset.zero);
+    final l10n = AppLocalizations.of(context)!;
+
+    final entry = OverlayEntry(
+      builder: (_) => Positioned(
+        left: origin.dx + 60,
+        top: origin.dy + 40,
+        child: SlashMenu(
+          commands: slashCommands(l10n),
+          onSelected: _closeSlashMenu,
+        ),
+      ),
+    );
+    _slashMenu = entry;
+    overlay.insert(entry);
+  }
+
+  /// Takes the menu down, and applies [command] if one was chosen.
+  void _closeSlashMenu(SlashCommand? command) {
+    _slashMenu?.remove();
+    _slashMenu = null;
+
+    if (command == null) {
+      _slashOffset = -1;
+      return;
+    }
+
+    // The `/` was the reader asking for the menu, not text they wanted. It
+    // comes out before the block goes in, or every insertion would leave one
+    // behind.
+    final text = _controller.text;
+    if (_slashOffset >= 0 && _slashOffset < text.length &&
+        text[_slashOffset] == '/') {
+      _controller.value = TextEditingValue(
+        text: text.substring(0, _slashOffset) +
+            text.substring(_slashOffset + 1),
+        selection: TextSelection.collapsed(offset: _slashOffset),
+      );
+    }
+    _slashOffset = -1;
+
+    ref.read(editorProvider.notifier).applyFormat(command.action);
+  }
+
+  /// Open while the code-fence language picker is showing.
+  OverlayEntry? _languagePicker;
+
+  /// Where the language being typed starts, so it can be replaced.
+  int _languageStart = -1;
+
+  /// The fence line the reader has already answered for.
+  ///
+  /// Writing the chosen language back into the fence is itself a text change,
+  /// and the caret stays on that line — so without this the picker reopened
+  /// on the language it had just inserted, and there was no way to close it
+  /// except to leave the line.
+  String? _languageSettled;
+
+  /// An opening code fence, and whatever has been typed as its language.
+  static final _openFenceRe = RegExp(r'^\s*(?:`{3,}|~{3,})([A-Za-z0-9+#._-]*)\s*$');
+
+  /// Shows or hides the language picker according to where the caret is.
+  ///
+  /// Upstream MarkText opens it while the fence's language is being typed and
+  /// closes it when the caret leaves — nine of its end-to-end tests are about
+  /// this one control. Without it the language has to be typed exactly and
+  /// from memory, and a fence with a misspelt language is drawn as plain,
+  /// unhighlighted code with nothing to say why.
+  void _syncLanguagePicker(String text) {
+    final offset = _controller.selection.baseOffset;
+    if (offset < 0) {
+      _closeLanguagePicker(null);
+      return;
+    }
+
+    final searchFrom = offset - 1;
+    final lineStart =
+        searchFrom < 0 ? 0 : text.lastIndexOf('\n', searchFrom) + 1;
+    var lineEnd = text.indexOf('\n', lineStart);
+    if (lineEnd < 0) lineEnd = text.length;
+    // Only while the caret is on that line: leaving it puts the picker away,
+    // which is what stops it hanging over the code being written.
+    if (offset > lineEnd) {
+      _closeLanguagePicker(null);
+      return;
+    }
+
+    final match = _openFenceRe.firstMatch(text.substring(lineStart, lineEnd));
+    if (match == null) {
+      _closeLanguagePicker(null);
+      return;
+    }
+
+    final query = match.group(1)!;
+    final line = text.substring(lineStart, lineEnd);
+    if (_languageSettled == line) return;
+    _languageSettled = null;
+    _languageStart = lineEnd - query.length;
+    _showLanguagePicker(query);
+  }
+
+  void _showLanguagePicker(String query) {
+    _languagePicker?.remove();
+    _languagePicker = null;
+
+    final overlay = Overlay.maybeOf(context);
+    final box = context.findRenderObject() as RenderBox?;
+    if (overlay == null || box == null || !box.hasSize) return;
+
+    final origin = box.localToGlobal(Offset.zero);
+    final entry = OverlayEntry(
+      builder: (_) => Positioned(
+        left: origin.dx + 60,
+        top: origin.dy + 40,
+        child: LanguagePicker(
+          query: query,
+          onSelected: _closeLanguagePicker,
+        ),
+      ),
+    );
+    _languagePicker = entry;
+    overlay.insert(entry);
+  }
+
+  /// Takes the picker away, writing [language] into the fence if one was
+  /// chosen.
+  void _closeLanguagePicker(String? language) {
+    if (_languagePicker == null) return;
+    _languagePicker?.remove();
+    _languagePicker = null;
+
+    if (language == null) {
+      // Dismissed rather than answered: the line stays as it is, and the
+      // picker must not come back for it either.
+      final text = _controller.text;
+      final offset = _controller.selection.baseOffset.clamp(0, text.length);
+      final lineStart =
+          offset == 0 ? 0 : text.lastIndexOf('\n', offset - 1) + 1;
+      var lineEnd = text.indexOf('\n', lineStart);
+      if (lineEnd < 0) lineEnd = text.length;
+      _languageSettled = text.substring(lineStart, lineEnd);
+      _languageStart = -1;
+      return;
+    }
+    if (_languageStart < 0) return;
+
+    final text = _controller.text;
+    var end = text.indexOf('\n', _languageStart);
+    if (end < 0) end = text.length;
+    final start = _languageStart.clamp(0, text.length);
+    final updated = text.substring(0, start) + language + text.substring(end);
+    // Remember the line as it now reads, so the change this makes does not
+    // bring the picker straight back.
+    final lineStart = start == 0 ? 0 : updated.lastIndexOf('\n', start - 1) + 1;
+    var lineEnd = updated.indexOf('\n', lineStart);
+    if (lineEnd < 0) lineEnd = updated.length;
+    _languageSettled = updated.substring(lineStart, lineEnd);
+
+    _controller.value = TextEditingValue(
+      text: updated,
+      selection: TextSelection.collapsed(offset: start + language.length),
+    );
+    _languageStart = -1;
+  }
+
+  /// Replaces a just-pasted plain flavour with markdown built from the HTML
+  /// flavour, when the clipboard carried one.
+  ///
+  /// Copying a table or a list out of a browser puts both flavours on the
+  /// clipboard. Only the plain one was ever read, so what arrived was the
+  /// words with their columns and bullets flattened out of them.
+  ///
+  /// The plain paste is allowed to happen first and is then replaced: reading
+  /// the other flavour is asynchronous, and holding the keystroke until it
+  /// answers would make every paste feel slow — including the great majority
+  /// that have no HTML at all.
+  Future<void> _handleRichPaste() async {
+    final selectionBefore = _controller.selection;
+    final lengthBefore = _controller.text.length;
+
+    final html = await ClipboardService.readHtml();
+    if (html == null || !mounted) return;
+
+    final markdown = HtmlToMarkdown.convert(html);
+    if (markdown == null) return;
+
+    // What the framework pasted, which is what has to be taken back out.
+    final text = _controller.text;
+    final inserted = text.length - lengthBefore;
+    if (inserted <= 0) return;
+    final start = selectionBefore.isValid ? selectionBefore.start : 0;
+    final end = start + inserted;
+    if (end > text.length) return;
+
+    _controller.value = TextEditingValue(
+      text: text.substring(0, start) + markdown + text.substring(end),
+      selection: TextSelection.collapsed(offset: start + markdown.length),
+    );
+  }
+
+  /// Whether an input method is in the middle of composing a word.
+  ///
+  /// A pinyin or kana IME rewrites the text on every keystroke while the
+  /// reader is still choosing — `hao`, `hao,`, `hao,s` — and only the final
+  /// choice is what they typed. Recording those as history put candidate
+  /// strings the reader never wrote into undo: pressing undo after typing
+  /// 你好 offered `hao,` back.
+  bool get _isComposing => _controller.value.composing.isValid;
+
   void _onTextChanged() {
+    final text = _controller.text;
+
+    // A word has just been finished: close the undo step here rather than
+    // waiting for the writer to pause. Exactly one character longer than the
+    // last state, and that character ends a word — anything else (a paste, a
+    // deletion, a replacement) is left to the debounce.
+    final justTyped = text.length == _previousText.length + 1 &&
+            text.startsWith(_previousText)
+        ? text.substring(text.length - 1)
+        : null;
+    _previousText = text;
+
+    if (_isInitialized &&
+        !_isComposing &&
+        justTyped != null &&
+        _wordBoundary.hasMatch(justTyped)) {
+      ref.read(editorProvider.notifier).pushHistory(text);
+    }
+
+    // Neither menu belongs on screen while a word is being composed: the `/`
+    // of a half-typed candidate is not a request for the insert menu.
+    if (_isInitialized && !_isComposing) {
+      _maybeOpenSlashMenu(text, justTyped);
+      _syncLanguagePicker(text);
+    }
+
     if (_debounce?.isActive ?? false) _debounce!.cancel();
     _debounce = Timer(const Duration(milliseconds: 300), () {
-      if (_isInitialized) {
+      // Still composing after the pause — a reader thinking about which
+      // candidate to pick — so the half-written word is not history yet. The
+      // change is still handed on, or the preview would freeze mid-word.
+      if (_isInitialized && !_isComposing) {
         ref.read(editorProvider.notifier).pushHistory(_controller.text);
       }
       widget.onChanged?.call(_controller.text);
@@ -458,10 +770,11 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
 
     final text = _controller.text;
     final offset = selection.baseOffset.clamp(0, text.length);
-    final textBefore = text.substring(0, offset);
-    final lines = textBefore.split('\n');
-    final line = lines.length - 1;
-    final col = lines.last.length;
+    final (line, col) = _positionOf(text, offset);
+
+    // The picker follows the caret: it belongs to the fence line and has to
+    // go away when the caret leaves it.
+    if (_isInitialized) _syncLanguagePicker(text);
 
     ref.read(editorProvider.notifier).updateCursor(line, col);
 
@@ -558,10 +871,17 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     if (event.logicalKey == LogicalKeyboardKey.keyV &&
         (HardwareKeyboard.instance.isControlPressed ||
             HardwareKeyboard.instance.isMetaPressed)) {
+      // Shift is the escape hatch: paste exactly what the plain flavour says,
+      // with no conversion. Upstream MarkText has the same command, and it
+      // exists precisely because converting is the default.
+      if (HardwareKeyboard.instance.isShiftPressed) {
+        return KeyEventResult.ignored;
+      }
       _handleImagePaste();
-      // We always return ignored here so the TextField can handle
-      // text paste as normal. If it was an image, _handleImagePaste
-      // will insert the markdown asynchronously.
+      _handleRichPaste();
+      // Ignored either way so the TextField still pastes the plain flavour if
+      // neither of those has anything to offer; both replace what they
+      // inserted only once they know they have something better.
       return KeyEventResult.ignored;
     }
 
@@ -632,6 +952,23 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     final char = event.character;
     if (char == null || char.isEmpty) return KeyEventResult.ignored;
 
+    // A closing bracket typed onto the one already there steps past it
+    // instead of adding a second. Symmetric characters are handled further
+    // down, where they are their own closing character.
+    final opener = _closingBrackets[char];
+    if (opener != null && selection.isCollapsed) {
+      final offset = selection.baseOffset;
+      if (_autoPairs.containsKey(opener) &&
+          offset < text.length &&
+          text[offset] == char) {
+        _controller.selection = TextSelection.collapsed(offset: offset + 1);
+        return KeyEventResult.handled;
+      }
+      // Any other closing bracket is an ordinary character; leave it to the
+      // framework rather than swallowing the key.
+      return KeyEventResult.ignored;
+    }
+
     // Check if it's an opening/self-closing pair character
     final closing = _autoPairs[char];
     if (closing == null) return KeyEventResult.ignored;
@@ -650,8 +987,19 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     }
 
     if (selection.isCollapsed) {
-      // Insert pair and place cursor in the middle
       final offset = selection.baseOffset;
+      // Only pair where the closing character would not land in the way.
+      // Typing `"` in front of `foo` used to give `""foo`, so the spurious
+      // one had to be deleted straight away. Upstream MarkText pairs only at
+      // the end of the line or before whitespace; a closing bracket counts as
+      // out of the way too, since `(|)` is how a nested call gets written.
+      if (offset < text.length) {
+        final next = text[offset];
+        final isSpace = next.trim().isEmpty;
+        final isClosing = _closingBrackets.containsKey(next);
+        if (!isSpace && !isClosing) return KeyEventResult.ignored;
+      }
+      // Insert pair and place cursor in the middle
       _controller.value = TextEditingValue(
         text:
             text.substring(0, offset) + char + closing + text.substring(offset),
@@ -719,9 +1067,56 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     }
   }
 
-  int _getLineCount() {
-    return '\n'.allMatches(_controller.text).length + 1;
+  /// Offset of the first character of each line, for the text it was built
+  /// from.
+  ///
+  /// Both the gutter and the cursor readout need to turn offsets into line
+  /// and column, and both used to do it by walking the whole document — the
+  /// gutter counting newlines in `build`, the cursor taking
+  /// `text.substring(0, offset).split('\n')`. On a five megabyte document
+  /// that is 33 ms and 61 ms respectively, paid on **every cursor move**,
+  /// and the second one also allocated a list of 290 000 strings to read two
+  /// numbers off it.
+  ///
+  /// Built once per edit (46 ms at five megabytes) and searched in about half
+  /// a microsecond, so moving the caret costs nothing at all.
+  List<int> _lineStarts = const [0];
+  String? _lineStartsSource;
+
+  List<int> _ensureLineStarts(String text) {
+    // Identity, not equality: comparing two five megabyte strings for every
+    // keystroke would put back a good part of what this saves. The controller
+    // hands back the same instance while the text is unchanged; a different
+    // instance holding the same text only costs one rebuild.
+    if (identical(_lineStartsSource, text)) return _lineStarts;
+    final starts = <int>[0];
+    for (final match in '\n'.allMatches(text)) {
+      starts.add(match.end);
+    }
+    _lineStarts = starts;
+    _lineStartsSource = text;
+    return starts;
   }
+
+  /// The 0-based line [offset] falls on, and how far into it.
+  (int, int) _positionOf(String text, int offset) {
+    final starts = _ensureLineStarts(text);
+    var low = 0;
+    var high = starts.length - 1;
+    var line = 0;
+    while (low <= high) {
+      final mid = (low + high) >> 1;
+      if (starts[mid] <= offset) {
+        line = mid;
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    }
+    return (line, offset - starts[line]);
+  }
+
+  int _getLineCount() => _ensureLineStarts(_controller.text).length;
 
   /// Puts a YAML front matter block at the very top of the document.
   ///
@@ -1193,29 +1588,69 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     );
   }
 
+  /// Adds or removes [prefix] on every line the selection touches.
+  ///
+  /// It used to act on the line holding the caret and nothing else, so
+  /// selecting three lines and asking for a bullet list bulleted one of them
+  /// (#3). Turning a block of lines into a list is the ordinary reason anyone
+  /// selects several lines at once.
+  ///
+  /// Whether it adds or removes is decided for the block as a whole: if every
+  /// line already carries the prefix it comes off all of them, otherwise it
+  /// goes on all of them. Deciding line by line would toggle a half-marked
+  /// block into its own inverse, which never leaves it uniform.
   void _applyLinePrefixAtCursor(String prefix) {
     final selection = _controller.selection;
     final text = _controller.text;
-    final offset = selection.baseOffset.clamp(0, text.length);
+    final anchor = selection.baseOffset.clamp(0, text.length);
+    final head = selection.isValid
+        ? selection.extentOffset.clamp(0, text.length)
+        : anchor;
+    final from = anchor < head ? anchor : head;
+    final to = anchor < head ? head : anchor;
 
-    var lineStart = text.lastIndexOf('\n', offset > 0 ? offset - 1 : 0);
-    lineStart = lineStart == -1 ? 0 : lineStart + 1;
-    var lineEnd = text.indexOf('\n', lineStart);
-    if (lineEnd == -1) lineEnd = text.length;
+    var blockStart = text.lastIndexOf('\n', from > 0 ? from - 1 : 0);
+    blockStart = blockStart == -1 ? 0 : blockStart + 1;
+    // A selection that ends exactly at a line start does not include that
+    // line: dragging down to the beginning of the next line should not mark
+    // it too.
+    final searchFrom = to > from && to > 0 && text[to - 1] == '\n' ? to - 1 : to;
+    var blockEnd = text.indexOf('\n', searchFrom);
+    if (blockEnd == -1) blockEnd = text.length;
 
-    final line = text.substring(lineStart, lineEnd);
-    final replacement = SourceEditor.applyLinePrefix(line, prefix);
-    final delta = replacement.length - line.length;
+    final lines = text.substring(blockStart, blockEnd).split('\n');
+    final allMarked = lines.every(
+      (line) => SourceEditor.applyLinePrefix(line, prefix).length < line.length,
+    );
+    final replaced = [
+      for (final line in lines)
+        allMarked || SourceEditor.applyLinePrefix(line, prefix).length >
+                line.length
+            ? SourceEditor.applyLinePrefix(line, prefix)
+            : line,
+    ].join('\n');
+
+    final replacement = replaced;
+    final delta = replacement.length - (blockEnd - blockStart);
 
     _controller.value = TextEditingValue(
-      text:
-          text.substring(0, lineStart) + replacement + text.substring(lineEnd),
-      selection: TextSelection.collapsed(
-        offset: (offset + delta).clamp(
-          lineStart,
-          lineStart + replacement.length,
-        ),
-      ),
+      text: text.substring(0, blockStart) +
+          replacement +
+          text.substring(blockEnd),
+      // The block stays selected, so the same key can be pressed again to
+      // take the markers off; a collapsed caret would make that impossible
+      // without reselecting.
+      selection: from == to
+          ? TextSelection.collapsed(
+              offset: (anchor + delta).clamp(
+                blockStart,
+                blockStart + replacement.length,
+              ),
+            )
+          : TextSelection(
+              baseOffset: blockStart,
+              extentOffset: blockStart + replacement.length,
+            ),
     );
   }
 
@@ -1309,7 +1744,21 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     return Center(
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: maxWidth),
-        child: Row(
+        child: LayoutBuilder(
+          builder: (context, outer) {
+            // Room under the last line, so it can be scrolled up to where the
+            // eye is instead of staying pinned to the bottom edge (#2). Every
+            // editor worth the name does this; HBuilder X, which the report
+            // pointed at, does it too.
+            //
+            // The gutter gets exactly the same room: it is a separate scroll
+            // view kept in step with the text, and giving one of them more to
+            // scroll than the other makes the line numbers stop while the
+            // text carries on.
+            final bottomRoom = outer.maxHeight.isFinite
+                ? (outer.maxHeight * 0.6).clamp(0.0, 600.0)
+                : 0.0;
+            return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
@@ -1327,7 +1776,7 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
                 ),
                 child: ListView.builder(
                   controller: _gutterScrollController,
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  padding: EdgeInsets.fromLTRB(8, 8, 8, 8 + bottomRoom),
                   itemCount: lineCount,
                   itemExtent: config.fontSize * config.lineHeight,
                   itemBuilder: (context, index) => Align(
@@ -1368,9 +1817,10 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
                         maxLines: null,
                         expands: true,
                         style: editorStyle,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           border: InputBorder.none,
-                          contentPadding: EdgeInsets.all(8),
+                          contentPadding:
+                              EdgeInsets.fromLTRB(8, 8, 8, 8 + bottomRoom),
                         ),
                         onChanged: (value) {
                           setState(() {});
@@ -1382,6 +1832,8 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
               ),
             ),
           ],
+            );
+          },
         ),
       ),
     );

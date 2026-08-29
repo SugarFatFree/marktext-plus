@@ -64,6 +64,9 @@ enum DiagramType {
   /// Architecture diagram (`architecture-beta`)
   architecture,
 
+  /// Treemap diagram (`treemap-beta`)
+  treemap,
+
   /// XY chart diagram
   xyChart,
 

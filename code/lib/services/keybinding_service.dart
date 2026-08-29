@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/services.dart';
@@ -6,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import '../core/config/json_store.dart';
 
 class KeybindingService {
   static final KeybindingService _instance = KeybindingService._();
@@ -273,18 +273,16 @@ class KeybindingService {
 
   Future<void> load() async {
     _index = null;
-    final file = await _getFile();
-    if (await file.exists()) {
-      try {
-        final json = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
-        _keybindings = Map.from(defaultKeybindings);
-        for (final entry in json.entries) {
-          if (entry.value is String) {
-            _keybindings[entry.key] = entry.value as String;
-          }
-        }
-      } catch (_) {
-        _keybindings = Map.from(defaultKeybindings);
+    // Through the same store the settings use: an unreadable file is set
+    // aside rather than quietly replaced by the defaults on the next save,
+    // so a reader who customised twenty shortcuts still has them somewhere.
+    final json = await JsonStore((await _getFile()).path).read();
+    if (json == null) return;
+
+    _keybindings = Map.from(defaultKeybindings);
+    for (final entry in json.entries) {
+      if (entry.value is String) {
+        _keybindings[entry.key] = entry.value as String;
       }
     }
   }
@@ -296,10 +294,10 @@ class KeybindingService {
   /// bindings stay correct in memory for this session either way.
   Future<void> _save() async {
     try {
-      final file = await _getFile();
-      await file.parent.create(recursive: true);
-      await file
-          .writeAsString(const JsonEncoder.withIndent('  ').convert(_keybindings));
+      // Atomic, like the settings file. Written in place, a process that died
+      // mid-write left a truncated file — which does not parse, which meant
+      // every customised shortcut was gone on the next launch.
+      await JsonStore((await _getFile()).path).write(_keybindings);
     } catch (_) {
       // Nothing useful to do: the user's choice still applies until they quit.
     }

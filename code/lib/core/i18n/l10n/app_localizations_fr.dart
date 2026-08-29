@@ -427,6 +427,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get previewStartWriting => 'Commencez à écrire…';
 
   @override
+  String get linkOpenHint => 'Ctrl/Cmd + clic pour ouvrir';
+
+  @override
   String get searchNoResults => 'Aucun résultat';
 
   @override
@@ -706,6 +709,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get fileRename => 'Renommer';
+
+  @override
+  String get fileMove => 'Déplacer vers…';
 
   @override
   String get newTab => 'Nouvel onglet';

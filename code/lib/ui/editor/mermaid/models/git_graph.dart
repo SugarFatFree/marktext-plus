@@ -14,6 +14,9 @@ enum GitCommitType {
 
   /// Merge commit, produced by a `merge` line rather than a `commit` line.
   merge,
+
+  /// A commit copied onto this branch from another, written `cherry-pick`.
+  cherryPick,
 }
 
 /// One commit on one branch.

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:desktop_drop/desktop_drop.dart';
@@ -728,7 +729,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
                                 return const SizedBox.shrink();
                               },
                             ),
-                          Expanded(child: _buildEditorArea(config.editMode)),
+                          Expanded(child: _zoomable(_buildEditorArea(config.editMode))),
                         ],
                       ),
                     ),
@@ -742,6 +743,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
       ),
     );
   }
+
+  /// Wraps the editing area so Ctrl and the wheel change the text size.
+  ///
+  /// Asked for in #4: the zoom commands sit on Ctrl+Shift+= and Ctrl+Shift+-,
+  /// because Ctrl+= and Ctrl+- are what promotes and demotes a heading here,
+  /// and the reporter's point stands — the wheel is the gesture people reach
+  /// for, and it needs no key to be free.
+  Widget _zoomable(Widget child) {
+    return Listener(
+      onPointerSignal: (event) {
+        if (event is! PointerScrollEvent) return;
+        if (!HardwareKeyboard.instance.isControlPressed &&
+            !HardwareKeyboard.instance.isMetaPressed) {
+          return;
+        }
+        // Up is bigger, as it is everywhere else.
+        final step = event.scrollDelta.dy < 0 ? 1.0 : -1.0;
+        final config = ref.read(settingsProvider);
+        final size = (config.fontSize + step).clamp(_minZoom, _maxZoom);
+        if (size == config.fontSize) return;
+        ref.read(settingsProvider.notifier).setFontSize(size);
+      },
+      child: child,
+    );
+  }
+
+  /// The range the zoom commands and the wheel share.
+  static const _minZoom = 12.0;
+  static const _maxZoom = 32.0;
 
   Widget _buildEditorArea(EditMode editMode) {
     final activeTab = ref.watch(activeTabProvider);

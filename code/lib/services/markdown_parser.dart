@@ -303,12 +303,24 @@ class FootnoteDefinitionNode extends MarkdownNode {
   final String id;
   final String content;
 
-  FootnoteDefinitionNode({required this.id, required this.content});
+  /// The body's inline markup. A footnote is where a citation goes, so a link
+  /// in here is the ordinary case rather than an exotic one; the body used to
+  /// be carried as plain text and `[see](https://…)` reached the reader as
+  /// those characters.
+  final List<InlineSpan> inlineSpans;
+
+  FootnoteDefinitionNode({
+    required this.id,
+    required this.content,
+    this.inlineSpans = const [],
+  });
 
   @override
   NodeType get type => NodeType.footnoteDefinition;
+  // The `^` is part of the syntax. Without it this is a link reference
+  // definition, which is a different thing that happens to look similar.
   @override
-  String get rawContent => '[$id]: $content';
+  String get rawContent => '[^$id]: $content';
 }
 
 class HtmlBlockNode extends MarkdownNode {
@@ -349,7 +361,14 @@ class MarkdownParser {
   /// CommonMark drops it, and `## Section ##` was showing the trailing hashes
   /// in the outline and in the rendered heading alike. Whitespace has to
   /// precede it, so `# C#` keeps its hash.
-  static final _headingRe = RegExp(r'^(#{1,6})\s+(.+?)(?:\s+#+)?\s*$');
+  // Up to three spaces of indentation, and content that may be empty.
+  //
+  // `   # 标题` is a heading — CommonMark allows three spaces before any
+  // block, and four makes it indented code — and it used to come out as a
+  // paragraph with a literal `#` in it. `#` on its own is an empty heading,
+  // which is the state a heading passes through while it is being typed.
+  static final _headingRe =
+      RegExp(r'^ {0,3}(#{1,6})(?:\s+(.*?))?(?:\s+#+)?\s*$');
   static final _hrRe = RegExp(r'^(\*{3,}|-{3,}|_{3,})\s*$');
   /// A fence opening a code block.
   ///
@@ -407,12 +426,22 @@ class MarkdownParser {
       }
       if (inFence) continue;
 
-      final match = _headingRe.firstMatch(lines[i]);
+      // Unindented only, which is stricter than the block parser: it accepts
+      // up to three spaces, as CommonMark does. This function reads the raw
+      // text, so it cannot tell a top-level heading written with three spaces
+      // in front of it from one belonging to a list item — and listing a
+      // step's own heading in the document's outline puts an entry there that
+      // the preview has no scroll target for, which moves every entry after
+      // it to the wrong place. Missing an indented top-level heading is the
+      // cheaper of the two mistakes.
+      final match =
+          lines[i].startsWith(' ') ? null : _headingRe.firstMatch(lines[i]);
       if (match != null) {
         headings.add((
           line: i + 1,
           level: match.group(1)!.length,
-          text: match.group(2)!.trim(),
+          // Empty when the heading has no content — `#` on its own.
+          text: (match.group(2) ?? '').trim(),
         ));
         continue;
       }
@@ -517,6 +546,10 @@ class MarkdownParser {
   static bool isFrontMatterOpener(String line) =>
       _frontMatterDelimiters.containsKey(line.trimRight());
   static final _footnoteDefRe = RegExp(r'^\[\^([^\]]+)\]:\s*(.+)$');
+
+  /// A footnote definition's continuation line: four spaces or a tab, then
+  /// text. The indent is what keeps it attached to the note above.
+  static final _footnoteContinuationRe = RegExp(r'^(?: {4}|\t)(?=\S)');
   /// An HTML element opening a block.
   ///
   /// The tag name must be followed by something that can start an attribute
@@ -917,6 +950,18 @@ class MarkdownParser {
     // the editor to put a marker under one.
     if (RegExp(r'^\s*([-*_])(\s*\1){2,}\s*$').hasMatch(line)) return null;
 
+    // A quote carries on the same way a list does, and upstream MarkText's
+    // own end-to-end test spells out the two steps: Enter inside a quote
+    // opens another line still inside it, and Enter on an empty quote line
+    // ends the quote. Without this a writer retyped `> ` on every line.
+    final quote = RegExp(r'^(\s*)((?:>\s?)+)(.*)$').firstMatch(line);
+    if (quote != null) {
+      return (
+        marker: '${quote.group(1)}${quote.group(2)}',
+        isEmpty: quote.group(3)!.trim().isEmpty,
+      );
+    }
+
     final match = _continuationRe.firstMatch(line);
     if (match == null) return null;
 
@@ -965,10 +1010,11 @@ class MarkdownParser {
     // numbered step is a deeper item of the same list, not a new one.
     final firstIndent = _indentColumns(lines[start]);
     final firstOrdered = _olRe.hasMatch(lines[start]);
+    final firstMarker = _markerOf(lines[start]);
 
     while (i < lines.length) {
       if (_startsListItem(lines[i])) {
-        if (_startsAnotherList(lines[i], firstIndent, firstOrdered)) break;
+        if (_startsAnotherList(lines[i], firstIndent, firstOrdered, firstMarker)) break;
         blocks.add([lines[i]]);
         blockStarts.add(i);
         i++;
@@ -987,7 +1033,7 @@ class MarkdownParser {
         // put back unchanged.
         if (next < lines.length &&
             _startsListItem(lines[next]) &&
-            !_startsAnotherList(lines[next], firstIndent, firstOrdered)) {
+            !_startsAnotherList(lines[next], firstIndent, firstOrdered, firstMarker)) {
           // A gap between two items is what makes the list loose.
           loose = true;
           i = next;
@@ -1027,9 +1073,73 @@ class MarkdownParser {
   /// Changing from numbers to bullets — or back — starts a new list, as
   /// CommonMark has it. Only at the list's own indentation: a bulleted
   /// sub-point under a numbered step is a deeper item of the same list.
-  bool _startsAnotherList(String line, int firstIndent, bool firstOrdered) =>
-      _indentColumns(line) <= firstIndent &&
-      _olRe.hasMatch(line) != firstOrdered;
+  /// The character a list item is marked with: `-`, `*`, `+`, `.` or `)`.
+  static String? _markerOf(String line) {
+    final match = _continuationRe.firstMatch(line);
+    if (match == null) return null;
+    final marker = match.group(2)!;
+    return _olRe.hasMatch(line) ? marker[marker.length - 1] : marker;
+  }
+
+  /// Whether [line] begins a list separate from the one being collected.
+  ///
+  /// Changing the marker character starts a new list, as CommonMark has it —
+  /// `+` after a run of `-` is a second list, not a third item of the first.
+  /// Only the kind was compared before, so a document that switched bullets
+  /// to separate two lists got one list back.
+  bool _startsAnotherList(
+    String line,
+    int firstIndent,
+    bool firstOrdered, [
+    String? firstMarker,
+  ]) {
+    if (_indentColumns(line) > firstIndent) return false;
+    if (_olRe.hasMatch(line) != firstOrdered) return true;
+    if (firstMarker == null) return false;
+    return _markerOf(line) != firstMarker;
+  }
+
+  /// Resolves `[label]` or `![label]` against the document's definitions.
+  ///
+  /// An unresolved label is put back exactly as it was written. Prose is full
+  /// of square brackets that are not links — `[sic]`, `[1]`, a note to
+  /// oneself — and turning those into links to nowhere would be worse than
+  /// not supporting the shortcut at all.
+  void _addShortcutReference(
+    List<InlineSpan> spans,
+    String label,
+    String written, {
+    required bool isImage,
+  }) {
+    final definition = _linkDefinitions[label.toLowerCase()];
+    if (definition == null) {
+      spans.add(InlineSpan(type: InlineType.text, text: written));
+      return;
+    }
+    spans.add(InlineSpan(
+      type: isImage ? InlineType.image : InlineType.link,
+      text: label,
+      href: definition.url,
+      title: definition.title,
+    ));
+  }
+
+  /// Whether line [at] opens a GFM table.
+  ///
+  /// Pulled out of the block loop so the paragraph loop can ask the same
+  /// question. A table written straight under a line of prose, with no blank
+  /// line between them, was swallowed into that paragraph and never drawn —
+  /// and writing it that way is common enough that GitHub, and every parser
+  /// that follows it, breaks the paragraph and renders the table.
+  bool _startsTable(List<String> lines, int at) {
+    if (at + 1 >= lines.length) return false;
+    if (!_tableRowRe.hasMatch(lines[at])) return false;
+    if (!_tableSepRe.hasMatch(lines[at + 1])) return false;
+    // GFM requires the dashes row to have as many cells as the header. Without
+    // this, now that the outer pipes are optional, a line of prose containing
+    // a pipe followed by a horizontal rule became a one-column table.
+    return _parseCells(lines[at + 1]).length == _parseCells(lines[at]).length;
+  }
 
   /// Link reference definitions found in the document being parsed.
   ///
@@ -1121,15 +1231,28 @@ class MarkdownParser {
       // Footnote definition
       final footnoteMatch = _footnoteDefRe.firstMatch(line);
       if (footnoteMatch != null) {
+        // A definition may run over several lines, each continuation indented
+        // by four spaces or a tab. Without this the second line broke out of
+        // the note and became a paragraph of its own, which read as body text.
+        final body = StringBuffer(footnoteMatch.group(2)!);
+        var last = i;
+        while (last + 1 < lines.length &&
+            _footnoteContinuationRe.hasMatch(lines[last + 1])) {
+          body.write('\n');
+          body.write(lines[last + 1].replaceFirst(_footnoteContinuationRe, ''));
+          last++;
+        }
+        final content = body.toString();
         nodes.add(_withSpan(
           FootnoteDefinitionNode(
             id: footnoteMatch.group(1)!,
-            content: footnoteMatch.group(2)!,
+            content: content,
+            inlineSpans: parseInline(content),
           ),
           blockStart,
-          i + 1,
+          last + 1,
         ));
-        i++;
+        i = last + 1;
         continue;
       }
 
@@ -1238,7 +1361,7 @@ class MarkdownParser {
       final headingMatch = _headingRe.firstMatch(line);
       if (headingMatch != null) {
         final level = headingMatch.group(1)!.length;
-        final content = headingMatch.group(2)!.trim();
+        final content = (headingMatch.group(2) ?? '').trim();
         nodes.add(_withSpan(
           HeadingNode(
             level: level,
@@ -1295,14 +1418,7 @@ class MarkdownParser {
       }
 
       // Table (GFM)
-      if (_tableRowRe.hasMatch(line) &&
-          i + 1 < lines.length &&
-          _tableSepRe.hasMatch(lines[i + 1]) &&
-          // GFM requires the dashes row to have as many cells as the header.
-          // Without this, now that the outer pipes are optional, a line of
-          // prose containing a pipe followed by a horizontal rule became a
-          // one-column table.
-          _parseCells(lines[i + 1]).length == _parseCells(line).length) {
+      if (_startsTable(lines, i)) {
         final headers = _parseCells(line);
         final sepLine = lines[i + 1];
         final alignments = _parseAlignments(sepLine);
@@ -1423,12 +1539,21 @@ class MarkdownParser {
           !_codeFenceRe.hasMatch(lines[i]) &&
           !_blockquoteRe.hasMatch(lines[i]) &&
           !_ulRe.hasMatch(lines[i]) &&
-          !_olRe.hasMatch(lines[i])) {
+          !_olRe.hasMatch(lines[i]) &&
+          !_startsTable(lines, i)) {
         paraLines.add(lines[i]);
         i++;
       }
       if (paraLines.isNotEmpty) {
-        final content = _stripHardBreakMarkers(paraLines).join('\n');
+        // Leading whitespace is not part of the text. CommonMark strips it
+        // from every line of a paragraph, and here it mattered more than
+        // conformance: HTML collapses a leading space so an export looked
+        // right, but the preview draws a `Text` widget, where the space is
+        // there on screen. A paragraph written under a list item, or indented
+        // by a couple of spaces, came out visibly shifted.
+        final content = _stripHardBreakMarkers(
+          [for (final line in paraLines) line.trimLeft()],
+        ).join('\n');
         nodes.add(_withSpan(
           ParagraphNode(
             content: content,
@@ -1494,7 +1619,9 @@ class MarkdownParser {
       // The link text may itself hold a bracketed run — `[see [1] here](x)`
       // is a link, and `[^\]]*` stopped at the inner bracket and left the
       // whole thing as literal text.
-      r'''|\[((?:[^\[\]]|\[[^\[\]]*\])*)\]\(\s*(?:<([^>]*)>|((?:[^()\s"]|\([^()]*\))+))'''
+      // The destination may be empty — `[TODO]()` is a placeholder people
+      // write — and with `+` the whole thing fell back to literal text.
+      r'''|\[((?:[^\[\]]|\[[^\[\]]*\])*)\]\(\s*(?:<([^>]*)>|((?:[^()\s"]|\([^()]*\))*))'''
       r'''(?:\s+(?:"([^"]*)"|'([^']*)'))?\s*\)'''  // 6 text, 7/8 href, 9/10 title
       r'|\[\^([^\]]+)\]'           // footnote ref
       // A code span is delimited by a run of backticks and closed by a run of
@@ -1503,7 +1630,10 @@ class MarkdownParser {
       // spans and truncated `` `x` `` at the first inner tick.
       // The backreference is by absolute group number, so it moves whenever a
       // group is added ahead of it — as the angle-bracket destinations did.
-      r'|(`+)([^`]|[^`].*?[^`]|`+?)\17(?!`)'  // inline code
+      // `[\s\S]` rather than `.`: this regex is not dotAll, so a code span
+      // broken across two lines — which is how a long command gets written —
+      // did not match at all and the backticks were left in the text.
+      r'|(`+)([^`]|[^`][\s\S]*?[^`]|`+?)\17(?!`)'  // inline code
       // Requires non-space at both ends, so `$5 and $10` is money, not maths.
       r'|\$(?!\s)([^$\n]+?)(?<!\s)\$'  // inline math
       r'|==(.+?)=='                // highlight
@@ -1511,14 +1641,25 @@ class MarkdownParser {
       // Must precede the ** branch: alternation prefers the first that
       // matches at the same position, and `***x***` read as bold left a
       // stray asterisk behind.
-      r'|\*\*\*(.+?)\*\*\*'          // bold italic ***
-      r'|\*\*(.+?)\*\*'            // bold **
+      // The same whitespace rule the single-asterisk branch below carries:
+      // a delimiter with a space just inside it neither opens nor closes.
+      // Without it `2 ** 3 ** 4` came out with a bold 3, and `** note **`
+      // — a line someone typed with spaces for emphasis of their own — was
+      // silently turned into bold.
+      r'|\*\*\*([^\s].*?[^\s]|[^\s])\*\*\*'  // bold italic ***
+      r'|\*\*([^\s].*?[^\s]|[^\s])\*\*'  // bold **
       // `_` must not sit inside a word, or snake_case_names read as emphasis.
       // The boundary excludes `_` itself as well: in `read__me__now` the
       // second underscore of the pair is not alphanumeric, so without it the
       // inner `_me_` still matched.
-      r'|(?<![a-zA-Z0-9_])___(.+?)___(?![a-zA-Z0-9_])'  // bold italic ___
-      r'|(?<![a-zA-Z0-9_])__(.+?)__(?![a-zA-Z0-9_])'  // bold __
+      //
+      // `\p{L}\p{N}` rather than `a-zA-Z0-9`: the rule is about being inside
+      // a word, and a word is not only a Latin one. With the ASCII class,
+      // `пристаням_стремятся_` and any Chinese text with underscores in it
+      // came out emphasised — the boundary saw a non-ASCII letter as "not a
+      // word character" and let the delimiter through.
+      r'|(?<![\p{L}\p{N}_])___([^\s].*?[^\s]|[^\s])___(?![\p{L}\p{N}_])'
+      r'|(?<![\p{L}\p{N}_])__([^\s].*?[^\s]|[^\s])__(?![\p{L}\p{N}_])'
       r'|~~(.+?)~~'                // strikethrough
       // No spaces inside, or `x^2 and y^3` becomes one long superscript.
       r'|\^([^\s^]+)\^'            // superscript
@@ -1526,8 +1667,12 @@ class MarkdownParser {
       // CommonMark: a delimiter with whitespace just inside it does not open
       // or close emphasis. Without this, "2 * 3 * 4" italicised the 3 and
       // ordinary prose with a stray asterisk came out slanted.
-      r'|\*([^\s].*?[^\s]|[^\s])\*'  // italic *
-      r'|(?<![a-zA-Z0-9_])_([^\s].*?[^\s]|[^\s])_(?![a-zA-Z0-9_])'  // italic _
+      // A delimiter that is part of a longer run belongs to that run, not to
+      // this branch. Without the guards, `2 ** 3 ** 4` failed the `**` branch
+      // on its spaces and was then picked up here as an italic containing a
+      // literal asterisk — visibly worse than the bold it used to produce.
+      r'|\*(?!\*)([^\s].*?[^\s]|[^\s])(?<!\*)\*(?!\*)'  // italic *
+      r'|(?<![\p{L}\p{N}_])_(?!_)([^\s].*?[^\s]|[^\s])(?<!_)_(?![\p{L}\p{N}_])'  // italic _
       // Appended rather than inserted: these add groups 19..21, leaving every
       // existing branch's numbering alone.
       r'|<((?:https?|ftp|mailto):[^>\s]+)>'         // 19 autolink
@@ -1560,6 +1705,21 @@ class MarkdownParser {
       // match still wins, and this one starts a character earlier than the
       // reference-link branch it has to beat.
       r'|!\[((?:[^\[\]]|\[[^\[\]]*\])*)\]\[((?:[^\[\]]|\[[^\[\]]*\])*)\]'
+      // The shortcut forms: `[foo]` and `![foo]`, where the text is itself
+      // the label and there is no second pair of brackets. A README that puts
+      // its definitions at the bottom and writes `[the docs]` in the prose is
+      // the ordinary way to use them, and only the two-bracket forms were
+      // read — the shortcut came out as literal `[the docs]`.
+      //
+      // Last of all, and appended so no group number ahead of them moves. A
+      // label with no definition behind it is left as written, which is what
+      // keeps `[not a link]` in ordinary prose from being swallowed.
+      r'|!\[((?:[^\[\]]|\[[^\[\]]*\])*)\](?![\[(])'   // 39 shortcut image
+      r'|\[((?:[^\[\]]|\[[^\[\]]*\])*)\](?![\[(:])',  // 40 shortcut link
+      // `unicode: true` so `\p{L}` and `\p{N}` mean what they say: the
+      // word-boundary rule around `_` has to hold for Chinese and Cyrillic
+      // text as much as for Latin.
+      unicode: true,
     );
 
     var lastEnd = 0;
@@ -1613,7 +1773,9 @@ class MarkdownParser {
         // Inline code. CommonMark drops one leading and one trailing space
         // when both are present, so `` ` `` is a single backtick rather than
         // a padded one.
-        var code = match.group(18)!;
+        // CommonMark folds the line endings inside a code span into spaces:
+        // the span is one run of code however it was wrapped in the source.
+        var code = match.group(18)!.replaceAll(RegExp(r'\r?\n'), ' ');
         if (code.length >= 2 &&
             code.startsWith(' ') &&
             code.endsWith(' ') &&
@@ -1739,6 +1901,14 @@ class MarkdownParser {
             title: definition.title,
           ));
         }
+      } else if (match.group(39) != null) {
+        // Shortcut image: `![foo]`, the label being the text itself.
+        _addShortcutReference(spans, match.group(39)!, match.group(0)!,
+            isImage: true);
+      } else if (match.group(40) != null) {
+        // Shortcut link: `[foo]`.
+        _addShortcutReference(spans, match.group(40)!, match.group(0)!,
+            isImage: false);
       }
 
       lastEnd = match.end;
@@ -1762,7 +1932,7 @@ class MarkdownParser {
     // tag it does not want interpreted.
     final expanded = enableHtml ? _expandInlineHtml(spans) : spans;
 
-    return expanded.map((span) {
+    final decoded = expanded.map((span) {
       final restored =
           escapes.isEmpty ? span : _restoreEscapes(span, escapes);
       // Entities inside inline code are literal, per CommonMark.
@@ -1775,6 +1945,33 @@ class MarkdownParser {
         linkHref: restored.linkHref,
       );
     }).toList();
+
+    return _mergeAdjacentText(decoded);
+  }
+
+  /// Joins runs of plain text that ended up as separate spans.
+  ///
+  /// A branch that matches but resolves to nothing — an undefined `[label]`,
+  /// say — puts its source back as text, which leaves the text on either side
+  /// of it in spans of its own. Nothing renders differently, but every
+  /// consumer then has more pieces to walk, and a test that asks for "the
+  /// text span" of a plain sentence has to know how many there are.
+  static List<InlineSpan> _mergeAdjacentText(List<InlineSpan> spans) {
+    final merged = <InlineSpan>[];
+    for (final span in spans) {
+      final last = merged.isEmpty ? null : merged.last;
+      if (span.type == InlineType.text &&
+          last != null &&
+          last.type == InlineType.text &&
+          last.href == null &&
+          span.href == null) {
+        merged[merged.length - 1] =
+            InlineSpan(type: InlineType.text, text: last.text + span.text);
+        continue;
+      }
+      merged.add(span);
+    }
+    return merged;
   }
 
   /// The inline tags [enableHtml] understands, and what each becomes.

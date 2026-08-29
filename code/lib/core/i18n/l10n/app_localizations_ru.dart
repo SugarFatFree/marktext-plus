@@ -422,6 +422,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get previewStartWriting => 'Начните писать…';
 
   @override
+  String get linkOpenHint => 'Ctrl/Cmd + щелчок, чтобы открыть';
+
+  @override
   String get searchNoResults => 'Результатов не найдено';
 
   @override
@@ -700,6 +703,9 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get fileRename => 'Переименовать';
+
+  @override
+  String get fileMove => 'Переместить…';
 
   @override
   String get newTab => 'Новая вкладка';

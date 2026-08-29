@@ -117,7 +117,7 @@ jobs:
       - name: Package zip
         run: |
           cd code/build/macos/Build/Products/Release
-          zip -r "${{ github.workspace }}/marktext-plus-${{ github.ref_name }}-macos-arm64.zip" "MarkText Plus.app"
+          zip -r "${{ github.workspace }}/marktext-plus-${{ github.ref_name }}-macos-universal.zip" "MarkText Plus.app"
 
       - name: Install create-dmg
         run: brew install create-dmg
@@ -133,17 +133,17 @@ jobs:
             --icon "MarkText Plus.app" 150 185 \
             --hide-extension "MarkText Plus.app" \
             --app-drop-link 450 185 \
-            "marktext-plus-${{ github.ref_name }}-macos-arm64.dmg" \
+            "marktext-plus-${{ github.ref_name }}-macos-universal.dmg" \
             "code/build/macos/Build/Products/Release/MarkText Plus.app" \
           || true
           # create-dmg returns non-zero even on success when no code signing identity is found
 
       - uses: actions/upload-artifact@v4
         with:
-          name: macos-arm64-build
+          name: macos-universal-build
           path: |
-            marktext-plus-${{ github.ref_name }}-macos-arm64.zip
-            marktext-plus-${{ github.ref_name }}-macos-arm64.dmg
+            marktext-plus-${{ github.ref_name }}-macos-universal.zip
+            marktext-plus-${{ github.ref_name }}-macos-universal.dmg
 
   build-linux:
     strategy:
@@ -364,10 +364,8 @@ jobs:
           files: |
             marktext-plus-${{ github.ref_name }}-windows-x64.zip
             marktext-plus-${{ github.ref_name }}-windows-x64-setup.exe
-            marktext-plus-${{ github.ref_name }}-macos-x64.zip
-            marktext-plus-${{ github.ref_name }}-macos-x64.dmg
-            marktext-plus-${{ github.ref_name }}-macos-arm64.zip
-            marktext-plus-${{ github.ref_name }}-macos-arm64.dmg
+            marktext-plus-${{ github.ref_name }}-macos-universal.zip
+            marktext-plus-${{ github.ref_name }}-macos-universal.dmg
             marktext-plus-${{ github.ref_name }}-linux-x64.tar.gz
             marktext-plus-${{ github.ref_name }}-linux-amd64.deb
             marktext-plus-${{ github.ref_name }}-linux-x86_64.rpm

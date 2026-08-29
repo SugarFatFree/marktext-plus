@@ -416,6 +416,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get previewStartWriting => '書き始めましょう…';
 
   @override
+  String get linkOpenHint => 'Ctrl/Cmd + クリックで開く';
+
+  @override
   String get searchNoResults => '結果が見つかりません';
 
   @override
@@ -694,6 +697,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get fileRename => '名前を変更';
+
+  @override
+  String get fileMove => '移動…';
 
   @override
   String get newTab => '新しいタブ';

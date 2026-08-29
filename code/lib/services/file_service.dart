@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:path/path.dart' as p;
 import '../models/file_node.dart';
+import '../utils/file_utils.dart';
 import '../models/file_encoding.dart';
 import '../models/line_ending.dart';
 
@@ -180,13 +181,26 @@ class FileService {
       for (final e in entities)
         // A save in flight owns one of these for a millisecond or two; it is
         // not something the reader has any use for seeing.
-        if (!e.path.endsWith(saveTempSuffix))
+        if (!e.path.endsWith(saveTempSuffix) && _belongsInTree(e))
           FileNode(
             name: p.basename(e.path),
             path: e.path,
             isDirectory: e is Directory,
           ),
     ];
+  }
+
+  /// Whether the sidebar's tree should show [entity].
+  ///
+  /// Directories and markdown documents, which is what upstream MarkText
+  /// shows. Listing everything meant a project folder arrived with `.git`,
+  /// `node_modules`, images and binaries in it — and tapping one of those
+  /// opened it as a text tab full of mojibake, one stray keystroke away from
+  /// an auto-save writing that mojibake back over the original.
+  static bool _belongsInTree(FileSystemEntity entity) {
+    final name = p.basename(entity.path);
+    if (entity is Directory) return !FileUtils.isSkippedDirectory(name);
+    return FileUtils.isMarkdownFile(entity.path);
   }
 
   /// Renames [oldPath] to [newPath], whichever kind of entity it is.
@@ -223,9 +237,6 @@ class FileService {
       throw PathExistsException(path);
     }
   }
-
-  Future<void> moveFile(String oldPath, String newPath) =>
-      renameFile(oldPath, newPath);
 
   /// Writes a new file, refusing to empty one that is already there.
   ///

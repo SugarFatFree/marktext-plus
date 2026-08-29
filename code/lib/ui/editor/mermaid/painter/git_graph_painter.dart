@@ -182,6 +182,25 @@ class GitGraphPainter extends CustomPainter {
           _branchColors[gitData.rowOf(commit.branch) % _branchColors.length];
 
       switch (commit.type) {
+        // mermaid draws a cherry-pick as a filled circle with a cross through
+        // it, which is what tells it apart from the commit it was copied from.
+        case GitCommitType.cherryPick:
+          canvas.drawCircle(centre, _commitRadius, Paint()..color = colour);
+          final arm = _commitRadius * 0.6;
+          final cross = Paint()
+            ..color = Color(style.backgroundColor)
+            ..strokeWidth = 2
+            ..style = PaintingStyle.stroke;
+          canvas.drawLine(
+            centre.translate(-arm, -arm),
+            centre.translate(arm, arm),
+            cross,
+          );
+          canvas.drawLine(
+            centre.translate(-arm, arm),
+            centre.translate(arm, -arm),
+            cross,
+          );
         case GitCommitType.highlight:
           canvas.drawCircle(
             centre,

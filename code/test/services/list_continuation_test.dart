@@ -75,7 +75,33 @@ void main() {
       expect(carry('* * *'), isNull);
       expect(carry('  _ _ _  '), isNull);
     });
-    test('a quote', () => expect(carry('> quoted'), isNull));
+  });
+
+  group('a quote carries on the same way a list does', () {
+    // This used to be listed above as something that carries nothing, with no
+    // reason given — the function is called `listContinuation`, and quotes
+    // were simply never in scope. Upstream MarkText specifies the behaviour
+    // in an end-to-end test of its own: Enter inside a quote opens another
+    // line still inside it, and Enter on an empty quote line ends the quote.
+    // Without it `> ` has to be retyped on every line.
+    test('the marker repeats', () {
+      expect(carry('> quoted')?.marker, '> ');
+      expect(carry('> quoted')?.isEmpty, isFalse);
+    });
+
+    test('an empty quote line ends the quote', () {
+      expect(carry('> ')?.isEmpty, isTrue);
+      expect(carry('>')?.isEmpty, isTrue);
+    });
+
+    test('nesting and indentation are kept', () {
+      expect(carry('>> inner')?.marker, '>> ');
+      expect(carry('> > inner')?.marker, '> > ');
+      expect(carry('  > indented')?.marker, '  > ');
+    });
+  });
+
+  group('carries nothing, continued', () {
     test('an empty line', () => expect(carry(''), isNull));
   });
 }

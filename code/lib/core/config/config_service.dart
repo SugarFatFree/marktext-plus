@@ -1,8 +1,7 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'app_config.dart';
+import 'json_store.dart';
 
 class ConfigService {
   final String configDir;
@@ -22,28 +21,15 @@ class ConfigService {
   }
 
   Future<AppConfig> load() async {
-    final file = File(_configPath);
+    final json = await JsonStore(_configPath).read();
+    if (json == null) return AppConfig();
     try {
-      if (!await file.exists()) return AppConfig();
-      final content = await file.readAsString();
-      final json = jsonDecode(content) as Map<String, dynamic>;
       return AppConfig.fromJson(json);
     } catch (_) {
-      // Falling back to defaults silently discards every setting the user
-      // ever chose. Keep the unreadable file so it can be inspected or
-      // recovered, rather than overwriting it on the next save.
-      await _setAside(file);
+      // Parsed as JSON but not as a config — a field of the wrong shape. The
+      // store only sets aside what it could not parse at all, so this one is
+      // still on disk and would be overwritten by the next save.
       return AppConfig();
-    }
-  }
-
-  Future<void> _setAside(File file) async {
-    try {
-      if (await file.exists()) {
-        await file.rename('$_configPath.corrupt');
-      }
-    } catch (_) {
-      // Nothing more to try; the caller still gets defaults.
     }
   }
 
@@ -100,16 +86,6 @@ class ConfigService {
   /// and a truncated config fails to parse — which used to mean every setting
   /// silently reverted to its default. A rename is atomic, so the file on disk
   /// is always either the old config or the new one.
-  Future<void> _write(AppConfig config) async {
-    final file = File(_configPath);
-    final dir = file.parent;
-    if (!await dir.exists()) {
-      await dir.create(recursive: true);
-    }
-
-    final content = const JsonEncoder.withIndent('  ').convert(config.toJson());
-    final temporary = File('$_configPath.tmp');
-    await temporary.writeAsString(content, flush: true);
-    await temporary.rename(_configPath);
-  }
+  Future<void> _write(AppConfig config) =>
+      JsonStore(_configPath).write(config.toJson());
 }

@@ -52,9 +52,40 @@ class HighlightingController extends TextEditingController {
     }
   }
 
+  /// How many matches are painted at once.
+  ///
+  /// Searching a five megabyte document for a common word finds around a
+  /// hundred thousand of them. Painting all of them costs 133 ms and builds a
+  /// span tree with 195 000 children — on every rebuild, which includes every
+  /// caret move — and Flutter then has to lay all of it out. None of it is
+  /// visible: a viewport holds a few dozen lines.
+  ///
+  /// So a window around the match the reader is on, which is the part they
+  /// can see. Stepping through the document moves the window with them. A
+  /// search with fewer matches than this is unaffected.
+  static const _paintedMatchLimit = 1000;
+
+  /// Sets which ranges to paint, and which of them is the current one.
+  ///
+  /// [matches] is the whole list — the count in the find bar is the reader's,
+  /// not something to quietly shrink. Only the painting is bounded.
   void updateSearchMatches(List<TextRange> matches, int currentIndex) {
-    _searchMatches = matches;
-    _currentMatchIndex = currentIndex;
+    if (matches.length <= _paintedMatchLimit) {
+      _searchMatches = matches;
+      _currentMatchIndex = currentIndex;
+    } else {
+      const half = _paintedMatchLimit ~/ 2;
+      final centre = currentIndex < 0 ? 0 : currentIndex;
+      var start = centre - half;
+      if (start < 0) start = 0;
+      var end = start + _paintedMatchLimit;
+      if (end > matches.length) {
+        end = matches.length;
+        start = end - _paintedMatchLimit;
+      }
+      _searchMatches = matches.sublist(start, end);
+      _currentMatchIndex = currentIndex < 0 ? -1 : currentIndex - start;
+    }
     notifyListeners();
   }
 

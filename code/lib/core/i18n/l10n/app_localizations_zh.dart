@@ -415,6 +415,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get previewStartWriting => '开始写点什么…';
 
   @override
+  String get linkOpenHint => 'Ctrl/Cmd + 单击打开';
+
+  @override
   String get searchNoResults => '未找到结果';
 
   @override
@@ -693,6 +696,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get fileRename => '重命名';
+
+  @override
+  String get fileMove => '移动到…';
 
   @override
   String get newTab => '新建标签页';

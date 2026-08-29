@@ -1,4 +1,5 @@
 #include "my_application.h"
+#include <cstring>
 
 #include <flutter_linux/flutter_linux.h>
 #ifdef GDK_WINDOWING_X11
@@ -14,10 +15,140 @@ struct _MyApplication {
   // paths to the running instance instead of starting another process.
   GtkWindow* window;
   FlMethodChannel* files_channel;
+  FlMethodChannel* clipboard_channel;
 };
 
 // Matches the channel name registered in lib/main.dart.
 static constexpr char kFilesChannel[] = "com.marktextplus/files";
+
+// Matches _clipboardChannel in lib/services/clipboard_service.dart.
+static constexpr char kClipboardChannel[] = "com.marktextplus/clipboard";
+
+// What the clipboard is asked to hand out, and which target is which.
+static constexpr int kTargetHtml = 0;
+static constexpr int kTargetText = 1;
+
+// One copied selection, in both of its flavours.
+//
+// GTK does not take a copy of what it is given: it calls back for the data
+// when another program asks for it, which may be long after this returns. So
+// the strings have to outlive the call, and are freed by the clear callback.
+typedef struct {
+  gchar* html;
+  gchar* text;
+} ClipboardPayload;
+
+static void clipboard_get_cb(GtkClipboard* clipboard,
+                             GtkSelectionData* selection,
+                             guint info,
+                             gpointer user_data) {
+  ClipboardPayload* payload = static_cast<ClipboardPayload*>(user_data);
+  if (info == kTargetHtml) {
+    // The atom is the one the target list was built with, so a receiver that
+    // asked for text/html is answered in kind.
+    gtk_selection_data_set(selection,
+                           gtk_selection_data_get_target(selection), 8,
+                           reinterpret_cast<const guchar*>(payload->html),
+                           strlen(payload->html));
+  } else {
+    gtk_selection_data_set_text(selection, payload->text, -1);
+  }
+}
+
+static void clipboard_clear_cb(GtkClipboard* clipboard, gpointer user_data) {
+  ClipboardPayload* payload = static_cast<ClipboardPayload*>(user_data);
+  g_free(payload->html);
+  g_free(payload->text);
+  g_free(payload);
+}
+
+// Puts one selection on the clipboard as both HTML and plain text.
+//
+// Pasting into a word processor then keeps the headings and the bold, while
+// pasting into a text editor gets the text — which is what every other
+// markdown editor does and what this one did on Windows alone.
+static void handle_clipboard_call(FlMethodChannel* channel,
+                                  FlMethodCall* method_call,
+                                  gpointer user_data) {
+  g_autoptr(FlMethodResponse) response = nullptr;
+
+  // Reading the HTML flavour of whatever is on the clipboard, so a paste from
+  // a browser can keep its headings, lists and tables instead of arriving as
+  // the flattened plain-text flavour.
+  if (strcmp(fl_method_call_get_name(method_call), "readHtml") == 0) {
+    GtkClipboard* clipboard = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
+    GdkAtom target = gdk_atom_intern_static_string("text/html");
+    GtkSelectionData* data = gtk_clipboard_wait_for_contents(clipboard, target);
+
+    g_autofree gchar* html = nullptr;
+    if (data != nullptr) {
+      const guchar* raw = gtk_selection_data_get_data(data);
+      const gint length = gtk_selection_data_get_length(data);
+      if (raw != nullptr && length > 0) {
+        // Firefox and Chromium hand this over as UTF-8; a stray encoding
+        // would make invalid UTF-8, which Dart would refuse, so it is checked
+        // here rather than sent on regardless.
+        if (g_utf8_validate(reinterpret_cast<const gchar*>(raw), length,
+                            nullptr)) {
+          html = g_strndup(reinterpret_cast<const gchar*>(raw), length);
+        }
+      }
+      gtk_selection_data_free(data);
+    }
+
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(
+        html == nullptr ? fl_value_new_null() : fl_value_new_string(html)));
+    fl_method_call_respond(method_call, response, nullptr);
+    return;
+  }
+
+  if (strcmp(fl_method_call_get_name(method_call), "copyWithHtml") != 0) {
+    response = FL_METHOD_RESPONSE(fl_method_not_implemented_response_new());
+    fl_method_call_respond(method_call, response, nullptr);
+    return;
+  }
+
+  FlValue* args = fl_method_call_get_args(method_call);
+  FlValue* html_value =
+      fl_value_lookup_string(args, "html");
+  FlValue* text_value =
+      fl_value_lookup_string(args, "text");
+  if (html_value == nullptr || text_value == nullptr) {
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(
+        fl_value_new_bool(FALSE)));
+    fl_method_call_respond(method_call, response, nullptr);
+    return;
+  }
+
+  ClipboardPayload* payload = g_new0(ClipboardPayload, 1);
+  payload->html = g_strdup(fl_value_get_string(html_value));
+  payload->text = g_strdup(fl_value_get_string(text_value));
+
+  GtkTargetList* list = gtk_target_list_new(nullptr, 0);
+  gtk_target_list_add(list, gdk_atom_intern_static_string("text/html"), 0,
+                      kTargetHtml);
+  gtk_target_list_add_text_targets(list, kTargetText);
+  int n_targets = 0;
+  GtkTargetEntry* targets = gtk_target_table_new_from_list(list, &n_targets);
+
+  GtkClipboard* clipboard = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
+  gboolean ok = gtk_clipboard_set_with_data(clipboard, targets, n_targets,
+                                            clipboard_get_cb,
+                                            clipboard_clear_cb, payload);
+  if (ok) {
+    gtk_clipboard_set_can_store(clipboard, nullptr, 0);
+  } else {
+    // Nothing took ownership, so nothing will ever call the clear callback.
+    clipboard_clear_cb(clipboard, payload);
+  }
+
+  gtk_target_table_free(targets, n_targets);
+  gtk_target_list_unref(list);
+
+  response = FL_METHOD_RESPONSE(
+      fl_method_success_response_new(fl_value_new_bool(ok)));
+  fl_method_call_respond(method_call, response, nullptr);
+}
 
 G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
 
@@ -91,6 +222,11 @@ static void my_application_activate(GApplication* application) {
   self->files_channel = fl_method_channel_new(
       fl_engine_get_binary_messenger(fl_view_get_engine(view)), kFilesChannel,
       FL_METHOD_CODEC(codec));
+  self->clipboard_channel = fl_method_channel_new(
+      fl_engine_get_binary_messenger(fl_view_get_engine(view)),
+      kClipboardChannel, FL_METHOD_CODEC(codec));
+  fl_method_channel_set_method_call_handler(
+      self->clipboard_channel, handle_clipboard_call, self, nullptr);
 
   gtk_widget_grab_focus(GTK_WIDGET(view));
 }
@@ -186,6 +322,7 @@ static void my_application_dispose(GObject* object) {
   MyApplication* self = MY_APPLICATION(object);
   g_clear_pointer(&self->dart_entrypoint_arguments, g_strfreev);
   g_clear_object(&self->files_channel);
+  g_clear_object(&self->clipboard_channel);
   G_OBJECT_CLASS(my_application_parent_class)->dispose(object);
 }
 

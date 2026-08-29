@@ -12,12 +12,12 @@ import '../../models/tab_info.dart';
 import '../../models/file_encoding.dart';
 import '../../providers/editor_provider.dart';
 import '../../providers/file_provider.dart';
+import '../../providers/outline_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/tab_provider.dart';
 import '../screens/settings_screen.dart';
 import '../../providers/sidebar_provider.dart';
 import '../../services/file_service.dart';
-import '../../services/markdown_parser.dart';
 import 'editor_tab_bar.dart';
 
 
@@ -853,14 +853,6 @@ class _SideBarState extends ConsumerState<SideBar> {
 
   /// Directories that are never the user's own notes and can hold tens of
   /// thousands of files.
-  static const _skippedDirectories = {
-    'node_modules',
-    'vendor',
-    'build',
-    'dist',
-    'target',
-  };
-
   /// Beyond this the result list stops being useful and starts being a
   /// memory problem: a common word across a large folder runs to tens of
   /// thousands of hits, each one a string in a list widget.
@@ -941,9 +933,7 @@ class _SideBarState extends ConsumerState<SideBar> {
 
       if (entity is Directory) {
         final name = p.basename(entity.path);
-        if (name.startsWith('.') || _skippedDirectories.contains(name)) {
-          continue;
-        }
+        if (FileUtils.isSkippedDirectory(name)) continue;
         await _searchInDirectory(entity, lowercaseQuery, results, generation);
         continue;
       }
@@ -982,14 +972,11 @@ class _SideBarState extends ConsumerState<SideBar> {
   // -- TOC Panel --
 
   Widget _buildTocPanel(AppLocalizations l10n) {
-    final activeTab = ref.watch(activeTabProvider);
-    final content = activeTab?.content ?? '';
-
-    // Shared with the preview, which maps its Nth heading widget to the Nth
-    // entry here: two readings of the same document would put every entry
-    // after the first disagreement on the wrong line.
+    // Through the provider rather than computed here: reading the outline out
+    // of the document costs 402 ms on a five megabyte one, and doing it in
+    // build meant paying that for every keystroke.
     final headings = [
-      for (final heading in MarkdownParser.headingOutline(content))
+      for (final heading in ref.watch(outlineProvider))
         _TocEntry(
           level: heading.level,
           text: heading.text,

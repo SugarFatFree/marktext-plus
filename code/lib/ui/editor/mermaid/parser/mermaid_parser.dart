@@ -3,6 +3,7 @@ import '../models/c4_diagram.dart';
 import '../models/class_diagram.dart';
 import '../models/diagram.dart';
 import '../models/architecture.dart';
+import '../models/treemap.dart';
 import '../models/packet.dart';
 import '../models/er_diagram.dart';
 import '../models/gantt.dart';
@@ -33,6 +34,7 @@ import 'quadrant_parser.dart';
 import 'requirement_parser.dart';
 import 'sankey_parser.dart';
 import 'architecture_parser.dart';
+import 'treemap_parser.dart';
 import 'packet_parser.dart';
 import 'radar_parser.dart';
 import 'sequence_parser.dart';
@@ -83,6 +85,7 @@ class MermaidParseResult {
     this.sankeyChartData,
     this.blockDiagramData,
     this.c4DiagramData,
+    this.treemapData,
     this.architectureData,
     this.packetData,
     this.radarChartData,
@@ -120,6 +123,7 @@ class MermaidParseResult {
       sankeyChartData != null ||
       blockDiagramData != null ||
       c4DiagramData != null ||
+      treemapData != null ||
       architectureData != null ||
       packetData != null ||
       radarChartData != null ||
@@ -158,6 +162,9 @@ class MermaidParseResult {
 
   /// C4 specific data (only set for C4 diagrams)
   final C4DiagramData? c4DiagramData;
+
+  /// Treemap specific data (only set for treemaps)
+  final TreemapDiagramData? treemapData;
 
   /// Architecture diagram specific data (only set for architecture diagrams)
   final ArchitectureDiagramData? architectureData;
@@ -202,6 +209,7 @@ class MermaidParseResult {
       quadrantChartData?.title != null ||
       sankeyChartData?.title != null ||
       c4DiagramData?.title != null ||
+      treemapData?.title != null ||
       architectureData?.title != null ||
       packetData?.title != null ||
       radarChartData?.title != null ||
@@ -224,6 +232,7 @@ class MermaidParseResult {
         sankeyChartData: sankeyChartData,
         blockDiagramData: blockDiagramData,
         c4DiagramData: c4DiagramData,
+        treemapData: treemapData,
         architectureData: architectureData,
         packetData: packetData,
         radarChartData: radarChartData,
@@ -388,6 +397,15 @@ class MermaidParser {
           );
         }
         return null;
+      case DiagramType.treemap:
+        final result = const TreemapParser().parse(body);
+        if (result != null) {
+          return MermaidParseResult(
+            diagram: result.$1,
+            treemapData: result.$2,
+          );
+        }
+        return null;
       case DiagramType.architecture:
         final result = const ArchitectureParser().parse(body);
         if (result != null) {
@@ -538,7 +556,7 @@ class MermaidParser {
     'graph / flowchart',
     'sequenceDiagram',
     'classDiagram',
-    'stateDiagram',
+    'stateDiagram / stateDiagram-v2',
     'erDiagram',
     'journey',
     'gitGraph',
@@ -548,12 +566,15 @@ class MermaidParser {
     'timeline',
     'kanban',
     'radar-beta',
-    'xychart',
+    'xychart / xychart-beta',
     'quadrantChart',
     'requirementDiagram',
     'sankey-beta',
     'block-beta',
     'C4Context / C4Container / C4Component / C4Dynamic / C4Deployment',
+    'packet-beta',
+    'architecture-beta',
+    'treemap / treemap-beta',
   ];
 
   /// Whether a fenced code block tagged [language] should be handed to the
@@ -660,6 +681,8 @@ class MermaidParser {
         return 'block diagram';
       case DiagramType.c4Diagram:
         return 'C4 diagram';
+      case DiagramType.treemap:
+        return 'treemap';
       case DiagramType.architecture:
         return 'architecture diagram';
       case DiagramType.packet:
@@ -724,6 +747,11 @@ class MermaidParser {
     // Architecture diagram
     if (RegExp(r'^architecture(-beta)?\b').hasMatch(firstLine)) {
       return DiagramType.architecture;
+    }
+
+    // Treemap
+    if (RegExp(r'^treemap(-beta)?\b').hasMatch(firstLine)) {
+      return DiagramType.treemap;
     }
 
     // XY chart

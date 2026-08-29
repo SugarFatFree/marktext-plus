@@ -421,6 +421,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get previewStartWriting => 'ابدأ الكتابة…';
 
   @override
+  String get linkOpenHint => '‏Ctrl/Cmd + نقر للفتح';
+
+  @override
   String get searchNoResults => 'لم يتم العثور على نتائج';
 
   @override
@@ -699,6 +702,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get fileRename => 'إعادة تسمية';
+
+  @override
+  String get fileMove => 'نقل إلى…';
 
   @override
   String get newTab => 'علامة تبويب جديدة';

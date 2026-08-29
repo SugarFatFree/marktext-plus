@@ -5,11 +5,124 @@ import 'package:ffi/ffi.dart';
 import 'package:flutter/services.dart';
 
 class ClipboardService {
+  /// Matches kClipboardChannel in linux/runner/my_application.cc and
+  /// AppDelegate.clipboardChannelName in macos/Runner/AppDelegate.swift.
+  static const _clipboardChannel = MethodChannel('com.marktextplus/clipboard');
+
+  /// Puts [plainText] on the clipboard with [html] beside it.
+  ///
+  /// A word processor takes the HTML and keeps the headings and the bold; a
+  /// text editor takes the text. Windows goes through the FFI below because
+  /// its `HTML Format` flavour needs a header no channel would write for us;
+  /// the other two hand the pair to their own native clipboard.
+  ///
+  /// The plain text is written whatever happens: if the rich flavour cannot
+  /// be attached, a copy that pastes as text is the right outcome, and a copy
+  /// that does nothing at all is not.
   static Future<void> copyWithHtml(String plainText, String html) async {
     if (Platform.isWindows) {
       await _copyWithHtmlWindows(plainText, html);
-    } else {
-      await Clipboard.setData(ClipboardData(text: plainText));
+      return;
+    }
+
+    if (Platform.isMacOS || Platform.isLinux) {
+      try {
+        final ok = await _clipboardChannel.invokeMethod<bool>(
+          'copyWithHtml',
+          {'text': plainText, 'html': html},
+        );
+        if (ok == true) return;
+      } catch (_) {
+        // An older build of the runner has no such channel.
+      }
+    }
+
+    await Clipboard.setData(ClipboardData(text: plainText));
+  }
+
+  /// The HTML flavour of whatever is on the clipboard, if it has one.
+  ///
+  /// Null when there is none — which is the ordinary case for text copied
+  /// from a text editor — and the caller then pastes the plain flavour.
+  static Future<String?> readHtml() async {
+    if (Platform.isWindows) return _readHtmlWindows();
+
+    if (Platform.isMacOS || Platform.isLinux) {
+      try {
+        return await _clipboardChannel.invokeMethod<String>('readHtml');
+      } catch (_) {
+        // An older build of the runner has no such method.
+        return null;
+      }
+    }
+    return null;
+  }
+
+  /// Reads the `HTML Format` flavour through Win32.
+  ///
+  /// The same pair of libraries the write side uses, in the other direction:
+  /// open the clipboard, ask for the registered format, lock the handle long
+  /// enough to copy the bytes out.
+  static Future<String?> _readHtmlWindows() async {
+    try {
+      final user32 = DynamicLibrary.open('user32.dll');
+      final kernel32 = DynamicLibrary.open('kernel32.dll');
+
+      final openClipboard = user32.lookupFunction<
+          Int32 Function(IntPtr hWndNewOwner),
+          int Function(int hWndNewOwner)>('OpenClipboard');
+      final closeClipboard = user32
+          .lookupFunction<Int32 Function(), int Function()>('CloseClipboard');
+      final getClipboardData = user32.lookupFunction<
+          IntPtr Function(Uint32 uFormat),
+          int Function(int uFormat)>('GetClipboardData');
+      final isFormatAvailable = user32.lookupFunction<
+          Int32 Function(Uint32 format),
+          int Function(int format)>('IsClipboardFormatAvailable');
+      final registerClipboardFormat = user32.lookupFunction<
+          Uint32 Function(Pointer<Utf16> lpszFormat),
+          int Function(Pointer<Utf16> lpszFormat)>('RegisterClipboardFormatW');
+      final globalLock = kernel32.lookupFunction<Pointer<Uint8> Function(IntPtr),
+          Pointer<Uint8> Function(int)>('GlobalLock');
+      final globalUnlock = kernel32
+          .lookupFunction<Int32 Function(IntPtr), int Function(int)>(
+              'GlobalUnlock');
+      final globalSize = kernel32
+          .lookupFunction<IntPtr Function(IntPtr), int Function(int)>(
+              'GlobalSize');
+
+      final name = 'HTML Format'.toNativeUtf16();
+      final format = registerClipboardFormat(name);
+      calloc.free(name);
+      if (format == 0 || isFormatAvailable(format) == 0) return null;
+
+      if (openClipboard(0) == 0) return null;
+      try {
+        final handle = getClipboardData(format);
+        if (handle == 0) return null;
+        final pointer = globalLock(handle);
+        if (pointer == nullptr) return null;
+        try {
+          final size = globalSize(handle);
+          if (size <= 0) return null;
+          // `HTML Format` is UTF-8, and its own header names the byte offsets
+          // of the fragment; the converter reads that header itself, so the
+          // whole payload goes across as it stands.
+          final bytes = pointer.asTypedList(size);
+          final end = bytes.indexOf(0);
+          return utf8.decode(
+            end < 0 ? bytes : bytes.sublist(0, end),
+            allowMalformed: true,
+          );
+        } finally {
+          globalUnlock(handle);
+        }
+      } finally {
+        closeClipboard();
+      }
+    } catch (_) {
+      // Never let reading the rich flavour be the reason a paste fails.
+      return null;
     }
   }
 

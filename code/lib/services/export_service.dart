@@ -823,7 +823,13 @@ class ExportService {
 
       case NodeType.footnoteDefinition:
         final fn = node as FootnoteDefinitionNode;
-        return '<div class="footnote" id="fn-${_escapeHtml(fn.id)}"><sup>${_escapeHtml(fn.id)}</sup> ${_escapeHtml(fn.content)}</div>';
+        // The body goes through the inline renderer: a footnote is where a
+        // citation lives, and `[see](https://…)` has to arrive as a link.
+        final body = fn.inlineSpans.isEmpty
+            ? _escapeHtml(fn.content)
+            : _inlineSpansToHtml(fn.inlineSpans);
+        return '<div class="footnote" id="fn-${_footnoteAnchor(fn.id)}">'
+            '<sup>${_escapeHtml(fn.id)}</sup> $body</div>';
 
       case NodeType.htmlBlock:
         final html = node as HtmlBlockNode;
@@ -1132,7 +1138,7 @@ class ExportService {
         case InlineType.code:
           return '<code>$text</code>';
         case InlineType.link:
-          final href = _escapeHtml(span.href ?? '');
+          final href = _safeUrl(span.href ?? '');
           final title = span.title != null
               ? ' title="${_escapeHtml(span.title!)}"'
               : '';
@@ -1142,7 +1148,7 @@ class ExportService {
           // A data URI is already safe for an attribute and must not be
           // escaped, or the base64 padding would turn into entities.
           final inlined = inlinedImages[original];
-          final src = inlined ?? _escapeHtml(original);
+          final src = inlined ?? _safeUrl(original);
           final alt = _escapeHtml(span.text);
           final title = span.title != null
               ? ' title="${_escapeHtml(span.title!)}"'
@@ -1151,7 +1157,7 @@ class ExportService {
           // An image wrapped in a link — a badge — is an anchor around it.
           final linkHref = span.linkHref;
           if (linkHref == null || linkHref.isEmpty) return img;
-          return '<a href="${_escapeHtml(linkHref)}">$img</a>';
+          return '<a href="${_safeUrl(linkHref)}">$img</a>';
         case InlineType.strikethrough:
           return '<del>$text</del>';
         case InlineType.mathInline:
@@ -1165,7 +1171,8 @@ class ExportService {
         case InlineType.underline:
           return '<u>$text</u>';
         case InlineType.footnoteRef:
-          return '<sup><a href="#fn-$text">[$text]</a></sup>';
+          return '<sup><a href="#fn-${_footnoteAnchor(text)}">'
+              '[${_escapeHtml(text)}]</a></sup>';
       }
     }).join();
   }
@@ -1203,6 +1210,56 @@ class ExportService {
       'right' => ' style="text-align:right"',
       _ => '',
     };
+  }
+
+  /// Schemes that execute rather than fetch.
+  ///
+  /// An exported document is opened in a browser, often by someone other than
+  /// its author, so a `javascript:` link written into a note is a link that
+  /// runs code on whoever opens the export. `vbscript:` is the same on older
+  /// engines.
+  static final _executableScheme = RegExp(
+    r'^(javascript|vbscript):',
+    caseSensitive: false,
+  );
+
+  /// A `data:` URL, which is a whole document inlined into an attribute.
+  static final _dataScheme = RegExp(r'^data:', caseSensitive: false);
+
+  /// The only `data:` payloads allowed through: still images.
+  ///
+  /// SVG is deliberately absent — an SVG can carry `<script>`, so a
+  /// `data:image/svg+xml` URL is a page wearing an image's name.
+  static final _dataImage = RegExp(
+    r'^data:image/(png|jpe?g|gif|webp|bmp|avif)[;,]',
+    caseSensitive: false,
+  );
+
+  /// A footnote identifier turned into something usable as an HTML `id` and
+  /// as a URL fragment.
+  ///
+  /// An identifier may contain spaces — `[^my note]` is valid — and a space in
+  /// an `id` is not, so `href="#fn-my note"` was an anchor that went nowhere.
+  /// Both ends of the pair go through this, so they still match.
+  static String _footnoteAnchor(String id) => _escapeHtml(
+        id.replaceAll(RegExp(r'\s+'), '-'),
+      );
+
+  /// A URL fit to put in an `href` or a `src`.
+  ///
+  /// Returns an empty string for anything that would execute, which leaves a
+  /// link that goes nowhere — visible, inert, and honest about it — rather
+  /// than dropping the text the link was written on.
+  static String _safeUrl(String url) {
+    // The scheme is compared with whitespace and control characters taken
+    // out: `java\tscript:` is a form browsers have historically accepted, and
+    // a check against the raw string would not see it.
+    final collapsed = url.replaceAll(RegExp(r'[\s\u0000-\u001f]'), '');
+    if (_executableScheme.hasMatch(collapsed)) return '';
+    if (_dataScheme.hasMatch(collapsed) && !_dataImage.hasMatch(collapsed)) {
+      return '';
+    }
+    return _escapeHtml(url);
   }
 
   static String _escapeHtml(String text) {

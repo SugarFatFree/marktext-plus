@@ -2,7 +2,15 @@ class AppConstants {
   AppConstants._();
 
   static const String appName = 'MarkText Plus';
-  static const String appVersion = '1.3.0';
+  /// The version shown in About, and the one the update check compares
+  /// against.
+  ///
+  /// Must match `version:` in pubspec.yaml, and a test enforces that. It had
+  /// drifted to 1.3.0 while the app shipped 1.5.0, which meant About named a
+  /// version nobody could match to a release (#1) and — worse — the update
+  /// check measured every release against 1.3.0, so anyone on a current build
+  /// was told forever that an update was waiting.
+  static const String appVersion = '1.5.1';
   static const String configFileName = 'config.json';
   static const String configDirName = 'marktext-plus';
 

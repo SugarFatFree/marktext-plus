@@ -244,9 +244,65 @@ class AppMenuBar extends ConsumerWidget {
     );
     if (newName == null || newName.isEmpty || newName == p.basename(oldPath)) return;
     final newPath = p.join(p.dirname(oldPath), newName);
-    await File(oldPath).rename(newPath);
-    // The same call the sidebar makes, so the two ways of renaming cannot
-    // drift apart again.
+    await _relocate(ref, oldPath, newPath);
+  }
+
+  /// Moves the open document to another folder.
+  ///
+  /// `file.move-file` in upstream MarkText, which this menu never had.
+  ///
+  /// Moving and renaming are one operation — both are `File.rename` to a new
+  /// path — so both go through the same call. `FileService.moveFile` was an
+  /// alias for `renameFile` with no callers at all; a second name for one
+  /// operation is how the two drift apart later, so it is gone rather than
+  /// wired up.
+  void _moveFile(WidgetRef ref) async {
+    final activeTab = ref.read(activeTabProvider);
+    if (activeTab == null || activeTab.filePath == null) return;
+    final oldPath = activeTab.filePath!;
+
+    final folder = await FilePicker.platform.getDirectoryPath();
+    if (folder == null) return;
+    final newPath = p.join(folder, p.basename(oldPath));
+    if (newPath == oldPath) return;
+    await _relocate(ref, oldPath, newPath);
+  }
+
+  /// Renames or moves [oldPath], and tells the reader when it cannot.
+  ///
+  /// Goes through the provider rather than calling `File.rename` here. The
+  /// menu used to do its own rename, which meant it also skipped the guard
+  /// the service grew: `File.rename` replaces the destination without a word,
+  /// so renaming a note onto a name already in use destroyed the note that
+  /// had it — no prompt, no undo, nothing on screen. The sidebar's rename was
+  /// fixed; this one was the copy that did not keep up.
+  Future<void> _relocate(
+    WidgetRef ref,
+    String oldPath,
+    String newPath,
+  ) async {
+    final ctx = navigatorKey.currentContext;
+    try {
+      await ref.read(fileProvider.notifier).renameNode(oldPath, newPath);
+    } on PathExistsException {
+      if (ctx != null && ctx.mounted) {
+        ScaffoldMessenger.of(ctx).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(ctx)!.fileNameTaken)),
+        );
+      }
+      return;
+    } catch (e) {
+      if (ctx != null && ctx.mounted) {
+        ScaffoldMessenger.of(ctx).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(ctx)!.fileOperationFailed('$e')),
+          ),
+        );
+      }
+      return;
+    }
+    // The same call the sidebar makes, so the two ways of moving a document
+    // cannot drift apart again.
     ref.read(tabProvider.notifier).pathRenamed(oldPath, newPath);
   }
 
@@ -288,6 +344,10 @@ class AppMenuBar extends ConsumerWidget {
         MenuItemButton(
           child: Text(l10n.fileRename),
           onPressed: () => _renameFile(ref),
+        ),
+        MenuItemButton(
+          onPressed: hasDocument ? () => _moveFile(ref) : null,
+          child: Text(l10n.fileMove),
         ),
         const Divider(height: 1),
         MenuItemButton(

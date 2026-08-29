@@ -219,9 +219,15 @@ class FlowchartParser {
     // short one and the rest — `-> B` — became the target's name. It also had
     // no form for `A -- label --> B` at all, which lost the source node, and
     // an unescaped dot that matched any single character between dashes.
+    //
+    // `~{3,}` is mermaid's invisible link. It holds two nodes in a
+    // relationship the layout must honour while drawing nothing between them,
+    // so leaving it out of this pattern did not merely lose a line — it lost
+    // the constraint, and the diagram came out arranged differently from the
+    // one that was written.
     final arrowRegex = RegExp(
-      r'\s*(<)?(-{2,}|={2,}|-\.+-|-\.)'
-      r'(?:\s*([^|>ox\-=.][^|]*?)\s*(-{2,}|={2,}|-\.+-|\.-))?'
+      r'\s*(<)?(-{2,}|={2,}|~{3,}|-\.+-|-\.)'
+      r'(?:\s*([^|>ox\-=.~][^|]*?)\s*(-{2,}|={2,}|~{3,}|-\.+-|\.-))?'
       r'([>ox])?\s*(?:\|([^|]*)\|)?\s*',
     );
 
@@ -389,7 +395,11 @@ class FlowchartParser {
     String label;
     NodeShape shape;
 
-    // Double bracket patterns first
+    // Triple before double: `.+` is greedy, so the double-circle pattern
+    // matches `A(((Double)))` too and hands back a label of `(Double)` — the
+    // parentheses ended up drawn as part of the text.
+    final tripleCircle =
+        RegExp(r'^([^\s\[\](){}<>|]+)\(\(\((.+)\)\)\)$');
     final doubleCircle = RegExp(r'^([^\s\[\](){}<>|]+)\(\((.+)\)\)$');
     final hexagon = RegExp(r'^([^\s\[\](){}<>|]+)\{\{(.+)\}\}$');
     final subroutine = RegExp(r'^([^\s\[\](){}<>|]+)\[\[(.+)\]\]$');
@@ -410,7 +420,11 @@ class FlowchartParser {
 
     Match? match;
 
-    if ((match = doubleCircle.firstMatch(trimmed)) != null) {
+    if ((match = tripleCircle.firstMatch(trimmed)) != null) {
+      id = match!.group(1)!;
+      label = match.group(2)!;
+      shape = NodeShape.doubleCircle;
+    } else if ((match = doubleCircle.firstMatch(trimmed)) != null) {
       id = match!.group(1)!;
       label = match.group(2)!;
       shape = NodeShape.circle;
@@ -500,6 +514,9 @@ class FlowchartParser {
   }
 
   LineType _parseLineType(String line) {
+    // The order is mermaid's own, from `destructLink`: the stroke is decided
+    // by what the link starts with, and a run of dots overrides it.
+    if (line.contains('~')) return LineType.invisible;
     if (line.contains('=')) return LineType.thick;
     if (line.contains('.')) return LineType.dotted;
     return LineType.solid;

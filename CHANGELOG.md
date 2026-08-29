@@ -5,6 +5,64 @@ All notable changes to MarkText Plus will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.5.1] - 2026-08-29
+
+### Added
+- A link in the preview shows a hand cursor, and hovering it names where it goes and that Ctrl/Cmd opens it. It opened only with the modifier held and said neither thing
+- Pasting from a browser keeps its structure: headings, lists, tables, links and emphasis are converted to markdown instead of arriving as flattened text. `Ctrl+Shift+V` pastes the plain flavour, as before
+- A language picker for code fences: type ```` ``` ```` and choose from the languages that can be highlighted, found by abbreviation as well as by name — `ts` finds `typescript`
+- A quick-insert menu: type `/` at the start of an empty line to insert a list, a task list, a table, a code block, a quote, a math block, a rule or front matter. Searchable in Chinese as well as English, and the `/` is taken back out when an entry is chosen
+- Enter inside a blockquote carries the quote on to the next line, and Enter on an empty quote line ends it — the two steps upstream MarkText specifies. Only lists did this before, so `> ` had to be retyped on every line
+- Rich copy works on macOS and Linux, not only Windows: copying from the preview and pasting into a word processor keeps headings and bold there too
+- Ctrl (or Cmd) and the mouse wheel change the text size, in both the source and the preview (#4)
+- Room under the last line, so it can be scrolled up to where the eye is instead of sitting on the bottom edge (#2)
+- Mermaid `treemap-beta` diagrams render: nested rectangles whose area stands for their value, laid out by the squarified algorithm so the boxes stay comparable by eye. The grammar was read out of mermaid 11.16's own definition — indentation length nests a row, and a value may carry thousands separators
+- File ▸ Move To…, the one menu command upstream MarkText has that this one did not
+
+### Fixed
+- A footnote's body is markdown. A link, emphasis or code inside `[^a]: see [the paper](https://…)` reached the reader as those characters, in the preview and in every export — and a footnote is where a citation goes, so a link in one is the ordinary case
+- A footnote definition can run over more than one line. An indented continuation broke out of the note and became a paragraph of the document
+- A footnote whose identifier contains a space, `[^my note]`, produces an anchor that works. A space is not valid in an HTML id, so the reference pointed nowhere
+- The preview writes a footnote definition as `[^a]:`, not `[a]:` — without the caret it is a link reference definition, a different construct that looks similar
+- Typing a closing bracket over the one auto-pairing just inserted steps past it instead of adding a second. Finishing `(x` by typing `)` left `(x))`, because only symmetric characters like `"` were stepped over and `)` was not
+- Auto-pairing no longer fires when the caret is right against a word. Typing `(` in front of `foo` gave `()foo`, and a quote gave `""foo`, so the spurious closing character had to be deleted straight away. As upstream does, a pair is inserted only at the end of a line, before whitespace, or before a closing bracket — wrapping a selection is unaffected
+- A link whose address is `javascript:`, `vbscript:` or `data:text/html` no longer keeps that address when the document is exported to HTML. The export is a file other people open in a browser, and such a link runs code on whoever clicks it. The same check now covers an image's source and a badge's outer link; ordinary addresses, including inline `data:image/png` diagrams, are untouched
+- Clicking a `mailto:` or `tel:` link in the preview does something. Neither is an http address, so both used to fall through to the open-a-neighbouring-file branch, find no such file, and silently do nothing
+- An input method's candidate strings are no longer treated as typing. Undo after composing 你好 could hand back `hao,` — a string that only ever existed in the candidate window — and the insert menu could open over it. Nothing is recorded or triggered until the composition is committed
+- Undo takes back a word, not everything typed since the last pause. Snapshots were driven by a 300 ms debounce alone, so a paragraph written without pausing was a single undo step and one press took all of it away. Chinese punctuation ends a step too, since a Chinese sentence has no spaces to end one
+- A heading indented by one to three spaces is a heading, and `#` on its own — the state a heading passes through while it is being typed — no longer shows as a paragraph with a hash in it
+- A diagram inside a quote or a list item answers its toolbar buttons at once. The exemption that keeps the double-tap recogniser away from blocks with controls of their own was written for a diagram at the top level only, so a nested one had all four of its buttons dead for the length of the double-tap timeout
+- A checkbox in a task list inside a blockquote answers the first click. Two things stopped it: the line it had to rewrite was never found, because the quoted line still carries its `>` marker, and the whole quote sat behind the double-tap recogniser that top-level task lists are already exempt from
+- A table written directly under a line of text, with no blank line between them, is drawn as a table. It used to be swallowed into the paragraph and disappear
+- `[the docs]` with its definition at the bottom of the file is a link. Only the two-bracket reference forms were read, so the shortcut form — the ordinary way to use reference links — came out as literal text. Brackets with no definition behind them stay as prose
+- A paragraph no longer keeps the spaces its lines were indented by. HTML collapses them so exports looked right, but the preview draws the text as written and a paragraph under a list item came out visibly shifted
+- `[TODO]()` — a link with an empty destination — is a link rather than literal text
+- Writing the next list with a different bullet character starts a second list, as it should, instead of running the two together
+- `2 ** 3 ** 4` and `** note **` are left exactly as written. The rule that a delimiter with a space just inside it does not emphasise was applied to `*` alone; teaching it to `**` and friends then let the single-`*` branch pick up what they refused, so a delimiter that is part of a longer run is now left to that run
+- An underscore inside a word no longer emphasises Chinese, Japanese or Cyrillic text. The word-boundary check recognised Latin letters only, so `中文_强调_文字` came out emphasised where `snake_case_name` correctly did not
+- A code span written across two lines — a long command wrapped in the source — is read as code instead of leaving its backticks in the text
+- `cherry-pick` in a gitGraph adds the commit it names instead of being skipped in silence, and is drawn the way mermaid draws it
+- An ER relationship written in words — `PERSON one to zero or more ADDRESS` — is read. Only the symbolic form was, and a diagram written the other way did not lose one relationship: it failed to parse at all and fell back to a code block
+- Class diagram relations are read the way mermaid's grammar defines them — any relation type at either end of either line — instead of being matched against a hand-written list of sixteen spellings. Thirty-nine legal combinations were missing from it, including `..o`, every two-ended form such as `o--o`, and the lollipop `()` entirely; each still matched the bare `--` at the end of the list, so the line was drawn with its meaning silently gone
+- Copying from the preview and pasting into Word keeps headings, bold and links. The HTML was produced by re-parsing the copied text as markdown, but a selection in the preview returns the *rendered* text — a heading arrives as `My Heading` with no `#` — so the formatting was gone before the conversion started. It is now built from the blocks the preview drew
+- A bidirectional sequence message `A<<->>B` draws two participants and a head at each end. The sender pattern did not exclude `<`, so it swallowed the `<<` and gave the diagram a third lifeline named `A<<` — silently, since what remained still parsed as an ordinary message
+- Asking for a list or a quote marks every line the selection touches, not just the one under the caret (#3)
+- About shows the version that was actually built, and the update check compares against it. The constant had drifted to 1.3.0 while the app shipped 1.5.0, so anyone on a current build was told forever that an update was waiting (#1)
+- The preview honours the font size and line height that were chosen. Both were compile-time constants there, which is why zooming did nothing to it (#4)
+- A flowchart node written `A(((Double)))` is drawn as a double circle labelled `Double`. The greedy double-circle pattern matched it too and drew a plain circle whose label included the inner parentheses — the shape existed in the model and the painter all along, and nothing ever produced it
+- The invisible link `A ~~~ B` is read. It was dropped whole, and with it the layout constraint it exists for, so the diagram came out arranged differently from the one that was written
+- A fence tagged `packet-beta`, `architecture-beta`, `stateDiagram-v2` or `xychart-beta` is drawn as a diagram. All four are types the app implements, and all four were missing from the list it derives fence handling from — and shows the reader when a diagram fails to parse, so it was disowning types it supports
+- With the find bar open, a large document is rescanned when typing stops rather than on every keystroke (40–66 ms each on a five megabyte file), and a search matching tens of thousands of places paints a window of them around the one being read instead of all of them — painting 97 000 highlights took 133 ms per rebuild, and a caret move is a rebuild. The match count itself is untouched
+- Moving the caret in a large document is no longer felt. The line and column readout copied everything before the caret and split it into one string per line — 61 ms per keypress on a five megabyte file — while the gutter counted newlines across the whole document again in `build`. A line-start index built once per edit answers both in under a microsecond
+- A large document no longer freezes the window for seconds at a time when typing pauses. Parsing five megabytes takes about 3.5 s and ran on the UI isolate; it now runs on another one, of which only the ~140 ms of handing the blocks back is felt here
+- The table of contents no longer reads the whole document's outline during build — 402 ms per keystroke on a five megabyte file, whether or not the panel was even open
+- The preview takes heading positions from the blocks it parsed instead of scanning the text a second time. That second reading was a second definition of what counts as a heading, and it had already disagreed with the first twice
+- Customised keyboard shortcuts survive a crash. The file was written in place, so a process killed mid-write left it truncated; a truncated file failed to parse and was silently replaced by the defaults, and the next save overwrote the only copy. It is now written and quarantined the way the settings file already was
+- The sidebar tree shows folders and markdown documents, as upstream MarkText does, rather than everything a directory holds. Tapping a `.png` or a `.pdf` opened it as a text tab full of mojibake — one stray keystroke away from an auto-save writing that back over the original
+- The tree and the folder search now skip the same directories; the search stepped over `node_modules` while the tree listed all of it
+- Renaming from the File menu no longer destroys a file that already has the name. The service grew a guard against that and the sidebar adopted it; the menu kept its own `File.rename` call and so kept the bug
+- The macOS download is named for what it is. The published app has always carried both x86_64 and arm64, but it was called `macos-arm64`, and the release listed two `macos-x64` files that no job ever built — the release action skips a file it cannot find and still reports success
+
 ## [v1.5.0] - 2026-08-29
 
 ### Added
