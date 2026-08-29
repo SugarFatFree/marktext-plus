@@ -18,6 +18,7 @@
 | BUG-119 | 2026-08-29 | 预览复制到 Word 丢失标题与加粗：拿渲染后的纯文本反推 markdown | P1 | 已修复 |
 | BUG-120 | 2026-08-29 | 类图关系用手工清单匹配，71 种合法写法里 39 种被当成普通连线 | P2 | 已修复 |
 | BUG-121 | 2026-08-29 | ER 图只认符号基数，用英文写的关系导致整张图解析失败 | P2 | 已修复 |
+| BUG-122 | 2026-08-29 | gitGraph 的 cherry-pick 整行被静默丢弃 | P3 | 已修复 |
 
 ---
 
@@ -842,3 +843,61 @@ one           only one      to            optionally to
 
 - `code/lib/ui/editor/mermaid/parser/er_diagram_parser.dart`
 - `code/test/ui/editor/mermaid/er_relations_test.dart`（新增，8 条）
+
+
+---
+
+## BUG-122：gitGraph 的 cherry-pick 整行被静默丢弃
+
+### 排查方式
+
+状态图按 mermaid 文法逐条过完——**是干净的**（复合状态、嵌套复合、并发分隔、
+choice / fork / join、两种 note 写法、direction、v1 表头、`hide empty
+description`、`classDef` 全部正确）。
+
+于是改做广度扫描：其余 14 种图型各用一个**特性密集**的样例（不是最小样例，
+最小样例已被既有测试覆盖），并**逐个检查旁路载荷的内容**而不只看"能否解析"。
+
+甘特图正确（done / active / crit / milestone 状态、`after des2` 依赖、
+日期推算）。时间线正确。只有 gitGraph 有问题。
+
+### 现象
+
+```
+gitGraph
+  commit id: "one"
+  branch dev
+  checkout dev
+  cherry-pick id: "one"
+```
+
+产出**两个提交里只有一个**：`cherry-pick` 这一行不匹配任何分支，
+被 `continue` 掉了——**历史少了一个提交，而且没有任何提示**。
+
+### 修复方案
+
+加 `cherry-pick` 的解析：记录它摘自哪个提交（`mergedFrom`），
+新增 `GitCommitType.cherryPick`，画笔按 mermaid 的画法画成**带叉的实心圆**
+——这正是它与被摘的那个提交的区别所在。
+
+没有 `id` 时不产生提交：mermaid 要求必须带 id，凭空造一个提交等于在图上
+多画一个圆却什么都不代表。
+
+### 三次自我纠正
+
+本轮探针连续三次给出错误的"发现"，都在核实后撤销：
+
+1. 以为嵌套复合状态里 `A`、`B` 消失了——它们是作为 **subgraph** 上报的，
+   探针只打印了 nodes；
+2. 以为 timeline 忽略了 `section`——它记在 `TimelineSection.group` 上，
+   探针只打印了 `title`；
+3.（上一轮）以为类图前置关系丢了装饰——它们走 `startArrowType`。
+
+**同一个错误犯了三次：只打印模型的一部分，就断言另一部分不存在。**
+
+### 涉及文件
+
+- `code/lib/ui/editor/mermaid/parser/git_graph_parser.dart`
+- `code/lib/ui/editor/mermaid/models/git_graph.dart`
+- `code/lib/ui/editor/mermaid/painter/git_graph_painter.dart`
+- `code/test/ui/editor/mermaid/git_graph_test.dart`（新增，9 条）

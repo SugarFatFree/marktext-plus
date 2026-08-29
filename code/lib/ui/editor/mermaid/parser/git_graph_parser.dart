@@ -84,6 +84,27 @@ class GitGraphParser {
         continue;
       }
 
+      // `cherry-pick id: "abc"` copies a commit from another branch onto this
+      // one. It was not recognised at all, so the line vanished: the history
+      // came out one commit short, with no sign that anything had been
+      // dropped.
+      if (lower.startsWith('cherry-pick')) {
+        final rest = line.substring('cherry-pick'.length).trim();
+        final options = _parseOptions(rest);
+        final source = options['id'];
+        // Without an id there is nothing to pick; mermaid requires one.
+        if (source == null || source.isEmpty) continue;
+        commits.add(GitCommit(
+          id: options['tag'] != null ? '$source-pick' : '$source-pick',
+          branch: current,
+          column: column++,
+          tag: options['tag'],
+          type: GitCommitType.cherryPick,
+          mergedFrom: source,
+        ));
+        continue;
+      }
+
       if (lower == 'commit' || lower.startsWith('commit ')) {
         final rest =
             line.length > 'commit'.length ? line.substring('commit'.length) : '';
