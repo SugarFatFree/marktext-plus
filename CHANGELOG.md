@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - File ▸ Move To…, the one menu command upstream MarkText has that this one did not
 
 ### Fixed
+- Undo takes back a word, not everything typed since the last pause. Snapshots were driven by a 300 ms debounce alone, so a paragraph written without pausing was a single undo step and one press took all of it away. Chinese punctuation ends a step too, since a Chinese sentence has no spaces to end one
 - A heading indented by one to three spaces is a heading, and `#` on its own — the state a heading passes through while it is being typed — no longer shows as a paragraph with a hash in it
 - A diagram inside a quote or a list item answers its toolbar buttons at once. The exemption that keeps the double-tap recogniser away from blocks with controls of their own was written for a diagram at the top level only, so a nested one had all four of its buttons dead for the length of the double-tap timeout
 - A checkbox in a task list inside a blockquote answers the first click. Two things stopped it: the line it had to rewrite was never found, because the quoted line still carries its `>` marker, and the whole quote sat behind the double-tap recogniser that top-level task lists are already exempt from

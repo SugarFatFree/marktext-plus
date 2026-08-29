@@ -442,7 +442,43 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     super.dispose();
   }
 
+  /// The text as it stood at the previous change, so the character that was
+  /// just typed can be recognised.
+  String _previousText = '';
+
+  /// Characters that end a word, and so end an undo step.
+  ///
+  /// Undo used to be governed by the 300 ms debounce alone: a paragraph typed
+  /// without pausing produced no snapshot at all until the writer stopped, so
+  /// one press of undo took the whole paragraph away. Upstream MarkText fixed
+  /// the same fault (#3825) and its end-to-end test spells out the result —
+  /// typing `hello world` and pressing undo once leaves `hello`.
+  ///
+  /// The CJK punctuation is here for the same reason the Latin punctuation
+  /// is: a sentence written in Chinese has no spaces to break it up, and
+  /// without these its undo steps would be paragraph-sized again.
+  static final _wordBoundary = RegExp(r'[\s.,;:!?)\]}"\u3001\u3002\uff0c'
+      r'\uff1b\uff1a\uff01\uff1f\u201d\u2019\uff09\u3011\u300b]');
+
   void _onTextChanged() {
+    final text = _controller.text;
+
+    // A word has just been finished: close the undo step here rather than
+    // waiting for the writer to pause. Exactly one character longer than the
+    // last state, and that character ends a word — anything else (a paste, a
+    // deletion, a replacement) is left to the debounce.
+    final justTyped = text.length == _previousText.length + 1 &&
+            text.startsWith(_previousText)
+        ? text.substring(text.length - 1)
+        : null;
+    _previousText = text;
+
+    if (_isInitialized &&
+        justTyped != null &&
+        _wordBoundary.hasMatch(justTyped)) {
+      ref.read(editorProvider.notifier).pushHistory(text);
+    }
+
     if (_debounce?.isActive ?? false) _debounce!.cancel();
     _debounce = Timer(const Duration(milliseconds: 300), () {
       if (_isInitialized) {
