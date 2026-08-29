@@ -709,6 +709,21 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String confirmTrashFile(String name) {
+    return '将“$name”移到回收站？';
+  }
+
+  @override
+  String confirmTrashFolder(String name) {
+    return '将“$name”及其中所有内容移到回收站？';
+  }
+
+  @override
+  String confirmDeleteFolder(String name) {
+    return '永久删除“$name”及其中所有内容？此操作无法撤销。';
+  }
+
+  @override
   String get newFolder => '新建文件夹';
 
   @override

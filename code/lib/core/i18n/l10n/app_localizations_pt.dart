@@ -720,6 +720,21 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String confirmTrashFile(String name) {
+    return 'Mover «$name» para o lixo?';
+  }
+
+  @override
+  String confirmTrashFolder(String name) {
+    return 'Mover «$name» e tudo o que contém para o lixo?';
+  }
+
+  @override
+  String confirmDeleteFolder(String name) {
+    return 'Eliminar definitivamente «$name» e tudo o que contém? Não é possível anular.';
+  }
+
+  @override
   String get newFolder => 'Nova pasta';
 
   @override
@@ -1694,6 +1709,21 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String confirmDeleteFile(String fileName) {
     return 'Tem certeza de que deseja excluir \"$fileName\"?';
+  }
+
+  @override
+  String confirmTrashFile(String name) {
+    return 'Mover “$name” para a lixeira?';
+  }
+
+  @override
+  String confirmTrashFolder(String name) {
+    return 'Mover “$name” e todo o seu conteúdo para a lixeira?';
+  }
+
+  @override
+  String confirmDeleteFolder(String name) {
+    return 'Excluir permanentemente “$name” e todo o seu conteúdo? Não é possível desfazer.';
   }
 
   @override

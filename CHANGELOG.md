@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - v1.5.3
 
+### Added
+- Deleting from the sidebar moves the file or folder to the desktop's trash on Linux, as upstream MarkText does, so a note removed by mistake can be put back. It was removed outright, and a folder took everything under it with no way back at all. macOS and Windows still delete outright — and their confirmation says so: the four cases (file or folder, recoverable or not) now ask four different questions instead of one that covered them all
+
 ### Fixed
 - Korean documents report the word count they actually have. Hangul was counted a word per character, which is right for Chinese and Japanese because they are written without spaces between words — Korean is written with them, so a document read about three times its real length
 - Dropping an image into the editor no longer inserts it and reports it as unopened at the same time. `desktop_drop` broadcasts each drop to every target and lets each decide by its own bounds, so a drop on the text area reaches both the editor, which writes the link, and the window, which counted the same file as refused. With no document open there is no text area for an image to land in, and that case is still reported

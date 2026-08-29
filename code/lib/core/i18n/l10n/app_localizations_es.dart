@@ -721,6 +721,21 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String confirmTrashFile(String name) {
+    return '¿Mover «$name» a la papelera?';
+  }
+
+  @override
+  String confirmTrashFolder(String name) {
+    return '¿Mover «$name» y todo su contenido a la papelera?';
+  }
+
+  @override
+  String confirmDeleteFolder(String name) {
+    return '¿Eliminar definitivamente «$name» y todo su contenido? No se puede deshacer.';
+  }
+
+  @override
   String get newFolder => 'Nueva carpeta';
 
   @override

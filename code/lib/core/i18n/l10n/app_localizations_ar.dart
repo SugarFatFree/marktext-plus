@@ -716,6 +716,21 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String confirmTrashFile(String name) {
+    return 'نقل «$name» إلى سلة المهملات؟';
+  }
+
+  @override
+  String confirmTrashFolder(String name) {
+    return 'نقل «$name» وكل ما بداخله إلى سلة المهملات؟';
+  }
+
+  @override
+  String confirmDeleteFolder(String name) {
+    return 'حذف «$name» وكل ما بداخله نهائيًا؟ لا يمكن التراجع عن ذلك.';
+  }
+
+  @override
   String get newFolder => 'مجلد جديد';
 
   @override

@@ -273,6 +273,9 @@
   "copyFilePath": "Copiar caminho do arquivo",
   "deleteFile": "Excluir arquivo",
   "confirmDeleteFile": "Tem certeza de que deseja excluir \"{fileName}\"?",
+  "confirmTrashFile": "Mover “{name}” para a lixeira?",
+  "confirmTrashFolder": "Mover “{name}” e todo o seu conteúdo para a lixeira?",
+  "confirmDeleteFolder": "Excluir permanentemente “{name}” e todo o seu conteúdo? Não é possível desfazer.",
   "@confirmDeleteFile": {
     "placeholders": {
       "fileName": {

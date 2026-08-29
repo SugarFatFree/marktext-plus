@@ -717,6 +717,21 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String confirmTrashFile(String name) {
+    return 'Переместить «$name» в корзину?';
+  }
+
+  @override
+  String confirmTrashFolder(String name) {
+    return 'Переместить «$name» и всё её содержимое в корзину?';
+  }
+
+  @override
+  String confirmDeleteFolder(String name) {
+    return 'Удалить «$name» и всё её содержимое безвозвратно? Это нельзя отменить.';
+  }
+
+  @override
   String get newFolder => 'Новая папка';
 
   @override

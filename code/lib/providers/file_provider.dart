@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/file_node.dart';
 import '../services/file_service.dart';
+import '../services/trash_service.dart';
 import '../services/file_watcher_service.dart';
 
 class FileNotifier extends StateNotifier<List<FileNode>> {
@@ -50,8 +51,16 @@ class FileNotifier extends StateNotifier<List<FileNode>> {
     await _refreshTree();
   }
 
+  /// Removes [path], through the desktop's trash where that is possible.
+  ///
+  /// Upstream MarkText deletes through `shell.trashItem` so a note removed by
+  /// mistake can be put back. Where trashing is not available the file is
+  /// removed outright — and the confirmation the reader saw said so, which is
+  /// the part that matters.
   Future<void> deleteNode(String path) async {
-    await _fileService.deleteEntity(path);
+    if (!await TrashService.moveToTrash(path)) {
+      await _fileService.deleteEntity(path);
+    }
     _expanded.removeWhere((e) => e == path || e.startsWith('$path/'));
     await _refreshTree();
   }

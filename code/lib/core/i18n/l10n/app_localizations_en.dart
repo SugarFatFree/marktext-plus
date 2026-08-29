@@ -716,6 +716,21 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String confirmTrashFile(String name) {
+    return 'Move “$name” to the trash?';
+  }
+
+  @override
+  String confirmTrashFolder(String name) {
+    return 'Move “$name” and everything in it to the trash?';
+  }
+
+  @override
+  String confirmDeleteFolder(String name) {
+    return 'Permanently delete “$name” and everything in it? This cannot be undone.';
+  }
+
+  @override
   String get newFolder => 'New Folder';
 
   @override

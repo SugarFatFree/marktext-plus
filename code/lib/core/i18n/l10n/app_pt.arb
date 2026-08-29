@@ -273,6 +273,9 @@
   "copyFilePath": "Copiar caminho do ficheiro",
   "deleteFile": "Eliminar ficheiro",
   "confirmDeleteFile": "Tem a certeza de que deseja eliminar \"{fileName}\"?",
+  "confirmTrashFile": "Mover «{name}» para o lixo?",
+  "confirmTrashFolder": "Mover «{name}» e tudo o que contém para o lixo?",
+  "confirmDeleteFolder": "Eliminar definitivamente «{name}» e tudo o que contém? Não é possível anular.",
   "@confirmDeleteFile": {
     "placeholders": {
       "fileName": {

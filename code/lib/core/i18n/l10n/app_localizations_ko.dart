@@ -710,6 +710,21 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String confirmTrashFile(String name) {
+    return '“$name”을(를) 휴지통으로 옮길까요?';
+  }
+
+  @override
+  String confirmTrashFolder(String name) {
+    return '“$name”과(와) 그 안의 모든 항목을 휴지통으로 옮길까요?';
+  }
+
+  @override
+  String confirmDeleteFolder(String name) {
+    return '“$name”과(와) 그 안의 모든 항목을 완전히 삭제할까요? 되돌릴 수 없습니다.';
+  }
+
+  @override
   String get newFolder => '새 폴더';
 
   @override

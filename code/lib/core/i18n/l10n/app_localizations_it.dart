@@ -720,6 +720,21 @@ class AppLocalizationsIt extends AppLocalizations {
   }
 
   @override
+  String confirmTrashFile(String name) {
+    return 'Spostare «$name» nel cestino?';
+  }
+
+  @override
+  String confirmTrashFolder(String name) {
+    return 'Spostare «$name» e tutto il suo contenuto nel cestino?';
+  }
+
+  @override
+  String confirmDeleteFolder(String name) {
+    return 'Eliminare definitivamente «$name» e tutto il suo contenuto? L’operazione non è reversibile.';
+  }
+
+  @override
   String get newFolder => 'Nuova cartella';
 
   @override

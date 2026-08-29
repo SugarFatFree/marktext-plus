@@ -313,6 +313,12 @@
   "copyFilePath": "Copy File Path",
   "deleteFile": "Delete File",
   "confirmDeleteFile": "Are you sure you want to delete \"{fileName}\"?",
+  "confirmTrashFile": "Move “{name}” to the trash?",
+  "@confirmTrashFile": {"placeholders": {"name": {"type": "String"}}},
+  "confirmTrashFolder": "Move “{name}” and everything in it to the trash?",
+  "@confirmTrashFolder": {"placeholders": {"name": {"type": "String"}}},
+  "confirmDeleteFolder": "Permanently delete “{name}” and everything in it? This cannot be undone.",
+  "@confirmDeleteFolder": {"placeholders": {"name": {"type": "String"}}},
   "@confirmDeleteFile": {
     "placeholders": {
       "fileName": {

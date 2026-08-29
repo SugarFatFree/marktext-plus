@@ -273,6 +273,9 @@
   "copyFilePath": "ファイルパスをコピー",
   "deleteFile": "ファイルを削除",
   "confirmDeleteFile": "\"{fileName}\" を削除してもよろしいですか？",
+  "confirmTrashFile": "「{name}」をゴミ箱に移動しますか？",
+  "confirmTrashFolder": "「{name}」とその中身をすべてゴミ箱に移動しますか？",
+  "confirmDeleteFolder": "「{name}」とその中身をすべて完全に削除しますか？元に戻せません。",
   "@confirmDeleteFile": {
     "placeholders": {
       "fileName": {

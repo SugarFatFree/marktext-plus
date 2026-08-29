@@ -273,6 +273,9 @@
   "copyFilePath": "Копировать путь к файлу",
   "deleteFile": "Удалить файл",
   "confirmDeleteFile": "Вы уверены, что хотите удалить \"{fileName}\"?",
+  "confirmTrashFile": "Переместить «{name}» в корзину?",
+  "confirmTrashFolder": "Переместить «{name}» и всё её содержимое в корзину?",
+  "confirmDeleteFolder": "Удалить «{name}» и всё её содержимое безвозвратно? Это нельзя отменить.",
   "@confirmDeleteFile": {
     "placeholders": {
       "fileName": {

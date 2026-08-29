@@ -718,6 +718,21 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String confirmTrashFile(String name) {
+    return '„$name“ in den Papierkorb verschieben?';
+  }
+
+  @override
+  String confirmTrashFolder(String name) {
+    return '„$name“ und alles darin in den Papierkorb verschieben?';
+  }
+
+  @override
+  String confirmDeleteFolder(String name) {
+    return '„$name“ und alles darin endgültig löschen? Das lässt sich nicht rückgängig machen.';
+  }
+
+  @override
   String get newFolder => 'Neuer Ordner';
 
   @override

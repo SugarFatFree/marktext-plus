@@ -273,6 +273,9 @@
   "copyFilePath": "Copia percorso file",
   "deleteFile": "Elimina file",
   "confirmDeleteFile": "Sei sicuro di voler eliminare \"{fileName}\"?",
+  "confirmTrashFile": "Spostare «{name}» nel cestino?",
+  "confirmTrashFolder": "Spostare «{name}» e tutto il suo contenuto nel cestino?",
+  "confirmDeleteFolder": "Eliminare definitivamente «{name}» e tutto il suo contenuto? L’operazione non è reversibile.",
   "@confirmDeleteFile": {
     "placeholders": {
       "fileName": {

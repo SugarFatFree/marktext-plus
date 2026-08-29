@@ -273,6 +273,9 @@
   "copyFilePath": "نسخ مسار الملف",
   "deleteFile": "حذف الملف",
   "confirmDeleteFile": "هل أنت متأكد من حذف \"{fileName}\"؟",
+  "confirmTrashFile": "نقل «{name}» إلى سلة المهملات؟",
+  "confirmTrashFolder": "نقل «{name}» وكل ما بداخله إلى سلة المهملات؟",
+  "confirmDeleteFolder": "حذف «{name}» وكل ما بداخله نهائيًا؟ لا يمكن التراجع عن ذلك.",
   "@confirmDeleteFile": {
     "placeholders": {
       "fileName": {

@@ -273,6 +273,9 @@
   "copyFilePath": "Dateipfad kopieren",
   "deleteFile": "Datei löschen",
   "confirmDeleteFile": "Sind Sie sicher, dass Sie \"{fileName}\" löschen möchten?",
+  "confirmTrashFile": "„{name}“ in den Papierkorb verschieben?",
+  "confirmTrashFolder": "„{name}“ und alles darin in den Papierkorb verschieben?",
+  "confirmDeleteFolder": "„{name}“ und alles darin endgültig löschen? Das lässt sich nicht rückgängig machen.",
   "@confirmDeleteFile": {
     "placeholders": {
       "fileName": {

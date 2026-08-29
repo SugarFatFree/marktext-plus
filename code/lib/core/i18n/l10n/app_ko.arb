@@ -273,6 +273,9 @@
   "copyFilePath": "파일 경로 복사",
   "deleteFile": "파일 삭제",
   "confirmDeleteFile": "\"{fileName}\"을(를) 삭제하시겠습니까?",
+  "confirmTrashFile": "“{name}”을(를) 휴지통으로 옮길까요?",
+  "confirmTrashFolder": "“{name}”과(와) 그 안의 모든 항목을 휴지통으로 옮길까요?",
+  "confirmDeleteFolder": "“{name}”과(와) 그 안의 모든 항목을 완전히 삭제할까요? 되돌릴 수 없습니다.",
   "@confirmDeleteFile": {
     "placeholders": {
       "fileName": {

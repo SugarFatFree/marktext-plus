@@ -710,6 +710,21 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String confirmTrashFile(String name) {
+    return '「$name」をゴミ箱に移動しますか？';
+  }
+
+  @override
+  String confirmTrashFolder(String name) {
+    return '「$name」とその中身をすべてゴミ箱に移動しますか？';
+  }
+
+  @override
+  String confirmDeleteFolder(String name) {
+    return '「$name」とその中身をすべて完全に削除しますか？元に戻せません。';
+  }
+
+  @override
   String get newFolder => '新しいフォルダ';
 
   @override

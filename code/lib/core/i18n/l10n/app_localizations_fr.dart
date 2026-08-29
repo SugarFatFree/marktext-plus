@@ -723,6 +723,21 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String confirmTrashFile(String name) {
+    return 'Mettre « $name » à la corbeille ?';
+  }
+
+  @override
+  String confirmTrashFolder(String name) {
+    return 'Mettre « $name » et tout son contenu à la corbeille ?';
+  }
+
+  @override
+  String confirmDeleteFolder(String name) {
+    return 'Supprimer définitivement « $name » et tout son contenu ? Cette action est irréversible.';
+  }
+
+  @override
   String get newFolder => 'Nouveau dossier';
 
   @override

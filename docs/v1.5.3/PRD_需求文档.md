@@ -3,6 +3,7 @@
 | 编号 | 日期 | 标题 | 优先级 | 难易度 | 状态 |
 |------|------|------|--------|--------|------|
 | FEAT-054 | 2026-08-30 | 拼写检查：结论为当前条件下无法实现 | P3 | — | 不实现 |
+| FEAT-055 | 2026-08-30 | 删除走系统回收站，确认框区分四种情形 | P1 | 中 | 已完成 |
 
 ---
 
@@ -46,3 +47,62 @@ false 时带 `"false"`。实现也只有一行——`domNode.setAttribute('spell
 
 一旦具备条件（能打包一份 MIT/LGPL 词库，或 Flutter 桌面端补上该 channel），
 再回来做。**这是对照上游功能清单里唯一仍然缺失的一项。**
+
+---
+
+## FEAT-055：删除走系统回收站，并把确认框说清楚
+
+| 字段 | 内容 |
+|------|------|
+| 实现日期 | 2026-08-30 |
+| 需求描述 | 侧边栏删除文件/文件夹时移到系统回收站而非永久删除；确认框按"是否文件夹"和"能否撤销"分成四种措辞 |
+| 对标来源 | 上游 MarkText 走 Electron 的 `shell.trashItem`（`packages/desktop/src/main/app/index.ts:848`），删错了可以还原 |
+
+### 原先的问题
+
+- `FileService.deleteEntity` 是**永久删除**，文件夹还是 `delete(recursive: true)`
+  ——整个子树，没有任何找回的余地
+- 确认框四种情况**共用一句话**："确定要删除 X 吗？"。一个装着五百篇笔记的文件夹
+  即将被彻底销毁时，这句话不足以让人知道自己同意了什么
+
+### 实现方案
+
+`lib/services/trash_service.dart`（新增），按 freedesktop.org 回收站规范实现 Linux：
+
+- 文件移入 `$XDG_DATA_HOME/Trash/files/`，同时在 `info/` 写一份 `.trashinfo`
+  记录原路径与删除时间，桌面才能"还原"
+- **先写记录再移动**：`files/` 里有文件而没有记录，是桌面既无法还原也无法正确
+  命名的孤儿；反过来则无害，移动失败时顺手清掉
+- 重名自动让位（`note.md` → `note.1.md`），两次删掉同名文件不会互相覆盖
+- **跨文件系统时返回 false 而不是"复制再删原件"**——那是永久删除换了身打扮
+
+回收站根目录做成可注入参数（默认读 `$XDG_DATA_HOME` / `~/.local/share`），
+所以测试跑在临时目录上，不会碰到使用者真正的回收站。
+
+### 确认文案
+
+抽出 `deleteConfirmationFor(l10n, name, {isDirectory, canTrash})`，四种组合四句话：
+
+| | 能进回收站 | 不能 |
+|---|---|---|
+| 文件 | 将"X"移到回收站？ | 确定要删除"X"吗？ |
+| 文件夹 | 将"X"及其中所有内容移到回收站？ | 永久删除"X"及其中所有内容？此操作无法撤销。 |
+
+有一条测试断言这四句**互不相同**——两种情况问同一句话，读者就分不出自己同意了什么；
+另有一条遍历 12 种语言，确认每种都答得出全部四句且带得上文件名。
+
+### 尚未覆盖的平台
+
+macOS 与 Windows 目前 `TrashService.isAvailable` 为 false，仍是永久删除——
+**但确认框会如实说"无法撤销"**，不会拿回收站的措辞骗人。
+后续可补：macOS 用 `NSFileManager.trashItem`（AppDelegate 里已有通道），
+Windows 用 FFI 调 `SHFileOperationW` 加 `FOF_ALLOWUNDO`。两者本机都无法编译验证，
+所以没有仓促塞进来——**会删文件的未经测试的代码，风险大于它解决的问题**。
+
+### 涉及文件
+
+- `code/lib/services/trash_service.dart`（新增）
+- `code/lib/providers/file_provider.dart`、`code/lib/ui/widgets/side_bar.dart`
+- `code/lib/core/i18n/l10n/*.arb`（12 种语言 × 3 个键）
+- `code/test/services/trash_service_test.dart`（新增，5 条）
+- `code/test/ui/widgets/delete_confirmation_test.dart`（新增，5 条）

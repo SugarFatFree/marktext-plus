@@ -273,6 +273,9 @@
   "copyFilePath": "复制文件路径",
   "deleteFile": "删除文件",
   "confirmDeleteFile": "确定要删除 \"{fileName}\" 吗？",
+  "confirmTrashFile": "将“{name}”移到回收站？",
+  "confirmTrashFolder": "将“{name}”及其中所有内容移到回收站？",
+  "confirmDeleteFolder": "永久删除“{name}”及其中所有内容？此操作无法撤销。",
   "@confirmDeleteFile": {
     "placeholders": {
       "fileName": {

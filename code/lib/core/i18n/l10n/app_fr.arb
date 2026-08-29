@@ -273,6 +273,9 @@
   "copyFilePath": "Copier le chemin du fichier",
   "deleteFile": "Supprimer le fichier",
   "confirmDeleteFile": "Êtes-vous sûr de vouloir supprimer \"{fileName}\" ?",
+  "confirmTrashFile": "Mettre « {name} » à la corbeille ?",
+  "confirmTrashFolder": "Mettre « {name} » et tout son contenu à la corbeille ?",
+  "confirmDeleteFolder": "Supprimer définitivement « {name} » et tout son contenu ? Cette action est irréversible.",
   "@confirmDeleteFile": {
     "placeholders": {
       "fileName": {

@@ -1461,6 +1461,24 @@ abstract class AppLocalizations {
   /// **'Are you sure you want to delete \"{fileName}\"?'**
   String confirmDeleteFile(String fileName);
 
+  /// No description provided for @confirmTrashFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Move “{name}” to the trash?'**
+  String confirmTrashFile(String name);
+
+  /// No description provided for @confirmTrashFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Move “{name}” and everything in it to the trash?'**
+  String confirmTrashFolder(String name);
+
+  /// No description provided for @confirmDeleteFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanently delete “{name}” and everything in it? This cannot be undone.'**
+  String confirmDeleteFolder(String name);
+
   /// No description provided for @newFolder.
   ///
   /// In en, this message translates to:
