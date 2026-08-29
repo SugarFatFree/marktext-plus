@@ -292,6 +292,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get formatTableAlignNone => 'Spaltenausrichtung aufheben';
 
   @override
+  String get paragraphMoveBlockUp => 'Block nach oben';
+
+  @override
+  String get paragraphMoveBlockDown => 'Block nach unten';
+
+  @override
   String get formatLink => 'Link';
 
   @override

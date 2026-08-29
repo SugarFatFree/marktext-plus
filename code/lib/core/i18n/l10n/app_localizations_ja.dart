@@ -287,6 +287,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get formatTableAlignNone => '列の配置を解除';
 
   @override
+  String get paragraphMoveBlockUp => 'ブロックを上へ';
+
+  @override
+  String get paragraphMoveBlockDown => 'ブロックを下へ';
+
+  @override
   String get formatLink => 'リンク';
 
   @override

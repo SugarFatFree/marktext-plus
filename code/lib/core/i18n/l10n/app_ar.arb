@@ -136,6 +136,8 @@
   "formatTableAlignCenter": "توسيط العمود",
   "formatTableAlignRight": "محاذاة العمود لليمين",
   "formatTableAlignNone": "إزالة محاذاة العمود",
+  "paragraphMoveBlockUp": "نقل الكتلة لأعلى",
+  "paragraphMoveBlockDown": "نقل الكتلة لأسفل",
   "formatLink": "رابط",
   "formatImage": "صورة",
   "formatHorizontalRule": "خط أفقي",

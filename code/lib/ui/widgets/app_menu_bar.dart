@@ -817,6 +817,17 @@ class AppMenuBar extends ConsumerWidget {
               child: Text(l10n.paragraphLooseList),
               onPressed: () => fmt(FormatAction.looseList),
             ),
+            const Divider(height: 1),
+            MenuItemButton(
+              shortcut: _shortcut('moveBlockUp'),
+              child: Text(l10n.paragraphMoveBlockUp),
+              onPressed: () => fmt(FormatAction.moveBlockUp),
+            ),
+            MenuItemButton(
+              shortcut: _shortcut('moveBlockDown'),
+              child: Text(l10n.paragraphMoveBlockDown),
+              onPressed: () => fmt(FormatAction.moveBlockDown),
+            ),
           ],
           child: Text(l10n.menuParagraph),
         ),

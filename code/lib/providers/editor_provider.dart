@@ -54,6 +54,10 @@ enum FormatAction {
   tableAlignCenter,
   tableAlignRight,
   tableAlignNone,
+  // Reordering, which upstream MarkText does by dragging one paragraph over
+  // another. Here the block under the caret trades places with its neighbour.
+  moveBlockUp,
+  moveBlockDown,
 }
 
 class EditorState {

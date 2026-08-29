@@ -295,6 +295,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get formatTableAlignNone => 'Quitar alineación de la columna';
 
   @override
+  String get paragraphMoveBlockUp => 'Mover bloque arriba';
+
+  @override
+  String get paragraphMoveBlockDown => 'Mover bloque abajo';
+
+  @override
   String get formatLink => 'Enlace';
 
   @override

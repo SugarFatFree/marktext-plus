@@ -136,6 +136,8 @@
   "formatTableAlignCenter": "Выровнять столбец по центру",
   "formatTableAlignRight": "Выровнять столбец по правому краю",
   "formatTableAlignNone": "Убрать выравнивание столбца",
+  "paragraphMoveBlockUp": "Переместить блок вверх",
+  "paragraphMoveBlockDown": "Переместить блок вниз",
   "formatLink": "Ссылка",
   "formatImage": "Изображение",
   "formatHorizontalRule": "Горизонтальная линия",

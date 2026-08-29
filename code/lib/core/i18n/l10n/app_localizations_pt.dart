@@ -294,6 +294,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String get formatTableAlignNone => 'Remover alinhamento da coluna';
 
   @override
+  String get paragraphMoveBlockUp => 'Mover bloco para cima';
+
+  @override
+  String get paragraphMoveBlockDown => 'Mover bloco para baixo';
+
+  @override
   String get formatLink => 'Ligação';
 
   @override
@@ -1242,6 +1248,12 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get formatTableAlignNone => 'Remover alinhamento da coluna';
+
+  @override
+  String get paragraphMoveBlockUp => 'Mover bloco para cima';
+
+  @override
+  String get paragraphMoveBlockDown => 'Mover bloco para baixo';
 
   @override
   String get formatLink => 'Link';

@@ -136,6 +136,8 @@
   "formatTableAlignCenter": "整列居中",
   "formatTableAlignRight": "整列右对齐",
   "formatTableAlignNone": "清除整列对齐",
+  "paragraphMoveBlockUp": "上移块",
+  "paragraphMoveBlockDown": "下移块",
   "formatLink": "链接",
   "formatImage": "图片",
   "formatHorizontalRule": "分隔线",

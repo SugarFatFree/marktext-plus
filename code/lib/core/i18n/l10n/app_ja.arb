@@ -136,6 +136,8 @@
   "formatTableAlignCenter": "列を中央揃え",
   "formatTableAlignRight": "列を右揃え",
   "formatTableAlignNone": "列の配置を解除",
+  "paragraphMoveBlockUp": "ブロックを上へ",
+  "paragraphMoveBlockDown": "ブロックを下へ",
   "formatLink": "リンク",
   "formatImage": "画像",
   "formatHorizontalRule": "水平線",

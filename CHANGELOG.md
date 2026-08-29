@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - v1.5.2
 
 ### Added
+- Move a block up or down with `Alt+↑` / `Alt+↓`, trading places with the block before or after it — upstream MarkText reorders paragraphs by dragging one over another. Boundaries come from the parser, so a fenced code block moves whole rather than being split at the blank line inside it, and the blank line between two blocks stays between them. With a selection, the lines it touches move instead
 - Table editing: insert a row above or below, delete a row, insert a column left or right, delete a column, and set a column's alignment. Under Format ▸ Insert ▸ Edit Table, greyed out where a command does not apply — outside a table, on the header row for Delete Row, and on a single-column table for Delete Column. Any edit re-aligns the whole table, measuring CJK characters at the two columns they occupy
 
 ## [v1.5.1] - 2026-08-29

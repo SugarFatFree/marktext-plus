@@ -136,6 +136,8 @@
   "formatTableAlignCenter": "열 가운데 정렬",
   "formatTableAlignRight": "열 오른쪽 정렬",
   "formatTableAlignNone": "열 정렬 해제",
+  "paragraphMoveBlockUp": "블록 위로 이동",
+  "paragraphMoveBlockDown": "블록 아래로 이동",
   "formatLink": "링크",
   "formatImage": "이미지",
   "formatHorizontalRule": "수평선",

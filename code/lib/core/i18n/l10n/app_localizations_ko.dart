@@ -287,6 +287,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get formatTableAlignNone => '열 정렬 해제';
 
   @override
+  String get paragraphMoveBlockUp => '블록 위로 이동';
+
+  @override
+  String get paragraphMoveBlockDown => '블록 아래로 이동';
+
+  @override
   String get formatLink => '링크';
 
   @override

@@ -21,6 +21,7 @@ import '../widgets/language_picker.dart';
 import '../../services/html_to_markdown.dart';
 import '../../services/clipboard_service.dart';
 import '../../services/table_edit_service.dart';
+import '../../services/block_move_service.dart';
 
 class SourceEditor extends ConsumerStatefulWidget {
   final String initialContent;
@@ -1283,6 +1284,10 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
         _applyTableEdit(TableEdit.alignRight);
       case FormatAction.tableAlignNone:
         _applyTableEdit(TableEdit.alignNone);
+      case FormatAction.moveBlockUp:
+        _moveBlock(up: true);
+      case FormatAction.moveBlockDown:
+        _moveBlock(up: false);
       case FormatAction.superscript:
         _wrapSelection('^', '^');
       case FormatAction.subscript:
@@ -1547,6 +1552,31 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
   }
 
   /// Runs a block-level edit that reports where the caret should land.
+  /// Trades the block under the caret with the one before or after it.
+  ///
+  /// With a selection, the lines it touches move instead — the selection is
+  /// the reader saying which lines they mean.
+  void _moveBlock({required bool up}) {
+    final text = _controller.text;
+    final selection = _controller.selection;
+    if (selection.baseOffset < 0) return;
+    final result = BlockMoveService.move(
+      text,
+      selection.baseOffset.clamp(0, text.length),
+      selection.extentOffset.clamp(0, text.length),
+      up: up,
+    );
+    if (result == null) return;
+    ref.read(editorProvider.notifier).pushHistory(text);
+    _controller.value = TextEditingValue(
+      text: result.text,
+      selection: TextSelection(
+        baseOffset: result.base,
+        extentOffset: result.extent,
+      ),
+    );
+  }
+
   /// Rewrites the table under the caret.
   ///
   /// Does nothing when the caret is not in a table, or when the edit does not

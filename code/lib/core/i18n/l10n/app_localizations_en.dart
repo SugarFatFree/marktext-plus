@@ -290,6 +290,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get formatTableAlignNone => 'Clear Column Alignment';
 
   @override
+  String get paragraphMoveBlockUp => 'Move Block Up';
+
+  @override
+  String get paragraphMoveBlockDown => 'Move Block Down';
+
+  @override
   String get formatLink => 'Link';
 
   @override

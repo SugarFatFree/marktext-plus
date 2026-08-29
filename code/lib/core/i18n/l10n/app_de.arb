@@ -136,6 +136,8 @@
   "formatTableAlignCenter": "Spalte zentriert",
   "formatTableAlignRight": "Spalte rechtsbündig",
   "formatTableAlignNone": "Spaltenausrichtung aufheben",
+  "paragraphMoveBlockUp": "Block nach oben",
+  "paragraphMoveBlockDown": "Block nach unten",
   "formatLink": "Link",
   "formatImage": "Bild",
   "formatHorizontalRule": "Horizontale Linie",

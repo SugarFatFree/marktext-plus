@@ -639,6 +639,18 @@ abstract class AppLocalizations {
   /// **'Clear Column Alignment'**
   String get formatTableAlignNone;
 
+  /// No description provided for @paragraphMoveBlockUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Move Block Up'**
+  String get paragraphMoveBlockUp;
+
+  /// No description provided for @paragraphMoveBlockDown.
+  ///
+  /// In en, this message translates to:
+  /// **'Move Block Down'**
+  String get paragraphMoveBlockDown;
+
   /// No description provided for @formatLink.
   ///
   /// In en, this message translates to:

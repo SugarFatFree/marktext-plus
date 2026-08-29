@@ -136,6 +136,8 @@
   "formatTableAlignCenter": "Centrar coluna",
   "formatTableAlignRight": "Alinhar coluna à direita",
   "formatTableAlignNone": "Remover alinhamento da coluna",
+  "paragraphMoveBlockUp": "Mover bloco para cima",
+  "paragraphMoveBlockDown": "Mover bloco para baixo",
   "formatLink": "Ligação",
   "formatImage": "Imagem",
   "formatHorizontalRule": "Linha horizontal",

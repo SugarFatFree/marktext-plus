@@ -143,6 +143,8 @@
   "formatTableAlignCenter": "Align Column Center",
   "formatTableAlignRight": "Align Column Right",
   "formatTableAlignNone": "Clear Column Alignment",
+  "paragraphMoveBlockUp": "Move Block Up",
+  "paragraphMoveBlockDown": "Move Block Down",
   "formatLink": "Link",
   "formatImage": "Image",
   "formatHorizontalRule": "Horizontal Rule",
