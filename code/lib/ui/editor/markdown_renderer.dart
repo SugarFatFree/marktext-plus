@@ -23,7 +23,7 @@ import '../../providers/settings_provider.dart';
 import '../../services/text_search_service.dart';
 import '../../providers/tab_provider.dart';
 import '../../services/markdown_parser.dart' as md;
-import '../../services/export_service.dart';
+import '../../services/rich_copy_service.dart';
 import '../../services/clipboard_service.dart';
 import 'mermaid/parser/mermaid_parser.dart';
 import '../widgets/mermaid_renderer.dart';
@@ -735,24 +735,28 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     );
   }
 
+  /// Puts an HTML flavour of the selection on the clipboard beside the text.
+  ///
+  /// Built from the blocks this preview drew, not by parsing what was copied.
+  /// A selection here returns the *rendered* text — a heading comes back as
+  /// `My Heading`, without the `#` — so feeding it back through the markdown
+  /// parser, which is what this used to do, could only ever produce a
+  /// paragraph. Pasting into Word lost every heading and every bold run, which
+  /// is the whole thing rich copy exists to keep.
   Future<void> _enhanceClipboardWithHtml() async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     final selectedText = data?.text;
     if (selectedText == null || selectedText.isEmpty) return;
 
-    // Convert selected markdown text to HTML
-    final html = _selectedTextToHtml(selectedText);
-    await ClipboardService.copyWithHtml(selectedText, html);
-  }
+    final nodes = _cachedNodes;
+    if (nodes == null) return;
 
-  String _selectedTextToHtml(String markdown) {
-    final parser = md.MarkdownParser();
-    final nodes = parser.parse(markdown);
-    final buffer = StringBuffer();
-    for (final node in nodes) {
-      buffer.writeln(ExportService.nodeToHtml(node));
-    }
-    return buffer.toString();
+    final html = RichCopyService.htmlForSelection(nodes, selectedText);
+    // Nothing written at all rather than something that does not describe what
+    // was copied: the plain text is already on the clipboard and correct.
+    if (html == null) return;
+
+    await ClipboardService.copyWithHtml(selectedText, html);
   }
 
   void _scheduleNextBatch(int totalNodes) {
