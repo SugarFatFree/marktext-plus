@@ -5,7 +5,7 @@ All notable changes to MarkText Plus will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - v1.5.1
+## [v1.5.1] - 2026-08-29
 
 ### Added
 - A link in the preview shows a hand cursor, and hovering it names where it goes and that Ctrl/Cmd opens it. It opened only with the modifier held and said neither thing
