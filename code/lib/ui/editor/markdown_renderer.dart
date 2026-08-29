@@ -1926,6 +1926,30 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     return TextSpan(children: children);
   }
 
+  /// Turns a path written in the document into one the file system can use.
+  ///
+  /// `![](./img/x.png)` is how an image is ordinarily written, and the path is
+  /// relative to the file the markdown is in. `File('./img/x.png')` resolves
+  /// against the process's working directory — wherever the application was
+  /// started from — so the picture was simply not found and the preview showed
+  /// the alt text in red.
+  ///
+  /// The export side has resolved these correctly all along
+  /// (`ExportService._resolveImagePath`), and following a relative *link* in
+  /// this same file does too. This was the third place and the one that had
+  /// not been given the same treatment.
+  String _resolveAgainstDocument(String href) {
+    if (p.isAbsolute(href)) return href;
+    final state = ref.read(tabProvider);
+    final tab =
+        state.tabs.where((t) => t.id == state.activeTabId).firstOrNull;
+    final path = tab?.filePath;
+    // An unsaved document has no folder to be relative to; leaving the path
+    // alone at least lets an absolute one keep working.
+    if (path == null) return href;
+    return p.normalize(p.join(p.dirname(path), href));
+  }
+
   InlineSpan _buildImageSpan(md.InlineSpan span, ThemeData theme) {
     final href = span.href;
     if (href == null || href.isEmpty) {
@@ -1953,7 +1977,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         ),
       );
     } else {
-      final file = File(href);
+      final file = File(_resolveAgainstDocument(href));
       imageWidget = Image.file(
         file,
         key: ValueKey('image:$revision:$href'),

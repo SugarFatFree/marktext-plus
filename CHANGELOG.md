@@ -5,7 +5,7 @@ All notable changes to MarkText Plus will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - v1.5.2
+## [v1.5.2] - 2026-08-30
 
 ### Added
 - Editing in the preview carries on from block to block: down from the last line of a block opens the one below, up from the first line opens the one above, and down from the last block opens the blank space under the document. Editing one block then reaching for the mouse to start the next is not how anyone writes. Inside a block of several lines the arrows still move the caret
@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Table editing: insert a row above or below, delete a row, insert a column left or right, delete a column, and set a column's alignment. Under Format ▸ Insert ▸ Edit Table, greyed out where a command does not apply — outside a table, on the header row for Delete Row, and on a single-column table for Delete Column. Any edit re-aligns the whole table, measuring CJK characters at the two columns they occupy
 
 ### Fixed
+- An image written with a path relative to the document — `![](./img/x.png)`, which is how images are ordinarily written — now appears in the preview. The path went straight to `File()`, which resolves against the directory the application was started from, so the picture was never found. Exporting resolved these correctly all along, and so did following a relative link, which is why a document could export with its images and show none of them
 - Pressing up in the document's first block while editing in the preview no longer closes the editor. It committed before looking for somewhere to go, and there was nowhere
 
 ## [v1.5.1] - 2026-08-29
