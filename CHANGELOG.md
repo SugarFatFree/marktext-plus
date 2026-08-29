@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - File ▸ Move To…, the one menu command upstream MarkText has that this one did not
 
 ### Fixed
+- A paragraph no longer keeps the spaces its lines were indented by. HTML collapses them so exports looked right, but the preview draws the text as written and a paragraph under a list item came out visibly shifted
+- `[TODO]()` — a link with an empty destination — is a link rather than literal text
+- Writing the next list with a different bullet character starts a second list, as it should, instead of running the two together
 - `2 ** 3 ** 4` and `** note **` are no longer turned into bold. The rule that a delimiter with a space just inside it does not emphasise was applied to `*` alone, and not to `**`, `***`, `__` or `___`
 - An underscore inside a word no longer emphasises Chinese, Japanese or Cyrillic text. The word-boundary check recognised Latin letters only, so `中文_强调_文字` came out emphasised where `snake_case_name` correctly did not
 - A code span written across two lines — a long command wrapped in the source — is read as code instead of leaving its backticks in the text

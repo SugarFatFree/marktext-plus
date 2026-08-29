@@ -34,6 +34,11 @@ void main() {
     out = out.replaceAll('<br>', ' ');
     out = out.replaceAll(RegExp(r'\s+'), ' ');
     out = out.replaceAll('> <', '><');
+    // CommonMark keeps the newline that ends a code block's content; this
+    // exporter drops it. Nothing renders differently either way, and leaving
+    // it in the comparison hid every real list failure behind a trailing
+    // space.
+    out = out.replaceAll(RegExp(r'\s+</code>'), '</code>');
     return out.trim();
   }
 
@@ -83,7 +88,7 @@ void main() {
 
     // Measured 2026-08-29. Raise it whenever the work raises it; never lower
     // it to make a change pass.
-    const floor = 259;
+    const floor = 315;
     expect(passed, greaterThanOrEqualTo(floor),
         reason: '解析能力相比 $floor 例退步了');
     if (passed > floor) {
@@ -141,6 +146,49 @@ void main() {
       expect(spans.where((s) => s.type == InlineType.italic), hasLength(1),
           reason: source);
     }
+  });
+
+  test('a paragraph does not keep the spaces its lines were indented by', () {
+    // HTML collapses a leading space, so an export looked right; the preview
+    // draws a Text widget, where the space is there on screen. A paragraph
+    // under a list item came out visibly shifted.
+    for (final source in ['   foo\n', 'one\n   two\n', '- item\n\n  after\n']) {
+      for (final node in MarkdownParser().parse(source)) {
+        if (node is! ParagraphNode) continue;
+        for (final line in node.content.split('\n')) {
+          expect(line, isNot(startsWith(' ')), reason: source);
+        }
+      }
+    }
+  });
+
+  test('changing the bullet character starts a second list', () {
+    // Someone who wants two lists next to each other writes the second with
+    // a different marker; run together they were one list.
+    final ast = MarkdownParser().parse('- foo\n- bar\n+ baz\n');
+    final lists = ast.whereType<ListNode>().toList();
+    expect(lists, hasLength(2));
+    expect(lists.first.items, hasLength(2));
+    expect(lists.last.items, hasLength(1));
+
+    // The same run of markers is still one list.
+    expect(
+        MarkdownParser().parse('- foo\n- bar\n- baz\n')
+            .whereType<ListNode>()
+            .single
+            .items,
+        hasLength(3));
+  });
+
+  test('a link may have an empty destination', () {
+    // `[TODO]()` is a placeholder people write; with a required destination
+    // the whole thing fell back to literal text.
+    final spans = (MarkdownParser().parse('[TODO]()\n').single as ParagraphNode)
+        .inlineSpans;
+    final link = spans.where((s) => s.type == InlineType.link);
+    expect(link, hasLength(1));
+    expect(link.single.text, 'TODO');
+    expect(link.single.href, '');
   });
 
   test('a code span written across two lines is still a code span', () {

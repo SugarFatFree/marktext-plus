@@ -965,10 +965,11 @@ class MarkdownParser {
     // numbered step is a deeper item of the same list, not a new one.
     final firstIndent = _indentColumns(lines[start]);
     final firstOrdered = _olRe.hasMatch(lines[start]);
+    final firstMarker = _markerOf(lines[start]);
 
     while (i < lines.length) {
       if (_startsListItem(lines[i])) {
-        if (_startsAnotherList(lines[i], firstIndent, firstOrdered)) break;
+        if (_startsAnotherList(lines[i], firstIndent, firstOrdered, firstMarker)) break;
         blocks.add([lines[i]]);
         blockStarts.add(i);
         i++;
@@ -987,7 +988,7 @@ class MarkdownParser {
         // put back unchanged.
         if (next < lines.length &&
             _startsListItem(lines[next]) &&
-            !_startsAnotherList(lines[next], firstIndent, firstOrdered)) {
+            !_startsAnotherList(lines[next], firstIndent, firstOrdered, firstMarker)) {
           // A gap between two items is what makes the list loose.
           loose = true;
           i = next;
@@ -1027,9 +1028,31 @@ class MarkdownParser {
   /// Changing from numbers to bullets — or back — starts a new list, as
   /// CommonMark has it. Only at the list's own indentation: a bulleted
   /// sub-point under a numbered step is a deeper item of the same list.
-  bool _startsAnotherList(String line, int firstIndent, bool firstOrdered) =>
-      _indentColumns(line) <= firstIndent &&
-      _olRe.hasMatch(line) != firstOrdered;
+  /// The character a list item is marked with: `-`, `*`, `+`, `.` or `)`.
+  static String? _markerOf(String line) {
+    final match = _continuationRe.firstMatch(line);
+    if (match == null) return null;
+    final marker = match.group(2)!;
+    return _olRe.hasMatch(line) ? marker[marker.length - 1] : marker;
+  }
+
+  /// Whether [line] begins a list separate from the one being collected.
+  ///
+  /// Changing the marker character starts a new list, as CommonMark has it —
+  /// `+` after a run of `-` is a second list, not a third item of the first.
+  /// Only the kind was compared before, so a document that switched bullets
+  /// to separate two lists got one list back.
+  bool _startsAnotherList(
+    String line,
+    int firstIndent,
+    bool firstOrdered, [
+    String? firstMarker,
+  ]) {
+    if (_indentColumns(line) > firstIndent) return false;
+    if (_olRe.hasMatch(line) != firstOrdered) return true;
+    if (firstMarker == null) return false;
+    return _markerOf(line) != firstMarker;
+  }
 
   /// Link reference definitions found in the document being parsed.
   ///
@@ -1428,7 +1451,15 @@ class MarkdownParser {
         i++;
       }
       if (paraLines.isNotEmpty) {
-        final content = _stripHardBreakMarkers(paraLines).join('\n');
+        // Leading whitespace is not part of the text. CommonMark strips it
+        // from every line of a paragraph, and here it mattered more than
+        // conformance: HTML collapses a leading space so an export looked
+        // right, but the preview draws a `Text` widget, where the space is
+        // there on screen. A paragraph written under a list item, or indented
+        // by a couple of spaces, came out visibly shifted.
+        final content = _stripHardBreakMarkers(
+          [for (final line in paraLines) line.trimLeft()],
+        ).join('\n');
         nodes.add(_withSpan(
           ParagraphNode(
             content: content,
@@ -1494,7 +1525,9 @@ class MarkdownParser {
       // The link text may itself hold a bracketed run — `[see [1] here](x)`
       // is a link, and `[^\]]*` stopped at the inner bracket and left the
       // whole thing as literal text.
-      r'''|\[((?:[^\[\]]|\[[^\[\]]*\])*)\]\(\s*(?:<([^>]*)>|((?:[^()\s"]|\([^()]*\))+))'''
+      // The destination may be empty — `[TODO]()` is a placeholder people
+      // write — and with `+` the whole thing fell back to literal text.
+      r'''|\[((?:[^\[\]]|\[[^\[\]]*\])*)\]\(\s*(?:<([^>]*)>|((?:[^()\s"]|\([^()]*\))*))'''
       r'''(?:\s+(?:"([^"]*)"|'([^']*)'))?\s*\)'''  // 6 text, 7/8 href, 9/10 title
       r'|\[\^([^\]]+)\]'           // footnote ref
       // A code span is delimited by a run of backticks and closed by a run of
