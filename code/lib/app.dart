@@ -36,6 +36,28 @@ void reportSettingsSaveFailure(Object error) {
 /// another program holds open, did nothing at all: no message, and the only
 /// clue was the modified dot that stayed put. Upstream MarkText notifies on
 /// every one of these.
+/// Tells the reader that an export or a print did not happen.
+///
+/// The four entry points — HTML, PDF, Word and Print — all call something
+/// that throws on an unwritable path, a folder where a file was expected, or
+/// a document the PDF writer cannot lay out, and none of them caught it.
+/// They are `async void` event handlers, so the throw escaped as an unhandled
+/// asynchronous error: the reader chose a filename, pressed Export, and
+/// nothing whatever happened. The save paths were given this treatment long
+/// ago; the export paths were not.
+void reportExportFailure(Object error) {
+  final context = navigatorKey.currentContext;
+  if (context == null || !context.mounted) return;
+  final l10n = AppLocalizations.of(context);
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(l10n == null
+          ? 'Could not export the document: $error'
+          : l10n.exportFailed('$error')),
+    ),
+  );
+}
+
 void reportSaveFailure(Object error) {
   final context = navigatorKey.currentContext;
   if (context == null || !context.mounted) return;

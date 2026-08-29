@@ -55,6 +55,7 @@
     }
   },
   "saveFailed": "파일을 저장하지 못했습니다: {message}",
+  "exportFailed": "문서를 내보내지 못했습니다: {message}",
   "saveConflictTitle": "디스크에서 파일이 변경되었습니다",
   "saveConflictBody": "연 뒤에 다른 프로그램이 “{name}”을(를) 변경했습니다. 지금 저장하면 그 변경을 덮어씁니다.",
   "saveConflictOverwrite": "덮어쓰기",

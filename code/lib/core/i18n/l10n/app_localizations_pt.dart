@@ -89,6 +89,11 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String exportFailed(String message) {
+    return 'Não foi possível exportar o documento: $message';
+  }
+
+  @override
   String get saveConflictTitle => 'O ficheiro mudou no disco';
 
   @override
@@ -1086,6 +1091,11 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String saveFailed(String message) {
     return 'Não foi possível salvar o arquivo: $message';
+  }
+
+  @override
+  String exportFailed(String message) {
+    return 'Não foi possível exportar o documento: $message';
   }
 
   @override

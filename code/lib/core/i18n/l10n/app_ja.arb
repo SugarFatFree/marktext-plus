@@ -55,6 +55,7 @@
     }
   },
   "saveFailed": "ファイルを保存できませんでした: {message}",
+  "exportFailed": "ドキュメントを書き出せませんでした：{message}",
   "saveConflictTitle": "ファイルがディスク上で変更されました",
   "saveConflictBody": "開いた後に他のプログラムが「{name}」を変更しました。今保存するとその変更を上書きします。",
   "saveConflictOverwrite": "上書き",

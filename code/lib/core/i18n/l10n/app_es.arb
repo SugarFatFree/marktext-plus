@@ -55,6 +55,7 @@
     }
   },
   "saveFailed": "No se pudo guardar el archivo: {message}",
+  "exportFailed": "No se pudo exportar el documento: {message}",
   "saveConflictTitle": "El archivo cambió en el disco",
   "saveConflictBody": "Algo más modificó «{name}» desde que se abrió. Guardar ahora sobrescribiría ese cambio.",
   "saveConflictOverwrite": "Sobrescribir",

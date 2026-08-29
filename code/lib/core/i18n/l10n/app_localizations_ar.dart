@@ -86,6 +86,11 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String exportFailed(String message) {
+    return 'تعذّر تصدير المستند: $message';
+  }
+
+  @override
   String get saveConflictTitle => 'تغيّر الملف على القرص';
 
   @override

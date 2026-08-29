@@ -55,6 +55,8 @@
     }
   },
   "saveFailed": "Could not save the file: {message}",
+  "exportFailed": "Could not export the document: {message}",
+  "@exportFailed": {"placeholders": {"message": {"type": "String"}}},
   "saveConflictTitle": "File changed on disk",
   "saveConflictBody": "Something else changed “{name}” since it was opened. Saving now would write over that change.",
   "saveConflictOverwrite": "Overwrite",

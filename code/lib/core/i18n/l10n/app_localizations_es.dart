@@ -89,6 +89,11 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String exportFailed(String message) {
+    return 'No se pudo exportar el documento: $message';
+  }
+
+  @override
   String get saveConflictTitle => 'El archivo cambió en el disco';
 
   @override

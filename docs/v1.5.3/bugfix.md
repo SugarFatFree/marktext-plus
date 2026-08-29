@@ -12,6 +12,7 @@
 | BUG-151 | 2026-08-30 | 日文/韩文/全角标签伸出 mermaid 节点方框 | P2 | 已修复 |
 | BUG-152 | 2026-08-30 | 测试用固定 sleep 等异步保存，CI 上偶发失败 | P2 | 已修复 |
 | BUG-153 | 2026-08-30 | 五处按字符数估宽的地方中文全部偏窄；连线标签不计入画布 | P2 | 已修复 |
+| BUG-154 | 2026-08-30 | 导出与打印失败时毫无提示（四个入口都无错误处理） | P1 | 已修复 |
 
 ---
 
@@ -523,3 +524,53 @@ diff 从 18 行变成 1371 行。用 `newline=''` 保留原换行符重做后恢
 - `code/lib/ui/editor/mermaid/layout/dagre_layout.dart`、`sequence_layout.dart`
 - `code/lib/ui/editor/mermaid/painter/gantt_painter.dart`、`pie_chart_painter.dart`
 - `code/test/ui/editor/mermaid/layout_geometry_test.dart`（+3 条，共 20 条）
+
+---
+
+## BUG-154：导出与打印失败时毫无提示
+
+**优先级**：P1　**状态**：已修复　**日期**：2026-08-30
+
+### 现象
+
+选好文件名、按下"导出为 HTML / PDF / Word"或"打印"，**如果失败，什么都不会发生**：
+没有文件、没有报错、没有提示。用户只能反复再点。
+
+### 根因分析
+
+四个入口 `_exportHtml` / `_exportPdf` / `_exportWord` / `_print` **都没有任何
+错误处理**，而它们调用的东西确实会抛。实测（不是推断）：
+
+| 场景 | HTML | PDF | Word |
+|---|---|---|---|
+| 目录不存在且不可创建 | PathNotFoundException | PathNotFoundException | DocxExportException |
+| 只读位置 | PathNotFoundException | PathNotFoundException | DocxExportException |
+| 路径指向一个目录 | FileSystemException | FileSystemException | DocxExportException |
+
+这四个都是 `async void` 的事件处理器，**抛出的异常会逃逸成未捕获的异步错误**，
+没有任何东西接住它。
+
+保存路径**早就修过同样的问题**（`reportSaveFailure`，注释里写着"Ctrl+S 在只读
+文件上什么都不做：没有消息，唯一的线索是那个一直不消失的修改点"）。
+导出这一侧一直没有跟上。
+
+### 修复方案
+
+仿照 `reportSaveFailure` 新增 `reportExportFailure`，四个入口各包一层
+try/catch。打印那处还会接住"本机没有打印服务"（没装 CUPS 的 Linux 就是这样答的）。
+12 种语言文案齐备。
+
+### 测试
+
+6 条。其中一条是**结构断言**：直接读 `app_menu_bar.dart` 的源码，确认四个入口
+的函数体里都出现了 `reportExportFailure`。这么写是因为真实行为需要文件选择器和
+打印机才能触发，而**结构断言能覆盖将来新增的导出入口**——那正是这个 bug 会重演
+的场景。
+
+验证过它能失败：去掉 `_print` 的那一句，测试立刻点名 `_print`。
+
+### 涉及文件
+
+- `code/lib/app.dart`、`code/lib/ui/widgets/app_menu_bar.dart`
+- `code/lib/core/i18n/l10n/*.arb`（12 种语言）
+- `code/test/ui/widgets/export_failure_test.dart`（新增，6 条）

@@ -1182,15 +1182,23 @@ class AppMenuBar extends ConsumerWidget {
     // each diagram and left a script from a CDN to draw it, so the diagrams
     // were blank for anyone offline — or on a network that does not reach
     // jsdelivr, which is most company networks.
-    final mermaidImages = await _renderMermaidImages(activeTab.content);
-    // The tab's own path is what relative image references resolve against.
-    await ExportService.exportToHtml(
-      activeTab.content,
-      path,
-      sourcePath: activeTab.filePath,
-      enableHtml: ref.read(settingsProvider).enableHtml,
-      mermaidImages: mermaidImages,
-    );
+    try {
+      final mermaidImages = await _renderMermaidImages(activeTab.content);
+      // The tab's own path is what relative image references resolve against.
+      await ExportService.exportToHtml(
+        activeTab.content,
+        path,
+        sourcePath: activeTab.filePath,
+        enableHtml: ref.read(settingsProvider).enableHtml,
+        mermaidImages: mermaidImages,
+      );
+    } catch (e) {
+      // An unwritable path, a folder where a file was expected, a diagram
+      // that will not render. Said out loud, because this is an `async void`
+      // handler: the throw used to escape with nothing to catch it, so
+      // choosing a filename and pressing Export did nothing at all.
+      reportExportFailure(e);
+    }
   }
 
   void _exportPdf(WidgetRef ref) async {
@@ -1203,14 +1211,18 @@ class AppMenuBar extends ConsumerWidget {
       allowedExtensions: ['pdf'],
     );
     if (path == null) return;
-    final mermaidImages = await _renderMermaidImages(activeTab.content);
-    await ExportService.exportToPdf(
-      activeTab.content,
-      path,
-      mermaidImages: mermaidImages,
-      sourcePath: activeTab.filePath,
-      enableHtml: ref.read(settingsProvider).enableHtml,
-    );
+    try {
+      final mermaidImages = await _renderMermaidImages(activeTab.content);
+      await ExportService.exportToPdf(
+        activeTab.content,
+        path,
+        mermaidImages: mermaidImages,
+        sourcePath: activeTab.filePath,
+        enableHtml: ref.read(settingsProvider).enableHtml,
+      );
+    } catch (e) {
+      reportExportFailure(e);
+    }
   }
 
   /// Hands the document to the system print dialog.
@@ -1221,19 +1233,25 @@ class AppMenuBar extends ConsumerWidget {
   void _print(WidgetRef ref) async {
     final activeTab = ref.read(activeTabProvider);
     if (activeTab == null) return;
-    final mermaidImages = await _renderMermaidImages(activeTab.content);
-    final enableHtml = ref.read(settingsProvider).enableHtml;
-    await Printing.layoutPdf(
-      name: p.basenameWithoutExtension(activeTab.fileName),
-      onLayout: (_) async => Uint8List.fromList(
-        await ExportService.pdfBytes(
-          activeTab.content,
-          mermaidImages: mermaidImages,
-          sourcePath: activeTab.filePath,
-          enableHtml: enableHtml,
+    try {
+      final mermaidImages = await _renderMermaidImages(activeTab.content);
+      final enableHtml = ref.read(settingsProvider).enableHtml;
+      await Printing.layoutPdf(
+        name: p.basenameWithoutExtension(activeTab.fileName),
+        onLayout: (_) async => Uint8List.fromList(
+          await ExportService.pdfBytes(
+            activeTab.content,
+            mermaidImages: mermaidImages,
+            sourcePath: activeTab.filePath,
+            enableHtml: enableHtml,
+          ),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      // Includes "there is no printing service here", which a Linux box
+      // without CUPS answers with. Better said than swallowed.
+      reportExportFailure(e);
+    }
   }
 
   void _exportWord(WidgetRef ref) async {
@@ -1246,14 +1264,18 @@ class AppMenuBar extends ConsumerWidget {
       allowedExtensions: ['docx'],
     );
     if (path == null) return;
-    final mermaidImages = await _renderMermaidImages(activeTab.content);
-    await ExportService.exportToDocx(
-      activeTab.content,
-      path,
-      mermaidImages: mermaidImages,
-      sourcePath: activeTab.filePath,
-      enableHtml: ref.read(settingsProvider).enableHtml,
-    );
+    try {
+      final mermaidImages = await _renderMermaidImages(activeTab.content);
+      await ExportService.exportToDocx(
+        activeTab.content,
+        path,
+        mermaidImages: mermaidImages,
+        sourcePath: activeTab.filePath,
+        enableHtml: ref.read(settingsProvider).enableHtml,
+      );
+    } catch (e) {
+      reportExportFailure(e);
+    }
   }
 
   Future<Map<String, Uint8List>> _renderMermaidImages(String markdown) async {

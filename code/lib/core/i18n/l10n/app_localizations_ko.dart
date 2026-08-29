@@ -82,6 +82,11 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String exportFailed(String message) {
+    return '문서를 내보내지 못했습니다: $message';
+  }
+
+  @override
   String get saveConflictTitle => '디스크에서 파일이 변경되었습니다';
 
   @override

@@ -82,6 +82,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String exportFailed(String message) {
+    return 'ドキュメントを書き出せませんでした：$message';
+  }
+
+  @override
   String get saveConflictTitle => 'ファイルがディスク上で変更されました';
 
   @override

@@ -55,6 +55,7 @@
     }
   },
   "saveFailed": "Impossibile salvare il file: {message}",
+  "exportFailed": "Impossibile esportare il documento: {message}",
   "saveConflictTitle": "File modificato sul disco",
   "saveConflictBody": "Qualcos’altro ha modificato «{name}» dopo l’apertura. Salvare ora sovrascriverebbe quella modifica.",
   "saveConflictOverwrite": "Sovrascrivi",

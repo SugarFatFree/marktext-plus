@@ -87,6 +87,11 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String exportFailed(String message) {
+    return 'Не удалось экспортировать документ: $message';
+  }
+
+  @override
   String get saveConflictTitle => 'Файл изменён на диске';
 
   @override

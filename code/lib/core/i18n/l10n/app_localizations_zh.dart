@@ -81,6 +81,11 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String exportFailed(String message) {
+    return '导出文档失败：$message';
+  }
+
+  @override
   String get saveConflictTitle => '文件已在磁盘上被修改';
 
   @override
