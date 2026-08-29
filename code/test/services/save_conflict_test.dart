@@ -28,6 +28,16 @@ void main() {
     if (dir.existsSync()) dir.deleteSync(recursive: true);
   });
 
+  test('no stamp is not a conflict — it is no information', () async {
+    // "The file did not exist when it was read" and "it was never read" are
+    // both null, and neither is evidence of a change. Answering true made a
+    // document with no stamp impossible to save, ever, while telling the
+    // reader their file had changed underneath them.
+    expect(await FileService.hasChangedSince(path, null), isFalse);
+    await FileService.saveDocumentIfUnchanged(path, 'mine\n', expect: null);
+    expect(File(path).readAsStringSync(), 'mine\n');
+  });
+
   test('a stamp taken at read time survives an unchanged file', () async {
     final stamp = await FileService.stampOf(path);
     expect(stamp, isNotNull);
@@ -98,18 +108,31 @@ void main() {
             content: opened.content,
             lineEnding: opened.lineEnding,
             encoding: opened.encoding,
+            // As every real call site does: the stamp arrives with the
+            // content, not in a separate call afterwards.
+            diskStamp: opened.stamp,
           ));
-      await container.read(tabProvider.notifier).refreshDiskStamp('tab');
       return (container, 'tab');
     }
 
     TabInfo tabOf(ProviderContainer c) =>
         c.read(tabProvider).tabs.firstWhere((t) => t.id == 'tab');
 
-    test('the stamp is recorded when the tab is opened', () async {
+    test('the stamp arrives with the content, not after it', () async {
+      // It used to be taken by an unawaited call made after the tab existed,
+      // which left a window in which the tab had a path and no stamp — and a
+      // tab with no stamp cannot be saved at all, because "we never looked"
+      // and "the file was not there" are the same answer to the check. The
+      // window was short enough to pass here and long enough to fail on CI.
       final (container, _) = await openTab();
       expect(tabOf(container).diskStamp, isNotNull,
           reason: '没有记录磁盘戳，之后的检查等于没做');
+    });
+
+    test('reading a file hands back a stamp for it', () async {
+      final opened = await FileService().readFileWithLineEnding(path);
+      expect(opened.stamp, isNotNull);
+      expect(await FileService.hasChangedSince(path, opened.stamp), isFalse);
     });
 
     test('overwriting on request writes and clears the conflict', () async {
@@ -177,8 +200,8 @@ void main() {
       content: opened.content,
       lineEnding: opened.lineEnding,
       encoding: opened.encoding,
+      diskStamp: opened.stamp,
     ));
-    await notifier.refreshDiskStamp('tab');
 
     // Somebody else rewrites the file, then the reader types.
     File(path).writeAsStringSync('changed by somebody else\n');
@@ -220,8 +243,8 @@ void main() {
       content: opened.content,
       lineEnding: opened.lineEnding,
       encoding: opened.encoding,
+      diskStamp: opened.stamp,
     ));
-    await notifier.refreshDiskStamp('tab');
 
     notifier.updateContent('tab', 'mine\n');
     await Future<void>.delayed(const Duration(milliseconds: 300));

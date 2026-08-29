@@ -143,6 +143,7 @@ class AppMenuBar extends ConsumerWidget {
       content: opened.content,
       lineEnding: opened.lineEnding,
       encoding: opened.encoding,
+      diskStamp: opened.stamp,
     );
     ref.read(tabProvider.notifier).addTab(tab);
     ref.read(settingsProvider.notifier).addRecentFile(path);
@@ -1429,6 +1430,7 @@ class AppMenuBar extends ConsumerWidget {
       content: opened.content,
       lineEnding: opened.lineEnding,
       encoding: opened.encoding,
+      diskStamp: opened.stamp,
     );
     ref.read(tabProvider.notifier).addTab(tab);
     ref.read(settingsProvider.notifier).addRecentFile(filePath);

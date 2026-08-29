@@ -34,8 +34,18 @@ class FileService {
   /// The editor works in LF throughout, but saving has to put back what the
   /// file had: rewriting a CRLF file as LF turns a one-word edit into a
   /// whole-file diff for anyone on Windows.
-  Future<({String content, LineEnding lineEnding, FileEncoding encoding})>
-      readFileWithLineEnding(String path) async {
+  /// The stamp comes back with the content on purpose. Taken separately
+  /// afterwards there is a window in which a tab exists with no stamp, and a
+  /// tab with no stamp cannot be saved at all — "we never looked" and "the
+  /// file was not there" are the same thing to the check. That window was
+  /// short enough to pass on this machine and long enough to fail on CI.
+  Future<
+      ({
+        String content,
+        LineEnding lineEnding,
+        FileEncoding encoding,
+        ({DateTime modified, int size})? stamp,
+      })> readFileWithLineEnding(String path) async {
     // Bytes, not readAsString: that throws on anything but UTF-8, and the tab
     // then disappeared without a word. It also swallows a UTF-8 byte order
     // mark, so a file written by Notepad lost it the first time it was saved.
@@ -45,6 +55,9 @@ class FileService {
       content: normalizeLineEndings(raw),
       lineEnding: LineEnding.detect(raw),
       encoding: encoding,
+      // After the read, so a write that lands between the two is noticed by
+      // the next save rather than being baked in as the baseline.
+      stamp: await stampOf(path),
     );
   }
 
@@ -80,13 +93,22 @@ class FileService {
 
   /// Whether [path] no longer looks the way it did when [stamp] was taken.
   ///
-  /// A file that did not exist then and does not exist now has not changed.
+  /// A null [stamp] answers false. It means one of two things — the file did
+  /// not exist when it was read, or it was never read at all — and neither is
+  /// evidence that it changed. Answering true instead made a document with no
+  /// stamp impossible to save, ever: every attempt looked like a conflict,
+  /// and the reader was told their file had changed underneath them when
+  /// nothing had happened to it.
+  ///
+  /// The case this gives up on is a file created by something else between
+  /// the read and the save. That is rare, and losing it is a smaller harm
+  /// than a document that cannot be written at all.
   static Future<bool> hasChangedSince(
     String path,
     ({DateTime modified, int size})? stamp,
   ) async {
+    if (stamp == null) return false;
     final now = await stampOf(path);
-    if (stamp == null) return now != null;
     if (now == null) return true;
     return now.size != stamp.size || now.modified != stamp.modified;
   }

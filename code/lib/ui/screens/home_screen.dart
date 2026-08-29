@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -246,6 +247,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
           .read(tabProvider.notifier)
           .restoreOpenedFiles(config.sideBarOpenedFiles);
     }
+
+    // Reopen what was on screen last time, unless this launch was a
+    // double-click on a document: someone who opened one file meant to see
+    // that file, not to have last week's session unfold around it.
+    if (config.sessionTabs.isNotEmpty &&
+        ref.read(startupFilesProvider).isEmpty) {
+      unawaited(
+        ref.read(tabProvider.notifier).restoreSession(
+              config.sessionTabs,
+              config.sessionActiveTab,
+            ),
+      );
+    }
   }
 
   void _checkForUpdates() async {
@@ -479,6 +493,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
                   FileService.normalizeLineEndings(raw),
                   lineEnding: LineEnding.detect(raw),
                   encoding: encoding,
+                  // With the content, not after it: a tab that has content but
+                  // no stamp cannot be saved, because "we never looked" and
+                  // "the file was not there" look the same to the check.
+                  stamp: await FileService.stampOf(path),
                 );
             StartupTrace.mark('content handed to the tab');
             WidgetsBinding.instance.addPostFrameCallback(
@@ -599,6 +617,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
                   FileService.normalizeLineEndings(raw),
                   lineEnding: LineEnding.detect(raw),
                   encoding: encoding,
+                  // With the content, not after it: a tab that has content but
+                  // no stamp cannot be saved, because "we never looked" and
+                  // "the file was not there" look the same to the check.
+                  stamp: await FileService.stampOf(path),
                 );
           } catch (e) {
             ref.read(tabProvider.notifier).removeTab(tabId);

@@ -141,6 +141,7 @@ class TabNotifier extends StateNotifier<TabState> {
         opened.content,
         lineEnding: opened.lineEnding,
         encoding: opened.encoding,
+        stamp: opened.stamp,
       );
     } catch (_) {
       // The file went away, or was unreadable mid-write. The tab keeps what
@@ -149,6 +150,67 @@ class TabNotifier extends StateNotifier<TabState> {
   }
 
   /// Restore opened-file entries from persisted config (no tabs opened).
+  /// Reopens the documents that were on screen when the application last
+  /// closed.
+  ///
+  /// The tabs appear immediately, empty and marked loading; their contents
+  /// arrive after the first frame. Reading five documents before the window
+  /// is shown would be five file reads between the reader and their editor,
+  /// and this application is meant to start at once.
+  ///
+  /// Files that have since been deleted or moved are passed over — restoring
+  /// a tab onto a path that no longer exists gives a document that cannot be
+  /// read and whose next save would write it back into existence.
+  Future<void> restoreSession(List<String> paths, String activePath) async {
+    if (paths.isEmpty) return;
+    final existing = paths.where((path) => File(path).existsSync()).toList();
+    if (existing.isEmpty) return;
+
+    String? activeId;
+    final restored = <String, String>{};
+    for (var i = 0; i < existing.length; i++) {
+      final path = existing[i];
+      final id = 'session-$i-${path.hashCode}';
+      restored[id] = path;
+      if (path == activePath) activeId = id;
+    }
+
+    state = state.copyWith(
+      tabs: [
+        ...state.tabs,
+        for (final entry in restored.entries)
+          TabInfo(
+            id: entry.key,
+            filePath: entry.value,
+            fileName: p.basename(entry.value),
+            content: '',
+            isLoading: true,
+          ),
+      ],
+      // Whatever was in front, or the first of them if that one is gone.
+      activeTabId: state.activeTabId ?? activeId ?? restored.keys.first,
+    );
+
+    for (final entry in restored.entries) {
+      if (!mounted) return;
+      try {
+        final opened = await FileService().readFileWithLineEnding(entry.value);
+        if (!mounted) return;
+        loadTabContent(
+          entry.key,
+          opened.content,
+          lineEnding: opened.lineEnding,
+          encoding: opened.encoding,
+          stamp: opened.stamp,
+        );
+      } catch (_) {
+        // Unreadable now — permissions, or a file that went away between the
+        // check above and here. Drop the tab rather than leave it spinning.
+        if (mounted) removeTab(entry.key);
+      }
+    }
+  }
+
   void restoreOpenedFiles(List<String> filePaths) {
     StartupTrace.mark('restoring ${filePaths.length} sidebar entries');
     final entries = <OpenedFileEntry>[];
@@ -162,6 +224,26 @@ class TabNotifier extends StateNotifier<TabState> {
     if (entries.isNotEmpty) {
       state = state.copyWith(openedFiles: entries);
     }
+  }
+
+  /// Remembers which documents are open and which is in front.
+  ///
+  /// Written whenever the set of tabs changes rather than at exit: `dispose`
+  /// never runs on the way out — the window is destroyed and the process ends
+  /// — so anything saved only at shutdown would never be saved at all.
+  void _persistSession() {
+    final paths = state.tabs
+        .map((t) => t.filePath)
+        .whereType<String>()
+        .toList();
+    final active = state.tabs
+        .where((t) => t.id == state.activeTabId)
+        .map((t) => t.filePath)
+        .whereType<String>()
+        .firstOrNull;
+    _ref.read(settingsProvider.notifier).updateConfig(
+          (c) => c.copyWith(sessionTabs: paths, sessionActiveTab: active ?? ''),
+        );
   }
 
   void _persistOpenedFiles() {
@@ -232,13 +314,8 @@ class TabNotifier extends StateNotifier<TabState> {
       activeTabId: tab.id,
       openedFiles: openedFiles,
     );
-    // Every document that arrives from a file gets its stamp here, which is
-    // the one place they all pass through. Recorded at the call sites instead,
-    // one of them would eventually not do it — and a tab with no stamp cannot
-    // be saved at all, since "no stamp" and "the file did not exist" would be
-    // the same thing to the check.
-    if (tab.filePath != null) unawaited(refreshDiskStamp(tab.id));
     if (openedFilesChanged) _persistOpenedFiles();
+    _persistSession();
   }
 
   void removeTab(String id) {
@@ -248,6 +325,7 @@ class TabNotifier extends StateNotifier<TabState> {
       newActiveId = tabs.isNotEmpty ? tabs.last.id : null;
     }
     state = state.copyWith(tabs: tabs, activeTabId: newActiveId);
+    _persistSession();
   }
 
   /// Remove a file from the sidebar opened-files list.
@@ -276,6 +354,7 @@ class TabNotifier extends StateNotifier<TabState> {
 
   void setActiveTab(String id) {
     state = state.copyWith(activeTabId: id);
+    _persistSession();
   }
 
   /// Changes which line ending [id] is written with.
@@ -291,8 +370,6 @@ class TabNotifier extends StateNotifier<TabState> {
       return tab;
     }).toList();
     state = state.copyWith(tabs: tabs);
-    // The content just came from disk, so record what the file looks like.
-    unawaited(refreshDiskStamp(id));
   }
 
   /// Reads the file again as [encoding] and shows what it says.
@@ -367,6 +444,7 @@ class TabNotifier extends StateNotifier<TabState> {
     String content, {
     LineEnding? lineEnding,
     FileEncoding? encoding,
+    ({DateTime modified, int size})? stamp,
   }) {
     final tabs = state.tabs.map((tab) {
       if (tab.id == id) {
@@ -377,6 +455,9 @@ class TabNotifier extends StateNotifier<TabState> {
           isLoading: false,
           lineEnding: lineEnding,
           encoding: encoding,
+          // The content came from disk, so this is what the file looks like.
+          diskStamp: stamp,
+          diskConflict: false,
           externalRevision: tab.externalRevision + 1,
         );
       }

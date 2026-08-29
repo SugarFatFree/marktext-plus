@@ -289,6 +289,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             content: opened.content,
             lineEnding: opened.lineEnding,
             encoding: opened.encoding,
+            diskStamp: opened.stamp,
           ),
         );
   }

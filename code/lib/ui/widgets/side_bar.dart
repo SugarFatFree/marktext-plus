@@ -714,7 +714,9 @@ class _SideBarState extends ConsumerState<SideBar> {
       final opened = await FileService().readFileWithLineEnding(filePath);
       if (!mounted) return;
       tabNotifier.loadTabContent(tabId, opened.content,
-          lineEnding: opened.lineEnding, encoding: opened.encoding);
+          lineEnding: opened.lineEnding,
+          encoding: opened.encoding,
+          stamp: opened.stamp);
       // Requested before the new editor exists; it reads the pending target
       // when it initialises.
       if (line != null) ref.read(editorProvider.notifier).scrollToLine(line);

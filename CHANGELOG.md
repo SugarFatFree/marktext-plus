@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - v1.5.3
 
 ### Added
+- The documents that were open when the application closed are opened again when it starts. Tabs came only from the command line or from something the reader did, so closing with five documents open and reopening gave an empty window. The tabs appear at once and their contents arrive after the first frame, so startup is not spent reading files; a document opened by double-clicking it still takes precedence over the session
 - Deleting from the sidebar moves the file or folder to the desktop's trash on Linux and macOS, as upstream MarkText does, so a note removed by mistake can be put back. It was removed outright, and a folder took everything under it with no way back at all. Windows still deletes outright — and its confirmation says so: the four cases (file or folder, recoverable or not) now ask four different questions instead of one that covered them all
 
 ### Fixed

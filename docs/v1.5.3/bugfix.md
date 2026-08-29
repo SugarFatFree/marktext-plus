@@ -7,6 +7,7 @@
 | BUG-146 | 2026-08-30 | 文件被外部修改后，自动保存会静默覆盖别人的改动 | P1 | 已修复 |
 | BUG-147 | 2026-08-30 | 拖图片进编辑器：插入成功的同时弹出「未打开」错误 | P2 | 已修复 |
 | BUG-148 | 2026-08-30 | 韩文字数统计约为实际的三倍（按字计数，但韩语有词间空格） | P2 | 已修复 |
+| BUG-149 | 2026-08-30 | 没有磁盘戳的标签页永远保存不了（BUG-146 引入，CI 抓到） | P1 | 已修复 |
 
 ---
 
@@ -253,3 +254,53 @@ drop target，图片确实没人接。**那种情况下静默忽略，等于把�
 
 - `code/lib/services/word_count_service.dart`
 - `code/test/services/word_count_service_test.dart`
+
+---
+
+## BUG-149：没有磁盘戳的标签页永远保存不了（BUG-146 引入）
+
+**优先级**：P1　**状态**：已修复　**日期**：2026-08-30
+
+### 现象
+
+CI 上 `tab_reload_test` 的「a change landing right after our own save is still
+noticed」失败：自动保存没有写入文件。**本地当时是通过的。**
+
+### 根因分析
+
+BUG-146 加冲突检测时，我把两件不同的事都表示成了 `null`：
+
+- **文件在读取时不存在**（一个合法的戳值）
+- **我们从来没看过这个文件**（没有基准）
+
+而 `hasChangedSince(path, null)` 返回 `now != null` —— 也就是说，"没看过"
+被解释成了"文件出现了"，判定为冲突，于是**这个标签页永远保存不了**，
+还会告诉用户"文件被别的程序改了"，而实际上什么都没发生过。
+
+戳原本由 `addTab` 里一个 `unawaited(refreshDiskStamp(...))` 事后补记。
+**这就是本地过、CI 挂的原因**：那是个异步窗口，本机够快而 CI 不够。
+
+### 修复方案（两处，缺一不可）
+
+**一、消掉窗口**：戳改为**跟着内容一起产生**。`readFileWithLineEnding` 现在
+连戳一起返回（在读之后取，所以两者之间发生的写入会被下一次保存发现，
+而不是被当成基准固化下来），所有构造标签页的地方直接带上它。
+`addTab` / `loadTabContent` 里的事后补记删掉了。
+
+**二、修正语义**：`hasChangedSince(path, null)` 现在返回 **false**。
+"没有基准"这个问题的诚实答案是"不知道"，不是"变了"。
+放弃的是"读取与保存之间别人新建了这个文件"这一种情形——**很罕见，
+而且比"文档永远存不下去"轻得多**。
+
+### 教训
+
+第一次修（给 `addTab` 加异步补记）**只是把不确定性换了个位置**，没有消除它，
+所以本地五次全过、CI 五次全挂。改完之后我在本地把那条测试**连跑五次**才确认，
+一次通过说明不了任何事情。
+
+### 涉及文件
+
+- `code/lib/services/file_service.dart`、`code/lib/providers/tab_provider.dart`
+- `code/lib/models/tab_info.dart` 的使用方：`home_screen.dart`、`side_bar.dart`、
+  `app_menu_bar.dart`、`markdown_renderer.dart`
+- `code/test/services/save_conflict_test.dart`（+2 条）
