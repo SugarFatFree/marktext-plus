@@ -527,16 +527,19 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
 
   // ------------------------------------------------------- in-place editing
 
-  /// Whether [node] draws a checkbox anywhere inside it.
+  /// Whether [node] draws something tappable of its own, anywhere inside it.
   ///
-  /// Not only when the node *is* a task list: a quote or a list item that
-  /// carries one draws the same checkboxes, and wrapping it put the same
-  /// recogniser in the arena — so a box inside a quote sat dead until the
-  /// double-tap timeout expired, which reads as a click that did nothing.
-  static bool _holdsATaskList(md.MarkdownNode node) {
+  /// A task list's checkboxes and a diagram's toolbar are both hit by the same
+  /// gesture-arena problem, and both are reachable from a quote or a list item
+  /// as well as from the top level.
+  static bool _holdsOwnControls(md.MarkdownNode node) {
     for (final descendant in md.MarkdownParser.walk([node])) {
       if (descendant is md.ListNode &&
           descendant.items.any((item) => item.isTask)) {
+        return true;
+      }
+      if (descendant is md.CodeBlockNode &&
+          MermaidParser.handlesLanguage(descendant.language)) {
         return true;
       }
     }
@@ -555,22 +558,20 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       return _buildBlockEditor(node);
     }
 
-    // A task list has its own tap targets. Wrapping it in a double-tap
-    // recogniser puts that recogniser in the gesture arena, where it holds on
-    // for the double-tap timeout before conceding — so every checkbox would
-    // sit dead for ~300ms before responding. Ticking a box is the far more
-    // frequent action, so it wins: these blocks stay directly interactive and
-    // are edited from the source pane instead.
-    if (_holdsATaskList(node)) return child;
-
-    // A diagram is the same story: its toolbar has four buttons, and every one
-    // of them sat dead for the double-tap timeout while the recogniser waited
-    // to see whether a second tap was coming. It carries its own "edit source"
-    // button, so it needs the gesture even less than a task list does.
-    if (node is md.CodeBlockNode &&
-        MermaidParser.handlesLanguage(node.language)) {
-      return child;
-    }
+    // Anything with tap targets of its own is left alone. Wrapping it in a
+    // double-tap recogniser puts that recogniser in the gesture arena, where
+    // it holds on for the double-tap timeout before conceding — so a checkbox
+    // or a diagram's toolbar button sits dead for ~300ms before responding,
+    // which reads as a click that did nothing. Ticking a box and pressing a
+    // toolbar button are the far more frequent actions, so they win: these
+    // blocks stay directly interactive and are edited from the source pane.
+    //
+    // The test is on the whole subtree, not on the node itself. Both of these
+    // rules were once written as "the node *is* a task list" and "the node
+    // *is* a diagram", and a quote or a list item carrying one drew the same
+    // controls behind the same recogniser — the fix had been made and then
+    // not carried to the block one level up.
+    if (_holdsOwnControls(node)) return child;
 
     return PreviewEditableBlock(
       hoverColor: tokens.colorSurfaceHover,
