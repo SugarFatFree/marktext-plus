@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+
+import '../support/wait_for.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:marktext_plus/core/config/app_config.dart';
 import 'package:marktext_plus/core/config/config_service.dart';
@@ -207,8 +209,11 @@ void main() {
     File(path).writeAsStringSync('changed by somebody else\n');
     notifier.updateContent('tab', 'mine\n');
 
-    // Long enough for the auto-save timer to have fired and finished.
-    await Future<void>.delayed(const Duration(milliseconds: 300));
+    // Wait for the conflict to be recorded rather than for a chosen number
+    // of milliseconds: the file staying as it is proves nothing until the
+    // auto-save has actually run and declined to write it.
+    await waitFor(() =>
+        container.read(tabProvider).tabs.first.diskConflict);
 
     expect(File(path).readAsStringSync(), 'changed by somebody else\n',
         reason: '自动保存把别人的改动覆盖掉了');
@@ -247,7 +252,7 @@ void main() {
     ));
 
     notifier.updateContent('tab', 'mine\n');
-    await Future<void>.delayed(const Duration(milliseconds: 300));
+    await waitFor(() => File(path).readAsStringSync() == 'mine\n');
 
     expect(File(path).readAsStringSync(), 'mine\n',
         reason: '自动保存根本没触发，上一条测试就是空跑的');

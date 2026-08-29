@@ -10,6 +10,7 @@
 | BUG-149 | 2026-08-30 | 没有磁盘戳的标签页永远保存不了（BUG-146 引入，CI 抓到） | P1 | 已修复 |
 | BUG-150 | 2026-08-30 | 自定义快捷键撞键时，其中一个命令永远不触发 | P2 | 已修复 |
 | BUG-151 | 2026-08-30 | 日文/韩文/全角标签伸出 mermaid 节点方框 | P2 | 已修复 |
+| BUG-152 | 2026-08-30 | 测试用固定 sleep 等异步保存，CI 上偶发失败 | P2 | 已修复 |
 
 ---
 
@@ -419,3 +420,50 @@ else { width += fontSize * 0.6; }
 
 同一份测试还审查了 10 种流程图的布局几何：**没有方框重叠、没有负坐标、
 没有越出画布、每条连线的两端都是真实存在的节点**。
+
+---
+
+## BUG-152：等异步保存用固定 sleep，CI 上偶发失败
+
+**优先级**：P2　**状态**：已修复　**日期**：2026-08-30
+
+### 现象
+
+`tab_reload_test` 的「a change landing right after our own save is still
+noticed」在 CI 上**第二次失败**（本地从未失败）。BUG-149 修好之后它已经连续绿了
+四次（`1f0eedf`、`0a1b4c0`、`04a828e`、`204f51b`），这次又红。
+
+### 根因分析
+
+**四绿一红是时序不稳，不是逻辑错。** 测试是这样等的：
+
+```dart
+saving.read(tabProvider.notifier).updateContent('tab-1', 'mine');
+await Future<void>.delayed(const Duration(milliseconds: 300));
+expect(file.readAsStringSync(), 'mine');
+```
+
+300ms 要装下：自动保存定时器（100ms）+ 取磁盘戳 + 比对 + 编码 + 写临时文件 +
+rename。本机够，CI 负载高时不够。而 BUG-146 给保存前加了一次 stat，**正是我把
+这条路径变慢、把原本就紧的预算推过了线**。
+
+### 修复方案
+
+新增 `test/support/wait_for.dart`：轮询到条件成立，超时上限 5 秒。
+**固定 sleep 是在赌一串异步工作能在选定的毫秒数内跑完**；轮询是去问结果，
+而不是猜答案——条件已经成立时它立刻返回，不会让通过的测试变慢。
+
+改了三个文件的四处等待。其中 `save_conflict_test` 与 `session_restore_test`
+**是我前几轮自己新写的，埋的是同一个坑**。
+
+### 对照实验
+
+- 人为把自动保存拖慢 700ms（远超原 300ms 预算）：**旧写法失败，新写法通过**
+- 再拖慢到 900ms：两个文件仍全部通过
+- `tab_provider.dart` 的临时改动已完全还原，`git diff` 无残留
+
+### 涉及文件
+
+- `code/test/support/wait_for.dart`（新增）
+- `code/test/providers/tab_reload_test.dart`、`code/test/services/save_conflict_test.dart`、
+  `code/test/providers/session_restore_test.dart`

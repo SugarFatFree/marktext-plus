@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../support/wait_for.dart';
 import 'package:marktext_plus/core/config/app_config.dart';
 import 'package:marktext_plus/core/config/config_service.dart';
 import 'package:marktext_plus/models/tab_info.dart';
@@ -149,11 +151,12 @@ void main() {
     final container = makeContainer();
     await container.read(tabProvider.notifier).restoreSession([a], a);
 
-    // The watcher needs a moment to start; then a change made by something
-    // else is picked up, since the restored tab has no unsaved edits.
-    await Future<void>.delayed(const Duration(milliseconds: 250));
+    // The watcher needs a moment to start, and then its own debounce has to
+    // elapse. Both are waited for by asking, not by guessing.
+    await waitFor(() => false, within: const Duration(milliseconds: 250));
     File(a).writeAsStringSync('changed elsewhere\n');
-    await Future<void>.delayed(const Duration(milliseconds: 600));
+    await waitFor(() =>
+        container.read(tabProvider).tabs.single.content == 'changed elsewhere\n');
 
     expect(
       container.read(tabProvider).tabs.single.content,
