@@ -823,7 +823,13 @@ class ExportService {
 
       case NodeType.footnoteDefinition:
         final fn = node as FootnoteDefinitionNode;
-        return '<div class="footnote" id="fn-${_escapeHtml(fn.id)}"><sup>${_escapeHtml(fn.id)}</sup> ${_escapeHtml(fn.content)}</div>';
+        // The body goes through the inline renderer: a footnote is where a
+        // citation lives, and `[see](https://…)` has to arrive as a link.
+        final body = fn.inlineSpans.isEmpty
+            ? _escapeHtml(fn.content)
+            : _inlineSpansToHtml(fn.inlineSpans);
+        return '<div class="footnote" id="fn-${_footnoteAnchor(fn.id)}">'
+            '<sup>${_escapeHtml(fn.id)}</sup> $body</div>';
 
       case NodeType.htmlBlock:
         final html = node as HtmlBlockNode;
@@ -1165,7 +1171,8 @@ class ExportService {
         case InlineType.underline:
           return '<u>$text</u>';
         case InlineType.footnoteRef:
-          return '<sup><a href="#fn-$text">[$text]</a></sup>';
+          return '<sup><a href="#fn-${_footnoteAnchor(text)}">'
+              '[${_escapeHtml(text)}]</a></sup>';
       }
     }).join();
   }
@@ -1227,6 +1234,16 @@ class ExportService {
     r'^data:image/(png|jpe?g|gif|webp|bmp|avif)[;,]',
     caseSensitive: false,
   );
+
+  /// A footnote identifier turned into something usable as an HTML `id` and
+  /// as a URL fragment.
+  ///
+  /// An identifier may contain spaces — `[^my note]` is valid — and a space in
+  /// an `id` is not, so `href="#fn-my note"` was an anchor that went nowhere.
+  /// Both ends of the pair go through this, so they still match.
+  static String _footnoteAnchor(String id) => _escapeHtml(
+        id.replaceAll(RegExp(r'\s+'), '-'),
+      );
 
   /// A URL fit to put in an `href` or a `src`.
   ///

@@ -303,12 +303,24 @@ class FootnoteDefinitionNode extends MarkdownNode {
   final String id;
   final String content;
 
-  FootnoteDefinitionNode({required this.id, required this.content});
+  /// The body's inline markup. A footnote is where a citation goes, so a link
+  /// in here is the ordinary case rather than an exotic one; the body used to
+  /// be carried as plain text and `[see](https://…)` reached the reader as
+  /// those characters.
+  final List<InlineSpan> inlineSpans;
+
+  FootnoteDefinitionNode({
+    required this.id,
+    required this.content,
+    this.inlineSpans = const [],
+  });
 
   @override
   NodeType get type => NodeType.footnoteDefinition;
+  // The `^` is part of the syntax. Without it this is a link reference
+  // definition, which is a different thing that happens to look similar.
   @override
-  String get rawContent => '[$id]: $content';
+  String get rawContent => '[^$id]: $content';
 }
 
 class HtmlBlockNode extends MarkdownNode {
@@ -534,6 +546,10 @@ class MarkdownParser {
   static bool isFrontMatterOpener(String line) =>
       _frontMatterDelimiters.containsKey(line.trimRight());
   static final _footnoteDefRe = RegExp(r'^\[\^([^\]]+)\]:\s*(.+)$');
+
+  /// A footnote definition's continuation line: four spaces or a tab, then
+  /// text. The indent is what keeps it attached to the note above.
+  static final _footnoteContinuationRe = RegExp(r'^(?: {4}|\t)(?=\S)');
   /// An HTML element opening a block.
   ///
   /// The tag name must be followed by something that can start an attribute
@@ -1215,15 +1231,28 @@ class MarkdownParser {
       // Footnote definition
       final footnoteMatch = _footnoteDefRe.firstMatch(line);
       if (footnoteMatch != null) {
+        // A definition may run over several lines, each continuation indented
+        // by four spaces or a tab. Without this the second line broke out of
+        // the note and became a paragraph of its own, which read as body text.
+        final body = StringBuffer(footnoteMatch.group(2)!);
+        var last = i;
+        while (last + 1 < lines.length &&
+            _footnoteContinuationRe.hasMatch(lines[last + 1])) {
+          body.write('\n');
+          body.write(lines[last + 1].replaceFirst(_footnoteContinuationRe, ''));
+          last++;
+        }
+        final content = body.toString();
         nodes.add(_withSpan(
           FootnoteDefinitionNode(
             id: footnoteMatch.group(1)!,
-            content: footnoteMatch.group(2)!,
+            content: content,
+            inlineSpans: parseInline(content),
           ),
           blockStart,
-          i + 1,
+          last + 1,
         ));
-        i++;
+        i = last + 1;
         continue;
       }
 

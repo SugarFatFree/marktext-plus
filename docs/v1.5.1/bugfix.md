@@ -34,6 +34,10 @@
 | BUG-135 | 2026-08-29 | 预览里点 `mailto:` / `tel:` 链接毫无反应 | P3 | 已修复 |
 | BUG-136 | 2026-08-29 | 输入右括号会多出一个：`(x` 补全后再打 `)` 变成 `(x))` | P2 | 已修复 |
 | BUG-137 | 2026-08-29 | 光标紧贴文字时也自动配对：在 `foo` 前打 `(` 得到 `()foo` | P2 | 已修复 |
+| BUG-138 | 2026-08-29 | 脚注定义体里的链接与格式不渲染，原样显示 markdown | P2 | 已修复 |
+| BUG-139 | 2026-08-29 | 脚注定义的续行掉出去变成正文段落 | P2 | 已修复 |
+| BUG-140 | 2026-08-29 | 预览与回写把脚注的 `^` 丢了：`[a]:` 而非 `[^a]:` | P2 | 已修复 |
+| BUG-141 | 2026-08-29 | 标识带空格时脚注锚点失效（`href="#fn-my note"`） | P3 | 已修复 |
 
 ---
 
@@ -1643,3 +1647,131 @@ if (char == closing && selection.isCollapsed) { ... }
 
 - `code/lib/ui/editor/source_editor.dart`
 - `code/test/ui/editor/autopair_test.dart`
+
+---
+
+## BUG-138：脚注定义体里的链接与格式不渲染
+
+**优先级**：P2　**状态**：已修复　**日期**：2026-08-29
+
+### 现象
+
+```markdown
+见[^a]
+
+[^a]: 参见 [这篇论文](https://example.com)
+```
+
+预览、HTML 导出、Word、PDF 里，脚注那一行显示的是字面的
+`参见 [这篇论文](https://example.com)`——方括号和网址都摆在读者眼前。
+
+**脚注正是放引用出处的地方**，里面带链接是常规写法而不是偏门用法，所以这条影响面
+比看上去大。
+
+### 根因分析
+
+`FootnoteDefinitionNode` 只有 `id` 和 `content` 两个字段，`content` 是原始字符串，
+**没有 `inlineSpans`**。导出侧于是只能 `_escapeHtml(fn.content)` 整段转义，
+预览侧也只能 `Text(node.content)`。其他所有块级节点（段落、标题、列表项、
+引用）都带 `inlineSpans`，唯独脚注定义漏了——又是一处"同一件事在多处实现，
+有一份没跟上"。
+
+### 修复方案
+
+- `FootnoteDefinitionNode` 增加 `inlineSpans` 字段，解析时 `parseInline(content)`
+- `ExportService.nodeToHtml` 改走 `_inlineSpansToHtml(fn.inlineSpans)`
+- 预览 `_buildFootnoteDefinition` 改用 `Text.rich(_buildInlineSpans(...))`
+
+非标记的部分仍然正常转义（`5 < 6 & 7` → `5 &lt; 6 &amp; 7`），有测试守住。
+
+### 涉及文件
+
+- `code/lib/services/markdown_parser.dart`
+- `code/lib/services/export_service.dart`
+- `code/lib/ui/editor/markdown_renderer.dart`
+- `code/test/services/footnote_test.dart`（新增，13 条）
+
+---
+
+## BUG-139：脚注定义的续行掉出去变成正文
+
+**优先级**：P2　**状态**：已修复　**日期**：2026-08-29
+
+### 现象
+
+```markdown
+[^a]: 第一行
+    第二行
+```
+
+`第二行` 变成了文档正文的一个独立段落，而不是这条脚注的一部分。
+
+### 根因分析
+
+块解析里脚注那一支只吃一行就 `i++` 走了，从不看下一行。缩进的续行落到普通段落
+分支去了。
+
+### 修复方案
+
+匹配到定义后，继续吞掉后续满足 `^(?: {4}|\t)(?=\S)` 的行，去掉缩进后用换行拼进
+`content`。缩进正是把续行拴在上一条脚注上的东西，所以判定收紧到四空格或制表符，
+不缩进的下一行仍然是新块，空行仍然结束这条脚注——三种情况都有测试。
+
+### 涉及文件
+
+- `code/lib/services/markdown_parser.dart`
+- `code/test/services/footnote_test.dart`
+
+---
+
+## BUG-140：脚注的 `^` 在预览和回写里丢了
+
+**优先级**：P2　**状态**：已修复　**日期**：2026-08-29
+
+### 现象
+
+预览里脚注定义显示为 `[a]: 内容`，少了 `^`。
+
+### 根因分析
+
+`FootnoteDefinitionNode.rawContent` 写的是 `'[$id]: $content'`，预览的
+`_buildFootnoteDefinition` 里也是 `'[${node.id}]: '`。**少了 `^` 就不是脚注了**
+——`[a]: 内容` 是链接引用定义，一个碰巧长得像的另一种语法。`rawContent` 目前
+只在预览兜底分支和查找替换里用到，还没造成数据损坏，但它是错的。
+
+### 修复方案
+
+两处都补上 `^`。
+
+### 涉及文件
+
+- `code/lib/services/markdown_parser.dart`
+- `code/lib/ui/editor/markdown_renderer.dart`
+
+---
+
+## BUG-141：标识带空格时脚注锚点失效
+
+**优先级**：P3　**状态**：已修复　**日期**：2026-08-29
+
+### 现象
+
+`[^my note]` 是合法标识，但导出的 HTML 是
+
+```html
+<sup><a href="#fn-my note">[my note]</a></sup>
+...
+<div class="footnote" id="fn-my note">
+```
+
+`id` 里不允许有空格，URL 片段里的空格也不合法，点了跳不过去。
+
+### 修复方案
+
+新增 `_footnoteAnchor(id)`，把空白折成 `-` 再转义；**引用端和定义端都走它**，
+所以两边仍然对得上。显示出来的标识 `[my note]` 保持原样不改写。
+
+### 涉及文件
+
+- `code/lib/services/export_service.dart`
+- `code/test/services/footnote_test.dart`

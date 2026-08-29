@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - File ▸ Move To…, the one menu command upstream MarkText has that this one did not
 
 ### Fixed
+- A footnote's body is markdown. A link, emphasis or code inside `[^a]: see [the paper](https://…)` reached the reader as those characters, in the preview and in every export — and a footnote is where a citation goes, so a link in one is the ordinary case
+- A footnote definition can run over more than one line. An indented continuation broke out of the note and became a paragraph of the document
+- A footnote whose identifier contains a space, `[^my note]`, produces an anchor that works. A space is not valid in an HTML id, so the reference pointed nowhere
+- The preview writes a footnote definition as `[^a]:`, not `[a]:` — without the caret it is a link reference definition, a different construct that looks similar
 - Typing a closing bracket over the one auto-pairing just inserted steps past it instead of adding a second. Finishing `(x` by typing `)` left `(x))`, because only symmetric characters like `"` were stepped over and `)` was not
 - Auto-pairing no longer fires when the caret is right against a word. Typing `(` in front of `foo` gave `()foo`, and a quote gave `""foo`, so the spurious closing character had to be deleted straight away. As upstream does, a pair is inserted only at the end of a line, before whitespace, or before a closing bracket — wrapping a selection is unaffected
 - A link whose address is `javascript:`, `vbscript:` or `data:text/html` no longer keeps that address when the document is exported to HTML. The export is a file other people open in a browser, and such a link runs code on whoever clicks it. The same check now covers an image's source and a badge's outer link; ordinary addresses, including inline `data:image/png` diagrams, are untouched

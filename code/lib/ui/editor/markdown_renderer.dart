@@ -1537,13 +1537,26 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '[${node.id}]: ',
+            // The `^` belongs to the syntax — without it this reads as a link
+            // reference definition, which is a different thing.
+            '[^${node.id}]: ',
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.primary,
               fontWeight: FontWeight.bold,
             ),
           ),
-          Expanded(child: Text(node.content, style: theme.textTheme.bodySmall)),
+          Expanded(
+            child: node.inlineSpans.isEmpty
+                ? Text(node.content, style: theme.textTheme.bodySmall)
+                : Text.rich(
+                    _buildInlineSpans(
+                      node.inlineSpans,
+                      theme,
+                      theme.textTheme.bodySmall ?? const TextStyle(),
+                    ),
+                    style: theme.textTheme.bodySmall,
+                  ),
+          ),
         ],
       ),
     );
