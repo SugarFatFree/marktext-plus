@@ -12,6 +12,7 @@
 | BUG-113 | 2026-08-29 | 支持类型清单漏了四种写法，应用对外宣称不支持自己已支持的图 | P2 | 已修复 |
 | BUG-114 | 2026-08-29 | 流程图双圆节点标签带括号、隐形连线被整条丢弃 | P2 | 已修复 |
 | BUG-115 | 2026-08-29 | 预览模式完全不读字号与行高设置，缩放对预览无效（issue #4） | P1 | 已修复 |
+| BUG-116 | 2026-08-29 | 版本常量停在 1.3.0：关于页显示错版本，更新检查永远提示有新版（issue #1） | P1 | 已修复 |
 
 ---
 
@@ -536,3 +537,47 @@ static final _defaultTextStyle = TextStyle(fontSize: 16, height: 1.6, ...);
 - `code/lib/ui/editor/markdown_renderer.dart`
 - `code/lib/ui/screens/home_screen.dart`
 - `code/test/ui/editor/zoom_and_bottom_room_test.dart`（新增）
+
+
+---
+
+## BUG-116：版本常量停在 1.3.0（issue #1）
+
+### 来源
+
+仓库 issue #1（zhangbest5，2026-06-11，从未有人回复）：
+
+> 1. 检查更新 应该 做版本校验 再跳网页
+> 2. 现在这个我更新了，但我看不出来这能和github上的对应上
+
+### 现状核实
+
+第 1 条**已经修好了**（在这条 issue 之后的某个版本）：`UpdateService.checkForUpdate`
+会调 GitHub API 取 `tag_name`，用 `_isNewer` 逐段比较三位版本号，并区分
+"有新版 / 已是最新 / 联系不上服务器"三种结果，不再直接跳网页。
+
+第 2 条仍然存在，而且比报告说的更严重。
+
+### 根因分析
+
+`AppConstants.appVersion` 是**手写常量**，停在 `'1.3.0'`，而 `pubspec.yaml`
+已经是 `1.5.1`。同一个值写在两处，一处没跟上——本会话反复出现的同一个模式。
+
+两层后果：
+
+1. 「关于」里显示 1.3.0，**和 GitHub 上的发行版对不上**——这正是报告人说的；
+2. **更新检查是拿最新发行版和 1.3.0 比的**。所以任何装了 1.4.0 或 1.5.0 的人，
+   都会被**永远提示有新版本可用**，点进去下载的还是自己已经装着的那一版。
+   报告人只看到了第一层。
+
+### 修复方案
+
+常量对齐到 1.5.1，并新增 `test/core/app_version_test.dart` 直接读 `pubspec.yaml`
+比对——**这是唯一能防止它再次漂移的东西**，因为发布时改的是 pubspec，没人会
+记得回来改常量。另一条测试断言它是纯三段式版本号，因为 `_isNewer` 按点分割解析
+三个整数，`1.5.1-beta` 这样的后缀会被解析成 0 参与比较。
+
+### 涉及文件
+
+- `code/lib/core/constants.dart`
+- `code/test/core/app_version_test.dart`（新增，2 条）
