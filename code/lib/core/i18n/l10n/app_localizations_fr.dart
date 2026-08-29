@@ -263,6 +263,39 @@ class AppLocalizationsFr extends AppLocalizations {
   String get formatTable => 'Tableau';
 
   @override
+  String get formatTableSubmenu => 'Modifier le tableau';
+
+  @override
+  String get formatTableInsertRowAbove => 'Insérer une ligne au-dessus';
+
+  @override
+  String get formatTableInsertRowBelow => 'Insérer une ligne en dessous';
+
+  @override
+  String get formatTableDeleteRow => 'Supprimer la ligne';
+
+  @override
+  String get formatTableInsertColumnLeft => 'Insérer une colonne à gauche';
+
+  @override
+  String get formatTableInsertColumnRight => 'Insérer une colonne à droite';
+
+  @override
+  String get formatTableDeleteColumn => 'Supprimer la colonne';
+
+  @override
+  String get formatTableAlignLeft => 'Colonne alignée à gauche';
+
+  @override
+  String get formatTableAlignCenter => 'Colonne centrée';
+
+  @override
+  String get formatTableAlignRight => 'Colonne alignée à droite';
+
+  @override
+  String get formatTableAlignNone => 'Supprimer l\'alignement de la colonne';
+
+  @override
   String get formatLink => 'Lien';
 
   @override

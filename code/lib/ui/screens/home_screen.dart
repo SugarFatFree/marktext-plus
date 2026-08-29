@@ -311,6 +311,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
       FormatAction.looseList: l10n.paragraphLooseList,
       FormatAction.createParagraph: l10n.editCreateParagraph,
       FormatAction.deleteParagraph: l10n.editDeleteParagraph,
+      // Prefixed with the submenu's own name, since "Delete Row" on its own
+      // says nothing about what it is a row of once it is in a flat list of
+      // every command in the application.
+      FormatAction.tableInsertRowAbove:
+          '${l10n.formatTableSubmenu} · ${l10n.formatTableInsertRowAbove}',
+      FormatAction.tableInsertRowBelow:
+          '${l10n.formatTableSubmenu} · ${l10n.formatTableInsertRowBelow}',
+      FormatAction.tableDeleteRow:
+          '${l10n.formatTableSubmenu} · ${l10n.formatTableDeleteRow}',
+      FormatAction.tableInsertColumnLeft:
+          '${l10n.formatTableSubmenu} · ${l10n.formatTableInsertColumnLeft}',
+      FormatAction.tableInsertColumnRight:
+          '${l10n.formatTableSubmenu} · ${l10n.formatTableInsertColumnRight}',
+      FormatAction.tableDeleteColumn:
+          '${l10n.formatTableSubmenu} · ${l10n.formatTableDeleteColumn}',
+      FormatAction.tableAlignLeft:
+          '${l10n.formatTableSubmenu} · ${l10n.formatTableAlignLeft}',
+      FormatAction.tableAlignCenter:
+          '${l10n.formatTableSubmenu} · ${l10n.formatTableAlignCenter}',
+      FormatAction.tableAlignRight:
+          '${l10n.formatTableSubmenu} · ${l10n.formatTableAlignRight}',
+      FormatAction.tableAlignNone:
+          '${l10n.formatTableSubmenu} · ${l10n.formatTableAlignNone}',
     };
 
     for (final entry in formatLabels.entries) {

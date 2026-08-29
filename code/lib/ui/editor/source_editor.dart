@@ -20,6 +20,7 @@ import '../../core/i18n/l10n/app_localizations.dart';
 import '../widgets/language_picker.dart';
 import '../../services/html_to_markdown.dart';
 import '../../services/clipboard_service.dart';
+import '../../services/table_edit_service.dart';
 
 class SourceEditor extends ConsumerStatefulWidget {
   final String initialContent;
@@ -1262,6 +1263,26 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
         _applyBlockEdit(SourceEditor.createParagraphBelow);
       case FormatAction.deleteParagraph:
         _applyBlockEdit(SourceEditor.deleteParagraphAt);
+      case FormatAction.tableInsertRowAbove:
+        _applyTableEdit(TableEdit.insertRowAbove);
+      case FormatAction.tableInsertRowBelow:
+        _applyTableEdit(TableEdit.insertRowBelow);
+      case FormatAction.tableDeleteRow:
+        _applyTableEdit(TableEdit.deleteRow);
+      case FormatAction.tableInsertColumnLeft:
+        _applyTableEdit(TableEdit.insertColumnLeft);
+      case FormatAction.tableInsertColumnRight:
+        _applyTableEdit(TableEdit.insertColumnRight);
+      case FormatAction.tableDeleteColumn:
+        _applyTableEdit(TableEdit.deleteColumn);
+      case FormatAction.tableAlignLeft:
+        _applyTableEdit(TableEdit.alignLeft);
+      case FormatAction.tableAlignCenter:
+        _applyTableEdit(TableEdit.alignCenter);
+      case FormatAction.tableAlignRight:
+        _applyTableEdit(TableEdit.alignRight);
+      case FormatAction.tableAlignNone:
+        _applyTableEdit(TableEdit.alignNone);
       case FormatAction.superscript:
         _wrapSelection('^', '^');
       case FormatAction.subscript:
@@ -1526,6 +1547,28 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
   }
 
   /// Runs a block-level edit that reports where the caret should land.
+  /// Rewrites the table under the caret.
+  ///
+  /// Does nothing when the caret is not in a table, or when the edit does not
+  /// apply — neither the header row nor the last column can be removed. The
+  /// menu disables those entries, so this is the keyboard path failing safely
+  /// rather than the ordinary way in.
+  void _applyTableEdit(TableEdit edit) {
+    final text = _controller.text;
+    final offset = _controller.selection.baseOffset;
+    if (offset < 0) return;
+    final result = TableEditService.apply(text, offset.clamp(0, text.length),
+        edit);
+    if (result == null) return;
+    // A snapshot first: the whole table is reformatted, so a single undo has
+    // to take the reader back to what they had.
+    ref.read(editorProvider.notifier).pushHistory(text);
+    _controller.value = TextEditingValue(
+      text: result.text,
+      selection: TextSelection.collapsed(offset: result.offset),
+    );
+  }
+
   void _applyBlockEdit((String, int) Function(String, int) edit) {
     final text = _controller.text;
     final caret = _controller.selection.baseOffset.clamp(0, text.length);

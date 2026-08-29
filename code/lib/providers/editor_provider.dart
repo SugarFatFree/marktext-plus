@@ -42,6 +42,18 @@ enum FormatAction {
   looseList,
   createParagraph,
   deleteParagraph,
+  // Editing an existing table, which upstream MarkText does through a WYSIWYG
+  // grid. Here they rewrite the table under the caret in the source.
+  tableInsertRowAbove,
+  tableInsertRowBelow,
+  tableDeleteRow,
+  tableInsertColumnLeft,
+  tableInsertColumnRight,
+  tableDeleteColumn,
+  tableAlignLeft,
+  tableAlignCenter,
+  tableAlignRight,
+  tableAlignNone,
 }
 
 class EditorState {

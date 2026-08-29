@@ -253,6 +253,39 @@ class AppLocalizationsZh extends AppLocalizations {
   String get formatTable => '表格';
 
   @override
+  String get formatTableSubmenu => '编辑表格';
+
+  @override
+  String get formatTableInsertRowAbove => '在上方插入行';
+
+  @override
+  String get formatTableInsertRowBelow => '在下方插入行';
+
+  @override
+  String get formatTableDeleteRow => '删除行';
+
+  @override
+  String get formatTableInsertColumnLeft => '在左侧插入列';
+
+  @override
+  String get formatTableInsertColumnRight => '在右侧插入列';
+
+  @override
+  String get formatTableDeleteColumn => '删除列';
+
+  @override
+  String get formatTableAlignLeft => '整列左对齐';
+
+  @override
+  String get formatTableAlignCenter => '整列居中';
+
+  @override
+  String get formatTableAlignRight => '整列右对齐';
+
+  @override
+  String get formatTableAlignNone => '清除整列对齐';
+
+  @override
   String get formatLink => '链接';
 
   @override

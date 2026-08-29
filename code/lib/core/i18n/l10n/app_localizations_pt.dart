@@ -261,6 +261,39 @@ class AppLocalizationsPt extends AppLocalizations {
   String get formatTable => 'Tabela';
 
   @override
+  String get formatTableSubmenu => 'Editar tabela';
+
+  @override
+  String get formatTableInsertRowAbove => 'Inserir linha acima';
+
+  @override
+  String get formatTableInsertRowBelow => 'Inserir linha abaixo';
+
+  @override
+  String get formatTableDeleteRow => 'Eliminar linha';
+
+  @override
+  String get formatTableInsertColumnLeft => 'Inserir coluna à esquerda';
+
+  @override
+  String get formatTableInsertColumnRight => 'Inserir coluna à direita';
+
+  @override
+  String get formatTableDeleteColumn => 'Eliminar coluna';
+
+  @override
+  String get formatTableAlignLeft => 'Alinhar coluna à esquerda';
+
+  @override
+  String get formatTableAlignCenter => 'Centrar coluna';
+
+  @override
+  String get formatTableAlignRight => 'Alinhar coluna à direita';
+
+  @override
+  String get formatTableAlignNone => 'Remover alinhamento da coluna';
+
+  @override
   String get formatLink => 'Ligação';
 
   @override
@@ -1176,6 +1209,39 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get formatTable => 'Tabela';
+
+  @override
+  String get formatTableSubmenu => 'Editar tabela';
+
+  @override
+  String get formatTableInsertRowAbove => 'Inserir linha acima';
+
+  @override
+  String get formatTableInsertRowBelow => 'Inserir linha abaixo';
+
+  @override
+  String get formatTableDeleteRow => 'Excluir linha';
+
+  @override
+  String get formatTableInsertColumnLeft => 'Inserir coluna à esquerda';
+
+  @override
+  String get formatTableInsertColumnRight => 'Inserir coluna à direita';
+
+  @override
+  String get formatTableDeleteColumn => 'Excluir coluna';
+
+  @override
+  String get formatTableAlignLeft => 'Alinhar coluna à esquerda';
+
+  @override
+  String get formatTableAlignCenter => 'Centralizar coluna';
+
+  @override
+  String get formatTableAlignRight => 'Alinhar coluna à direita';
+
+  @override
+  String get formatTableAlignNone => 'Remover alinhamento da coluna';
 
   @override
   String get formatLink => 'Link';

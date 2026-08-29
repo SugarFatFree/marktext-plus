@@ -573,6 +573,72 @@ abstract class AppLocalizations {
   /// **'Table'**
   String get formatTable;
 
+  /// No description provided for @formatTableSubmenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Table'**
+  String get formatTableSubmenu;
+
+  /// No description provided for @formatTableInsertRowAbove.
+  ///
+  /// In en, this message translates to:
+  /// **'Insert Row Above'**
+  String get formatTableInsertRowAbove;
+
+  /// No description provided for @formatTableInsertRowBelow.
+  ///
+  /// In en, this message translates to:
+  /// **'Insert Row Below'**
+  String get formatTableInsertRowBelow;
+
+  /// No description provided for @formatTableDeleteRow.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Row'**
+  String get formatTableDeleteRow;
+
+  /// No description provided for @formatTableInsertColumnLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Insert Column Left'**
+  String get formatTableInsertColumnLeft;
+
+  /// No description provided for @formatTableInsertColumnRight.
+  ///
+  /// In en, this message translates to:
+  /// **'Insert Column Right'**
+  String get formatTableInsertColumnRight;
+
+  /// No description provided for @formatTableDeleteColumn.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Column'**
+  String get formatTableDeleteColumn;
+
+  /// No description provided for @formatTableAlignLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Align Column Left'**
+  String get formatTableAlignLeft;
+
+  /// No description provided for @formatTableAlignCenter.
+  ///
+  /// In en, this message translates to:
+  /// **'Align Column Center'**
+  String get formatTableAlignCenter;
+
+  /// No description provided for @formatTableAlignRight.
+  ///
+  /// In en, this message translates to:
+  /// **'Align Column Right'**
+  String get formatTableAlignRight;
+
+  /// No description provided for @formatTableAlignNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear Column Alignment'**
+  String get formatTableAlignNone;
+
   /// No description provided for @formatLink.
   ///
   /// In en, this message translates to:

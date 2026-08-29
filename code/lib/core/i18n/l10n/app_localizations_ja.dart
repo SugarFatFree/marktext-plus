@@ -254,6 +254,39 @@ class AppLocalizationsJa extends AppLocalizations {
   String get formatTable => 'テーブル';
 
   @override
+  String get formatTableSubmenu => '表を編集';
+
+  @override
+  String get formatTableInsertRowAbove => '上に行を挿入';
+
+  @override
+  String get formatTableInsertRowBelow => '下に行を挿入';
+
+  @override
+  String get formatTableDeleteRow => '行を削除';
+
+  @override
+  String get formatTableInsertColumnLeft => '左に列を挿入';
+
+  @override
+  String get formatTableInsertColumnRight => '右に列を挿入';
+
+  @override
+  String get formatTableDeleteColumn => '列を削除';
+
+  @override
+  String get formatTableAlignLeft => '列を左揃え';
+
+  @override
+  String get formatTableAlignCenter => '列を中央揃え';
+
+  @override
+  String get formatTableAlignRight => '列を右揃え';
+
+  @override
+  String get formatTableAlignNone => '列の配置を解除';
+
+  @override
   String get formatLink => 'リンク';
 
   @override

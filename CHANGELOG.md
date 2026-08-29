@@ -5,6 +5,11 @@ All notable changes to MarkText Plus will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - v1.5.2
+
+### Added
+- Table editing: insert a row above or below, delete a row, insert a column left or right, delete a column, and set a column's alignment. Under Format ▸ Insert ▸ Edit Table, greyed out where a command does not apply — outside a table, on the header row for Delete Row, and on a single-column table for Delete Column. Any edit re-aligns the whole table, measuring CJK characters at the two columns they occupy
+
 ## [v1.5.1] - 2026-08-29
 
 ### Added

@@ -254,6 +254,39 @@ class AppLocalizationsKo extends AppLocalizations {
   String get formatTable => '표';
 
   @override
+  String get formatTableSubmenu => '표 편집';
+
+  @override
+  String get formatTableInsertRowAbove => '위에 행 삽입';
+
+  @override
+  String get formatTableInsertRowBelow => '아래에 행 삽입';
+
+  @override
+  String get formatTableDeleteRow => '행 삭제';
+
+  @override
+  String get formatTableInsertColumnLeft => '왼쪽에 열 삽입';
+
+  @override
+  String get formatTableInsertColumnRight => '오른쪽에 열 삽입';
+
+  @override
+  String get formatTableDeleteColumn => '열 삭제';
+
+  @override
+  String get formatTableAlignLeft => '열 왼쪽 정렬';
+
+  @override
+  String get formatTableAlignCenter => '열 가운데 정렬';
+
+  @override
+  String get formatTableAlignRight => '열 오른쪽 정렬';
+
+  @override
+  String get formatTableAlignNone => '열 정렬 해제';
+
+  @override
   String get formatLink => '링크';
 
   @override
