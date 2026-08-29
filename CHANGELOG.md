@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - File ▸ Move To…, the one menu command upstream MarkText has that this one did not
 
 ### Fixed
+- A table written directly under a line of text, with no blank line between them, is drawn as a table. It used to be swallowed into the paragraph and disappear
 - `[the docs]` with its definition at the bottom of the file is a link. Only the two-bracket reference forms were read, so the shortcut form — the ordinary way to use reference links — came out as literal text. Brackets with no definition behind them stay as prose
 - A paragraph no longer keeps the spaces its lines were indented by. HTML collapses them so exports looked right, but the preview draws the text as written and a paragraph under a list item came out visibly shifted
 - `[TODO]()` — a link with an empty destination — is a link rather than literal text

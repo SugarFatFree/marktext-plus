@@ -1079,6 +1079,23 @@ class MarkdownParser {
     ));
   }
 
+  /// Whether line [at] opens a GFM table.
+  ///
+  /// Pulled out of the block loop so the paragraph loop can ask the same
+  /// question. A table written straight under a line of prose, with no blank
+  /// line between them, was swallowed into that paragraph and never drawn —
+  /// and writing it that way is common enough that GitHub, and every parser
+  /// that follows it, breaks the paragraph and renders the table.
+  bool _startsTable(List<String> lines, int at) {
+    if (at + 1 >= lines.length) return false;
+    if (!_tableRowRe.hasMatch(lines[at])) return false;
+    if (!_tableSepRe.hasMatch(lines[at + 1])) return false;
+    // GFM requires the dashes row to have as many cells as the header. Without
+    // this, now that the outer pipes are optional, a line of prose containing
+    // a pipe followed by a horizontal rule became a one-column table.
+    return _parseCells(lines[at + 1]).length == _parseCells(lines[at]).length;
+  }
+
   /// Link reference definitions found in the document being parsed.
   ///
   /// Collected up front because a reference may appear before its definition.
@@ -1343,14 +1360,7 @@ class MarkdownParser {
       }
 
       // Table (GFM)
-      if (_tableRowRe.hasMatch(line) &&
-          i + 1 < lines.length &&
-          _tableSepRe.hasMatch(lines[i + 1]) &&
-          // GFM requires the dashes row to have as many cells as the header.
-          // Without this, now that the outer pipes are optional, a line of
-          // prose containing a pipe followed by a horizontal rule became a
-          // one-column table.
-          _parseCells(lines[i + 1]).length == _parseCells(line).length) {
+      if (_startsTable(lines, i)) {
         final headers = _parseCells(line);
         final sepLine = lines[i + 1];
         final alignments = _parseAlignments(sepLine);
@@ -1471,7 +1481,8 @@ class MarkdownParser {
           !_codeFenceRe.hasMatch(lines[i]) &&
           !_blockquoteRe.hasMatch(lines[i]) &&
           !_ulRe.hasMatch(lines[i]) &&
-          !_olRe.hasMatch(lines[i])) {
+          !_olRe.hasMatch(lines[i]) &&
+          !_startsTable(lines, i)) {
         paraLines.add(lines[i]);
         i++;
       }
