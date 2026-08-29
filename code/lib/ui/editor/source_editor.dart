@@ -17,6 +17,7 @@ import '../../services/keybinding_service.dart';
 import '../../utils/platform_utils.dart';
 import '../widgets/slash_menu.dart';
 import '../../core/i18n/l10n/app_localizations.dart';
+import '../widgets/language_picker.dart';
 
 class SourceEditor extends ConsumerStatefulWidget {
   final String initialContent;
@@ -439,6 +440,11 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     _editorNotifier.clearEditorScrollController(_editorScrollController);
 
     _controller.dispose();
+    // Overlay entries outlive the widget unless they are taken down.
+    _slashMenu?.remove();
+    _slashMenu = null;
+    _languagePicker?.remove();
+    _languagePicker = null;
     _editorScrollController.dispose();
     _gutterScrollController.dispose();
     super.dispose();
@@ -538,6 +544,127 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     ref.read(editorProvider.notifier).applyFormat(command.action);
   }
 
+  /// Open while the code-fence language picker is showing.
+  OverlayEntry? _languagePicker;
+
+  /// Where the language being typed starts, so it can be replaced.
+  int _languageStart = -1;
+
+  /// The fence line the reader has already answered for.
+  ///
+  /// Writing the chosen language back into the fence is itself a text change,
+  /// and the caret stays on that line — so without this the picker reopened
+  /// on the language it had just inserted, and there was no way to close it
+  /// except to leave the line.
+  String? _languageSettled;
+
+  /// An opening code fence, and whatever has been typed as its language.
+  static final _openFenceRe = RegExp(r'^\s*(?:`{3,}|~{3,})([A-Za-z0-9+#._-]*)\s*$');
+
+  /// Shows or hides the language picker according to where the caret is.
+  ///
+  /// Upstream MarkText opens it while the fence's language is being typed and
+  /// closes it when the caret leaves — nine of its end-to-end tests are about
+  /// this one control. Without it the language has to be typed exactly and
+  /// from memory, and a fence with a misspelt language is drawn as plain,
+  /// unhighlighted code with nothing to say why.
+  void _syncLanguagePicker(String text) {
+    final offset = _controller.selection.baseOffset;
+    if (offset < 0) {
+      _closeLanguagePicker(null);
+      return;
+    }
+
+    final searchFrom = offset - 1;
+    final lineStart =
+        searchFrom < 0 ? 0 : text.lastIndexOf('\n', searchFrom) + 1;
+    var lineEnd = text.indexOf('\n', lineStart);
+    if (lineEnd < 0) lineEnd = text.length;
+    // Only while the caret is on that line: leaving it puts the picker away,
+    // which is what stops it hanging over the code being written.
+    if (offset > lineEnd) {
+      _closeLanguagePicker(null);
+      return;
+    }
+
+    final match = _openFenceRe.firstMatch(text.substring(lineStart, lineEnd));
+    if (match == null) {
+      _closeLanguagePicker(null);
+      return;
+    }
+
+    final query = match.group(1)!;
+    final line = text.substring(lineStart, lineEnd);
+    if (_languageSettled == line) return;
+    _languageSettled = null;
+    _languageStart = lineEnd - query.length;
+    _showLanguagePicker(query);
+  }
+
+  void _showLanguagePicker(String query) {
+    _languagePicker?.remove();
+    _languagePicker = null;
+
+    final overlay = Overlay.maybeOf(context);
+    final box = context.findRenderObject() as RenderBox?;
+    if (overlay == null || box == null || !box.hasSize) return;
+
+    final origin = box.localToGlobal(Offset.zero);
+    final entry = OverlayEntry(
+      builder: (_) => Positioned(
+        left: origin.dx + 60,
+        top: origin.dy + 40,
+        child: LanguagePicker(
+          query: query,
+          onSelected: _closeLanguagePicker,
+        ),
+      ),
+    );
+    _languagePicker = entry;
+    overlay.insert(entry);
+  }
+
+  /// Takes the picker away, writing [language] into the fence if one was
+  /// chosen.
+  void _closeLanguagePicker(String? language) {
+    if (_languagePicker == null) return;
+    _languagePicker?.remove();
+    _languagePicker = null;
+
+    if (language == null) {
+      // Dismissed rather than answered: the line stays as it is, and the
+      // picker must not come back for it either.
+      final text = _controller.text;
+      final offset = _controller.selection.baseOffset.clamp(0, text.length);
+      final lineStart =
+          offset == 0 ? 0 : text.lastIndexOf('\n', offset - 1) + 1;
+      var lineEnd = text.indexOf('\n', lineStart);
+      if (lineEnd < 0) lineEnd = text.length;
+      _languageSettled = text.substring(lineStart, lineEnd);
+      _languageStart = -1;
+      return;
+    }
+    if (_languageStart < 0) return;
+
+    final text = _controller.text;
+    var end = text.indexOf('\n', _languageStart);
+    if (end < 0) end = text.length;
+    final start = _languageStart.clamp(0, text.length);
+    final updated = text.substring(0, start) + language + text.substring(end);
+    // Remember the line as it now reads, so the change this makes does not
+    // bring the picker straight back.
+    final lineStart = start == 0 ? 0 : updated.lastIndexOf('\n', start - 1) + 1;
+    var lineEnd = updated.indexOf('\n', lineStart);
+    if (lineEnd < 0) lineEnd = updated.length;
+    _languageSettled = updated.substring(lineStart, lineEnd);
+
+    _controller.value = TextEditingValue(
+      text: updated,
+      selection: TextSelection.collapsed(offset: start + language.length),
+    );
+    _languageStart = -1;
+  }
+
   void _onTextChanged() {
     final text = _controller.text;
 
@@ -557,7 +684,10 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
       ref.read(editorProvider.notifier).pushHistory(text);
     }
 
-    if (_isInitialized) _maybeOpenSlashMenu(text, justTyped);
+    if (_isInitialized) {
+      _maybeOpenSlashMenu(text, justTyped);
+      _syncLanguagePicker(text);
+    }
 
     if (_debounce?.isActive ?? false) _debounce!.cancel();
     _debounce = Timer(const Duration(milliseconds: 300), () {
@@ -575,6 +705,10 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     final text = _controller.text;
     final offset = selection.baseOffset.clamp(0, text.length);
     final (line, col) = _positionOf(text, offset);
+
+    // The picker follows the caret: it belongs to the fence line and has to
+    // go away when the caret leaves it.
+    if (_isInitialized) _syncLanguagePicker(text);
 
     ref.read(editorProvider.notifier).updateCursor(line, col);
 
