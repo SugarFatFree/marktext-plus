@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 
 /// Moving a file or folder to the desktop's trash instead of destroying it.
@@ -10,14 +11,18 @@ import 'package:path/path.dart' as p;
 /// back at all.
 ///
 /// Linux is implemented here, to the freedesktop.org trash specification.
+/// macOS goes through the platform channel to `FileManager.trashItem`.
 /// Where trashing is not available the caller is told so rather than being
 /// given a silent permanent delete, because the two are not the same thing
 /// and the reader is the one who should know which they are getting.
 class TrashService {
   const TrashService._();
 
+  /// The channel macOS answers on — the same one the clipboard uses.
+  static const _channel = MethodChannel('com.marktextplus/clipboard');
+
   /// Whether this platform can move something to the trash.
-  static bool get isAvailable => Platform.isLinux;
+  static bool get isAvailable => Platform.isLinux || Platform.isMacOS;
 
   /// Moves [path] to the trash.
   ///
@@ -30,6 +35,16 @@ class TrashService {
   /// from the environment so this can be exercised against a directory that
   /// is not the reader's real trash.
   static Future<bool> moveToTrash(String path, {String? dataHome}) async {
+    if (Platform.isMacOS) {
+      try {
+        return await _channel.invokeMethod<bool>('moveToTrash', path) ?? false;
+      } catch (_) {
+        // An older build with no handler for this, or the Trash refusing the
+        // file. Either way the caller falls back to removing it outright,
+        // which is what happened before any of this existed.
+        return false;
+      }
+    }
     if (!Platform.isLinux) return false;
     try {
       return await _moveToXdgTrash(path, dataHome);

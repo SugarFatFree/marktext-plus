@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - v1.5.3
 
 ### Added
-- Deleting from the sidebar moves the file or folder to the desktop's trash on Linux, as upstream MarkText does, so a note removed by mistake can be put back. It was removed outright, and a folder took everything under it with no way back at all. macOS and Windows still delete outright — and their confirmation says so: the four cases (file or folder, recoverable or not) now ask four different questions instead of one that covered them all
+- Deleting from the sidebar moves the file or folder to the desktop's trash on Linux and macOS, as upstream MarkText does, so a note removed by mistake can be put back. It was removed outright, and a folder took everything under it with no way back at all. Windows still deletes outright — and its confirmation says so: the four cases (file or folder, recoverable or not) now ask four different questions instead of one that covered them all
 
 ### Fixed
 - Korean documents report the word count they actually have. Hangul was counted a word per character, which is right for Chinese and Japanese because they are written without spaces between words — Korean is written with them, so a document read about three times its real length

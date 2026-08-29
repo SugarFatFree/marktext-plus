@@ -91,18 +91,29 @@ false 时带 `"false"`。实现也只有一行——`domNode.setAttribute('spell
 有一条测试断言这四句**互不相同**——两种情况问同一句话，读者就分不出自己同意了什么；
 另有一条遍历 12 种语言，确认每种都答得出全部四句且带得上文件名。
 
-### 尚未覆盖的平台
+### macOS
 
-macOS 与 Windows 目前 `TrashService.isAvailable` 为 false，仍是永久删除——
+同日补上：Swift 侧在既有的剪贴板通道上加一个 `moveToTrash`，调
+`FileManager.trashItem`。**它的失败回退恰好就是补这个功能之前的行为**
+（Dart 侧收到 false 就永久删除），所以最坏情况是"没有变化"，
+而 Swift 能否编译由 tag 触发的 `build-macos` 把关。
+
+Swift 那半在本机无法运行，但**Dart 这半的契约可以测**：方法名、路径作为参数
+传过去、以及**拒绝时返回 false 而不是抛异常**——抛出去调用方连回退删除都做不了。
+
+### 尚未覆盖：Windows
+
+`TrashService.isAvailable` 在 Windows 上仍为 false，是永久删除——
 **但确认框会如实说"无法撤销"**，不会拿回收站的措辞骗人。
-后续可补：macOS 用 `NSFileManager.trashItem`（AppDelegate 里已有通道），
-Windows 用 FFI 调 `SHFileOperationW` 加 `FOF_ALLOWUNDO`。两者本机都无法编译验证，
-所以没有仓促塞进来——**会删文件的未经测试的代码，风险大于它解决的问题**。
+后续可补：FFI 调 `SHFileOperationW` 加 `FOF_ALLOWUNDO`。它需要正确摆好
+`SHFILEOPSTRUCT` 的内存布局和双 null 结尾的路径串，**摆错可能删掉别的东西**，
+而本机无法运行验证——**会删文件的未经测试的代码，风险大于它解决的问题**。
 
 ### 涉及文件
 
 - `code/lib/services/trash_service.dart`（新增）
 - `code/lib/providers/file_provider.dart`、`code/lib/ui/widgets/side_bar.dart`
 - `code/lib/core/i18n/l10n/*.arb`（12 种语言 × 3 个键）
-- `code/test/services/trash_service_test.dart`（新增，5 条）
+- `code/macos/Runner/AppDelegate.swift`（`moveToTrash`）
+- `code/test/services/trash_service_test.dart`（新增，7 条）
 - `code/test/ui/widgets/delete_confirmation_test.dart`（新增，5 条）

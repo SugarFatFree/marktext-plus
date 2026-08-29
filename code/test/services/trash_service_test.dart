@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/services/trash_service.dart';
 import 'package:path/path.dart' as p;
@@ -14,6 +15,9 @@ import 'package:path/path.dart' as p;
 /// implemented; the trash directory is redirected with XDG_DATA_HOME so the
 /// tests never touch the real one.
 void main() {
+  // The mock method-channel handler below needs the test binding.
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   late Directory work;
   late Directory dataHome;
 
@@ -110,5 +114,47 @@ void main() {
       await trash(p.join(work.path, 'gone.md')),
       isFalse,
     );
+  });
+
+  group('the platform channel macOS answers on', () {
+    // The macOS half cannot be exercised here — it is Swift, compiled only by
+    // the release build. What can be checked is the Dart side of the
+    // contract: the method name, that the path goes across as the argument,
+    // and that a refusal comes back as false rather than as an exception, so
+    // the caller falls through to removing the file outright.
+    const channel = MethodChannel('com.marktextplus/clipboard');
+    final calls = <MethodCall>[];
+
+    setUp(() {
+      calls.clear();
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+        calls.add(call);
+        if (call.method != 'moveToTrash') return null;
+        return call.arguments == '/tmp/ok.md';
+      });
+    });
+    tearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    });
+
+    test('the name and the argument are what the Swift side reads', () async {
+      if (!Platform.isMacOS) {
+        // Called directly, since the platform check inside would decline.
+        await channel.invokeMethod<bool>('moveToTrash', '/tmp/ok.md');
+      } else {
+        await TrashService.moveToTrash('/tmp/ok.md');
+      }
+      expect(calls.single.method, 'moveToTrash');
+      expect(calls.single.arguments, '/tmp/ok.md');
+    });
+
+    test('a refusal is false, not an exception', () async {
+      final answer =
+          await channel.invokeMethod<bool>('moveToTrash', '/tmp/no.md');
+      expect(answer, isFalse,
+          reason: '拒绝必须是 false，抛异常会让调用方连回退删除都做不了');
+    });
   });
 }

@@ -59,6 +59,26 @@ class AppDelegate: FlutterAppDelegate {
         return
       }
 
+      // Moving a file to the Trash, so a note deleted by mistake can be put
+      // back — the same thing upstream MarkText gets from Electron's
+      // shell.trashItem. Answering false leaves Dart to delete outright,
+      // which is what it did before this existed, so the worst this can do
+      // is nothing.
+      if call.method == "moveToTrash" {
+        guard let path = call.arguments as? String else {
+          result(false)
+          return
+        }
+        do {
+          try FileManager.default.trashItem(
+            at: URL(fileURLWithPath: path), resultingItemURL: nil)
+          result(true)
+        } catch {
+          result(false)
+        }
+        return
+      }
+
       guard call.method == "copyWithHtml",
             let args = call.arguments as? [String: Any],
             let html = args["html"] as? String,
