@@ -5,6 +5,7 @@
 | BUG-144 | 2026-08-30 | 预览的块编辑器里所有格式命令都无效，且命令会滞留 | P1 | 已修复 |
 | BUG-145 | 2026-08-30 | v1.5.2 发出去时关于页仍显示 1.5.1（守卫测试没跑在发布路径上） | P1 | 已修复 |
 | BUG-146 | 2026-08-30 | 文件被外部修改后，自动保存会静默覆盖别人的改动 | P1 | 已修复 |
+| BUG-147 | 2026-08-30 | 拖图片进编辑器：插入成功的同时弹出「未打开」错误 | P2 | 已修复 |
 
 ---
 
@@ -160,3 +161,50 @@ pendingFormat = FormatAction.bold      ← 还挂着
 - `code/lib/ui/widgets/app_menu_bar.dart`（冲突对话框）、`code/lib/ui/widgets/status_bar.dart`（告警条）
 - `code/lib/core/i18n/l10n/*.arb`（12 种语言 × 6 个键）
 - `code/test/services/save_conflict_test.dart`（新增，12 条）
+
+---
+
+## BUG-147：拖图片进编辑器会同时插入成功并报错
+
+**优先级**：P2　**状态**：已修复　**日期**：2026-08-30
+
+### 现象
+
+把一张图片拖进编辑器正文区：图片链接正确插入了文档，**同时**屏幕下方弹出
+「1 个文件未打开：不是 markdown 文档」。
+
+动作成功了，应用却说它失败了。
+
+### 根因分析
+
+窗口和编辑器各挂了一个 `DropTarget`，编辑器那个嵌套在窗口那个里面。
+读 `desktop_drop` 0.4.4 的源码确认（不是猜的）：
+
+```dart
+for (final listener in _listeners) { listener(event); }
+```
+
+它把每次拖放**广播给所有** target，各自用自己的矩形判断 `inBounds`，
+**没有命中消费机制**。所以拖到正文区时两个处理器都会跑：
+
+- 编辑器的 `_handleImageDrop`：识别为图片，存好并插入 `![image](...)` ✓
+- 窗口的 `_handleDrop`：扩展名不在 markdown 清单里 → `refused++` → 弹提示 ✗
+
+### 顺带查证但**不是**问题的一点
+
+同时怀疑「把 .md 文件拖进正文区不会打开」。**不成立**——正因为是广播，
+窗口级处理器照样收得到并打开它。查了包的实现才敢下结论。
+
+### 修复方案
+
+抽出 `HomeScreen.dropIsUnhandled(path, {required editorPresent})`：
+markdown 文档不算被拒；图片**在有编辑器接手时**不算被拒。
+
+`editorPresent` 这个参数是必要的：一个标签页都没开时没有正文区、也就没有那个
+drop target，图片确实没人接。**那种情况下静默忽略，等于把这条 bug 换个地方
+重演**——所以此时仍然提示。
+
+### 涉及文件
+
+- `code/lib/ui/screens/home_screen.dart`
+- `code/test/ui/screens/drop_handling_test.dart`（新增，5 条）
