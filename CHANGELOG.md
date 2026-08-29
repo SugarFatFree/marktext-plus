@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - File ▸ Move To…, the one menu command upstream MarkText has that this one did not
 
 ### Fixed
+- `[the docs]` with its definition at the bottom of the file is a link. Only the two-bracket reference forms were read, so the shortcut form — the ordinary way to use reference links — came out as literal text. Brackets with no definition behind them stay as prose
 - A paragraph no longer keeps the spaces its lines were indented by. HTML collapses them so exports looked right, but the preview draws the text as written and a paragraph under a list item came out visibly shifted
 - `[TODO]()` — a link with an empty destination — is a link rather than literal text
 - Writing the next list with a different bullet character starts a second list, as it should, instead of running the two together

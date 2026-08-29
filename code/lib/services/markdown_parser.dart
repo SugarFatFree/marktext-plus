@@ -1054,6 +1054,31 @@ class MarkdownParser {
     return _markerOf(line) != firstMarker;
   }
 
+  /// Resolves `[label]` or `![label]` against the document's definitions.
+  ///
+  /// An unresolved label is put back exactly as it was written. Prose is full
+  /// of square brackets that are not links — `[sic]`, `[1]`, a note to
+  /// oneself — and turning those into links to nowhere would be worse than
+  /// not supporting the shortcut at all.
+  void _addShortcutReference(
+    List<InlineSpan> spans,
+    String label,
+    String written, {
+    required bool isImage,
+  }) {
+    final definition = _linkDefinitions[label.toLowerCase()];
+    if (definition == null) {
+      spans.add(InlineSpan(type: InlineType.text, text: written));
+      return;
+    }
+    spans.add(InlineSpan(
+      type: isImage ? InlineType.image : InlineType.link,
+      text: label,
+      href: definition.url,
+      title: definition.title,
+    ));
+  }
+
   /// Link reference definitions found in the document being parsed.
   ///
   /// Collected up front because a reference may appear before its definition.
@@ -1606,7 +1631,18 @@ class MarkdownParser {
       // Appended last so no group number ahead of it moves; the leftmost
       // match still wins, and this one starts a character earlier than the
       // reference-link branch it has to beat.
-      r'|!\[((?:[^\[\]]|\[[^\[\]]*\])*)\]\[((?:[^\[\]]|\[[^\[\]]*\])*)\]',
+      r'|!\[((?:[^\[\]]|\[[^\[\]]*\])*)\]\[((?:[^\[\]]|\[[^\[\]]*\])*)\]'
+      // The shortcut forms: `[foo]` and `![foo]`, where the text is itself
+      // the label and there is no second pair of brackets. A README that puts
+      // its definitions at the bottom and writes `[the docs]` in the prose is
+      // the ordinary way to use them, and only the two-bracket forms were
+      // read — the shortcut came out as literal `[the docs]`.
+      //
+      // Last of all, and appended so no group number ahead of them moves. A
+      // label with no definition behind it is left as written, which is what
+      // keeps `[not a link]` in ordinary prose from being swallowed.
+      r'|!\[((?:[^\[\]]|\[[^\[\]]*\])*)\](?![\[(])'   // 39 shortcut image
+      r'|\[((?:[^\[\]]|\[[^\[\]]*\])*)\](?![\[(:])',  // 40 shortcut link
       // `unicode: true` so `\p{L}` and `\p{N}` mean what they say: the
       // word-boundary rule around `_` has to hold for Chinese and Cyrillic
       // text as much as for Latin.
@@ -1792,6 +1828,14 @@ class MarkdownParser {
             title: definition.title,
           ));
         }
+      } else if (match.group(39) != null) {
+        // Shortcut image: `![foo]`, the label being the text itself.
+        _addShortcutReference(spans, match.group(39)!, match.group(0)!,
+            isImage: true);
+      } else if (match.group(40) != null) {
+        // Shortcut link: `[foo]`.
+        _addShortcutReference(spans, match.group(40)!, match.group(0)!,
+            isImage: false);
       }
 
       lastEnd = match.end;
@@ -1815,7 +1859,7 @@ class MarkdownParser {
     // tag it does not want interpreted.
     final expanded = enableHtml ? _expandInlineHtml(spans) : spans;
 
-    return expanded.map((span) {
+    final decoded = expanded.map((span) {
       final restored =
           escapes.isEmpty ? span : _restoreEscapes(span, escapes);
       // Entities inside inline code are literal, per CommonMark.
@@ -1828,6 +1872,33 @@ class MarkdownParser {
         linkHref: restored.linkHref,
       );
     }).toList();
+
+    return _mergeAdjacentText(decoded);
+  }
+
+  /// Joins runs of plain text that ended up as separate spans.
+  ///
+  /// A branch that matches but resolves to nothing — an undefined `[label]`,
+  /// say — puts its source back as text, which leaves the text on either side
+  /// of it in spans of its own. Nothing renders differently, but every
+  /// consumer then has more pieces to walk, and a test that asks for "the
+  /// text span" of a plain sentence has to know how many there are.
+  static List<InlineSpan> _mergeAdjacentText(List<InlineSpan> spans) {
+    final merged = <InlineSpan>[];
+    for (final span in spans) {
+      final last = merged.isEmpty ? null : merged.last;
+      if (span.type == InlineType.text &&
+          last != null &&
+          last.type == InlineType.text &&
+          last.href == null &&
+          span.href == null) {
+        merged[merged.length - 1] =
+            InlineSpan(type: InlineType.text, text: last.text + span.text);
+        continue;
+      }
+      merged.add(span);
+    }
+    return merged;
   }
 
   /// The inline tags [enableHtml] understands, and what each becomes.

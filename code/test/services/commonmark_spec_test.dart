@@ -28,6 +28,7 @@ void main() {
     out = out.replaceAll(RegExp(r' class="language-[^"]*"'), '');
     // Two spellings of a void element.
     out = out.replaceAll('<hr />', '<hr>').replaceAll('<br />', '<br>');
+    out = out.replaceAll(RegExp(r' />'), '>');
     // This editor treats a newline inside a paragraph as a line break, in the
     // preview, in Word and in HTML alike; CommonMark folds it into a space.
     // That is a product decision, so both sides are folded to a space here.
@@ -88,7 +89,7 @@ void main() {
 
     // Measured 2026-08-29. Raise it whenever the work raises it; never lower
     // it to make a change pass.
-    const floor = 315;
+    const floor = 341;
     expect(passed, greaterThanOrEqualTo(floor),
         reason: '解析能力相比 $floor 例退步了');
     if (passed > floor) {
@@ -189,6 +190,45 @@ void main() {
     expect(link, hasLength(1));
     expect(link.single.text, 'TODO');
     expect(link.single.href, '');
+  });
+
+  test('a shortcut reference link resolves against its definition', () {
+    // `[the docs]` with the definition at the bottom is the ordinary way to
+    // use reference links; only the two-bracket forms were read, so the
+    // shortcut came out as literal text.
+    final ast = MarkdownParser()
+        .parse('See [the docs] for more.\n\n[the docs]: /guide "Guide"\n');
+    final link = (ast.first as ParagraphNode)
+        .inlineSpans
+        .where((s) => s.type == InlineType.link);
+    expect(link, hasLength(1));
+    expect(link.single.text, 'the docs');
+    expect(link.single.href, '/guide');
+    expect(link.single.title, 'Guide');
+  });
+
+  test('the shortcut form works for images too', () {
+    final ast = MarkdownParser()
+        .parse('![a cat]\n\n[a cat]: cat.png\n');
+    final image = (ast.first as ParagraphNode)
+        .inlineSpans
+        .where((s) => s.type == InlineType.image);
+    expect(image, hasLength(1));
+    expect(image.single.href, 'cat.png');
+  });
+
+  test('brackets with no definition behind them stay as prose', () {
+    // Prose is full of square brackets that are not links. Turning `[sic]`
+    // into a link to nowhere would be worse than not supporting the shortcut.
+    for (final source in ['a note [sic] here', 'see [1] below', '[a [b] c]']) {
+      final spans =
+          (MarkdownParser().parse('$source\n').single as ParagraphNode)
+              .inlineSpans;
+      expect(spans.where((s) => s.type == InlineType.link), isEmpty,
+          reason: source);
+      expect(spans.single.text, source,
+          reason: '$source 被拆成了多个文本 span');
+    }
   });
 
   test('a code span written across two lines is still a code span', () {
