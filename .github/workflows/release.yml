@@ -12,7 +12,33 @@ env:
   FLUTTER_VERSION: stable
 
 jobs:
+  # The tag, pubspec.yaml and AppConstants.appVersion all name the version,
+  # and all three have to agree. A test in the suite checks the last two, but
+  # the suite runs on a push and this workflow runs on a tag — so v1.5.2
+  # shipped with About reading 1.5.1, which is exactly the drift issue #1 was
+  # about: the update check compares against that constant, so every user of
+  # that build is told forever that an update is waiting.
+  #
+  # Cheap enough to run before anything is built, and it stops the release
+  # rather than reporting on it afterwards.
+  check-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tag, pubspec and AppConstants must agree
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PUB=$(sed -n 's/^version: *\([0-9.]*\).*/\1/p' code/pubspec.yaml)
+          CONST=$(sed -n "s/.*appVersion = '\([0-9.]*\)'.*/\1/p" \
+            code/lib/core/constants.dart)
+          echo "tag=$TAG pubspec=$PUB constants=$CONST"
+          if [ "$TAG" != "$PUB" ] || [ "$PUB" != "$CONST" ]; then
+            echo "::error::版本号不一致：tag=$TAG pubspec=$PUB constants=$CONST"
+            exit 1
+          fi
+
   build-windows:
+    needs: check-version
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -98,6 +124,7 @@ jobs:
             marktext-plus-${{ github.ref_name }}-windows-x64-setup.exe
 
   build-macos:
+    needs: check-version
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -146,6 +173,7 @@ jobs:
             marktext-plus-${{ github.ref_name }}-macos-universal.dmg
 
   build-linux:
+    needs: check-version
     strategy:
       matrix:
         include:

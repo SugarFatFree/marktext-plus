@@ -65,6 +65,13 @@ class EditorState {
   final int cursorCol;
   final double scrollOffset;
   final FormatAction? pendingFormat;
+
+  /// Whether the preview currently has a block open for editing.
+  ///
+  /// In split view both panes are on screen, so both would otherwise take a
+  /// pending format command and apply it — the same bold twice, in two
+  /// different places. The pane the reader is actually typing in wins.
+  final bool previewBlockEditing;
   final bool canUndo;
   final bool canRedo;
   final bool showFindReplace;
@@ -95,6 +102,7 @@ class EditorState {
   final bool findStepForward;
 
   const EditorState({
+    this.previewBlockEditing = false,
     this.cursorLine = 0,
     this.cursorCol = 0,
     this.scrollOffset = 0.0,
@@ -115,6 +123,7 @@ class EditorState {
   });
 
   EditorState copyWith({
+    bool? previewBlockEditing,
     int? cursorLine,
     int? cursorCol,
     double? scrollOffset,
@@ -136,6 +145,7 @@ class EditorState {
     bool? findStepForward,
   }) {
     return EditorState(
+      previewBlockEditing: previewBlockEditing ?? this.previewBlockEditing,
       cursorLine: cursorLine ?? this.cursorLine,
       cursorCol: cursorCol ?? this.cursorCol,
       scrollOffset: scrollOffset ?? this.scrollOffset,
@@ -326,6 +336,12 @@ class EditorNotifier extends StateNotifier<EditorState> {
 
   void applyFormat(FormatAction action) {
     state = state.copyWith(pendingFormat: action);
+  }
+
+  /// Records whether a block in the preview is open for editing.
+  void setPreviewBlockEditing(bool editing) {
+    if (state.previewBlockEditing == editing) return;
+    state = state.copyWith(previewBlockEditing: editing);
   }
 
   void clearFormat() {

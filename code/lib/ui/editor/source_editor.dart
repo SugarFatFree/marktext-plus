@@ -1923,7 +1923,12 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     final pendingFormat = ref.watch(
       editorProvider.select((s) => s.pendingFormat),
     );
-    if (pendingFormat != null) {
+    // Not while the preview has a block open: in split view both panes are on
+    // screen and both would otherwise apply the same command, in two
+    // different places. The pane being typed in takes it.
+    final previewEditing =
+        ref.watch(editorProvider.select((s) => s.previewBlockEditing));
+    if (pendingFormat != null && !previewEditing) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _applyFormat(pendingFormat);
         ref.read(editorProvider.notifier).clearFormat();
