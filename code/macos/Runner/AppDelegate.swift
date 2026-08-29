@@ -52,6 +52,13 @@ class AppDelegate: FlutterAppDelegate {
       name: AppDelegate.clipboardChannelName,
       binaryMessenger: controller.engine.binaryMessenger)
     channel.setMethodCallHandler { call, result in
+      // Reading the HTML flavour, so a paste from a browser keeps its
+      // structure instead of arriving as the flattened plain-text flavour.
+      if call.method == "readHtml" {
+        result(NSPasteboard.general.string(forType: .html))
+        return
+      }
+
       guard call.method == "copyWithHtml",
             let args = call.arguments as? [String: Any],
             let html = args["html"] as? String,

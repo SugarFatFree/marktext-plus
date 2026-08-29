@@ -53,6 +53,73 @@ void main() {
     expect(args['html'], '<h1>Title</h1>');
   });
 
+  test('the HTML flavour is asked for by name', () async {
+    if (!Platform.isLinux && !Platform.isMacOS) return;
+
+    final calls = <MethodCall>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('com.marktextplus/clipboard'),
+      (call) async {
+        calls.add(call);
+        return '<p>正文</p>';
+      },
+    );
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+              const MethodChannel('com.marktextplus/clipboard'), null);
+    });
+
+    expect(await ClipboardService.readHtml(), '<p>正文</p>');
+    expect(calls.single.method, 'readHtml');
+  });
+
+  test('a clipboard with no HTML on it reads as nothing', () async {
+    if (!Platform.isLinux && !Platform.isMacOS) return;
+
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('com.marktextplus/clipboard'),
+      (call) async => null,
+    );
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+              const MethodChannel('com.marktextplus/clipboard'), null);
+    });
+
+    // Null, not an empty string: text copied from a text editor has no HTML
+    // flavour at all, and that is the ordinary case.
+    expect(await ClipboardService.readHtml(), isNull);
+  });
+
+  test('a runner without the method is not an error', () async {
+    if (!Platform.isLinux && !Platform.isMacOS) return;
+
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('com.marktextplus/clipboard'),
+      (call) async => throw MissingPluginException(),
+    );
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+              const MethodChannel('com.marktextplus/clipboard'), null);
+    });
+
+    expect(await ClipboardService.readHtml(), isNull);
+  });
+
+  test('both runners answer readHtml, not only one of them', () {
+    // Written twice in two languages; a paste that keeps its formatting on
+    // Linux and loses it on macOS is the kind of difference nobody reports.
+    expect(File('linux/runner/my_application.cc').readAsStringSync(),
+        contains('readHtml'));
+    expect(File('macos/Runner/AppDelegate.swift').readAsStringSync(),
+        contains('readHtml'));
+  });
+
   test('a runner that cannot take it still leaves the text behind', () async {
     if (!Platform.isLinux && !Platform.isMacOS) return;
 

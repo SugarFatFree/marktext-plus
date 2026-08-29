@@ -72,6 +72,36 @@ static void handle_clipboard_call(FlMethodChannel* channel,
                                   gpointer user_data) {
   g_autoptr(FlMethodResponse) response = nullptr;
 
+  // Reading the HTML flavour of whatever is on the clipboard, so a paste from
+  // a browser can keep its headings, lists and tables instead of arriving as
+  // the flattened plain-text flavour.
+  if (strcmp(fl_method_call_get_name(method_call), "readHtml") == 0) {
+    GtkClipboard* clipboard = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
+    GdkAtom target = gdk_atom_intern_static_string("text/html");
+    GtkSelectionData* data = gtk_clipboard_wait_for_contents(clipboard, target);
+
+    g_autofree gchar* html = nullptr;
+    if (data != nullptr) {
+      const guchar* raw = gtk_selection_data_get_data(data);
+      const gint length = gtk_selection_data_get_length(data);
+      if (raw != nullptr && length > 0) {
+        // Firefox and Chromium hand this over as UTF-8; a stray encoding
+        // would make invalid UTF-8, which Dart would refuse, so it is checked
+        // here rather than sent on regardless.
+        if (g_utf8_validate(reinterpret_cast<const gchar*>(raw), length,
+                            nullptr)) {
+          html = g_strndup(reinterpret_cast<const gchar*>(raw), length);
+        }
+      }
+      gtk_selection_data_free(data);
+    }
+
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(
+        html == nullptr ? fl_value_new_null() : fl_value_new_string(html)));
+    fl_method_call_respond(method_call, response, nullptr);
+    return;
+  }
+
   if (strcmp(fl_method_call_get_name(method_call), "copyWithHtml") != 0) {
     response = FL_METHOD_RESPONSE(fl_method_not_implemented_response_new());
     fl_method_call_respond(method_call, response, nullptr);

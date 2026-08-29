@@ -12,6 +12,7 @@
 | FEAT-045 | 2026-08-29 | 斜杠快速插入菜单 | P1 | 中 | 已完成 |
 | FEAT-046 | 2026-08-29 | 代码块语言选择器 | P2 | 中 | 已完成 |
 | FEAT-047 | 2026-08-29 | HTML → markdown 转换器（粘贴富文本的前半） | P1 | 中 | 已完成 |
+| FEAT-048 | 2026-08-29 | 粘贴富文本保留结构，Shift 粘贴为纯文本 | P1 | 中 | 已完成 |
 
 ---
 
@@ -219,3 +220,22 @@ overlay 之前）一次都没打出来，问题就锁定在中间那两行。
 实现把 `div` 与 `p` 同等对待——于是里面的标题、列表、表格**全被压成一行文字**。
 这是综合用例（一段真实页面片段）才暴露出来的：前 23 条单结构测试全过。
 改为：`div` 内含块级元素时按容器递归，否则才当段落。
+
+
+---
+
+## FEAT-048：粘贴富文本保留结构
+
+| 字段 | 内容 |
+|------|------|
+| **实现日期** | 2026-08-29 |
+| **需求描述** | 从浏览器复制的内容粘进来时保留结构（标题、列表、表格、链接）；`Ctrl+Shift+V` 仍按纯文本粘贴。 |
+| **接续** | FEAT-047 落地了转换器并完整测试，本轮接上三个平台的读取端。 |
+| **实现方案** | 沿用已有的 `com.marktextplus/clipboard` 通道，加一个 `readHtml`：<br>**Linux**：`gtk_clipboard_wait_for_contents(text/html)`，并且**先 `g_utf8_validate` 再送出**——编码异常的内容会变成非法 UTF-8，Dart 那边会直接拒收整条消息；<br>**macOS**：`NSPasteboard.general.string(forType: .html)`；<br>**Windows**：FFI 读 `HTML Format`，与已有的写入端对称（`RegisterClipboardFormatW` / `GetClipboardData` / `GlobalLock`）。 |
+| **为什么先让纯文本粘贴发生、再替换** | 读另一种剪贴板格式是**异步**的。若按住按键等它回答，**每一次粘贴都会变慢**——包括绝大多数根本没有 HTML 的粘贴。所以让框架照常粘贴纯文本，拿到更好的结果之后再把刚插入的那一段替换掉。替换的范围由粘贴前的光标位置与长度差算出，拿不准就不动。 |
+| **失败时的行为** | 任何一步不成（没有 HTML、转换器认不出、旧版 runner 没有这个方法），粘贴结果就是纯文本——**和改动之前一样**，不会更差。 |
+| **涉及文件** | `code/lib/services/clipboard_service.dart`<br>`code/lib/ui/editor/source_editor.dart`<br>`code/linux/runner/my_application.cc`<br>`code/macos/Runner/AppDelegate.swift`<br>`code/test/services/clipboard_channel_test.dart`（+4 条） |
+| **本机无法验证的部分** | C++ 与 Swift 本机编译不了。Linux 由每次推送的 CI 构建验证；macOS 只在打 tag 时构建，即 v1.5.1 发布时验证。 |
+
+其中一条测试直接读两个 runner 的源码，断言**两边都实现了 `readHtml`**——
+"在 Linux 上粘贴保留格式、在 macOS 上丢格式"是那种不会有人报告的差异。

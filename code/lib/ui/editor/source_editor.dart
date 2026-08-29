@@ -18,6 +18,8 @@ import '../../utils/platform_utils.dart';
 import '../widgets/slash_menu.dart';
 import '../../core/i18n/l10n/app_localizations.dart';
 import '../widgets/language_picker.dart';
+import '../../services/html_to_markdown.dart';
+import '../../services/clipboard_service.dart';
 
 class SourceEditor extends ConsumerStatefulWidget {
   final String initialContent;
@@ -665,6 +667,41 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     _languageStart = -1;
   }
 
+  /// Replaces a just-pasted plain flavour with markdown built from the HTML
+  /// flavour, when the clipboard carried one.
+  ///
+  /// Copying a table or a list out of a browser puts both flavours on the
+  /// clipboard. Only the plain one was ever read, so what arrived was the
+  /// words with their columns and bullets flattened out of them.
+  ///
+  /// The plain paste is allowed to happen first and is then replaced: reading
+  /// the other flavour is asynchronous, and holding the keystroke until it
+  /// answers would make every paste feel slow — including the great majority
+  /// that have no HTML at all.
+  Future<void> _handleRichPaste() async {
+    final selectionBefore = _controller.selection;
+    final lengthBefore = _controller.text.length;
+
+    final html = await ClipboardService.readHtml();
+    if (html == null || !mounted) return;
+
+    final markdown = HtmlToMarkdown.convert(html);
+    if (markdown == null) return;
+
+    // What the framework pasted, which is what has to be taken back out.
+    final text = _controller.text;
+    final inserted = text.length - lengthBefore;
+    if (inserted <= 0) return;
+    final start = selectionBefore.isValid ? selectionBefore.start : 0;
+    final end = start + inserted;
+    if (end > text.length) return;
+
+    _controller.value = TextEditingValue(
+      text: text.substring(0, start) + markdown + text.substring(end),
+      selection: TextSelection.collapsed(offset: start + markdown.length),
+    );
+  }
+
   void _onTextChanged() {
     final text = _controller.text;
 
@@ -805,10 +842,17 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     if (event.logicalKey == LogicalKeyboardKey.keyV &&
         (HardwareKeyboard.instance.isControlPressed ||
             HardwareKeyboard.instance.isMetaPressed)) {
+      // Shift is the escape hatch: paste exactly what the plain flavour says,
+      // with no conversion. Upstream MarkText has the same command, and it
+      // exists precisely because converting is the default.
+      if (HardwareKeyboard.instance.isShiftPressed) {
+        return KeyEventResult.ignored;
+      }
       _handleImagePaste();
-      // We always return ignored here so the TextField can handle
-      // text paste as normal. If it was an image, _handleImagePaste
-      // will insert the markdown asynchronously.
+      _handleRichPaste();
+      // Ignored either way so the TextField still pastes the plain flavour if
+      // neither of those has anything to offer; both replace what they
+      // inserted only once they know they have something better.
       return KeyEventResult.ignored;
     }
 
