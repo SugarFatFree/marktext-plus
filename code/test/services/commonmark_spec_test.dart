@@ -83,12 +83,63 @@ void main() {
 
     // Measured 2026-08-29. Raise it whenever the work raises it; never lower
     // it to make a change pass.
-    const floor = 255;
+    const floor = 259;
     expect(passed, greaterThanOrEqualTo(floor),
         reason: '解析能力相比 $floor 例退步了');
     if (passed > floor) {
       // ignore: avoid_print
       print('CommonMark: $passed/648 — 高于下限 $floor，可以把下限提上来');
+    }
+  });
+
+  test('a delimiter with a space just inside it does not emphasise', () {
+    // The single-asterisk branch already refused this — which is why
+    // `2 * 3 * 4` was safe — but `**`, `***`, `__` and `___` did not, so
+    // prose with spaced asterisks in it came out bold.
+    for (final source in ['2 ** 3 ** 4', '** foo bar**', '__ foo bar__']) {
+      final spans =
+          (MarkdownParser().parse('$source\n').single as ParagraphNode)
+              .inlineSpans;
+      expect(spans.where((s) => s.type == InlineType.bold), isEmpty,
+          reason: source);
+    }
+
+    // And still emphasises when there is no space.
+    final bold = (MarkdownParser().parse('**foo bar**\n').single
+            as ParagraphNode)
+        .inlineSpans
+        .where((s) => s.type == InlineType.bold);
+    expect(bold, hasLength(1));
+  });
+
+  test('an underscore inside a word does not emphasise, in any script', () {
+    // The boundary was `[a-zA-Z0-9_]`, so it only recognised a Latin word.
+    // Cyrillic and Chinese text with underscores in it came out emphasised
+    // because the character before the delimiter was, to that class, not a
+    // word character at all.
+    for (final source in [
+      'snake_case_name',
+      'пристаням_стремятся_',
+      '中文_强调_文字',
+      'ファイル_名前_です',
+    ]) {
+      final spans =
+          (MarkdownParser().parse('$source\n').single as ParagraphNode)
+              .inlineSpans;
+      expect(
+          spans.where((s) =>
+              s.type == InlineType.italic || s.type == InlineType.bold),
+          isEmpty,
+          reason: source);
+    }
+
+    // Standing alone it still emphasises, whatever the script.
+    for (final source in ['_foo_', '_中文_']) {
+      final spans =
+          (MarkdownParser().parse('$source\n').single as ParagraphNode)
+              .inlineSpans;
+      expect(spans.where((s) => s.type == InlineType.italic), hasLength(1),
+          reason: source);
     }
   });
 

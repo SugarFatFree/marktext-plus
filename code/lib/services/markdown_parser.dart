@@ -1514,14 +1514,25 @@ class MarkdownParser {
       // Must precede the ** branch: alternation prefers the first that
       // matches at the same position, and `***x***` read as bold left a
       // stray asterisk behind.
-      r'|\*\*\*(.+?)\*\*\*'          // bold italic ***
-      r'|\*\*(.+?)\*\*'            // bold **
+      // The same whitespace rule the single-asterisk branch below carries:
+      // a delimiter with a space just inside it neither opens nor closes.
+      // Without it `2 ** 3 ** 4` came out with a bold 3, and `** note **`
+      // — a line someone typed with spaces for emphasis of their own — was
+      // silently turned into bold.
+      r'|\*\*\*([^\s].*?[^\s]|[^\s])\*\*\*'  // bold italic ***
+      r'|\*\*([^\s].*?[^\s]|[^\s])\*\*'  // bold **
       // `_` must not sit inside a word, or snake_case_names read as emphasis.
       // The boundary excludes `_` itself as well: in `read__me__now` the
       // second underscore of the pair is not alphanumeric, so without it the
       // inner `_me_` still matched.
-      r'|(?<![a-zA-Z0-9_])___(.+?)___(?![a-zA-Z0-9_])'  // bold italic ___
-      r'|(?<![a-zA-Z0-9_])__(.+?)__(?![a-zA-Z0-9_])'  // bold __
+      //
+      // `\p{L}\p{N}` rather than `a-zA-Z0-9`: the rule is about being inside
+      // a word, and a word is not only a Latin one. With the ASCII class,
+      // `пристаням_стремятся_` and any Chinese text with underscores in it
+      // came out emphasised — the boundary saw a non-ASCII letter as "not a
+      // word character" and let the delimiter through.
+      r'|(?<![\p{L}\p{N}_])___([^\s].*?[^\s]|[^\s])___(?![\p{L}\p{N}_])'
+      r'|(?<![\p{L}\p{N}_])__([^\s].*?[^\s]|[^\s])__(?![\p{L}\p{N}_])'
       r'|~~(.+?)~~'                // strikethrough
       // No spaces inside, or `x^2 and y^3` becomes one long superscript.
       r'|\^([^\s^]+)\^'            // superscript
@@ -1530,7 +1541,7 @@ class MarkdownParser {
       // or close emphasis. Without this, "2 * 3 * 4" italicised the 3 and
       // ordinary prose with a stray asterisk came out slanted.
       r'|\*([^\s].*?[^\s]|[^\s])\*'  // italic *
-      r'|(?<![a-zA-Z0-9_])_([^\s].*?[^\s]|[^\s])_(?![a-zA-Z0-9_])'  // italic _
+      r'|(?<![\p{L}\p{N}_])_([^\s].*?[^\s]|[^\s])_(?![\p{L}\p{N}_])'  // italic _
       // Appended rather than inserted: these add groups 19..21, leaving every
       // existing branch's numbering alone.
       r'|<((?:https?|ftp|mailto):[^>\s]+)>'         // 19 autolink
@@ -1562,7 +1573,11 @@ class MarkdownParser {
       // Appended last so no group number ahead of it moves; the leftmost
       // match still wins, and this one starts a character earlier than the
       // reference-link branch it has to beat.
-      r'|!\[((?:[^\[\]]|\[[^\[\]]*\])*)\]\[((?:[^\[\]]|\[[^\[\]]*\])*)\]'
+      r'|!\[((?:[^\[\]]|\[[^\[\]]*\])*)\]\[((?:[^\[\]]|\[[^\[\]]*\])*)\]',
+      // `unicode: true` so `\p{L}` and `\p{N}` mean what they say: the
+      // word-boundary rule around `_` has to hold for Chinese and Cyrillic
+      // text as much as for Latin.
+      unicode: true,
     );
 
     var lastEnd = 0;

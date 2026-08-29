@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - File ▸ Move To…, the one menu command upstream MarkText has that this one did not
 
 ### Fixed
+- `2 ** 3 ** 4` and `** note **` are no longer turned into bold. The rule that a delimiter with a space just inside it does not emphasise was applied to `*` alone, and not to `**`, `***`, `__` or `___`
+- An underscore inside a word no longer emphasises Chinese, Japanese or Cyrillic text. The word-boundary check recognised Latin letters only, so `中文_强调_文字` came out emphasised where `snake_case_name` correctly did not
 - A code span written across two lines — a long command wrapped in the source — is read as code instead of leaving its backticks in the text
 - `cherry-pick` in a gitGraph adds the commit it names instead of being skipped in silence, and is drawn the way mermaid draws it
 - An ER relationship written in words — `PERSON one to zero or more ADDRESS` — is read. Only the symbolic form was, and a diagram written the other way did not lose one relationship: it failed to parse at all and fell back to a code block
