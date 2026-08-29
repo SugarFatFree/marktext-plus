@@ -84,12 +84,19 @@ class WordCountService {
   }
 
   /// Scripts written without spaces between words.
+  /// Scripts written without spaces between words, where each character is
+  /// counted as one word.
+  ///
+  /// Korean is deliberately absent. Modern Korean is written with spaces
+  /// between words — 띄어쓰기 — so `한국어` is one word, not three, and word
+  /// processors count it by those spaces like any European language. Hangul
+  /// was in this list only because the fix for "Japanese and Korean count as
+  /// zero" reached for the CJK rule; counting per character was a side effect
+  /// of that fix rather than a judgement about the language.
   static bool _isCjk(int rune) =>
-      (rune >= 0x1100 && rune <= 0x11FF) || // Hangul Jamo
       (rune >= 0x3040 && rune <= 0x30FF) || // Hiragana, Katakana
       (rune >= 0x3400 && rune <= 0x4DBF) || // CJK extension A
       (rune >= 0x4E00 && rune <= 0x9FFF) || // CJK unified ideographs
-      (rune >= 0xAC00 && rune <= 0xD7AF) || // Hangul syllables
       (rune >= 0xF900 && rune <= 0xFAFF) || // CJK compatibility ideographs
       (rune >= 0x20000 && rune <= 0x2FA1F); // CJK extensions B and beyond
 

@@ -6,6 +6,7 @@
 | BUG-145 | 2026-08-30 | v1.5.2 发出去时关于页仍显示 1.5.1（守卫测试没跑在发布路径上） | P1 | 已修复 |
 | BUG-146 | 2026-08-30 | 文件被外部修改后，自动保存会静默覆盖别人的改动 | P1 | 已修复 |
 | BUG-147 | 2026-08-30 | 拖图片进编辑器：插入成功的同时弹出「未打开」错误 | P2 | 已修复 |
+| BUG-148 | 2026-08-30 | 韩文字数统计约为实际的三倍（按字计数，但韩语有词间空格） | P2 | 已修复 |
 
 ---
 
@@ -208,3 +209,47 @@ drop target，图片确实没人接。**那种情况下静默忽略，等于把�
 
 - `code/lib/ui/screens/home_screen.dart`
 - `code/test/ui/screens/drop_handling_test.dart`（新增，5 条）
+
+---
+
+## BUG-148：韩文字数统计约为实际的三倍
+
+**优先级**：P2　**状态**：已修复　**日期**：2026-08-30
+
+### 现象
+
+状态栏对韩文文档报出的词数远大于实际。`이것은 한국어 테스트입니다` 这句实际是
+**3 个词**，报的是 **12 个**。
+
+### 根因分析
+
+`WordCountService._isCjk` 把韩文音节（`0xAC00–0xD7AF`）和韩文字母
+（`0x1100–0x11FF`）归入"按字计数"的范围。
+
+按字计数对中文和日文是对的——它们**不在词间加空格**。但**现代韩语是加空格的**
+（띄어쓰기），`한국어` 是一个词（意为"韩语"），Word、Google Docs 以及韩国本地的
+字处理软件都按어절（空格分隔单位）计数。
+
+读代码里那条注释可以看出这不是有意为之：
+
+> Japanese and Korean used to count as zero: only the basic Han block was
+> recognised, and kana and Hangul matched no other rule either.
+
+当初修的是"日韩被算成 0 词"，顺手把韩文塞进了 CJK 规则；**按字计数是那次修法的
+副作用，不是对韩语正字法的判断**。
+
+### 修复方案
+
+把两段韩文范围移出 `_isCjk`。移出后它们落到 `_isWordCharacter`（返回 true），
+于是像拉丁字母一样按空格成词。中文、日文假名不受影响。
+
+### 关于改动既有测试
+
+原有测试里 `expect(service.countWords('한국어').words, 3)` 是明确断言了当前行为的。
+这次是**有意改掉它**，不是测试过时——理由如上，并写进了新测试的注释里，
+免得以后有人把它"改回去"。
+
+### 涉及文件
+
+- `code/lib/services/word_count_service.dart`
+- `code/test/services/word_count_service_test.dart`

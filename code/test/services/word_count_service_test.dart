@@ -21,12 +21,23 @@ void main() {
       expect(service.countWords('a-b c').words, 2);
     });
 
-    test('counts CJK per character', () {
+    test('counts Chinese and Japanese per character', () {
       expect(service.countWords('中文四个字').words, 5);
       // Japanese and Korean used to count as zero: only the basic Han block
       // was recognised, and kana and Hangul matched no other rule either.
       expect(service.countWords('ひらがな').words, 4);
-      expect(service.countWords('한국어').words, 3);
+    });
+
+    test('counts Korean by its spaces, not by its characters', () {
+      // Korean is written with spaces between words — 띄어쓰기 — so 한국어 is
+      // one word meaning "the Korean language", and word processors count it
+      // that way. It was counted per character only because the fix for
+      // "Japanese and Korean count as zero" put Hangul in the CJK rule; that
+      // was a side effect of the fix, not a decision about the language. A
+      // Korean document reported roughly three times its real word count.
+      expect(service.countWords('한국어').words, 1);
+      expect(service.countWords('이것은 한국어 테스트입니다').words, 3);
+      expect(service.countWords('안녕하세요, 여러분!').words, 2);
     });
 
     test('counts non-Latin alphabets as words, not characters', () {
