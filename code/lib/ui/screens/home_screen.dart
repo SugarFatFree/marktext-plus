@@ -33,12 +33,33 @@ import '../editor/markdown_renderer.dart';
 import '../editor/split_editor.dart';
 import '../../services/keybinding_service.dart';
 import '../../services/file_service.dart';
+import '../../services/image_service.dart';
 import '../../models/file_encoding.dart';
 import '../../models/line_ending.dart';
 import '../../core/diagnostics/startup_trace.dart';
 import '../../utils/file_utils.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
+  /// Whether a dropped file is one nothing in the window will do anything
+  /// with, and so is worth telling the reader about.
+  ///
+  /// `desktop_drop` broadcasts each drop to every target and lets each decide
+  /// by its own bounds, with no hit test to consume it — so a drop on the text
+  /// area reaches both this handler and the editor's. An image is handled
+  /// there, and counting it here told the reader the file "was not opened" in
+  /// the same moment its link appeared in their document.
+  @visibleForTesting
+  static bool dropIsUnhandled(String path, {required bool editorPresent}) {
+    final ext = p.extension(path).toLowerCase();
+    if (FileUtils.markdownExtensionsWithDot.contains(ext)) return false;
+    // Only when there is an editor for it to land in. With no document open
+    // there is no text area and no drop target on it, so an image reaches
+    // nobody — and saying nothing then is the silence this trades away, not
+    // one to introduce somewhere else.
+    if (ImageService.isImageFile(path) && editorPresent) return false;
+    return true;
+  }
+
   const HomeScreen({super.key});
 
   @override
@@ -539,9 +560,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
       // Handle files
       final ext = p.extension(path).toLowerCase();
       if (!allowedExtensions.contains(ext)) {
-        // Counted rather than passed over: a window that swallows what is
-        // dropped on it and says nothing looks broken.
-        refused++;
+        // An image is not refused — the editor's own drop target takes it and
+        // writes a link. `desktop_drop` broadcasts each drop to every target
+        // and lets each decide by its own bounds, with no hit test to consume
+        // it, so both handlers run for a drop on the text area. Counting the
+        // image here told the reader the file "was not opened" in the same
+        // moment its link appeared in their document.
+        if (HomeScreen.dropIsUnhandled(
+          path,
+          editorPresent: ref.read(editorProvider.notifier).controller != null,
+        )) {
+          refused++;
+        }
         continue;
       }
 
