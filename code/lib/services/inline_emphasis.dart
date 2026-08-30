@@ -57,6 +57,36 @@ class _Tok {
   bool get isDelimiter => char.isNotEmpty && length > 0;
 }
 
+/// Whether a run of emphasis markers with [before] on its left and [after] on
+/// its right may open emphasis, close it, both, or neither.
+///
+/// The rule the format calls flanking, and the reason `**加粗。**后面` is not
+/// bold: the closing run sits between a full stop and a letter. Exported
+/// because the source pane tints emphasis as it is typed and has to reach the
+/// same answer — a pane that colours what the other pane will not draw is
+/// worse than one that colours nothing.
+///
+/// [char] matters because `_` is stricter than `*`: it does not mark inside a
+/// word, so a file_name_like_this stays one word.
+({bool canOpen, bool canClose}) emphasisFlanking({
+  required String before,
+  required String after,
+  required String char,
+}) {
+  final beforeSpace = _isWhitespace(before);
+  final afterSpace = _isWhitespace(after);
+  final beforePunct = _isPunctuation(before);
+  final afterPunct = _isPunctuation(after);
+
+  final left = !afterSpace && (!afterPunct || beforeSpace || beforePunct);
+  final right = !beforeSpace && (!beforePunct || afterSpace || afterPunct);
+
+  return (
+    canOpen: char == '*' ? left : left && (!right || beforePunct),
+    canClose: char == '*' ? right : right && (!left || afterPunct),
+  );
+}
+
 /// Whether [c] is a character the flanking rules count as punctuation.
 bool _isPunctuation(String c) =>
     RegExp(r'''[!-/:-@\[-`{-~¡-¿‐-‧、-】！-･]''')
@@ -103,24 +133,11 @@ _Tok? _tokenise(List<InlineSpan> spans) {
           ? text[j]
           : (s + 1 < spans.length ? 'a' : ' ');
 
-      final beforeSpace = _isWhitespace(before);
-      final afterSpace = _isWhitespace(after);
-      final beforePunct = _isPunctuation(before);
-      final afterPunct = _isPunctuation(after);
+      final flanking = emphasisFlanking(before: before, after: after, char: c);
 
-      final leftFlanking =
-          !afterSpace && (!afterPunct || beforeSpace || beforePunct);
-      final rightFlanking =
-          !beforeSpace && (!beforePunct || afterSpace || afterPunct);
-
-      final canOpen = c == '*'
-          ? leftFlanking
-          : leftFlanking && (!rightFlanking || beforePunct);
-      final canClose = c == '*'
-          ? rightFlanking
-          : rightFlanking && (!leftFlanking || afterPunct);
-
-      tokens.add(_Tok.delimiter(c, j - i, canOpen, canClose));
+      tokens.add(
+        _Tok.delimiter(c, j - i, flanking.canOpen, flanking.canClose),
+      );
       i = j;
     }
     if (buffer.isNotEmpty) {

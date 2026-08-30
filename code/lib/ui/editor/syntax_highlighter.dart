@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../services/inline_emphasis.dart';
+
 /// Colours one line of Markdown at a time.
 ///
 /// Everything here works per line so that [IncrementalMarkdownHighlighter] can
@@ -7,7 +9,8 @@ import 'package:flutter/material.dart';
 /// to re-scan the whole file on every rebuild.
 class MarkdownSyntaxHighlighter {
   static final List<_Pattern> _inlinePatterns = [
-    _Pattern(RegExp(r'\*\*(.+?)\*\*'), _PatternType.bold),
+    _Pattern(RegExp(r'\*\*(.+?)\*\*'), _PatternType.bold,
+        emphasisChar: '**'),
     _Pattern(RegExp(r'`(.+?)`'), _PatternType.code),
     // Both halves allow one nested pair, the same shapes the parser uses, so
     // the two agree on `[see [1] here](url)` and on a destination containing
@@ -30,8 +33,14 @@ class MarkdownSyntaxHighlighter {
     // Before the emphasis patterns: a comment may contain anything, and
     // letting `*` inside one match first would colour half of it as italic.
     _Pattern(RegExp(r'<!--.*?-->'), _PatternType.comment),
+    // No flanking test on this one: this project's parser is deliberately
+    // more forgiving than GitHub about `~~文字。~~后面` and draws it, so the
+    // tint has to agree with the pane beside it rather than with GitHub.
     _Pattern(RegExp(r'~~(.+?)~~'), _PatternType.strikethrough),
-    _Pattern(RegExp(r'\*(.+?)\*'), _PatternType.italic),
+    // Not part of a longer run: without the guards this matched `**加粗。*`
+    // out of the middle of a bold run and tinted half of it.
+    _Pattern(RegExp(r'(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)'),
+        _PatternType.italic, emphasisChar: '*'),
   ];
 
   /// Highlights [text] in one pass, without caching.
@@ -243,13 +252,22 @@ class MarkdownSyntaxHighlighter {
           // first match at or after `pos` without copying the rest of the line.
           final iterator =
               _inlinePatterns[k].regex.allMatches(text, pos).iterator;
-          if (!iterator.moveNext()) {
+          // Past any match the flanking rule refuses: those characters are not
+          // emphasis, and something further along the line may still be.
+          Match? found;
+          while (iterator.moveNext()) {
+            if (_inlinePatterns[k].accepts(text, iterator.current)) {
+              found = iterator.current;
+              break;
+            }
+          }
+          if (found == null) {
             // No match anywhere ahead; never scan for this one again.
             spent[k] = true;
             upcoming[k] = null;
             continue;
           }
-          match = iterator.current;
+          match = found;
           upcoming[k] = match;
         }
         if (earliest == null || match.start < earliest.start) {
@@ -522,5 +540,41 @@ class _Pattern {
   final RegExp regex;
   final _PatternType type;
 
-  const _Pattern(this.regex, this.type);
+  /// The marker this pattern's run is made of, for the ones the flanking rule
+  /// applies to. Null for those it does not — a code span, a link.
+  final String? emphasisChar;
+
+  const _Pattern(this.regex, this.type, {this.emphasisChar});
+
+  /// Whether [match] is emphasis where it stands.
+  ///
+  /// A pattern alone cannot tell: `**加粗。**后面` matches the bold pattern and
+  /// is not bold, because the closing run sits between a full stop and a
+  /// letter. The source pane used to colour it anyway, so it said "bold" while
+  /// the pane beside it drew asterisks. The judgement comes from the parser's
+  /// own rule, not a second copy of it.
+  bool accepts(String text, Match match) {
+    final char = emphasisChar;
+    if (char == null) return true;
+    final run = char.length == 1 ? 1 : char.length;
+
+    final openBefore = match.start > 0 ? text[match.start - 1] : ' ';
+    final openAfter = match.start + run < text.length
+        ? text[match.start + run]
+        : ' ';
+    final closeBefore =
+        match.end - run - 1 >= 0 ? text[match.end - run - 1] : ' ';
+    final closeAfter = match.end < text.length ? text[match.end] : ' ';
+
+    return emphasisFlanking(
+              before: openBefore,
+              after: openAfter,
+              char: char[0],
+            ).canOpen &&
+        emphasisFlanking(
+          before: closeBefore,
+          after: closeAfter,
+          char: char[0],
+        ).canClose;
+  }
 }
