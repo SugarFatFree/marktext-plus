@@ -635,7 +635,16 @@ class MermaidParser {
     final type = _detectDiagramType(firstLine);
 
     if (type == DiagramType.unknown) {
-      return MermaidFailure(MermaidFailureKind.unknownType, firstLine);
+      // The word that was meant to name the type, not the whole line: `grahp
+      // TD` is a misspelling of `graph`, and quoting `grahp td` back invites
+      // the reader to look for a fault in the direction as well.
+      final word = firstLine.trim().split(RegExp(r'[\s:]')).first;
+      // A block holding nothing but front matter names no type at all, and
+      // `Unrecognised diagram type: ""` says nothing. It is empty.
+      if (word.isEmpty) {
+        return const MermaidFailure(MermaidFailureKind.empty, '');
+      }
+      return MermaidFailure(MermaidFailureKind.unknownType, word);
     }
 
     if (cleaned.length <= 1) {
