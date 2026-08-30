@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - v1.5.5
 
 ### Fixed
+- Answering "save" to the prompt that appears when a tab is closed no longer writes over a change made on disk. Ctrl+S on the same document was stopped and asked; this path was not, and it is the one taken when quitting with unsaved work. The tab now stays open and stays modified, because closing it would discard the reader's edits in favour of a version they were never shown
 - A document opened by double-clicking it, or from the command line, is protected against being saved over somebody else's change like any other. That path builds its tab straight from the read and was the one place missed when the disk stamp was introduced, so the check simply never fired for it — while the tab looked exactly like any other
 
 ## [v1.5.4] - 2026-08-30

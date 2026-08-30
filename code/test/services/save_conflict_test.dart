@@ -296,4 +296,34 @@ void main() {
     expect(offenders, isEmpty,
         reason: '这些标签页带着内容却没有磁盘戳，保存冲突检测对它们不生效');
   });
+
+  test('every save of an existing document goes through the check', () {
+    // Five places write a document. Two are meant to be unconditional —
+    // Save As to a path just chosen, and the overwrite the reader asks for
+    // after being told about the conflict — and the rest must compare.
+    // Closing a tab was the one that did not, so answering "save" to the
+    // close prompt wrote over somebody else's change while Ctrl+S on the
+    // same document refused to.
+    final unchecked = <String>[];
+    for (final path in [
+      'lib/providers/tab_provider.dart',
+      'lib/ui/widgets/app_menu_bar.dart',
+      'lib/ui/widgets/editor_tab_bar.dart',
+    ]) {
+      final lines = File(path).readAsLinesSync();
+      for (var i = 0; i < lines.length; i++) {
+        if (!lines[i].contains('FileService.saveDocument(')) continue;
+        // The two deliberate ones say so in the six lines above them.
+        final from = i - 8 < 0 ? 0 : i - 8;
+        final context = lines.sublist(from, i).join('\n');
+        final deliberate = context.contains('Save As') ||
+            context.contains('picker') ||
+            context.contains('overwrite') ||
+            context.contains('unconditionally');
+        if (!deliberate) unchecked.add('$path:${i + 1}');
+      }
+    }
+    expect(unchecked, isEmpty,
+        reason: '这些地方直接写文件而不比对磁盘，会静默覆盖别人的改动');
+  });
 }

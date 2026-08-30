@@ -104,8 +104,35 @@ class EditorTabBar extends ConsumerWidget {
     }
 
     try {
-      await FileService.saveDocument(path, tab.content,
-          lineEnding: tab.lineEnding, encoding: tab.encoding);
+      if (tab.filePath == path) {
+        // An existing document, so the same check the menu's Save makes:
+        // something else may have rewritten it while this tab was open, and
+        // closing is not a reason to write over that. A path just chosen in
+        // the picker has no baseline to compare against and the picker has
+        // already asked about replacing anything there.
+        await FileService.saveDocumentIfUnchanged(
+          path,
+          tab.content,
+          expect: tab.diskStamp,
+          lineEnding: tab.lineEnding,
+          encoding: tab.encoding,
+        );
+      } else {
+        // Save As: the path was just chosen in the picker, which has already
+        // asked about replacing anything there, and there is no baseline to
+        // compare a file this tab has never read. Written unconditionally on
+        // purpose.
+        await FileService.saveDocument(path, tab.content,
+            lineEnding: tab.lineEnding, encoding: tab.encoding);
+      }
+    } on FileChangedOnDiskException {
+      // The tab stays open and stays modified, which is what keeps the
+      // reader's work: closing here would discard it in favour of a version
+      // they were never shown. The status bar then carries the same banner
+      // auto-save raises, and Ctrl+S offers the three ways out.
+      ref.read(tabProvider.notifier).markDiskConflict(tab.id);
+      reportDiskConflict(tab.fileName);
+      return false;
     } catch (e) {
       // Closing on a failed write would lose the content the save was meant
       // to protect. The reader is told why the tab refused to close.
