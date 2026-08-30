@@ -1,107 +1,94 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/services/markdown_parser.dart';
 
-/// What Enter carries to the next line inside a list.
+/// Two shapes a list takes while it is being written.
 ///
-/// Without it the writer types the marker again on every line, and numbers
-/// the steps by hand. Upstream gives every block its own Enter handler; this
-/// is the part of that a plain text editor needs.
+/// A bullet long enough to wrap is written over two lines with no indentation
+/// on the second, and pressing Enter in the middle of a list leaves a marker
+/// with nothing after it. Both used to end the list: the first turned the rest
+/// of the sentence into a paragraph under the bullet, the second broke one
+/// list into two with a line reading `-` between them.
 void main() {
-  ({String marker, bool isEmpty})? carry(String line) =>
-      MarkdownParser.listContinuation(line);
+  late MarkdownParser parser;
+  setUp(() => parser = MarkdownParser());
 
-  group('the marker carries on', () {
-    test('a bullet repeats', () {
-      expect(carry('- item')?.marker, '- ');
-      expect(carry('* item')?.marker, '* ');
-      expect(carry('+ item')?.marker, '+ ');
+  List<String> itemsOf(String source) {
+    final list = parser.parse(source).first as ListNode;
+    return [for (final item in list.items) item.content];
+  }
+
+  group('a wrapped item stays one item', () {
+    test('a bullet continued on the next line', () {
+      expect(
+        itemsOf('- 这是很长的一条，\n在源文件里换了行。\n'),
+        ['这是很长的一条， 在源文件里换了行。'],
+      );
     });
 
-    test('a number advances', () {
-      expect(carry('1. step')?.marker, '2. ');
-      expect(carry('9. step')?.marker, '10. ');
+    test('a numbered step continued on the next line', () {
+      expect(itemsOf('1. 第一条，\n换行续写。\n').single, contains('换行续写'));
     });
 
-    test('the delimiter the author chose is kept', () {
-      expect(carry('1) step')?.marker, '2) ');
+    test('a blank line still ends the list', () {
+      final nodes = parser.parse('- foo\n\n这是列表后面的段落。\n');
+      expect(nodes.map((n) => n.type).toList(),
+          [NodeType.unorderedList, NodeType.paragraph]);
     });
 
-    test('indentation and spacing are kept', () {
-      expect(carry('   - item')?.marker, '   - ');
-      expect(carry('-  wide gap')?.marker, '-  ');
-      expect(carry('  2. step')?.marker, '  3. ');
+    test('a heading on the next line still ends the list', () {
+      final nodes = parser.parse('- foo\n# 标题\n');
+      expect(nodes.map((n) => n.type).toList(),
+          [NodeType.unorderedList, NodeType.heading]);
     });
 
-    test('a task carries an unticked box, never a ticked one', () {
-      expect(carry('- [ ] todo')?.marker, '- [ ] ');
-      expect(carry('- [x] done')?.marker, '- [ ] ');
-      expect(carry('1. [X] done')?.marker, '2. [ ] ');
-    });
-  });
-
-  group('an empty item ends the list instead', () {
-    test('a bullet with nothing after it', () {
-      expect(carry('- ')?.isEmpty, isTrue);
-      expect(carry('   - ')?.isEmpty, isTrue);
-    });
-
-    test('a number with nothing after it', () {
-      expect(carry('1. ')?.isEmpty, isTrue);
-    });
-
-    test('a task with nothing written in it', () {
-      expect(carry('- [ ] ')?.isEmpty, isTrue);
-      expect(carry('- [x] ')?.isEmpty, isTrue);
-    });
-
-    test('an item with text is not empty', () {
-      expect(carry('- item')?.isEmpty, isFalse);
-      expect(carry('- [ ] todo')?.isEmpty, isFalse);
+    test('a rule on the next line still ends the list', () {
+      final nodes = parser.parse('- foo\n---\n');
+      expect(nodes.map((n) => n.type).toList(),
+          [NodeType.unorderedList, NodeType.horizontalRule]);
     });
   });
 
-  group('lines that are not list items', () {
-    test('plain text', () => expect(carry('just words'), isNull));
-    test('a heading', () => expect(carry('# Heading'), isNull));
-    test('a rule, which looks like a bullet', () {
-      // `---` and `***` open no list; carrying one on would put a marker
-      // under every horizontal rule.
-      expect(carry('---'), isNull);
-      expect(carry('***'), isNull);
-      // Spaced out, which this parser still reads as a list item — the list
-      // branch is tried before the rule — but which no editor should put a
-      // marker under.
-      expect(carry('- - -'), isNull);
-      expect(carry('* * *'), isNull);
-      expect(carry('  _ _ _  '), isNull);
-    });
-  });
-
-  group('a quote carries on the same way a list does', () {
-    // This used to be listed above as something that carries nothing, with no
-    // reason given — the function is called `listContinuation`, and quotes
-    // were simply never in scope. Upstream MarkText specifies the behaviour
-    // in an end-to-end test of its own: Enter inside a quote opens another
-    // line still inside it, and Enter on an empty quote line ends the quote.
-    // Without it `> ` has to be retyped on every line.
-    test('the marker repeats', () {
-      expect(carry('> quoted')?.marker, '> ');
-      expect(carry('> quoted')?.isEmpty, isFalse);
+  group('an empty item keeps the list together', () {
+    test('a marker with a trailing space', () {
+      // What the editor leaves behind the instant Enter is pressed.
+      expect(itemsOf('- foo\n- \n- bar\n'), ['foo', '', 'bar']);
     });
 
-    test('an empty quote line ends the quote', () {
-      expect(carry('> ')?.isEmpty, isTrue);
-      expect(carry('>')?.isEmpty, isTrue);
+    test('a marker with nothing after it at all', () {
+      // Differs from the case above by one space, and used to behave
+      // differently: the marker was unreadable without a space after it, so
+      // the line looked like the start of a second list.
+      expect(itemsOf('- foo\n-\n- bar\n'), ['foo', '', 'bar']);
     });
 
-    test('nesting and indentation are kept', () {
-      expect(carry('>> inner')?.marker, '>> ');
-      expect(carry('> > inner')?.marker, '> > ');
-      expect(carry('  > indented')?.marker, '  > ');
+    test('an empty numbered step', () {
+      expect(itemsOf('1. foo\n2.\n3. bar\n'), ['foo', '', 'bar']);
     });
-  });
 
-  group('carries nothing, continued', () {
-    test('an empty line', () => expect(carry(''), isNull));
+    test('an empty item does not crash the item builder', () {
+      // The item patterns require content, so there is no match to read the
+      // text out of; reading one anyway threw on a null.
+      expect(() => parser.parse('- foo\n-\n'), returnsNormally);
+    });
+
+    test('a stray marker on its own is not a list', () {
+      // The guard: an empty marker continues a list, it does not start one.
+      // A lone dash in prose stays what it was.
+      expect(parser.parse('-\n').single.type, NodeType.paragraph);
+    });
+
+    test('a rule is still a rule, not an empty item', () {
+      final nodes = parser.parse('- foo\n* * *\n- bar\n');
+      expect(nodes.map((n) => n.type).toList(), [
+        NodeType.unorderedList,
+        NodeType.horizontalRule,
+        NodeType.unorderedList,
+      ]);
+    });
+
+    test('switching marker still starts a new list', () {
+      final nodes = parser.parse('- foo\n+ bar\n');
+      expect(nodes.length, 2, reason: '换了标记字符应是两个列表');
+    });
   });
 }

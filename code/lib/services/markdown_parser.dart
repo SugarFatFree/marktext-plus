@@ -887,12 +887,16 @@ class MarkdownParser {
       final (index, block) = entry;
       // Each item is read with its own marker, not the list's: a bulleted
       // sub-point under a numbered step is still a bullet.
-      final ordered = _olRe.hasMatch(block.first);
+      final ordered = _isOrderedLine(block.first);
       final number = ordered
           ? int.tryParse(_olNumberRe.firstMatch(block.first)?.group(1) ?? '')
           : null;
       final marker = ordered ? _olRe : _ulRe;
-      final first = marker.firstMatch(block.first)!.group(1)!;
+      // An item may be a marker with nothing after it — the state a list is in
+      // between pressing Enter and typing. The item patterns require content,
+      // so there is no match to read text out of, and the item's own text is
+      // simply empty.
+      final first = marker.firstMatch(block.first)?.group(1) ?? '';
 
       // The item's own text runs to the first blank line; anything after it
       // is a block the item carries, parsed on its own terms.
@@ -984,6 +988,26 @@ class MarkdownParser {
   static bool _startsListItem(String line) =>
       !_hrRe.hasMatch(line) && (_ulRe.hasMatch(line) || _olRe.hasMatch(line));
 
+  /// A marker with nothing written after it yet: `-`, `*`, `1.` on its own.
+  ///
+  /// Only recognised while a list is already being collected. Starting a list
+  /// from one would turn a stray dash in prose into an empty bullet, and the
+  /// problem worth solving is what happens in the middle: pressing Enter in a
+  /// list, or clearing an item's text, left a marker that matched neither the
+  /// item pattern nor anything else, so the list came apart into two lists
+  /// with a paragraph reading `-` between them.
+  static final _emptyItemRe = RegExp(r'^ {0,3}(?:[-*+]|\d{1,9}[.)])\s*$');
+
+  /// Whether [line] is a numbered item rather than a bulleted one.
+  ///
+  /// [_olRe] requires the item to have content, so it answers "no" for a
+  /// numbered marker with nothing after it yet — and "no" is the same answer
+  /// it gives for a bullet, which made an empty step look like the start of a
+  /// bulleted list and broke the list in two.
+  static bool _isOrderedLine(String line) =>
+      _olRe.hasMatch(line) ||
+      (_emptyItemRe.hasMatch(line) && RegExp(r'\d').hasMatch(line));
+
   /// A list item line, including one with nothing written in it yet.
   ///
   /// [_ulRe] and [_olRe] both require content, because an empty marker is not
@@ -1069,7 +1093,10 @@ class MarkdownParser {
     final firstMarker = _markerOf(lines[start]);
 
     while (i < lines.length) {
-      if (_startsListItem(lines[i])) {
+      if (_startsListItem(lines[i]) ||
+          (blocks.isNotEmpty &&
+              !_hrRe.hasMatch(lines[i]) &&
+              _emptyItemRe.hasMatch(lines[i]))) {
         if (_startsAnotherList(lines[i], firstIndent, firstOrdered, firstMarker)) break;
         blocks.add([lines[i]]);
         blockStarts.add(i);
@@ -1118,6 +1145,17 @@ class MarkdownParser {
         continue;
       }
 
+      // A wrapped item: the rest of the sentence written on the next line
+      // with no indentation, which is what a hard-wrapped document looks
+      // like. It used to end the list and become a paragraph of its own, so
+      // one long bullet came out as a bullet and a stray line under it.
+      // Anything that opens a block of its own still ends the list.
+      if (blocks.isNotEmpty && !_startsAnotherBlock(lines, i)) {
+        blocks.last.add(lines[i]);
+        i++;
+        continue;
+      }
+
       break;
     }
 
@@ -1132,9 +1170,18 @@ class MarkdownParser {
   /// The character a list item is marked with: `-`, `*`, `+`, `.` or `)`.
   static String? _markerOf(String line) {
     final match = _continuationRe.firstMatch(line);
-    if (match == null) return null;
+    if (match == null) {
+      // A marker with nothing after it has no match to read, and reading it as
+      // "no marker at all" made it look like the start of a different list —
+      // so `- foo` / `-` / `- bar` came apart, while `- foo` / `- ` / `- bar`,
+      // which differs only by a trailing space, did not.
+      final empty = _emptyItemRe.firstMatch(line);
+      if (empty == null) return null;
+      final marker = empty.group(0)!.trim();
+      return _isOrderedLine(line) ? marker[marker.length - 1] : marker;
+    }
     final marker = match.group(2)!;
-    return _olRe.hasMatch(line) ? marker[marker.length - 1] : marker;
+    return _isOrderedLine(line) ? marker[marker.length - 1] : marker;
   }
 
   /// Whether [line] begins a list separate from the one being collected.
@@ -1150,7 +1197,7 @@ class MarkdownParser {
     String? firstMarker,
   ]) {
     if (_indentColumns(line) > firstIndent) return false;
-    if (_olRe.hasMatch(line) != firstOrdered) return true;
+    if (_isOrderedLine(line) != firstOrdered) return true;
     if (firstMarker == null) return false;
     return _markerOf(line) != firstMarker;
   }
