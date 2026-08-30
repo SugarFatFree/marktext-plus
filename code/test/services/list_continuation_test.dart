@@ -91,4 +91,48 @@ void main() {
       expect(nodes.length, 2, reason: '换了标记字符应是两个列表');
     });
   });
+
+  group('what an item carries', () {
+    test('an indented code block under a step stays code', () {
+      // A code sample written under a step by indenting it, rather than with
+      // a fence. The item's own indentation comes off; the four columns that
+      // make it code stay on.
+      final list = parser.parse('- foo\n\n      bar\n').first as ListNode;
+      final blocks = list.items.single.children;
+      expect(blocks.map((b) => b.type).toList(), contains(NodeType.codeBlock));
+      expect((blocks.firstWhere((b) => b.type == NodeType.codeBlock)
+              as CodeBlockNode)
+          .code
+          .trim(), 'bar');
+    });
+
+    test('a fence under a step is still a fence', () {
+      // The guard: taking off the item's indentation is what lets the fence be
+      // seen at all, and that must keep working.
+      final list = parser.parse('1. 步骤\n\n   ```\n   code\n   ```\n').first
+          as ListNode;
+      expect(list.items.single.children.map((b) => b.type).toList(),
+          contains(NodeType.codeBlock));
+    });
+  });
+
+  group('a long number is not a step', () {
+    test('eleven digits before a full stop is a paragraph', () {
+      // A phone number, an order reference. Read as a step it renumbered the
+      // document from thirteen billion.
+      expect(parser.parse('13800138000. 联系人\n').single.type,
+          NodeType.paragraph);
+    });
+
+    test('nine digits is still a step', () {
+      // The boundary the format draws.
+      expect(parser.parse('123456789. 步骤\n').single.type,
+          NodeType.orderedList);
+    });
+
+    test('an ordinary number is unaffected', () {
+      expect(parser.parse('1. 第一步\n2. 第二步\n').single.type,
+          NodeType.orderedList);
+    });
+  });
 }

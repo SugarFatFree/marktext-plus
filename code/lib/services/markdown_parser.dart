@@ -566,13 +566,17 @@ class MarkdownParser {
   /// An ordered list item. CommonMark allows `)` as well as `.` after the
   /// number, and the editor's own prefix handling already accepted both — only
   /// the parser did not, so `1) one` rendered as an ordinary paragraph.
-  static final _olRe = RegExp(r'^[\s]*\d+[.)]\s+(.+)$');
+  /// At most nine digits, as the format has it. A longer run of digits before
+  /// a full stop is not a step in a list — it is a phone number, an order
+  /// reference, an identifier — and reading it as one renumbered the document
+  /// from wherever that number happened to be.
+  static final _olRe = RegExp(r'^[\s]*\d{1,9}[.)]\s+(.+)$');
 
   /// The number an ordered item was written with.
   ///
   /// Separate from [_olRe] rather than a group added to it: that pattern's
   /// group 1 is the item's content and is read in several places.
-  static final _olNumberRe = RegExp(r'^\s*(\d+)[.)]\s');
+  static final _olNumberRe = RegExp(r'^\s*(\d{1,9})[.)]\s');
   /// A table row. GFM makes the outer pipes optional, so `a | b` is a row;
   /// requiring them turned such a table into an ordinary paragraph.
   static final _tableRowRe = RegExp(r'^\s*\|?.*\|.*\|?\s*$');
@@ -922,7 +926,7 @@ class MarkdownParser {
       final lead = blank < 0 ? block.skip(1) : block.take(blank).skip(1);
       final carried = blank < 0
           ? const <MarkdownNode>[]
-          : parse(_dedent(block.skip(blank + 1)));
+          : parse(_dedent(block.skip(blank + 1), _contentColumn(block.first)));
       // A block's lines are consecutive in the document, so the blocks the
       // item carries start `blank + 1` lines after the item's own first line.
       _shiftSpans(carried, itemStarts[index] + blank + 1);
@@ -966,16 +970,24 @@ class MarkdownParser {
   /// loop would push out of it: a blank line between items, which used to
   /// split one list into two, and an indented continuation line, which used
   /// to become a paragraph wedged between them.
-  /// Removes the common indentation from an item's carried block, so it is
-  /// parsed as the code fence or quote it is rather than as indented code.
-  static String _dedent(Iterable<String> lines) {
+  /// Removes an item's own indentation from a block it carries, so the block
+  /// is parsed as the code fence or quote it is rather than as indented code.
+  ///
+  /// Only as far as [column], where the item's text begins. Removing whatever
+  /// indentation the lines happened to share took away the four extra columns
+  /// that make a block of code a block of code, so a code sample written under
+  /// a step — indented rather than fenced — came out as an ordinary paragraph
+  /// with its spacing lost. Never more than the lines actually have, so a
+  /// block indented less than its item still keeps what it has.
+  static String _dedent(Iterable<String> lines, int column) {
     final kept = lines.toList();
     final indents = kept
         .where((line) => line.trim().isNotEmpty)
         .map(_indentColumns);
     final common = indents.isEmpty ? 0 : indents.reduce(math.min);
+    final strip = math.min(column, common);
     return kept
-        .map((line) => line.length <= common ? '' : line.substring(common))
+        .map((line) => line.length <= strip ? '' : line.substring(strip))
         .join('\n');
   }
 
@@ -1043,9 +1055,9 @@ class MarkdownParser {
   /// a writer ends a list: the marker comes off instead of another appearing.
   static ({String marker, bool isEmpty})? listContinuation(String line) {
     // `- - -` and `* * *` are thematic breaks, however much the first
-    // characters look like a bullet. This parser reads them as list items —
-    // the list branch is tried before the rule — but there is no reason for
-    // the editor to put a marker under one.
+    // characters look like a bullet, and the parser reads them as rules. The
+    // check is kept here as well because this function is asked about a line
+    // as it is typed, before any of that runs.
     if (RegExp(r'^\s*([-*_])(\s*\1){2,}\s*$').hasMatch(line)) return null;
 
     // A quote carries on the same way a list does, and upstream MarkText's
