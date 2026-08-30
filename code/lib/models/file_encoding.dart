@@ -57,6 +57,22 @@ enum FileEncoding {
       return (_decodeUtf16(bytes.sublist(2), big: true), FileEncoding.utf16be);
     }
 
+    // UTF-16 with no byte order mark. Notepad writes one, plenty of tools do
+    // not, and without it such a file was read as Latin-1 — every Chinese
+    // character came out as two pieces of nonsense.
+    //
+    // A text file never contains a zero byte, and UTF-16 is full of them:
+    // every ASCII character brings one, always on the same side of its pair.
+    // Markdown is never all Chinese — the `#`, the line breaks, the brackets
+    // are all ASCII — so there is always something to see.
+    final bomless = _looksLikeBomlessUtf16(bytes);
+    if (bomless != null) {
+      return (
+        _decodeUtf16(bytes, big: !bomless),
+        bomless ? FileEncoding.utf16le : FileEncoding.utf16be,
+      );
+    }
+
     final hasUtf8Bom =
         bytes.length >= 3 &&
         bytes[0] == 0xEF &&
@@ -135,6 +151,45 @@ enum FileEncoding {
   /// read this way would come out as Chinese. Chinese text is mostly
   /// double-byte, and accented European text is mostly ASCII, which is what
   /// the share measures.
+  /// Whether [bytes] look like UTF-16 with no mark: true for little endian,
+  /// false for big endian, null for anything else.
+  ///
+  /// Judged on where the zero bytes fall rather than how many: a byte-oriented
+  /// text encoding has none at all, so a file with them heaped on one side of
+  /// every pair is not one. A small share is asked for as well, so that a
+  /// single stray zero in a damaged file does not decide it.
+  ///
+  /// The other side is allowed a few rather than none: a character whose lower
+  /// half is zero — `一` is U+4E00 — puts one there, and a document with a
+  /// common word in it would otherwise be missed.
+  static bool? _looksLikeBomlessUtf16(Uint8List bytes) {
+    if (bytes.length < 8 || bytes.length.isOdd) return null;
+
+    // A few kilobytes is plenty to tell, and bounds the cost on a large file.
+    final limit = bytes.length < 4096 ? bytes.length : 4096;
+    var evenZeros = 0;
+    var oddZeros = 0;
+    for (var i = 0; i < limit; i++) {
+      if (bytes[i] != 0) continue;
+      if (i.isEven) {
+        evenZeros++;
+      } else {
+        oddZeros++;
+      }
+    }
+
+    final pairs = limit ~/ 2;
+    final enough = pairs * 0.05;
+    // Twice as many on one side as the other. In little endian the odd byte
+    // of each pair is the upper half: zero for every ASCII character, never
+    // zero for a Chinese one. The even byte is the lower half, zero only for
+    // a character whose code point ends in `00` — `一` is U+4E00, and it is
+    // common enough that demanding none of those missed ordinary documents.
+    if (oddZeros >= enough && oddZeros > evenZeros * 2) return true;
+    if (evenZeros >= enough && evenZeros > oddZeros * 2) return false;
+    return null;
+  }
+
   static bool _looksLikeGbk(Uint8List bytes) {
     // Too short to tell. `Öl` is three bytes, two of which are a valid GBK
     // sequence for a real character — no test can separate that from German
