@@ -153,6 +153,31 @@ void _destinationsAreNotWords() {
     });
   });
 
+  group('a line that only points somewhere', () {
+    test('the address and title in a definition are not counted', () {
+      // `[a]: https://example.com "标题在这里"` is shown nowhere. The label
+      // itself is still counted — one word against the dozen the address was
+      // worth — which is the part left to do.
+      final withDefinition = service
+          .countWords('正文有[链接][a]。\n\n[a]: https://example.com "标题在这里"')
+          .words;
+      final withoutIt = service.countWords('正文有[链接][a]。').words;
+      expect(withDefinition, withoutIt + 1);
+    });
+
+    test('an indented definition counts as little', () {
+      expect(service.countWords('  [a]: https://example.com "标题"').words, 1);
+    });
+
+    test('a colon after brackets mid-line is ordinary text', () {
+      // Only a label opening its own line is a definition. `见[注一]: 说明` in
+      // the middle of a sentence is a sentence.
+      const line = '见[注一]: 这是正文里的说明';
+      expect(service.countWords(line).words,
+          service.countWords('见 注一  这是正文里的说明').words);
+    });
+  });
+
   group('what only looks like something invisible', () {
     test('three dashes that never close are not front matter', () {
       // One line that looks like an opener must not swallow the document.

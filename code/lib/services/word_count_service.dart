@@ -44,6 +44,15 @@ class WordCountService {
     bool afterCloseBracket = false;
     int destinationDepth = 0;
 
+    // A line that only says where a label points — `[a]: https://example.com
+    // "标题"` — is not shown anywhere, and the address and title in it are the
+    // bulk of what was being counted. Recognised where it is: a label opening
+    // a line and closing on a colon. The label's own word is still counted,
+    // which is one word against the dozen the address was worth.
+    bool onlySpacesSoFar = true;
+    bool labelOpenedLine = false;
+    bool skipToNewline = false;
+
     // The block of metadata at the top, which the reader never sees. A title,
     // an author and a few tags added fourteen words to a document with five in
     // it. Counted here rather than parsed: the block is at a known place and
@@ -67,6 +76,30 @@ class WordCountService {
       if (skipRunes > 0) {
         skipRunes--;
         if (rune == 0x0A) newlineRun = 1;
+        continue;
+      }
+
+      if (skipToNewline) {
+        if (rune != 0x0A) {
+          inWord = false;
+          continue;
+        }
+        skipToNewline = false;
+      }
+
+      if (rune == 0x0A) {
+        onlySpacesSoFar = true;
+        labelOpenedLine = false;
+      } else if (rune == 0x5B && onlySpacesSoFar) {
+        labelOpenedLine = true;
+        onlySpacesSoFar = false;
+      } else if (rune != 0x20 && rune != 0x09) {
+        onlySpacesSoFar = false;
+      }
+      if (labelOpenedLine && afterCloseBracket && rune == 0x3A) {
+        labelOpenedLine = false;
+        skipToNewline = true;
+        inWord = false;
         continue;
       }
 
