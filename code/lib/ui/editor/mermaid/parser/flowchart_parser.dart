@@ -207,6 +207,78 @@ class FlowchartParser {
     }
   }
 
+  /// The line with every node label blanked out, same length, same offsets.
+  ///
+  /// Arrows are found by running a pattern over the line, and a label may
+  /// contain one: `A["流程 --> 结束"] --> B` is one node whose text happens to
+  /// read like an arrow. Skipping matches that *begin* inside a label is not
+  /// enough — the pattern's `A -- label --> B` branch starts at the `--`
+  /// inside the label and runs to the real arrow outside it, swallowing the
+  /// arrow that mattered, and `allMatches` does not go back for it. Blanking
+  /// the labels first means the pattern never sees them, while every offset
+  /// still points at the original line.
+  String _withLabelsBlanked(String line) {
+    final spans = _labelRanges(line);
+    if (spans.isEmpty) return line;
+    final out = line.split('');
+    for (final (start, end) in spans) {
+      for (var i = start + 1; i < end && i < out.length; i++) {
+        out[i] = ' ';
+      }
+    }
+    return out.join();
+  }
+
+  /// The ranges a node's label occupies, as (opening, closing) offsets.
+  ///
+  /// A bracket only opens a label when it follows the node's name with
+  /// nothing between — `A[…]`, `A(…)`, `A{…}`. A quote on its own does not:
+  /// `A -- "spoken" --> B` puts a quoted string on the *edge*, and blanking
+  /// that took the edge's label away, which an existing test caught.
+  List<(int, int)> _labelRanges(String line) {
+    final spans = <(int, int)>[];
+    var i = 0;
+    while (i < line.length) {
+      final ch = line[i];
+      if (ch != '[' && ch != '(' && ch != '{') {
+        i++;
+        continue;
+      }
+      // Only if a node name ends right here.
+      final before = i == 0 ? '' : line[i - 1];
+      if (!RegExp(r'[A-Za-z0-9_\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7a3]')
+          .hasMatch(before)) {
+        i++;
+        continue;
+      }
+      // Walk to the matching close, respecting quotes and nesting so that
+      // `A[a[b]c]` and `A["]"]` both end where they should.
+      var depth = 0;
+      var quote = '';
+      var j = i;
+      for (; j < line.length; j++) {
+        final c = line[j];
+        if (quote.isNotEmpty) {
+          if (c == quote) quote = '';
+          continue;
+        }
+        if (c == '"' || c == "'") {
+          quote = c;
+        } else if (c == '[' || c == '(' || c == '{') {
+          depth++;
+        } else if (c == ']' || c == ')' || c == '}') {
+          depth--;
+          if (depth == 0) break;
+        }
+      }
+      // An unclosed bracket runs to the end of the line, which is what
+      // mermaid does with it too.
+      spans.add((i, j >= line.length ? line.length : j));
+      i = j + 1;
+    }
+    return spans;
+  }
+
   void _parseNodeOrEdge(String line) {
     // Split line by arrows to get individual node-edge pairs
     // Arrows: -->, ==>, ---, -.->
@@ -234,8 +306,15 @@ class FlowchartParser {
     final parts = <String>[];
     final arrows = <_ArrowInfo>[];
 
+    // Arrows are looked for in a copy with the labels blanked out, and the
+    // pieces are then cut from the real line. `A["流程 --> 结束"] --> B` was
+    // split on the arrow inside the label, which did not merely mislabel the
+    // node — it lost node A altogether, and the diagram came out with a box
+    // missing and its edges wrong.
+    final searchable = _withLabelsBlanked(line);
+
     var lastEnd = 0;
-    for (final match in arrowRegex.allMatches(line)) {
+    for (final match in arrowRegex.allMatches(searchable)) {
       if (match.start > lastEnd) {
         parts.add(line.substring(lastEnd, match.start).trim());
       }

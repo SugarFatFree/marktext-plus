@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - v1.5.5
 
 ### Fixed
+- A flowchart node whose label contains an arrow — `A["流程 --> 结束"]`, which is an ordinary way to describe a flow — no longer disappears from the diagram. Arrows were searched for across the whole line without regard for labels, so the line was split inside one and the node was lost along with its edges
 - Quitting while a folder is still being read, or while a batch of files is still being opened, no longer raises an unhandled error. Both wrote their result without checking the application was still there to receive it
 - An export that fails no longer destroys the file it was replacing. Writing truncates a file the instant it opens it, so exporting over an earlier export — which the picker invites — left nothing at all if the write did not finish. Saving a document has written through a scratch file and a rename for a long time; the exports and the diagram PNG now do too
 - Saving twice in quick succession no longer reports the second one as a conflict. The stamp recording what the file looks like was refreshed by an unawaited call after the write, so for as long as that took the tab held a stamp older than the application's own write — and a save landing in that window was told the file had changed underneath it, when the only thing that had changed it was this editor
