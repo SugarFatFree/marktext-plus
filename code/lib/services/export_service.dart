@@ -661,7 +661,43 @@ class ExportService {
   }
 
   static List<DocxText> _inlineSpansToDocxTexts(List<InlineSpan> spans) {
-    return spans.map((span) {
+    final runs = <DocxText>[];
+    for (final span in spans) {
+      // A Word run carries no runs of its own, so emphasis holding markup is
+      // flattened: its children become runs and its own formatting is folded
+      // into each of them. `**bold with a [link](/url)**` comes out as one
+      // bold link rather than a bold run showing square brackets.
+      if (span.children.isNotEmpty) {
+        for (final run in _inlineSpansToDocxTexts(span.children)) {
+          runs.add(_withEmphasis(run, span.type));
+        }
+        continue;
+      }
+      runs.add(_docxTextFor(span));
+    }
+    return runs;
+  }
+
+  /// Folds one level of emphasis into a run that is already formatted.
+  static DocxText _withEmphasis(DocxText run, InlineType type) => switch (type) {
+        InlineType.bold => run.copyWith(fontWeight: DocxFontWeight.bold),
+        InlineType.italic => run.copyWith(fontStyle: DocxFontStyle.italic),
+        InlineType.boldItalic => run.copyWith(
+            fontWeight: DocxFontWeight.bold,
+            fontStyle: DocxFontStyle.italic,
+          ),
+        InlineType.strikethrough => run.copyWith(
+            decorations: [...run.decorations, DocxTextDecoration.strikethrough],
+          ),
+        InlineType.underline => run.copyWith(
+            decorations: [...run.decorations, DocxTextDecoration.underline],
+          ),
+        InlineType.highlight => run.copyWith(shadingFill: 'fff3a3'),
+        _ => run,
+      };
+
+  static DocxText _docxTextFor(InlineSpan span) {
+    {
       switch (span.type) {
         case InlineType.boldItalic:
           return DocxText(
@@ -722,7 +758,7 @@ class ExportService {
         case InlineType.text:
           return DocxText(span.text);
       }
-    }).toList();
+    }
   }
 
   static String nodeToHtml(
@@ -1130,7 +1166,14 @@ class ExportService {
       // A line break inside a paragraph is a break in the preview and in Word
       // (DocxText emits w:br), but HTML folds a bare newline into a space, so
       // it needs an explicit <br> to match.
-      final text = _escapeHtml(span.text).replaceAll('\n', '<br>\n');
+      //
+      // Emphasis holding markup of its own renders its children instead of its
+      // own source text — `**bold with a [link](/url)**` is a link inside a
+      // strong, not a strong containing square brackets. Only emphasis carries
+      // children, so every other arm below is unaffected.
+      final text = span.children.isNotEmpty
+          ? _inlineSpansToHtml(span.children, inlinedImages: inlinedImages)
+          : _escapeHtml(span.text).replaceAll('\n', '<br>\n');
       switch (span.type) {
         case InlineType.text:
           return text;
@@ -1295,8 +1338,39 @@ class ExportService {
       background: pw.BoxDecoration(color: _pdfCodeBg),
     );
 
+    /// The style one emphasis adds on top of the style around it, so nested
+    /// markup renders as both — the same rule the preview follows.
+    pw.TextStyle emphasised(InlineType type) => switch (type) {
+          InlineType.boldItalic => baseStyle.copyWith(
+              fontWeight: pw.FontWeight.bold,
+              fontStyle: pw.FontStyle.italic,
+            ),
+          InlineType.bold =>
+            baseStyle.copyWith(fontWeight: pw.FontWeight.bold),
+          InlineType.italic =>
+            baseStyle.copyWith(fontStyle: pw.FontStyle.italic),
+          InlineType.strikethrough =>
+            baseStyle.copyWith(decoration: pw.TextDecoration.lineThrough),
+          InlineType.underline =>
+            baseStyle.copyWith(decoration: pw.TextDecoration.underline),
+          InlineType.highlight => baseStyle.copyWith(
+              background: const pw.BoxDecoration(color: PdfColors.yellow100),
+            ),
+          _ => baseStyle,
+        };
+
     return spans.map((span) {
       final text = _normalizeForPdf(span.text);
+      if (span.children.isNotEmpty) {
+        return pw.TextSpan(
+          children: _inlineSpansToPdf(
+            span.children,
+            baseStyle: emphasised(span.type),
+            primaryFont: primaryFont,
+            fontFallbacks: fontFallbacks,
+          ),
+        );
+      }
       switch (span.type) {
         case InlineType.boldItalic:
           return pw.TextSpan(

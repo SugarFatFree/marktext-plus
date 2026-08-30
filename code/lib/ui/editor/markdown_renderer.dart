@@ -1788,6 +1788,29 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     return result;
   }
 
+  /// The style one emphasis span applies on top of the style around it.
+  ///
+  /// Named rather than written into each arm because nesting needs the same
+  /// answer from outside the switch: the children of a bold span are drawn
+  /// with bold as their base.
+  TextStyle? _emphasisStyle(md.InlineType type, TextStyle? base) =>
+      switch (type) {
+        md.InlineType.boldItalic => base?.copyWith(
+            fontWeight: FontWeight.bold,
+            fontStyle: FontStyle.italic,
+          ),
+        md.InlineType.bold => base?.copyWith(fontWeight: FontWeight.bold),
+        md.InlineType.italic => base?.copyWith(fontStyle: FontStyle.italic),
+        md.InlineType.strikethrough =>
+          base?.copyWith(decoration: TextDecoration.lineThrough),
+        md.InlineType.underline =>
+          base?.copyWith(decoration: TextDecoration.underline),
+        md.InlineType.highlight => base?.copyWith(
+            backgroundColor: Colors.yellow.withValues(alpha: 0.4),
+          ),
+        _ => base,
+      };
+
   TextSpan _buildInlineSpans(
     List<md.InlineSpan> spans,
     ThemeData theme,
@@ -1798,6 +1821,18 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     final hasSearch = es.previewSearchQuery.isNotEmpty;
 
     for (final span in spans) {
+      // Emphasis holding markup of its own is drawn from its children, with
+      // its own style as their base — so italic inside bold comes out both,
+      // and a link inside bold is still clickable. Only emphasis carries
+      // children, so the arms below are reached exactly as before otherwise.
+      if (span.children.isNotEmpty) {
+        children.add(_buildInlineSpans(
+          span.children,
+          theme,
+          _emphasisStyle(span.type, baseStyle),
+        ));
+        continue;
+      }
       switch (span.type) {
         case md.InlineType.text:
           if (hasSearch) {
@@ -1806,24 +1841,21 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             children.add(TextSpan(text: span.text, style: baseStyle));
           }
         case md.InlineType.boldItalic:
-          final s = baseStyle?.copyWith(
-            fontWeight: FontWeight.bold,
-            fontStyle: FontStyle.italic,
-          );
+          final s = _emphasisStyle(span.type, baseStyle);
           if (hasSearch) {
             children.addAll(_applySearchHighlight(span.text, s, es));
           } else {
             children.add(TextSpan(text: span.text, style: s));
           }
         case md.InlineType.bold:
-          final s = baseStyle?.copyWith(fontWeight: FontWeight.bold);
+          final s = _emphasisStyle(span.type, baseStyle);
           if (hasSearch) {
             children.addAll(_applySearchHighlight(span.text, s, es));
           } else {
             children.add(TextSpan(text: span.text, style: s));
           }
         case md.InlineType.italic:
-          final s = baseStyle?.copyWith(fontStyle: FontStyle.italic);
+          final s = _emphasisStyle(span.type, baseStyle);
           if (hasSearch) {
             children.addAll(_applySearchHighlight(span.text, s, es));
           } else {
@@ -1882,7 +1914,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         case md.InlineType.image:
           children.add(_buildImageSpan(span, theme));
         case md.InlineType.strikethrough:
-          final s = baseStyle?.copyWith(decoration: TextDecoration.lineThrough);
+          final s = _emphasisStyle(span.type, baseStyle);
           if (hasSearch) {
             children.addAll(_applySearchHighlight(span.text, s, es));
           } else {
@@ -1913,9 +1945,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             ),
           );
         case md.InlineType.highlight:
-          final s = baseStyle?.copyWith(
-            backgroundColor: Colors.yellow.withValues(alpha: 0.4),
-          );
+          final s = _emphasisStyle(span.type, baseStyle);
           if (hasSearch) {
             children.addAll(_applySearchHighlight(span.text, s, es));
           } else {
@@ -1952,7 +1982,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             ),
           );
         case md.InlineType.underline:
-          final s = baseStyle?.copyWith(decoration: TextDecoration.underline);
+          final s = _emphasisStyle(span.type, baseStyle);
           if (hasSearch) {
             children.addAll(_applySearchHighlight(span.text, s, es));
           } else {

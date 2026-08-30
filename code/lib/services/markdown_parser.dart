@@ -49,9 +49,22 @@ class InlineSpan {
   /// Where an image links to, when it is wrapped in a link.
   ///
   /// The shape of a README badge. Kept alongside the image rather than as a
-  /// separate span because the model is flat: a link span cannot contain an
-  /// image span.
+  /// separate span because a link span cannot contain an image span: [children]
+  /// carries emphasis, not the branches that need a destination of their own.
   final String? linkHref;
+
+  /// What this span contains, when its content is itself marked up.
+  ///
+  /// Empty for the ordinary case, and every consumer falls back to [text] then
+  /// — which is the whole of what the model used to offer. Emphasis is the
+  /// reason it exists: `**bold with a [link](/url)**` and `*outer **inner***`
+  /// are ordinary markdown, and with a flat list the inner markup could only
+  /// be left as literal characters.
+  ///
+  /// [text] is still the source text of the span when this is set, so a
+  /// consumer that does not understand nesting shows the markup rather than
+  /// nothing.
+  final List<InlineSpan> children;
 
   const InlineSpan({
     required this.type,
@@ -59,6 +72,7 @@ class InlineSpan {
     this.href,
     this.title,
     this.linkHref,
+    this.children = const [],
   });
 }
 
@@ -1656,6 +1670,54 @@ class MarkdownParser {
       return String.fromCharCode(_escapeSentinelBase + escapes.length - 1);
     });
 
+    return _mergeAdjacentText(
+      [for (final span in _inlineTokens(text, 0)) _finishSpan(span, escapes)],
+    );
+  }
+
+  /// Restores escapes and decodes entities through a span and its children.
+  InlineSpan _finishSpan(InlineSpan span, List<String> escapes) {
+    final restored = escapes.isEmpty ? span : _restoreEscapes(span, escapes);
+    final children = [
+      for (final child in restored.children) _finishSpan(child, escapes),
+    ];
+    // Entities inside inline code are literal, per CommonMark.
+    if (restored.type == InlineType.code) return restored;
+    return InlineSpan(
+      type: restored.type,
+      text: _decodeEntities(restored.text),
+      href: restored.href,
+      title: restored.title,
+      linkHref: restored.linkHref,
+      children: children,
+    );
+  }
+
+  /// The markup inside an emphasis span, or empty when there is none.
+  ///
+  /// Runs on the escaped text, before the sentinels are put back, so a `\*`
+  /// written inside emphasis is still hidden from this pass and cannot open a
+  /// nested one. The depth limit is a backstop: a branch whose inner text is
+  /// the text it matched would otherwise recurse for ever.
+  List<InlineSpan> _nestedSpans(String inner, int depth) {
+    if (depth >= 4) return const [];
+    // Cheap gate so ordinary emphasis — the overwhelming majority — is not
+    // parsed a second time.
+    if (!_nestableRe.hasMatch(inner)) return const [];
+    final spans = _inlineTokens(inner, depth + 1);
+    if (spans.length == 1 &&
+        spans.single.type == InlineType.text &&
+        spans.single.text == inner) {
+      return const [];
+    }
+    return spans;
+  }
+
+  /// Characters that could begin markup inside a span.
+  static final _nestableRe = RegExp(r'[*_\[!`~<^:$=]');
+
+  /// One pass of inline matching over already-escaped [text].
+  List<InlineSpan> _inlineTokens(String text, int depth) {
     final spans = <InlineSpan>[];
     // Combined pattern for inline elements, ordered by priority
     final re = RegExp(
@@ -1855,29 +1917,52 @@ class MarkdownParser {
         spans.add(InlineSpan(type: InlineType.mathInline, text: match.group(19)!));
       } else if (match.group(20) != null) {
         // Highlight
-        spans.add(InlineSpan(type: InlineType.highlight, text: match.group(20)!));
+        spans.add(InlineSpan(
+          type: InlineType.highlight,
+          text: match.group(20)!,
+          children: _nestedSpans(match.group(20)!, depth),
+        ));
       } else if (match.group(21) != null) {
         // Underline
-        spans.add(InlineSpan(type: InlineType.underline, text: match.group(21)!));
+        spans.add(InlineSpan(
+          type: InlineType.underline,
+          text: match.group(21)!,
+          children: _nestedSpans(match.group(21)!, depth),
+        ));
       } else if (match.group(22) != null) {
         // Bold italic ***
-        spans.add(
-            InlineSpan(type: InlineType.boldItalic, text: match.group(22)!));
+        spans.add(InlineSpan(
+          type: InlineType.boldItalic,
+          text: match.group(22)!,
+          children: _nestedSpans(match.group(22)!, depth),
+        ));
       } else if (match.group(23) != null) {
         // Bold **
-        spans.add(InlineSpan(type: InlineType.bold, text: match.group(23)!));
+        spans.add(InlineSpan(
+          type: InlineType.bold,
+          text: match.group(23)!,
+          children: _nestedSpans(match.group(23)!, depth),
+        ));
       } else if (match.group(24) != null) {
         // Bold italic ___
-        spans.add(
-            InlineSpan(type: InlineType.boldItalic, text: match.group(24)!));
+        spans.add(InlineSpan(
+          type: InlineType.boldItalic,
+          text: match.group(24)!,
+          children: _nestedSpans(match.group(24)!, depth),
+        ));
       } else if (match.group(25) != null) {
         // Bold __
-        spans.add(InlineSpan(type: InlineType.bold, text: match.group(25)!));
+        spans.add(InlineSpan(
+          type: InlineType.bold,
+          text: match.group(25)!,
+          children: _nestedSpans(match.group(25)!, depth),
+        ));
       } else if (match.group(26) != null) {
         // Strikethrough
         spans.add(InlineSpan(
           type: InlineType.strikethrough,
           text: match.group(26)!,
+          children: _nestedSpans(match.group(26)!, depth),
         ));
       } else if (match.group(27) != null) {
         // Superscript
@@ -1887,10 +1972,18 @@ class MarkdownParser {
         spans.add(InlineSpan(type: InlineType.subscript, text: match.group(28)!));
       } else if (match.group(29) != null) {
         // Italic *
-        spans.add(InlineSpan(type: InlineType.italic, text: match.group(29)!));
+        spans.add(InlineSpan(
+          type: InlineType.italic,
+          text: match.group(29)!,
+          children: _nestedSpans(match.group(29)!, depth),
+        ));
       } else if (match.group(30) != null) {
         // Italic _
-        spans.add(InlineSpan(type: InlineType.italic, text: match.group(30)!));
+        spans.add(InlineSpan(
+          type: InlineType.italic,
+          text: match.group(30)!,
+          children: _nestedSpans(match.group(30)!, depth),
+        ));
       } else if (match.group(31) != null) {
         // Autolink: <https://example.com>
         final url = match.group(31)!;
@@ -1997,23 +2090,7 @@ class MarkdownParser {
     // Before escapes are restored and entities decoded, so `\<b>` and
     // `&lt;b&gt;` both stay literal text — they are how a document writes a
     // tag it does not want interpreted.
-    final expanded = enableHtml ? _expandInlineHtml(spans) : spans;
-
-    final decoded = expanded.map((span) {
-      final restored =
-          escapes.isEmpty ? span : _restoreEscapes(span, escapes);
-      // Entities inside inline code are literal, per CommonMark.
-      if (restored.type == InlineType.code) return restored;
-      return InlineSpan(
-        type: restored.type,
-        text: _decodeEntities(restored.text),
-        href: restored.href,
-        title: restored.title,
-        linkHref: restored.linkHref,
-      );
-    }).toList();
-
-    return _mergeAdjacentText(decoded);
+    return enableHtml ? _expandInlineHtml(spans) : spans;
   }
 
   /// Joins runs of plain text that ended up as separate spans.
@@ -2190,6 +2267,7 @@ class MarkdownParser {
       // Rebuilding the span here means every field has to be carried across;
       // one left out is silently lost for any text containing an escape.
       linkHref: span.linkHref == null ? null : restore(span.linkHref!),
+      children: span.children,
     );
   }
 
