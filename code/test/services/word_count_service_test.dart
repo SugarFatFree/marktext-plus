@@ -126,6 +126,52 @@ void _destinationsAreNotWords() {
     });
   });
 
+  group('what the reader never sees is not counted', () {
+    test('the metadata block at the top', () {
+      // A title, an author and a few tags added fourteen words to a document
+      // that has five.
+      expect(
+        service
+            .countWords('---\ntitle: 我的文档标题\nauthor: 某人\ntags: 甲 乙 丙\n---\n\n正文一句话。')
+            .words,
+        service.countWords('正文一句话。').words,
+      );
+    });
+
+    test('a note left in an HTML comment', () {
+      expect(
+        service.countWords('正文<!-- 这是给编辑看的注释文字 -->结束').words,
+        service.countWords('正文结束').words,
+      );
+    });
+
+    test('a comment spanning lines', () {
+      expect(
+        service.countWords('正文\n<!--\n很多\n注释文字\n-->\n结束').words,
+        service.countWords('正文\n结束').words,
+      );
+    });
+  });
+
+  group('what only looks like something invisible', () {
+    test('three dashes that never close are not front matter', () {
+      // One line that looks like an opener must not swallow the document.
+      final counted = service.countWords('---\n正文一句话。\n还有一句。').words;
+      expect(counted, greaterThan(4));
+    });
+
+    test('an unclosed comment ends at the document, not before it', () {
+      expect(service.countWords('正文<!-- 没有闭合').words, greaterThan(0));
+    });
+
+    test('a rule below text is not front matter', () {
+      // `---` under a paragraph is a heading underline, not an opener: only
+      // the very first line can open a metadata block.
+      expect(service.countWords('标题\n---\n正文').words,
+          service.countWords('标题\n正文').words);
+    });
+  });
+
   group('what is still counted', () {
     test('an autolink is text the reader sees', () {
       // `<https://example.com>` is displayed as itself, so it counts.
