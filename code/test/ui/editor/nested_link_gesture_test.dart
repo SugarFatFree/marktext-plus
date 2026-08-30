@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/core/config/app_config.dart';
 import 'package:marktext_plus/core/config/config_service.dart';
 import 'package:marktext_plus/core/i18n/l10n/app_localizations.dart';
+import 'package:marktext_plus/providers/editor_provider.dart';
 import 'package:marktext_plus/providers/settings_provider.dart';
 import 'package:marktext_plus/ui/editor/markdown_renderer.dart';
 
@@ -145,5 +146,27 @@ void main() {
         reason: '注音没有落在文字上方');
     expect(readingBox.height, lessThan(baseBox.height),
         reason: '注音应当比正文小');
+  });
+
+  testWidgets('a search finds words inside emphasis', (tester) async {
+    // Emphasis draws its children now, and the highlighting is applied to the
+    // pieces of text at the leaves. A wrapper that painted its own text
+    // instead would show the words once and highlight nothing.
+    final container = await pumpPreview(tester, '这里有 **加粗文字** 收尾\n');
+    container.read(editorProvider.notifier).updatePreviewSearch(
+          query: '加粗',
+          caseSensitive: false,
+          wholeWord: false,
+          useRegex: false,
+          currentMatchIndex: 0,
+        );
+    await tester.pump();
+
+    final hits = spansWithText(tester, '加粗');
+    expect(hits, isNotEmpty, reason: '强调里的文字没有被搜索高亮');
+    expect(hits.first.style?.fontWeight, FontWeight.bold,
+        reason: '高亮的那片丢了加粗');
+    expect(hits.first.style?.backgroundColor, isNotNull,
+        reason: '没有画出高亮底色');
   });
 }
