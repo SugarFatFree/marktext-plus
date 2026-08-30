@@ -12,6 +12,7 @@
 | BUG-164 | 2026-08-30 | 换行写成的标题被当成正文加一条分隔线 | P2 | 已修复 |
 | BUG-165 | 2026-08-30 | `* * *` 和 `- - -` 被当成列表，画不出分隔线 | P2 | 已修复 |
 | BUG-166 | 2026-08-30 | 加粗里的链接、斜体里的加粗都渲染不出来（内联模型是扁平的） | P1 | 已修复 |
+| BUG-167 | 2026-08-30 | 链接文字里的加粗/代码显示成字面量（`[**下载**](url)`） | P1 | 已修复 |
 
 ## BUG-157：命令行/文件管理器打开的文档没有保存冲突保护
 
@@ -545,3 +546,50 @@ CommonMark 规范用例 368 → 383。新增 10 条测试，其中 5 条在保�
 - `code/lib/ui/editor/markdown_renderer.dart`（预览）
 - `code/test/services/nested_emphasis_test.dart`（新增，10 条）
 - `code/test/services/commonmark_spec_test.dart`（下限 368 → 383）
+
+---
+
+## BUG-167：链接文字里的标记显示成字面量
+
+**日期**：2026-08-30　**优先级**：P1　**状态**：已修复
+
+### 现象
+
+BUG-166 的另一半。`[**下载**](url)` 是 README 里写下载按钮最常见的形式，渲染出来
+是一个链接，但文字是 `**下载**` 带着两对星号；`[带 \`代码\` 的链接](url)` 同理。
+
+### 根因
+
+同一个：模型扁平。BUG-166 给强调加了子节点，但链接分支没加——链接文字和强调内容
+一样是"里面还能有标记"的地方。
+
+### 修复方案
+
+解析器的链接分支同样递归。但**链接不能走 BUG-166 那条通用递归**，三个消费方各有
+自己的理由：
+
+- **预览**：通用分支只叠加样式，会绕过链接分支——而点击识别器和悬停提示是在链接
+  分支里挂的。绕过去的结果是"看着像链接、点了没反应"。更关键的是
+  **识别器挂在父 span 上，子 span 拿不到**（Flutter 的手势只覆盖 span 自己的文本），
+  所以要把识别器**铺到每一片叶子**上。这一条写了组件测试，并确认去掉铺叶子那步
+  之后测试会失败。
+- **PDF**：链接要有自己的嵌套基准样式（蓝色 + 下划线），否则子节点会用周围的样式
+  画出来，读者看不出那里有链接。
+- **Word**：run 不能嵌套，`href`、颜色、下划线要用 `copyWith` 折进每个子 run，
+  否则导出的是几个加粗的字而不是链接。
+
+HTML 无需改动——BUG-166 里那处"有子节点就渲染子节点"的改动已经覆盖。
+
+### 验证
+
+CommonMark 规范用例 383 → 385。新增 8 条测试（5 条解析/HTML + 3 条预览组件测试）。
+预览那条"加粗链接仍可点击"在去掉铺叶子的实现后确认会失败。
+
+### 涉及文件
+
+- `code/lib/services/markdown_parser.dart`
+- `code/lib/services/export_service.dart`（PDF 链接样式；Word 折入 href）
+- `code/lib/ui/editor/markdown_renderer.dart`（链接分支 + `_withLinkGestures`）
+- `code/test/services/nested_emphasis_test.dart`（+5 条）
+- `code/test/ui/editor/nested_link_gesture_test.dart`（新增，3 条）
+- `code/test/services/commonmark_spec_test.dart`（下限 383 → 385）

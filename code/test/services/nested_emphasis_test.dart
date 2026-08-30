@@ -70,6 +70,42 @@ void main() {
     });
   });
 
+  group('a link nests too', () {
+    test('bold link text is bold, and still a link', () {
+      // `[**Download**](/url)` is how a button is written in a README; the
+      // asterisks used to be shown as written.
+      final span = spansOf('[**下载**](/url)').single;
+      expect(span.type, InlineType.link);
+      expect(span.href, '/url');
+      expect(span.children.single.type, InlineType.bold);
+      expect(span.children.single.text, '下载');
+    });
+
+    test('code inside link text', () {
+      final span = spansOf('[带 `代码` 的链接](/url)').single;
+      expect(
+        span.children.map((c) => c.type).toList(),
+        contains(InlineType.code),
+      );
+    });
+
+    test('plain link text carries no children', () {
+      final span = spansOf('[普通链接](/url)').single;
+      expect(span.children, isEmpty);
+    });
+
+    test('HTML puts the strong inside the anchor', () {
+      expect(
+        htmlOf('[**下载**](/url)'),
+        '<p><a href="/url"><strong>下载</strong></a></p>',
+      );
+    });
+
+    test('HTML leaves a plain link exactly as before', () {
+      expect(htmlOf('[普通链接](/url)'), '<p><a href="/url">普通链接</a></p>');
+    });
+  });
+
   group('the exports nest', () {
     test('HTML puts the link inside the strong', () {
       expect(

@@ -1788,6 +1788,37 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     return result;
   }
 
+  /// Puts a link's tap target and hover hint on every piece of its text.
+  ///
+  /// Rebuilding rather than wrapping: a recognizer on a parent span is not
+  /// inherited by its children, so the leaves are where it has to go.
+  TextSpan _withLinkGestures(
+    TextSpan span,
+    TapGestureRecognizer recognizer,
+    String? href,
+  ) {
+    final kids = span.children;
+    return TextSpan(
+      text: span.text,
+      style: span.style,
+      recognizer: span.text == null ? null : recognizer,
+      mouseCursor:
+          span.text == null ? MouseCursor.defer : SystemMouseCursors.click,
+      onEnter: span.text == null || href == null
+          ? null
+          : (_) => _showLinkHint(href),
+      onExit: span.text == null ? null : (_) => _hideLinkHint(),
+      children: kids == null
+          ? null
+          : [
+              for (final kid in kids)
+                kid is TextSpan
+                    ? _withLinkGestures(kid, recognizer, href)
+                    : kid,
+            ],
+    );
+  }
+
   /// The style one emphasis span applies on top of the style around it.
   ///
   /// Named rather than written into each arm because nesting needs the same
@@ -1825,7 +1856,10 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       // its own style as their base — so italic inside bold comes out both,
       // and a link inside bold is still clickable. Only emphasis carries
       // children, so the arms below are reached exactly as before otherwise.
-      if (span.children.isNotEmpty) {
+      // A link is handled by its own arm below even when it nests: the arm is
+      // what attaches the tap recognizer and the hover hint, and a link drawn
+      // through this branch would look like a link and do nothing.
+      if (span.children.isNotEmpty && span.type != md.InlineType.link) {
         children.add(_buildInlineSpans(
           span.children,
           theme,
@@ -1891,7 +1925,16 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
               }
             };
           _recognizers.add(recognizer);
-          if (hasSearch) {
+          if (span.children.isNotEmpty) {
+            // The recognizer has to reach the leaves: a gesture on a TextSpan
+            // covers that span's own text, not its children's, so a bold link
+            // built as a wrapper around a bold child would not be clickable.
+            children.add(_withLinkGestures(
+              _buildInlineSpans(span.children, theme, s),
+              recognizer,
+              span.href,
+            ));
+          } else if (hasSearch) {
             children.addAll(_applySearchHighlight(span.text, s, es));
           } else {
             children.add(

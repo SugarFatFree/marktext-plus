@@ -1886,11 +1886,17 @@ class MarkdownParser {
         ));
       } else if (linkHref != null) {
         // Link: [text](href "title")
+        //
+        // The text of a link is marked up like any other text — a download
+        // button is written `[**Download**](/url)` — so it nests for the same
+        // reason emphasis does.
+        final linkText = match.group(11) ?? '';
         spans.add(InlineSpan(
           type: InlineType.link,
-          text: match.group(11) ?? '',
+          text: linkText,
           href: linkHref,
           title: match.group(14) ?? match.group(15),
+          children: _nestedSpans(linkText, depth),
         ));
       } else if (match.group(16) != null) {
         // Footnote ref

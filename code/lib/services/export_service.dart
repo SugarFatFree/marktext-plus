@@ -669,7 +669,7 @@ class ExportService {
       // bold link rather than a bold run showing square brackets.
       if (span.children.isNotEmpty) {
         for (final run in _inlineSpansToDocxTexts(span.children)) {
-          runs.add(_withEmphasis(run, span.type));
+          runs.add(_withEmphasis(run, span));
         }
         continue;
       }
@@ -679,7 +679,8 @@ class ExportService {
   }
 
   /// Folds one level of emphasis into a run that is already formatted.
-  static DocxText _withEmphasis(DocxText run, InlineType type) => switch (type) {
+  static DocxText _withEmphasis(DocxText run, InlineSpan span) =>
+      switch (span.type) {
         InlineType.bold => run.copyWith(fontWeight: DocxFontWeight.bold),
         InlineType.italic => run.copyWith(fontStyle: DocxFontStyle.italic),
         InlineType.boldItalic => run.copyWith(
@@ -693,6 +694,14 @@ class ExportService {
             decorations: [...run.decorations, DocxTextDecoration.underline],
           ),
         InlineType.highlight => run.copyWith(shadingFill: 'fff3a3'),
+        // A link whose text is marked up: the destination and the look of a
+        // link have to reach the runs the text became, or the export has bold
+        // words where the document had a link.
+        InlineType.link => run.copyWith(
+            href: span.href,
+            color: DocxColor('#0366d6'),
+            decorations: [...run.decorations, DocxTextDecoration.underline],
+          ),
         _ => run,
       };
 
@@ -1355,6 +1364,13 @@ class ExportService {
             baseStyle.copyWith(decoration: pw.TextDecoration.underline),
           InlineType.highlight => baseStyle.copyWith(
               background: const pw.BoxDecoration(color: PdfColors.yellow100),
+            ),
+          // A link whose text is marked up keeps looking like a link: without
+          // this its children would be drawn in the surrounding style and the
+          // reader would have nothing to tell them a link is there.
+          InlineType.link => baseStyle.copyWith(
+              color: PdfColors.blue700,
+              decoration: pw.TextDecoration.underline,
             ),
           _ => baseStyle,
         };
