@@ -557,7 +557,12 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       // that is what has to be written back. Testing the line as it stands
       // found no list items at all, so `lineIndex` stayed at -1 and ticking a
       // box inside a quote did nothing whatever — no error, no change.
-      if (!md.MarkdownParser.startsListItem(_withoutQuoteMarkers(lines[i]))) {
+      // The question has to be the one the parser answered when it built the
+      // items being counted: an empty marker is an item there, so it is an
+      // item here.
+      if (!md.MarkdownParser.continuesListItems(
+        _withoutQuoteMarkers(lines[i]),
+      )) {
         continue;
       }
       seen++;

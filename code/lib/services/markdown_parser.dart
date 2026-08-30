@@ -1071,6 +1071,18 @@ class MarkdownParser {
   /// line, a blank line, or a line inside a carried code block.
   static bool startsListItem(String line) => _startsListItem(line);
 
+  /// Whether [line] is one of the items of a list already being read.
+  ///
+  /// Wider than [startsListItem] by exactly one case: a marker with nothing
+  /// after it yet, which continues a list but cannot start one. The preview
+  /// counts item lines to find the line an item was written on, and counting
+  /// with the narrower question left an empty item uncounted — so every
+  /// checkbox below one was looked for on the wrong line, or on no line at
+  /// all, and ticking it did nothing.
+  static bool continuesListItems(String line) =>
+      _startsListItem(line) ||
+      (!_hrRe.hasMatch(line) && _emptyItemRe.hasMatch(line));
+
   (List<List<String>>, List<int>, int, bool) _collectListItems(
     List<String> lines,
     int start,

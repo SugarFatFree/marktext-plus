@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - v1.5.5
 
 ### Fixed
+- A checkbox below an empty list item can be ticked again. An empty marker had just become an item of the list, but the preview still found an item's line by asking which lines *open* an item — and an empty marker does not open one, so the count fell short and the tick did nothing at all: no change, no error, no sign the click had been seen
 - A bullet written over two lines stays one bullet. Letting a long item wrap in the source, with no indentation on the second line, ended the list and left the rest of the sentence as a paragraph underneath it
 - An empty item no longer breaks a list in two. Pressing Enter in the middle of a list, or clearing an item's text, left a marker with nothing after it, and the list came apart into two lists with a line reading `-` between them — visible while typing, in the pane beside the one being typed in. A marker on its own in prose is still not a list
 - Copying a selection that covers emphasis holding a link keeps its formatting when pasted into Word. A selection is matched against the text the preview draws, and that text had just changed — `**bold [link](/url)**` now reads "bold link" on screen — while the matching still used the source, so nothing matched and the copy quietly fell back to plain text

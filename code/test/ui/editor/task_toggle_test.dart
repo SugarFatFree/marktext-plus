@@ -84,6 +84,25 @@ void main() {
     expect(writes, ['- [ ] 一\n- [x] 二\n']);
   });
 
+  testWidgets('an empty item above does not shift the box', (tester) async {
+    // An empty marker is an item of the parsed list, so the box below it is
+    // item 2 even though it is only the second box on screen. The line was
+    // found by counting lines that *open* an item, and an empty marker does
+    // not open one, so the count fell short and the tick did nothing at all.
+    final writes = await tapCheckbox(tester, '- [ ] 一\n-\n- [ ] 二\n', 1);
+    expect(writes, ['- [ ] 一\n-\n- [x] 二\n'],
+        reason: '空项上面有复选框时，下面的框点了没反应');
+  });
+
+  testWidgets('a wrapped item above does not shift the box', (tester) async {
+    final writes = await tapCheckbox(
+      tester,
+      '- [ ] 一，这条很长\n在下一行继续写。\n- [ ] 二\n',
+      1,
+    );
+    expect(writes, ['- [ ] 一，这条很长\n在下一行继续写。\n- [x] 二\n']);
+  });
+
   testWidgets('unticking writes an empty box back', (tester) async {
     final writes = await tapCheckbox(tester, '- [x] 一\n', 0);
     expect(writes, ['- [ ] 一\n']);
