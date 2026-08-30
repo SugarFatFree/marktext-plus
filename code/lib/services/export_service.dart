@@ -1324,7 +1324,15 @@ class ExportService {
     if (_dataScheme.hasMatch(collapsed) && !_dataImage.hasMatch(collapsed)) {
       return '';
     }
-    return _escapeHtml(url);
+    // A space in an address is not valid in the attribute it goes into, and
+    // `[文档](</我的 文件.md>)` — a file name with a space, written the one way
+    // markdown allows — produced `href="/我的 文件.md"`. Only the spaces are
+    // encoded: encoding the rest would turn an address that already carries
+    // `%20` into one carrying `%2520`.
+    //
+    // The address kept in the document is untouched, so the preview still
+    // opens the file it names.
+    return _escapeHtml(url.replaceAll(' ', '%20').replaceAll('\t', '%09'));
   }
 
   static String _escapeHtml(String text) {

@@ -1985,7 +1985,7 @@ class MarkdownParser {
       // whole thing as literal text.
       // The destination may be empty — `[TODO]()` is a placeholder people
       // write — and with `+` the whole thing fell back to literal text.
-      r'''|\[((?:[^\[\]]|\[[^\[\]]*\])*)\]\(\s*(?:<([^>]*)>|((?:[^()\s"]|\([^()]*\))*))'''
+      r'''|\[((?:[^\[\]]|\[(?:[^\[\]]|\[[^\[\]]*\])*\])*)\]\(\s*(?:<([^>]*)>|((?:[^()\s"]|\([^()]*\))*))'''
       r'''(?:\s+(?:"([^"]*)"|'([^']*)'))?\s*\)'''  // 6 text, 7/8 href, 9/10 title
       r'|\[\^([^\]]+)\]'           // footnote ref
       // A code span is delimited by a run of backticks and closed by a run of
