@@ -2018,7 +2018,12 @@ class MarkdownParser {
       r'|(?<![\p{L}\p{N}_])_(?!_)([^\s]|[^\s][\s\S]*?[^\s])(?<!_)_(?![\p{L}\p{N}_])'  // italic _
       // Appended rather than inserted: these add groups 19..21, leaving every
       // existing branch's numbering alone.
-      r'|<((?:https?|ftp|mailto):[^>\s]+)>'         // 19 autolink
+      // Any scheme, as the format has it — `<irc://…>`, `<tel:…>`,
+      // `<vscode://…>`, `<file:///…>` — not the four that happened to be
+      // listed. It also has to be tried before the email branch below, or
+      // `<MAILTO:FOO@BAR.BAZ>` is read as an address and gets a second
+      // `mailto:` put in front of it, which links to nothing.
+      r'|<([a-zA-Z][a-zA-Z0-9+.\-]{1,31}:[^<>\s]*)>'  // 19 autolink
       // Both brackets use the balanced shape the inline-link branch uses. With
       // `[^\]]+` the engine handed a long run of `[` back one character at a
       // time from every starting position, and a line of 60,000 of them took

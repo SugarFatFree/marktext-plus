@@ -6,6 +6,7 @@
 | BUG-174 | 2026-08-31 | 图片 alt 里残留 markdown 标记，图加载失败时用标记描述自己 | P2 | 已修复 |
 | BUG-175 | 2026-08-31 | 代码块里展示的链接定义会真的生效 | P2 | 已修复 |
 | BUG-176 | 2026-08-31 | 折行的段落里，跨行的强调不生效 | P2 | 已修复 |
+| BUG-177 | 2026-08-31 | 尖括号地址只认四种协议；大写 MAILTO 成了坏链接 | P2 | 已修复 |
 
 ## BUG-173：引用式链接的标签里，标记仍显示成字面量
 
@@ -187,3 +188,45 @@ CommonMark 规范用例 399 → 406。新增 9 条测试：4 条跨行生效、3
 - `code/lib/services/markdown_parser.dart`
 - `code/test/services/emphasis_across_lines_test.dart`（新增，9 条）
 - `code/test/services/commonmark_spec_test.dart`（下限 399 → 406）
+---
+
+## BUG-177：`<tel:…>`、`<file:///…>` 等尖括号地址不成链；`<MAILTO:…>` 成了坏链接
+
+**日期**：2026-08-31　**优先级**：P2　**状态**：已修复
+
+### 现象
+
+尖括号写法只认 `http`/`https`/`ftp`/`mailto` 四种协议，其余一律显示成尖括号文本：
+
+- `<tel:+8613800138000>` —— 手机上点了能拨号的写法
+- `<file:///home/me/notes.md>` —— 指向本地文件
+- `<vscode://file/tmp/a.dart:12>` —— 编辑器自己的跳转链接
+- `<localhost:5001/foo>` —— 内网地址
+- `<irc://…>`、`<made-up-scheme://…>`
+
+更糟的是 `<MAILTO:FOO@BAR.BAZ>`（大写）：协议名匹配是大小写敏感的，
+四种协议都没命中，于是落到**邮箱地址**分支，被再加了一个前缀，
+变成 `mailto:MAILTO:FOO@BAR.BAZ` —— 一个点了什么也打不开的坏链接。
+
+### 根因
+
+协议写死成 `(?:https?|ftp|mailto)`。CommonMark 的规则是任意协议：
+字母开头，后跟字母数字与 `+.-`，总长 2–32，然后一个冒号。
+
+### 修复方案
+
+改成 `[a-zA-Z][a-zA-Z0-9+.\-]{1,31}:[^<>\s]*`。这条分支排在邮箱分支之前，
+所以带协议的写法（含大写 `MAILTO:`）会先被它接住，不会再被当成裸邮箱。
+
+### 验证
+
+CommonMark 规范用例 406 → 411。新增 11 条：7 条各种协议、1 条大写 MAILTO、
+3 条护栏——普通 `<foo@example.com>` 仍加 `mailto:` 前缀、
+HTML 标签（`<span style="color:red">` 里也有冒号）不被当成协议、
+`<https://foo.bar/baz bim>` 里有空格不成链。换回旧正则后 8 条确认失败。
+
+### 涉及文件
+
+- `code/lib/services/markdown_parser.dart`
+- `code/test/services/autolink_scheme_test.dart`（新增，11 条）
+- `code/test/services/commonmark_spec_test.dart`（下限 406 → 411）
