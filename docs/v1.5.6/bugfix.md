@@ -16,6 +16,7 @@
 | BUG-184 | 2026-08-31 | 选中多个段落或整个列表按 Ctrl+B，产出渲染不出来的标记 | P1 | 已修复 |
 | BUG-185 | 2026-08-31 | 带空格的文件名做链接地址，导出的 HTML 不合法 | P2 | 已修复 |
 | BUG-186 | 2026-08-31 | 链接文字里套两层方括号就不成链接 | P3 | 已修复 |
+| BUG-187 | 2026-08-31 | 引用块里换行续写，后半段掉出引用 | P2 | 已修复 |
 
 ## BUG-173：引用式链接的标签里，标记仍显示成字面量
 
@@ -611,3 +612,52 @@ CommonMark 规范用例 467 → 469。新增 9 条：地址空格 2 条针对性
 - `code/lib/services/export_service.dart`、`code/lib/services/markdown_parser.dart`
 - `code/test/services/url_space_test.dart`（新增，9 条）
 - `code/test/services/commonmark_spec_test.dart`（下限 467 → 469）
+---
+
+## BUG-187：引用块里换行续写，后半段掉出引用
+
+**日期**：2026-08-31　**优先级**：P2　**状态**：已修复
+
+### 现象
+
+```
+> 引用第一行
+引用续行
+```
+
+第二行掉出引用，成了紧挨着引用框的普通段落——**同一段引文，一半在框里一半在框外**。
+引用超过一行时，`>` 只写在第一行是很常见的写法。
+
+### 根因
+
+引用块的收集只接受带 `>` 的行。CommonMark 的惰性续行规则规定：
+段落下面那一行只要不另起一块，就属于这个段落——BUG-170 已经为列表实现过同一条规则。
+
+### 修复方案
+
+收集时补一条：已经有带 `>` 的行、上一行有字、且这一行不另起一块（复用
+`_startsAnotherBlock`）时，并入引用。
+
+### 一处既有断言按新意图更新
+
+`> outer / >> inner / > outer again` 原先期望三个子块（段落、内层引用、段落），
+现在第三行并入了内层引用。**先问 marked 再改**：marked 给出
+`<p>outer</p><blockquote><p>inner outer again</p></blockquote>`，
+与新行为完全一致——段落下面那一行不论带几层标记都是它的续行。
+所以是那条断言过时，不是新行为错。
+
+### 验证
+
+CommonMark 规范用例 469 → 473。新增 9 条：4 条续行（单行、多行、引用内标题之后、
+嵌套引用），5 条护栏——空行、标题、列表、围栏、**空的 `>` 行**都仍然结束引用。
+关闭续行后 4 条确认失败。
+
+其中第一条最初写成精确 HTML 比对而失败：段落内换行在本项目里会渲染成 `<br>`，
+这是既定行为。改成断言结构（续行是否落在 `</blockquote>` 之前）。
+
+### 涉及文件
+
+- `code/lib/services/markdown_parser.dart`
+- `code/test/services/blockquote_lazy_test.dart`（新增，9 条）
+- `code/test/services/markdown_parser_test.dart`（更新 1 条）
+- `code/test/services/commonmark_spec_test.dart`（下限 469 → 473）

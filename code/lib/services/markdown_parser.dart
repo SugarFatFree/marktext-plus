@@ -1603,9 +1603,28 @@ class MarkdownParser {
         final quoteStart = i;
         final bqLines = <String>[];
 
-        while (i < lines.length && _blockquoteRe.hasMatch(lines[i])) {
-          bqLines.add(lines[i].replaceFirst(_blockquoteStripRe, ''));
-          i++;
+        while (i < lines.length) {
+          if (_blockquoteRe.hasMatch(lines[i])) {
+            bqLines.add(lines[i].replaceFirst(_blockquoteStripRe, ''));
+            i++;
+            continue;
+          }
+          // A quoted paragraph carried on without repeating the `>`, which is
+          // how anyone quoting more than a line writes it. The rest of the
+          // sentence used to fall out of the quote and stand on its own,
+          // outside the box, as an ordinary paragraph.
+          //
+          // Only after a line with words on it, and only for a line that
+          // opens nothing of its own: a heading, a list or a fence below a
+          // quote is not part of it.
+          if (bqLines.isNotEmpty &&
+              bqLines.last.trim().isNotEmpty &&
+              !_startsAnotherBlock(lines, i)) {
+            bqLines.add(lines[i]);
+            i++;
+            continue;
+          }
+          break;
         }
 
         final content = bqLines.join('\n').trim();

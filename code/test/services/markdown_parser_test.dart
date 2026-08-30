@@ -1638,14 +1638,17 @@ void _nestedQuoteTests() {
 
       final outer = nodes.single as BlockquoteNode;
       expect(outer.depth, 0);
+      // The third line carries on the inner quote's paragraph rather than
+      // returning to the outer one — a paragraph is continued by the line
+      // below it whatever depth of markers that line has. marked, the parser
+      // upstream uses, gives `inner outer again` here too.
       expect(outer.children.map((c) => c.type).toList(), [
         NodeType.paragraph,
         NodeType.blockquote,
-        NodeType.paragraph,
       ]);
       final inner = outer.children[1] as BlockquoteNode;
       expect(inner.depth, 1);
-      expect(inner.content, 'inner');
+      expect(inner.content, 'inner\nouter again');
       expect(inner.content, isNot(contains('>')));
     });
 
