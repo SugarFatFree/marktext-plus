@@ -176,10 +176,17 @@ void main() {
       expect(children.single, isA<ParagraphNode>());
     });
 
-    test('content and spans are still populated', () {
-      // Anything still reading them keeps working.
+    test('the content is kept, and the text lives in the blocks inside', () {
+      // `content` is what the quote was written as, and is still there. The
+      // parsed text belongs to the blocks the quote holds: parsing it on the
+      // quote as well meant parsing it twice, which cost a third of the time
+      // on a document full of quotations and grew quadratically on a nested
+      // one. Every reader of a document walks into the children anyway.
       expect(quoteOf('> just text').content, 'just text');
-      expect(quoteOf('> **bold**').inlineSpans.first.type, InlineType.bold);
+      expect(quoteOf('> **bold**').inlineSpans, isEmpty);
+
+      final paragraph = quoteOf('> **bold**').children.single as ParagraphNode;
+      expect(paragraph.inlineSpans.first.type, InlineType.bold);
     });
   });
 

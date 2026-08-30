@@ -1656,9 +1656,14 @@ class MarkdownParser {
         nodes.add(_withSpan(
           BlockquoteNode(
             content: content,
-            inlineSpans: parseInline(content),
+            // Empty on purpose. The quote's text belongs to the blocks
+            // inside it, and every reader of a document walks into those —
+            // parsing it here as well meant parsing it twice, which cost a
+            // third of the time on a document full of quotations and grew
+            // quadratically on a nested one, each level parsing everything
+            // below it again.
+            inlineSpans: const [],
             // Parsed again so a list or a heading inside the quote is one.
-            // The spans stay for anything still reading them.
             children: quoted,
             // Counting from zero for the outermost quote.
             depth: quoteDepth,

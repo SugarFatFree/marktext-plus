@@ -905,8 +905,11 @@ class ExportService {
           return true;
         case ParagraphNode(:final inlineSpans):
         case HeadingNode(:final inlineSpans):
-        case BlockquoteNode(:final inlineSpans):
           if (inSpans(inlineSpans)) return true;
+        case BlockquoteNode():
+          // Nothing to read here: a quote's text lives in the blocks inside
+          // it, and the walk this sits in visits those.
+          break;
         case ListNode(:final items):
           if (items.any((item) => inSpans(item.inlineSpans))) return true;
         case TableNode(:final headers, :final rows):
@@ -2057,7 +2060,6 @@ class ExportService {
     for (final node in MarkdownParser.walk(ast)) {
       if (node is ParagraphNode) scan(node.inlineSpans);
       if (node is HeadingNode) scan(node.inlineSpans);
-      if (node is BlockquoteNode) scan(node.inlineSpans);
       if (node is ListNode) {
         for (final item in node.items) {
           scan(item.inlineSpans);
