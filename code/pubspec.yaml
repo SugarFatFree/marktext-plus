@@ -1,6 +1,6 @@
 name: marktext_plus
 description: A lightweight Markdown editor built with Flutter.
-version: 1.5.4+1
+version: 1.5.5+1
 publish_to: 'none'
 
 environment:
@@ -41,6 +41,10 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  # Tests only, to open an exported .docx and read what is actually in it.
+  # A .docx is a zip; without this the export tests could assert no more than
+  # that the file began with `PK`.
+  archive: ^4.0.9
 
 flutter:
   generate: true

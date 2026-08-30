@@ -268,3 +268,5 @@ Swift 那半在本机无法运行，但**Dart 这半的契约可以测**：方�
 
 - `code/lib/services/update_service.dart`（`isNewer` 开放供测试）
 - `code/test/services/update_version_test.dart`（新增，7 条）
+
+---

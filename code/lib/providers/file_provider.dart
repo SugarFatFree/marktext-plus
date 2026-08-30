@@ -31,7 +31,13 @@ class FileNotifier extends StateNotifier<List<FileNode>> {
       ..clear()
       ..add(path);
 
-    state = [await _readNode(path, _displayName(path))];
+    final tree = await _readNode(path, _displayName(path));
+    // Reading a large folder takes long enough for the sidebar to be closed
+    // or the application to quit while it is happening, and touching `state`
+    // then throws — as an unhandled asynchronous error, since nothing awaits
+    // this from the menu.
+    if (!mounted) return;
+    state = [tree];
 
     _watcherSubscription?.cancel();
     _watcherSubscription = _watcherService.events.listen((_) => _refreshTree());
@@ -90,8 +96,10 @@ class FileNotifier extends StateNotifier<List<FileNode>> {
 
     final tree = await _readNode(path, _displayName(path));
     // Another directory was opened, or the sidebar closed, while we were
-    // reading; that newer state wins.
-    if (_currentDirectory != path) return;
+    // reading; that newer state wins. And the notifier may be gone
+    // altogether — this runs from a filesystem watcher, which is not
+    // something the shutdown path waits for.
+    if (!mounted || _currentDirectory != path) return;
     state = [tree];
 
     // Expanding or collapsing changes which folders are on screen, and those

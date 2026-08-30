@@ -36,6 +36,23 @@ void reportSettingsSaveFailure(Object error) {
 /// another program holds open, did nothing at all: no message, and the only
 /// clue was the modified dot that stayed put. Upstream MarkText notifies on
 /// every one of these.
+/// Tells the reader that a tab would not close because its file changed.
+///
+/// Reuses the wording the save-conflict dialog uses, so the same situation is
+/// named the same way wherever it comes up.
+void reportDiskConflict(String fileName) {
+  final context = navigatorKey.currentContext;
+  if (context == null || !context.mounted) return;
+  final l10n = AppLocalizations.of(context);
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(l10n == null
+          ? 'File changed on disk: $fileName'
+          : '${l10n.saveConflictTitle}: $fileName'),
+    ),
+  );
+}
+
 /// Tells the reader that a file could not be opened.
 ///
 /// The sidebar's own open has caught this for a long time and takes its

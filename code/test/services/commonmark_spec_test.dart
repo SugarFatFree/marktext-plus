@@ -24,8 +24,22 @@ void main() {
   String normalise(String html) {
     var out = html;
     // Decoration the exporter adds for syntax highlighting; not parsing.
-    out = out.replaceAll(' class="hljs"', '');
-    out = out.replaceAll(RegExp(r' class="language-[^"]*"'), '');
+    //
+    // One rule for the whole attribute rather than one per spelling: the two
+    // classes are written together on a highlighted block — `class="hljs
+    // language-ruby"` — which matched neither of the two patterns that used to
+    // be here, so every highlighted example counted as a parse failure. The
+    // spans carrying the colours go too; their text stays, so a real
+    // difference in the code's content still shows.
+    out = out.replaceAll(RegExp(r' class="(?:hljs|language-)[^"]*"'), '');
+    // Innermost first, repeatedly, so a nested highlight unwraps in pairs.
+    // Stripping every `</span>` instead would have taken the closing tag of
+    // the one other span the exporter writes — inline maths — and left its
+    // opening tag behind.
+    final highlightSpan = RegExp(r'<span class="hljs-[^"]*">([^<]*)</span>');
+    while (highlightSpan.hasMatch(out)) {
+      out = out.replaceAllMapped(highlightSpan, (m) => m.group(1)!);
+    }
     // Two spellings of a void element.
     out = out.replaceAll('<hr />', '<hr>').replaceAll('<br />', '<br>');
     out = out.replaceAll(RegExp(r' />'), '>');
@@ -87,9 +101,9 @@ void main() {
       }
     }
 
-    // Measured 2026-08-29. Raise it whenever the work raises it; never lower
+    // Measured 2026-08-30. Raise it whenever the work raises it; never lower
     // it to make a change pass.
-    const floor = 353;
+    const floor = 388;
     expect(passed, greaterThanOrEqualTo(floor),
         reason: '解析能力相比 $floor 例退步了');
     if (passed > floor) {

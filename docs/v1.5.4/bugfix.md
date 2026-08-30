@@ -591,3 +591,5 @@ BUG-154 的同类问题，把范围扩大后找到的：
 - `code/lib/services/window_placement.dart`（新增）
 - `code/lib/main.dart`、`code/pubspec.yaml`
 - `code/test/services/window_placement_test.dart`（新增，11 条）
+
+---

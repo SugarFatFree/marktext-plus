@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/ui/editor/mermaid/layout/dagre_layout.dart';
+import 'package:marktext_plus/ui/editor/mermaid/models/node.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/style.dart';
 import 'package:marktext_plus/ui/editor/mermaid/parser/label.dart';
 import 'package:marktext_plus/ui/editor/mermaid/parser/mermaid_parser.dart';
@@ -135,6 +136,60 @@ void main() {
 
     test('height grows with each line', () {
       expect(sizeOf('a<br/>b<br/>c').height, greaterThan(sizeOf('a<br/>b').height));
+    });
+  });
+
+  group('an arrow inside a label is text, not an arrow', () {
+    // Arrows are found by running a pattern over the line, and a label may
+    // contain one — `A["流程 --> 结束"]` describes a flow rather than drawing
+    // it. Splitting there did not merely mislabel the node: node A vanished
+    // from the diagram entirely and its edges came out wrong. Writing an
+    // arrow inside a label is ordinary in a Chinese document.
+    List<MermaidNode> nodesOf(String source) =>
+        MermaidParser().parse(source)!.nodes;
+
+    test('a full arrow in a quoted label keeps its node', () {
+      final nodes = nodesOf('graph TD\n  A["a --> b"] --> B\n');
+      expect(nodes.map((n) => n.id), ['A', 'B']);
+      expect(nodes.first.label, 'a --> b');
+    });
+
+    test('and in Chinese', () {
+      final nodes = nodesOf('graph TD\n  A["流程 --> 结束"] --> B\n');
+      expect(nodes.map((n) => n.id), ['A', 'B']);
+      expect(nodes.first.label, '流程 --> 结束');
+    });
+
+    test('a bare double dash in a label is text too', () {
+      // This one is the reason the fix cannot simply skip matches that start
+      // inside a label: the pattern's `A -- label --> B` branch starts at the
+      // dashes inside and runs to the real arrow outside, swallowing it.
+      final nodes = nodesOf('graph LR\n  X["a -- b"] --> Y\n');
+      expect(nodes.map((n) => n.id), ['X', 'Y']);
+      expect(nodes.first.label, 'a -- b');
+    });
+
+    test('a diamond label may hold one as well', () {
+      final nodes = nodesOf('graph TD\n  A{判断 --> 是} --> B\n');
+      expect(nodes.map((n) => n.id), ['A', 'B']);
+      expect(nodes.first.label, '判断 --> 是');
+    });
+
+    test('a quoted string on the edge is still the edge label', () {
+      // The first version of the fix blanked every quoted run, which took
+      // this away — an existing test caught it.
+      final diagram = MermaidParser().parse('flowchart TD\nA -- "spoken" --> B\n')!;
+      expect(diagram.edges.single.label, 'spoken');
+      expect(diagram.nodes.map((n) => n.id), ['A', 'B']);
+    });
+
+    test('nested brackets inside a label end where they should', () {
+      expect(nodesOf('graph TD\n  A[a[b]c] --> B\n').first.label, 'a[b]c');
+    });
+
+    test('a chain of three still has three nodes', () {
+      expect(nodesOf('graph TD\n  A --> B --> C\n').map((n) => n.id),
+          ['A', 'B', 'C']);
     });
   });
 }

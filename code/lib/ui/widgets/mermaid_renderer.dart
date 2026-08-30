@@ -1,4 +1,5 @@
 import 'dart:io';
+import '../../services/file_service.dart';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -100,7 +101,8 @@ class _MermaidRendererState extends State<MermaidRenderer> {
 
       // On desktop, savePath returns the path; on mobile/web, the file is already saved via bytes
       if (savePath != null && !Platform.isAndroid && !Platform.isIOS) {
-        await File(savePath).writeAsBytes(pngBytes);
+        // Atomically, like every other write over a file the reader chose.
+        await FileService.writeBytesAtomically(savePath, pngBytes);
       }
 
       if (context.mounted && savePath != null) {

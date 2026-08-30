@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'file_service.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -230,7 +231,11 @@ class ExportService {
     buffer.writeln('</body>');
     buffer.writeln('</html>');
 
-    await File(savePath).writeAsString(buffer.toString());
+    // Atomically: the picker invites replacing a file that already exists,
+    // and a plain write truncates it before the new contents arrive, so an
+    // export that fails part way destroyed the previous one.
+    await FileService.writeBytesAtomically(
+        savePath, utf8.encode(buffer.toString()));
   }
 
   /// Export Markdown to PDF
@@ -251,7 +256,7 @@ class ExportService {
       sourcePath: sourcePath,
       enableHtml: enableHtml,
     );
-    await File(savePath).writeAsBytes(bytes);
+    await FileService.writeBytesAtomically(savePath, bytes);
   }
 
   /// The same document the PDF export writes, as bytes.
@@ -656,7 +661,52 @@ class ExportService {
   }
 
   static List<DocxText> _inlineSpansToDocxTexts(List<InlineSpan> spans) {
-    return spans.map((span) {
+    final runs = <DocxText>[];
+    for (final span in spans) {
+      // A Word run carries no runs of its own, so emphasis holding markup is
+      // flattened: its children become runs and its own formatting is folded
+      // into each of them. `**bold with a [link](/url)**` comes out as one
+      // bold link rather than a bold run showing square brackets.
+      if (span.children.isNotEmpty) {
+        for (final run in _inlineSpansToDocxTexts(span.children)) {
+          runs.add(_withEmphasis(run, span));
+        }
+        continue;
+      }
+      runs.add(_docxTextFor(span));
+    }
+    return runs;
+  }
+
+  /// Folds one level of emphasis into a run that is already formatted.
+  static DocxText _withEmphasis(DocxText run, InlineSpan span) =>
+      switch (span.type) {
+        InlineType.bold => run.copyWith(fontWeight: DocxFontWeight.bold),
+        InlineType.italic => run.copyWith(fontStyle: DocxFontStyle.italic),
+        InlineType.boldItalic => run.copyWith(
+            fontWeight: DocxFontWeight.bold,
+            fontStyle: DocxFontStyle.italic,
+          ),
+        InlineType.strikethrough => run.copyWith(
+            decorations: [...run.decorations, DocxTextDecoration.strikethrough],
+          ),
+        InlineType.underline => run.copyWith(
+            decorations: [...run.decorations, DocxTextDecoration.underline],
+          ),
+        InlineType.highlight => run.copyWith(shadingFill: 'fff3a3'),
+        // A link whose text is marked up: the destination and the look of a
+        // link have to reach the runs the text became, or the export has bold
+        // words where the document had a link.
+        InlineType.link => run.copyWith(
+            href: span.href,
+            color: DocxColor('#0366d6'),
+            decorations: [...run.decorations, DocxTextDecoration.underline],
+          ),
+        _ => run,
+      };
+
+  static DocxText _docxTextFor(InlineSpan span) {
+    {
       switch (span.type) {
         case InlineType.boldItalic:
           return DocxText(
@@ -717,7 +767,7 @@ class ExportService {
         case InlineType.text:
           return DocxText(span.text);
       }
-    }).toList();
+    }
   }
 
   static String nodeToHtml(
@@ -1125,7 +1175,14 @@ class ExportService {
       // A line break inside a paragraph is a break in the preview and in Word
       // (DocxText emits w:br), but HTML folds a bare newline into a space, so
       // it needs an explicit <br> to match.
-      final text = _escapeHtml(span.text).replaceAll('\n', '<br>\n');
+      //
+      // Emphasis holding markup of its own renders its children instead of its
+      // own source text — `**bold with a [link](/url)**` is a link inside a
+      // strong, not a strong containing square brackets. Only emphasis carries
+      // children, so every other arm below is unaffected.
+      final text = span.children.isNotEmpty
+          ? _inlineSpansToHtml(span.children, inlinedImages: inlinedImages)
+          : _escapeHtml(span.text).replaceAll('\n', '<br>\n');
       switch (span.type) {
         case InlineType.text:
           return text;
@@ -1290,8 +1347,46 @@ class ExportService {
       background: pw.BoxDecoration(color: _pdfCodeBg),
     );
 
+    /// The style one emphasis adds on top of the style around it, so nested
+    /// markup renders as both — the same rule the preview follows.
+    pw.TextStyle emphasised(InlineType type) => switch (type) {
+          InlineType.boldItalic => baseStyle.copyWith(
+              fontWeight: pw.FontWeight.bold,
+              fontStyle: pw.FontStyle.italic,
+            ),
+          InlineType.bold =>
+            baseStyle.copyWith(fontWeight: pw.FontWeight.bold),
+          InlineType.italic =>
+            baseStyle.copyWith(fontStyle: pw.FontStyle.italic),
+          InlineType.strikethrough =>
+            baseStyle.copyWith(decoration: pw.TextDecoration.lineThrough),
+          InlineType.underline =>
+            baseStyle.copyWith(decoration: pw.TextDecoration.underline),
+          InlineType.highlight => baseStyle.copyWith(
+              background: const pw.BoxDecoration(color: PdfColors.yellow100),
+            ),
+          // A link whose text is marked up keeps looking like a link: without
+          // this its children would be drawn in the surrounding style and the
+          // reader would have nothing to tell them a link is there.
+          InlineType.link => baseStyle.copyWith(
+              color: PdfColors.blue700,
+              decoration: pw.TextDecoration.underline,
+            ),
+          _ => baseStyle,
+        };
+
     return spans.map((span) {
       final text = _normalizeForPdf(span.text);
+      if (span.children.isNotEmpty) {
+        return pw.TextSpan(
+          children: _inlineSpansToPdf(
+            span.children,
+            baseStyle: emphasised(span.type),
+            primaryFont: primaryFont,
+            fontFallbacks: fontFallbacks,
+          ),
+        );
+      }
       switch (span.type) {
         case InlineType.boldItalic:
           return pw.TextSpan(

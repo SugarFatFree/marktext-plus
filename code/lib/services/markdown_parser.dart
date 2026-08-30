@@ -49,9 +49,22 @@ class InlineSpan {
   /// Where an image links to, when it is wrapped in a link.
   ///
   /// The shape of a README badge. Kept alongside the image rather than as a
-  /// separate span because the model is flat: a link span cannot contain an
-  /// image span.
+  /// separate span because a link span cannot contain an image span: [children]
+  /// carries emphasis, not the branches that need a destination of their own.
   final String? linkHref;
+
+  /// What this span contains, when its content is itself marked up.
+  ///
+  /// Empty for the ordinary case, and every consumer falls back to [text] then
+  /// — which is the whole of what the model used to offer. Emphasis is the
+  /// reason it exists: `**bold with a [link](/url)**` and `*outer **inner***`
+  /// are ordinary markdown, and with a flat list the inner markup could only
+  /// be left as literal characters.
+  ///
+  /// [text] is still the source text of the span when this is set, so a
+  /// consumer that does not understand nesting shows the markup rather than
+  /// nothing.
+  final List<InlineSpan> children;
 
   const InlineSpan({
     required this.type,
@@ -59,6 +72,7 @@ class InlineSpan {
     this.href,
     this.title,
     this.linkHref,
+    this.children = const [],
   });
 }
 
@@ -369,7 +383,16 @@ class MarkdownParser {
   // which is the state a heading passes through while it is being typed.
   static final _headingRe =
       RegExp(r'^ {0,3}(#{1,6})(?:\s+(.*?))?(?:\s+#+)?\s*$');
-  static final _hrRe = RegExp(r'^(\*{3,}|-{3,}|_{3,})\s*$');
+  /// A thematic break: three or more `*`, `-` or `_`.
+  ///
+  /// Spaces between the marks are allowed, and `* * *` and `- - -` are how
+  /// most people write one. They used to be read as a bullet list, because the
+  /// list pattern matched them and this one did not — `* * *` came out as a
+  /// list item holding `* *`. Up to three columns of indentation is allowed
+  /// too, as it is for every other block.
+  static final _hrRe =
+      RegExp(r'^ {0,3}(?:\*[ \t]*){3,}$|^ {0,3}(?:-[ \t]*){3,}$'
+          r'|^ {0,3}(?:_[ \t]*){3,}$');
   /// A fence opening a code block.
   ///
   /// Three or more backticks or tildes. The length and the character both
@@ -458,10 +481,22 @@ class MarkdownParser {
           !_hrRe.hasMatch(lines[i]) &&
           i + 1 < lines.length &&
           _setextRe.hasMatch(lines[i + 1])) {
+        // Back up over the rest of the paragraph the underline closes. The
+        // parser reads all of it as the heading, so an outline built from the
+        // last line alone showed half a title and, worse, pointed at the wrong
+        // line: clicking it scrolled to the end of the heading instead of its
+        // start.
+        var first = i;
+        while (first > 0 &&
+            !lines[first - 1].startsWith(RegExp(r'\s')) &&
+            !_setextRe.hasMatch(lines[first - 1]) &&
+            !_startsAnotherBlock(lines, first - 1)) {
+          first--;
+        }
         headings.add((
-          line: i + 1,
+          line: first + 1,
           level: lines[i + 1].trim().startsWith('=') ? 1 : 2,
-          text: lines[i].trim(),
+          text: [for (var k = first; k <= i; k++) lines[k].trim()].join(' '),
         ));
         i++;
       }
@@ -617,6 +652,22 @@ class MarkdownParser {
       }
     }
   }
+
+  /// Whether line [i] begins a block of its own rather than continuing the
+  /// paragraph above it.
+  ///
+  /// Defined once because two places need the same answer: the paragraph loop,
+  /// which stops here, and the outline extractor, which walks backwards over
+  /// the same run of lines to find where a setext heading starts.
+  static bool _startsAnotherBlock(List<String> lines, int i) =>
+      lines[i].trim().isEmpty ||
+      _headingRe.hasMatch(lines[i]) ||
+      _hrRe.hasMatch(lines[i]) ||
+      _codeFenceRe.hasMatch(lines[i]) ||
+      _blockquoteRe.hasMatch(lines[i]) ||
+      _ulRe.hasMatch(lines[i]) ||
+      _olRe.hasMatch(lines[i]) ||
+      _startsTable(lines, i);
 
   /// A setext underline: `===` for level 1, `---` for level 2.
   static final _setextRe = RegExp(r'^\s{0,3}(=+|-+)\s*$');
@@ -836,12 +887,16 @@ class MarkdownParser {
       final (index, block) = entry;
       // Each item is read with its own marker, not the list's: a bulleted
       // sub-point under a numbered step is still a bullet.
-      final ordered = _olRe.hasMatch(block.first);
+      final ordered = _isOrderedLine(block.first);
       final number = ordered
           ? int.tryParse(_olNumberRe.firstMatch(block.first)?.group(1) ?? '')
           : null;
       final marker = ordered ? _olRe : _ulRe;
-      final first = marker.firstMatch(block.first)!.group(1)!;
+      // An item may be a marker with nothing after it — the state a list is in
+      // between pressing Enter and typing. The item patterns require content,
+      // so there is no match to read text out of, and the item's own text is
+      // simply empty.
+      final first = marker.firstMatch(block.first)?.group(1) ?? '';
 
       // The item's own text runs to the first blank line; anything after it
       // is a block the item carries, parsed on its own terms.
@@ -925,8 +980,33 @@ class MarkdownParser {
   /// A numbered step may hold bulleted sub-points and vice versa, so a list
   /// cannot be collected by looking only for its own marker: the sub-points
   /// were swallowed into the parent item's text.
+  ///
+  /// A thematic break is not one, even though `* * *` and `- - -` match the
+  /// bullet pattern: the rule wins, and a rule written in the middle of a list
+  /// ends it. Without this the top-level branch read `* * *` as a rule while
+  /// the collector reading the list around it read the same line as an item.
   static bool _startsListItem(String line) =>
-      _ulRe.hasMatch(line) || _olRe.hasMatch(line);
+      !_hrRe.hasMatch(line) && (_ulRe.hasMatch(line) || _olRe.hasMatch(line));
+
+  /// A marker with nothing written after it yet: `-`, `*`, `1.` on its own.
+  ///
+  /// Only recognised while a list is already being collected. Starting a list
+  /// from one would turn a stray dash in prose into an empty bullet, and the
+  /// problem worth solving is what happens in the middle: pressing Enter in a
+  /// list, or clearing an item's text, left a marker that matched neither the
+  /// item pattern nor anything else, so the list came apart into two lists
+  /// with a paragraph reading `-` between them.
+  static final _emptyItemRe = RegExp(r'^ {0,3}(?:[-*+]|\d{1,9}[.)])\s*$');
+
+  /// Whether [line] is a numbered item rather than a bulleted one.
+  ///
+  /// [_olRe] requires the item to have content, so it answers "no" for a
+  /// numbered marker with nothing after it yet — and "no" is the same answer
+  /// it gives for a bullet, which made an empty step look like the start of a
+  /// bulleted list and broke the list in two.
+  static bool _isOrderedLine(String line) =>
+      _olRe.hasMatch(line) ||
+      (_emptyItemRe.hasMatch(line) && RegExp(r'\d').hasMatch(line));
 
   /// A list item line, including one with nothing written in it yet.
   ///
@@ -991,6 +1071,18 @@ class MarkdownParser {
   /// line, a blank line, or a line inside a carried code block.
   static bool startsListItem(String line) => _startsListItem(line);
 
+  /// Whether [line] is one of the items of a list already being read.
+  ///
+  /// Wider than [startsListItem] by exactly one case: a marker with nothing
+  /// after it yet, which continues a list but cannot start one. The preview
+  /// counts item lines to find the line an item was written on, and counting
+  /// with the narrower question left an empty item uncounted — so every
+  /// checkbox below one was looked for on the wrong line, or on no line at
+  /// all, and ticking it did nothing.
+  static bool continuesListItems(String line) =>
+      _startsListItem(line) ||
+      (!_hrRe.hasMatch(line) && _emptyItemRe.hasMatch(line));
+
   (List<List<String>>, List<int>, int, bool) _collectListItems(
     List<String> lines,
     int start,
@@ -1013,7 +1105,10 @@ class MarkdownParser {
     final firstMarker = _markerOf(lines[start]);
 
     while (i < lines.length) {
-      if (_startsListItem(lines[i])) {
+      if (_startsListItem(lines[i]) ||
+          (blocks.isNotEmpty &&
+              !_hrRe.hasMatch(lines[i]) &&
+              _emptyItemRe.hasMatch(lines[i]))) {
         if (_startsAnotherList(lines[i], firstIndent, firstOrdered, firstMarker)) break;
         blocks.add([lines[i]]);
         blockStarts.add(i);
@@ -1062,6 +1157,17 @@ class MarkdownParser {
         continue;
       }
 
+      // A wrapped item: the rest of the sentence written on the next line
+      // with no indentation, which is what a hard-wrapped document looks
+      // like. It used to end the list and become a paragraph of its own, so
+      // one long bullet came out as a bullet and a stray line under it.
+      // Anything that opens a block of its own still ends the list.
+      if (blocks.isNotEmpty && !_startsAnotherBlock(lines, i)) {
+        blocks.last.add(lines[i]);
+        i++;
+        continue;
+      }
+
       break;
     }
 
@@ -1076,9 +1182,18 @@ class MarkdownParser {
   /// The character a list item is marked with: `-`, `*`, `+`, `.` or `)`.
   static String? _markerOf(String line) {
     final match = _continuationRe.firstMatch(line);
-    if (match == null) return null;
+    if (match == null) {
+      // A marker with nothing after it has no match to read, and reading it as
+      // "no marker at all" made it look like the start of a different list —
+      // so `- foo` / `-` / `- bar` came apart, while `- foo` / `- ` / `- bar`,
+      // which differs only by a trailing space, did not.
+      final empty = _emptyItemRe.firstMatch(line);
+      if (empty == null) return null;
+      final marker = empty.group(0)!.trim();
+      return _isOrderedLine(line) ? marker[marker.length - 1] : marker;
+    }
     final marker = match.group(2)!;
-    return _olRe.hasMatch(line) ? marker[marker.length - 1] : marker;
+    return _isOrderedLine(line) ? marker[marker.length - 1] : marker;
   }
 
   /// Whether [line] begins a list separate from the one being collected.
@@ -1094,7 +1209,7 @@ class MarkdownParser {
     String? firstMarker,
   ]) {
     if (_indentColumns(line) > firstIndent) return false;
-    if (_olRe.hasMatch(line) != firstOrdered) return true;
+    if (_isOrderedLine(line) != firstOrdered) return true;
     if (firstMarker == null) return false;
     return _markerOf(line) != firstMarker;
   }
@@ -1131,7 +1246,7 @@ class MarkdownParser {
   /// line between them, was swallowed into that paragraph and never drawn —
   /// and writing it that way is common enough that GitHub, and every parser
   /// that follows it, breaks the paragraph and renders the table.
-  bool _startsTable(List<String> lines, int at) {
+  static bool _startsTable(List<String> lines, int at) {
     if (at + 1 >= lines.length) return false;
     if (!_tableRowRe.hasMatch(lines[at])) return false;
     if (!_tableSepRe.hasMatch(lines[at + 1])) return false;
@@ -1488,7 +1603,9 @@ class MarkdownParser {
       // the *next* line. A bare `---` was handled by the horizontal-rule
       // branch above; reaching this point means real text precedes it, which
       // is exactly when CommonMark reads it as a heading.
-      if (i + 1 < lines.length && _setextRe.hasMatch(lines[i + 1])) {
+      if (i + 1 < lines.length &&
+          _indentColumns(line) < 4 &&
+          _setextRe.hasMatch(lines[i + 1])) {
         final content = line.trim();
         final level = lines[i + 1].trim().startsWith('=') ? 1 : 2;
         i += 2;
@@ -1532,18 +1649,41 @@ class MarkdownParser {
 
       // Paragraph (default)
       final paraLines = <String>[];
-      while (i < lines.length &&
-          lines[i].trim().isNotEmpty &&
-          !_headingRe.hasMatch(lines[i]) &&
-          !_hrRe.hasMatch(lines[i]) &&
-          !_codeFenceRe.hasMatch(lines[i]) &&
-          !_blockquoteRe.hasMatch(lines[i]) &&
-          !_ulRe.hasMatch(lines[i]) &&
-          !_olRe.hasMatch(lines[i]) &&
-          !_startsTable(lines, i)) {
+      while (i < lines.length && !_startsAnotherBlock(lines, i)) {
+        // A setext underline closes the paragraph instead of joining it. `---`
+        // already stopped the loop by looking like a horizontal rule, but
+        // `===` matched nothing above and was read as more paragraph text.
+        if (paraLines.isNotEmpty && _setextRe.hasMatch(lines[i])) break;
         paraLines.add(lines[i]);
         i++;
       }
+
+      // Setext heading spanning several lines.
+      //
+      // The single-line form is handled far above, beside the other block
+      // patterns, because one line of lookahead is enough to recognise it.
+      // A title written over two lines is only recognisable from here: the
+      // paragraph has to be gathered first, and the underline is whatever
+      // stopped it. Without this, `Foo\nBar\n---` came out as a paragraph
+      // with a rule drawn under it rather than one heading.
+      if (paraLines.isNotEmpty &&
+          i < lines.length &&
+          _setextRe.hasMatch(lines[i])) {
+        final content = [for (final line in paraLines) line.trim()].join('\n');
+        final level = lines[i].trim().startsWith('=') ? 1 : 2;
+        i++;
+        nodes.add(_withSpan(
+          HeadingNode(
+            level: level,
+            content: content,
+            inlineSpans: parseInline(content),
+          ),
+          blockStart,
+          i,
+        ));
+        continue;
+      }
+
       if (paraLines.isNotEmpty) {
         // Leading whitespace is not part of the text. CommonMark strips it
         // from every line of a paragraph, and here it mattered more than
@@ -1589,6 +1729,83 @@ class MarkdownParser {
       return String.fromCharCode(_escapeSentinelBase + escapes.length - 1);
     });
 
+    return _mergeAdjacentText(
+      [for (final span in _inlineTokens(text, 0)) _finishSpan(span, escapes)],
+    );
+  }
+
+  /// Restores escapes and decodes entities through a span and its children.
+  InlineSpan _finishSpan(InlineSpan span, List<String> escapes) {
+    final restored = escapes.isEmpty ? span : _restoreEscapes(span, escapes);
+    final children = [
+      for (final child in restored.children) _finishSpan(child, escapes),
+    ];
+    // Entities inside inline code are literal, per CommonMark.
+    if (restored.type == InlineType.code) return restored;
+    return InlineSpan(
+      type: restored.type,
+      text: _decodeEntities(restored.text),
+      href: restored.href,
+      title: restored.title,
+      linkHref: restored.linkHref,
+      children: children,
+    );
+  }
+
+  /// The markup inside an emphasis span, or empty when there is none.
+  ///
+  /// Runs on the escaped text, before the sentinels are put back, so a `\*`
+  /// written inside emphasis is still hidden from this pass and cannot open a
+  /// nested one. The depth limit is a backstop: a branch whose inner text is
+  /// the text it matched would otherwise recurse for ever.
+  List<InlineSpan> _nestedSpans(
+    String inner,
+    int depth, {
+    bool insideLink = false,
+  }) {
+    if (depth >= 4) return const [];
+    // Cheap gate so ordinary emphasis — the overwhelming majority — is not
+    // parsed a second time.
+    if (!_nestableRe.hasMatch(inner)) return const [];
+    final spans = _inlineTokens(inner, depth + 1);
+    if (spans.length == 1 &&
+        spans.single.type == InlineType.text &&
+        spans.single.text == inner) {
+      return const [];
+    }
+    return insideLink ? _withoutNestedLinks(spans) : spans;
+  }
+
+  /// Strips the link-ness out of anything found inside a link's own text.
+  ///
+  /// A link may not contain a link — CommonMark says so at any depth, and an
+  /// `<a>` inside an `<a>` is not something a browser will render as written.
+  /// `[foo [bar](/two)](/one)` is unusual enough to be a typo, and the typo
+  /// used to show as plain text; parsing the text of a link turned it into two
+  /// nested anchors, where the inner one's destination is the one that would
+  /// be lost. What is left here is the inner link's text, still formatted.
+  static List<InlineSpan> _withoutNestedLinks(List<InlineSpan> spans) => [
+        for (final span in spans)
+          if (span.type != InlineType.link)
+            InlineSpan(
+              type: span.type,
+              text: span.text,
+              href: span.href,
+              title: span.title,
+              linkHref: span.linkHref,
+              children: _withoutNestedLinks(span.children),
+            )
+          else if (span.children.isNotEmpty)
+            ..._withoutNestedLinks(span.children)
+          else
+            InlineSpan(type: InlineType.text, text: span.text),
+      ];
+
+  /// Characters that could begin markup inside a span.
+  static final _nestableRe = RegExp(r'[*_\[!`~<^:$=]');
+
+  /// One pass of inline matching over already-escaped [text].
+  List<InlineSpan> _inlineTokens(String text, int depth) {
     final spans = <InlineSpan>[];
     // Combined pattern for inline elements, ordered by priority
     final re = RegExp(
@@ -1757,11 +1974,17 @@ class MarkdownParser {
         ));
       } else if (linkHref != null) {
         // Link: [text](href "title")
+        //
+        // The text of a link is marked up like any other text — a download
+        // button is written `[**Download**](/url)` — so it nests for the same
+        // reason emphasis does.
+        final linkText = match.group(11) ?? '';
         spans.add(InlineSpan(
           type: InlineType.link,
-          text: match.group(11) ?? '',
+          text: linkText,
           href: linkHref,
           title: match.group(14) ?? match.group(15),
+          children: _nestedSpans(linkText, depth, insideLink: true),
         ));
       } else if (match.group(16) != null) {
         // Footnote ref
@@ -1788,29 +2011,52 @@ class MarkdownParser {
         spans.add(InlineSpan(type: InlineType.mathInline, text: match.group(19)!));
       } else if (match.group(20) != null) {
         // Highlight
-        spans.add(InlineSpan(type: InlineType.highlight, text: match.group(20)!));
+        spans.add(InlineSpan(
+          type: InlineType.highlight,
+          text: match.group(20)!,
+          children: _nestedSpans(match.group(20)!, depth),
+        ));
       } else if (match.group(21) != null) {
         // Underline
-        spans.add(InlineSpan(type: InlineType.underline, text: match.group(21)!));
+        spans.add(InlineSpan(
+          type: InlineType.underline,
+          text: match.group(21)!,
+          children: _nestedSpans(match.group(21)!, depth),
+        ));
       } else if (match.group(22) != null) {
         // Bold italic ***
-        spans.add(
-            InlineSpan(type: InlineType.boldItalic, text: match.group(22)!));
+        spans.add(InlineSpan(
+          type: InlineType.boldItalic,
+          text: match.group(22)!,
+          children: _nestedSpans(match.group(22)!, depth),
+        ));
       } else if (match.group(23) != null) {
         // Bold **
-        spans.add(InlineSpan(type: InlineType.bold, text: match.group(23)!));
+        spans.add(InlineSpan(
+          type: InlineType.bold,
+          text: match.group(23)!,
+          children: _nestedSpans(match.group(23)!, depth),
+        ));
       } else if (match.group(24) != null) {
         // Bold italic ___
-        spans.add(
-            InlineSpan(type: InlineType.boldItalic, text: match.group(24)!));
+        spans.add(InlineSpan(
+          type: InlineType.boldItalic,
+          text: match.group(24)!,
+          children: _nestedSpans(match.group(24)!, depth),
+        ));
       } else if (match.group(25) != null) {
         // Bold __
-        spans.add(InlineSpan(type: InlineType.bold, text: match.group(25)!));
+        spans.add(InlineSpan(
+          type: InlineType.bold,
+          text: match.group(25)!,
+          children: _nestedSpans(match.group(25)!, depth),
+        ));
       } else if (match.group(26) != null) {
         // Strikethrough
         spans.add(InlineSpan(
           type: InlineType.strikethrough,
           text: match.group(26)!,
+          children: _nestedSpans(match.group(26)!, depth),
         ));
       } else if (match.group(27) != null) {
         // Superscript
@@ -1820,10 +2066,18 @@ class MarkdownParser {
         spans.add(InlineSpan(type: InlineType.subscript, text: match.group(28)!));
       } else if (match.group(29) != null) {
         // Italic *
-        spans.add(InlineSpan(type: InlineType.italic, text: match.group(29)!));
+        spans.add(InlineSpan(
+          type: InlineType.italic,
+          text: match.group(29)!,
+          children: _nestedSpans(match.group(29)!, depth),
+        ));
       } else if (match.group(30) != null) {
         // Italic _
-        spans.add(InlineSpan(type: InlineType.italic, text: match.group(30)!));
+        spans.add(InlineSpan(
+          type: InlineType.italic,
+          text: match.group(30)!,
+          children: _nestedSpans(match.group(30)!, depth),
+        ));
       } else if (match.group(31) != null) {
         // Autolink: <https://example.com>
         final url = match.group(31)!;
@@ -1930,23 +2184,7 @@ class MarkdownParser {
     // Before escapes are restored and entities decoded, so `\<b>` and
     // `&lt;b&gt;` both stay literal text — they are how a document writes a
     // tag it does not want interpreted.
-    final expanded = enableHtml ? _expandInlineHtml(spans) : spans;
-
-    final decoded = expanded.map((span) {
-      final restored =
-          escapes.isEmpty ? span : _restoreEscapes(span, escapes);
-      // Entities inside inline code are literal, per CommonMark.
-      if (restored.type == InlineType.code) return restored;
-      return InlineSpan(
-        type: restored.type,
-        text: _decodeEntities(restored.text),
-        href: restored.href,
-        title: restored.title,
-        linkHref: restored.linkHref,
-      );
-    }).toList();
-
-    return _mergeAdjacentText(decoded);
+    return enableHtml ? _expandInlineHtml(spans) : spans;
   }
 
   /// Joins runs of plain text that ended up as separate spans.
@@ -2123,6 +2361,7 @@ class MarkdownParser {
       // Rebuilding the span here means every field has to be carried across;
       // one left out is silently lost for any text containing an escape.
       linkHref: span.linkHref == null ? null : restore(span.linkHref!),
+      children: span.children,
     );
   }
 
@@ -2133,7 +2372,7 @@ class MarkdownParser {
   /// A pipe may be escaped with a backslash, which is the only way to put one
   /// in a cell. Splitting on every pipe broke the cell in two and left the
   /// backslash behind.
-  List<String> _parseCells(String line) {
+  static List<String> _parseCells(String line) {
     var text = line.trim();
     if (text.startsWith('|')) text = text.substring(1);
     if (text.endsWith('|') && !text.endsWith(r'\|')) {

@@ -1480,6 +1480,41 @@ void _setextAndIndentedCodeTests() {
       expect(heading.content, 'Subtitle');
     });
 
+    test('* * * is a horizontal rule, not a bullet list', () {
+      // The two commonest ways of writing a rule by hand. The list pattern
+      // matched them and this one did not, so `* * *` came out as a bullet
+      // holding `* *`.
+      for (final rule in ['* * *', '- - -', '_ _ _', '*  *  *', '- - - -']) {
+        final nodes = parser.parse('text\n\n$rule\n\nmore\n');
+        expect(nodes.map((n) => n.type).toList(), [
+          NodeType.paragraph,
+          NodeType.horizontalRule,
+          NodeType.paragraph,
+        ], reason: rule);
+      }
+    });
+
+    test('a rule may be indented up to three columns', () {
+      final nodes = parser.parse('a\n\n   ***\n\nb\n');
+      expect(nodes[1].type, NodeType.horizontalRule);
+    });
+
+    test('a real bullet list is still a list', () {
+      // The guard on the change above: `* item` and `- - -` differ only in
+      // what follows the first marker.
+      final nodes = parser.parse('* one\n* two\n');
+      expect(nodes.single.type, NodeType.unorderedList);
+    });
+
+    test('a rule splits the list it sits in the middle of', () {
+      final nodes = parser.parse('* Foo\n* * *\n* Bar\n');
+      expect(nodes.map((n) => n.type).toList(), [
+        NodeType.unorderedList,
+        NodeType.horizontalRule,
+        NodeType.unorderedList,
+      ]);
+    });
+
     test('--- on its own is still a horizontal rule', () {
       // The ambiguity that matters: only a preceding paragraph line turns
       // `---` into a heading underline.
@@ -1495,6 +1530,47 @@ void _setextAndIndentedCodeTests() {
       final nodes = parser.parse('- item\n---\n');
       expect(nodes.first.type, NodeType.unorderedList);
       expect(nodes.last.type, NodeType.horizontalRule);
+    });
+
+    test('a title wrapped over two lines is one heading', () {
+      // The underline closes the whole paragraph above it, not just the line
+      // touching it. A long title wrapped in the source used to come out as
+      // body text with a rule drawn underneath.
+      final nodes = parser.parse('Release notes for\nthe autumn build\n---\n');
+      final heading = nodes.single as HeadingNode;
+      expect(heading.level, 2);
+      expect(heading.content, 'Release notes for\nthe autumn build');
+    });
+
+    test('=== also underlines a multi-line title', () {
+      // `---` at least stopped the paragraph by looking like a rule; `===`
+      // matched no block pattern at all and was swallowed as more text.
+      final nodes = parser.parse('Release notes for\nthe autumn build\n===\n');
+      final heading = nodes.single as HeadingNode;
+      expect(heading.level, 1);
+      expect(heading.content, 'Release notes for\nthe autumn build');
+    });
+
+    test('the heading starts at the blank line, not the top of the file', () {
+      final nodes = parser.parse('intro\n\nTwo line\ntitle\n---\n');
+      expect(nodes.first.type, NodeType.paragraph);
+      expect((nodes.first as ParagraphNode).content, 'intro');
+      expect((nodes.last as HeadingNode).content, 'Two line\ntitle');
+    });
+
+    test('an indented code block is not underlined into a heading', () {
+      // Four columns of indentation makes the line code, so the `---` under
+      // it is a rule. It used to be read as a heading, which ate the code.
+      final nodes = parser.parse('    foo\n---\n');
+      expect(nodes.map((n) => n.type).toList(), [
+        NodeType.codeBlock,
+        NodeType.horizontalRule,
+      ]);
+    });
+
+    test('up to three columns of indentation still underlines', () {
+      final nodes = parser.parse('   Subtitle\n---\n');
+      expect((nodes.single as HeadingNode).content, 'Subtitle');
     });
   });
 

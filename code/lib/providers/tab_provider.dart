@@ -605,17 +605,34 @@ class TabNotifier extends StateNotifier<TabState> {
     }
   }
 
-  void markSaved(String id) {
-    final tabs = state.tabs.map((tab) {
-      if (tab.id == id) {
-        return tab.copyWith(isModified: false, diskConflict: false);
-      }
-      return tab;
-    }).toList();
-    state = state.copyWith(tabs: tabs);
-    // The file on disk is now this document, so the next save compares
-    // against this write rather than against whatever was read originally.
-    unawaited(refreshDiskStamp(id));
+  /// Records that [id] has been written to disk.
+  ///
+  /// Awaitable, and the stamp is taken before the state is published rather
+  /// than by an unawaited call afterwards. That version left a window: the
+  /// write had already changed the file's modification time while the tab
+  /// still held the stamp taken before it, so a save landing in that window
+  /// compared the file against a stamp older than this application's own
+  /// write and called it a conflict — the reader told something else had
+  /// changed their file when nothing had but them.
+  ///
+  /// This is the same shape as BUG-149, in the one place that had kept it:
+  /// auto-save has gone through [_markSavedWithStamp] since then.
+  Future<void> markSaved(String id) async {
+    final tab = state.tabs.where((t) => t.id == id).firstOrNull;
+    final path = tab?.filePath;
+    final stamp = path == null ? null : await FileService.stampOf(path);
+    if (!mounted) return;
+    state = state.copyWith(
+      tabs: state.tabs
+          .map((t) => t.id == id
+              ? t.copyWith(
+                  isModified: false,
+                  diskConflict: false,
+                  diskStamp: stamp ?? t.diskStamp,
+                )
+              : t)
+          .toList(),
+    );
   }
 
   /// Rebinds a tab to a different file, after a rename or a "save as".
@@ -762,6 +779,7 @@ class TabNotifier extends StateNotifier<TabState> {
 
     final fileService = FileService();
     for (final path in filePaths) {
+      if (!mounted) return false;
       final existing = state.tabs.where((t) => t.filePath == path).firstOrNull;
       if (existing != null) {
         state = state.copyWith(activeTabId: existing.id);
@@ -769,6 +787,9 @@ class TabNotifier extends StateNotifier<TabState> {
       }
       try {
         final opened = await fileService.readFileWithLineEnding(path);
+        // Several files, read one after another: the application can be shut
+        // down part way through a batch, and adding a tab then throws.
+        if (!mounted) return false;
         final tab = TabInfo(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
           filePath: path,
@@ -777,6 +798,11 @@ class TabNotifier extends StateNotifier<TabState> {
           lineEnding: opened.lineEnding,
           encoding: opened.encoding,
           isModified: false,
+          // With the content, like every other place that builds a tab from a
+          // read. Without it this tab has no baseline, so the check that stops
+          // a save from writing over somebody else's change never fires for a
+          // document opened from the command line or a file manager.
+          diskStamp: opened.stamp,
         );
         addTab(tab);
       } catch (_) {

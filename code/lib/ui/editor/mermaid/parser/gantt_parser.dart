@@ -155,6 +155,32 @@ class GanttParser {
     GanttTaskStatus.normal => 0,
   };
 
+  /// The offset of the colon that ends the task's name.
+  ///
+  /// Returns -1 when the line holds no usable split.
+  int _definitionColon(String line, String dateFormat) {
+    var from = 0;
+    while (true) {
+      final at = line.indexOf(':', from);
+      if (at == -1) return -1;
+      final rest = line.substring(at + 1).trim();
+      final firstPart = rest.split(',').first.trim();
+      if (_looksLikeDefinitionStart(firstPart, dateFormat)) return at;
+      from = at + 1;
+    }
+  }
+
+  /// Whether [part] could be the first field of a task definition.
+  bool _looksLikeDefinitionStart(String part, String dateFormat) {
+    if (part.isEmpty) return false;
+    if (_statusFor(part.toLowerCase()) != null) return true;
+    if (part.toLowerCase().startsWith('after ')) return true;
+    if (_isDate(part, dateFormat)) return true;
+    // An id, or a bare duration such as `30d`: one token, no spaces and no
+    // colon of its own.
+    return !part.contains(' ') && !part.contains(':');
+  }
+
   GanttTask? _parseTask(
     String line,
     List<GanttTask> existingTasks,
@@ -162,8 +188,18 @@ class GanttParser {
     String dateFormat,
     String? section,
   ) {
-    // Split by colon to get name and definition
-    final colonIndex = line.indexOf(':');
+    // Which colon separates the name from the definition.
+    //
+    // Not simply the first: `阶段一: 设计 :a1, 2026-01-01, 3d` is one task
+    // whose name contains a colon, and splitting at the first left the name
+    // as `阶段一` and the id as `设计 :a1`. Not the last either — a
+    // `dateFormat` with a time in it puts colons in the definition, as in
+    // `2026-01-01 10:30`.
+    //
+    // What tells them apart is what follows: a definition begins with a
+    // status keyword, an `after …` clause, a date, or a bare id. A name
+    // fragment does not.
+    final colonIndex = _definitionColon(line, dateFormat);
     if (colonIndex == -1) return null;
 
     final name = cleanLabel(line.substring(0, colonIndex)).trim();

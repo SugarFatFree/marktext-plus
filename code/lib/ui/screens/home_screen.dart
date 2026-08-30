@@ -253,6 +253,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
     // that file, not to have last week's session unfold around it.
     if (config.sessionTabs.isNotEmpty &&
         ref.read(startupFilesProvider).isEmpty) {
+      // Deliberately not awaited: the tabs appear at once and their contents
+      // arrive afterwards, which is the point — waiting here would put five
+      // file reads between the reader and their editor. Nothing downstream
+      // depends on it having finished, and `restoreSession` carries the disk
+      // stamp with each document as it loads, so this is not the top-up
+      // window BUG-149 and BUG-159 were about.
       unawaited(
         ref.read(tabProvider.notifier).restoreSession(
               config.sessionTabs,

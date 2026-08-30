@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:path/path.dart' as p;
+
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/wait_for.dart';
@@ -260,5 +262,143 @@ void main() {
         container.read(tabProvider).tabs.firstWhere((t) => t.id == 'tab');
     expect(tab.isModified, isFalse);
     expect(tab.diskConflict, isFalse);
+  });
+
+  test('every tab built straight from a read carries the stamp', () {
+    // A tab with no stamp has no baseline, so the check that stops a save
+    // from writing over somebody else's change never fires for it — and the
+    // tab looks completely ordinary. Six places build a TabInfo; the one
+    // that opens files from a second instance was missed when the stamp was
+    // introduced, so a document opened from the command line or a file
+    // manager was unprotected.
+    //
+    // Tabs built empty and filled later by `loadTabContent` are exempt: the
+    // stamp arrives there with the content. What is checked is a constructor
+    // that already has the content in hand.
+    final offenders = <String>[];
+    for (final path in [
+      'lib/providers/tab_provider.dart',
+      'lib/ui/widgets/app_menu_bar.dart',
+      'lib/ui/widgets/side_bar.dart',
+      'lib/ui/screens/home_screen.dart',
+      'lib/ui/editor/markdown_renderer.dart',
+    ]) {
+      final lines = File(path).readAsLinesSync();
+      for (var i = 0; i < lines.length; i++) {
+        if (!lines[i].contains('TabInfo(')) continue;
+        final end = (i + 16 < lines.length) ? i + 16 : lines.length;
+        final body = lines.sublist(i, end).join('\n');
+        // Only the ones that hand real content to the constructor.
+        if (!body.contains('content: opened.content')) continue;
+        if (!body.contains('diskStamp')) {
+          offenders.add('$path:${i + 1}');
+        }
+      }
+    }
+    expect(offenders, isEmpty,
+        reason: '这些标签页带着内容却没有磁盘戳，保存冲突检测对它们不生效');
+  });
+
+  test('every save of an existing document goes through the check', () {
+    // Five places write a document. Two are meant to be unconditional —
+    // Save As to a path just chosen, and the overwrite the reader asks for
+    // after being told about the conflict — and the rest must compare.
+    // Closing a tab was the one that did not, so answering "save" to the
+    // close prompt wrote over somebody else's change while Ctrl+S on the
+    // same document refused to.
+    final unchecked = <String>[];
+    for (final path in [
+      'lib/providers/tab_provider.dart',
+      'lib/ui/widgets/app_menu_bar.dart',
+      'lib/ui/widgets/editor_tab_bar.dart',
+    ]) {
+      final lines = File(path).readAsLinesSync();
+      for (var i = 0; i < lines.length; i++) {
+        if (!lines[i].contains('FileService.saveDocument(')) continue;
+        // The two deliberate ones say so in the six lines above them.
+        final from = i - 8 < 0 ? 0 : i - 8;
+        final context = lines.sublist(from, i).join('\n');
+        final deliberate = context.contains('Save As') ||
+            context.contains('picker') ||
+            context.contains('overwrite') ||
+            context.contains('unconditionally');
+        if (!deliberate) unchecked.add('$path:${i + 1}');
+      }
+    }
+    expect(unchecked, isEmpty,
+        reason: '这些地方直接写文件而不比对磁盘，会静默覆盖别人的改动');
+  });
+
+  test('the stamp is current the instant a save is marked', () async {
+    // Writing the file changes its modification time. If the tab's stamp is
+    // refreshed by an unawaited call afterwards, then for as long as that
+    // takes the tab holds a stamp older than this application's own write —
+    // and a save landing in that window compares against it and calls it a
+    // conflict. The reader is then told something else changed their file
+    // when nothing had but them.
+    //
+    // Measured before the fix: stale immediately after, current 120 ms later.
+    final container = ProviderContainer(overrides: [
+      settingsProvider.overrideWith(
+        (ref) => SettingsNotifier(
+          ConfigService(configDir: dir.path),
+          AppConfig(autoSave: false),
+        ),
+      ),
+    ]);
+    addTearDown(container.dispose);
+
+    final opened = await FileService().readFileWithLineEnding(path);
+    final notifier = container.read(tabProvider.notifier);
+    notifier.addTab(TabInfo(
+      id: 'tab',
+      filePath: path,
+      fileName: 'note.md',
+      content: opened.content,
+      diskStamp: opened.stamp,
+    ));
+
+    notifier.updateContent('tab', 'mine\n');
+    await FileService.saveDocumentIfUnchanged(
+      path,
+      'mine\n',
+      expect: container.read(tabProvider).tabs.single.diskStamp,
+    );
+    await notifier.markSaved('tab');
+
+    final stamp = container.read(tabProvider).tabs.single.diskStamp;
+    expect(await FileService.hasChangedSince(path, stamp), isFalse,
+        reason: '保存刚完成，戳却已经过期——下一次保存会把自己的写入当成别人改的');
+
+    // And the save that follows goes through rather than being refused.
+    notifier.updateContent('tab', 'again\n');
+    await FileService.saveDocumentIfUnchanged(path, 'again\n', expect: stamp);
+    expect(File(path).readAsStringSync(), 'again\n');
+  });
+
+  test('concurrent saves of one document do not tear it', () async {
+    // Auto-save fires on a timer while Ctrl+S is a keystroke, so two writes
+    // to the same file can be in flight together. The scratch file each one
+    // writes through is named with the process id and a counter, so they do
+    // not collide — this is the test of that, since a shared scratch name
+    // would leave the document as a mixture of two writes.
+    final writes = [
+      for (var i = 0; i < 10; i++)
+        FileService.saveDocument(path, 'content-$i\n'),
+    ];
+    for (final write in writes) {
+      await write;
+    }
+
+    final text = File(path).readAsStringSync();
+    expect(text, matches(RegExp(r'^content-\d\n$')),
+        reason: '文件内容被撕裂成了几次写入的混合');
+
+    final leftovers = Directory(dir.path)
+        .listSync()
+        .map((e) => p.basename(e.path))
+        .where((n) => n.contains('.mtsave'))
+        .toList();
+    expect(leftovers, isEmpty, reason: '临时文件留在了用户的文件夹里');
   });
 }

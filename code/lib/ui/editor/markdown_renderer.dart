@@ -557,7 +557,12 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       // that is what has to be written back. Testing the line as it stands
       // found no list items at all, so `lineIndex` stayed at -1 and ticking a
       // box inside a quote did nothing whatever — no error, no change.
-      if (!md.MarkdownParser.startsListItem(_withoutQuoteMarkers(lines[i]))) {
+      // The question has to be the one the parser answered when it built the
+      // items being counted: an empty marker is an item there, so it is an
+      // item here.
+      if (!md.MarkdownParser.continuesListItems(
+        _withoutQuoteMarkers(lines[i]),
+      )) {
         continue;
       }
       seen++;
@@ -1788,6 +1793,60 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     return result;
   }
 
+  /// Puts a link's tap target and hover hint on every piece of its text.
+  ///
+  /// Rebuilding rather than wrapping: a recognizer on a parent span is not
+  /// inherited by its children, so the leaves are where it has to go.
+  TextSpan _withLinkGestures(
+    TextSpan span,
+    TapGestureRecognizer recognizer,
+    String? href,
+  ) {
+    final kids = span.children;
+    return TextSpan(
+      text: span.text,
+      style: span.style,
+      recognizer: span.text == null ? null : recognizer,
+      mouseCursor:
+          span.text == null ? MouseCursor.defer : SystemMouseCursors.click,
+      onEnter: span.text == null || href == null
+          ? null
+          : (_) => _showLinkHint(href),
+      onExit: span.text == null ? null : (_) => _hideLinkHint(),
+      children: kids == null
+          ? null
+          : [
+              for (final kid in kids)
+                kid is TextSpan
+                    ? _withLinkGestures(kid, recognizer, href)
+                    : kid,
+            ],
+    );
+  }
+
+  /// The style one emphasis span applies on top of the style around it.
+  ///
+  /// Named rather than written into each arm because nesting needs the same
+  /// answer from outside the switch: the children of a bold span are drawn
+  /// with bold as their base.
+  TextStyle? _emphasisStyle(md.InlineType type, TextStyle? base) =>
+      switch (type) {
+        md.InlineType.boldItalic => base?.copyWith(
+            fontWeight: FontWeight.bold,
+            fontStyle: FontStyle.italic,
+          ),
+        md.InlineType.bold => base?.copyWith(fontWeight: FontWeight.bold),
+        md.InlineType.italic => base?.copyWith(fontStyle: FontStyle.italic),
+        md.InlineType.strikethrough =>
+          base?.copyWith(decoration: TextDecoration.lineThrough),
+        md.InlineType.underline =>
+          base?.copyWith(decoration: TextDecoration.underline),
+        md.InlineType.highlight => base?.copyWith(
+            backgroundColor: Colors.yellow.withValues(alpha: 0.4),
+          ),
+        _ => base,
+      };
+
   TextSpan _buildInlineSpans(
     List<md.InlineSpan> spans,
     ThemeData theme,
@@ -1798,6 +1857,21 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     final hasSearch = es.previewSearchQuery.isNotEmpty;
 
     for (final span in spans) {
+      // Emphasis holding markup of its own is drawn from its children, with
+      // its own style as their base — so italic inside bold comes out both,
+      // and a link inside bold is still clickable. Only emphasis carries
+      // children, so the arms below are reached exactly as before otherwise.
+      // A link is handled by its own arm below even when it nests: the arm is
+      // what attaches the tap recognizer and the hover hint, and a link drawn
+      // through this branch would look like a link and do nothing.
+      if (span.children.isNotEmpty && span.type != md.InlineType.link) {
+        children.add(_buildInlineSpans(
+          span.children,
+          theme,
+          _emphasisStyle(span.type, baseStyle),
+        ));
+        continue;
+      }
       switch (span.type) {
         case md.InlineType.text:
           if (hasSearch) {
@@ -1806,24 +1880,21 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             children.add(TextSpan(text: span.text, style: baseStyle));
           }
         case md.InlineType.boldItalic:
-          final s = baseStyle?.copyWith(
-            fontWeight: FontWeight.bold,
-            fontStyle: FontStyle.italic,
-          );
+          final s = _emphasisStyle(span.type, baseStyle);
           if (hasSearch) {
             children.addAll(_applySearchHighlight(span.text, s, es));
           } else {
             children.add(TextSpan(text: span.text, style: s));
           }
         case md.InlineType.bold:
-          final s = baseStyle?.copyWith(fontWeight: FontWeight.bold);
+          final s = _emphasisStyle(span.type, baseStyle);
           if (hasSearch) {
             children.addAll(_applySearchHighlight(span.text, s, es));
           } else {
             children.add(TextSpan(text: span.text, style: s));
           }
         case md.InlineType.italic:
-          final s = baseStyle?.copyWith(fontStyle: FontStyle.italic);
+          final s = _emphasisStyle(span.type, baseStyle);
           if (hasSearch) {
             children.addAll(_applySearchHighlight(span.text, s, es));
           } else {
@@ -1859,7 +1930,16 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
               }
             };
           _recognizers.add(recognizer);
-          if (hasSearch) {
+          if (span.children.isNotEmpty) {
+            // The recognizer has to reach the leaves: a gesture on a TextSpan
+            // covers that span's own text, not its children's, so a bold link
+            // built as a wrapper around a bold child would not be clickable.
+            children.add(_withLinkGestures(
+              _buildInlineSpans(span.children, theme, s),
+              recognizer,
+              span.href,
+            ));
+          } else if (hasSearch) {
             children.addAll(_applySearchHighlight(span.text, s, es));
           } else {
             children.add(
@@ -1882,7 +1962,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         case md.InlineType.image:
           children.add(_buildImageSpan(span, theme));
         case md.InlineType.strikethrough:
-          final s = baseStyle?.copyWith(decoration: TextDecoration.lineThrough);
+          final s = _emphasisStyle(span.type, baseStyle);
           if (hasSearch) {
             children.addAll(_applySearchHighlight(span.text, s, es));
           } else {
@@ -1913,9 +1993,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             ),
           );
         case md.InlineType.highlight:
-          final s = baseStyle?.copyWith(
-            backgroundColor: Colors.yellow.withValues(alpha: 0.4),
-          );
+          final s = _emphasisStyle(span.type, baseStyle);
           if (hasSearch) {
             children.addAll(_applySearchHighlight(span.text, s, es));
           } else {
@@ -1952,7 +2030,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             ),
           );
         case md.InlineType.underline:
-          final s = baseStyle?.copyWith(decoration: TextDecoration.underline);
+          final s = _emphasisStyle(span.type, baseStyle);
           if (hasSearch) {
             children.addAll(_applySearchHighlight(span.text, s, es));
           } else {
