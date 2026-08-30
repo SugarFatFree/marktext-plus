@@ -978,6 +978,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get viewReloadImages => '이미지 다시 불러오기';
 
   @override
+  String get formatMermaidBlock => 'Mermaid 다이어그램';
+
+  @override
   String get formatFrontMatter => '프런트 매터';
 
   @override

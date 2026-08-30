@@ -987,6 +987,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get viewReloadImages => 'إعادة تحميل الصور';
 
   @override
+  String get formatMermaidBlock => 'مخطط Mermaid';
+
+  @override
   String get formatFrontMatter => 'بيانات المقدمة';
 
   @override

@@ -1365,6 +1365,12 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
         _applyLinePrefixAtCursor('> ');
       case FormatAction.codeBlock:
         _insertBlock('```\n', '\n```');
+      case FormatAction.mermaidBlock:
+        // A diagram that draws something the moment it is inserted, rather
+        // than an empty fence: the arrow is the syntax worth showing, and the
+        // node names are letters so the skeleton reads the same in every
+        // language the editor speaks.
+        _insertAtCursor('```mermaid\ngraph TD\n    A --> B\n```\n');
       case FormatAction.mathBlock:
         _insertBlock('\$\$\n', '\n\$\$');
       case FormatAction.table:

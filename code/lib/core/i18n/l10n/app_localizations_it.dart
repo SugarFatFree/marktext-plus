@@ -996,6 +996,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get viewReloadImages => 'Ricarica immagini';
 
   @override
+  String get formatMermaidBlock => 'Diagramma Mermaid';
+
+  @override
   String get formatFrontMatter => 'Front matter';
 
   @override

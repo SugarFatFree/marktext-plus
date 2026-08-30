@@ -1965,6 +1965,12 @@ abstract class AppLocalizations {
   /// **'Reload Images'**
   String get viewReloadImages;
 
+  /// Slash-menu label for inserting a mermaid diagram block
+  ///
+  /// In en, this message translates to:
+  /// **'Mermaid diagram'**
+  String get formatMermaidBlock;
+
   /// Paragraph menu item that inserts a YAML front matter block
   ///
   /// In en, this message translates to:

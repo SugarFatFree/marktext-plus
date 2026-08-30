@@ -372,6 +372,10 @@
   "fileClearRecentFiles": "مسح الملفات الأخيرة",
   "viewCommandPalette": "لوحة الأوامر",
   "viewReloadImages": "إعادة تحميل الصور",
+  "formatMermaidBlock": "مخطط Mermaid",
+  "@formatMermaidBlock": {
+    "description": "Slash-menu label for inserting a mermaid diagram block"
+  },
   "formatFrontMatter": "بيانات المقدمة",
   "formatHtmlBlock": "كتلة HTML",
   "updateUpToDate": "أنت تستخدم أحدث إصدار",

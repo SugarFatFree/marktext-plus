@@ -372,6 +372,10 @@
   "fileClearRecentFiles": "Очистить недавние файлы",
   "viewCommandPalette": "Палитра команд",
   "viewReloadImages": "Перезагрузить изображения",
+  "formatMermaidBlock": "Диаграмма Mermaid",
+  "@formatMermaidBlock": {
+    "description": "Slash-menu label for inserting a mermaid diagram block"
+  },
   "formatFrontMatter": "Front matter",
   "formatHtmlBlock": "HTML-блок",
   "updateUpToDate": "У вас последняя версия",

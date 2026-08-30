@@ -39,6 +39,14 @@ enum FormatAction {
   toParagraph,
   frontMatter,
   htmlBlock,
+
+  /// A fenced `mermaid` block with a diagram already in it.
+  ///
+  /// The one block whose syntax nobody remembers — the fence, the word, and a
+  /// first line that decides the diagram's kind — and the feature this editor
+  /// is built around. Everything else the `/` menu offers was reachable by
+  /// typing two or three characters; this was not reachable at all.
+  mermaidBlock,
   looseList,
   createParagraph,
   deleteParagraph,

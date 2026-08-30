@@ -977,6 +977,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get viewReloadImages => '重新加载图片';
 
   @override
+  String get formatMermaidBlock => 'Mermaid 图表';
+
+  @override
   String get formatFrontMatter => '前置元数据';
 
   @override

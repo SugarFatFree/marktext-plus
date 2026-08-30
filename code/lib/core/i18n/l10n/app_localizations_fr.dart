@@ -999,6 +999,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get viewReloadImages => 'Recharger les images';
 
   @override
+  String get formatMermaidBlock => 'Diagramme Mermaid';
+
+  @override
   String get formatFrontMatter => 'En-tête YAML';
 
   @override

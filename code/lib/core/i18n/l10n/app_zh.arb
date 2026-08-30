@@ -378,6 +378,10 @@
   "fileClearRecentFiles": "清空最近文件",
   "viewCommandPalette": "命令面板",
   "viewReloadImages": "重新加载图片",
+  "formatMermaidBlock": "Mermaid 图表",
+  "@formatMermaidBlock": {
+    "description": "Slash-menu label for inserting a mermaid diagram block"
+  },
   "formatFrontMatter": "前置元数据",
   "formatHtmlBlock": "HTML 块",
   "updateUpToDate": "已经是最新版本",

@@ -469,6 +469,10 @@
   "@viewCommandPalette": {
     "description": "View menu item that opens the command palette"
   },
+  "formatMermaidBlock": "Mermaid diagram",
+  "@formatMermaidBlock": {
+    "description": "Slash-menu label for inserting a mermaid diagram block"
+  },
   "formatFrontMatter": "Front Matter",
   "@formatFrontMatter": {
     "description": "Paragraph menu item that inserts a YAML front matter block"

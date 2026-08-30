@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - v1.5.6
 
 ### Added
+- The `/` menu offers a Mermaid diagram and the six heading levels. A diagram had no way in at all — the fence, the word and the first line had to be typed from memory — and it is the block this editor is built around; what the menu inserts draws something straight away. The headings go at the end rather than the top, where upstream puts them: `##` is two keystrokes here, and six of them above the table and the fence would push the blocks that are actually awkward to type out of sight
 - `<ruby>漢<rt>hàn</rt></ruby>` draws the reading above the text, as Japanese furigana and Chinese pinyin are written. It was escaped and shown as angle brackets, so a document annotated this way read as its own source. The preview draws it; HTML emits real ruby with the `<rp>` brackets a reader that cannot draw it needs; Word and PDF, which have neither, print the reading after the text the way a dictionary does
 
 ### Fixed

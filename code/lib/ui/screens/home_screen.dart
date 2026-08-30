@@ -330,6 +330,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
       FormatAction.horizontalRule: l10n.formatHorizontalRule,
       FormatAction.frontMatter: l10n.formatFrontMatter,
       FormatAction.htmlBlock: l10n.formatHtmlBlock,
+      FormatAction.mermaidBlock: l10n.formatMermaidBlock,
       // The seventeen that the menu offered and this map did not, so they were
       // in every menu and unreachable from the palette. Both go through the
       // same applyFormat, so the only thing that had been missing was the

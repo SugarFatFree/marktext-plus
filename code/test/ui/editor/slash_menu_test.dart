@@ -94,6 +94,36 @@ void main() {
     }
   });
 
+  testWidgets('a mermaid diagram can be inserted from the menu',
+      (tester) async {
+    // The block this editor is built around, and the one with three parts to
+    // remember. What it inserts has to draw something straight away.
+    final controller = await editor(tester);
+    await typeSlash(tester, controller);
+    // About five entries fit before the list scrolls, and this one sits below
+    // them — the same scroll a reader would do.
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('slash-mermaid-block')),
+      60,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('slash-mermaid-block')));
+    await tester.pumpAndSettle();
+
+    expect(controller.text, contains('```mermaid'));
+    expect(controller.text, contains('graph TD'));
+    expect(controller.text, isNot(contains('/')), reason: '斜杠没有被吃掉');
+
+    // What was inserted has to be a diagram, not just a fence with a word in
+    // it: the skeleton is parsed the way the preview parses it.
+    final fence = RegExp(r'```mermaid\n([\s\S]*?)```').firstMatch(
+      controller.text,
+    );
+    expect(fence, isNotNull);
+    expect(fence!.group(1)!.trim(), isNotEmpty, reason: '插入的是一个空围栏');
+  });
+
   testWidgets('choosing an entry takes the slash back out', (tester) async {
     final controller = await editor(tester);
     await typeSlash(tester, controller);
@@ -132,6 +162,37 @@ void main() {
       for (final command in commands) {
         expect(command.matches(command.id), isTrue, reason: command.id);
         expect(command.matches(''), isTrue, reason: command.id);
+      }
+    });
+
+    test('the headings upstream offers are all listed', () {
+      // A question about the list, not about what is on screen: the menu is a
+      // scrolling list, so a widget test would be asserting how far it happens
+      // to be scrolled.
+      final ids = slashCommands(AppLocalizationsEn()).map((c) => c.id).toList();
+      for (var level = 1; level <= 6; level++) {
+        expect(ids, contains('heading-$level'), reason: '标题 $level 不在菜单里');
+      }
+    });
+
+    test('the awkward blocks come before the headings', () {
+      // Six headings at the top would push the table, the fence and the
+      // diagram — the ones that are actually hard to type — out of sight.
+      final ids = slashCommands(AppLocalizationsEn()).map((c) => c.id).toList();
+      for (final id in ['table', 'code-fence', 'mermaid-block']) {
+        expect(ids.indexOf(id), lessThan(ids.indexOf('heading-1')), reason: id);
+      }
+    });
+
+    test('the diagram is reachable by typing, not only by scrolling', () {
+      // The path a reader actually takes for an entry below the fold.
+      final commands = slashCommands(AppLocalizationsEn());
+      for (final query in ['mermaid', '流程图', '图表', 'diagram']) {
+        expect(
+          commands.where((c) => c.matches(query)).map((c) => c.id),
+          contains('mermaid-block'),
+          reason: query,
+        );
       }
     });
 

@@ -372,6 +372,10 @@
   "fileClearRecentFiles": "Borrar archivos recientes",
   "viewCommandPalette": "Paleta de comandos",
   "viewReloadImages": "Recargar imágenes",
+  "formatMermaidBlock": "Diagrama Mermaid",
+  "@formatMermaidBlock": {
+    "description": "Slash-menu label for inserting a mermaid diagram block"
+  },
   "formatFrontMatter": "Front matter",
   "formatHtmlBlock": "Bloque HTML",
   "updateUpToDate": "Está usando la última versión",

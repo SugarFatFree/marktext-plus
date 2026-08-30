@@ -372,6 +372,10 @@
   "fileClearRecentFiles": "最近のファイルを消去",
   "viewCommandPalette": "コマンドパレット",
   "viewReloadImages": "画像を再読み込み",
+  "formatMermaidBlock": "Mermaid 図",
+  "@formatMermaidBlock": {
+    "description": "Slash-menu label for inserting a mermaid diagram block"
+  },
   "formatFrontMatter": "フロントマター",
   "formatHtmlBlock": "HTML ブロック",
   "updateUpToDate": "最新バージョンです",

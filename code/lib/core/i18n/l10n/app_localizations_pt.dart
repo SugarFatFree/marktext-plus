@@ -995,6 +995,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get viewReloadImages => 'Recarregar imagens';
 
   @override
+  String get formatMermaidBlock => 'Diagrama Mermaid';
+
+  @override
   String get formatFrontMatter => 'Front matter';
 
   @override
@@ -2001,6 +2004,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get viewReloadImages => 'Recarregar imagens';
+
+  @override
+  String get formatMermaidBlock => 'Diagrama Mermaid';
 
   @override
   String get formatFrontMatter => 'Front matter';

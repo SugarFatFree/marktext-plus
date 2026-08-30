@@ -978,6 +978,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get viewReloadImages => '画像を再読み込み';
 
   @override
+  String get formatMermaidBlock => 'Mermaid 図';
+
+  @override
   String get formatFrontMatter => 'フロントマター';
 
   @override
