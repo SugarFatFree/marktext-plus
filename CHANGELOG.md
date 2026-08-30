@@ -5,7 +5,7 @@ All notable changes to MarkText Plus will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - v1.5.3
+## [v1.5.4] - 2026-08-30
 
 ### Added
 - The documents that were open when the application closed are opened again when it starts. Tabs came only from the command line or from something the reader did, so closing with five documents open and reopening gave an empty window. The tabs appear at once and their contents arrive after the first frame, so startup is not spent reading files; a document opened by double-clicking it still takes precedence over the session
@@ -22,6 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Korean documents report the word count they actually have. Hangul was counted a word per character, which is right for Chinese and Japanese because they are written without spaces between words — Korean is written with them, so a document read about three times its real length
 - Dropping an image into the editor no longer inserts it and reports it as unopened at the same time. `desktop_drop` broadcasts each drop to every target and lets each decide by its own bounds, so a drop on the text area reaches both the editor, which writes the link, and the window, which counted the same file as refused. With no document open there is no text area for an image to land in, and that case is still reported
 - A document rewritten on disk while it is open is no longer silently overwritten. Auto-save is on by default with a five second delay, so this needed nothing deliberate: edit a file, have a git checkout or a sync client rewrite it, and a few seconds later the editor wrote over that change without a word. Saving now compares the file against what it looked like when it was read; auto-save stops for that file and says so in the status bar, and Ctrl+S asks whether to overwrite, reload, or decide later
+
+## [v1.5.3] - 2026-08-30
+
+### Fixed
 - About shows the version that was built. v1.5.2 shipped saying 1.5.1, so the update check — which compares against that same constant — told everyone on it that an update was waiting, the very thing issue #1 reported. A test has guarded the two version numbers since that issue, but it runs with the test suite on a push while releases run from a tag, so nothing on the release path ever looked. The release workflow now checks the tag, `pubspec.yaml` and `AppConstants` against each other before it builds anything
 - Formatting commands work while a block is open for editing in the preview. Ctrl+B there did nothing — the command was recorded for a source pane to carry out and there is no source pane in preview mode — and it stayed recorded, to go off later at whatever caret a source pane next had. In split view only the pane being typed in acts on the command
 
