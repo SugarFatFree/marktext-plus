@@ -432,6 +432,18 @@ class MarkdownParser {
   /// Lines inside a fenced code block are not headings. `# install deps` in a
   /// shell snippet is a comment, and counting it filled the outline with
   /// entries that scrolled somewhere unrelated.
+  /// The heading level [line] carries, or null when it is not a heading.
+  ///
+  /// Public because the source pane colours headings as they are typed and has
+  /// to reach the same answer as the pane beside it. Asking `startsWith('#')`
+  /// instead coloured `#标签` — a tag in a note — as a heading the preview
+  /// would not draw, missed a heading written with the three columns of
+  /// indentation the format allows, and took seven hashes for a heading when
+  /// six is the most there is.
+  static int? headingLevelOf(String line) {
+    return _headingRe.firstMatch(line)?.group(1)?.length;
+  }
+
   static List<({int line, int level, String text})> headingOutline(
       String source) {
     // A byte order mark would sit in front of the first '#' and stop it

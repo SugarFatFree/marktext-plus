@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../services/inline_emphasis.dart';
+import '../../services/markdown_parser.dart';
 
 /// Colours one line of Markdown at a time.
 ///
@@ -206,7 +207,8 @@ class MarkdownSyntaxHighlighter {
       ];
     }
 
-    if (line.startsWith('#')) {
+    // The parser's own answer, not `startsWith('#')`: see headingLevelOf.
+    if (MarkdownParser.headingLevelOf(line) != null) {
       return [
         TextSpan(
           text: line,

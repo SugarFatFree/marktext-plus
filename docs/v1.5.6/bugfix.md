@@ -19,6 +19,7 @@
 | BUG-187 | 2026-08-31 | 引用块里换行续写，后半段掉出引用 | P2 | 已修复 |
 | BUG-188 | 2026-08-31 | 图表写错时的提示引错了内容 | P3 | 已修复 |
 | BUG-189 | 2026-08-31 | 源码区把不会渲染的强调染成粗体，两个面板互相矛盾 | P2 | 已修复 |
+| BUG-190 | 2026-08-31 | 源码区对"什么是标题"的判断与预览不一致 | P2 | 已修复 |
 
 ## BUG-173：引用式链接的标签里，标记仍显示成字面量
 
@@ -744,3 +745,39 @@ CommonMark 规范用例 469 → 473。新增 9 条：4 条续行（单行、多�
 - `code/lib/services/inline_emphasis.dart`（抽出公开的 `emphasisFlanking`）
 - `code/lib/ui/editor/syntax_highlighter.dart`
 - `code/test/ui/editor/tint_matches_render_test.dart`（新增，14 条）
+---
+
+## BUG-190：源码区对"什么是标题"的判断与预览不一致
+
+**日期**：2026-08-31　**优先级**：P2　**状态**：已修复
+
+### 现象
+
+紧接 BUG-189，同一处高亮器里还有三种标题判断错误：
+
+| 写法 | 源码区 | 预览 |
+|------|--------|------|
+| `#标签写法`（笔记里的标签） | 染成标题 | 普通段落 |
+| `####### 七个井号`（超过六级） | 染成标题 | 普通段落 |
+| `  # 缩进两格的标题`（合法） | 不染 | 是标题 |
+
+### 根因
+
+高亮器问的是 `line.startsWith('#')`——这不是"是不是标题"这个问题。
+解析器的规则是"最多三格缩进 + 一到六个井号 + 空白"。
+
+### 修复方案
+
+解析器新增公开的 `headingLevelOf(line)`，高亮器改用它。**同样是一份判断问两次**，
+与 BUG-189 抽出 `emphasisFlanking` 是同一做法。
+
+### 验证
+
+在那份"染色与渲染必须一致"的性质测试里补了 8 条标题用例。
+换回 `startsWith('#')` 后 3 条确认失败。
+
+### 涉及文件
+
+- `code/lib/services/markdown_parser.dart`（新增 `headingLevelOf`）
+- `code/lib/ui/editor/syntax_highlighter.dart`
+- `code/test/ui/editor/tint_matches_render_test.dart`（+8 条）

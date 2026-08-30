@@ -72,4 +72,36 @@ void main() {
     // pane beside it rather than the format.
     agree('~~删除。~~后面');
   });
+
+  group('headings agree too', () {
+    // The tint used to ask `startsWith('#')`, which is not the question: a tag
+    // in a note is not a heading, seven hashes are not a heading, and three
+    // columns of indentation do not stop one being a heading.
+    bool tintedAsHeading(String line) =>
+        MarkdownSyntaxHighlighter.highlightLine(line, colors)
+            .any((span) => span.style?.color == colors.heading);
+
+    bool parsedAsHeading(String line) {
+      final nodes = MarkdownParser().parse(line);
+      return nodes.isNotEmpty && nodes.first.type == NodeType.heading;
+    }
+
+    for (final line in [
+      '# 正常标题',
+      '#标签写法',
+      '####### 七个井号',
+      '#',
+      '  # 缩进两格的标题',
+      '     # 缩进五格',
+      '###### 六级',
+      '## 二级 ##',
+    ]) {
+      test(line, () {
+        expect(tintedAsHeading(line), parsedAsHeading(line),
+            reason: tintedAsHeading(line)
+                ? '源码区染成标题，预览却不是'
+                : '预览是标题，源码区没染');
+      });
+    }
+  });
 }
