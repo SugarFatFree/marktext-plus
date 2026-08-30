@@ -95,4 +95,27 @@ void main() {
       expect(html, contains('<code'));
     });
   });
+
+  group('the text a selection returns matches what is drawn', () {
+    // plainTextOf is what a selection is matched against. Emphasis holding
+    // markup keeps its own source text alongside the spans that text became,
+    // so reading the source here reported `[link](/url)` for a paragraph the
+    // preview draws as `link` — and the copy silently degraded to plain text.
+    final parser = MarkdownParser();
+
+    String textOf(String source) =>
+        RichCopyService.plainTextOf(parser.parse(source).single);
+
+    test('a link inside bold reads as its label', () {
+      expect(textOf('**加粗里的 [链接](/url)**'), '加粗里的 链接');
+    });
+
+    test('bold link text reads as its label', () {
+      expect(textOf('[**下载**](/url)'), '下载');
+    });
+
+    test('plain emphasis is unchanged', () {
+      expect(textOf('普通 **加粗** 文字'), '普通 加粗 文字');
+    });
+  });
 }

@@ -57,8 +57,16 @@ class RichCopyService {
     }
   }
 
-  static String _spans(List<InlineSpan> spans) =>
-      spans.map((span) => span.text).join();
+  static String _spans(List<InlineSpan> spans) => spans
+      .map((span) =>
+          // Emphasis holding markup keeps its source text as well as the
+          // spans that text became, and the source is not what is drawn:
+          // `**bold [link](/url)**` reads "bold link" on screen. Returning
+          // the source here meant a selection over such a paragraph matched
+          // nothing, and the copy fell back to plain text — losing exactly
+          // the formatting the reader had selected.
+          span.children.isEmpty ? span.text : _spans(span.children))
+      .join();
 
   /// HTML for [selection], as it appears inside [ast].
   ///
