@@ -116,6 +116,24 @@ class SourceEditor extends ConsumerStatefulWidget {
     String before,
     String after,
   ) {
+    // Emphasis markers have to touch the words they mark. `**加粗。**后面` is
+    // not bold anywhere — the closing run sits between a full stop and a
+    // letter, which the format says can neither open nor close — and a reader
+    // who selects a sentence including its punctuation and presses Ctrl+B
+    // would otherwise be handed markup that renders as its own asterisks.
+    // The punctuation goes outside the markers, where it reads the same and
+    // the emphasis works: `**加粗**。后面`.
+    //
+    // Only for the markers the rule applies to. Inline code and the rest wrap
+    // whatever is selected, punctuation and all.
+    if (before == after && (before.startsWith('*') || before.startsWith('_'))) {
+      final trimmed = _trimForFlanking(text, start, end);
+      if (trimmed != null) {
+        start = trimmed.$1;
+        end = trimmed.$2;
+      }
+    }
+
     final selected = text.substring(start, end);
 
     // A doubled marker belongs to the longer syntax: `**bold**` must not read
@@ -166,6 +184,46 @@ class SourceEditor extends ConsumerStatefulWidget {
       end: start + before.length + selected.length,
     );
   }
+
+  /// Shrinks a selection past the whitespace and punctuation at its ends, so
+  /// emphasis markers land where they can open and close.
+  ///
+  /// Returns null when there is nothing but punctuation to mark — a selection
+  /// of `——` is wrapped as it is rather than as nothing.
+  static (int, int)? _trimForFlanking(String text, int start, int end) {
+    var from = start;
+    var to = end;
+    bool trimmable(String c) => c.trim().isEmpty || _flankingPunctuation.hasMatch(c);
+
+    while (from < to && trimmable(text[from])) {
+      from++;
+    }
+    while (to > from && trimmable(text[to - 1])) {
+      to--;
+    }
+    if (from >= to) return null;
+    return (from, to);
+  }
+
+  /// Sentence punctuation, listed rather than taken as a range.
+  ///
+  /// A range of "everything the format calls punctuation" would include the
+  /// markdown characters themselves, and trimming those breaks what is being
+  /// marked: applying italic to `**bold**` would eat the asterisks and take a
+  /// layer off instead of adding one, and bolding `见[链接](url)` would move
+  /// the closing bracket outside and leave a link that is no longer a link.
+  ///
+  /// The CJK marks are the reason this exists: a sentence in Chinese ends in
+  /// `。` far more often than an English one ends in `.` inside the words a
+  /// reader would select.
+  static final _flankingPunctuation = RegExp(
+    '[' r'.,;:!?' '\u2018\u2019\u201c\u201d'
+    '\u3002\uff0c\u3001\uff1b\uff1a\uff01\uff1f'
+    '\u2026\u2014\u00b7\uff5e'
+    '\u300c\u300d\u300e\u300f\uff08\uff09'
+    '\u300a\u300b\u3008\u3009\u3010\u3011'
+    ']',
+  );
 
   /// The outermost block containing [line], or null when [line] is blank
   /// space between blocks.
