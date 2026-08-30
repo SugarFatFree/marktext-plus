@@ -1480,6 +1480,41 @@ void _setextAndIndentedCodeTests() {
       expect(heading.content, 'Subtitle');
     });
 
+    test('* * * is a horizontal rule, not a bullet list', () {
+      // The two commonest ways of writing a rule by hand. The list pattern
+      // matched them and this one did not, so `* * *` came out as a bullet
+      // holding `* *`.
+      for (final rule in ['* * *', '- - -', '_ _ _', '*  *  *', '- - - -']) {
+        final nodes = parser.parse('text\n\n$rule\n\nmore\n');
+        expect(nodes.map((n) => n.type).toList(), [
+          NodeType.paragraph,
+          NodeType.horizontalRule,
+          NodeType.paragraph,
+        ], reason: rule);
+      }
+    });
+
+    test('a rule may be indented up to three columns', () {
+      final nodes = parser.parse('a\n\n   ***\n\nb\n');
+      expect(nodes[1].type, NodeType.horizontalRule);
+    });
+
+    test('a real bullet list is still a list', () {
+      // The guard on the change above: `* item` and `- - -` differ only in
+      // what follows the first marker.
+      final nodes = parser.parse('* one\n* two\n');
+      expect(nodes.single.type, NodeType.unorderedList);
+    });
+
+    test('a rule splits the list it sits in the middle of', () {
+      final nodes = parser.parse('* Foo\n* * *\n* Bar\n');
+      expect(nodes.map((n) => n.type).toList(), [
+        NodeType.unorderedList,
+        NodeType.horizontalRule,
+        NodeType.unorderedList,
+      ]);
+    });
+
     test('--- on its own is still a horizontal rule', () {
       // The ambiguity that matters: only a preceding paragraph line turns
       // `---` into a heading underline.

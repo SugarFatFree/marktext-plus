@@ -369,7 +369,16 @@ class MarkdownParser {
   // which is the state a heading passes through while it is being typed.
   static final _headingRe =
       RegExp(r'^ {0,3}(#{1,6})(?:\s+(.*?))?(?:\s+#+)?\s*$');
-  static final _hrRe = RegExp(r'^(\*{3,}|-{3,}|_{3,})\s*$');
+  /// A thematic break: three or more `*`, `-` or `_`.
+  ///
+  /// Spaces between the marks are allowed, and `* * *` and `- - -` are how
+  /// most people write one. They used to be read as a bullet list, because the
+  /// list pattern matched them and this one did not — `* * *` came out as a
+  /// list item holding `* *`. Up to three columns of indentation is allowed
+  /// too, as it is for every other block.
+  static final _hrRe =
+      RegExp(r'^ {0,3}(?:\*[ \t]*){3,}$|^ {0,3}(?:-[ \t]*){3,}$'
+          r'|^ {0,3}(?:_[ \t]*){3,}$');
   /// A fence opening a code block.
   ///
   /// Three or more backticks or tildes. The length and the character both
@@ -953,8 +962,13 @@ class MarkdownParser {
   /// A numbered step may hold bulleted sub-points and vice versa, so a list
   /// cannot be collected by looking only for its own marker: the sub-points
   /// were swallowed into the parent item's text.
+  ///
+  /// A thematic break is not one, even though `* * *` and `- - -` match the
+  /// bullet pattern: the rule wins, and a rule written in the middle of a list
+  /// ends it. Without this the top-level branch read `* * *` as a rule while
+  /// the collector reading the list around it read the same line as an item.
   static bool _startsListItem(String line) =>
-      _ulRe.hasMatch(line) || _olRe.hasMatch(line);
+      !_hrRe.hasMatch(line) && (_ulRe.hasMatch(line) || _olRe.hasMatch(line));
 
   /// A list item line, including one with nothing written in it yet.
   ///
