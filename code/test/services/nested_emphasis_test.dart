@@ -13,7 +13,7 @@ void main() {
   setUp(() => parser = MarkdownParser());
 
   List<InlineSpan> spansOf(String source) {
-    final node = parser.parse(source).single as ParagraphNode;
+    final node = parser.parse(source).first as ParagraphNode;
     return node.inlineSpans;
   }
 
@@ -130,6 +130,60 @@ void main() {
 
     test('HTML leaves a plain link exactly as before', () {
       expect(htmlOf('[普通链接](/url)'), '<p><a href="/url">普通链接</a></p>');
+    });
+  });
+
+  group('a reference link nests too', () {
+    // The second of the two link branches. The first learned to read markup in
+    // its text; this one was left reading it as characters.
+    const definition = '\n\n[dl]: https://example.com\n';
+
+    test('bold reference link text is bold', () {
+      final span = spansOf('[**下载**][dl]$definition');
+      expect(span.single.type, InlineType.link);
+      expect(span.single.href, 'https://example.com');
+      expect(span.single.children.single.type, InlineType.bold);
+    });
+
+    test('HTML puts the strong inside the anchor', () {
+      expect(
+        htmlOf('[**下载**][dl]$definition'),
+        contains('<a href="https://example.com"><strong>下载</strong></a>'),
+      );
+    });
+
+    test('a plain reference link is unchanged', () {
+      expect(spansOf('[普通][dl]$definition').single.children, isEmpty);
+    });
+
+    test('an unresolved reference is still left as written', () {
+      expect(htmlOf('[**下载**][missing]\n'), contains('[**下载**][missing]'));
+    });
+  });
+
+  group('an image describes itself in words', () {
+    test('alt text drops the markers', () {
+      // Alt text is what is read out when the picture does not appear, which
+      // is no place for asterisks.
+      expect(
+        htmlOf('![一张 **重要** 的图](/img.png)'),
+        contains('alt="一张 重要 的图"'),
+      );
+    });
+
+    test('a link inside alt text becomes its label', () {
+      expect(htmlOf('![见 [这里](/x)](/img.png)'), contains('alt="见 这里"'));
+    });
+
+    test('a reference image drops them too', () {
+      expect(
+        htmlOf('![**重要**][img]\n\n[img]: /a.png\n'),
+        contains('alt="重要"'),
+      );
+    });
+
+    test('plain alt text is unchanged', () {
+      expect(htmlOf('![一张图](/img.png)'), contains('alt="一张图"'));
     });
   });
 

@@ -5,6 +5,12 @@ All notable changes to MarkText Plus will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - v1.5.6
+
+### Fixed
+- A reference link's text can be marked up, as an inline link's already could: `[**Download**][dl]` was an anchor reading `**Download**` with the asterisks showing. There are two link branches in the parser and only one of them had been taught to read its text
+- An image describes itself in words. `![a **important** picture](/img.png)` carried the asterisks into the alt attribute — and alt text earns its keep exactly when the picture does not appear, which is no place for markdown. A link inside alt text becomes its label
+
 ## [v1.5.5] - 2026-08-31
 
 ### Fixed

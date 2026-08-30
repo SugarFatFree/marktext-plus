@@ -1801,6 +1801,23 @@ class MarkdownParser {
             InlineSpan(type: InlineType.text, text: span.text),
       ];
 
+  /// The text an image's alt attribute should carry.
+  ///
+  /// Alt text is text: `![foo *bar*](/img)` describes the picture as "foo
+  /// bar", not as "foo *bar*". The markers were passed through, so a picture
+  /// that failed to load — the moment alt text is for — described itself in
+  /// markdown.
+  String _altText(String alt, int depth) {
+    final spans = _nestedSpans(alt, depth);
+    return spans.isEmpty ? alt : _flattenText(spans);
+  }
+
+  /// The text [spans] read as, with the markup dropped.
+  static String _flattenText(List<InlineSpan> spans) => [
+        for (final span in spans)
+          if (span.children.isEmpty) span.text else _flattenText(span.children),
+      ].join();
+
   /// Characters that could begin markup inside a span.
   static final _nestableRe = RegExp(r'[*_\[!`~<^:$=]');
 
@@ -1960,7 +1977,7 @@ class MarkdownParser {
         // An image that is itself a link.
         spans.add(InlineSpan(
           type: InlineType.image,
-          text: match.group(1) ?? '',
+          text: _altText(match.group(1) ?? '', depth),
           href: badgeSrc,
           linkHref: match.group(4) ?? match.group(5),
         ));
@@ -1968,7 +1985,7 @@ class MarkdownParser {
         // Image: ![alt](src "title")
         spans.add(InlineSpan(
           type: InlineType.image,
-          text: match.group(6) ?? '',
+          text: _altText(match.group(6) ?? '', depth),
           href: imageSrc,
           title: match.group(9) ?? match.group(10),
         ));
@@ -2132,7 +2149,7 @@ class MarkdownParser {
         } else {
           spans.add(InlineSpan(
             type: InlineType.image,
-            text: match.group(37)!,
+            text: _altText(match.group(37)!, depth),
             href: definition.url,
             title: definition.title,
           ));
@@ -2153,6 +2170,11 @@ class MarkdownParser {
             text: match.group(32)!,
             href: definition.url,
             title: definition.title,
+            // The second of the two link branches. The first one — the inline
+            // `[text](url)` form — learned to read markup in its text, and
+            // this one was left reading it as characters, so the same
+            // `[**Download**][dl]` came out with its asterisks showing.
+            children: _nestedSpans(match.group(32)!, depth, insideLink: true),
           ));
         }
       } else if (match.group(39) != null) {
