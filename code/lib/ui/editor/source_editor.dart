@@ -124,9 +124,19 @@ class SourceEditor extends ConsumerStatefulWidget {
     // The punctuation goes outside the markers, where it reads the same and
     // the emphasis works: `**加粗**。后面`.
     //
-    // Only for the markers the rule applies to. Inline code and the rest wrap
-    // whatever is selected, punctuation and all.
-    if (before == after && (before.startsWith('*') || before.startsWith('_'))) {
+    // Only for the markers the rule applies to — `*`, `_` and GFM's `~~`,
+    // which marked and GitHub judge the same way. Inline code, and this
+    // editor's own `==` and `++`, have no such rule and wrap whatever is
+    // selected, punctuation and all.
+    //
+    // This parser is more forgiving than GitHub about `~~文字。~~后面`, and
+    // stays so — a document should not stop rendering because it was opened
+    // here. What is written from here is another matter: markup this editor
+    // produces should mean the same wherever it is read.
+    if (before == after &&
+        (before.startsWith('*') ||
+            before.startsWith('_') ||
+            before.startsWith('~'))) {
       final trimmed = _trimForFlanking(text, start, end);
       if (trimmed != null) {
         start = trimmed.$1;

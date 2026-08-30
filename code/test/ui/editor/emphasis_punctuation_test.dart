@@ -41,6 +41,17 @@ void main() {
       expect(rendersBold(out), isTrue);
     });
 
+    test('strikethrough too, which GitHub judges the same way', () {
+      // `~~文字。~~后面` is not struck through in marked or on GitHub, for the
+      // same reason. This parser is more forgiving and stays so — a document
+      // should not stop rendering because it was opened here — but what is
+      // written from here should mean the same wherever it is read.
+      expect(
+        SourceEditor.toggleWrap('示例文字。后面', 0, 5, '~~', '~~').text,
+        '~~示例文字~~。后面',
+      );
+    });
+
     test('a trailing space is left outside', () {
       // True of every marker, not only these: `**text **` closes on a space
       // and is not emphasis in any reader. The space stays in the document —
@@ -57,6 +68,20 @@ void main() {
     test('a selection that is nothing but punctuation', () {
       // Trimming would leave nothing to mark, so it is wrapped as it is.
       expect(bolded('——', 0, 2), '**——**');
+    });
+
+    test('highlight and underline keep their punctuation', () {
+      // This editor's own markers, with no flanking rule to satisfy: moving
+      // the punctuation would change what the reader asked to mark for no
+      // gain at all.
+      expect(
+        SourceEditor.toggleWrap('示例文字。后面', 0, 5, '==', '==').text,
+        '==示例文字。==后面',
+      );
+      expect(
+        SourceEditor.toggleWrap('示例文字。后面', 0, 5, '++', '++').text,
+        '++示例文字。++后面',
+      );
     });
 
     test('inline code keeps the punctuation it was given', () {
