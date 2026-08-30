@@ -150,7 +150,7 @@ class EditorTabBar extends ConsumerWidget {
           .updateTabPath(tab.id, path, p.basename(path));
       ref.read(settingsProvider.notifier).addRecentFile(path);
     }
-    ref.read(tabProvider.notifier).markSaved(tab.id);
+    await ref.read(tabProvider.notifier).markSaved(tab.id);
     return true;
   }
 

@@ -326,4 +326,51 @@ void main() {
     expect(unchecked, isEmpty,
         reason: '这些地方直接写文件而不比对磁盘，会静默覆盖别人的改动');
   });
+
+  test('the stamp is current the instant a save is marked', () async {
+    // Writing the file changes its modification time. If the tab's stamp is
+    // refreshed by an unawaited call afterwards, then for as long as that
+    // takes the tab holds a stamp older than this application's own write —
+    // and a save landing in that window compares against it and calls it a
+    // conflict. The reader is then told something else changed their file
+    // when nothing had but them.
+    //
+    // Measured before the fix: stale immediately after, current 120 ms later.
+    final container = ProviderContainer(overrides: [
+      settingsProvider.overrideWith(
+        (ref) => SettingsNotifier(
+          ConfigService(configDir: dir.path),
+          AppConfig(autoSave: false),
+        ),
+      ),
+    ]);
+    addTearDown(container.dispose);
+
+    final opened = await FileService().readFileWithLineEnding(path);
+    final notifier = container.read(tabProvider.notifier);
+    notifier.addTab(TabInfo(
+      id: 'tab',
+      filePath: path,
+      fileName: 'note.md',
+      content: opened.content,
+      diskStamp: opened.stamp,
+    ));
+
+    notifier.updateContent('tab', 'mine\n');
+    await FileService.saveDocumentIfUnchanged(
+      path,
+      'mine\n',
+      expect: container.read(tabProvider).tabs.single.diskStamp,
+    );
+    await notifier.markSaved('tab');
+
+    final stamp = container.read(tabProvider).tabs.single.diskStamp;
+    expect(await FileService.hasChangedSince(path, stamp), isFalse,
+        reason: '保存刚完成，戳却已经过期——下一次保存会把自己的写入当成别人改的');
+
+    // And the save that follows goes through rather than being refused.
+    notifier.updateContent('tab', 'again\n');
+    await FileService.saveDocumentIfUnchanged(path, 'again\n', expect: stamp);
+    expect(File(path).readAsStringSync(), 'again\n');
+  });
 }

@@ -195,7 +195,7 @@ class AppMenuBar extends ConsumerWidget {
         reportSaveFailure(e);
         return;
       }
-      ref.read(tabProvider.notifier).markSaved(activeTab.id);
+      await ref.read(tabProvider.notifier).markSaved(activeTab.id);
     } else {
       _saveFileAs(ref);
     }
@@ -283,7 +283,7 @@ class AppMenuBar extends ConsumerWidget {
     ref
         .read(tabProvider.notifier)
         .updateTabPath(activeTab.id, path, p.basename(path));
-    ref.read(tabProvider.notifier).markSaved(activeTab.id);
+    await ref.read(tabProvider.notifier).markSaved(activeTab.id);
     ref.read(settingsProvider.notifier).addRecentFile(path);
   }
 
