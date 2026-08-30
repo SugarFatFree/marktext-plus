@@ -133,10 +133,26 @@ class SourceEditor extends ConsumerStatefulWidget {
     // stays so — a document should not stop rendering because it was opened
     // here. What is written from here is another matter: markup this editor
     // produces should mean the same wherever it is read.
-    if (before == after &&
+    final flanks = before == after &&
         (before.startsWith('*') ||
             before.startsWith('_') ||
-            before.startsWith('~'))) {
+            before.startsWith('~'));
+
+    // A selection covering more than one block is marked block by block.
+    // Wrapping it whole put the markers around a blank line, a list's own
+    // bullets, or a heading's `#` — none of which is emphasis anywhere, so
+    // selecting two paragraphs and pressing Ctrl+B produced asterisks on
+    // screen and a heading that had stopped being a heading.
+    final segments = _inlineSegments(text, start, end);
+    if (segments.length > 1) {
+      return _wrapEach(text, segments, before, after, flanks);
+    }
+    if (segments.length == 1) {
+      start = segments.single.$1;
+      end = segments.single.$2;
+    }
+
+    if (flanks) {
       final trimmed = _trimForFlanking(text, start, end);
       if (trimmed != null) {
         start = trimmed.$1;
@@ -193,6 +209,118 @@ class SourceEditor extends ConsumerStatefulWidget {
       start: start + before.length,
       end: start + before.length + selected.length,
     );
+  }
+
+  /// The runs of ordinary text inside a selection, one per block.
+  ///
+  /// A blank line ends a block, and a line that opens one — a heading, a list
+  /// item, a quote — carries a marker that belongs to the structure rather
+  /// than to the words, so the marker is left out. What comes back is what a
+  /// reader meant to mark when they dragged across half a document.
+  static List<(int, int)> _inlineSegments(String text, int start, int end) {
+    final segments = <(int, int)>[];
+    var lineStart = start;
+    var previousHadMarker = true;
+
+    while (lineStart < end) {
+      var hadMarker = false;
+      var lineEnd = text.indexOf('\n', lineStart);
+      if (lineEnd == -1 || lineEnd > end) lineEnd = end;
+
+      var from = lineStart;
+      var to = lineEnd;
+      // A marker only counts when the selection reaches the line's own start;
+      // half a line selected from the middle is just text.
+      if (from == 0 || (from > 0 && text[from - 1] == '\n')) {
+        final marker = _blockMarkerRe.matchAsPrefix(text, from);
+        if (marker != null && marker.end <= to) {
+          from = marker.end;
+          hadMarker = true;
+        }
+      }
+      while (to > from && text[to - 1].trim().isEmpty) {
+        to--;
+      }
+      while (from < to && text[from].trim().isEmpty) {
+        from++;
+      }
+      if (from < to) {
+        // Two plain lines of one paragraph are one run: emphasis crosses a
+        // line break inside a block, so marking them separately would put in
+        // markers the document does not need. Only a blank line or a line
+        // that opens a block of its own starts a new run.
+        final joinable = !hadMarker &&
+            !previousHadMarker &&
+            segments.isNotEmpty &&
+            from > 0 &&
+            text[from - 1] == '\n' &&
+            segments.last.$2 == from - 1;
+        if (joinable) {
+          segments[segments.length - 1] = (segments.last.$1, to);
+        } else {
+          segments.add((from, to));
+        }
+        previousHadMarker = hadMarker;
+      } else {
+        // A blank line: whatever follows it belongs to another block.
+        previousHadMarker = true;
+      }
+
+      lineStart = lineEnd + 1;
+    }
+    return segments;
+  }
+
+  /// What opens a block: a heading, a bullet, a step, a quote, a task box.
+  static final _blockMarkerRe = RegExp(
+    r'\s*(?:#{1,6}\s+|>\s?|(?:[-*+]|\d{1,9}[.)])\s+(?:\[[ xX]\]\s+)?)',
+  );
+
+  /// Wraps each run separately, last first so the earlier offsets still hold.
+  static ({String text, int start, int end}) _wrapEach(
+    String text,
+    List<(int, int)> segments,
+    String before,
+    String after,
+    bool flanks,
+  ) {
+    // Already marked everywhere? Then this is the second press, and it takes
+    // the marking off — the same toggle a single run gets.
+    final wrapped = segments.every((s) {
+      final piece = text.substring(s.$1, s.$2);
+      return piece.length >= before.length + after.length &&
+          piece.startsWith(before) &&
+          piece.endsWith(after);
+    });
+
+    var out = text;
+    for (final segment in segments.reversed) {
+      var (from, to) = segment;
+      if (wrapped) {
+        out = out.replaceRange(
+          from,
+          to,
+          out.substring(from + before.length, to - after.length),
+        );
+        continue;
+      }
+      if (flanks) {
+        final trimmed = _trimForFlanking(out, from, to);
+        if (trimmed != null) {
+          from = trimmed.$1;
+          to = trimmed.$2;
+        }
+      }
+      out = out.replaceRange(
+        from,
+        to,
+        before + out.substring(from, to) + after,
+      );
+    }
+
+    final first = segments.first.$1;
+    final grew = out.length - text.length;
+    return (text: out, start: first, end: segments.last.$2 + grew);
   }
 
   /// Shrinks a selection past the whitespace and punctuation at its ends, so
