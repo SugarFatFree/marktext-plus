@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:path/path.dart' as p;
+
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/wait_for.dart';
@@ -372,5 +374,31 @@ void main() {
     notifier.updateContent('tab', 'again\n');
     await FileService.saveDocumentIfUnchanged(path, 'again\n', expect: stamp);
     expect(File(path).readAsStringSync(), 'again\n');
+  });
+
+  test('concurrent saves of one document do not tear it', () async {
+    // Auto-save fires on a timer while Ctrl+S is a keystroke, so two writes
+    // to the same file can be in flight together. The scratch file each one
+    // writes through is named with the process id and a counter, so they do
+    // not collide — this is the test of that, since a shared scratch name
+    // would leave the document as a mixture of two writes.
+    final writes = [
+      for (var i = 0; i < 10; i++)
+        FileService.saveDocument(path, 'content-$i\n'),
+    ];
+    for (final write in writes) {
+      await write;
+    }
+
+    final text = File(path).readAsStringSync();
+    expect(text, matches(RegExp(r'^content-\d\n$')),
+        reason: '文件内容被撕裂成了几次写入的混合');
+
+    final leftovers = Directory(dir.path)
+        .listSync()
+        .map((e) => p.basename(e.path))
+        .where((n) => n.contains('.mtsave'))
+        .toList();
+    expect(leftovers, isEmpty, reason: '临时文件留在了用户的文件夹里');
   });
 }
