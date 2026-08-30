@@ -5,7 +5,7 @@ All notable changes to MarkText Plus will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - v1.5.5
+## [v1.5.5] - 2026-08-31
 
 ### Fixed
 - A checkbox below an empty list item can be ticked again. An empty marker had just become an item of the list, but the preview still found an item's line by asking which lines *open* an item — and an empty marker does not open one, so the count fell short and the tick did nothing at all: no change, no error, no sign the click had been seen
