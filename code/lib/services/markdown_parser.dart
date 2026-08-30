@@ -1056,8 +1056,12 @@ class MarkdownParser {
   /// [_ulRe] and [_olRe] both require content, because an empty marker is not
   /// an item of a parsed document. Pressing Enter on one is exactly when that
   /// matters, so continuation needs its own reading of the line.
+  ///
+  /// The nine-digit limit is the same one [_olRe] carries, and for the same
+  /// reason: a phone number followed by a full stop is not a step in a list,
+  /// and pressing Enter at the end of one used to offer the next number up.
   static final _continuationRe =
-      RegExp(r'^(\s*)([-*+]|\d+[.)])(\s+)(.*)$');
+      RegExp(r'^(\s*)([-*+]|\d{1,9}[.)])(\s+)(.*)$');
 
   /// What pressing Enter at the end of [line] should carry to the next line.
   ///

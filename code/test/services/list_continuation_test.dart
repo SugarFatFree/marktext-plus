@@ -9,6 +9,7 @@ import 'package:marktext_plus/services/markdown_parser.dart';
 /// of the sentence into a paragraph under the bullet, the second broke one
 /// list into two with a line reading `-` between them.
 void main() {
+  _enterKeyAgreesWithTheParser();
   late MarkdownParser parser;
   setUp(() => parser = MarkdownParser());
 
@@ -134,5 +135,42 @@ void main() {
       expect(parser.parse('1. 第一步\n2. 第二步\n').single.type,
           NodeType.orderedList);
     });
+  });
+}
+
+/// What pressing Enter offers, against what the parser calls a list.
+///
+/// Two readings of one line: the parser decides whether a document has a list
+/// in it, and this decides what to put on the next line when Enter is pressed.
+/// They have to agree, or the editor numbers something that is not a list.
+void _enterKeyAgreesWithTheParser() {
+  bool parsedAsList(String line) {
+    final nodes = MarkdownParser().parse(line);
+    return nodes.isNotEmpty &&
+        (nodes.first.type == NodeType.unorderedList ||
+            nodes.first.type == NodeType.orderedList);
+  }
+
+  void agree(String line) {
+    test(line, () {
+      final offered = MarkdownParser.listContinuation(line) != null;
+      expect(offered, parsedAsList(line),
+          reason: offered
+              ? '回车给出了标记，但这行不是列表'
+              : '这行是列表，回车却不给标记');
+    });
+  }
+
+  group('Enter offers a marker exactly where a list is read', () {
+    // A phone number followed by a full stop: pressing Enter used to offer
+    // `13800138001. `, numbering something nobody was numbering.
+    agree('13800138000. 联系人');
+    agree('123456789. 步骤');
+    agree('1. 甲');
+    agree('- 甲');
+    agree('* 甲');
+    agree('- [ ] 任务');
+    agree('    - 缩进的项');
+    agree('普通文字');
   });
 }
