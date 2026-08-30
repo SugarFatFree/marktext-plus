@@ -96,57 +96,6 @@ jobs:
           # release workflow is what produces artefacts meant to last.
           retention-days: 14
 
-  # Windows on ARM, proved here before the release workflow is asked to
-  # depend on it. Three things have to hold and none of them can be checked
-  # from a Linux machine: that the ARM runner exists for this repository, that
-  # the Flutter SDK installs and runs on it, and that `flutter build windows`
-  # targets arm64 there. The step below prints what it finds either way, so a
-  # failure says which of the three it was rather than only that it failed.
-  #
-  # Not required by anything yet: while this is `continue-on-error`, a runner
-  # that turns out to be unavailable cannot stop the rest of CI.
-  probe-windows-arm:
-    name: Probe Windows ARM64
-    runs-on: windows-11-arm
-    needs: analyze
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: subosito/flutter-action@v2.18.0
-        with:
-          channel: stable
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          cache: true
-
-      - name: What this machine is
-        shell: pwsh
-        run: |
-          Write-Host "PROCESSOR_ARCHITECTURE = $env:PROCESSOR_ARCHITECTURE"
-          flutter --version
-          flutter doctor -v
-
-      - name: Install dependencies
-        working-directory: code
-        run: flutter pub get
-
-      - name: Build
-        working-directory: code
-        run: flutter build windows --release --build-number=$env:GITHUB_RUN_NUMBER
-
-      - name: What came out, and where
-        shell: pwsh
-        run: |
-          # The output folder is named after the architecture, so this says
-          # plainly whether an arm64 binary was produced or an x64 one under
-          # emulation.
-          Get-ChildItem code/build/windows -Directory | ForEach-Object {
-            Write-Host "build/windows/$($_.Name)"
-          }
-          $exe = Get-ChildItem code/build/windows -Recurse -Filter marktext_plus.exe |
-            Select-Object -First 1
-          if ($exe) { Write-Host "exe: $($exe.FullName)  $([math]::Round($exe.Length/1MB,1)) MB" }
-
   build-windows:
     name: Build Windows
     runs-on: windows-latest

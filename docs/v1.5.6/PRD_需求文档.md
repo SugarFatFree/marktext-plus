@@ -10,6 +10,7 @@
 | FEAT-070 | 2026-08-31 | 把"全构件文档"真正画一遍 | P2 | 低 | 已完成 |
 | FEAT-071 | 2026-08-31 | 换行符不得改变文档含义 | P2 | 低 | 已完成 |
 | FEAT-072 | 2026-08-31 | 本周新构件走完三条导出路径 | P2 | 低 | 已完成 |
+| FEAT-073 | 2026-08-31 | Windows on ARM 打包（查证结论：Flutter 侧暂不支持） | P2 | 中 | 已查证 |
 
 ## FEAT-065：支持 `<ruby>` 注音
 
@@ -172,3 +173,48 @@ CommonMark 条件 7 规定"任何独占一行的标签都开启 HTML 块"，`<im
 顺手核对了三处导出的调用点：`exportToHtml/Pdf/Docx` **都正确读取了用户设置**，
 不存在"预览有、导出没有"的情况。第四条测试把这个行为也钉住了：
 关闭内联 HTML 时，导出应当是 `&lt;ruby&gt;` 而不是什么都没有。
+---
+
+## FEAT-073：Windows on ARM 打包 —— 查证结论为"目前不可行"
+
+| 字段 | 内容 |
+|------|------|
+| 提出日期 | 2026-08-31（用户提出） |
+| 结论日期 | 2026-08-31 |
+| 需求描述 | 发布产物增加 Windows on ARM（arm64）架构，与 Linux 的 x64/arm64 双架构看齐 |
+| 结论 | **当前不可行，卡在 Flutter 侧**。已把证据与恢复条件写进 `release.yml` 的 Windows 作业上方 |
+
+### 查证过程
+
+本机既不能构建也没有 Windows，所以先在**每次 push 都会跑的 CI** 里加了一个探测作业
+（而非直接改发布流程——那样要等下次发版才知道结果，不成还会卡住发布）。
+探测作业设了 `continue-on-error`，不会影响其它 CI。
+
+三个待验证的前提，探测给出的答案：
+
+| 前提 | 结果 |
+|------|------|
+| 本仓库能否使用 `windows-11-arm` 运行器 | **可以**。镜像 `windows-11-arm64`，`architecture: ARM64`，checkout 正常 |
+| Flutter SDK 能否在其上安装 | **不能**。`Unable to determine Flutter version for channel: stable version: 3.47.2 architecture: arm64` |
+| 能否从 x64 交叉编译到 arm64 | **不能**。`flutter build windows` 没有 `--target-platform` 选项 |
+
+随后查了官方发布清单
+（`storage.googleapis.com/flutter_infra_release/releases/releases_windows.json`）：
+**732 个 Windows 发布，`dart_sdk_arch` 为 arm64 的有 0 个**，各通道皆无。
+所以这不是"钉错了版本"，而是 Flutter 根本不发布 Windows arm64 的 SDK。
+
+### 对用户的实际影响
+
+Windows 11 on ARM 会以模拟方式运行 x64 程序，**现有的 x64 安装包在 ARM 设备上可以正常安装使用**，
+只是没有原生 arm64 的性能与体积收益。
+
+### 恢复条件
+
+Flutter 一旦发布 Windows arm64 SDK，`build-windows` 改成与 `build-linux` 同样的矩阵即可
+（运行器已确认可用）。这段说明连同证据写在 `release.yml` 该作业的正上方——
+下一个想做这件事的人，第一眼就能看到查到哪一步、卡在哪里。
+
+### 涉及文件
+
+- `.github/workflows/release.yml`（说明与恢复条件）
+- `.github/workflows/ci.yml`（探测作业已在结论确定后移除，不留每次都红的噪声）

@@ -37,6 +37,18 @@ jobs:
             exit 1
           fi
 
+  # x64 only, and not for want of trying. Windows on ARM was asked for on
+  # 2026-08-31 and cannot be built today: Flutter publishes no arm64 SDK for
+  # Windows — 732 releases in the official manifest, every one of them x64,
+  # on every channel — and `flutter build windows` has no target-platform
+  # option to cross-compile one from an x64 host. A probe job on the
+  # `windows-11-arm` runner (which does exist and does work) got as far as the
+  # SDK install and stopped there: "Unable to determine Flutter version for
+  # channel: stable architecture: arm64".
+  #
+  # Windows 11 on ARM runs x64 binaries under emulation, so the installer
+  # below is what those machines use meanwhile. When Flutter ships a Windows
+  # arm64 SDK, this becomes a matrix like build-linux below.
   build-windows:
     needs: check-version
     runs-on: windows-latest
