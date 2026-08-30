@@ -90,6 +90,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String fileOpenFailed(String message) {
+    return 'Could not open the file: $message';
+  }
+
+  @override
   String get saveConflictTitle => 'File changed on disk';
 
   @override

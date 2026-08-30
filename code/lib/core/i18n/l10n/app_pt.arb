@@ -56,6 +56,7 @@
   },
   "saveFailed": "Não foi possível guardar o ficheiro: {message}",
   "exportFailed": "Não foi possível exportar o documento: {message}",
+  "fileOpenFailed": "Não foi possível abrir o ficheiro: {message}",
   "saveConflictTitle": "O ficheiro mudou no disco",
   "saveConflictBody": "Algo mais alterou «{name}» desde que foi aberto. Guardar agora escreveria por cima dessa alteração.",
   "saveConflictOverwrite": "Substituir",

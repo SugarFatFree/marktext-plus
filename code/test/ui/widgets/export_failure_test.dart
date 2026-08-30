@@ -58,6 +58,64 @@ void main() {
     }
   });
 
+  test('no async void handler does file work without catching it', () {
+    // The general form of this bug. A `void ... async` method is an event
+    // handler: nothing awaits it, so anything it throws becomes an unhandled
+    // asynchronous error and the reader sees a button that did nothing. Four
+    // exports had it, then Open, Open Recent and the Help menu's link.
+    //
+    // Scanning for the shape rather than listing the methods, so a handler
+    // added later is covered — which is the only way this stops coming back.
+    //
+    // What it can and cannot see, checked by breaking the code: removing a
+    // whole try/catch is caught at once; emptying the catch body is not,
+    // because a `catch` that swallows still reads as handled here. The
+    // per-export test below is the one that insists something is actually
+    // reported.
+    // `File` alone also matches `await FilePicker.platform...`, which throws
+    // nothing and is how two handlers were flagged that did not need it. The
+    // call has to be a call.
+    final risky = RegExp(
+      r'await\s+(?:File\(|File\.|Directory\(|Directory\.|FileService\('
+      r'|ImageService\.|ExportService\.|Printing\.|Process\.|launchUrl\()',
+    );
+    final offenders = <String>[];
+    for (final path in [
+      'lib/ui/widgets/app_menu_bar.dart',
+      'lib/ui/widgets/side_bar.dart',
+      'lib/ui/widgets/editor_tab_bar.dart',
+      'lib/ui/screens/home_screen.dart',
+    ]) {
+      final lines = File(path).readAsLinesSync();
+      for (var i = 0; i < lines.length; i++) {
+        if (!RegExp(r'\bvoid\s+(\w+)\([^)]*\)\s*async\s*\{')
+            .hasMatch(lines[i])) {
+          continue;
+        }
+        var depth = 0;
+        var started = false;
+        var end = i;
+        for (var j = i; j < lines.length && j < i + 200; j++) {
+          depth += '{'.allMatches(lines[j]).length;
+          depth -= '}'.allMatches(lines[j]).length;
+          if (lines[j].contains('{')) started = true;
+          if (started && depth <= 0) {
+            end = j;
+            break;
+          }
+        }
+        final body = lines.sublist(i, end + 1).join('\n');
+        if (risky.hasMatch(body) && !body.contains('catch')) {
+          final name = RegExp(r'void\s+(\w+)').firstMatch(lines[i])!.group(1);
+          offenders.add('$path:${i + 1} $name');
+        }
+      }
+    }
+    expect(offenders, isEmpty,
+        reason: '这些事件处理器做了文件/进程操作却不捕获异常，'
+            '失败时用户只会看到"点了没反应"');
+  });
+
   test('every export entry point catches what it calls', () {
     // A structural check, because the behaviour cannot be reached without a
     // file picker and a printer. It covers an export added later, which is

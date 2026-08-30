@@ -91,6 +91,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String fileOpenFailed(String message) {
+    return 'Die Datei konnte nicht geöffnet werden: $message';
+  }
+
+  @override
   String get saveConflictTitle => 'Datei auf der Festplatte geändert';
 
   @override

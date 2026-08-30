@@ -87,6 +87,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String fileOpenFailed(String message) {
+    return 'ファイルを開けませんでした：$message';
+  }
+
+  @override
   String get saveConflictTitle => 'ファイルがディスク上で変更されました';
 
   @override

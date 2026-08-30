@@ -56,6 +56,7 @@
   },
   "saveFailed": "Impossible d'enregistrer le fichier : {message}",
   "exportFailed": "Impossible d’exporter le document : {message}",
+  "fileOpenFailed": "Impossible d’ouvrir le fichier : {message}",
   "saveConflictTitle": "Fichier modifié sur le disque",
   "saveConflictBody": "Quelque chose d’autre a modifié « {name} » depuis son ouverture. Enregistrer maintenant écraserait cette modification.",
   "saveConflictOverwrite": "Écraser",

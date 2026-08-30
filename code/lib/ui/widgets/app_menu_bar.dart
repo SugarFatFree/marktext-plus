@@ -135,18 +135,26 @@ class AppMenuBar extends ConsumerWidget {
     if (result == null || result.files.isEmpty) return;
     final path = result.files.single.path;
     if (path == null) return;
-    final opened = await FileService().readFileWithLineEnding(path);
-    final tab = TabInfo(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      filePath: path,
-      fileName: p.basename(path),
-      content: opened.content,
-      lineEnding: opened.lineEnding,
-      encoding: opened.encoding,
-      diskStamp: opened.stamp,
-    );
-    ref.read(tabProvider.notifier).addTab(tab);
-    ref.read(settingsProvider.notifier).addRecentFile(path);
+    try {
+      final opened = await FileService().readFileWithLineEnding(path);
+      final tab = TabInfo(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        filePath: path,
+        fileName: p.basename(path),
+        content: opened.content,
+        lineEnding: opened.lineEnding,
+        encoding: opened.encoding,
+        diskStamp: opened.stamp,
+      );
+      ref.read(tabProvider.notifier).addTab(tab);
+      ref.read(settingsProvider.notifier).addRecentFile(path);
+    } catch (e) {
+      // A file can stop being readable between being picked and being read —
+      // permissions, a network share going away, something else deleting it.
+      // The sidebar's open has always said so; this one gave no tab and no
+      // message.
+      reportOpenFailure(e);
+    }
   }
 
   void _openFolder(WidgetRef ref) async {
@@ -1365,7 +1373,18 @@ class AppMenuBar extends ConsumerWidget {
   }
 
   void _launchUrl(String url) async {
-    await launchUrl(Uri.parse(url));
+    // `Uri.parse` throws on a malformed address and `launchUrl` throws when
+    // the desktop has no handler registered — a machine with no browser set
+    // answers that way. The preview's own link opening was given this
+    // treatment; the Help menu's was not, so its entries did nothing at all
+    // there.
+    try {
+      final uri = Uri.tryParse(url);
+      if (uri == null) throw FormatException('not a URI', url);
+      if (!await launchUrl(uri)) throw StateError('no handler for $url');
+    } catch (e) {
+      reportOpenFailure(e);
+    }
   }
 
   /// "Export" and the format, in the user's language.
@@ -1444,18 +1463,24 @@ class AppMenuBar extends ConsumerWidget {
       );
       return;
     }
-    final opened = await FileService().readFileWithLineEnding(filePath);
-    final tab = TabInfo(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      filePath: filePath,
-      fileName: p.basename(filePath),
-      content: opened.content,
-      lineEnding: opened.lineEnding,
-      encoding: opened.encoding,
-      diskStamp: opened.stamp,
-    );
-    ref.read(tabProvider.notifier).addTab(tab);
-    ref.read(settingsProvider.notifier).addRecentFile(filePath);
+    try {
+      final opened = await FileService().readFileWithLineEnding(filePath);
+      final tab = TabInfo(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        filePath: filePath,
+        fileName: p.basename(filePath),
+        content: opened.content,
+        lineEnding: opened.lineEnding,
+        encoding: opened.encoding,
+        diskStamp: opened.stamp,
+      );
+      ref.read(tabProvider.notifier).addTab(tab);
+      ref.read(settingsProvider.notifier).addRecentFile(filePath);
+    } catch (e) {
+      // The existence check above passed, so this is a file that is there and
+      // cannot be read — which needs saying just as much.
+      reportOpenFailure(e);
+    }
   }
 
   Widget _buildToolbarIcons(

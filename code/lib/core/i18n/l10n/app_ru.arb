@@ -56,6 +56,7 @@
   },
   "saveFailed": "Не удалось сохранить файл: {message}",
   "exportFailed": "Не удалось экспортировать документ: {message}",
+  "fileOpenFailed": "Не удалось открыть файл: {message}",
   "saveConflictTitle": "Файл изменён на диске",
   "saveConflictBody": "После открытия «{name}» был изменён другой программой. Сохранение сейчас перезапишет эти изменения.",
   "saveConflictOverwrite": "Перезаписать",

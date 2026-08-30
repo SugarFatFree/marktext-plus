@@ -36,6 +36,26 @@ void reportSettingsSaveFailure(Object error) {
 /// another program holds open, did nothing at all: no message, and the only
 /// clue was the modified dot that stayed put. Upstream MarkText notifies on
 /// every one of these.
+/// Tells the reader that a file could not be opened.
+///
+/// The sidebar's own open has caught this for a long time and takes its
+/// half-built tab back down. The File menu, Open Recent, and the link the
+/// Help menu follows were the copies that did not keep up: a file that has
+/// become unreadable since it was picked left no tab, no message, and
+/// nothing to try again from.
+void reportOpenFailure(Object error) {
+  final context = navigatorKey.currentContext;
+  if (context == null || !context.mounted) return;
+  final l10n = AppLocalizations.of(context);
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(l10n == null
+          ? 'Could not open the file: $error'
+          : l10n.fileOpenFailed('$error')),
+    ),
+  );
+}
+
 /// Tells the reader that an export or a print did not happen.
 ///
 /// The four entry points — HTML, PDF, Word and Print — all call something

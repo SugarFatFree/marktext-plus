@@ -91,6 +91,11 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String fileOpenFailed(String message) {
+    return 'تعذّر فتح الملف: $message';
+  }
+
+  @override
   String get saveConflictTitle => 'تغيّر الملف على القرص';
 
   @override

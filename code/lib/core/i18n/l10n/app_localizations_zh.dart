@@ -86,6 +86,11 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String fileOpenFailed(String message) {
+    return '打开文件失败：$message';
+  }
+
+  @override
   String get saveConflictTitle => '文件已在磁盘上被修改';
 
   @override

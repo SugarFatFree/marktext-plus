@@ -87,6 +87,11 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String fileOpenFailed(String message) {
+    return '파일을 열지 못했습니다: $message';
+  }
+
+  @override
   String get saveConflictTitle => '디스크에서 파일이 변경되었습니다';
 
   @override

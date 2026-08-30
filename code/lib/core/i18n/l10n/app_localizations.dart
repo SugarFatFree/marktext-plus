@@ -243,6 +243,12 @@ abstract class AppLocalizations {
   /// **'Could not export the document: {message}'**
   String exportFailed(String message);
 
+  /// No description provided for @fileOpenFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open the file: {message}'**
+  String fileOpenFailed(String message);
+
   /// No description provided for @saveConflictTitle.
   ///
   /// In en, this message translates to:
