@@ -2119,10 +2119,19 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       editorProvider.select((state) => state.imageRevision),
     );
 
+    // A tag may ask for a size; markdown's own syntax cannot. Only one of the
+    // two is usually given, and the other is left to the picture's own
+    // proportions rather than being guessed at.
+    final askedWidth = span.width;
+    final askedHeight = span.height;
+
     Widget imageWidget;
     if (href.startsWith('http://') || href.startsWith('https://')) {
       imageWidget = Image.network(
         href,
+        width: askedWidth,
+        height: askedHeight,
+        fit: askedWidth != null && askedHeight != null ? BoxFit.fill : null,
         key: ValueKey('image:$revision:$href'),
         errorBuilder: (context, error, stackTrace) => Text(
           '[${span.text}]',
@@ -2133,6 +2142,9 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       final file = File(_resolveAgainstDocument(href));
       imageWidget = Image.file(
         file,
+        width: askedWidth,
+        height: askedHeight,
+        fit: askedWidth != null && askedHeight != null ? BoxFit.fill : null,
         key: ValueKey('image:$revision:$href'),
         errorBuilder: (context, error, stackTrace) => Text(
           '[${span.text}]',

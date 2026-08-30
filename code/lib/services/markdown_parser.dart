@@ -74,6 +74,14 @@ class InlineSpan {
   /// nothing.
   final List<InlineSpan> children;
 
+  /// The size an `<img>` tag asked for, in CSS pixels.
+  ///
+  /// Only a raw `<img>` carries these — markdown's own image syntax has no
+  /// way to say how big a picture should be, which is why a document that
+  /// needs to say it falls back to the tag.
+  final double? width;
+  final double? height;
+
   const InlineSpan({
     required this.type,
     required this.text,
@@ -81,6 +89,8 @@ class InlineSpan {
     this.title,
     this.linkHref,
     this.children = const [],
+    this.width,
+    this.height,
   });
 }
 
@@ -1379,6 +1389,42 @@ class MarkdownParser {
         continue;
       }
 
+      // A picture written as a tag, which is the only way markdown has of
+      // saying how big it should be. Read as an HTML block it was drawn as its
+      // own source in a grey box: upstream MarkText's own documentation writes
+      // sixty pictures this way, and every one of them opened here as a line
+      // of angle brackets.
+      //
+      // Only a tag alone on its line. One inside a table cell or a centring
+      // wrapper is part of an HTML block that would have to be rendered whole,
+      // which is a different and much larger job.
+      final imageTag = _lonelyImageTagRe.firstMatch(line.trim());
+      if (imageTag != null) {
+        final attributes = _htmlAttributes(imageTag.group(1)!);
+        final source = attributes['src'];
+        if (source != null && source.isNotEmpty) {
+          i++;
+          nodes.add(_withSpan(
+            ParagraphNode(
+              content: line.trim(),
+              inlineSpans: [
+                InlineSpan(
+                  type: InlineType.image,
+                  text: attributes['alt'] ?? '',
+                  href: source,
+                  title: attributes['title'],
+                  width: double.tryParse(attributes['width'] ?? ''),
+                  height: double.tryParse(attributes['height'] ?? ''),
+                ),
+              ],
+            ),
+            blockStart,
+            i,
+          ));
+          continue;
+        }
+      }
+
       // HTML block
       final htmlMatch = _htmlBlockStartRe.firstMatch(line);
       if (htmlMatch != null &&
@@ -1757,6 +1803,8 @@ class MarkdownParser {
       title: restored.title,
       linkHref: restored.linkHref,
       children: children,
+      width: restored.width,
+      height: restored.height,
     );
   }
 
@@ -1825,6 +1873,32 @@ class MarkdownParser {
         for (final span in spans)
           if (span.children.isEmpty) span.text else _flattenText(span.children),
       ].join();
+
+  /// An `<img>` tag with nothing else on its line.
+  ///
+  /// Written as `<img …>`, `<img … />` or `<img …></img>`; the attributes are
+  /// read separately because their order is up to whoever wrote the tag.
+  static final _lonelyImageTagRe = RegExp(
+    r'^<img\s+([^<>]*?)/?>(?:</img>)?$',
+    caseSensitive: false,
+  );
+
+  /// The attributes of an HTML tag, lowercased by name.
+  ///
+  /// Values may be in single quotes, double quotes, or none at all, which is
+  /// three spellings of the same thing and all three appear in real documents.
+  static Map<String, String> _htmlAttributes(String source) {
+    final found = <String, String>{};
+    for (final match in _htmlAttributeRe.allMatches(source)) {
+      found[match.group(1)!.toLowerCase()] =
+          match.group(2) ?? match.group(3) ?? match.group(4) ?? '';
+    }
+    return found;
+  }
+
+  static final _htmlAttributeRe = RegExp(
+    '''([a-zA-Z_:][-a-zA-Z0-9_:.]*)\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s"'>]+))''',
+  );
 
   /// Characters that could begin markup inside a span.
   static final _nestableRe = RegExp(r'[*_\[!`~<^:$=]');
@@ -2404,6 +2478,8 @@ class MarkdownParser {
       // one left out is silently lost for any text containing an escape.
       linkHref: span.linkHref == null ? null : restore(span.linkHref!),
       children: span.children,
+      width: span.width,
+      height: span.height,
     );
   }
 

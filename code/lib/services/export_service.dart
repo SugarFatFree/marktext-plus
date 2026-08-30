@@ -1224,7 +1224,13 @@ class ExportService {
           final title = span.title != null
               ? ' title="${_escapeHtml(span.title!)}"'
               : '';
-          final img = '<img src="$src" alt="$alt"$title>';
+          // A size the document asked for is part of what it said; dropping it
+          // would export a picture at a size the reader never chose.
+          final sized = [
+            if (span.width != null) ' width="${span.width!.round()}"',
+            if (span.height != null) ' height="${span.height!.round()}"',
+          ].join();
+          final img = '<img src="$src" alt="$alt"$title$sized>';
           // An image wrapped in a link — a badge — is an anchor around it.
           final linkHref = span.linkHref;
           if (linkHref == null || linkHref.isEmpty) return img;

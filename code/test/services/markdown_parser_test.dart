@@ -1169,7 +1169,11 @@ void _htmlBlockTests() {
     test('any tag alone on its line does start a block', () {
       // Condition 7 of the spec, and the shape a README uses for a badge:
       // the anchor and the image each sit on a line of their own.
-      for (final line in ['<img src="a.png">', '<br>', '<a href="x">']) {
+      //
+      // `<img>` is deliberately not in this list: see the image tests below.
+      // It is the one tag whose meaning the editor can draw, and drawing a
+      // picture is what the document asked for.
+      for (final line in ['<br>', '<a href="x">']) {
         final nodes = parser.parse('text\n\n$line\n\n# After\n');
         expect(
           nodes.where((n) => n.type == NodeType.htmlBlock).length,

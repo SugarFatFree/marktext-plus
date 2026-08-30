@@ -44,7 +44,11 @@ void main() {
         NodeType.paragraph, // the two addresses
         NodeType.paragraph, // the bracketed link and image
         NodeType.paragraph, // inline HTML, which is not a block
-        NodeType.htmlBlock, // a tag alone on its line, which is
+        // A picture, not a block of HTML: `<img>` alone on its line is the
+        // one tag read as what it depicts rather than as source, because a
+        // document writing one is asking for a picture — usually at a size
+        // markdown itself cannot ask for.
+        NodeType.paragraph,
         NodeType.orderedList,
         NodeType.unorderedList,
         // One list, not a list and a stray fence: the code block written
