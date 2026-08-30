@@ -779,6 +779,7 @@ class TabNotifier extends StateNotifier<TabState> {
 
     final fileService = FileService();
     for (final path in filePaths) {
+      if (!mounted) return false;
       final existing = state.tabs.where((t) => t.filePath == path).firstOrNull;
       if (existing != null) {
         state = state.copyWith(activeTabId: existing.id);
@@ -786,6 +787,9 @@ class TabNotifier extends StateNotifier<TabState> {
       }
       try {
         final opened = await fileService.readFileWithLineEnding(path);
+        // Several files, read one after another: the application can be shut
+        // down part way through a batch, and adding a tab then throws.
+        if (!mounted) return false;
         final tab = TabInfo(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
           filePath: path,

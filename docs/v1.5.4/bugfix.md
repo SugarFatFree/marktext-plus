@@ -17,6 +17,7 @@
 | BUG-158 | 2026-08-30 | 关闭标签页时选择保存会静默覆盖外部改动 | P1 | 已修复 |
 | BUG-159 | 2026-08-30 | 保存刚完成时，下一次保存把自己的写入误判为外部改动 | P2 | 已修复 |
 | BUG-160 | 2026-08-30 | 导出失败会毁掉被覆盖的旧文件（非原子写） | P2 | 已修复 |
+| BUG-161 | 2026-08-30 | 退出时若有目录/文件正在读取会抛未捕获的异步错误 | P2 | 已修复 |
 ## BUG-146：文件被外部修改后，自动保存会静默覆盖别人的改动
 
 **优先级**：P1　**状态**：已修复　**日期**：2026-08-30
@@ -782,3 +783,55 @@ into it. Killed process, full disk, lost power…"。
 - `code/lib/services/file_service.dart`（抽出 `writeBytesAtomically`）
 - `code/lib/services/export_service.dart`、`code/lib/ui/widgets/mermaid_renderer.dart`
 - `code/test/ui/widgets/export_failure_test.dart`（+3 条，共 10 条）
+
+---
+
+## BUG-161：退出应用时若有目录或文件正在读取，会抛未捕获的异步错误
+
+**优先级**：P2　**状态**：已修复　**日期**：2026-08-30
+
+### 现象
+
+- 打开一个较大的文件夹，读取还没完成就退出应用
+- 或双击一批 `.md` 文件，还没全部打开就退出
+
+两种情况都会抛 `Bad state: Tried to use FileNotifier / TabNotifier after
+'dispose' was called`。因为这些调用**没有人 await**，异常直接逃逸成
+**未捕获的异步错误**——不会被任何东西接住，也不会显示给用户。
+
+### 实测（不是凭形态推断）
+
+构造 40 个子目录 × 20 个文件的树、以及 30 个各 20KB 的文件，
+发起读取后立刻 `dispose`：
+
+```
+loadDirectory:                 抛出 StateError — Tried to use FileNotifier after dispose
+openFilesFromSecondInstance:   抛出 StateError — Tried to use TabNotifier after dispose
+```
+
+### 根因分析
+
+`await` 之后直接写 `state`，中间没有检查 notifier 是否还活着。
+**这与 BUG-149 是同一形态**——那次是标签页关闭后磁盘戳仍在异步刷新。
+当时只修了撞见的那一处，没有回头把同类找全。
+
+`_refreshTree` 也在此列：它有一个"目录已切换"的守卫，但那不是 mounted 检查，
+而它是由文件系统监听器触发的——**退出流程不会等它**。
+
+### 修复方案
+
+三处在写 `state` 之前加 `if (!mounted) return;`。
+
+### 守卫
+
+新增结构测试：扫描 `lib/providers` 下所有 `StateNotifier` 子类的 async 方法，
+**若在第一个 `await` 之后写 `state` 而中间没有 `mounted` 检查，即判为不合格**。
+这样明天新写的方法也在覆盖内。
+
+验证过：去掉刚加的守卫，它精确点名 `file_provider.dart:28` 与
+`tab_provider.dart:768`。
+
+### 涉及文件
+
+- `code/lib/providers/file_provider.dart`、`code/lib/providers/tab_provider.dart`
+- `code/test/providers/dispose_race_test.dart`（新增，3 条）

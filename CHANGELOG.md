@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - v1.5.5
 
 ### Fixed
+- Quitting while a folder is still being read, or while a batch of files is still being opened, no longer raises an unhandled error. Both wrote their result without checking the application was still there to receive it
 - An export that fails no longer destroys the file it was replacing. Writing truncates a file the instant it opens it, so exporting over an earlier export — which the picker invites — left nothing at all if the write did not finish. Saving a document has written through a scratch file and a rename for a long time; the exports and the diagram PNG now do too
 - Saving twice in quick succession no longer reports the second one as a conflict. The stamp recording what the file looks like was refreshed by an unawaited call after the write, so for as long as that took the tab held a stamp older than the application's own write — and a save landing in that window was told the file had changed underneath it, when the only thing that had changed it was this editor
 - Answering "save" to the prompt that appears when a tab is closed no longer writes over a change made on disk. Ctrl+S on the same document was stopped and asked; this path was not, and it is the one taken when quitting with unsaved work. The tab now stays open and stays modified, because closing it would discard the reader's edits in favour of a version they were never shown
