@@ -261,4 +261,39 @@ void main() {
     expect(tab.isModified, isFalse);
     expect(tab.diskConflict, isFalse);
   });
+
+  test('every tab built straight from a read carries the stamp', () {
+    // A tab with no stamp has no baseline, so the check that stops a save
+    // from writing over somebody else's change never fires for it — and the
+    // tab looks completely ordinary. Six places build a TabInfo; the one
+    // that opens files from a second instance was missed when the stamp was
+    // introduced, so a document opened from the command line or a file
+    // manager was unprotected.
+    //
+    // Tabs built empty and filled later by `loadTabContent` are exempt: the
+    // stamp arrives there with the content. What is checked is a constructor
+    // that already has the content in hand.
+    final offenders = <String>[];
+    for (final path in [
+      'lib/providers/tab_provider.dart',
+      'lib/ui/widgets/app_menu_bar.dart',
+      'lib/ui/widgets/side_bar.dart',
+      'lib/ui/screens/home_screen.dart',
+      'lib/ui/editor/markdown_renderer.dart',
+    ]) {
+      final lines = File(path).readAsLinesSync();
+      for (var i = 0; i < lines.length; i++) {
+        if (!lines[i].contains('TabInfo(')) continue;
+        final end = (i + 16 < lines.length) ? i + 16 : lines.length;
+        final body = lines.sublist(i, end).join('\n');
+        // Only the ones that hand real content to the constructor.
+        if (!body.contains('content: opened.content')) continue;
+        if (!body.contains('diskStamp')) {
+          offenders.add('$path:${i + 1}');
+        }
+      }
+    }
+    expect(offenders, isEmpty,
+        reason: '这些标签页带着内容却没有磁盘戳，保存冲突检测对它们不生效');
+  });
 }

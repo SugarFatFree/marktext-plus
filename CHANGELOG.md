@@ -5,6 +5,11 @@ All notable changes to MarkText Plus will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - v1.5.5
+
+### Fixed
+- A document opened by double-clicking it, or from the command line, is protected against being saved over somebody else's change like any other. That path builds its tab straight from the read and was the one place missed when the disk stamp was introduced, so the check simply never fired for it — while the tab looked exactly like any other
+
 ## [v1.5.4] - 2026-08-30
 
 ### Added

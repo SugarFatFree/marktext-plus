@@ -777,6 +777,11 @@ class TabNotifier extends StateNotifier<TabState> {
           lineEnding: opened.lineEnding,
           encoding: opened.encoding,
           isModified: false,
+          // With the content, like every other place that builds a tab from a
+          // read. Without it this tab has no baseline, so the check that stops
+          // a save from writing over somebody else's change never fires for a
+          // document opened from the command line or a file manager.
+          diskStamp: opened.stamp,
         );
         addTab(tab);
       } catch (_) {
