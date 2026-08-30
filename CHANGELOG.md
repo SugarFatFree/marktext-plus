@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - v1.5.6
 
+### Added
+- `<ruby>漢<rt>hàn</rt></ruby>` draws the reading above the text, as Japanese furigana and Chinese pinyin are written. It was escaped and shown as angle brackets, so a document annotated this way read as its own source. The preview draws it; HTML emits real ruby with the `<rp>` brackets a reader that cannot draw it needs; Word and PDF, which have neither, print the reading after the text the way a dictionary does
+
 ### Fixed
 - A reference link's text can be marked up, as an inline link's already could: `[**Download**][dl]` was an anchor reading `**Download**` with the asterisks showing. There are two link branches in the parser and only one of them had been taught to read its text
 - An image describes itself in words. `![a **important** picture](/img.png)` carried the asterisks into the alt attribute — and alt text earns its keep exactly when the picture does not appear, which is no place for markdown. A link inside alt text becomes its label

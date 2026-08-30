@@ -36,6 +36,14 @@ enum InlineType {
   underline,
   footnoteRef,
   boldItalic,
+
+  /// Text with a pronunciation written above it: `<ruby>漢<rt>hàn</rt></ruby>`.
+  ///
+  /// How Japanese furigana and Chinese pinyin are written. The base text is
+  /// the span's `text` and the reading is its `title`, because the two belong
+  /// to one another — drawn as two spans they would come apart at a line
+  /// break, and read aloud as two words.
+  ruby,
 }
 
 // -- Inline Span --
@@ -2257,7 +2265,13 @@ class MarkdownParser {
   /// markup needs a real HTML parser, and guessing at it would be worse than
   /// leaving it as written.
   static final _inlineHtmlRe = RegExp(
-    r'<(b|strong|i|em|u|mark|code|kbd|del|s|strike|sub|sup)>([^<>]*)</\1>'
+    // Ruby first, and with its own groups: it is the one tag whose content is
+    // two things — the text and its reading. `<rp>` is the fallback a reader
+    // without ruby support sees, and is dropped here because this one draws
+    // the reading itself.
+    r'<ruby>([^<>]*)(?:<rp>[^<>]*</rp>)?<rt>([^<>]*)</rt>'
+    r'(?:<rp>[^<>]*</rp>)?</ruby>'
+    r'|<(b|strong|i|em|u|mark|code|kbd|del|s|strike|sub|sup)>([^<>]*)</\3>'
     r'|<br\s*/?>',
     caseSensitive: false,
   );
@@ -2282,15 +2296,21 @@ class MarkdownParser {
           ));
         }
 
-        final tag = match.group(1)?.toLowerCase();
-        if (tag == null) {
+        final tag = match.group(3)?.toLowerCase();
+        if (match.group(1) != null) {
+          result.add(InlineSpan(
+            type: InlineType.ruby,
+            text: match.group(1)!,
+            title: match.group(2) ?? '',
+          ));
+        } else if (tag == null) {
           // `<br>`: a line break inside the paragraph, which is what the
           // renderer already makes of a newline.
           result.add(const InlineSpan(type: InlineType.text, text: '\n'));
         } else {
           result.add(InlineSpan(
             type: _inlineHtmlTypes[tag]!,
-            text: match.group(2) ?? '',
+            text: match.group(4) ?? '',
           ));
         }
         last = match.end;

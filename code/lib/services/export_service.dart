@@ -764,6 +764,15 @@ class ExportService {
           // Images are not embedded here; the alt text is all that survives,
           // which is better than dropping the span entirely.
           return DocxText(span.text);
+        case InlineType.ruby:
+          // Word can annotate a run, but the builder used here writes plain
+          // runs, so the reading is put where it can still be read: after the
+          // text, in brackets, the way a dictionary prints it.
+          return DocxText(
+            span.title == null || span.title!.isEmpty
+                ? span.text
+                : '${span.text}(${span.title})',
+          );
         case InlineType.text:
           return DocxText(span.text);
       }
@@ -1186,6 +1195,11 @@ class ExportService {
       switch (span.type) {
         case InlineType.text:
           return text;
+        case InlineType.ruby:
+          // A browser draws this itself, and `<rp>` gives one that cannot the
+          // brackets a reader expects instead.
+          final reading = _escapeHtml(span.title ?? '');
+          return '<ruby>$text<rp>(</rp><rt>$reading</rt><rp>)</rp></ruby>';
         case InlineType.boldItalic:
           return '<strong><em>$text</em></strong>';
         case InlineType.bold:
@@ -1388,6 +1402,14 @@ class ExportService {
         );
       }
       switch (span.type) {
+        case InlineType.ruby:
+          // The pdf package has no baseline shift and no ruby, so the reading
+          // follows the text in brackets rather than being dropped.
+          final reading = _normalizeForPdf(span.title ?? '');
+          return pw.TextSpan(
+            text: reading.isEmpty ? text : '$text($reading)',
+            style: baseStyle,
+          );
         case InlineType.boldItalic:
           return pw.TextSpan(
             text: text,

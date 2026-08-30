@@ -1968,6 +1968,30 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
           } else {
             children.add(TextSpan(text: span.text, style: s));
           }
+        case md.InlineType.ruby:
+          // The reading goes above the text, which is the whole point of ruby
+          // and the one thing a run of styled text cannot express — so this is
+          // a widget, sized down and baseline-aligned so the line it sits on
+          // keeps its rhythm.
+          final rubyBase = baseStyle ?? const TextStyle();
+          children.add(
+            WidgetSpan(
+              alignment: PlaceholderAlignment.middle,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    span.title ?? '',
+                    style: rubyBase.copyWith(
+                      fontSize: (rubyBase.fontSize ?? 16) * 0.5,
+                      height: 1.0,
+                    ),
+                  ),
+                  Text(span.text, style: rubyBase.copyWith(height: 1.0)),
+                ],
+              ),
+            ),
+          );
         case md.InlineType.mathInline:
           children.add(
             WidgetSpan(
