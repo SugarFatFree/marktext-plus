@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - v1.5.5
 
 ### Fixed
+- A Gantt task whose name contains a colon — `阶段一: 设计` — keeps all of it, and keeps the id other tasks depend on by name. The line was split at its first colon, which took half the name away and made the id something no `after` clause could match. The separator is now found by what follows it, so a time in the date format does not confuse it either
 - A flowchart node whose label contains an arrow — `A["流程 --> 结束"]`, which is an ordinary way to describe a flow — no longer disappears from the diagram. Arrows were searched for across the whole line without regard for labels, so the line was split inside one and the node was lost along with its edges
 - Quitting while a folder is still being read, or while a batch of files is still being opened, no longer raises an unhandled error. Both wrote their result without checking the application was still there to receive it
 - An export that fails no longer destroys the file it was replacing. Writing truncates a file the instant it opens it, so exporting over an earlier export — which the picker invites — left nothing at all if the write did not finish. Saving a document has written through a scratch file and a rename for a long time; the exports and the diagram PNG now do too
