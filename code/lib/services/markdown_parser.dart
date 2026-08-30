@@ -1492,9 +1492,17 @@ class MarkdownParser {
           //
           // Look before consuming anything: a tag with neither a close nor a
           // blank line after it should cost one line, not the document.
+          //
+          // Four tags are the exception, and the format names them: `<pre>`,
+          // `<script>`, `<style>` and `<textarea>` hold text that is not
+          // markdown, and a blank line inside one of them is part of that
+          // text. Ending at it cut a script or a preformatted sample in half
+          // and read the rest as prose — asterisks in the sample became
+          // italics, and the closing tag showed up as `&lt;/pre&gt;`.
+          final rawText = _rawTextHtmlTags.contains(tag.toLowerCase());
           var lastLine = -1;
           for (var j = i; j < lines.length; j++) {
-            if (lines[j].trim().isEmpty) {
+            if (!rawText && lines[j].trim().isEmpty) {
               lastLine = j - 1;
               break;
             }
@@ -2356,6 +2364,12 @@ class MarkdownParser {
     'sub': InlineType.subscript,
     'sup': InlineType.superscript,
   };
+
+  /// The tags whose content is text rather than markdown.
+  ///
+  /// Named by the format itself. A blank line inside one of them belongs to
+  /// the text, so the block runs to its closing tag however far down that is.
+  static const _rawTextHtmlTags = {'pre', 'script', 'style', 'textarea'};
 
   /// A supported tag pair with plain content, or a line break.
   ///

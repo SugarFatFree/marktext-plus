@@ -10,6 +10,7 @@
 | BUG-178 | 2026-08-31 | 步骤下面用缩进写的代码块变成普通段落 | P2 | 已修复 |
 | BUG-179 | 2026-08-31 | 十一位数字开头的行被当成有序列表 | P3 | 已修复 |
 | BUG-180 | 2026-08-31 | 标记连写时强调解析错误（改用定界符算法） | P1 | 已修复 |
+| BUG-181 | 2026-08-31 | pre/script/style/textarea 里有空行就被截断 | P2 | 已修复 |
 
 ## BUG-173：引用式链接的标签里，标记仍显示成字面量
 
@@ -377,3 +378,51 @@ CommonMark 规范用例 **415 → 465**，单次提升 50 例，是本会话最�
 - `code/test/services/inline_emphasis_test.dart`（新增，15 条）
 - `code/test/services/large_document_cost_test.dart`（isolate 检查改为递归）
 - `code/test/services/{markdown_parser,nested_emphasis,commonmark_spec}_test.dart`
+---
+
+## BUG-181：`<pre>`/`<script>`/`<style>`/`<textarea>` 里有空行就被拦腰截断
+
+**日期**：2026-08-31　**优先级**：P2　**状态**：已修复
+
+### 现象
+
+```
+<pre>
+第一行
+
+第二行 *星号*
+</pre>
+后面的正文
+```
+
+块在空行处断开：后半段被当作 markdown 解析，`*星号*` 变成斜体，
+`</pre>` 以 `&lt;/pre&gt;` 的样子出现在正文里。嵌入脚本、样式、预格式化代码样例
+都会中招。
+
+### 根因
+
+HTML 块统一"遇到空行即结束"。这条规则本身是必要的——正是它让 `<details>` 里的
+markdown 能被当作 markdown 读。但 CommonMark 明确点名了四个例外：
+`<pre>`、`<script>`、`<style>`、`<textarea>` 的内容**不是 markdown**，
+里面的空行属于内容本身，块一直延续到闭合标签。
+
+### 修复方案
+
+这四个标签跳过空行终止，只在闭合标签处结束。其余标签行为不变。
+
+### 验证
+
+CommonMark 规范用例 465 → 467。新增 8 条测试：4 条四种标签各一、
+1 条预格式化样例走到导出、3 条护栏——`<details>` 里的 markdown 仍被解析、
+`<div>` 不吞掉后面的段落、**没有闭合标签的 `<pre>` 只花一行而不是整篇文档**。
+去掉例外判断后 5 条确认失败。
+
+写测试时先把断言写在**导出的 HTML** 上，结果 `<script>` 那条失败——
+因为导出时的消毒器本来就会剥掉 `<script>`。那是它该做的，不是缺陷。
+改成在**解析层**断言块边界（这才是本次修复的对象），导出层只验 `<pre>`。
+
+### 涉及文件
+
+- `code/lib/services/markdown_parser.dart`
+- `code/test/services/raw_text_html_block_test.dart`（新增，8 条）
+- `code/test/services/commonmark_spec_test.dart`（下限 465 → 467）
