@@ -2,6 +2,8 @@
 // Uses regex-based line scanning for block-level and inline parsing.
 
 import 'dart:convert' show LineSplitter;
+
+import 'inline_emphasis.dart';
 import 'dart:math' as math;
 
 // -- Enums --
@@ -35,7 +37,6 @@ enum InlineType {
   subscript,
   underline,
   footnoteRef,
-  boldItalic,
 
   /// Text with a pronunciation written above it: `<ruby>漢<rt>hàn</rt></ruby>`.
   ///
@@ -2001,8 +2002,14 @@ class MarkdownParser {
       // Without it `2 ** 3 ** 4` came out with a bold 3, and `** note **`
       // — a line someone typed with spaces for emphasis of their own — was
       // silently turned into bold.
-      r'|\*\*\*([^\s]|[^\s][\s\S]*?[^\s])\*\*\*'  // bold italic ***
-      r'|\*\*([^\s]|[^\s][\s\S]*?[^\s])\*\*'  // bold **
+      // *** bold italic — now decided by resolveEmphasis, which needs the whole
+      // paragraph to answer. The alternative stays so the group numbers
+      // after it, and the backreference among them, do not move.
+      r'|(?!)(\uFFFF)'
+      // ** bold — now decided by resolveEmphasis, which needs the whole
+      // paragraph to answer. The alternative stays so the group numbers
+      // after it, and the backreference among them, do not move.
+      r'|(?!)(\uFFFF)'
       // `_` must not sit inside a word, or snake_case_names read as emphasis.
       // The boundary excludes `_` itself as well: in `read__me__now` the
       // second underscore of the pair is not alphanumeric, so without it the
@@ -2013,8 +2020,14 @@ class MarkdownParser {
       // `пристаням_стремятся_` and any Chinese text with underscores in it
       // came out emphasised — the boundary saw a non-ASCII letter as "not a
       // word character" and let the delimiter through.
-      r'|(?<![\p{L}\p{N}_])___([^\s]|[^\s][\s\S]*?[^\s])___(?![\p{L}\p{N}_])'
-      r'|(?<![\p{L}\p{N}_])__([^\s]|[^\s][\s\S]*?[^\s])__(?![\p{L}\p{N}_])'
+      // ___ bold italic — now decided by resolveEmphasis, which needs the whole
+      // paragraph to answer. The alternative stays so the group numbers
+      // after it, and the backreference among them, do not move.
+      r'|(?!)(\uFFFF)'
+      // __ bold — now decided by resolveEmphasis, which needs the whole
+      // paragraph to answer. The alternative stays so the group numbers
+      // after it, and the backreference among them, do not move.
+      r'|(?!)(\uFFFF)'
       r'|~~(.+?)~~'                // strikethrough
       // No spaces inside, or `x^2 and y^3` becomes one long superscript.
       r'|\^([^\s^]+)\^'            // superscript
@@ -2026,8 +2039,14 @@ class MarkdownParser {
       // this branch. Without the guards, `2 ** 3 ** 4` failed the `**` branch
       // on its spaces and was then picked up here as an italic containing a
       // literal asterisk — visibly worse than the bold it used to produce.
-      r'|\*(?!\*)([^\s]|[^\s][\s\S]*?[^\s])(?<!\*)\*(?!\*)'  // italic *
-      r'|(?<![\p{L}\p{N}_])_(?!_)([^\s]|[^\s][\s\S]*?[^\s])(?<!_)_(?![\p{L}\p{N}_])'  // italic _
+      // * italic — now decided by resolveEmphasis, which needs the whole
+      // paragraph to answer. The alternative stays so the group numbers
+      // after it, and the backreference among them, do not move.
+      r'|(?!)(\uFFFF)'
+      // _ italic — now decided by resolveEmphasis, which needs the whole
+      // paragraph to answer. The alternative stays so the group numbers
+      // after it, and the backreference among them, do not move.
+      r'|(?!)(\uFFFF)'
       // Appended rather than inserted: these add groups 19..21, leaving every
       // existing branch's numbering alone.
       // Any scheme, as the format has it — `<irc://…>`, `<tel:…>`,
@@ -2166,34 +2185,6 @@ class MarkdownParser {
           text: match.group(21)!,
           children: _nestedSpans(match.group(21)!, depth),
         ));
-      } else if (match.group(22) != null) {
-        // Bold italic ***
-        spans.add(InlineSpan(
-          type: InlineType.boldItalic,
-          text: match.group(22)!,
-          children: _nestedSpans(match.group(22)!, depth),
-        ));
-      } else if (match.group(23) != null) {
-        // Bold **
-        spans.add(InlineSpan(
-          type: InlineType.bold,
-          text: match.group(23)!,
-          children: _nestedSpans(match.group(23)!, depth),
-        ));
-      } else if (match.group(24) != null) {
-        // Bold italic ___
-        spans.add(InlineSpan(
-          type: InlineType.boldItalic,
-          text: match.group(24)!,
-          children: _nestedSpans(match.group(24)!, depth),
-        ));
-      } else if (match.group(25) != null) {
-        // Bold __
-        spans.add(InlineSpan(
-          type: InlineType.bold,
-          text: match.group(25)!,
-          children: _nestedSpans(match.group(25)!, depth),
-        ));
       } else if (match.group(26) != null) {
         // Strikethrough
         spans.add(InlineSpan(
@@ -2207,20 +2198,6 @@ class MarkdownParser {
       } else if (match.group(28) != null) {
         // Subscript
         spans.add(InlineSpan(type: InlineType.subscript, text: match.group(28)!));
-      } else if (match.group(29) != null) {
-        // Italic *
-        spans.add(InlineSpan(
-          type: InlineType.italic,
-          text: match.group(29)!,
-          children: _nestedSpans(match.group(29)!, depth),
-        ));
-      } else if (match.group(30) != null) {
-        // Italic _
-        spans.add(InlineSpan(
-          type: InlineType.italic,
-          text: match.group(30)!,
-          children: _nestedSpans(match.group(30)!, depth),
-        ));
       } else if (match.group(31) != null) {
         // Autolink: <https://example.com>
         final url = match.group(31)!;
@@ -2332,7 +2309,10 @@ class MarkdownParser {
     // Before escapes are restored and entities decoded, so `\<b>` and
     // `&lt;b&gt;` both stay literal text — they are how a document writes a
     // tag it does not want interpreted.
-    return enableHtml ? _expandInlineHtml(spans) : spans;
+    final expanded = enableHtml ? _expandInlineHtml(spans) : spans;
+    // Emphasis last: it is the one construct whose meaning depends on the
+    // whole paragraph rather than on the characters where it starts.
+    return resolveEmphasis(expanded);
   }
 
   /// Joins runs of plain text that ended up as separate spans.
@@ -2426,9 +2406,18 @@ class MarkdownParser {
           // renderer already makes of a newline.
           result.add(const InlineSpan(type: InlineType.text, text: '\n'));
         } else {
+          // The text a tag wraps is text like any other: `<b>a *b* c</b>` is
+          // bold holding an italic, not bold holding two asterisks.
+          final inner = match.group(4) ?? '';
+          final nested = resolveEmphasis(
+            [InlineSpan(type: InlineType.text, text: inner)],
+          );
           result.add(InlineSpan(
             type: _inlineHtmlTypes[tag]!,
-            text: match.group(4) ?? '',
+            text: inner,
+            children: nested.length == 1 && nested.single.type == InlineType.text
+                ? const []
+                : nested,
           ));
         }
         last = match.end;

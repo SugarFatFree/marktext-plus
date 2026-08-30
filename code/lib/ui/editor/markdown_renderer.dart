@@ -1831,10 +1831,6 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   /// with bold as their base.
   TextStyle? _emphasisStyle(md.InlineType type, TextStyle? base) =>
       switch (type) {
-        md.InlineType.boldItalic => base?.copyWith(
-            fontWeight: FontWeight.bold,
-            fontStyle: FontStyle.italic,
-          ),
         md.InlineType.bold => base?.copyWith(fontWeight: FontWeight.bold),
         md.InlineType.italic => base?.copyWith(fontStyle: FontStyle.italic),
         md.InlineType.strikethrough =>
@@ -1878,13 +1874,6 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             children.addAll(_applySearchHighlight(span.text, baseStyle, es));
           } else {
             children.add(TextSpan(text: span.text, style: baseStyle));
-          }
-        case md.InlineType.boldItalic:
-          final s = _emphasisStyle(span.type, baseStyle);
-          if (hasSearch) {
-            children.addAll(_applySearchHighlight(span.text, s, es));
-          } else {
-            children.add(TextSpan(text: span.text, style: s));
           }
         case md.InlineType.bold:
           final s = _emphasisStyle(span.type, baseStyle);

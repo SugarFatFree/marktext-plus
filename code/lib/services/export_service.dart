@@ -683,10 +683,6 @@ class ExportService {
       switch (span.type) {
         InlineType.bold => run.copyWith(fontWeight: DocxFontWeight.bold),
         InlineType.italic => run.copyWith(fontStyle: DocxFontStyle.italic),
-        InlineType.boldItalic => run.copyWith(
-            fontWeight: DocxFontWeight.bold,
-            fontStyle: DocxFontStyle.italic,
-          ),
         InlineType.strikethrough => run.copyWith(
             decorations: [...run.decorations, DocxTextDecoration.strikethrough],
           ),
@@ -708,12 +704,6 @@ class ExportService {
   static DocxText _docxTextFor(InlineSpan span) {
     {
       switch (span.type) {
-        case InlineType.boldItalic:
-          return DocxText(
-            span.text,
-            fontWeight: DocxFontWeight.bold,
-            fontStyle: DocxFontStyle.italic,
-          );
         case InlineType.bold:
           return DocxText(span.text, fontWeight: DocxFontWeight.bold);
         case InlineType.italic:
@@ -1200,8 +1190,6 @@ class ExportService {
           // brackets a reader expects instead.
           final reading = _escapeHtml(span.title ?? '');
           return '<ruby>$text<rp>(</rp><rt>$reading</rt><rp>)</rp></ruby>';
-        case InlineType.boldItalic:
-          return '<strong><em>$text</em></strong>';
         case InlineType.bold:
           return '<strong>$text</strong>';
         case InlineType.italic:
@@ -1370,10 +1358,6 @@ class ExportService {
     /// The style one emphasis adds on top of the style around it, so nested
     /// markup renders as both — the same rule the preview follows.
     pw.TextStyle emphasised(InlineType type) => switch (type) {
-          InlineType.boldItalic => baseStyle.copyWith(
-              fontWeight: pw.FontWeight.bold,
-              fontStyle: pw.FontStyle.italic,
-            ),
           InlineType.bold =>
             baseStyle.copyWith(fontWeight: pw.FontWeight.bold),
           InlineType.italic =>
@@ -1415,14 +1399,6 @@ class ExportService {
           return pw.TextSpan(
             text: reading.isEmpty ? text : '$text($reading)',
             style: baseStyle,
-          );
-        case InlineType.boldItalic:
-          return pw.TextSpan(
-            text: text,
-            style: baseStyle.copyWith(
-              fontWeight: pw.FontWeight.bold,
-              fontStyle: pw.FontStyle.italic,
-            ),
           );
         case InlineType.bold:
           return pw.TextSpan(

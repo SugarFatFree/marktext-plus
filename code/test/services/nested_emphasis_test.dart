@@ -44,14 +44,14 @@ void main() {
       expect(code.text, 'code');
     });
 
-    test('plain emphasis carries no children', () {
-      // The guard on the change: the flat path is what almost every span still
-      // takes, and a second parse of every emphasis would be paid on every
-      // keystroke.
+    test('plain emphasis reads as its own words', () {
+      // Emphasis is resolved by the delimiter pass now, which always builds
+      // the content as children. What matters to every consumer is that the
+      // words come out — `text` still carries them.
       final span = spansOf('**just bold**').single;
       expect(span.type, InlineType.bold);
-      expect(span.children, isEmpty);
       expect(span.text, 'just bold');
+      expect(span.children.single.text, 'just bold');
     });
 
     test('an escaped marker inside emphasis stays literal', () {
@@ -60,13 +60,21 @@ void main() {
       // asterisks as markup.
       final span = spansOf(r'**a \*b\* c**').single;
       expect(span.type, InlineType.bold);
-      expect(span.children, isEmpty);
       expect(span.text, 'a *b* c');
+      expect(
+        span.children.map((c) => c.type).toList(),
+        everyElement(InlineType.text),
+        reason: '被转义的星号成了强调',
+      );
     });
 
-    test('the source text is kept alongside the children', () {
+    test('the text reads as the words, not as the markup', () {
+      // With emphasis resolved from delimiters, the span's own text is what
+      // the reader sees rather than what was typed — which is what the plain
+      // projection used for copying wants anyway.
       final span = spansOf('**bold with a [link](/url)**').single;
-      expect(span.text, contains('[link](/url)'));
+      expect(span.text, contains('link'));
+      expect(span.text, isNot(contains('](')));
     });
   });
 
@@ -156,8 +164,12 @@ void main() {
       expect(spansOf('[普通][dl]$definition').single.children, isEmpty);
     });
 
-    test('an unresolved reference is still left as written', () {
-      expect(htmlOf('[**下载**][missing]\n'), contains('[**下载**][missing]'));
+    test('an unresolved reference keeps its brackets but reads its text', () {
+      // marked, the parser upstream MarkText uses, gives the same:
+      // `[<strong>下载</strong>][missing]`. The label is not a link, but what
+      // is written inside it is still markup.
+      final html = htmlOf('[**下载**][missing]\n');
+      expect(html, contains('[<strong>下载</strong>][missing]'));
     });
   });
 
@@ -202,13 +214,15 @@ void main() {
       );
     });
 
-    test('markers that run together are still not separated', () {
-      // A known limitation left untouched by this change, recorded so a later
-      // fix has something to move: `*outer **inner***` ends in three asterisks
-      // that the flat pattern reads as one bold closing, so the outer italic
-      // never forms. Nesting is about what happens once emphasis is found —
-      // this is about finding it.
-      expect(htmlOf('*outer **inner***'), isNot(contains('<em>')));
+    test('markers that run together are separated correctly', () {
+      // This was a recorded limitation of the flat pattern: `*outer
+      // **inner***` ends in three asterisks that it read as one bold closing,
+      // so the outer italic never formed. The delimiter pass decides it from
+      // the whole paragraph, and gets what marked gets.
+      expect(
+        htmlOf('*outer **inner***'),
+        contains('<em>outer <strong>inner</strong></em>'),
+      );
     });
 
     test('HTML leaves plain emphasis exactly as before', () {

@@ -404,10 +404,15 @@ void main() {
     test('*** is bold and italic, not bold with a stray asterisk', () {
       // Read as the bold branch, `***x***` matched `**` + `*x` + `**` and left
       // the last asterisk behind as text.
+      //
+      // It is an italic holding a bold now, which is the shape the format
+      // gives it and the shape marked — the parser upstream MarkText uses —
+      // produces: `<em><strong>…</strong></em>`.
       final spans = spansOf('***bold italic***');
 
       expect(spans, hasLength(1));
-      expect(spans.single.type, InlineType.boldItalic);
+      expect(spans.single.type, InlineType.italic);
+      expect(spans.single.children.single.type, InlineType.bold);
       expect(spans.single.text, 'bold italic');
     });
 
@@ -415,7 +420,8 @@ void main() {
       final spans = spansOf('___bold italic___');
 
       expect(spans, hasLength(1));
-      expect(spans.single.type, InlineType.boldItalic);
+      expect(spans.single.type, InlineType.italic);
+      expect(spans.single.children.single.type, InlineType.bold);
       expect(spans.single.text, 'bold italic');
     });
 
@@ -527,10 +533,17 @@ void main() {
     test('a tag wrapping other markup is left alone', () {
       // Reading that needs a real HTML parser, and guessing would be worse
       // than showing what the author wrote.
+      // The tag is understood and so is the markup it wraps: `<b>a *b* c</b>`
+      // is bold holding an italic, which is what every other reader makes of
+      // it. It used to be left as characters because the italic was matched
+      // first and split the text the tag needed to be seen whole.
       final spans = on.parseInline('<b>a *b* c</b>');
 
-      expect(spans.first.text, contains('<b>'));
-      expect(spans.last.text, contains('</b>'));
+      expect(spans.single.type, InlineType.bold);
+      expect(
+        spans.single.children.map((c) => c.type).toList(),
+        contains(InlineType.italic),
+      );
     });
   });
 
