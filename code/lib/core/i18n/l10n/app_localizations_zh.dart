@@ -81,6 +81,36 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String exportFailed(String message) {
+    return '导出文档失败：$message';
+  }
+
+  @override
+  String fileOpenFailed(String message) {
+    return '打开文件失败：$message';
+  }
+
+  @override
+  String get saveConflictTitle => '文件已在磁盘上被修改';
+
+  @override
+  String saveConflictBody(String name) {
+    return '打开之后，别的程序修改了“$name”。现在保存会覆盖掉那些改动。';
+  }
+
+  @override
+  String get saveConflictOverwrite => '覆盖';
+
+  @override
+  String get saveConflictReload => '丢弃我的编辑并重新载入';
+
+  @override
+  String get saveConflictCancel => '取消';
+
+  @override
+  String get saveConflictBanner => '文件已在磁盘上被修改——此文件的自动保存已暂停';
+
+  @override
   String fileOperationFailed(String message) {
     return '文件操作失败：$message';
   }
@@ -549,6 +579,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String get keybindingsReset => '恢复默认';
 
   @override
+  String keybindingsConflict(String action) {
+    return '已被“$action”占用。设到这里会让那个命令没有快捷键。';
+  }
+
+  @override
+  String get keybindingsTakeOver => '夺过来';
+
+  @override
   String get statusWords => '单词';
 
   @override
@@ -686,6 +724,21 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String confirmDeleteFile(String fileName) {
     return '确定要删除 \"$fileName\" 吗？';
+  }
+
+  @override
+  String confirmTrashFile(String name) {
+    return '将“$name”移到回收站？';
+  }
+
+  @override
+  String confirmTrashFolder(String name) {
+    return '将“$name”及其中所有内容移到回收站？';
+  }
+
+  @override
+  String confirmDeleteFolder(String name) {
+    return '永久删除“$name”及其中所有内容？此操作无法撤销。';
   }
 
   @override

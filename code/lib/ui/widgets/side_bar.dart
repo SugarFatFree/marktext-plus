@@ -18,8 +18,33 @@ import '../../providers/tab_provider.dart';
 import '../screens/settings_screen.dart';
 import '../../providers/sidebar_provider.dart';
 import '../../services/file_service.dart';
+import '../../services/trash_service.dart';
 import 'editor_tab_bar.dart';
 
+
+/// Which question to ask before removing something.
+///
+/// Four cases, and the difference between them is what the reader is
+/// actually agreeing to: a folder takes everything under it, and where the
+/// desktop has no trash the removal cannot be undone. One message for all
+/// four said "Are you sure you want to delete X?" — which, for a folder of
+/// five hundred notes about to be destroyed outright, is not enough.
+@visibleForTesting
+String deleteConfirmationFor(
+  AppLocalizations l10n,
+  String name, {
+  required bool isDirectory,
+  required bool canTrash,
+}) {
+  if (canTrash) {
+    return isDirectory
+        ? l10n.confirmTrashFolder(name)
+        : l10n.confirmTrashFile(name);
+  }
+  return isDirectory
+      ? l10n.confirmDeleteFolder(name)
+      : l10n.confirmDeleteFile(name);
+}
 
 class SideBar extends ConsumerStatefulWidget {
   const SideBar({super.key});
@@ -509,7 +534,15 @@ class _SideBarState extends ConsumerState<SideBar> {
         }
       case 'delete':
         if (!mounted) return;
-        final confirmed = await _showConfirmDialog(this.context, l10n.confirmDeleteFile(node.name));
+        final confirmed = await _showConfirmDialog(
+          this.context,
+          deleteConfirmationFor(
+            l10n,
+            node.name,
+            isDirectory: node.isDirectory,
+            canTrash: TrashService.isAvailable,
+          ),
+        );
         if (confirmed == true) {
           if (!await _runFileOp(
               () => ref.read(fileProvider.notifier).deleteNode(node.path))) {
@@ -616,7 +649,13 @@ class _SideBarState extends ConsumerState<SideBar> {
         if (!mounted) return;
         final confirmed = await _showConfirmDialog(
           this.context,
-          l10n.confirmDeleteFile(file.fileName),
+          deleteConfirmationFor(
+            l10n,
+            file.fileName,
+            // The opened-files list only ever holds documents.
+            isDirectory: false,
+            canTrash: TrashService.isAvailable,
+          ),
         );
         if (confirmed == true) {
           // Through the same provider as the file-tree menu. Deleting the file
@@ -675,7 +714,9 @@ class _SideBarState extends ConsumerState<SideBar> {
       final opened = await FileService().readFileWithLineEnding(filePath);
       if (!mounted) return;
       tabNotifier.loadTabContent(tabId, opened.content,
-          lineEnding: opened.lineEnding, encoding: opened.encoding);
+          lineEnding: opened.lineEnding,
+          encoding: opened.encoding,
+          stamp: opened.stamp);
       // Requested before the new editor exists; it reads the pending target
       // when it initialises.
       if (line != null) ref.read(editorProvider.notifier).scrollToLine(line);

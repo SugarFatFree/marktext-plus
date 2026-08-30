@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import '../../../../utils/text_width.dart';
 import 'dart:ui';
 
 import '../config/responsive_config.dart';
@@ -218,17 +219,21 @@ class DagreLayout extends LayoutEngine {
     }
   }
 
-  double _measureTextWidth(String text, double fontSize) {
-    double width = 0;
-    for (final char in text.runes) {
-      if (char > 0x4E00 && char < 0x9FFF) {
-        width += fontSize * 1.0; // CJK character
-      } else {
-        width += fontSize * 0.6; // Latin character
-      }
-    }
-    return width;
-  }
+  /// Through the shared table, which knows about more than the one block this
+  /// used to check.
+  ///
+  /// It tested `char > 0x4E00 && char < 0x9FFF`, so Chinese was measured
+  /// correctly and Japanese kana, Korean Hangul, fullwidth punctuation and the
+  /// CJK extension blocks were all counted at six tenths of an em — a little
+  /// over half their real width. The label is painted at its natural width
+  /// with no maxWidth, so it did not wrap or get clipped: it hung out over the
+  /// border of its own node. Short labels were saved by the padding, which is
+  /// why this showed up on a sentence and not on a word.
+  ///
+  /// The bounds were exclusive at both ends too, so 一 and 龿 fell through to
+  /// the narrow case.
+  double _measureTextWidth(String text, double fontSize) =>
+      estimatedTextWidth(text, fontSize);
 
   void _buildGraph(_LayoutContext context) {
     // Initialize adjacency lists
@@ -511,8 +516,14 @@ class DagreLayout extends LayoutEngine {
       if (edge.label != null && edge.label!.isNotEmpty) {
         final edgeStyle = edge.style ?? style.defaultEdgeStyle;
         final fontSize = edgeStyle.labelFontSize;
-        // Account for line wrapping at ~120px max width
-        final rawWidth = edge.label!.length * fontSize * 0.7; // Chinese chars wider
+        // Account for line wrapping at ~120px max width.
+        //
+        // The 0.7 was a compromise between Latin and CJK — the comment beside
+        // it said "Chinese chars wider" and then charged every character the
+        // same. It over-reserves for an English label and under-reserves for a
+        // Chinese one, and the wrap count is derived from it, so a Chinese
+        // label was also given too few lines to wrap into.
+        final rawWidth = estimatedTextWidth(edge.label!, fontSize);
         final wrappedWidth = math.min(rawWidth, 120.0);
         final wrapLines = (rawWidth / 120.0).ceil().clamp(1, 4);
         final labelHeight = fontSize * 1.5 * wrapLines;
@@ -620,6 +631,18 @@ class DagreLayout extends LayoutEngine {
     } else {
       totalHeight = mainOffset - rankSep + style.padding;
       totalWidth += style.padding;
+    }
+
+    // The canvas was measured from the nodes alone. An edge label is drawn
+    // centred on its edge, so on a chain one node wide — `A -->|长标签| B` —
+    // it reached past both sides of the diagram's own bounds and was cut off
+    // by whatever the diagram is drawn inside. Only the label's own width can
+    // say how much room it needs, and nothing else here knows about it.
+    if (maxLabelWidth > 0) {
+      totalWidth = math.max(totalWidth, maxLabelWidth + style.padding * 2);
+    }
+    if (maxLabelHeight > 0) {
+      totalHeight = math.max(totalHeight, maxLabelHeight + style.padding * 2);
     }
 
     // Apply direction reversal

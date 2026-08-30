@@ -46,3 +46,5 @@ false 时带 `"false"`。实现也只有一行——`domNode.setAttribute('spell
 
 一旦具备条件（能打包一份 MIT/LGPL 词库，或 Flutter 桌面端补上该 channel），
 再回来做。**这是对照上游功能清单里唯一仍然缺失的一项。**
+
+---

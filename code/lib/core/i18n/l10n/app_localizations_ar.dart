@@ -86,6 +86,37 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String exportFailed(String message) {
+    return 'تعذّر تصدير المستند: $message';
+  }
+
+  @override
+  String fileOpenFailed(String message) {
+    return 'تعذّر فتح الملف: $message';
+  }
+
+  @override
+  String get saveConflictTitle => 'تغيّر الملف على القرص';
+
+  @override
+  String saveConflictBody(String name) {
+    return 'غيّر برنامج آخر «$name» بعد فتحه. الحفظ الآن سيكتب فوق ذلك التغيير.';
+  }
+
+  @override
+  String get saveConflictOverwrite => 'الكتابة فوقه';
+
+  @override
+  String get saveConflictReload => 'تجاهل تعديلاتي وإعادة التحميل';
+
+  @override
+  String get saveConflictCancel => 'إلغاء';
+
+  @override
+  String get saveConflictBanner =>
+      'تغيّر على القرص — الحفظ التلقائي متوقف مؤقتًا لهذا الملف';
+
+  @override
   String fileOperationFailed(String message) {
     return 'فشلت عملية الملف: $message';
   }
@@ -555,6 +586,14 @@ class AppLocalizationsAr extends AppLocalizations {
   String get keybindingsReset => 'إعادة تعيين الافتراضي';
 
   @override
+  String keybindingsConflict(String action) {
+    return 'مستخدم بالفعل بواسطة «$action». تعيينه هنا يترك ذلك الأمر بلا اختصار.';
+  }
+
+  @override
+  String get keybindingsTakeOver => 'الاستحواذ عليه';
+
+  @override
   String get statusWords => 'كلمات';
 
   @override
@@ -692,6 +731,21 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String confirmDeleteFile(String fileName) {
     return 'هل أنت متأكد من حذف \"$fileName\"؟';
+  }
+
+  @override
+  String confirmTrashFile(String name) {
+    return 'نقل «$name» إلى سلة المهملات؟';
+  }
+
+  @override
+  String confirmTrashFolder(String name) {
+    return 'نقل «$name» وكل ما بداخله إلى سلة المهملات؟';
+  }
+
+  @override
+  String confirmDeleteFolder(String name) {
+    return 'حذف «$name» وكل ما بداخله نهائيًا؟ لا يمكن التراجع عن ذلك.';
   }
 
   @override

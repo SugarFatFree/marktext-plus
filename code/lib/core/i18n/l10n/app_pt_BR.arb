@@ -55,6 +55,14 @@
     }
   },
   "saveFailed": "Não foi possível salvar o arquivo: {message}",
+  "exportFailed": "Não foi possível exportar o documento: {message}",
+  "fileOpenFailed": "Não foi possível abrir o arquivo: {message}",
+  "saveConflictTitle": "O arquivo mudou no disco",
+  "saveConflictBody": "Algo mais alterou “{name}” desde que foi aberto. Salvar agora sobrescreveria essa alteração.",
+  "saveConflictOverwrite": "Sobrescrever",
+  "saveConflictReload": "Descartar minhas edições e recarregar",
+  "saveConflictCancel": "Cancelar",
+  "saveConflictBanner": "Alterado no disco — o salvamento automático está pausado para este arquivo",
   "@saveFailed": {
     "placeholders": {
       "message": {
@@ -221,6 +229,8 @@
   "keybindingsEdit": "Editar atalho",
   "keybindingsPressKeys": "Pressione combinação de teclas...",
   "keybindingsReset": "Restaurar padrão",
+  "keybindingsConflict": "Já usado por “{action}”. Atribuí-lo aqui deixa esse comando sem atalho.",
+  "keybindingsTakeOver": "Tomar para si",
   "statusWords": "Palavras",
   "statusChars": "Caracteres",
   "statusParagraphs": "Parágrafos",
@@ -267,6 +277,9 @@
   "copyFilePath": "Copiar caminho do arquivo",
   "deleteFile": "Excluir arquivo",
   "confirmDeleteFile": "Tem certeza de que deseja excluir \"{fileName}\"?",
+  "confirmTrashFile": "Mover “{name}” para a lixeira?",
+  "confirmTrashFolder": "Mover “{name}” e todo o seu conteúdo para a lixeira?",
+  "confirmDeleteFolder": "Excluir permanentemente “{name}” e todo o seu conteúdo? Não é possível desfazer.",
   "@confirmDeleteFile": {
     "placeholders": {
       "fileName": {

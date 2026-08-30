@@ -135,17 +135,26 @@ class AppMenuBar extends ConsumerWidget {
     if (result == null || result.files.isEmpty) return;
     final path = result.files.single.path;
     if (path == null) return;
-    final opened = await FileService().readFileWithLineEnding(path);
-    final tab = TabInfo(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      filePath: path,
-      fileName: p.basename(path),
-      content: opened.content,
-      lineEnding: opened.lineEnding,
-      encoding: opened.encoding,
-    );
-    ref.read(tabProvider.notifier).addTab(tab);
-    ref.read(settingsProvider.notifier).addRecentFile(path);
+    try {
+      final opened = await FileService().readFileWithLineEnding(path);
+      final tab = TabInfo(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        filePath: path,
+        fileName: p.basename(path),
+        content: opened.content,
+        lineEnding: opened.lineEnding,
+        encoding: opened.encoding,
+        diskStamp: opened.stamp,
+      );
+      ref.read(tabProvider.notifier).addTab(tab);
+      ref.read(settingsProvider.notifier).addRecentFile(path);
+    } catch (e) {
+      // A file can stop being readable between being picked and being read —
+      // permissions, a network share going away, something else deleting it.
+      // The sidebar's open has always said so; this one gave no tab and no
+      // message.
+      reportOpenFailure(e);
+    }
   }
 
   void _openFolder(WidgetRef ref) async {
@@ -164,8 +173,20 @@ class AppMenuBar extends ConsumerWidget {
     if (activeTab == null) return;
     if (activeTab.filePath != null) {
       try {
-        await FileService.saveDocument(activeTab.filePath!, activeTab.content,
-            lineEnding: activeTab.lineEnding, encoding: activeTab.encoding);
+        await FileService.saveDocumentIfUnchanged(
+          activeTab.filePath!,
+          activeTab.content,
+          expect: activeTab.diskStamp,
+          lineEnding: activeTab.lineEnding,
+          encoding: activeTab.encoding,
+        );
+      } on FileChangedOnDiskException {
+        // Something else rewrote the file while it was open. Which version
+        // wins is the reader's decision, not this function's — writing
+        // anyway is how the other version disappears without anyone seeing
+        // it happen.
+        await _resolveSaveConflict(ref, activeTab);
+        return;
       } catch (e) {
         // Left marked as modified, so the dot in the tab bar and the close
         // confirmation both keep telling the truth about what is on disk —
@@ -177,6 +198,53 @@ class AppMenuBar extends ConsumerWidget {
       ref.read(tabProvider.notifier).markSaved(activeTab.id);
     } else {
       _saveFileAs(ref);
+    }
+  }
+
+  /// Asks which version of a file that changed underneath the editor to keep.
+  ///
+  /// Three answers, and no default: overwrite what is on disk, throw away the
+  /// edits and take what is on disk, or do neither and decide later. Cancel
+  /// leaves the tab modified and in conflict, which is what stops auto-save
+  /// from quietly answering the question instead.
+  static Future<void> _resolveSaveConflict(WidgetRef ref, TabInfo tab) async {
+    final context = navigatorKey.currentContext;
+    if (context == null || !context.mounted) return;
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) return;
+
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.saveConflictTitle),
+        content: Text(l10n.saveConflictBody(tab.fileName)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop('cancel'),
+            child: Text(l10n.saveConflictCancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop('reload'),
+            child: Text(l10n.saveConflictReload),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop('overwrite'),
+            child: Text(l10n.saveConflictOverwrite),
+          ),
+        ],
+      ),
+    );
+
+    final notifier = ref.read(tabProvider.notifier);
+    switch (choice) {
+      case 'overwrite':
+        await notifier.overwriteOnDisk(tab.id);
+      case 'reload':
+        await notifier.reloadFromDisk(tab.id);
+      default:
+        // Neither: the tab keeps the edits and stays in conflict, so the
+        // banner remains and auto-save stays out of it.
+        notifier.markDiskConflict(tab.id);
     }
   }
 
@@ -1122,15 +1190,23 @@ class AppMenuBar extends ConsumerWidget {
     // each diagram and left a script from a CDN to draw it, so the diagrams
     // were blank for anyone offline — or on a network that does not reach
     // jsdelivr, which is most company networks.
-    final mermaidImages = await _renderMermaidImages(activeTab.content);
-    // The tab's own path is what relative image references resolve against.
-    await ExportService.exportToHtml(
-      activeTab.content,
-      path,
-      sourcePath: activeTab.filePath,
-      enableHtml: ref.read(settingsProvider).enableHtml,
-      mermaidImages: mermaidImages,
-    );
+    try {
+      final mermaidImages = await _renderMermaidImages(activeTab.content);
+      // The tab's own path is what relative image references resolve against.
+      await ExportService.exportToHtml(
+        activeTab.content,
+        path,
+        sourcePath: activeTab.filePath,
+        enableHtml: ref.read(settingsProvider).enableHtml,
+        mermaidImages: mermaidImages,
+      );
+    } catch (e) {
+      // An unwritable path, a folder where a file was expected, a diagram
+      // that will not render. Said out loud, because this is an `async void`
+      // handler: the throw used to escape with nothing to catch it, so
+      // choosing a filename and pressing Export did nothing at all.
+      reportExportFailure(e);
+    }
   }
 
   void _exportPdf(WidgetRef ref) async {
@@ -1143,14 +1219,18 @@ class AppMenuBar extends ConsumerWidget {
       allowedExtensions: ['pdf'],
     );
     if (path == null) return;
-    final mermaidImages = await _renderMermaidImages(activeTab.content);
-    await ExportService.exportToPdf(
-      activeTab.content,
-      path,
-      mermaidImages: mermaidImages,
-      sourcePath: activeTab.filePath,
-      enableHtml: ref.read(settingsProvider).enableHtml,
-    );
+    try {
+      final mermaidImages = await _renderMermaidImages(activeTab.content);
+      await ExportService.exportToPdf(
+        activeTab.content,
+        path,
+        mermaidImages: mermaidImages,
+        sourcePath: activeTab.filePath,
+        enableHtml: ref.read(settingsProvider).enableHtml,
+      );
+    } catch (e) {
+      reportExportFailure(e);
+    }
   }
 
   /// Hands the document to the system print dialog.
@@ -1161,19 +1241,25 @@ class AppMenuBar extends ConsumerWidget {
   void _print(WidgetRef ref) async {
     final activeTab = ref.read(activeTabProvider);
     if (activeTab == null) return;
-    final mermaidImages = await _renderMermaidImages(activeTab.content);
-    final enableHtml = ref.read(settingsProvider).enableHtml;
-    await Printing.layoutPdf(
-      name: p.basenameWithoutExtension(activeTab.fileName),
-      onLayout: (_) async => Uint8List.fromList(
-        await ExportService.pdfBytes(
-          activeTab.content,
-          mermaidImages: mermaidImages,
-          sourcePath: activeTab.filePath,
-          enableHtml: enableHtml,
+    try {
+      final mermaidImages = await _renderMermaidImages(activeTab.content);
+      final enableHtml = ref.read(settingsProvider).enableHtml;
+      await Printing.layoutPdf(
+        name: p.basenameWithoutExtension(activeTab.fileName),
+        onLayout: (_) async => Uint8List.fromList(
+          await ExportService.pdfBytes(
+            activeTab.content,
+            mermaidImages: mermaidImages,
+            sourcePath: activeTab.filePath,
+            enableHtml: enableHtml,
+          ),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      // Includes "there is no printing service here", which a Linux box
+      // without CUPS answers with. Better said than swallowed.
+      reportExportFailure(e);
+    }
   }
 
   void _exportWord(WidgetRef ref) async {
@@ -1186,14 +1272,18 @@ class AppMenuBar extends ConsumerWidget {
       allowedExtensions: ['docx'],
     );
     if (path == null) return;
-    final mermaidImages = await _renderMermaidImages(activeTab.content);
-    await ExportService.exportToDocx(
-      activeTab.content,
-      path,
-      mermaidImages: mermaidImages,
-      sourcePath: activeTab.filePath,
-      enableHtml: ref.read(settingsProvider).enableHtml,
-    );
+    try {
+      final mermaidImages = await _renderMermaidImages(activeTab.content);
+      await ExportService.exportToDocx(
+        activeTab.content,
+        path,
+        mermaidImages: mermaidImages,
+        sourcePath: activeTab.filePath,
+        enableHtml: ref.read(settingsProvider).enableHtml,
+      );
+    } catch (e) {
+      reportExportFailure(e);
+    }
   }
 
   Future<Map<String, Uint8List>> _renderMermaidImages(String markdown) async {
@@ -1283,7 +1373,18 @@ class AppMenuBar extends ConsumerWidget {
   }
 
   void _launchUrl(String url) async {
-    await launchUrl(Uri.parse(url));
+    // `Uri.parse` throws on a malformed address and `launchUrl` throws when
+    // the desktop has no handler registered — a machine with no browser set
+    // answers that way. The preview's own link opening was given this
+    // treatment; the Help menu's was not, so its entries did nothing at all
+    // there.
+    try {
+      final uri = Uri.tryParse(url);
+      if (uri == null) throw FormatException('not a URI', url);
+      if (!await launchUrl(uri)) throw StateError('no handler for $url');
+    } catch (e) {
+      reportOpenFailure(e);
+    }
   }
 
   /// "Export" and the format, in the user's language.
@@ -1362,17 +1463,24 @@ class AppMenuBar extends ConsumerWidget {
       );
       return;
     }
-    final opened = await FileService().readFileWithLineEnding(filePath);
-    final tab = TabInfo(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      filePath: filePath,
-      fileName: p.basename(filePath),
-      content: opened.content,
-      lineEnding: opened.lineEnding,
-      encoding: opened.encoding,
-    );
-    ref.read(tabProvider.notifier).addTab(tab);
-    ref.read(settingsProvider.notifier).addRecentFile(filePath);
+    try {
+      final opened = await FileService().readFileWithLineEnding(filePath);
+      final tab = TabInfo(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        filePath: filePath,
+        fileName: p.basename(filePath),
+        content: opened.content,
+        lineEnding: opened.lineEnding,
+        encoding: opened.encoding,
+        diskStamp: opened.stamp,
+      );
+      ref.read(tabProvider.notifier).addTab(tab);
+      ref.read(settingsProvider.notifier).addRecentFile(filePath);
+    } catch (e) {
+      // The existence check above passed, so this is a file that is there and
+      // cannot be read — which needs saying just as much.
+      reportOpenFailure(e);
+    }
   }
 
   Widget _buildToolbarIcons(

@@ -89,6 +89,37 @@ class AppLocalizationsIt extends AppLocalizations {
   }
 
   @override
+  String exportFailed(String message) {
+    return 'Impossibile esportare il documento: $message';
+  }
+
+  @override
+  String fileOpenFailed(String message) {
+    return 'Impossibile aprire il file: $message';
+  }
+
+  @override
+  String get saveConflictTitle => 'File modificato sul disco';
+
+  @override
+  String saveConflictBody(String name) {
+    return 'Qualcos’altro ha modificato «$name» dopo l’apertura. Salvare ora sovrascriverebbe quella modifica.';
+  }
+
+  @override
+  String get saveConflictOverwrite => 'Sovrascrivi';
+
+  @override
+  String get saveConflictReload => 'Scarta le mie modifiche e ricarica';
+
+  @override
+  String get saveConflictCancel => 'Annulla';
+
+  @override
+  String get saveConflictBanner =>
+      'Modificato sul disco — salvataggio automatico sospeso per questo file';
+
+  @override
   String fileOperationFailed(String message) {
     return 'Operazione sul file non riuscita: $message';
   }
@@ -559,6 +590,14 @@ class AppLocalizationsIt extends AppLocalizations {
   String get keybindingsReset => 'Ripristina predefinito';
 
   @override
+  String keybindingsConflict(String action) {
+    return 'Già usato da «$action». Assegnandolo qui, quel comando resta senza scorciatoia.';
+  }
+
+  @override
+  String get keybindingsTakeOver => 'Prendilo';
+
+  @override
   String get statusWords => 'Parole';
 
   @override
@@ -696,6 +735,21 @@ class AppLocalizationsIt extends AppLocalizations {
   @override
   String confirmDeleteFile(String fileName) {
     return 'Sei sicuro di voler eliminare \"$fileName\"?';
+  }
+
+  @override
+  String confirmTrashFile(String name) {
+    return 'Spostare «$name» nel cestino?';
+  }
+
+  @override
+  String confirmTrashFolder(String name) {
+    return 'Spostare «$name» e tutto il suo contenuto nel cestino?';
+  }
+
+  @override
+  String confirmDeleteFolder(String name) {
+    return 'Eliminare definitivamente «$name» e tutto il suo contenuto? L’operazione non è reversibile.';
   }
 
   @override

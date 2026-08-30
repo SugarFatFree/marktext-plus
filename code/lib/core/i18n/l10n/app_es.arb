@@ -55,6 +55,14 @@
     }
   },
   "saveFailed": "No se pudo guardar el archivo: {message}",
+  "exportFailed": "No se pudo exportar el documento: {message}",
+  "fileOpenFailed": "No se pudo abrir el archivo: {message}",
+  "saveConflictTitle": "El archivo cambió en el disco",
+  "saveConflictBody": "Algo más modificó «{name}» desde que se abrió. Guardar ahora sobrescribiría ese cambio.",
+  "saveConflictOverwrite": "Sobrescribir",
+  "saveConflictReload": "Descartar mis cambios y recargar",
+  "saveConflictCancel": "Cancelar",
+  "saveConflictBanner": "Cambió en el disco: el guardado automático está en pausa para este archivo",
   "@saveFailed": {
     "placeholders": {
       "message": {
@@ -221,6 +229,8 @@
   "keybindingsEdit": "Editar atajo",
   "keybindingsPressKeys": "Presione combinación de teclas...",
   "keybindingsReset": "Restablecer por defecto",
+  "keybindingsConflict": "Ya lo usa «{action}». Asignarlo aquí deja ese comando sin atajo.",
+  "keybindingsTakeOver": "Quitárselo",
   "statusWords": "Palabras",
   "statusChars": "Caracteres",
   "statusParagraphs": "Párrafos",
@@ -267,6 +277,9 @@
   "copyFilePath": "Copiar ruta de archivo",
   "deleteFile": "Eliminar archivo",
   "confirmDeleteFile": "¿Está seguro de que desea eliminar \"{fileName}\"?",
+  "confirmTrashFile": "¿Mover «{name}» a la papelera?",
+  "confirmTrashFolder": "¿Mover «{name}» y todo su contenido a la papelera?",
+  "confirmDeleteFolder": "¿Eliminar definitivamente «{name}» y todo su contenido? No se puede deshacer.",
   "@confirmDeleteFile": {
     "placeholders": {
       "fileName": {

@@ -55,6 +55,14 @@
     }
   },
   "saveFailed": "ファイルを保存できませんでした: {message}",
+  "exportFailed": "ドキュメントを書き出せませんでした：{message}",
+  "fileOpenFailed": "ファイルを開けませんでした：{message}",
+  "saveConflictTitle": "ファイルがディスク上で変更されました",
+  "saveConflictBody": "開いた後に他のプログラムが「{name}」を変更しました。今保存するとその変更を上書きします。",
+  "saveConflictOverwrite": "上書き",
+  "saveConflictReload": "編集を破棄して読み込み直す",
+  "saveConflictCancel": "キャンセル",
+  "saveConflictBanner": "ディスク上で変更されました — このファイルの自動保存は停止中です",
   "@saveFailed": {
     "placeholders": {
       "message": {
@@ -221,6 +229,8 @@
   "keybindingsEdit": "キーバインドを編集",
   "keybindingsPressKeys": "キーの組み合わせを押してください...",
   "keybindingsReset": "デフォルトに戻す",
+  "keybindingsConflict": "「{action}」が使用中です。ここに割り当てると、そのコマンドはショートカットを失います。",
+  "keybindingsTakeOver": "奪う",
   "statusWords": "単語",
   "statusChars": "文字",
   "statusParagraphs": "段落",
@@ -267,6 +277,9 @@
   "copyFilePath": "ファイルパスをコピー",
   "deleteFile": "ファイルを削除",
   "confirmDeleteFile": "\"{fileName}\" を削除してもよろしいですか？",
+  "confirmTrashFile": "「{name}」をゴミ箱に移動しますか？",
+  "confirmTrashFolder": "「{name}」とその中身をすべてゴミ箱に移動しますか？",
+  "confirmDeleteFolder": "「{name}」とその中身をすべて完全に削除しますか？元に戻せません。",
   "@confirmDeleteFile": {
     "placeholders": {
       "fileName": {

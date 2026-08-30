@@ -87,6 +87,15 @@ class AppConfig {
   String sideBarDirectory;
   List<String> sideBarOpenedFiles;
 
+  /// The documents that were open as tabs when the application last closed,
+  /// and which of them was in front.
+  ///
+  /// Distinct from [sideBarOpenedFiles], which is a list the reader curates in
+  /// the sidebar and which nothing removes from when a tab is closed. This one
+  /// is the session: what was on screen.
+  List<String> sessionTabs;
+  String sessionActiveTab;
+
   AppConfig({
     this.sideBarVisible = true,
     this.tabBarVisible = true,
@@ -129,6 +138,8 @@ class AppConfig {
     this.skipVersion = '',
     this.sideBarDirectory = '',
     this.sideBarOpenedFiles = const [],
+    this.sessionTabs = const [],
+    this.sessionActiveTab = '',
   });
 
   Map<String, dynamic> toJson() => {
@@ -173,6 +184,8 @@ class AppConfig {
     'skipVersion': skipVersion,
     'sideBarDirectory': sideBarDirectory,
     'sideBarOpenedFiles': sideBarOpenedFiles,
+    'sessionTabs': sessionTabs,
+    'sessionActiveTab': sessionActiveTab,
   };
 
   factory AppConfig.fromJson(Map<String, dynamic> json) {
@@ -223,6 +236,8 @@ class AppConfig {
       skipVersion: json['skipVersion'] as String? ?? '',
       sideBarDirectory: json['sideBarDirectory'] as String? ?? '',
       sideBarOpenedFiles: (json['sideBarOpenedFiles'] as List?)?.cast<String>() ?? const [],
+      sessionTabs: (json['sessionTabs'] as List?)?.cast<String>() ?? const [],
+      sessionActiveTab: json['sessionActiveTab'] as String? ?? '',
     );
   }
 
@@ -289,6 +304,8 @@ class AppConfig {
     String? skipVersion,
     String? sideBarDirectory,
     List<String>? sideBarOpenedFiles,
+    List<String>? sessionTabs,
+    String? sessionActiveTab,
   }) {
     return AppConfig(
       sideBarVisible: sideBarVisible ?? this.sideBarVisible,
@@ -334,6 +351,8 @@ class AppConfig {
       skipVersion: skipVersion ?? this.skipVersion,
       sideBarDirectory: sideBarDirectory ?? this.sideBarDirectory,
       sideBarOpenedFiles: sideBarOpenedFiles ?? this.sideBarOpenedFiles,
+      sessionTabs: sessionTabs ?? this.sessionTabs,
+      sessionActiveTab: sessionActiveTab ?? this.sessionActiveTab,
     );
   }
 }

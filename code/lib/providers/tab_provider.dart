@@ -141,6 +141,7 @@ class TabNotifier extends StateNotifier<TabState> {
         opened.content,
         lineEnding: opened.lineEnding,
         encoding: opened.encoding,
+        stamp: opened.stamp,
       );
     } catch (_) {
       // The file went away, or was unreadable mid-write. The tab keeps what
@@ -149,6 +150,67 @@ class TabNotifier extends StateNotifier<TabState> {
   }
 
   /// Restore opened-file entries from persisted config (no tabs opened).
+  /// Reopens the documents that were on screen when the application last
+  /// closed.
+  ///
+  /// The tabs appear immediately, empty and marked loading; their contents
+  /// arrive after the first frame. Reading five documents before the window
+  /// is shown would be five file reads between the reader and their editor,
+  /// and this application is meant to start at once.
+  ///
+  /// Files that have since been deleted or moved are passed over — restoring
+  /// a tab onto a path that no longer exists gives a document that cannot be
+  /// read and whose next save would write it back into existence.
+  Future<void> restoreSession(List<String> paths, String activePath) async {
+    if (paths.isEmpty) return;
+    final existing = paths.where((path) => File(path).existsSync()).toList();
+    if (existing.isEmpty) return;
+
+    String? activeId;
+    final restored = <String, String>{};
+    for (var i = 0; i < existing.length; i++) {
+      final path = existing[i];
+      final id = 'session-$i-${path.hashCode}';
+      restored[id] = path;
+      if (path == activePath) activeId = id;
+    }
+
+    state = state.copyWith(
+      tabs: [
+        ...state.tabs,
+        for (final entry in restored.entries)
+          TabInfo(
+            id: entry.key,
+            filePath: entry.value,
+            fileName: p.basename(entry.value),
+            content: '',
+            isLoading: true,
+          ),
+      ],
+      // Whatever was in front, or the first of them if that one is gone.
+      activeTabId: state.activeTabId ?? activeId ?? restored.keys.first,
+    );
+
+    for (final entry in restored.entries) {
+      if (!mounted) return;
+      try {
+        final opened = await FileService().readFileWithLineEnding(entry.value);
+        if (!mounted) return;
+        loadTabContent(
+          entry.key,
+          opened.content,
+          lineEnding: opened.lineEnding,
+          encoding: opened.encoding,
+          stamp: opened.stamp,
+        );
+      } catch (_) {
+        // Unreadable now — permissions, or a file that went away between the
+        // check above and here. Drop the tab rather than leave it spinning.
+        if (mounted) removeTab(entry.key);
+      }
+    }
+  }
+
   void restoreOpenedFiles(List<String> filePaths) {
     StartupTrace.mark('restoring ${filePaths.length} sidebar entries');
     final entries = <OpenedFileEntry>[];
@@ -162,6 +224,26 @@ class TabNotifier extends StateNotifier<TabState> {
     if (entries.isNotEmpty) {
       state = state.copyWith(openedFiles: entries);
     }
+  }
+
+  /// Remembers which documents are open and which is in front.
+  ///
+  /// Written whenever the set of tabs changes rather than at exit: `dispose`
+  /// never runs on the way out — the window is destroyed and the process ends
+  /// — so anything saved only at shutdown would never be saved at all.
+  void _persistSession() {
+    final paths = state.tabs
+        .map((t) => t.filePath)
+        .whereType<String>()
+        .toList();
+    final active = state.tabs
+        .where((t) => t.id == state.activeTabId)
+        .map((t) => t.filePath)
+        .whereType<String>()
+        .firstOrNull;
+    _ref.read(settingsProvider.notifier).updateConfig(
+          (c) => c.copyWith(sessionTabs: paths, sessionActiveTab: active ?? ''),
+        );
   }
 
   void _persistOpenedFiles() {
@@ -233,6 +315,7 @@ class TabNotifier extends StateNotifier<TabState> {
       openedFiles: openedFiles,
     );
     if (openedFilesChanged) _persistOpenedFiles();
+    _persistSession();
   }
 
   void removeTab(String id) {
@@ -242,6 +325,7 @@ class TabNotifier extends StateNotifier<TabState> {
       newActiveId = tabs.isNotEmpty ? tabs.last.id : null;
     }
     state = state.copyWith(tabs: tabs, activeTabId: newActiveId);
+    _persistSession();
   }
 
   /// Remove a file from the sidebar opened-files list.
@@ -270,6 +354,7 @@ class TabNotifier extends StateNotifier<TabState> {
 
   void setActiveTab(String id) {
     state = state.copyWith(activeTabId: id);
+    _persistSession();
   }
 
   /// Changes which line ending [id] is written with.
@@ -330,11 +415,36 @@ class TabNotifier extends StateNotifier<TabState> {
     _scheduleAutoSave(id);
   }
 
+  /// Records what a tab's file looks like right now.
+  ///
+  /// Called wherever a document arrives from disk or goes to it. Doing it at
+  /// each of those call sites instead would mean one of them eventually not
+  /// doing it — and a tab with no stamp is a tab whose saves are unchecked,
+  /// which looks exactly like a tab that is fine.
+  Future<void> refreshDiskStamp(String id) async {
+    final tab = state.tabs.where((t) => t.id == id).firstOrNull;
+    final path = tab?.filePath;
+    if (path == null) return;
+    final stamp = await FileService.stampOf(path);
+    // The stat took a moment, and in that moment the notifier may have been
+    // disposed — a tab closed, or the application shutting down. Touching
+    // `state` then throws, and this is called without an await, so the throw
+    // escapes as an unhandled asynchronous error with nothing to catch it.
+    if (!mounted) return;
+    if (!state.tabs.any((t) => t.id == id)) return;
+    state = state.copyWith(
+      tabs: state.tabs
+          .map((t) => t.id == id ? t.copyWith(diskStamp: stamp) : t)
+          .toList(),
+    );
+  }
+
   void loadTabContent(
     String id,
     String content, {
     LineEnding? lineEnding,
     FileEncoding? encoding,
+    ({DateTime modified, int size})? stamp,
   }) {
     final tabs = state.tabs.map((tab) {
       if (tab.id == id) {
@@ -345,6 +455,9 @@ class TabNotifier extends StateNotifier<TabState> {
           isLoading: false,
           lineEnding: lineEnding,
           encoding: encoding,
+          // The content came from disk, so this is what the file looks like.
+          diskStamp: stamp,
+          diskConflict: false,
           externalRevision: tab.externalRevision + 1,
         );
       }
@@ -379,14 +492,24 @@ class TabNotifier extends StateNotifier<TabState> {
   Future<void> _performAutoSave(String tabId) async {
     final tab = state.tabs.where((t) => t.id == tabId).firstOrNull;
     if (tab == null || tab.filePath == null || !tab.isModified) return;
+    // Already known to be in conflict: writing now would resolve it by
+    // discarding whatever is on disk, which is not a decision auto-save gets
+    // to make.
+    if (tab.diskConflict) return;
     try {
-      await FileService.saveDocument(
+      await FileService.saveDocumentIfUnchanged(
         tab.filePath!,
         tab.content,
+        expect: tab.diskStamp,
         lineEnding: tab.lineEnding,
         encoding: tab.encoding,
       );
-      markSaved(tabId);
+      await _markSavedWithStamp(tabId, tab.filePath!);
+    } on FileChangedOnDiskException {
+      // Something else rewrote the file while this document was being edited.
+      // Auto-save stops here and says so rather than choosing a winner: the
+      // reader's work stays in the tab, and what is on disk stays on disk.
+      _setDiskConflict(tabId, true);
     } catch (_) {
       // Left marked as modified so the close confirmation still fires and the
       // status bar keeps showing the dot: a silent success here would tell the
@@ -394,14 +517,105 @@ class TabNotifier extends StateNotifier<TabState> {
     }
   }
 
+  /// Marks the tab saved and records what the file now looks like, so the
+  /// next save compares against this write rather than the original read.
+  Future<void> _markSavedWithStamp(String id, String path) async {
+    final stamp = await FileService.stampOf(path);
+    if (!mounted) return;
+    state = state.copyWith(
+      tabs: state.tabs
+          .map((tab) => tab.id == id
+              ? tab.copyWith(
+                  isModified: false,
+                  diskStamp: stamp,
+                  diskConflict: false,
+                )
+              : tab)
+          .toList(),
+    );
+  }
+
+  /// Records that a tab's file changed underneath the editor.
+  void markDiskConflict(String id) => _setDiskConflict(id, true);
+
+  /// Records, or clears, that a tab's file changed underneath the editor.
+  void _setDiskConflict(String id, bool conflict) {
+    if (state.tabs.where((t) => t.id == id).firstOrNull?.diskConflict ==
+        conflict) {
+      return;
+    }
+    state = state.copyWith(
+      tabs: state.tabs
+          .map((tab) =>
+              tab.id == id ? tab.copyWith(diskConflict: conflict) : tab)
+          .toList(),
+    );
+  }
+
+  /// Writes the document over whatever is on disk, and clears the conflict.
+  ///
+  /// The reader asking for this is the whole reason [saveDocument] still
+  /// exists without a check.
+  Future<bool> overwriteOnDisk(String id) async {
+    final tab = state.tabs.where((t) => t.id == id).firstOrNull;
+    if (tab?.filePath == null) return false;
+    try {
+      await FileService.saveDocument(
+        tab!.filePath!,
+        tab.content,
+        lineEnding: tab.lineEnding,
+        encoding: tab.encoding,
+      );
+      await _markSavedWithStamp(id, tab.filePath!);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Throws away the tab's edits and takes what is on disk.
+  Future<bool> reloadFromDisk(String id) async {
+    final tab = state.tabs.where((t) => t.id == id).firstOrNull;
+    if (tab?.filePath == null) return false;
+    try {
+      final opened =
+          await FileService().readFileWithLineEnding(tab!.filePath!);
+      final stamp = await FileService.stampOf(tab.filePath!);
+      if (!mounted) return false;
+      loadTabContent(
+        id,
+        opened.content,
+        lineEnding: opened.lineEnding,
+        encoding: opened.encoding,
+      );
+      state = state.copyWith(
+        tabs: state.tabs
+            .map((t) => t.id == id
+                ? t.copyWith(
+                    isModified: false,
+                    diskStamp: stamp,
+                    diskConflict: false,
+                  )
+                : t)
+            .toList(),
+      );
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   void markSaved(String id) {
     final tabs = state.tabs.map((tab) {
       if (tab.id == id) {
-        return tab.copyWith(isModified: false);
+        return tab.copyWith(isModified: false, diskConflict: false);
       }
       return tab;
     }).toList();
     state = state.copyWith(tabs: tabs);
+    // The file on disk is now this document, so the next save compares
+    // against this write rather than against whatever was read originally.
+    unawaited(refreshDiskStamp(id));
   }
 
   /// Rebinds a tab to a different file, after a rename or a "save as".

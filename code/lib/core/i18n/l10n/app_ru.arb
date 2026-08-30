@@ -55,6 +55,14 @@
     }
   },
   "saveFailed": "Не удалось сохранить файл: {message}",
+  "exportFailed": "Не удалось экспортировать документ: {message}",
+  "fileOpenFailed": "Не удалось открыть файл: {message}",
+  "saveConflictTitle": "Файл изменён на диске",
+  "saveConflictBody": "После открытия «{name}» был изменён другой программой. Сохранение сейчас перезапишет эти изменения.",
+  "saveConflictOverwrite": "Перезаписать",
+  "saveConflictReload": "Отбросить мои правки и перечитать",
+  "saveConflictCancel": "Отмена",
+  "saveConflictBanner": "Изменён на диске — автосохранение для этого файла приостановлено",
   "@saveFailed": {
     "placeholders": {
       "message": {
@@ -221,6 +229,8 @@
   "keybindingsEdit": "Изменить сочетание",
   "keybindingsPressKeys": "Нажмите сочетание клавиш...",
   "keybindingsReset": "Сбросить по умолчанию",
+  "keybindingsConflict": "Уже занято действием «{action}». Назначив здесь, вы оставите ту команду без сочетания.",
+  "keybindingsTakeOver": "Забрать",
   "statusWords": "Слова",
   "statusChars": "Символы",
   "statusParagraphs": "Абзацы",
@@ -267,6 +277,9 @@
   "copyFilePath": "Копировать путь к файлу",
   "deleteFile": "Удалить файл",
   "confirmDeleteFile": "Вы уверены, что хотите удалить \"{fileName}\"?",
+  "confirmTrashFile": "Переместить «{name}» в корзину?",
+  "confirmTrashFolder": "Переместить «{name}» и всё её содержимое в корзину?",
+  "confirmDeleteFolder": "Удалить «{name}» и всё её содержимое безвозвратно? Это нельзя отменить.",
   "@confirmDeleteFile": {
     "placeholders": {
       "fileName": {

@@ -55,6 +55,14 @@
     }
   },
   "saveFailed": "保存失败：{message}",
+  "exportFailed": "导出文档失败：{message}",
+  "fileOpenFailed": "打开文件失败：{message}",
+  "saveConflictTitle": "文件已在磁盘上被修改",
+  "saveConflictBody": "打开之后，别的程序修改了“{name}”。现在保存会覆盖掉那些改动。",
+  "saveConflictOverwrite": "覆盖",
+  "saveConflictReload": "丢弃我的编辑并重新载入",
+  "saveConflictCancel": "取消",
+  "saveConflictBanner": "文件已在磁盘上被修改——此文件的自动保存已暂停",
   "@saveFailed": {
     "placeholders": {
       "message": {
@@ -221,6 +229,8 @@
   "keybindingsEdit": "编辑快捷键",
   "keybindingsPressKeys": "按下组合键...",
   "keybindingsReset": "恢复默认",
+  "keybindingsConflict": "已被“{action}”占用。设到这里会让那个命令没有快捷键。",
+  "keybindingsTakeOver": "夺过来",
   "statusWords": "单词",
   "statusChars": "字符",
   "statusParagraphs": "段落",
@@ -267,6 +277,9 @@
   "copyFilePath": "复制文件路径",
   "deleteFile": "删除文件",
   "confirmDeleteFile": "确定要删除 \"{fileName}\" 吗？",
+  "confirmTrashFile": "将“{name}”移到回收站？",
+  "confirmTrashFolder": "将“{name}”及其中所有内容移到回收站？",
+  "confirmDeleteFolder": "永久删除“{name}”及其中所有内容？此操作无法撤销。",
   "@confirmDeleteFile": {
     "placeholders": {
       "fileName": {

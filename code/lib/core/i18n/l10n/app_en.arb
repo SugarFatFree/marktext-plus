@@ -55,6 +55,17 @@
     }
   },
   "saveFailed": "Could not save the file: {message}",
+  "exportFailed": "Could not export the document: {message}",
+  "fileOpenFailed": "Could not open the file: {message}",
+  "@fileOpenFailed": {"placeholders": {"message": {"type": "String"}}},
+  "@exportFailed": {"placeholders": {"message": {"type": "String"}}},
+  "saveConflictTitle": "File changed on disk",
+  "saveConflictBody": "Something else changed “{name}” since it was opened. Saving now would write over that change.",
+  "saveConflictOverwrite": "Overwrite",
+  "saveConflictReload": "Discard my edits and reload",
+  "saveConflictCancel": "Cancel",
+  "saveConflictBanner": "Changed on disk — auto-save is paused for this file",
+  "@saveConflictBody": {"placeholders": {"name": {"type": "String"}}},
   "@saveFailed": {
     "placeholders": {
       "message": {
@@ -260,6 +271,9 @@
   "keybindingsEdit": "Edit Keybinding",
   "keybindingsPressKeys": "Press key combination...",
   "keybindingsReset": "Reset to Default",
+  "keybindingsConflict": "Already used by “{action}”. Assigning it here leaves that command with no shortcut.",
+  "@keybindingsConflict": {"placeholders": {"action": {"type": "String"}}},
+  "keybindingsTakeOver": "Take it over",
   "statusWords": "Words",
   "statusChars": "Chars",
   "statusParagraphs": "Paragraphs",
@@ -306,6 +320,12 @@
   "copyFilePath": "Copy File Path",
   "deleteFile": "Delete File",
   "confirmDeleteFile": "Are you sure you want to delete \"{fileName}\"?",
+  "confirmTrashFile": "Move “{name}” to the trash?",
+  "@confirmTrashFile": {"placeholders": {"name": {"type": "String"}}},
+  "confirmTrashFolder": "Move “{name}” and everything in it to the trash?",
+  "@confirmTrashFolder": {"placeholders": {"name": {"type": "String"}}},
+  "confirmDeleteFolder": "Permanently delete “{name}” and everything in it? This cannot be undone.",
+  "@confirmDeleteFolder": {"placeholders": {"name": {"type": "String"}}},
   "@confirmDeleteFile": {
     "placeholders": {
       "fileName": {

@@ -85,6 +85,37 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String exportFailed(String message) {
+    return 'Could not export the document: $message';
+  }
+
+  @override
+  String fileOpenFailed(String message) {
+    return 'Could not open the file: $message';
+  }
+
+  @override
+  String get saveConflictTitle => 'File changed on disk';
+
+  @override
+  String saveConflictBody(String name) {
+    return 'Something else changed “$name” since it was opened. Saving now would write over that change.';
+  }
+
+  @override
+  String get saveConflictOverwrite => 'Overwrite';
+
+  @override
+  String get saveConflictReload => 'Discard my edits and reload';
+
+  @override
+  String get saveConflictCancel => 'Cancel';
+
+  @override
+  String get saveConflictBanner =>
+      'Changed on disk — auto-save is paused for this file';
+
+  @override
   String fileOperationFailed(String message) {
     return 'File operation failed: $message';
   }
@@ -555,6 +586,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get keybindingsReset => 'Reset to Default';
 
   @override
+  String keybindingsConflict(String action) {
+    return 'Already used by “$action”. Assigning it here leaves that command with no shortcut.';
+  }
+
+  @override
+  String get keybindingsTakeOver => 'Take it over';
+
+  @override
   String get statusWords => 'Words';
 
   @override
@@ -692,6 +731,21 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String confirmDeleteFile(String fileName) {
     return 'Are you sure you want to delete \"$fileName\"?';
+  }
+
+  @override
+  String confirmTrashFile(String name) {
+    return 'Move “$name” to the trash?';
+  }
+
+  @override
+  String confirmTrashFolder(String name) {
+    return 'Move “$name” and everything in it to the trash?';
+  }
+
+  @override
+  String confirmDeleteFolder(String name) {
+    return 'Permanently delete “$name” and everything in it? This cannot be undone.';
   }
 
   @override

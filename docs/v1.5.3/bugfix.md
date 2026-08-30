@@ -86,3 +86,5 @@ pendingFormat = FormatAction.bold      ← 还挂着
 
 - `code/lib/core/constants.dart`
 - `.github/workflows/release.yml`
+
+---

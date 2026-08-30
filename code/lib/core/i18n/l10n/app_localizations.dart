@@ -237,6 +237,54 @@ abstract class AppLocalizations {
   /// **'Could not save the file: {message}'**
   String saveFailed(String message);
 
+  /// No description provided for @exportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not export the document: {message}'**
+  String exportFailed(String message);
+
+  /// No description provided for @fileOpenFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open the file: {message}'**
+  String fileOpenFailed(String message);
+
+  /// No description provided for @saveConflictTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'File changed on disk'**
+  String get saveConflictTitle;
+
+  /// No description provided for @saveConflictBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Something else changed “{name}” since it was opened. Saving now would write over that change.'**
+  String saveConflictBody(String name);
+
+  /// No description provided for @saveConflictOverwrite.
+  ///
+  /// In en, this message translates to:
+  /// **'Overwrite'**
+  String get saveConflictOverwrite;
+
+  /// No description provided for @saveConflictReload.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard my edits and reload'**
+  String get saveConflictReload;
+
+  /// No description provided for @saveConflictCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get saveConflictCancel;
+
+  /// No description provided for @saveConflictBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Changed on disk — auto-save is paused for this file'**
+  String get saveConflictBanner;
+
   /// No description provided for @fileOperationFailed.
   ///
   /// In en, this message translates to:
@@ -1149,6 +1197,18 @@ abstract class AppLocalizations {
   /// **'Reset to Default'**
   String get keybindingsReset;
 
+  /// No description provided for @keybindingsConflict.
+  ///
+  /// In en, this message translates to:
+  /// **'Already used by “{action}”. Assigning it here leaves that command with no shortcut.'**
+  String keybindingsConflict(String action);
+
+  /// No description provided for @keybindingsTakeOver.
+  ///
+  /// In en, this message translates to:
+  /// **'Take it over'**
+  String get keybindingsTakeOver;
+
   /// No description provided for @statusWords.
   ///
   /// In en, this message translates to:
@@ -1424,6 +1484,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Are you sure you want to delete \"{fileName}\"?'**
   String confirmDeleteFile(String fileName);
+
+  /// No description provided for @confirmTrashFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Move “{name}” to the trash?'**
+  String confirmTrashFile(String name);
+
+  /// No description provided for @confirmTrashFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Move “{name}” and everything in it to the trash?'**
+  String confirmTrashFolder(String name);
+
+  /// No description provided for @confirmDeleteFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanently delete “{name}” and everything in it? This cannot be undone.'**
+  String confirmDeleteFolder(String name);
 
   /// No description provided for @newFolder.
   ///

@@ -90,6 +90,37 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String exportFailed(String message) {
+    return 'Impossible d’exporter le document : $message';
+  }
+
+  @override
+  String fileOpenFailed(String message) {
+    return 'Impossible d’ouvrir le fichier : $message';
+  }
+
+  @override
+  String get saveConflictTitle => 'Fichier modifié sur le disque';
+
+  @override
+  String saveConflictBody(String name) {
+    return 'Quelque chose d’autre a modifié « $name » depuis son ouverture. Enregistrer maintenant écraserait cette modification.';
+  }
+
+  @override
+  String get saveConflictOverwrite => 'Écraser';
+
+  @override
+  String get saveConflictReload => 'Abandonner mes modifications et recharger';
+
+  @override
+  String get saveConflictCancel => 'Annuler';
+
+  @override
+  String get saveConflictBanner =>
+      'Modifié sur le disque — enregistrement automatique suspendu pour ce fichier';
+
+  @override
   String fileOperationFailed(String message) {
     return 'Échec de l\'opération sur le fichier : $message';
   }
@@ -562,6 +593,14 @@ class AppLocalizationsFr extends AppLocalizations {
   String get keybindingsReset => 'Réinitialiser par défaut';
 
   @override
+  String keybindingsConflict(String action) {
+    return 'Déjà utilisé par « $action ». L’attribuer ici laisse cette commande sans raccourci.';
+  }
+
+  @override
+  String get keybindingsTakeOver => 'Le reprendre';
+
+  @override
   String get statusWords => 'Mots';
 
   @override
@@ -699,6 +738,21 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String confirmDeleteFile(String fileName) {
     return 'Êtes-vous sûr de vouloir supprimer \"$fileName\" ?';
+  }
+
+  @override
+  String confirmTrashFile(String name) {
+    return 'Mettre « $name » à la corbeille ?';
+  }
+
+  @override
+  String confirmTrashFolder(String name) {
+    return 'Mettre « $name » et tout son contenu à la corbeille ?';
+  }
+
+  @override
+  String confirmDeleteFolder(String name) {
+    return 'Supprimer définitivement « $name » et tout son contenu ? Cette action est irréversible.';
   }
 
   @override

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
@@ -50,6 +51,20 @@ class UpdateService {
       return (update: null, reachable: false);
     }
   }
+
+  /// Whether [remote] names a later version than [current].
+  ///
+  /// This is what decides whether the reader is told an update is waiting, so
+  /// it being wrong is not quiet: issue #1 was this comparison measuring
+  /// every release against a stale constant, and everyone on a current build
+  /// was told for weeks that there was something newer.
+  ///
+  /// Opened up so it can be tested. It reaches the network otherwise, and a
+  /// comparison that only runs against whatever GitHub answers today is a
+  /// comparison nobody has checked.
+  @visibleForTesting
+  static bool isNewer(String remote, String current) =>
+      _isNewer(remote, current);
 
   static bool _isNewer(String remote, String current) {
     final r = remote.split('.').map(int.tryParse).toList();

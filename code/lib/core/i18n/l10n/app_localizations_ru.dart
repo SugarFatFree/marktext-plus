@@ -87,6 +87,37 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String exportFailed(String message) {
+    return 'Не удалось экспортировать документ: $message';
+  }
+
+  @override
+  String fileOpenFailed(String message) {
+    return 'Не удалось открыть файл: $message';
+  }
+
+  @override
+  String get saveConflictTitle => 'Файл изменён на диске';
+
+  @override
+  String saveConflictBody(String name) {
+    return 'После открытия «$name» был изменён другой программой. Сохранение сейчас перезапишет эти изменения.';
+  }
+
+  @override
+  String get saveConflictOverwrite => 'Перезаписать';
+
+  @override
+  String get saveConflictReload => 'Отбросить мои правки и перечитать';
+
+  @override
+  String get saveConflictCancel => 'Отмена';
+
+  @override
+  String get saveConflictBanner =>
+      'Изменён на диске — автосохранение для этого файла приостановлено';
+
+  @override
   String fileOperationFailed(String message) {
     return 'Не удалось выполнить операцию с файлом: $message';
   }
@@ -556,6 +587,14 @@ class AppLocalizationsRu extends AppLocalizations {
   String get keybindingsReset => 'Сбросить по умолчанию';
 
   @override
+  String keybindingsConflict(String action) {
+    return 'Уже занято действием «$action». Назначив здесь, вы оставите ту команду без сочетания.';
+  }
+
+  @override
+  String get keybindingsTakeOver => 'Забрать';
+
+  @override
   String get statusWords => 'Слова';
 
   @override
@@ -693,6 +732,21 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String confirmDeleteFile(String fileName) {
     return 'Вы уверены, что хотите удалить \"$fileName\"?';
+  }
+
+  @override
+  String confirmTrashFile(String name) {
+    return 'Переместить «$name» в корзину?';
+  }
+
+  @override
+  String confirmTrashFolder(String name) {
+    return 'Переместить «$name» и всё её содержимое в корзину?';
+  }
+
+  @override
+  String confirmDeleteFolder(String name) {
+    return 'Удалить «$name» и всё её содержимое безвозвратно? Это нельзя отменить.';
   }
 
   @override

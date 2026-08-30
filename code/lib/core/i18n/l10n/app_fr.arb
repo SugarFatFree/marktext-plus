@@ -55,6 +55,14 @@
     }
   },
   "saveFailed": "Impossible d'enregistrer le fichier : {message}",
+  "exportFailed": "Impossible d’exporter le document : {message}",
+  "fileOpenFailed": "Impossible d’ouvrir le fichier : {message}",
+  "saveConflictTitle": "Fichier modifié sur le disque",
+  "saveConflictBody": "Quelque chose d’autre a modifié « {name} » depuis son ouverture. Enregistrer maintenant écraserait cette modification.",
+  "saveConflictOverwrite": "Écraser",
+  "saveConflictReload": "Abandonner mes modifications et recharger",
+  "saveConflictCancel": "Annuler",
+  "saveConflictBanner": "Modifié sur le disque — enregistrement automatique suspendu pour ce fichier",
   "@saveFailed": {
     "placeholders": {
       "message": {
@@ -221,6 +229,8 @@
   "keybindingsEdit": "Modifier le raccourci",
   "keybindingsPressKeys": "Appuyez sur une combinaison de touches...",
   "keybindingsReset": "Réinitialiser par défaut",
+  "keybindingsConflict": "Déjà utilisé par « {action} ». L’attribuer ici laisse cette commande sans raccourci.",
+  "keybindingsTakeOver": "Le reprendre",
   "statusWords": "Mots",
   "statusChars": "Caractères",
   "statusParagraphs": "Paragraphes",
@@ -267,6 +277,9 @@
   "copyFilePath": "Copier le chemin du fichier",
   "deleteFile": "Supprimer le fichier",
   "confirmDeleteFile": "Êtes-vous sûr de vouloir supprimer \"{fileName}\" ?",
+  "confirmTrashFile": "Mettre « {name} » à la corbeille ?",
+  "confirmTrashFolder": "Mettre « {name} » et tout son contenu à la corbeille ?",
+  "confirmDeleteFolder": "Supprimer définitivement « {name} » et tout son contenu ? Cette action est irréversible.",
   "@confirmDeleteFile": {
     "placeholders": {
       "fileName": {

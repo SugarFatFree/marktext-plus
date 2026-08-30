@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../support/wait_for.dart';
 import 'package:marktext_plus/core/config/app_config.dart';
 import 'package:marktext_plus/core/config/config_service.dart';
 import 'package:marktext_plus/models/line_ending.dart';
@@ -141,7 +143,11 @@ void main() {
 
     // Edit, then let the auto-save write it out.
     saving.read(tabProvider.notifier).updateContent('tab-1', 'mine');
-    await Future<void>.delayed(const Duration(milliseconds: 300));
+    // Not a fixed wait: the auto-save timer is 100 ms and the write behind it
+    // is several asynchronous steps, which on a loaded runner do not finish
+    // inside any number this test could pick. This one failed twice on CI and
+    // never here, which is what that looks like.
+    await waitFor(() => file.readAsStringSync() == 'mine');
     expect(file.readAsStringSync(), 'mine', reason: 'auto-save should have run');
 
     // A formatter rewrites the file while the watcher is still debouncing.

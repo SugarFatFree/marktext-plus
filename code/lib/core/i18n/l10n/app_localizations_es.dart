@@ -89,6 +89,37 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String exportFailed(String message) {
+    return 'No se pudo exportar el documento: $message';
+  }
+
+  @override
+  String fileOpenFailed(String message) {
+    return 'No se pudo abrir el archivo: $message';
+  }
+
+  @override
+  String get saveConflictTitle => 'El archivo cambió en el disco';
+
+  @override
+  String saveConflictBody(String name) {
+    return 'Algo más modificó «$name» desde que se abrió. Guardar ahora sobrescribiría ese cambio.';
+  }
+
+  @override
+  String get saveConflictOverwrite => 'Sobrescribir';
+
+  @override
+  String get saveConflictReload => 'Descartar mis cambios y recargar';
+
+  @override
+  String get saveConflictCancel => 'Cancelar';
+
+  @override
+  String get saveConflictBanner =>
+      'Cambió en el disco: el guardado automático está en pausa para este archivo';
+
+  @override
   String fileOperationFailed(String message) {
     return 'Error en la operación de archivo: $message';
   }
@@ -560,6 +591,14 @@ class AppLocalizationsEs extends AppLocalizations {
   String get keybindingsReset => 'Restablecer por defecto';
 
   @override
+  String keybindingsConflict(String action) {
+    return 'Ya lo usa «$action». Asignarlo aquí deja ese comando sin atajo.';
+  }
+
+  @override
+  String get keybindingsTakeOver => 'Quitárselo';
+
+  @override
   String get statusWords => 'Palabras';
 
   @override
@@ -697,6 +736,21 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String confirmDeleteFile(String fileName) {
     return '¿Está seguro de que desea eliminar \"$fileName\"?';
+  }
+
+  @override
+  String confirmTrashFile(String name) {
+    return '¿Mover «$name» a la papelera?';
+  }
+
+  @override
+  String confirmTrashFolder(String name) {
+    return '¿Mover «$name» y todo su contenido a la papelera?';
+  }
+
+  @override
+  String confirmDeleteFolder(String name) {
+    return '¿Eliminar definitivamente «$name» y todo su contenido? No se puede deshacer.';
   }
 
   @override

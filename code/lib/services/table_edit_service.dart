@@ -11,6 +11,8 @@
 /// whether a command applies) and the editor (which performs it).
 library;
 
+import '../utils/text_width.dart';
+
 /// What a column's `---` row says about alignment.
 enum ColumnAlign { none, left, center, right }
 
@@ -250,25 +252,12 @@ class TableEditService {
     ];
   }
 
-  /// A CJK character occupies two columns in a monospaced font, so padding by
-  /// code units alone leaves a table that is ragged everywhere it is read.
-  static int _displayWidth(String s) {
-    var width = 0;
-    for (final rune in s.runes) {
-      width += _isWide(rune) ? 2 : 1;
-    }
-    return width;
-  }
-
-  static bool _isWide(int rune) =>
-      (rune >= 0x1100 && rune <= 0x115F) ||
-      (rune >= 0x2E80 && rune <= 0xA4CF) ||
-      (rune >= 0xAC00 && rune <= 0xD7A3) ||
-      (rune >= 0xF900 && rune <= 0xFAFF) ||
-      (rune >= 0xFE30 && rune <= 0xFE6F) ||
-      (rune >= 0xFF00 && rune <= 0xFF60) ||
-      (rune >= 0xFFE0 && rune <= 0xFFE6) ||
-      (rune >= 0x20000 && rune <= 0x3FFFD);
+  /// A CJK character occupies two columns in a monospaced font, so padding
+  /// by code units alone leaves a table that is ragged everywhere it is read.
+  ///
+  /// Shared with the diagram layout, which needs the same answer about the
+  /// same characters for the box it draws around a label.
+  static int _displayWidth(String s) => displayWidth(s);
 
   static bool _isTableLine(String line) => line.trim().startsWith('|');
 

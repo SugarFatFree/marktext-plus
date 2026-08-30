@@ -38,6 +38,11 @@ class StatusBar extends ConsumerWidget {
         (tab) => tab?.encoding ?? FileEncoding.utf8Encoding,
       ),
     );
+    // Auto-save is on by default, so a file that stops being written needs to
+    // say so: a paused save looks exactly like a save that is working.
+    final diskConflict = ref.watch(
+      activeTabProvider.select((tab) => tab?.diskConflict ?? false),
+    );
     final updateState = ref.watch(updateProvider);
     final l10n = AppLocalizations.of(context)!;
     final tokens = AppTheme.getTokens(ref.watch(settingsProvider).themeName);
@@ -64,6 +69,25 @@ class StatusBar extends ConsumerWidget {
           final showLineEnding = width >= 380;
           return Row(
         children: [
+          if (diskConflict) ...[
+            Tooltip(
+              message: l10n.saveConflictBanner,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.warning_amber_rounded,
+                      size: 14, color: tokens.colorAccent),
+                  const SizedBox(width: 4),
+                  // The short form on a narrow window; the whole sentence is
+                  // in the tooltip either way.
+                  if (width >= 600)
+                    Text(l10n.saveConflictBanner,
+                        style: style.copyWith(color: tokens.colorAccent)),
+                ],
+              ),
+            ),
+            _divider(tokens),
+          ],
           Text(
             l10n.statusLine(
               editorState.cursorLine + 1,

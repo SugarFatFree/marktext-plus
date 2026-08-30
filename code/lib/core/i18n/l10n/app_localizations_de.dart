@@ -86,6 +86,37 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String exportFailed(String message) {
+    return 'Das Dokument konnte nicht exportiert werden: $message';
+  }
+
+  @override
+  String fileOpenFailed(String message) {
+    return 'Die Datei konnte nicht geöffnet werden: $message';
+  }
+
+  @override
+  String get saveConflictTitle => 'Datei auf der Festplatte geändert';
+
+  @override
+  String saveConflictBody(String name) {
+    return 'Etwas anderes hat „$name“ seit dem Öffnen geändert. Jetzt zu speichern würde diese Änderung überschreiben.';
+  }
+
+  @override
+  String get saveConflictOverwrite => 'Überschreiben';
+
+  @override
+  String get saveConflictReload => 'Meine Änderungen verwerfen und neu laden';
+
+  @override
+  String get saveConflictCancel => 'Abbrechen';
+
+  @override
+  String get saveConflictBanner =>
+      'Auf der Festplatte geändert – automatisches Speichern für diese Datei pausiert';
+
+  @override
   String fileOperationFailed(String message) {
     return 'Dateivorgang fehlgeschlagen: $message';
   }
@@ -557,6 +588,14 @@ class AppLocalizationsDe extends AppLocalizations {
   String get keybindingsReset => 'Auf Standard zurücksetzen';
 
   @override
+  String keybindingsConflict(String action) {
+    return 'Bereits von „$action“ belegt. Hier zugewiesen, verliert jener Befehl sein Tastenkürzel.';
+  }
+
+  @override
+  String get keybindingsTakeOver => 'Übernehmen';
+
+  @override
   String get statusWords => 'Wörter';
 
   @override
@@ -694,6 +733,21 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String confirmDeleteFile(String fileName) {
     return 'Sind Sie sicher, dass Sie \"$fileName\" löschen möchten?';
+  }
+
+  @override
+  String confirmTrashFile(String name) {
+    return '„$name“ in den Papierkorb verschieben?';
+  }
+
+  @override
+  String confirmTrashFolder(String name) {
+    return '„$name“ und alles darin in den Papierkorb verschieben?';
+  }
+
+  @override
+  String confirmDeleteFolder(String name) {
+    return '„$name“ und alles darin endgültig löschen? Das lässt sich nicht rückgängig machen.';
   }
 
   @override

@@ -55,6 +55,14 @@
     }
   },
   "saveFailed": "Impossibile salvare il file: {message}",
+  "exportFailed": "Impossibile esportare il documento: {message}",
+  "fileOpenFailed": "Impossibile aprire il file: {message}",
+  "saveConflictTitle": "File modificato sul disco",
+  "saveConflictBody": "Qualcos’altro ha modificato «{name}» dopo l’apertura. Salvare ora sovrascriverebbe quella modifica.",
+  "saveConflictOverwrite": "Sovrascrivi",
+  "saveConflictReload": "Scarta le mie modifiche e ricarica",
+  "saveConflictCancel": "Annulla",
+  "saveConflictBanner": "Modificato sul disco — salvataggio automatico sospeso per questo file",
   "@saveFailed": {
     "placeholders": {
       "message": {
@@ -221,6 +229,8 @@
   "keybindingsEdit": "Modifica scorciatoia",
   "keybindingsPressKeys": "Premi combinazione di tasti...",
   "keybindingsReset": "Ripristina predefinito",
+  "keybindingsConflict": "Già usato da «{action}». Assegnandolo qui, quel comando resta senza scorciatoia.",
+  "keybindingsTakeOver": "Prendilo",
   "statusWords": "Parole",
   "statusChars": "Caratteri",
   "statusParagraphs": "Paragrafi",
@@ -267,6 +277,9 @@
   "copyFilePath": "Copia percorso file",
   "deleteFile": "Elimina file",
   "confirmDeleteFile": "Sei sicuro di voler eliminare \"{fileName}\"?",
+  "confirmTrashFile": "Spostare «{name}» nel cestino?",
+  "confirmTrashFolder": "Spostare «{name}» e tutto il suo contenuto nel cestino?",
+  "confirmDeleteFolder": "Eliminare definitivamente «{name}» e tutto il suo contenuto? L’operazione non è reversibile.",
   "@confirmDeleteFile": {
     "placeholders": {
       "fileName": {

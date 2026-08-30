@@ -89,6 +89,37 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String exportFailed(String message) {
+    return 'Não foi possível exportar o documento: $message';
+  }
+
+  @override
+  String fileOpenFailed(String message) {
+    return 'Não foi possível abrir o ficheiro: $message';
+  }
+
+  @override
+  String get saveConflictTitle => 'O ficheiro mudou no disco';
+
+  @override
+  String saveConflictBody(String name) {
+    return 'Algo mais alterou «$name» desde que foi aberto. Guardar agora escreveria por cima dessa alteração.';
+  }
+
+  @override
+  String get saveConflictOverwrite => 'Substituir';
+
+  @override
+  String get saveConflictReload => 'Descartar as minhas edições e recarregar';
+
+  @override
+  String get saveConflictCancel => 'Cancelar';
+
+  @override
+  String get saveConflictBanner =>
+      'Alterado no disco — a gravação automática está em pausa para este ficheiro';
+
+  @override
   String fileOperationFailed(String message) {
     return 'Falha na operação de ficheiro: $message';
   }
@@ -559,6 +590,14 @@ class AppLocalizationsPt extends AppLocalizations {
   String get keybindingsReset => 'Repor predefinição';
 
   @override
+  String keybindingsConflict(String action) {
+    return 'Já usado por «$action». Atribuí-lo aqui deixa esse comando sem atalho.';
+  }
+
+  @override
+  String get keybindingsTakeOver => 'Tirar-lho';
+
+  @override
   String get statusWords => 'Palavras';
 
   @override
@@ -696,6 +735,21 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String confirmDeleteFile(String fileName) {
     return 'Tem a certeza de que deseja eliminar \"$fileName\"?';
+  }
+
+  @override
+  String confirmTrashFile(String name) {
+    return 'Mover «$name» para o lixo?';
+  }
+
+  @override
+  String confirmTrashFolder(String name) {
+    return 'Mover «$name» e tudo o que contém para o lixo?';
+  }
+
+  @override
+  String confirmDeleteFolder(String name) {
+    return 'Eliminar definitivamente «$name» e tudo o que contém? Não é possível anular.';
   }
 
   @override
@@ -1043,6 +1097,37 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String saveFailed(String message) {
     return 'Não foi possível salvar o arquivo: $message';
   }
+
+  @override
+  String exportFailed(String message) {
+    return 'Não foi possível exportar o documento: $message';
+  }
+
+  @override
+  String fileOpenFailed(String message) {
+    return 'Não foi possível abrir o arquivo: $message';
+  }
+
+  @override
+  String get saveConflictTitle => 'O arquivo mudou no disco';
+
+  @override
+  String saveConflictBody(String name) {
+    return 'Algo mais alterou “$name” desde que foi aberto. Salvar agora sobrescreveria essa alteração.';
+  }
+
+  @override
+  String get saveConflictOverwrite => 'Sobrescrever';
+
+  @override
+  String get saveConflictReload => 'Descartar minhas edições e recarregar';
+
+  @override
+  String get saveConflictCancel => 'Cancelar';
+
+  @override
+  String get saveConflictBanner =>
+      'Alterado no disco — o salvamento automático está pausado para este arquivo';
 
   @override
   String fileOperationFailed(String message) {
@@ -1515,6 +1600,14 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get keybindingsReset => 'Restaurar padrão';
 
   @override
+  String keybindingsConflict(String action) {
+    return 'Já usado por “$action”. Atribuí-lo aqui deixa esse comando sem atalho.';
+  }
+
+  @override
+  String get keybindingsTakeOver => 'Tomar para si';
+
+  @override
   String get statusWords => 'Palavras';
 
   @override
@@ -1652,6 +1745,21 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String confirmDeleteFile(String fileName) {
     return 'Tem certeza de que deseja excluir \"$fileName\"?';
+  }
+
+  @override
+  String confirmTrashFile(String name) {
+    return 'Mover “$name” para a lixeira?';
+  }
+
+  @override
+  String confirmTrashFolder(String name) {
+    return 'Mover “$name” e todo o seu conteúdo para a lixeira?';
+  }
+
+  @override
+  String confirmDeleteFolder(String name) {
+    return 'Excluir permanentemente “$name” e todo o seu conteúdo? Não é possível desfazer.';
   }
 
   @override

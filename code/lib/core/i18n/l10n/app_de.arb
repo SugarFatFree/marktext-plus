@@ -55,6 +55,14 @@
     }
   },
   "saveFailed": "Datei konnte nicht gespeichert werden: {message}",
+  "exportFailed": "Das Dokument konnte nicht exportiert werden: {message}",
+  "fileOpenFailed": "Die Datei konnte nicht geöffnet werden: {message}",
+  "saveConflictTitle": "Datei auf der Festplatte geändert",
+  "saveConflictBody": "Etwas anderes hat „{name}“ seit dem Öffnen geändert. Jetzt zu speichern würde diese Änderung überschreiben.",
+  "saveConflictOverwrite": "Überschreiben",
+  "saveConflictReload": "Meine Änderungen verwerfen und neu laden",
+  "saveConflictCancel": "Abbrechen",
+  "saveConflictBanner": "Auf der Festplatte geändert – automatisches Speichern für diese Datei pausiert",
   "@saveFailed": {
     "placeholders": {
       "message": {
@@ -221,6 +229,8 @@
   "keybindingsEdit": "Tastenkürzel bearbeiten",
   "keybindingsPressKeys": "Tastenkombination drücken...",
   "keybindingsReset": "Auf Standard zurücksetzen",
+  "keybindingsConflict": "Bereits von „{action}“ belegt. Hier zugewiesen, verliert jener Befehl sein Tastenkürzel.",
+  "keybindingsTakeOver": "Übernehmen",
   "statusWords": "Wörter",
   "statusChars": "Zeichen",
   "statusParagraphs": "Absätze",
@@ -267,6 +277,9 @@
   "copyFilePath": "Dateipfad kopieren",
   "deleteFile": "Datei löschen",
   "confirmDeleteFile": "Sind Sie sicher, dass Sie \"{fileName}\" löschen möchten?",
+  "confirmTrashFile": "„{name}“ in den Papierkorb verschieben?",
+  "confirmTrashFolder": "„{name}“ und alles darin in den Papierkorb verschieben?",
+  "confirmDeleteFolder": "„{name}“ und alles darin endgültig löschen? Das lässt sich nicht rückgängig machen.",
   "@confirmDeleteFile": {
     "placeholders": {
       "fileName": {

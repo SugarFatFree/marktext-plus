@@ -55,6 +55,14 @@
     }
   },
   "saveFailed": "تعذّر حفظ الملف: {message}",
+  "exportFailed": "تعذّر تصدير المستند: {message}",
+  "fileOpenFailed": "تعذّر فتح الملف: {message}",
+  "saveConflictTitle": "تغيّر الملف على القرص",
+  "saveConflictBody": "غيّر برنامج آخر «{name}» بعد فتحه. الحفظ الآن سيكتب فوق ذلك التغيير.",
+  "saveConflictOverwrite": "الكتابة فوقه",
+  "saveConflictReload": "تجاهل تعديلاتي وإعادة التحميل",
+  "saveConflictCancel": "إلغاء",
+  "saveConflictBanner": "تغيّر على القرص — الحفظ التلقائي متوقف مؤقتًا لهذا الملف",
   "@saveFailed": {
     "placeholders": {
       "message": {
@@ -221,6 +229,8 @@
   "keybindingsEdit": "تحرير الاختصار",
   "keybindingsPressKeys": "اضغط مجموعة المفاتيح...",
   "keybindingsReset": "إعادة تعيين الافتراضي",
+  "keybindingsConflict": "مستخدم بالفعل بواسطة «{action}». تعيينه هنا يترك ذلك الأمر بلا اختصار.",
+  "keybindingsTakeOver": "الاستحواذ عليه",
   "statusWords": "كلمات",
   "statusChars": "أحرف",
   "statusParagraphs": "فقرات",
@@ -267,6 +277,9 @@
   "copyFilePath": "نسخ مسار الملف",
   "deleteFile": "حذف الملف",
   "confirmDeleteFile": "هل أنت متأكد من حذف \"{fileName}\"؟",
+  "confirmTrashFile": "نقل «{name}» إلى سلة المهملات؟",
+  "confirmTrashFolder": "نقل «{name}» وكل ما بداخله إلى سلة المهملات؟",
+  "confirmDeleteFolder": "حذف «{name}» وكل ما بداخله نهائيًا؟ لا يمكن التراجع عن ذلك.",
   "@confirmDeleteFile": {
     "placeholders": {
       "fileName": {

@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import '../../../../utils/text_width.dart';
 import 'dart:ui';
 
 import '../config/responsive_config.dart';
@@ -50,8 +51,11 @@ class SequenceLayout extends LayoutEngine {
     var maxLabelLength = 0.0;
     for (final edge in diagram.edges) {
       if (edge.label != null) {
-        // Estimate label width based on font size
-        final labelWidth = edge.label!.length * fontSize * 0.5;
+        // Through the shared table. At half the font size per character this
+        // was short for Latin and less than half of what a CJK message needs,
+        // and this width is what sets the gap between two participants — so a
+        // Chinese message ran across the lifeline beside it.
+        final labelWidth = estimatedTextWidth(edge.label!, fontSize);
         if (labelWidth > maxLabelLength) {
           maxLabelLength = labelWidth;
         }

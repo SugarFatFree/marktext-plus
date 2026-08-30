@@ -55,6 +55,14 @@
     }
   },
   "saveFailed": "Não foi possível guardar o ficheiro: {message}",
+  "exportFailed": "Não foi possível exportar o documento: {message}",
+  "fileOpenFailed": "Não foi possível abrir o ficheiro: {message}",
+  "saveConflictTitle": "O ficheiro mudou no disco",
+  "saveConflictBody": "Algo mais alterou «{name}» desde que foi aberto. Guardar agora escreveria por cima dessa alteração.",
+  "saveConflictOverwrite": "Substituir",
+  "saveConflictReload": "Descartar as minhas edições e recarregar",
+  "saveConflictCancel": "Cancelar",
+  "saveConflictBanner": "Alterado no disco — a gravação automática está em pausa para este ficheiro",
   "@saveFailed": {
     "placeholders": {
       "message": {
@@ -221,6 +229,8 @@
   "keybindingsEdit": "Editar atalho",
   "keybindingsPressKeys": "Pressione combinação de teclas...",
   "keybindingsReset": "Repor predefinição",
+  "keybindingsConflict": "Já usado por «{action}». Atribuí-lo aqui deixa esse comando sem atalho.",
+  "keybindingsTakeOver": "Tirar-lho",
   "statusWords": "Palavras",
   "statusChars": "Caracteres",
   "statusParagraphs": "Parágrafos",
@@ -267,6 +277,9 @@
   "copyFilePath": "Copiar caminho do ficheiro",
   "deleteFile": "Eliminar ficheiro",
   "confirmDeleteFile": "Tem a certeza de que deseja eliminar \"{fileName}\"?",
+  "confirmTrashFile": "Mover «{name}» para o lixo?",
+  "confirmTrashFolder": "Mover «{name}» e tudo o que contém para o lixo?",
+  "confirmDeleteFolder": "Eliminar definitivamente «{name}» e tudo o que contém? Não é possível anular.",
   "@confirmDeleteFile": {
     "placeholders": {
       "fileName": {

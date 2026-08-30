@@ -82,6 +82,36 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String exportFailed(String message) {
+    return 'ドキュメントを書き出せませんでした：$message';
+  }
+
+  @override
+  String fileOpenFailed(String message) {
+    return 'ファイルを開けませんでした：$message';
+  }
+
+  @override
+  String get saveConflictTitle => 'ファイルがディスク上で変更されました';
+
+  @override
+  String saveConflictBody(String name) {
+    return '開いた後に他のプログラムが「$name」を変更しました。今保存するとその変更を上書きします。';
+  }
+
+  @override
+  String get saveConflictOverwrite => '上書き';
+
+  @override
+  String get saveConflictReload => '編集を破棄して読み込み直す';
+
+  @override
+  String get saveConflictCancel => 'キャンセル';
+
+  @override
+  String get saveConflictBanner => 'ディスク上で変更されました — このファイルの自動保存は停止中です';
+
+  @override
   String fileOperationFailed(String message) {
     return 'ファイル操作に失敗しました: $message';
   }
@@ -550,6 +580,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String get keybindingsReset => 'デフォルトに戻す';
 
   @override
+  String keybindingsConflict(String action) {
+    return '「$action」が使用中です。ここに割り当てると、そのコマンドはショートカットを失います。';
+  }
+
+  @override
+  String get keybindingsTakeOver => '奪う';
+
+  @override
   String get statusWords => '単語';
 
   @override
@@ -687,6 +725,21 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String confirmDeleteFile(String fileName) {
     return '\"$fileName\" を削除してもよろしいですか？';
+  }
+
+  @override
+  String confirmTrashFile(String name) {
+    return '「$name」をゴミ箱に移動しますか？';
+  }
+
+  @override
+  String confirmTrashFolder(String name) {
+    return '「$name」とその中身をすべてゴミ箱に移動しますか？';
+  }
+
+  @override
+  String confirmDeleteFolder(String name) {
+    return '「$name」とその中身をすべて完全に削除しますか？元に戻せません。';
   }
 
   @override

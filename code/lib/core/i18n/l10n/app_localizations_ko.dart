@@ -82,6 +82,36 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String exportFailed(String message) {
+    return '문서를 내보내지 못했습니다: $message';
+  }
+
+  @override
+  String fileOpenFailed(String message) {
+    return '파일을 열지 못했습니다: $message';
+  }
+
+  @override
+  String get saveConflictTitle => '디스크에서 파일이 변경되었습니다';
+
+  @override
+  String saveConflictBody(String name) {
+    return '연 뒤에 다른 프로그램이 “$name”을(를) 변경했습니다. 지금 저장하면 그 변경을 덮어씁니다.';
+  }
+
+  @override
+  String get saveConflictOverwrite => '덮어쓰기';
+
+  @override
+  String get saveConflictReload => '내 편집을 버리고 다시 불러오기';
+
+  @override
+  String get saveConflictCancel => '취소';
+
+  @override
+  String get saveConflictBanner => '디스크에서 변경됨 — 이 파일의 자동 저장이 일시 중지되었습니다';
+
+  @override
   String fileOperationFailed(String message) {
     return '파일 작업에 실패했습니다: $message';
   }
@@ -550,6 +580,14 @@ class AppLocalizationsKo extends AppLocalizations {
   String get keybindingsReset => '기본값으로 재설정';
 
   @override
+  String keybindingsConflict(String action) {
+    return '“$action”이(가) 이미 사용 중입니다. 여기에 지정하면 그 명령은 단축키를 잃습니다.';
+  }
+
+  @override
+  String get keybindingsTakeOver => '가져오기';
+
+  @override
   String get statusWords => '단어';
 
   @override
@@ -687,6 +725,21 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String confirmDeleteFile(String fileName) {
     return '\"$fileName\"을(를) 삭제하시겠습니까?';
+  }
+
+  @override
+  String confirmTrashFile(String name) {
+    return '“$name”을(를) 휴지통으로 옮길까요?';
+  }
+
+  @override
+  String confirmTrashFolder(String name) {
+    return '“$name”과(와) 그 안의 모든 항목을 휴지통으로 옮길까요?';
+  }
+
+  @override
+  String confirmDeleteFolder(String name) {
+    return '“$name”과(와) 그 안의 모든 항목을 완전히 삭제할까요? 되돌릴 수 없습니다.';
   }
 
   @override
