@@ -13,21 +13,22 @@ class MarkdownSyntaxHighlighter {
     _Pattern(RegExp(r'\*\*(.+?)\*\*'), _PatternType.bold,
         emphasisChar: '**'),
     _Pattern(RegExp(r'`(.+?)`'), _PatternType.code),
-    // Both halves allow one nested pair, the same shapes the parser uses, so
-    // the two agree on `[see [1] here](url)` and on a destination containing
-    // brackets such as `…/wiki/A_(b)`.
+    // Both halves allow the same nesting the parser allows — two levels of
+    // brackets in the text, one level of parentheses in the destination — so
+    // the two agree on `[见 [附录 [A]]](/url)` and on `…/wiki/A_(b)`. A tint
+    // that stops one level short says a link is not a link.
     //
     // It is also what keeps this linear. `[^\]]+` and `[^)\n]*` each gave the
     // engine a run it had to hand back one character at a time from every
     // starting position: a line of 60,000 `[` took 46 seconds, and one of
     // `[a](` repeated took 11 — with the editor frozen throughout.
     _Pattern(
-      RegExp(r'!\[((?:[^\[\]]|\[[^\[\]]*\])*)\]'
+      RegExp(r'!\[((?:[^\[\]]|\[(?:[^\[\]]|\[[^\[\]]*\])*\])*)\]'
           r'\(((?:[^()\s]|\([^()]*\))*)\)'),
       _PatternType.link,
     ),
     _Pattern(
-      RegExp(r'\[((?:[^\[\]]|\[[^\[\]]*\])*)\]'
+      RegExp(r'\[((?:[^\[\]]|\[(?:[^\[\]]|\[[^\[\]]*\])*\])*)\]'
           r'\(((?:[^()\s]|\([^()]*\))*)\)'),
       _PatternType.link,
     ),

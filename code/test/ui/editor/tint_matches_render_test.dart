@@ -104,4 +104,45 @@ void main() {
       });
     }
   });
+
+  group('links and code agree too', () {
+    bool tintedAs(String line, Color colour) =>
+        MarkdownSyntaxHighlighter.highlightLine(line, colors)
+            .any((span) => span.style?.color == colour);
+
+    String htmlOf(String line) =>
+        MarkdownParser().parse(line).map(ExportService.nodeToHtml).join();
+
+    void linksAgree(String line) {
+      test('link: $line', () {
+        final drawn = htmlOf(line).contains(RegExp(r'<(a|img)[ >]'));
+        expect(tintedAs(line, colors.link), drawn,
+            reason: '源码区与预览对"这是不是链接"意见不同');
+      });
+    }
+
+    // Two levels of brackets in the text: the parser reads it, and a tint that
+    // stopped one level short said a link was not a link.
+    linksAgree('[见 [附录 [A]]](/url)');
+    linksAgree('[见 [1] 这里](/url)');
+    linksAgree('[链接](/url)');
+    linksAgree('![图](/a.png)');
+    linksAgree('[未闭合(/url)');
+    linksAgree('见 …/wiki/A_(b) 这样的地址');
+
+    void codeAgrees(String line) {
+      test('code: $line', () {
+        // Any kind of code: the tint uses one colour for a fence and for an
+        // inline span, so the question is whether this is code at all.
+        final drawn = htmlOf(line).contains('<code');
+        expect(tintedAs(line, colors.code), drawn,
+            reason: '源码区与预览对"这是不是代码"意见不同');
+      });
+    }
+
+    codeAgrees('`代码`');
+    codeAgrees('``里面有 ` 反引号``');
+    codeAgrees('`未闭合的代码');
+    codeAgrees('文字 `代码` 文字');
+  });
 }
