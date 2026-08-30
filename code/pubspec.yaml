@@ -28,6 +28,10 @@ dependencies:
   desktop_drop: ^0.4.4
   pasteboard: ^0.5.0
   window_manager: ^0.4.3
+  # Already present as window_manager's own dependency; named here because the
+  # startup path reads the attached screens directly, to keep the window from
+  # reopening on a monitor that is no longer there.
+  screen_retriever: ^0.2.0
   windows_single_instance: ^1.1.0
   ffi: ^2.1.3
   docx_creator: ^1.2.3

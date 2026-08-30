@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:screen_retriever/screen_retriever.dart';
+import 'services/window_placement.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:windows_single_instance/windows_single_instance.dart';
 import 'app.dart';
@@ -139,8 +141,42 @@ void main(List<String> args) async {
   final config = await configService.load();
   StartupTrace.mark('config loaded');
 
-  final windowOptions = WindowOptions(
+  // Where the window may actually open, given the screens attached now.
+  //
+  // The stored place was put back unchecked, so a window last closed on a
+  // monitor that has since been unplugged reopened there: the application
+  // started, took focus, and was nowhere on screen, with nothing to drag back
+  // and no way out but editing the configuration by hand.
+  //
+  // Asking the screens can fail — a headless session, a plugin that is not
+  // there — and the answer to that is to leave the window exactly as it was
+  // rather than move it on a guess.
+  var placement = (
+    position: Offset(config.windowX, config.windowY),
     size: Size(config.windowWidth, config.windowHeight),
+  );
+  try {
+    final displays = await screenRetriever.getAllDisplays();
+    final primary = await screenRetriever.getPrimaryDisplay();
+    Rect boundsOf(Display d) =>
+        (d.visiblePosition ?? Offset.zero) & (d.visibleSize ?? d.size);
+    placement = WindowPlacement.fit(
+      position: placement.position,
+      size: placement.size,
+      // Primary first: it is where a window with nowhere else to go lands.
+      screens: [
+        boundsOf(primary),
+        for (final d in displays)
+          if (d.id != primary.id) boundsOf(d),
+      ],
+    );
+  } catch (_) {
+    StartupTrace.mark('screens could not be read; window left as stored');
+  }
+  StartupTrace.mark('window placement decided');
+
+  final windowOptions = WindowOptions(
+    size: placement.size,
     title: 'MarkText Plus',
   );
 
@@ -148,7 +184,7 @@ void main(List<String> args) async {
     StartupTrace.mark('window ready to show');
     // Position and maximised state cannot travel in WindowOptions.
     if (config.windowX != 0 || config.windowY != 0) {
-      await windowManager.setPosition(Offset(config.windowX, config.windowY));
+      await windowManager.setPosition(placement.position);
     }
     if (config.isMaximized) {
       await windowManager.maximize();
