@@ -29,10 +29,39 @@ class WordCountService {
     bool paragraphHasText = false;
     int newlineRun = 0;
 
+    // Where a link or an image says to go, which the reader never sees.
+    // `见[链接](https://example.com/very/long/path)这里` reads as five
+    // characters and was counted as eleven words: a document with a few
+    // references in it reported a length its prose does not have, and a word
+    // count is the number writers work to. Upstream MarkText counts what is
+    // drawn, and what is drawn is the label.
+    //
+    // Still one pass and no parsing: the destination is whatever sits between
+    // `](` and the parenthesis that closes it, and one nested pair is allowed
+    // because addresses carry them — `…/wiki/A_(b)`.
+    bool afterCloseBracket = false;
+    int destinationDepth = 0;
+
     for (final rune in markdown.runes) {
       // Counted in code points, so an emoji or a rare ideograph is one
       // character rather than the two UTF-16 units it occupies.
       characters++;
+
+      if (destinationDepth > 0) {
+        if (rune == 0x28) destinationDepth++;
+        if (rune == 0x29) destinationDepth--;
+        // A newline ends it: an unclosed `(` must not swallow the document.
+        if (rune == 0x0A) destinationDepth = 0;
+        inWord = false;
+        continue;
+      }
+      if (afterCloseBracket && rune == 0x28) {
+        afterCloseBracket = false;
+        destinationDepth = 1;
+        inWord = false;
+        continue;
+      }
+      afterCloseBracket = rune == 0x5D;
 
       if (rune == 0x0A) {
         newlineRun++;
