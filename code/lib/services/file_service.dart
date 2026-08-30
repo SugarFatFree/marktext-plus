@@ -145,11 +145,26 @@ class FileService {
       await parent.create(recursive: true);
     }
 
-    // A plain writeAsBytes truncates the file and then writes into it. Killed
-    // process, full disk, lost power — the document is left empty or half
-    // written, with nothing to recover from. Write a scratch file beside it
-    // and swap it in instead, so the document on disk is only ever the old
-    // one or the new one.
+    await writeBytesAtomically(target, bytes);
+  }
+
+  /// Writes [bytes] to [path] so that the file is only ever its old contents
+  /// or its new ones.
+  ///
+  /// A plain `writeAsBytes` truncates the file the moment it opens it — this
+  /// is measurable: open a thousand-byte file for writing and it is zero
+  /// bytes before anything has been written. Killed process, full disk, lost
+  /// power, and the file is empty or half written with nothing to recover
+  /// from. A scratch file beside it, swapped in, cannot do that.
+  ///
+  /// Public because the exports need it too. Exporting over a file that
+  /// already exists — which the picker invites, by asking whether to replace
+  /// it — had the truncating behaviour, so a failed export destroyed the
+  /// previous one.
+  static Future<void> writeBytesAtomically(
+    String target,
+    List<int> bytes,
+  ) async {
     final temp = File('$target.${pid}_${_saveCounter++}.mtsave');
     try {
       final handle = await temp.open(mode: FileMode.writeOnly);

@@ -16,6 +16,7 @@
 | BUG-157 | 2026-08-30 | 命令行/文件管理器打开的文档没有保存冲突保护 | P2 | 已修复 |
 | BUG-158 | 2026-08-30 | 关闭标签页时选择保存会静默覆盖外部改动 | P1 | 已修复 |
 | BUG-159 | 2026-08-30 | 保存刚完成时，下一次保存把自己的写入误判为外部改动 | P2 | 已修复 |
+| BUG-160 | 2026-08-30 | 导出失败会毁掉被覆盖的旧文件（非原子写） | P2 | 已修复 |
 ## BUG-146：文件被外部修改后，自动保存会静默覆盖别人的改动
 
 **优先级**：P1　**状态**：已修复　**日期**：2026-08-30
@@ -731,3 +732,53 @@ markSaved 之后立刻: 戳是否已过期 = true
 - `code/lib/providers/tab_provider.dart`
 - `code/lib/ui/widgets/editor_tab_bar.dart`、`code/lib/ui/widgets/app_menu_bar.dart`
 - `code/test/services/save_conflict_test.dart`（+1 条，共 17 条）
+
+---
+
+## BUG-160：导出失败会毁掉被覆盖的那份旧文件
+
+**优先级**：P2　**状态**：已修复　**日期**：2026-08-30
+
+### 现象
+
+导出为 HTML / PDF / Word 时，如果选的是一个**已经存在的文件**（选择器会问"是否替换"），
+而导出中途失败（磁盘满、进程被杀、断电）——**旧的那份没了，新的也不完整**。
+保存图表 PNG 同理。
+
+### 根因分析
+
+`writeAsString` / `writeAsBytes` **在打开文件的瞬间就把内容清空了**。实测：
+
+```
+写前 1000 字节
+打开写句柄后 0 字节  <<< 已被截断
+```
+
+保存文档那侧早就解决了这个问题——用临时文件 + flush + rename，
+注释写得很清楚："A plain writeAsBytes truncates the file and then writes
+into it. Killed process, full disk, lost power…"。
+**导出这侧是没跟上的那份副本。**
+
+### 修复方案
+
+把那段原子写抽成 `FileService.writeBytesAtomically`，
+导出（HTML / PDF / Word）与图表 PNG 保存三处复用。
+配置文件（`json_store`）此前已是原子写，无需改动。
+
+图片存储与回收站记录**保持原样**：前者写的是一个刚生成的新路径（没有旧内容可毁），
+后者的孤儿记录已在 BUG 记录里说明是无害的。
+
+### 测试上的一次自我纠正
+
+第一版测试把**文件**设成只读来制造失败，结果测试报"原文件被毁了"，
+一度以为修复没生效。查证后发现是**测试设计错了**：原子写是在**目录**里建临时文件
+再 rename，而 rename 覆盖一个只读文件是会成功的——
+**那恰恰说明原子写在工作，不是失败**。改成把**目录**设为不可写才是真正的失败场景。
+
+改对之后验证：退回非原子写，测试立刻报"之前那份导出被毁了"。
+
+### 涉及文件
+
+- `code/lib/services/file_service.dart`（抽出 `writeBytesAtomically`）
+- `code/lib/services/export_service.dart`、`code/lib/ui/widgets/mermaid_renderer.dart`
+- `code/test/ui/widgets/export_failure_test.dart`（+3 条，共 10 条）

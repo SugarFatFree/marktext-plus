@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:path/path.dart' as p;
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/core/i18n/l10n/app_localizations.dart';
 import 'package:marktext_plus/services/export_service.dart';
@@ -130,5 +132,59 @@ void main() {
       expect(body, contains('reportExportFailure'),
           reason: '$entry 没有报告失败：导出失败时用户什么都不会看到');
     }
+  });
+
+  group('a failed export leaves the previous one alone', () {
+    // The picker invites replacing a file that already exists. A plain write
+    // truncates it the moment it opens it — measurable: open a thousand-byte
+    // file for writing and it is zero bytes before anything has been written
+    // — so an export that fails part way through destroyed the export that
+    // was there, and produced nothing to replace it.
+    late Directory dir;
+    late String target;
+
+    setUp(() {
+      dir = Directory.systemTemp.createTempSync('exportatomic');
+      target = '${dir.path}/out.html';
+      File(target).writeAsStringSync('the previous export\n' * 100);
+    });
+    tearDown(() {
+      if (dir.existsSync()) dir.deleteSync(recursive: true);
+    });
+
+    test('an export that cannot be written keeps what was there', () async {
+      final before = File(target).readAsStringSync();
+      // The *directory* is made read-only, not the file. Making the file
+      // read-only proves nothing: the scratch file is created in the
+      // directory and renamed over the target, and a rename over a read-only
+      // file succeeds — which is the atomic write working, not failing. An
+      // unwritable directory is what actually stops it.
+      await Process.run('chmod', ['555', dir.path]);
+      try {
+        await ExportService.exportToHtml(document, target);
+      } catch (_) {
+        // Expected.
+      }
+      await Process.run('chmod', ['755', dir.path]);
+      expect(File(target).readAsStringSync(), before,
+          reason: '导出失败，但之前那份导出被毁了');
+    });
+
+    test('an export that succeeds does replace it', () async {
+      await ExportService.exportToHtml(document, target);
+      final now = File(target).readAsStringSync();
+      expect(now, isNot(contains('the previous export')));
+      expect(now, contains('Title'));
+    });
+
+    test('no scratch file is left beside the reader\'s documents', () async {
+      await ExportService.exportToHtml(document, target);
+      final leftovers = dir
+          .listSync()
+          .map((e) => p.basename(e.path))
+          .where((n) => n.contains('.mtsave'))
+          .toList();
+      expect(leftovers, isEmpty, reason: '临时文件留在了用户的文件夹里');
+    });
   });
 }

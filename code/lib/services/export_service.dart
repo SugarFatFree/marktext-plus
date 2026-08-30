@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'file_service.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -230,7 +231,11 @@ class ExportService {
     buffer.writeln('</body>');
     buffer.writeln('</html>');
 
-    await File(savePath).writeAsString(buffer.toString());
+    // Atomically: the picker invites replacing a file that already exists,
+    // and a plain write truncates it before the new contents arrive, so an
+    // export that fails part way destroyed the previous one.
+    await FileService.writeBytesAtomically(
+        savePath, utf8.encode(buffer.toString()));
   }
 
   /// Export Markdown to PDF
@@ -251,7 +256,7 @@ class ExportService {
       sourcePath: sourcePath,
       enableHtml: enableHtml,
     );
-    await File(savePath).writeAsBytes(bytes);
+    await FileService.writeBytesAtomically(savePath, bytes);
   }
 
   /// The same document the PDF export writes, as bytes.
