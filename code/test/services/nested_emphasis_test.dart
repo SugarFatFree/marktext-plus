@@ -101,6 +101,33 @@ void main() {
       );
     });
 
+    test('a link inside a link is not a link', () {
+      // An `<a>` inside an `<a>` is not valid HTML and is not what a browser
+      // draws. Parsing the text of a link made this possible where before the
+      // inner one was plain text, so the inner destination is dropped and its
+      // text kept.
+      final html = htmlOf('[foo [bar](/two)](/one)');
+      expect(html, isNot(contains('/two')));
+      expect('<a'.allMatches(html).length, 1, reason: '出现了嵌套锚点');
+      expect(html, contains('foo'));
+      expect(html, contains('bar'));
+    });
+
+    test('emphasis inside a link may not smuggle a link in either', () {
+      final html = htmlOf('[foo *bar [baz](/two)* qux](/one)');
+      expect('<a'.allMatches(html).length, 1, reason: '出现了嵌套锚点');
+      expect(html, contains('<em>'));
+      expect(html, contains('baz'));
+    });
+
+    test('a link inside emphasis is still a link', () {
+      // The guard: the rule is about links inside links, not about emphasis.
+      expect(
+        htmlOf('*看 [链接](/url) 这里*'),
+        contains('<a href="/url">链接</a>'),
+      );
+    });
+
     test('HTML leaves a plain link exactly as before', () {
       expect(htmlOf('[普通链接](/url)'), '<p><a href="/url">普通链接</a></p>');
     });

@@ -1699,7 +1699,11 @@ class MarkdownParser {
   /// written inside emphasis is still hidden from this pass and cannot open a
   /// nested one. The depth limit is a backstop: a branch whose inner text is
   /// the text it matched would otherwise recurse for ever.
-  List<InlineSpan> _nestedSpans(String inner, int depth) {
+  List<InlineSpan> _nestedSpans(
+    String inner,
+    int depth, {
+    bool insideLink = false,
+  }) {
     if (depth >= 4) return const [];
     // Cheap gate so ordinary emphasis — the overwhelming majority — is not
     // parsed a second time.
@@ -1710,8 +1714,33 @@ class MarkdownParser {
         spans.single.text == inner) {
       return const [];
     }
-    return spans;
+    return insideLink ? _withoutNestedLinks(spans) : spans;
   }
+
+  /// Strips the link-ness out of anything found inside a link's own text.
+  ///
+  /// A link may not contain a link — CommonMark says so at any depth, and an
+  /// `<a>` inside an `<a>` is not something a browser will render as written.
+  /// `[foo [bar](/two)](/one)` is unusual enough to be a typo, and the typo
+  /// used to show as plain text; parsing the text of a link turned it into two
+  /// nested anchors, where the inner one's destination is the one that would
+  /// be lost. What is left here is the inner link's text, still formatted.
+  static List<InlineSpan> _withoutNestedLinks(List<InlineSpan> spans) => [
+        for (final span in spans)
+          if (span.type != InlineType.link)
+            InlineSpan(
+              type: span.type,
+              text: span.text,
+              href: span.href,
+              title: span.title,
+              linkHref: span.linkHref,
+              children: _withoutNestedLinks(span.children),
+            )
+          else if (span.children.isNotEmpty)
+            ..._withoutNestedLinks(span.children)
+          else
+            InlineSpan(type: InlineType.text, text: span.text),
+      ];
 
   /// Characters that could begin markup inside a span.
   static final _nestableRe = RegExp(r'[*_\[!`~<^:$=]');
@@ -1896,7 +1925,7 @@ class MarkdownParser {
           text: linkText,
           href: linkHref,
           title: match.group(14) ?? match.group(15),
-          children: _nestedSpans(linkText, depth),
+          children: _nestedSpans(linkText, depth, insideLink: true),
         ));
       } else if (match.group(16) != null) {
         // Footnote ref
