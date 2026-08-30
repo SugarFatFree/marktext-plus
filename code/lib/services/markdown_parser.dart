@@ -1294,11 +1294,38 @@ class MarkdownParser {
     final lines = const LineSplitter().convert(source);
 
     _linkDefinitions.clear();
+    // Definitions are gathered before anything is parsed, because a reference
+    // may be written above the definition it uses. That pass has to know what
+    // a code fence is: a document explaining markdown shows definitions inside
+    // fences — this project's own does — and every one of them was registered,
+    // so `[example]` in the prose afterwards silently became a link to
+    // whatever the example said.
+    var fence = '';
     for (final line in lines) {
+      final fenceMatch = _codeFenceRe.firstMatch(line);
+      if (fence.isEmpty) {
+        if (fenceMatch != null) fence = fenceMatch.group(1)!;
+      } else {
+        // Closed by a fence of the same character, at least as long — a longer
+        // fence is how a document shows ``` inside a code block.
+        final closer = _codeFenceEndRe.firstMatch(line)?.group(1);
+        if (closer != null &&
+            closer[0] == fence[0] &&
+            closer.length >= fence.length) {
+          fence = '';
+        }
+        continue;
+      }
+      if (fenceMatch != null) continue;
+
       final match = _linkDefRe.firstMatch(line);
       if (match == null) continue;
-      _linkDefinitions[match.group(1)!.toLowerCase()] =
-          (url: match.group(2)!, title: match.group(3));
+      // The first definition of a label wins, as CommonMark has it; a second
+      // one is a mistake in the document, and taking it meant the mistake won.
+      _linkDefinitions.putIfAbsent(
+        match.group(1)!.toLowerCase(),
+        () => (url: match.group(2)!, title: match.group(3)),
+      );
     }
 
     final nodes = <MarkdownNode>[];
