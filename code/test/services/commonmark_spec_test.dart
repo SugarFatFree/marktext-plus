@@ -87,9 +87,9 @@ void main() {
       }
     }
 
-    // Measured 2026-08-29. Raise it whenever the work raises it; never lower
+    // Measured 2026-08-30. Raise it whenever the work raises it; never lower
     // it to make a change pass.
-    const floor = 353;
+    const floor = 355;
     expect(passed, greaterThanOrEqualTo(floor),
         reason: '解析能力相比 $floor 例退步了');
     if (passed > floor) {

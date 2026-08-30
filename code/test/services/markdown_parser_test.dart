@@ -1496,6 +1496,47 @@ void _setextAndIndentedCodeTests() {
       expect(nodes.first.type, NodeType.unorderedList);
       expect(nodes.last.type, NodeType.horizontalRule);
     });
+
+    test('a title wrapped over two lines is one heading', () {
+      // The underline closes the whole paragraph above it, not just the line
+      // touching it. A long title wrapped in the source used to come out as
+      // body text with a rule drawn underneath.
+      final nodes = parser.parse('Release notes for\nthe autumn build\n---\n');
+      final heading = nodes.single as HeadingNode;
+      expect(heading.level, 2);
+      expect(heading.content, 'Release notes for\nthe autumn build');
+    });
+
+    test('=== also underlines a multi-line title', () {
+      // `---` at least stopped the paragraph by looking like a rule; `===`
+      // matched no block pattern at all and was swallowed as more text.
+      final nodes = parser.parse('Release notes for\nthe autumn build\n===\n');
+      final heading = nodes.single as HeadingNode;
+      expect(heading.level, 1);
+      expect(heading.content, 'Release notes for\nthe autumn build');
+    });
+
+    test('the heading starts at the blank line, not the top of the file', () {
+      final nodes = parser.parse('intro\n\nTwo line\ntitle\n---\n');
+      expect(nodes.first.type, NodeType.paragraph);
+      expect((nodes.first as ParagraphNode).content, 'intro');
+      expect((nodes.last as HeadingNode).content, 'Two line\ntitle');
+    });
+
+    test('an indented code block is not underlined into a heading', () {
+      // Four columns of indentation makes the line code, so the `---` under
+      // it is a rule. It used to be read as a heading, which ate the code.
+      final nodes = parser.parse('    foo\n---\n');
+      expect(nodes.map((n) => n.type).toList(), [
+        NodeType.codeBlock,
+        NodeType.horizontalRule,
+      ]);
+    });
+
+    test('up to three columns of indentation still underlines', () {
+      final nodes = parser.parse('   Subtitle\n---\n');
+      expect((nodes.single as HeadingNode).content, 'Subtitle');
+    });
   });
 
   group('Indented code blocks', () {

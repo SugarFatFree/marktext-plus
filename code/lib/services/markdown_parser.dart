@@ -458,10 +458,22 @@ class MarkdownParser {
           !_hrRe.hasMatch(lines[i]) &&
           i + 1 < lines.length &&
           _setextRe.hasMatch(lines[i + 1])) {
+        // Back up over the rest of the paragraph the underline closes. The
+        // parser reads all of it as the heading, so an outline built from the
+        // last line alone showed half a title and, worse, pointed at the wrong
+        // line: clicking it scrolled to the end of the heading instead of its
+        // start.
+        var first = i;
+        while (first > 0 &&
+            !lines[first - 1].startsWith(RegExp(r'\s')) &&
+            !_setextRe.hasMatch(lines[first - 1]) &&
+            !_startsAnotherBlock(lines, first - 1)) {
+          first--;
+        }
         headings.add((
-          line: i + 1,
+          line: first + 1,
           level: lines[i + 1].trim().startsWith('=') ? 1 : 2,
-          text: lines[i].trim(),
+          text: [for (var k = first; k <= i; k++) lines[k].trim()].join(' '),
         ));
         i++;
       }
@@ -617,6 +629,22 @@ class MarkdownParser {
       }
     }
   }
+
+  /// Whether line [i] begins a block of its own rather than continuing the
+  /// paragraph above it.
+  ///
+  /// Defined once because two places need the same answer: the paragraph loop,
+  /// which stops here, and the outline extractor, which walks backwards over
+  /// the same run of lines to find where a setext heading starts.
+  static bool _startsAnotherBlock(List<String> lines, int i) =>
+      lines[i].trim().isEmpty ||
+      _headingRe.hasMatch(lines[i]) ||
+      _hrRe.hasMatch(lines[i]) ||
+      _codeFenceRe.hasMatch(lines[i]) ||
+      _blockquoteRe.hasMatch(lines[i]) ||
+      _ulRe.hasMatch(lines[i]) ||
+      _olRe.hasMatch(lines[i]) ||
+      _startsTable(lines, i);
 
   /// A setext underline: `===` for level 1, `---` for level 2.
   static final _setextRe = RegExp(r'^\s{0,3}(=+|-+)\s*$');
@@ -1131,7 +1159,7 @@ class MarkdownParser {
   /// line between them, was swallowed into that paragraph and never drawn —
   /// and writing it that way is common enough that GitHub, and every parser
   /// that follows it, breaks the paragraph and renders the table.
-  bool _startsTable(List<String> lines, int at) {
+  static bool _startsTable(List<String> lines, int at) {
     if (at + 1 >= lines.length) return false;
     if (!_tableRowRe.hasMatch(lines[at])) return false;
     if (!_tableSepRe.hasMatch(lines[at + 1])) return false;
@@ -1488,7 +1516,9 @@ class MarkdownParser {
       // the *next* line. A bare `---` was handled by the horizontal-rule
       // branch above; reaching this point means real text precedes it, which
       // is exactly when CommonMark reads it as a heading.
-      if (i + 1 < lines.length && _setextRe.hasMatch(lines[i + 1])) {
+      if (i + 1 < lines.length &&
+          _indentColumns(line) < 4 &&
+          _setextRe.hasMatch(lines[i + 1])) {
         final content = line.trim();
         final level = lines[i + 1].trim().startsWith('=') ? 1 : 2;
         i += 2;
@@ -1532,18 +1562,41 @@ class MarkdownParser {
 
       // Paragraph (default)
       final paraLines = <String>[];
-      while (i < lines.length &&
-          lines[i].trim().isNotEmpty &&
-          !_headingRe.hasMatch(lines[i]) &&
-          !_hrRe.hasMatch(lines[i]) &&
-          !_codeFenceRe.hasMatch(lines[i]) &&
-          !_blockquoteRe.hasMatch(lines[i]) &&
-          !_ulRe.hasMatch(lines[i]) &&
-          !_olRe.hasMatch(lines[i]) &&
-          !_startsTable(lines, i)) {
+      while (i < lines.length && !_startsAnotherBlock(lines, i)) {
+        // A setext underline closes the paragraph instead of joining it. `---`
+        // already stopped the loop by looking like a horizontal rule, but
+        // `===` matched nothing above and was read as more paragraph text.
+        if (paraLines.isNotEmpty && _setextRe.hasMatch(lines[i])) break;
         paraLines.add(lines[i]);
         i++;
       }
+
+      // Setext heading spanning several lines.
+      //
+      // The single-line form is handled far above, beside the other block
+      // patterns, because one line of lookahead is enough to recognise it.
+      // A title written over two lines is only recognisable from here: the
+      // paragraph has to be gathered first, and the underline is whatever
+      // stopped it. Without this, `Foo\nBar\n---` came out as a paragraph
+      // with a rule drawn under it rather than one heading.
+      if (paraLines.isNotEmpty &&
+          i < lines.length &&
+          _setextRe.hasMatch(lines[i])) {
+        final content = [for (final line in paraLines) line.trim()].join('\n');
+        final level = lines[i].trim().startsWith('=') ? 1 : 2;
+        i++;
+        nodes.add(_withSpan(
+          HeadingNode(
+            level: level,
+            content: content,
+            inlineSpans: parseInline(content),
+          ),
+          blockStart,
+          i,
+        ));
+        continue;
+      }
+
       if (paraLines.isNotEmpty) {
         // Leading whitespace is not part of the text. CommonMark strips it
         // from every line of a paragraph, and here it mattered more than
@@ -2133,7 +2186,7 @@ class MarkdownParser {
   /// A pipe may be escaped with a backslash, which is the only way to put one
   /// in a cell. Splitting on every pipe broke the cell in two and left the
   /// backslash behind.
-  List<String> _parseCells(String line) {
+  static List<String> _parseCells(String line) {
     var text = line.trim();
     if (text.startsWith('|')) text = text.substring(1);
     if (text.endsWith('|') && !text.endsWith(r'\|')) {

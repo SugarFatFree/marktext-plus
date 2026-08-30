@@ -13,7 +13,11 @@ void main() {
 
   List<String> drawn(String source) => [
         for (final node in parser.parse(source))
-          if (node is HeadingNode) 'L${node.level}:${node.content}',
+          if (node is HeadingNode)
+            // A title wrapped over two lines keeps the newline in the node —
+            // the preview renders it the way HTML does, as a space. The
+            // outline is one line per entry, so compare them folded.
+            'L${node.level}:${node.content.replaceAll('\n', ' ')}',
       ];
 
   List<String> listed(String source) => [
@@ -30,6 +34,8 @@ void main() {
     agree('a setext heading', 'Title\n===\n\nbody\n');
     agree('both setext levels', 'One\n===\nTwo\n---\n');
     agree('setext mixed with atx', '# a\n\nB\n---\n\n## c\n');
+    agree('a setext title wrapped over two lines', 'One two\nthree four\n---\n');
+    agree('a wrapped title under ===', 'One two\nthree four\n===\n');
     agree('a comment in front matter', '---\ntitle: x\n# not a heading\n---\n\n# real\n');
     agree('a hash inside a fence', '# real\n\n```python\n# comment\n```\n');
     agree('trailing hashes', '## two ##\n');
@@ -73,6 +79,14 @@ void main() {
       final outline =
           MarkdownParser.headingOutline('---\ntitle: x\n---\n\n# real\n');
       expect(outline.single.line, 5);
+    });
+
+    test('a wrapped setext heading points at its first line', () {
+      // Not the underline, and not the last line of the title: clicking the
+      // entry has to scroll to where the heading starts.
+      final outline =
+          MarkdownParser.headingOutline('intro\n\nOne two\nthree\n---\n');
+      expect(outline.single.line, 3);
     });
   });
 }
