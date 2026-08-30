@@ -109,4 +109,16 @@ void main() {
     expect(spans.first.style?.fontWeight, FontWeight.bold);
     expect(spans.first.recognizer, isNull, reason: '不是链接却成了点击目标');
   });
+
+  testWidgets('italic inside bold is drawn as both', (tester) async {
+    // The nested branch uses the outer emphasis as the base style, so the two
+    // compose. Replacing the base rather than building on it would have drawn
+    // the inner run italic and not bold.
+    await pumpPreview(tester, '**加粗里的 *斜体* 收尾**\n');
+
+    final spans = spansWithText(tester, '斜体');
+    expect(spans, isNotEmpty, reason: '嵌套的斜体没有单独成片');
+    expect(spans.first.style?.fontWeight, FontWeight.bold, reason: '外层加粗丢了');
+    expect(spans.first.style?.fontStyle, FontStyle.italic);
+  });
 }
