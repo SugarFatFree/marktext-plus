@@ -1989,8 +1989,8 @@ class MarkdownParser {
       // Without it `2 ** 3 ** 4` came out with a bold 3, and `** note **`
       // — a line someone typed with spaces for emphasis of their own — was
       // silently turned into bold.
-      r'|\*\*\*([^\s].*?[^\s]|[^\s])\*\*\*'  // bold italic ***
-      r'|\*\*([^\s].*?[^\s]|[^\s])\*\*'  // bold **
+      r'|\*\*\*([^\s]|[^\s][\s\S]*?[^\s])\*\*\*'  // bold italic ***
+      r'|\*\*([^\s]|[^\s][\s\S]*?[^\s])\*\*'  // bold **
       // `_` must not sit inside a word, or snake_case_names read as emphasis.
       // The boundary excludes `_` itself as well: in `read__me__now` the
       // second underscore of the pair is not alphanumeric, so without it the
@@ -2001,8 +2001,8 @@ class MarkdownParser {
       // `пристаням_стремятся_` and any Chinese text with underscores in it
       // came out emphasised — the boundary saw a non-ASCII letter as "not a
       // word character" and let the delimiter through.
-      r'|(?<![\p{L}\p{N}_])___([^\s].*?[^\s]|[^\s])___(?![\p{L}\p{N}_])'
-      r'|(?<![\p{L}\p{N}_])__([^\s].*?[^\s]|[^\s])__(?![\p{L}\p{N}_])'
+      r'|(?<![\p{L}\p{N}_])___([^\s]|[^\s][\s\S]*?[^\s])___(?![\p{L}\p{N}_])'
+      r'|(?<![\p{L}\p{N}_])__([^\s]|[^\s][\s\S]*?[^\s])__(?![\p{L}\p{N}_])'
       r'|~~(.+?)~~'                // strikethrough
       // No spaces inside, or `x^2 and y^3` becomes one long superscript.
       r'|\^([^\s^]+)\^'            // superscript
@@ -2014,8 +2014,8 @@ class MarkdownParser {
       // this branch. Without the guards, `2 ** 3 ** 4` failed the `**` branch
       // on its spaces and was then picked up here as an italic containing a
       // literal asterisk — visibly worse than the bold it used to produce.
-      r'|\*(?!\*)([^\s].*?[^\s]|[^\s])(?<!\*)\*(?!\*)'  // italic *
-      r'|(?<![\p{L}\p{N}_])_(?!_)([^\s].*?[^\s]|[^\s])(?<!_)_(?![\p{L}\p{N}_])'  // italic _
+      r'|\*(?!\*)([^\s]|[^\s][\s\S]*?[^\s])(?<!\*)\*(?!\*)'  // italic *
+      r'|(?<![\p{L}\p{N}_])_(?!_)([^\s]|[^\s][\s\S]*?[^\s])(?<!_)_(?![\p{L}\p{N}_])'  // italic _
       // Appended rather than inserted: these add groups 19..21, leaving every
       // existing branch's numbering alone.
       r'|<((?:https?|ftp|mailto):[^>\s]+)>'         // 19 autolink
