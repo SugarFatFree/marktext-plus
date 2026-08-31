@@ -109,6 +109,51 @@ class SourceEditor extends ConsumerStatefulWidget {
     FormatAction.subscript: ('~', '~'),
   };
 
+  /// Where the text a paste just inserted sits, given what the document
+  /// looked like before it.
+  ///
+  /// The framework replaces the selection with the plain flavour and the
+  /// handlers here put something better in its place, so they have to know
+  /// exactly what to take back out. Subtracting the two lengths alone gives
+  /// the *net* change, which is the pasted length only when nothing was
+  /// selected: pasting five characters over three grew the document by two.
+  /// Reading that as the pasted length left three characters of the raw paste
+  /// behind and wrote the replacement over the text after it.
+  static ({int start, int end}) pastedRange({
+    required int lengthBefore,
+    required int selectionStart,
+    required int selectionEnd,
+    required int lengthAfter,
+  }) {
+    final start = selectionStart.clamp(0, lengthBefore);
+    final removed = selectionEnd.clamp(start, lengthBefore) - start;
+    final pasted = lengthAfter - lengthBefore + removed;
+    return (start: start, end: start + (pasted < 0 ? 0 : pasted));
+  }
+
+  /// A URL, and only a URL: what a paste has to be for it to become a link.
+  ///
+  /// A scheme is required. `www.example.com` written in a sentence is prose,
+  /// and turning a paste of it into a link would be guessing.
+  static final _pastedUrlRe =
+      RegExp(r'^(?:(?:https?|ftp|file):\/\/|mailto:)\S+$', caseSensitive: false);
+
+  /// The markdown a paste of [pasted] over [selected] should produce, or null
+  /// when this is an ordinary paste.
+  ///
+  /// Selecting some words and pasting a web address over them is how a link
+  /// gets written in every other editor; here it replaced the words with the
+  /// address, and the words had to be typed again.
+  static String? linkFromPaste(String selected, String pasted) {
+    if (selected.isEmpty || selected.contains('\n')) return null;
+    final url = pasted.trim();
+    if (!_pastedUrlRe.hasMatch(url)) return null;
+    // Pasting a URL over something that is already a link would nest one
+    // inside the other, which markdown has no meaning for.
+    if (selected.contains('](')) return null;
+    return '[$selected]($url)';
+  }
+
   /// The line [line] becomes at heading [level], or as a paragraph when
   /// [level] is null.
   ///
@@ -1066,25 +1111,44 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
   /// that have no HTML at all.
   Future<void> _handleRichPaste() async {
     final selectionBefore = _controller.selection;
-    final lengthBefore = _controller.text.length;
+    final textBefore = _controller.text;
+    final lengthBefore = textBefore.length;
+    final selected = selectionBefore.isValid && !selectionBefore.isCollapsed
+        ? textBefore.substring(selectionBefore.start, selectionBefore.end)
+        : '';
 
+    // Read after the paste has landed, so what was inserted can be seen. The
+    // plain flavour is allowed to arrive first on purpose: waiting on the
+    // clipboard before every paste would make every paste feel slow.
     final html = await ClipboardService.readHtml();
-    if (html == null || !mounted) return;
+    if (!mounted) return;
 
-    final markdown = HtmlToMarkdown.convert(html);
-    if (markdown == null) return;
-
-    // What the framework pasted, which is what has to be taken back out.
     final text = _controller.text;
-    final inserted = text.length - lengthBefore;
-    if (inserted <= 0) return;
-    final start = selectionBefore.isValid ? selectionBefore.start : 0;
-    final end = start + inserted;
-    if (end > text.length) return;
+    final range = SourceEditor.pastedRange(
+      lengthBefore: lengthBefore,
+      selectionStart: selectionBefore.isValid ? selectionBefore.start : 0,
+      selectionEnd: selectionBefore.isValid ? selectionBefore.end : 0,
+      lengthAfter: text.length,
+    );
+    if (range.end <= range.start || range.end > text.length) return;
+    final pasted = text.substring(range.start, range.end);
+
+    // A web address dropped on some selected words is a link, whichever
+    // flavour the clipboard also carried: copying an address out of a browser
+    // brings an HTML flavour with it, and converting that would throw the
+    // words away.
+    final link = SourceEditor.linkFromPaste(selected, pasted);
+    final replacement = link ??
+        (html == null ? null : HtmlToMarkdown.convert(html));
+    if (replacement == null) return;
 
     _controller.value = TextEditingValue(
-      text: text.substring(0, start) + markdown + text.substring(end),
-      selection: TextSelection.collapsed(offset: start + markdown.length),
+      text: text.substring(0, range.start) +
+          replacement +
+          text.substring(range.end),
+      selection: TextSelection.collapsed(
+        offset: range.start + replacement.length,
+      ),
     );
   }
 
