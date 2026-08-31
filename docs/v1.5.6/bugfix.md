@@ -30,6 +30,7 @@
 | BUG-198 | 2026-08-31 | GBK 笔记里打一个 emoji，保存后整篇文档变成乱码 | P1 | 已修复 |
 | BUG-199 | 2026-08-31 | 保存时编码被降级，状态栏却还写着原来的编码 | P2 | 已修复 |
 | BUG-200 | 2026-08-31 | 对缩进标题按 Ctrl+3，标题被吃进正文变成 `###    ## 标题` | P2 | 已修复 |
+| BUG-201 | 2026-08-31 | 把网址放在文末的写法里，链接文字的加粗变成字面的 `**` | P2 | 已修复 |
 
 ## BUG-173：引用式链接的标签里，标记仍显示成字面量
 
@@ -1273,3 +1274,69 @@ Latin-1 文档里写了中文同理。
 
 - `code/lib/services/markdown_parser.dart`、`code/lib/ui/editor/source_editor.dart`
 - `code/test/ui/editor/heading_level_test.dart`（新增，10 条）
+
+---
+
+## BUG-201：简写引用链接的文字不解析加粗，`**` 直接显示出来
+
+### 现象
+
+把网址集中放在文末是很常见的写法：
+
+```markdown
+请先阅读[**下载说明**]，再继续。
+
+[**下载说明**]: /docs/download
+```
+
+预览里这个链接显示为 `**下载说明**`——两对星号明晃晃地留在链接文字里。
+换成 `[**下载说明**](/docs/download)` 写在行内就是正常的粗体。
+
+图片同理：`![**图**]` 的 alt 文本是 `**图**`，
+而 alt 是图片加载失败时给读者看的文字，不该是 Markdown 源码。
+
+### 根因分析
+
+Markdown 写链接有四种形式，解析器里是四个独立分支：
+
+| 形式 | 写法 | 链接文字是否解析 |
+|---|---|---|
+| 行内 | `[t](/url)` | ✅ |
+| 完整引用 | `[t][label]` | ✅ |
+| 折叠引用 | `[t][]` | ✅ |
+| **简写引用** | `[t]` | ❌ |
+
+前三个分支都调用 `_nestedSpans(..., insideLink: true)` 解析链接文字，
+第四个 `_addShortcutReference` 只填了 `text: label`。
+
+这是本版本第三次遇到同一个模式了。更说明问题的是：完整引用那个分支的注释里
+**就写着这个 bug 当初是怎么修的**——「两个链接分支里的第二个……它还在把标记
+当字符读，所以同一个 `[**Download**][dl]` 星号露在外面」。当时修了第二个，
+第三个（简写形式）漏掉了。
+
+### 修复方案
+
+- `_addShortcutReference` 增加 `depth` 参数。
+- 链接分支补 `children: _nestedSpans(label, depth, insideLink: true)`，
+  与另外三个分支完全一致（`insideLink` 保证链接套链接被拆平，不会产生嵌套 `<a>`）。
+- 图片分支的 alt 改用 `_altText(label, depth)`，与其它图片形式一致。
+
+### 验证
+
+新增 12 条。核心是**四种形式写同一句话，断言输出完全相同**——
+这样任何一个分支再掉队都会立刻暴露，而不是只测被修的那一个。
+护栏三条：无定义的 `[sic]` 仍是字面文字、纯文字简写链接不受影响、
+简写链接里再套链接不产生嵌套 `<a>`。
+
+去掉 `children` 后 4 条失败，输出正是 `<a href="/url">**下载**</a>`；
+CommonMark 棘轮同时从 476 掉回 473，说明这 3 分确实来自本次修改。
+
+### 影响
+
+CommonMark 一致性 **473 → 476**，下限同步提到 476。
+
+### 涉及文件
+
+- `code/lib/services/markdown_parser.dart`
+- `code/test/services/shortcut_reference_test.dart`（新增，12 条）
+- `code/test/services/commonmark_spec_test.dart`（下限 473 → 476）

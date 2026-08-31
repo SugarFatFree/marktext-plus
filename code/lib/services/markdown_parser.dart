@@ -1283,7 +1283,8 @@ class MarkdownParser {
   void _addShortcutReference(
     List<InlineSpan> spans,
     String label,
-    String written, {
+    String written,
+    int depth, {
     required bool isImage,
   }) {
     final definition = _linkDefinitions[label.toLowerCase()];
@@ -1291,11 +1292,26 @@ class MarkdownParser {
       spans.add(InlineSpan(type: InlineType.text, text: written));
       return;
     }
+    if (isImage) {
+      // Alt text is text, the way it is for every other image form.
+      spans.add(InlineSpan(
+        type: InlineType.image,
+        text: _altText(label, depth),
+        href: definition.url,
+        title: definition.title,
+      ));
+      return;
+    }
     spans.add(InlineSpan(
-      type: isImage ? InlineType.image : InlineType.link,
+      type: InlineType.link,
       text: label,
       href: definition.url,
       title: definition.title,
+      // The third of the three link branches, and the last one still reading
+      // its text as characters. The inline form learned to parse it, then the
+      // `[text][label]` form did, and `[**Download**]` went on showing its
+      // asterisks inside the link.
+      children: _nestedSpans(label, depth, insideLink: true),
     ));
   }
 
@@ -2343,11 +2359,11 @@ class MarkdownParser {
         }
       } else if (match.group(39) != null) {
         // Shortcut image: `![foo]`, the label being the text itself.
-        _addShortcutReference(spans, match.group(39)!, match.group(0)!,
+        _addShortcutReference(spans, match.group(39)!, match.group(0)!, depth,
             isImage: true);
       } else if (match.group(40) != null) {
         // Shortcut link: `[foo]`.
-        _addShortcutReference(spans, match.group(40)!, match.group(0)!,
+        _addShortcutReference(spans, match.group(40)!, match.group(0)!, depth,
             isImage: false);
       }
 
