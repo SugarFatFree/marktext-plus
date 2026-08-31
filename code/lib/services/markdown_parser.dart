@@ -946,16 +946,42 @@ class MarkdownParser {
       // simply empty.
       final first = marker.firstMatch(block.first)?.group(1) ?? '';
 
-      // The item's own text runs to the first blank line; anything after it
-      // is a block the item carries, parsed on its own terms.
-      final blank = block.indexWhere((line) => line.trim().isEmpty);
-      final lead = blank < 0 ? block.skip(1) : block.take(blank).skip(1);
-      final carried = blank < 0
+      // The item's own text runs to the first line that opens a block of its
+      // own; everything from there is a block the item carries, parsed on its
+      // own terms.
+      //
+      // It used to run to the first blank line, which is only the commonest
+      // of the ways an item's text ends. Written the way install steps are
+      // written —
+      //
+      //     - install the dependencies
+      //       ```bash
+      //       npm i
+      //       ```
+      //
+      // — the fence lines were folded into the sentence and read as inline
+      // markup, so the block came out as a code *span* with the language name
+      // inside it and the code itself flattened onto one line. A quote under an
+      // item lost its `>` the same way. The same rule the paragraph loop stops
+      // at answers this, measured from where the item's text begins.
+      final contentColumn = _contentColumn(block.first);
+      final body = _dedent(block.skip(1), contentColumn).split('\n');
+      var cut = block.length;
+      if (block.length > 1) {
+        for (var j = 0; j < body.length; j++) {
+          if (_startsAnotherBlock(body, j)) {
+            cut = j + 1;
+            break;
+          }
+        }
+      }
+      final lead = block.skip(1).take(cut - 1);
+      final carried = cut >= block.length
           ? const <MarkdownNode>[]
-          : parse(_dedent(block.skip(blank + 1), _contentColumn(block.first)));
+          : parse(_dedent(block.skip(cut), contentColumn));
       // A block's lines are consecutive in the document, so the blocks the
-      // item carries start `blank + 1` lines after the item's own first line.
-      _shiftSpans(carried, itemStarts[index] + blank + 1);
+      // item carries start `cut` lines after the item's own first line.
+      _shiftSpans(carried, itemStarts[index] + cut);
 
       final content = lead.isEmpty
           ? first
