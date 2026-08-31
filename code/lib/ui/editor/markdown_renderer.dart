@@ -71,6 +71,24 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   /// The destinations seen during the build now running, so the ones that
   /// have gone from the document can be disposed at the end of it.
   final _hrefsThisBuild = <String>{};
+
+  /// One built widget per block, reused while nothing about how the document
+  /// is drawn has changed.
+  ///
+  /// The blocks live in a Column, not a lazy list, so every one of them is
+  /// rebuilt on every frame — and while a long document fills in, that is
+  /// every frame for a while. A 216 KB document took 18.5 seconds to finish
+  /// drawing, almost all of it rebuilding blocks that had not changed.
+  ///
+  /// Handing Flutter the same widget instance is what makes this pay: an
+  /// element whose new widget is identical to its old one is not rebuilt, and
+  /// a render object that was not marked dirty is not laid out again either.
+  final _blockWidgets = <md.MarkdownNode, Widget>{};
+
+  /// Everything a block's appearance depends on besides the block itself.
+  /// When any of it changes the cache is thrown away whole, which is the only
+  /// way to be sure a stale block never stays on screen.
+  Object? _blockSignature;
   /// Rebuilt when the inline-HTML setting changes, which is the only thing
   /// that alters how a parser reads the same text.
   md.MarkdownParser _inlineParser = md.MarkdownParser();
@@ -366,7 +384,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     // provider meant every cursor move and every change of selection in the
     // source pane rebuilt the entire preview — in split view, on every arrow
     // key — and the preview rebuilds every block it has rendered so far.
-    ref.watch(
+    final search = ref.watch(
       editorProvider.select(
         (s) => (
           s.previewSearchQuery,
@@ -425,6 +443,34 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       _scheduleNextBatch(nodes.length);
     }
 
+    // A search numbers its matches by counting them as the blocks are built,
+    // so a block that comes from the cache would not be counted and every
+    // match after it would be numbered wrong. While a search is running,
+    // nothing is cached.
+    final searching = search.$1.isNotEmpty;
+    final signature = (
+      nodes,
+      config.themeName,
+      config.fontSize,
+      config.lineHeight,
+      config.wrapCodeBlocks,
+      config.codeBlockLineNumbers,
+      config.enableHtml,
+      theme.brightness,
+      widget.onSourceChanged == null,
+      _editingNode,
+      search,
+    );
+    final fullRebuild = _blockSignature != signature;
+    if (fullRebuild) {
+      _blockWidgets.clear();
+      _blockSignature = signature;
+    }
+
+    /// The widget for [node], built once while the signature holds.
+    Widget block(md.MarkdownNode node, Widget Function() draw) =>
+        searching ? draw() : _blockWidgets.putIfAbsent(node, draw);
+
     final widgets = <Widget>[];
     _matchCounter = 0;
     // Rebuild heading key map fresh each frame so duplicate or unknown
@@ -449,43 +495,50 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
           if (lineNum > 0) {
             _headingKeys.putIfAbsent(lineNum, () => key);
           }
-          widgets.add(
-            _wrapEditable(node, tokens, _buildHeading(node, theme, tokens, key: key)),
-          );
+          widgets.add(block(
+            node,
+            () => _wrapEditable(
+                node, tokens, _buildHeading(node, theme, tokens, key: key)),
+          ));
         case md.ParagraphNode():
-          widgets.add(_wrapEditable(node, tokens, _buildParagraph(node, theme)));
+          widgets.add(block(node,
+              () => _wrapEditable(node, tokens, _buildParagraph(node, theme))));
         case md.CodeBlockNode():
-          widgets.add(
-            _wrapEditable(node, tokens, _buildCodeBlock(node, theme, tokens)),
-          );
+          widgets.add(block(node,
+              () => _wrapEditable(node, tokens, _buildCodeBlock(node, theme, tokens))));
         case md.ListNode():
-          widgets.add(
-            _wrapEditable(node, tokens, _buildList(node, theme, tokens)),
-          );
+          widgets.add(block(node,
+              () => _wrapEditable(node, tokens, _buildList(node, theme, tokens))));
         case md.BlockquoteNode():
-          widgets.add(
-            _wrapEditable(node, tokens, _buildBlockquote(node, theme, tokens)),
-          );
+          widgets.add(block(node,
+              () => _wrapEditable(node, tokens, _buildBlockquote(node, theme, tokens))));
         case md.HorizontalRuleNode():
-          widgets.add(
-            _wrapEditable(
+          widgets.add(block(
+            node,
+            () => _wrapEditable(
               node,
               tokens,
               Divider(thickness: 1, color: tokens.colorBorder),
             ),
-          );
+          ));
         case md.TableNode():
-          widgets.add(_wrapEditable(node, tokens, _buildTable(node, theme)));
+          widgets.add(block(node,
+              () => _wrapEditable(node, tokens, _buildTable(node, theme))));
         case md.MathBlockNode():
-          widgets.add(_wrapEditable(node, tokens, _buildMathBlock(node, theme)));
+          widgets.add(block(node,
+              () => _wrapEditable(node, tokens, _buildMathBlock(node, theme))));
         case md.FrontMatterNode():
-          widgets.add(_wrapEditable(node, tokens, _buildFrontMatter(node, theme)));
+          widgets.add(block(node,
+              () => _wrapEditable(node, tokens, _buildFrontMatter(node, theme))));
         case md.FootnoteDefinitionNode():
-          widgets.add(
-            _wrapEditable(node, tokens, _buildFootnoteDefinition(node, theme)),
-          );
+          widgets.add(block(
+            node,
+            () => _wrapEditable(
+                node, tokens, _buildFootnoteDefinition(node, theme)),
+          ));
         case md.HtmlBlockNode():
-          widgets.add(_wrapEditable(node, tokens, _buildHtmlBlock(node, theme)));
+          widgets.add(block(node,
+              () => _wrapEditable(node, tokens, _buildHtmlBlock(node, theme))));
       }
     }
 
@@ -517,9 +570,12 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       );
     }
 
-    // Every link still in the document has asked for its recognizer by now,
-    // so anything left over belongs to a destination that has gone.
-    _sweepRecognizers();
+    // Only after a build in which every block was actually drawn: a block
+    // served from the cache never asks for its recognizer, so sweeping then
+    // would dispose recognizers that are still on screen. The signature
+    // includes the block list, so any change to the document clears the cache
+    // and this runs.
+    if (fullRebuild) _sweepRecognizers();
 
     return Focus(
       onKeyEvent: (node, event) {
