@@ -23,11 +23,14 @@ export VERSION=1.1.4  # 替换为实际版本号
 1. `docs/vX.Y.Z/bugfix.md` 存在，总览表格行数 == 正文小节数，覆盖本版全部修复
 2. `docs/vX.Y.Z/PRD_需求文档.md` 存在，总览表格行数 == 正文小节数，覆盖本版全部功能
 3. `CHANGELOG.md` 的本版条目与上面两份文档对得上
-4. **README.md 已更新**——功能表、版本引用、截图路径要反映本版真实能力
+4. **`docs/vX.Y.Z/release-notes.md` 已写好**——按主题分组、能一口气读完的发行说明。
+   没有这个文件时，工作流会退回去把 CHANGELOG 的整节原样贴上（v1.5.5 就是这么
+   变成三十几条无序条目的），所以它是必写项，不是可选项
+5. **README.md 已更新**——功能表、版本引用、截图路径要反映本版真实能力
    （历史教训：README 从 v1.1.2 之后连续多版没更新，功能表停在 8 行，
    Mermaid / 命令面板 / 导出 / 大纲 等一概没写）
-5. `code/pubspec.yaml` 与 `code/lib/core/constants.dart` 的版本号都已改
-6. 本机跑过 `flutter test` 全绿、`dart analyze --fatal-infos lib test` 无问题
+6. `code/pubspec.yaml` 与 `code/lib/core/constants.dart` 的版本号都已改
+7. 本机跑过 `flutter test` 全绿、`dart analyze --fatal-infos lib test` 无问题
    （**不在本机做完整构建**，打包一律交给 CI/CD）
 
 发布后再确认一次：

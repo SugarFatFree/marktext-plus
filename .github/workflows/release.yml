@@ -386,16 +386,26 @@ jobs:
         with:
           merge-multiple: true
 
-      - name: Extract release notes from CHANGELOG
+      - name: Collect the release notes
         id: changelog
         run: |
-          # Extract the section for the current tag
+          # A hand-written summary when there is one, grouped by theme and
+          # readable in one sitting. The CHANGELOG is the complete record and
+          # is the right thing to keep; it is the wrong thing to paste whole
+          # into a release page — v1.5.5 went out as thirty-odd unsorted
+          # bullets because that is exactly what this step used to do.
           TAG="${{ github.ref_name }}"
-          NOTES=$(awk "/^## \\[${TAG}\\]/{found=1; next} /^## \\[/{if(found) exit} found{print}" CHANGELOG.md)
-          if [ -z "$NOTES" ]; then
-            NOTES="Release ${TAG}"
+          if [ -f "docs/${TAG}/release-notes.md" ]; then
+            cp "docs/${TAG}/release-notes.md" release_notes.md
+            echo "Using docs/${TAG}/release-notes.md"
+          else
+            NOTES=$(awk "/^## \\[${TAG}\\]/{found=1; next} /^## \\[/{if(found) exit} found{print}" CHANGELOG.md)
+            if [ -z "$NOTES" ]; then
+              NOTES="Release ${TAG}"
+            fi
+            echo "$NOTES" > release_notes.md
+            echo "No hand-written notes; fell back to the CHANGELOG section"
           fi
-          echo "$NOTES" > release_notes.md
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
