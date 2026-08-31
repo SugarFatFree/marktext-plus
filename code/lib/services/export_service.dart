@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'file_service.dart';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:flutter/material.dart' show Color, FontStyle, FontWeight;
 import 'package:flutter_highlight/themes/github.dart';
@@ -260,6 +261,45 @@ class ExportService {
   /// used to be one method that could only end in a file, and printing
   /// through a temporary file loses the page setup the dialog offers.
   static Future<List<int>> pdfBytes(
+    String markdown, {
+    Map<String, Uint8List>? mermaidImages,
+    String? sourcePath,
+    bool enableHtml = false,
+  }) async {
+    // Off this isolate. Laying out a PDF is the slowest thing the editor
+    // does — three seconds for a hundred kilobyte document, and about linear
+    // from there — and every bit of it is arithmetic rather than drawing, so
+    // none of it needs the window's thread. Doing it here froze the window
+    // for the whole of it, with a progress dialog that could not even turn
+    // its spinner.
+    //
+    // Measured warm, on the same document, it is also *faster* there: 0.4 s
+    // against 0.65 s. Everything it needs crosses an isolate as it is — the
+    // markdown, the diagram images, the source path, the setting — and the
+    // bytes come back.
+    try {
+      return await Isolate.run(() => _pdfBytesHere(
+            markdown,
+            mermaidImages: mermaidImages,
+            sourcePath: sourcePath,
+            enableHtml: enableHtml,
+          ));
+    } catch (_) {
+      // An isolate that will not spawn is not a reason to lose the export.
+      // A document that genuinely cannot be laid out throws again here,
+      // which is where the caller sees it.
+      return _pdfBytesHere(
+        markdown,
+        mermaidImages: mermaidImages,
+        sourcePath: sourcePath,
+        enableHtml: enableHtml,
+      );
+    }
+  }
+
+  /// [pdfBytes] without the isolate, so the isolate has something to run and
+  /// the fallback has something to fall back to.
+  static Future<List<int>> _pdfBytesHere(
     String markdown, {
     Map<String, Uint8List>? mermaidImages,
     String? sourcePath,

@@ -8,7 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - v1.5.7
 
 ### Added
-- An export says that it is running, and says where the file went when it is done. Choosing a filename used to be followed by a still window for as long as the export took — three seconds for a hundred kilobyte document as a PDF — and then by nothing at all, so there was no way to tell a finished export from one that had never started. Only failure spoke. The heavy part of a PDF export still runs on the window's own thread, so the spinner will not turn while it does; what it gives is a window that says what it is busy with
+- A PDF is laid out away from the window, so exporting one no longer stops everything until it is done — three seconds for a hundred kilobyte document, longer for a large one. It is not a trade: measured on the same document it is faster there too
+- An export says that it is running, and says where the file went when it is done. Choosing a filename used to be followed by a still window for as long as the export took — three seconds for a hundred kilobyte document as a PDF — and then by nothing at all, so there was no way to tell a finished export from one that had never started. Only failure spoke. The PDF layout has since moved off the window's thread as well, so the spinner turns
 
 ### Fixed
 - A quotation earlier in the document no longer stops every reference link below it from working. A quote's contents, and the blocks a list item carries, are parsed by asking the parser to parse again — and it began each parse by forgetting the addresses it had collected for the document, which it does so that one document's labels cannot resolve in the next. So a single `>` near the top left `[手册][doc]` on the page as those characters, with the address below it never used
