@@ -197,6 +197,55 @@ class CodeHighlighting {
     'delphi',
     'lisp',
   ];
+  /// Colours [code] as [language], reusing the last answer for it.
+  ///
+  /// The preview builds every block of the document on every rebuild — the
+  /// blocks live in a Column, not a lazy list — and a rebuild is a caret
+  /// move, a theme change, a keystroke in the find bar. Twenty ordinary code
+  /// blocks came to 28 ms of highlighting each time, past the frame budget,
+  /// for an answer that had not changed. A single block at the 20 000
+  /// character ceiling is 16 ms on its own.
+  ///
+  /// Bounded by the source it has coloured, so a long document cannot turn
+  /// this into a second copy of itself: what is asked for repeatedly is what
+  /// is on screen, and that is far below the budget. Least recently used goes
+  /// first.
+  static core.Result highlight(String code, {required String language}) {
+    final key = '$language\u0000$code';
+    final hit = _cache.remove(key);
+    if (hit != null) {
+      // Reinserting puts it last, which is what makes the first key the
+      // least recently used one.
+      _cache[key] = hit;
+      return hit.result;
+    }
+
+    final result = instance.parse(code, language: language);
+    _cache[key] = (result: result, chars: code.length);
+    _cachedChars += code.length;
+    while (_cachedChars > cacheCharBudget && _cache.length > 1) {
+      final oldest = _cache.keys.first;
+      _cachedChars -= _cache.remove(oldest)!.chars;
+    }
+    return result;
+  }
+
+  /// Insertion-ordered, which is what a Dart map is, so the oldest key is
+  /// first and eviction is a removal from the front.
+  static final _cache = <String, ({core.Result result, int chars})>{};
+  static var _cachedChars = 0;
+  /// How much source the cache will hold before it starts evicting.
+  static const cacheCharBudget = 128 * 1024;
+
+  /// How much source the cache is holding, for the test that bounds it.
+  static int get cachedChars => _cachedChars;
+
+  /// Empties the cache. Tests start from a known state with this.
+  static void clearCache() {
+    _cache.clear();
+    _cachedChars = 0;
+  }
+
   /// The same spans, cut into one list per line of text.
   ///
   /// A gutter of line numbers has to line up with the code beside it, and a

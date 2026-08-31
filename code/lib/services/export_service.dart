@@ -933,7 +933,7 @@ class ExportService {
     if (language.isEmpty) return _escapeHtml(code);
     try {
       final result =
-          CodeHighlighting.instance.parse(code, language: language);
+          CodeHighlighting.highlight(code, language: language);
       final nodes = result.nodes;
       if (nodes == null || nodes.isEmpty) return _escapeHtml(code);
       return _highlightNodesToHtml(nodes);

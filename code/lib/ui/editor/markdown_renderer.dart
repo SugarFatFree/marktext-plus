@@ -1323,9 +1323,10 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     String language, {
     int tabSize = 8,
   }) {
-    final nodes = CodeHighlighting.instance
-        .parse(source.replaceAll('\t', ' ' * tabSize), language: language)
-        .nodes;
+    final nodes = CodeHighlighting.highlight(
+      source.replaceAll('\t', ' ' * tabSize),
+      language: language,
+    ).nodes;
     if (nodes == null || nodes.isEmpty) {
       return [TextSpan(text: source)];
     }
