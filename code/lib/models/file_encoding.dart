@@ -241,14 +241,23 @@ enum FileEncoding {
       case FileEncoding.utf8Bom:
         return Uint8List.fromList([0xEF, 0xBB, 0xBF, ...utf8.encode(content)]);
       case FileEncoding.gbk:
+        // A character GBK cannot hold — an emoji typed into an old note —
+        // means writing UTF-8 instead: that keeps the character, where
+        // refusing would lose the save.
+        //
+        // Whether it can hold it is decided by reading the bytes back, not by
+        // waiting for the encoder to complain. It does not complain: given an
+        // emoji it returns bytes that GBK itself cannot read, so the file was
+        // written, and the next time it was opened *the whole document* came
+        // back as nonsense — one character the encoding could not take cost
+        // everything around it.
         try {
-          return Uint8List.fromList(charset.gbk.encode(content));
+          final bytes = Uint8List.fromList(charset.gbk.encode(content));
+          if (charset.gbk.decode(bytes) == content) return bytes;
         } catch (_) {
-          // A character GBK cannot hold — an emoji, say, typed into an old
-          // note. Writing UTF-8 keeps the character; refusing would lose the
-          // save.
-          return Uint8List.fromList(utf8.encode(content));
+          // Either half may throw; either way GBK is not what this is.
         }
+        return Uint8List.fromList(utf8.encode(content));
 
       case FileEncoding.latin1Encoding:
         // A character outside Latin-1 cannot be written; those bytes were

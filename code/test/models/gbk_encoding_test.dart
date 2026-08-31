@@ -126,4 +126,38 @@ void main() {
     }
   });
 
+
+  group('a character GBK cannot hold does not cost the document', () {
+    // The encoder does not refuse: given an emoji it returns bytes GBK itself
+    // cannot read. Trusting it to throw meant the file was written anyway,
+    // and the next time it was opened the whole document came back as
+    // nonsense — one character the encoding could not take cost everything
+    // around it.
+    void survives(String name, String text) {
+      test(name, () {
+        final bytes = FileEncoding.gbk.encode(text);
+        final (readBack, _) = FileEncoding.decode(bytes);
+        expect(readBack, text, reason: '$name 存下去就读不回来了');
+      });
+    }
+
+    survives('an emoji in an old note', '旧笔记 🎉 新内容');
+    survives('a character outside the plane', '旧笔记 𠀀 新内容');
+    survives('a currency sign GBK lacks', '价格 ₿ 一枚');
+  });
+
+  group('what GBK can hold is still written as GBK', () {
+    void staysGbk(String name, String text) {
+      test(name, () {
+        final bytes = FileEncoding.gbk.encode(text);
+        final (readBack, encoding) = FileEncoding.decode(bytes);
+        expect(readBack, text);
+        expect(encoding, FileEncoding.gbk,
+            reason: '$name 本可以留在 GBK，却被改成了别的编码');
+      });
+    }
+
+    staysGbk('ordinary Chinese', '这是一段普通的中文笔记，写于很多年前。');
+    staysGbk('Chinese with punctuation', '第一条：甲、乙、丙。（完）');
+  });
 }
