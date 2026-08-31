@@ -5,7 +5,7 @@ All notable changes to MarkText Plus will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - v1.5.6
+## [v1.5.6] - 2026-09-01
 
 ### Added
 - "Tidy Table Source" lays a table's pipes out again without changing what the table says. Every other table command already reformats it as a side effect; editing a cell's text by hand has no such side effect, so from the first typo fixed onward the columns never line up again. A CJK character counts as two columns, so a table of Chinese lines up in the source the way it does on screen
