@@ -85,6 +85,15 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   /// a render object that was not marked dirty is not laid out again either.
   final _blockWidgets = <md.MarkdownNode, Widget>{};
 
+  /// A scroll request that cannot be honoured until the rest of the document
+  /// has been parsed.
+  ///
+  /// Kept here rather than left in the provider: the source pane listens for
+  /// the same request and clears it as soon as *it* has scrolled, so by the
+  /// time the parse finishes there would be nothing left to read. In split
+  /// view that meant the preview never followed the outline at all.
+  int? _pendingScrollLine;
+
   /// Everything a block's appearance depends on besides the block itself.
   /// When any of it changes the cache is thrown away whole, which is the only
   /// way to be sure a stale block never stays on screen.
@@ -223,8 +232,10 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     final parsed = _cachedNodes;
     if (_awaitingFullParse != null &&
         (parsed == null || parsed.isEmpty || line > parsed.last.sourceEnd)) {
+      _pendingScrollLine = line;
       return;
     }
+    _pendingScrollLine = null;
 
     final key = _keyForLine(line);
     if (key?.currentContext != null) {
@@ -848,10 +859,10 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       _renderedNodeCount = _renderedNodeCount.clamp(0, nodes.length);
     });
 
-    // A scroll asked for while only the prefix existed was left standing
-    // rather than thrown away, because the line it names may only now have a
-    // block to point at.
-    final pending = ref.read(editorProvider).targetScrollLine;
+    // A scroll asked for while only the prefix existed was remembered rather
+    // than thrown away, because the line it names may only now have a block to
+    // point at.
+    final pending = _pendingScrollLine;
     if (pending != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _scrollToTargetLine(pending);

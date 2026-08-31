@@ -1933,6 +1933,16 @@ final pasted  = lengthAfter - lengthBefore + removed;
 另外探针里 `find.text('第 390 节')` 一直返回 false，让我误以为标题没画出来——
 标题是富文本，必须用 `findRichText: true`。
 
+### 补充：分屏时的一处交互（同一未发布版本内修正）
+
+上面的修复让预览在等待整篇解析时**保留**滚动请求。
+但源码区**也**监听同一个 `targetScrollLine`，并且**它一滚完就会清空**——
+所以 `_adoptFullParse` 回头去 provider 里读时已经是 null，重试落空，
+分屏模式下预览根本不会跟着大纲走。
+
+改为把待处理的行号记在渲染器自己的状态里（`_pendingScrollLine`），
+不再依赖一个另一个组件会清掉的共享值。
+
 ### 涉及文件
 
 - `code/lib/ui/editor/markdown_renderer.dart`
