@@ -444,6 +444,19 @@ class MarkdownParser {
     return _headingRe.firstMatch(line)?.group(1)?.length;
   }
 
+  /// The text of the heading on [line], or null when it is not a heading.
+  ///
+  /// The marker is more than the hashes: up to three columns of indentation
+  /// may sit in front of them, and a run of hashes may close the line. The
+  /// heading actions used to strip only `#{1,6}` and a space, so setting a
+  /// level on `   ## Title` prepended a second marker and left the first one
+  /// in the text.
+  static String? headingTextOf(String line) {
+    final match = _headingRe.firstMatch(line);
+    if (match == null) return null;
+    return match.group(2) ?? '';
+  }
+
   static List<({int line, int level, String text})> headingOutline(
       String source) {
     // A byte order mark would sit in front of the first '#' and stop it

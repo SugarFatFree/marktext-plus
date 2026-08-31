@@ -109,6 +109,19 @@ class SourceEditor extends ConsumerStatefulWidget {
     FormatAction.subscript: ('~', '~'),
   };
 
+  /// The line [line] becomes at heading [level], or as a paragraph when
+  /// [level] is null.
+  ///
+  /// The rule for what counts as a heading is the parser's, not a second copy
+  /// of it. A local `^(#{1,6})\s+` missed the three columns of indentation
+  /// the format allows and the empty heading a line passes through while it is
+  /// being typed, so `   ## Title` gained a marker instead of changing level,
+  /// and asking for a paragraph left it a heading.
+  static String applyHeadingLevel(String line, int? level) {
+    final body = md.MarkdownParser.headingTextOf(line) ?? line;
+    return level == null ? body : '${'#' * level} $body';
+  }
+
   static ({String text, int start, int end}) toggleWrap(
     String text,
     int start,
@@ -1666,7 +1679,12 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
           final selected = text.substring(selection.start, selection.end);
           final cleaned = selected
               .replaceAll(RegExp(r'\*{1,3}|~~|`|==|\+\+|\^|~|\$'), '')
-              .replaceAll(RegExp(r'^#{1,6}\s+', multiLine: true), '');
+              // Same heading rule as everywhere else: indentation counts,
+              // and `#tag` is not a heading to strip.
+              .replaceAll(
+                RegExp(r'^ {0,3}#{1,6}(?:[ \t]+|$)', multiLine: true),
+                '',
+              );
           _controller.value = TextEditingValue(
             text:
                 text.substring(0, selection.start) +
@@ -1769,9 +1787,6 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     );
   }
 
-  /// Matches a heading marker at the start of a line.
-  static final _headingPrefixRe = RegExp(r'^(#{1,6})\s+');
-
   /// Sets the current line's heading level, or clears it when [level] is null.
   ///
   /// Replaces any marker already there. Prepending unconditionally — which is
@@ -1788,10 +1803,7 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     if (lineEnd == -1) lineEnd = text.length;
 
     final line = text.substring(lineStart, lineEnd);
-    final existing = _headingPrefixRe.firstMatch(line);
-    final body = existing == null ? line : line.substring(existing.end);
-
-    final replacement = level == null ? body : '${'#' * level} $body';
+    final replacement = SourceEditor.applyHeadingLevel(line, level);
     final delta = replacement.length - line.length;
 
     _controller.value = TextEditingValue(
@@ -1816,10 +1828,10 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     var lineEnd = text.indexOf('\n', lineStart);
     if (lineEnd == -1) lineEnd = text.length;
 
-    final match = _headingPrefixRe.firstMatch(
-      text.substring(lineStart, lineEnd),
-    );
-    return match == null ? 0 : match.group(1)!.length;
+    return md.MarkdownParser.headingLevelOf(
+          text.substring(lineStart, lineEnd),
+        ) ??
+        0;
   }
 
   /// Moves the current line up or down the heading scale.
