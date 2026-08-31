@@ -361,6 +361,14 @@ class HtmlBlockNode extends MarkdownNode {
 
   HtmlBlockNode({required this.html});
 
+  /// Whether this block is nothing but an HTML comment.
+  ///
+  /// A comment is written to be invisible — `<!-- TODO -->`, a note left for
+  /// whoever reads the source next — so every renderer skips it. The one
+  /// exception is the HTML export, where passing it through is what keeps it
+  /// a comment.
+  bool get isComment => html.trimLeft().startsWith('<!--');
+
   @override
   NodeType get type => NodeType.htmlBlock;
   @override
@@ -638,8 +646,13 @@ class MarkdownParser {
   /// The tag name must be followed by something that can start an attribute
   /// list or close the tag, which keeps `<https://example.com>` — an autolink,
   /// not an element — out of this branch.
+  ///
+  /// A closing tag counts too. `</details>` on a line of its own is how every
+  /// collapsible section in a README ends, and matching only opening tags left
+  /// it as a paragraph of escaped angle brackets under the section it was
+  /// supposed to close.
   static final _htmlBlockStartRe =
-      RegExp(r'^<([a-zA-Z][a-zA-Z0-9-]*)(?=[\s/>])');
+      RegExp(r'^</?([a-zA-Z][a-zA-Z0-9-]*)(?=[\s/>])');
 
   /// Tag names that begin an HTML *block*.
   ///
@@ -669,7 +682,7 @@ class MarkdownParser {
   /// on lines of their own, and it is what separates them from a line of
   /// `<kbd>Ctrl</kbd>+<kbd>C</kbd>`, where the tag is followed by content.
   static final _htmlTagAloneRe =
-      RegExp(r'^<[a-zA-Z][a-zA-Z0-9-]*(?:\s[^<>]*?)?/?>\s*$');
+      RegExp(r'^</?[a-zA-Z][a-zA-Z0-9-]*(?:\s[^<>]*?)?/?>\s*$');
 
   /// A link reference definition: `[label]: url "title"`.
   ///
@@ -1532,6 +1545,38 @@ class MarkdownParser {
             blockStart,
             i,
           ));
+          continue;
+        }
+      }
+
+      // An HTML comment: CommonMark's second kind of html block.
+      //
+      // A comment is invisible by definition, and this drew it as a paragraph
+      // of escaped angle brackets — `<!-- TODO -->` shown to the reader is the
+      // one thing a comment must not be. The block ends at the line holding
+      // `-->`, wherever on that line it falls.
+      //
+      // An unclosed comment stays a paragraph rather than swallowing the rest
+      // of the document, which is what the format says to do with it. This is
+      // a live editor: `<!--` is a state every comment passes through on the
+      // way to being written, and blanking the page below the caret while
+      // someone types is worse than showing four characters of markup.
+      if (_indentColumns(line) <= 3 && line.trimLeft().startsWith('<!--')) {
+        var end = -1;
+        if (line.trimLeft().substring(4).contains('-->')) {
+          end = i;
+        } else {
+          for (var j = i + 1; j < lines.length; j++) {
+            if (lines[j].contains('-->')) {
+              end = j;
+              break;
+            }
+          }
+        }
+        if (end >= 0) {
+          final comment = lines.getRange(i, end + 1).join('\n');
+          i = end + 1;
+          nodes.add(_withSpan(HtmlBlockNode(html: comment), blockStart, i));
           continue;
         }
       }

@@ -1721,6 +1721,9 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   }
 
   Widget _buildHtmlBlock(md.HtmlBlockNode node, ThemeData theme) {
+    // A comment is invisible. It still occupies a slot in the list so the
+    // preview's block numbering stays in step with the source.
+    if (node.isComment) return const SizedBox.shrink();
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
       padding: const EdgeInsets.all(12),

@@ -1218,6 +1218,10 @@ void _htmlBlockTests() {
       // `<a href="x">` opens a block; the matching `</a>` sits four blocks
       // further down. Scanning that far for it swallowed the heading and the
       // prose in between. CommonMark ends the block at the blank line.
+      //
+      // The closing tag is a block of its own — that is how `</details>` ends
+      // a collapsible section — so what this guards is the gap: the heading
+      // and the prose between the two tags stay where they were written.
       const doc =
           '<a href="x">\n'
           '\n'
@@ -1230,7 +1234,15 @@ void _htmlBlockTests() {
       final nodes = parser.parse(doc);
 
       expect(nodes.where((n) => n.type == NodeType.heading).length, 1);
-      expect(nodes.where((n) => n.type == NodeType.paragraph).length, 2);
+      expect((nodes.firstWhere((n) => n.type == NodeType.heading)
+              as HeadingNode)
+          .content, 'Middle');
+      final paragraphs =
+          nodes.where((n) => n.type == NodeType.paragraph).toList();
+      expect(paragraphs, hasLength(1));
+      expect(paragraphs.single.rawContent.trim(), 'prose');
+      expect(nodes.last.type, NodeType.htmlBlock);
+      expect(nodes.last.rawContent, contains('</a>'));
     });
 
     test('markdown inside a details block is still markdown', () {

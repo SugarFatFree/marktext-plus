@@ -646,6 +646,8 @@ class ExportService {
 
       case NodeType.htmlBlock:
         final html = node as HtmlBlockNode;
+        // A comment is not content; Word has nowhere to put one.
+        if (html.isComment) return builder;
         return builder.add(
           DocxParagraph(
             children: [
@@ -1893,6 +1895,8 @@ class ExportService {
 
       case NodeType.htmlBlock:
         final html = node as HtmlBlockNode;
+        // As in Word: a comment is not something a page can show.
+        if (html.isComment) return const [];
         return [
           pw.Container(
             margin: pw.EdgeInsets.only(bottom: _pdfSpaceAfter),

@@ -32,6 +32,8 @@
 | BUG-200 | 2026-08-31 | 对缩进标题按 Ctrl+3，标题被吃进正文变成 `###    ## 标题` | P2 | 已修复 |
 | BUG-201 | 2026-08-31 | 把网址放在文末的写法里，链接文字的加粗变成字面的 `**` | P2 | 已修复 |
 | BUG-202 | 2026-08-31 | 列表项下不空行写代码块，整块被吞成行内代码 | P1 | 已修复 |
+| BUG-203 | 2026-08-31 | HTML 注释 `<!-- -->` 在预览里以字面形式显示出来 | P2 | 已修复 |
+| BUG-204 | 2026-08-31 | `<details>` 折叠块的 `</details>` 漏成一段字面文字 | P2 | 已修复 |
 
 ## BUG-173：引用式链接的标签里，标记仍显示成字面量
 
@@ -1413,3 +1415,97 @@ CommonMark 一致性 **476 → 478**，下限同步提到 478。
 - `code/lib/services/markdown_parser.dart`
 - `code/test/services/list_item_blocks_under_text_test.dart`（新增，10 条）
 - `code/test/services/commonmark_spec_test.dart`（下限 476 → 478）
+
+---
+
+## BUG-203：HTML 注释在预览里以字面形式显示出来
+
+### 现象
+
+```markdown
+正文一
+
+<!-- TODO: 这段待补充 -->
+
+正文二
+```
+
+预览里中间那行显示为 `<!-- TODO: 这段待补充 -->`——注释按定义就是不该被看见的，
+这是它唯一不能出现的样子。导出到 PDF、Word 里同样带着。
+
+注释在真实文档里到处都是：待办标记、`<!-- prettier-ignore -->`、
+Hexo 的 `<!-- more -->`、许可证头、临时藏起来的段落。
+
+### 根因分析
+
+`_htmlBlockStartRe` 是 `^<([a-zA-Z]…)`，要求 `<` 后面跟字母，
+所以 `<!--` 压根不进 HTML 块分支，只能落到段落里被转义显示。
+CommonMark 把注释列为 HTML 块的第二类。
+
+### 修复方案
+
+- 解析器识别 `<!--` 开头（允许最多三列缩进）的块，止于含 `-->` 的那一行。
+- `HtmlBlockNode` 增加 `isComment`。预览返回 `SizedBox.shrink()`
+  （仍占一个位置，保证预览的块编号与源码对得上）；PDF 与 Word 跳过；
+  富文本复制返回空串；**HTML 导出照原样输出**——原样输出才使它仍然是注释，
+  CommonMark 的期望输出也正是如此。
+
+**一个刻意的偏离**：未闭合的 `<!--` 不按规范吞掉后文，而是留作普通段落。
+这是实时编辑器，`<!--` 是每条注释打到一半时必经的状态，
+在光标下方把整页清空比多显示四个字符糟糕得多。
+
+### 验证
+
+新增 9 条（与 BUG-204 合一个文件）。两条护栏：未闭合的注释不吞后文、
+代码块里的注释仍是代码。
+
+---
+
+## BUG-204：`<details>` 折叠块的收尾标签漏成一段字面文字
+
+### 现象
+
+README 里最常见的折叠块：
+
+```markdown
+<details>
+<summary>点击展开</summary>
+
+内容
+
+</details>
+```
+
+`<details>`、`<summary>` 和中间的 markdown 都正常，但末尾的 `</details>`
+变成了一段 `&lt;/details&gt;`——折叠块没有闭合，后面的内容全在框内。
+
+### 根因分析
+
+同一条 `_htmlBlockStartRe` 只认开标签。HTML 块在空行处结束
+（这是刻意的，正是它让 `<details>` 里的 markdown 仍按 markdown 解析），
+于是空行之后的 `</details>` 需要自己重新开一个块，而它开不了。
+
+### 修复方案
+
+`_htmlBlockStartRe` 与 `_htmlTagAloneRe` 都改为接受 `</`。
+块收集逻辑无需改动：闭合标签行自身就含有 `closeTag`，
+会被判定为「自成一块」，恰好只吃一行。
+
+### 验证
+
+有一条既有测试断言「段落数为 2」而失败——它数的第二个段落正是漏出来的
+`</a>`，也就是本次要改掉的行为。该测试的真实意图是「两个标签之间的标题和
+正文不被吞掉」，所以断言改写为直接表达这一点：标题内容为 `Middle`、
+唯一的段落是 `prose`、最后一个节点是 HTML 块。意图保住了，顺带把它写得更准。
+
+### 影响（BUG-203 + BUG-204 合计）
+
+CommonMark 一致性 **478 → 486**，下限同步提到 486。
+
+### 涉及文件
+
+- `code/lib/services/markdown_parser.dart`、`code/lib/services/export_service.dart`、
+  `code/lib/services/rich_copy_service.dart`、`code/lib/ui/editor/markdown_renderer.dart`
+- `code/test/services/html_comment_test.dart`（新增，9 条）
+- `code/test/services/markdown_parser_test.dart`（一条断言改写）
+- `code/test/services/commonmark_spec_test.dart`（下限 478 → 486）
