@@ -55,6 +55,8 @@ That's it! The editor will launch with a sample document ready to edit.
 | **📊 Table Editing** | Insert and delete rows and columns, set per-column alignment |
 | **🔀 Move Blocks** | Lift a paragraph, list or fence up and down the document with one shortcut |
 | **🔍 Find & Replace** | Whole-word and regular-expression search, with replace-all across the document |
+| **🔗 Paste a Link** | Select some words, paste a web address over them, and they become a link — as they do everywhere else |
+| **📐 Tidy a Table** | Lay a table's pipes out again without changing what it says. A CJK character counts as two columns, so a table of Chinese lines up in the source the way it does on screen |
 | **🖼️ Images** | Paste or drop a picture and it is filed next to the document and linked |
 
 ### Rendering
@@ -84,7 +86,7 @@ That's it! The editor will launch with a sample document ready to edit.
 |---------|-------------|
 | **⚡ Fast start** | No embedded browser, no editor framework, 22 direct dependencies |
 | **📄 Large files** | Parsing, highlighting and search are all single-pass and budgeted by tests that fail if a change makes them slower |
-| **🧪 Tested** | 1850 tests covering the parser, the exporters, the providers and the editor widgets |
+| **🧪 Tested** | 1946 tests covering the parser, the exporters, the providers and the editor widgets |
 
 ## 🎨 Themes
 
