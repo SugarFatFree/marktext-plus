@@ -1121,9 +1121,25 @@ class MarkdownParser {
     List<List<String>> itemBlocks,
     List<int> itemStarts,
   ) {
-    final widths =
-        itemBlocks.map((block) => _indentColumns(block.first)).toSet().toList()
-          ..sort();
+    // How deep each item sits, by the column its parent's *text* starts at.
+    //
+    // Every distinct indentation used to be a level of its own, so a list
+    // whose bullets drift by a space — which is what a hand-edited or pasted
+    // list looks like — came out nested one level per bullet: `- a`, ` - b`,
+    // `  - c` drew three lists inside each other where the writer had three
+    // bullets. An item is inside another only when it is indented to where
+    // that item's text begins; a column or two short of it is a sibling.
+    final depths = <int>[];
+    final openContentColumns = <int>[];
+    for (final block in itemBlocks) {
+      final indent = _indentColumns(block.first);
+      while (openContentColumns.isNotEmpty &&
+          indent < openContentColumns.last) {
+        openContentColumns.removeLast();
+      }
+      depths.add(openContentColumns.length);
+      openContentColumns.add(_contentColumn(block.first));
+    }
 
     return itemBlocks.indexed.map((entry) {
       final (index, block) = entry;
@@ -1180,7 +1196,7 @@ class MarkdownParser {
       final content = lead.isEmpty
           ? first
           : [first, ...lead.map((line) => line.trim())].join(' ');
-      final depth = widths.indexOf(_indentColumns(block.first));
+      final depth = depths[index];
 
       final taskMatch = _taskRe.firstMatch(content);
       if (taskMatch != null) {

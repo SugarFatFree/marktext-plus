@@ -4,6 +4,7 @@
 |------|------|------|--------|------|
 | BUG-212 | 2026-09-01 | 折行写的链接定义不被识别，源码作为正文显示给读者 | P1 | 已修复 |
 | BUG-213 | 2026-09-01 | 列表项下用 Tab 缩进的内容，开头的字被静默删掉 | P1 | 已修复 |
+| BUG-214 | 2026-09-01 | 缩进漂移一个空格的列表被画成层层嵌套 | P2 | 已修复 |
 
 ---
 
@@ -153,3 +154,85 @@ CommonMark 一致性 **491 → 492**，下限同步提到 492。
 - `code/lib/services/markdown_parser.dart`
 - `code/test/services/tab_indent_test.dart`（新增，7 条）
 - `code/test/services/commonmark_spec_test.dart`（下限 491 → 492）
+
+---
+
+## BUG-214：缩进漂移一个空格的列表，被画成层层嵌套
+
+### 现象
+
+```markdown
+- 甲
+ - 乙
+  - 丙
+   - 丁
+```
+
+四个平级的条目（每级只多一个空格），预览里画成了**四层嵌套的列表**。
+手写、或从别处粘贴过来的列表，缩进有一两个空格的漂移是很常见的。
+
+有序列表同理：`1. 甲` 下面缩进两个空格的 `2. 乙` 被当成了子项。
+
+### 根因分析
+
+深度是这么算的：
+
+```dart
+final widths = itemBlocks.map((b) => _indentColumns(b.first)).toSet().toList()..sort();
+...
+final depth = widths.indexOf(_indentColumns(block.first));
+```
+
+**「文档里出现过多少种不同的缩进宽度，就有多少层」**——
+缩进值的排名被当成了层级。四个各差一个空格的条目于是有四种宽度、四个层级。
+
+正确的规则是：一个条目只有缩进到**上一个条目正文的起始列**时，才算它的子项。
+`- ` 的正文起始列是 2，`1. ` 是 3，`10. ` 是 4——差一列都算同级。
+
+### 修复方案
+
+改用一个「当前打开的条目」栈，栈里存各层的**正文起始列**：
+
+```dart
+while (open.isNotEmpty && indent < open.last) open.removeLast();
+depths.add(open.length);
+open.add(_contentColumn(block.first));
+```
+
+### 一条既有测试的期望值是错的
+
+`ordered lists nest too` 断言 `1. one` / **两空格** `2. nested` 的深度为 `[0, 1, 0]`。
+按新规则应当是 `[0, 0, 0]`。
+
+**没有凭我自己读规范就改断言**，而是拿参考实现 `marked` 判：
+
+| 写法 | marked |
+|---|---|
+| `1. one` + 两空格 `2. nested` | **同级** |
+| `1. a` + 三空格 `2. b` | 嵌套 |
+| `- 甲` + 一空格 | 同级 |
+| `- 甲` + 两空格 | 嵌套 |
+
+参考实现确认新规则正确，**那条断言固化的是解析器过去的行为，不是列表的含义**。
+改为同时钉住两侧：两空格同级、三空格嵌套。
+
+### 验证
+
+新增 10 条：无序/有序各自的边界（差一列同级、够到正文列嵌套）、
+更宽的标记（`10. ` 需要四列）、漂移后又退回来仍在同一层；
+3 条护栏：正常嵌套不变、三层写法仍是三层、Tab 缩进的子项仍嵌套。
+
+把栈里存的列改成「缩进 + 1」（即任何多一点缩进都算子项）后 5 条失败 + 棘轮回落。
+
+### 影响
+
+CommonMark 一致性 **492 → 493**，下限同步提到 493。
+分数只涨 1 分，但这一簇里的 5 个例子结构全部修正了——
+它们各自还带着别的规范细节（松散列表的 `<p>` 包裹等），所以没有全部转绿。
+
+### 涉及文件
+
+- `code/lib/services/markdown_parser.dart`
+- `code/test/services/list_indent_depth_test.dart`（新增，10 条）
+- `code/test/services/markdown_parser_test.dart`（一条错误期望改正）
+- `code/test/services/commonmark_spec_test.dart`（下限 492 → 493）
