@@ -54,7 +54,23 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   // Build phase rebuilds this map fresh per pass to avoid stale duplicates.
   final _headingKeys = <int, GlobalKey>{};
   int _matchCounter = 0;
-  final _recognizers = <TapGestureRecognizer>[];
+  /// One tap recognizer per link destination, kept between builds.
+  ///
+  /// These used to be built fresh on every build and the previous set thrown
+  /// away at the top of the next one. A recognizer is not cheap: a paragraph
+  /// carrying one link cost 114 us to rebuild against 45 us for the same
+  /// paragraph without it — a link costs as much as a whole paragraph, and
+  /// bold and inline code cost nothing at all. A page with five hundred links
+  /// spent 25 ms of every rebuild here, and a rebuild is a caret move.
+  ///
+  /// Keyed by destination, because that is all the tap needs to know. Two
+  /// links to the same place share one, which is correct: only one of them
+  /// can be under the pointer.
+  final _recognizersByHref = <String, TapGestureRecognizer>{};
+
+  /// The destinations seen during the build now running, so the ones that
+  /// have gone from the document can be disposed at the end of it.
+  final _hrefsThisBuild = <String>{};
   /// Rebuilt when the inline-HTML setting changes, which is the only thing
   /// that alters how a parser reads the same text.
   md.MarkdownParser _inlineParser = md.MarkdownParser();
@@ -199,19 +215,47 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
 
   @override
   void dispose() {
-    for (final recognizer in _recognizers) {
+    for (final recognizer in _recognizersByHref.values) {
       recognizer.dispose();
     }
+    _hoveredLink.dispose();
     _editController.dispose();
     _editFocusNode.dispose();
     super.dispose();
   }
 
-  void _disposeRecognizers() {
-    for (final recognizer in _recognizers) {
+  /// The recognizer for [href], made once and reused.
+  TapGestureRecognizer _recognizerFor(String? href) {
+    final key = href ?? '';
+    _hrefsThisBuild.add(key);
+    return _recognizersByHref.putIfAbsent(key, () {
+      return TapGestureRecognizer()
+        ..onTap = () {
+          // The modifier is read when the link is clicked, not when it was
+          // drawn, so the recognizer does not have to be rebuilt when Ctrl
+          // goes down.
+          if (key.isNotEmpty &&
+              (HardwareKeyboard.instance.isControlPressed ||
+                  HardwareKeyboard.instance.isMetaPressed)) {
+            _openLink(key);
+          }
+        };
+    });
+  }
+
+  /// Throws away the recognizers for destinations the document no longer has.
+  ///
+  /// Called at the end of a build, when every link still in the document has
+  /// asked for its recognizer. Doing it at the *start* — which is what
+  /// rebuilding them all amounted to — also meant a tap in flight could reach
+  /// a recognizer that had just been disposed.
+  void _sweepRecognizers() {
+    if (_recognizersByHref.length == _hrefsThisBuild.length) return;
+    _recognizersByHref.removeWhere((href, recognizer) {
+      if (_hrefsThisBuild.contains(href)) return false;
       recognizer.dispose();
-    }
-    _recognizers.clear();
+      return true;
+    });
   }
 
   /// Follows a link from the preview: a web address in the browser, a relative
@@ -296,7 +340,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
 
   @override
   Widget build(BuildContext context) {
-    _disposeRecognizers();
+    _hrefsThisBuild.clear();
     final theme = Theme.of(context);
 
     // A format command while a block is open belongs to that block. The
@@ -472,6 +516,10 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         ),
       );
     }
+
+    // Every link still in the document has asked for its recognizer by now,
+    // so anything left over belongs to a destination that has gone.
+    _sweepRecognizers();
 
     return Focus(
       onKeyEvent: (node, event) {
@@ -954,16 +1002,22 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   /// paragraph. Pasting into Word lost every heading and every bold run, which
   /// is the whole thing rich copy exists to keep.
   /// The link the pointer is over, shown along the bottom of the preview.
-  String? _hoveredLink;
+  ///
+  /// A notifier rather than a field set through setState. The bar is one small
+  /// widget in a corner, and rebuilding the state rebuilt every block of the
+  /// document to draw it: on a hundred kilobyte document that is 686 ms of the
+  /// window standing still each time the pointer crosses a link, and again
+  /// when it leaves.
+  final _hoveredLink = ValueNotifier<String?>(null);
 
   void _showLinkHint(String href) {
-    if (_hoveredLink == href || !mounted) return;
-    setState(() => _hoveredLink = href);
+    if (!mounted) return;
+    _hoveredLink.value = href;
   }
 
   void _hideLinkHint() {
-    if (_hoveredLink == null || !mounted) return;
-    setState(() => _hoveredLink = null);
+    if (!mounted) return;
+    _hoveredLink.value = null;
   }
 
   /// A small bar naming the link under the pointer.
@@ -973,8 +1027,15 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   /// is followed — without a popup that has to be positioned, kept on screen
   /// and dismissed.
   Widget _buildLinkHint(AppThemeTokens tokens) {
-    final href = _hoveredLink;
-    if (href == null) return const SizedBox.shrink();
+    return ValueListenableBuilder<String?>(
+      valueListenable: _hoveredLink,
+      builder: (context, href, _) => href == null
+          ? const SizedBox.shrink()
+          : _linkHintBar(href, tokens),
+    );
+  }
+
+  Widget _linkHintBar(String href, AppThemeTokens tokens) {
     final l10n = AppLocalizations.of(context);
 
     return Positioned(
@@ -1913,16 +1974,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             // Remove underline decoration to avoid triggering rebuild on Ctrl press
             decoration: TextDecoration.none,
           );
-          // Check modifier state at click time, not during build
-          final recognizer = TapGestureRecognizer()
-            ..onTap = () {
-              if (span.href != null &&
-                  (HardwareKeyboard.instance.isControlPressed ||
-                      HardwareKeyboard.instance.isMetaPressed)) {
-                _openLink(span.href!);
-              }
-            };
-          _recognizers.add(recognizer);
+          final recognizer = _recognizerFor(span.href);
           if (span.children.isNotEmpty) {
             // The recognizer has to reach the leaves: a gesture on a TextSpan
             // covers that span's own text, not its children's, so a bold link
