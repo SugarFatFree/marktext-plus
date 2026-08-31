@@ -144,6 +144,7 @@
   "formatTableAlignCenter": "Colonne centrée",
   "formatTableAlignRight": "Colonne alignée à droite",
   "formatTableAlignNone": "Supprimer l'alignement de la colonne",
+  "formatTableTidy": "Aligner la source du tableau",
   "paragraphMoveBlockUp": "Déplacer le bloc vers le haut",
   "paragraphMoveBlockDown": "Déplacer le bloc vers le bas",
   "formatLink": "Lien",
@@ -372,6 +373,10 @@
   "fileClearRecentFiles": "Effacer les fichiers récents",
   "viewCommandPalette": "Palette de commandes",
   "viewReloadImages": "Recharger les images",
+  "formatMermaidBlock": "Diagramme Mermaid",
+  "@formatMermaidBlock": {
+    "description": "Slash-menu label for inserting a mermaid diagram block"
+  },
   "formatFrontMatter": "En-tête YAML",
   "formatHtmlBlock": "Bloc HTML",
   "updateUpToDate": "Vous utilisez la dernière version",

@@ -54,7 +54,50 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   // Build phase rebuilds this map fresh per pass to avoid stale duplicates.
   final _headingKeys = <int, GlobalKey>{};
   int _matchCounter = 0;
-  final _recognizers = <TapGestureRecognizer>[];
+  /// One tap recognizer per link destination, kept between builds.
+  ///
+  /// These used to be built fresh on every build and the previous set thrown
+  /// away at the top of the next one. A recognizer is not cheap: a paragraph
+  /// carrying one link cost 114 us to rebuild against 45 us for the same
+  /// paragraph without it — a link costs as much as a whole paragraph, and
+  /// bold and inline code cost nothing at all. A page with five hundred links
+  /// spent 25 ms of every rebuild here, and a rebuild is a caret move.
+  ///
+  /// Keyed by destination, because that is all the tap needs to know. Two
+  /// links to the same place share one, which is correct: only one of them
+  /// can be under the pointer.
+  final _recognizersByHref = <String, TapGestureRecognizer>{};
+
+  /// The destinations seen during the build now running, so the ones that
+  /// have gone from the document can be disposed at the end of it.
+  final _hrefsThisBuild = <String>{};
+
+  /// One built widget per block, reused while nothing about how the document
+  /// is drawn has changed.
+  ///
+  /// The blocks live in a Column, not a lazy list, so every one of them is
+  /// rebuilt on every frame — and while a long document fills in, that is
+  /// every frame for a while. A 216 KB document took 18.5 seconds to finish
+  /// drawing, almost all of it rebuilding blocks that had not changed.
+  ///
+  /// Handing Flutter the same widget instance is what makes this pay: an
+  /// element whose new widget is identical to its old one is not rebuilt, and
+  /// a render object that was not marked dirty is not laid out again either.
+  final _blockWidgets = <md.MarkdownNode, Widget>{};
+
+  /// A scroll request that cannot be honoured until the rest of the document
+  /// has been parsed.
+  ///
+  /// Kept here rather than left in the provider: the source pane listens for
+  /// the same request and clears it as soon as *it* has scrolled, so by the
+  /// time the parse finishes there would be nothing left to read. In split
+  /// view that meant the preview never followed the outline at all.
+  int? _pendingScrollLine;
+
+  /// Everything a block's appearance depends on besides the block itself.
+  /// When any of it changes the cache is thrown away whole, which is the only
+  /// way to be sure a stale block never stays on screen.
+  Object? _blockSignature;
   /// Rebuilt when the inline-HTML setting changes, which is the only thing
   /// that alters how a parser reads the same text.
   md.MarkdownParser _inlineParser = md.MarkdownParser();
@@ -165,6 +208,35 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   void _scrollToTargetLine(int? line) {
     if (line == null) return;
 
+    // Draw down to the line before looking for its key.
+    //
+    // A long document arrives on screen a batch at a time, and a heading that
+    // has not been drawn has no key — so asking for one sent [_keyForLine] to
+    // its fallback, the last heading that *had* been drawn, which can be
+    // thousands of lines short of where the reader asked to go. The target was
+    // then cleared either way, so nothing ever corrected it: clicking an entry
+    // near the end of a long document's outline landed somewhere else and
+    // stayed there.
+    if (_renderUpTo(line)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _scrollToTargetLine(line);
+      });
+      return;
+    }
+
+    // Past the end of what has been parsed. Only a prefix of a long document
+    // exists at first, and [_keyForLine] answers with the nearest heading
+    // above rather than nothing — which here would be the last heading of the
+    // prefix, taken as success and the request thrown away. Leave it standing;
+    // [_adoptFullParse] asks again when the rest arrives.
+    final parsed = _cachedNodes;
+    if (_awaitingFullParse != null &&
+        (parsed == null || parsed.isEmpty || line > parsed.last.sourceEnd)) {
+      _pendingScrollLine = line;
+      return;
+    }
+    _pendingScrollLine = null;
+
     final key = _keyForLine(line);
     if (key?.currentContext != null) {
       Scrollable.ensureVisible(
@@ -174,6 +246,30 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       );
     }
     ref.read(editorProvider.notifier).clearScrollTarget();
+  }
+
+  /// Extends the progressive render far enough to cover source [line].
+  ///
+  /// Returns whether it had to grow. False means the line is already drawn —
+  /// or that there is nothing left to draw — and the caller can go on to look
+  /// for its key.
+  bool _renderUpTo(int line) {
+    final nodes = _cachedNodes;
+    if (nodes == null || _renderedNodeCount >= nodes.length) return false;
+
+    // Source lines are numbered from one here and from zero on the node.
+    var needed = nodes.length;
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i].sourceStart + 1 > line) {
+        needed = i;
+        break;
+      }
+    }
+    if (needed < 1) needed = 1;
+    if (needed <= _renderedNodeCount) return false;
+
+    setState(() => _renderedNodeCount = needed);
+    return true;
   }
 
   /// The key of the block the preview should scroll to for source [line].
@@ -199,19 +295,47 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
 
   @override
   void dispose() {
-    for (final recognizer in _recognizers) {
+    for (final recognizer in _recognizersByHref.values) {
       recognizer.dispose();
     }
+    _hoveredLink.dispose();
     _editController.dispose();
     _editFocusNode.dispose();
     super.dispose();
   }
 
-  void _disposeRecognizers() {
-    for (final recognizer in _recognizers) {
+  /// The recognizer for [href], made once and reused.
+  TapGestureRecognizer _recognizerFor(String? href) {
+    final key = href ?? '';
+    _hrefsThisBuild.add(key);
+    return _recognizersByHref.putIfAbsent(key, () {
+      return TapGestureRecognizer()
+        ..onTap = () {
+          // The modifier is read when the link is clicked, not when it was
+          // drawn, so the recognizer does not have to be rebuilt when Ctrl
+          // goes down.
+          if (key.isNotEmpty &&
+              (HardwareKeyboard.instance.isControlPressed ||
+                  HardwareKeyboard.instance.isMetaPressed)) {
+            _openLink(key);
+          }
+        };
+    });
+  }
+
+  /// Throws away the recognizers for destinations the document no longer has.
+  ///
+  /// Called at the end of a build, when every link still in the document has
+  /// asked for its recognizer. Doing it at the *start* — which is what
+  /// rebuilding them all amounted to — also meant a tap in flight could reach
+  /// a recognizer that had just been disposed.
+  void _sweepRecognizers() {
+    if (_recognizersByHref.length == _hrefsThisBuild.length) return;
+    _recognizersByHref.removeWhere((href, recognizer) {
+      if (_hrefsThisBuild.contains(href)) return false;
       recognizer.dispose();
-    }
-    _recognizers.clear();
+      return true;
+    });
   }
 
   /// Follows a link from the preview: a web address in the browser, a relative
@@ -296,7 +420,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
 
   @override
   Widget build(BuildContext context) {
-    _disposeRecognizers();
+    _hrefsThisBuild.clear();
     final theme = Theme.of(context);
 
     // A format command while a block is open belongs to that block. The
@@ -322,7 +446,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     // provider meant every cursor move and every change of selection in the
     // source pane rebuilt the entire preview — in split view, on every arrow
     // key — and the preview rebuilds every block it has rendered so far.
-    ref.watch(
+    final search = ref.watch(
       editorProvider.select(
         (s) => (
           s.previewSearchQuery,
@@ -381,6 +505,34 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       _scheduleNextBatch(nodes.length);
     }
 
+    // A search numbers its matches by counting them as the blocks are built,
+    // so a block that comes from the cache would not be counted and every
+    // match after it would be numbered wrong. While a search is running,
+    // nothing is cached.
+    final searching = search.$1.isNotEmpty;
+    final signature = (
+      nodes,
+      config.themeName,
+      config.fontSize,
+      config.lineHeight,
+      config.wrapCodeBlocks,
+      config.codeBlockLineNumbers,
+      config.enableHtml,
+      theme.brightness,
+      widget.onSourceChanged == null,
+      _editingNode,
+      search,
+    );
+    final fullRebuild = _blockSignature != signature;
+    if (fullRebuild) {
+      _blockWidgets.clear();
+      _blockSignature = signature;
+    }
+
+    /// The widget for [node], built once while the signature holds.
+    Widget block(md.MarkdownNode node, Widget Function() draw) =>
+        searching ? draw() : _blockWidgets.putIfAbsent(node, draw);
+
     final widgets = <Widget>[];
     _matchCounter = 0;
     // Rebuild heading key map fresh each frame so duplicate or unknown
@@ -405,43 +557,50 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
           if (lineNum > 0) {
             _headingKeys.putIfAbsent(lineNum, () => key);
           }
-          widgets.add(
-            _wrapEditable(node, tokens, _buildHeading(node, theme, tokens, key: key)),
-          );
+          widgets.add(block(
+            node,
+            () => _wrapEditable(
+                node, tokens, _buildHeading(node, theme, tokens, key: key)),
+          ));
         case md.ParagraphNode():
-          widgets.add(_wrapEditable(node, tokens, _buildParagraph(node, theme)));
+          widgets.add(block(node,
+              () => _wrapEditable(node, tokens, _buildParagraph(node, theme))));
         case md.CodeBlockNode():
-          widgets.add(
-            _wrapEditable(node, tokens, _buildCodeBlock(node, theme, tokens)),
-          );
+          widgets.add(block(node,
+              () => _wrapEditable(node, tokens, _buildCodeBlock(node, theme, tokens))));
         case md.ListNode():
-          widgets.add(
-            _wrapEditable(node, tokens, _buildList(node, theme, tokens)),
-          );
+          widgets.add(block(node,
+              () => _wrapEditable(node, tokens, _buildList(node, theme, tokens))));
         case md.BlockquoteNode():
-          widgets.add(
-            _wrapEditable(node, tokens, _buildBlockquote(node, theme, tokens)),
-          );
+          widgets.add(block(node,
+              () => _wrapEditable(node, tokens, _buildBlockquote(node, theme, tokens))));
         case md.HorizontalRuleNode():
-          widgets.add(
-            _wrapEditable(
+          widgets.add(block(
+            node,
+            () => _wrapEditable(
               node,
               tokens,
               Divider(thickness: 1, color: tokens.colorBorder),
             ),
-          );
+          ));
         case md.TableNode():
-          widgets.add(_wrapEditable(node, tokens, _buildTable(node, theme)));
+          widgets.add(block(node,
+              () => _wrapEditable(node, tokens, _buildTable(node, theme))));
         case md.MathBlockNode():
-          widgets.add(_wrapEditable(node, tokens, _buildMathBlock(node, theme)));
+          widgets.add(block(node,
+              () => _wrapEditable(node, tokens, _buildMathBlock(node, theme))));
         case md.FrontMatterNode():
-          widgets.add(_wrapEditable(node, tokens, _buildFrontMatter(node, theme)));
+          widgets.add(block(node,
+              () => _wrapEditable(node, tokens, _buildFrontMatter(node, theme))));
         case md.FootnoteDefinitionNode():
-          widgets.add(
-            _wrapEditable(node, tokens, _buildFootnoteDefinition(node, theme)),
-          );
+          widgets.add(block(
+            node,
+            () => _wrapEditable(
+                node, tokens, _buildFootnoteDefinition(node, theme)),
+          ));
         case md.HtmlBlockNode():
-          widgets.add(_wrapEditable(node, tokens, _buildHtmlBlock(node, theme)));
+          widgets.add(block(node,
+              () => _wrapEditable(node, tokens, _buildHtmlBlock(node, theme))));
       }
     }
 
@@ -472,6 +631,13 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         ),
       );
     }
+
+    // Only after a build in which every block was actually drawn: a block
+    // served from the cache never asks for its recognizer, so sweeping then
+    // would dispose recognizers that are still on screen. The signature
+    // includes the block list, so any change to the document clears the cache
+    // and this runs.
+    if (fullRebuild) _sweepRecognizers();
 
     return Focus(
       onKeyEvent: (node, event) {
@@ -692,6 +858,16 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       // way it does for a document that was parsed in one go.
       _renderedNodeCount = _renderedNodeCount.clamp(0, nodes.length);
     });
+
+    // A scroll asked for while only the prefix existed was remembered rather
+    // than thrown away, because the line it names may only now have a block to
+    // point at.
+    final pending = _pendingScrollLine;
+    if (pending != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _scrollToTargetLine(pending);
+      });
+    }
   }
 
   void _startEditing(md.MarkdownNode node) {
@@ -954,16 +1130,22 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   /// paragraph. Pasting into Word lost every heading and every bold run, which
   /// is the whole thing rich copy exists to keep.
   /// The link the pointer is over, shown along the bottom of the preview.
-  String? _hoveredLink;
+  ///
+  /// A notifier rather than a field set through setState. The bar is one small
+  /// widget in a corner, and rebuilding the state rebuilt every block of the
+  /// document to draw it: on a hundred kilobyte document that is 686 ms of the
+  /// window standing still each time the pointer crosses a link, and again
+  /// when it leaves.
+  final _hoveredLink = ValueNotifier<String?>(null);
 
   void _showLinkHint(String href) {
-    if (_hoveredLink == href || !mounted) return;
-    setState(() => _hoveredLink = href);
+    if (!mounted) return;
+    _hoveredLink.value = href;
   }
 
   void _hideLinkHint() {
-    if (_hoveredLink == null || !mounted) return;
-    setState(() => _hoveredLink = null);
+    if (!mounted) return;
+    _hoveredLink.value = null;
   }
 
   /// A small bar naming the link under the pointer.
@@ -973,8 +1155,15 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   /// is followed — without a popup that has to be positioned, kept on screen
   /// and dismissed.
   Widget _buildLinkHint(AppThemeTokens tokens) {
-    final href = _hoveredLink;
-    if (href == null) return const SizedBox.shrink();
+    return ValueListenableBuilder<String?>(
+      valueListenable: _hoveredLink,
+      builder: (context, href, _) => href == null
+          ? const SizedBox.shrink()
+          : _linkHintBar(href, tokens),
+    );
+  }
+
+  Widget _linkHintBar(String href, AppThemeTokens tokens) {
     final l10n = AppLocalizations.of(context);
 
     return Positioned(
@@ -1323,9 +1512,10 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     String language, {
     int tabSize = 8,
   }) {
-    final nodes = CodeHighlighting.instance
-        .parse(source.replaceAll('\t', ' ' * tabSize), language: language)
-        .nodes;
+    final nodes = CodeHighlighting.highlight(
+      source.replaceAll('\t', ' ' * tabSize),
+      language: language,
+    ).nodes;
     if (nodes == null || nodes.isEmpty) {
       return [TextSpan(text: source)];
     }
@@ -1566,7 +1756,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
                 padding: const EdgeInsets.all(8),
                 child: Text.rich(
                   _buildInlineSpans(
-                    _inlineParser.parseInline(node.headers[i]),
+                    node.headerSpansAt(i),
                     theme,
                     theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.bold,
@@ -1578,7 +1768,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
               ),
           ],
         ),
-        for (final row in node.rows)
+        for (var r = 0; r < node.rows.length; r++)
           TableRow(
             children: [
               for (var i = 0; i < colCount; i++)
@@ -1586,7 +1776,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
                   padding: const EdgeInsets.all(8),
                   child: Text.rich(
                     _buildInlineSpans(
-                      _inlineParser.parseInline(i < row.length ? row[i] : ''),
+                      node.cellSpans(r, i),
                       theme,
                       const TextStyle(),
                     ),
@@ -1721,6 +1911,9 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   }
 
   Widget _buildHtmlBlock(md.HtmlBlockNode node, ThemeData theme) {
+    // A comment is invisible. It still occupies a slot in the list so the
+    // preview's block numbering stays in step with the source.
+    if (node.isComment) return const SizedBox.shrink();
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
       padding: const EdgeInsets.all(12),
@@ -1831,10 +2024,6 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   /// with bold as their base.
   TextStyle? _emphasisStyle(md.InlineType type, TextStyle? base) =>
       switch (type) {
-        md.InlineType.boldItalic => base?.copyWith(
-            fontWeight: FontWeight.bold,
-            fontStyle: FontStyle.italic,
-          ),
         md.InlineType.bold => base?.copyWith(fontWeight: FontWeight.bold),
         md.InlineType.italic => base?.copyWith(fontStyle: FontStyle.italic),
         md.InlineType.strikethrough =>
@@ -1879,13 +2068,6 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
           } else {
             children.add(TextSpan(text: span.text, style: baseStyle));
           }
-        case md.InlineType.boldItalic:
-          final s = _emphasisStyle(span.type, baseStyle);
-          if (hasSearch) {
-            children.addAll(_applySearchHighlight(span.text, s, es));
-          } else {
-            children.add(TextSpan(text: span.text, style: s));
-          }
         case md.InlineType.bold:
           final s = _emphasisStyle(span.type, baseStyle);
           if (hasSearch) {
@@ -1920,16 +2102,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             // Remove underline decoration to avoid triggering rebuild on Ctrl press
             decoration: TextDecoration.none,
           );
-          // Check modifier state at click time, not during build
-          final recognizer = TapGestureRecognizer()
-            ..onTap = () {
-              if (span.href != null &&
-                  (HardwareKeyboard.instance.isControlPressed ||
-                      HardwareKeyboard.instance.isMetaPressed)) {
-                _openLink(span.href!);
-              }
-            };
-          _recognizers.add(recognizer);
+          final recognizer = _recognizerFor(span.href);
           if (span.children.isNotEmpty) {
             // The recognizer has to reach the leaves: a gesture on a TextSpan
             // covers that span's own text, not its children's, so a bold link
@@ -1968,6 +2141,30 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
           } else {
             children.add(TextSpan(text: span.text, style: s));
           }
+        case md.InlineType.ruby:
+          // The reading goes above the text, which is the whole point of ruby
+          // and the one thing a run of styled text cannot express — so this is
+          // a widget, sized down and baseline-aligned so the line it sits on
+          // keeps its rhythm.
+          final rubyBase = baseStyle ?? const TextStyle();
+          children.add(
+            WidgetSpan(
+              alignment: PlaceholderAlignment.middle,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    span.title ?? '',
+                    style: rubyBase.copyWith(
+                      fontSize: (rubyBase.fontSize ?? 16) * 0.5,
+                      height: 1.0,
+                    ),
+                  ),
+                  Text(span.text, style: rubyBase.copyWith(height: 1.0)),
+                ],
+              ),
+            ),
+          );
         case md.InlineType.mathInline:
           children.add(
             WidgetSpan(
@@ -2095,10 +2292,19 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       editorProvider.select((state) => state.imageRevision),
     );
 
+    // A tag may ask for a size; markdown's own syntax cannot. Only one of the
+    // two is usually given, and the other is left to the picture's own
+    // proportions rather than being guessed at.
+    final askedWidth = span.width;
+    final askedHeight = span.height;
+
     Widget imageWidget;
     if (href.startsWith('http://') || href.startsWith('https://')) {
       imageWidget = Image.network(
         href,
+        width: askedWidth,
+        height: askedHeight,
+        fit: askedWidth != null && askedHeight != null ? BoxFit.fill : null,
         key: ValueKey('image:$revision:$href'),
         errorBuilder: (context, error, stackTrace) => Text(
           '[${span.text}]',
@@ -2109,6 +2315,9 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       final file = File(_resolveAgainstDocument(href));
       imageWidget = Image.file(
         file,
+        width: askedWidth,
+        height: askedHeight,
+        fit: askedWidth != null && askedHeight != null ? BoxFit.fill : null,
         key: ValueKey('image:$revision:$href'),
         errorBuilder: (context, error, stackTrace) => Text(
           '[${span.text}]',

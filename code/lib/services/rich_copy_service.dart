@@ -32,7 +32,8 @@ class RichCopyService {
       case MathBlockNode():
         return node.expression;
       case HtmlBlockNode():
-        return node.html;
+        // A comment carries no text to paste.
+        return node.isComment ? '' : node.html;
       case FrontMatterNode():
         return node.content;
       case HorizontalRuleNode():

@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/models/file_encoding.dart';
 
 void main() {
+  _bomlessUtf16();
   group('FileEncoding', () {
     test('plain UTF-8 round-trips byte for byte', () {
       final bytes = Uint8List.fromList(utf8.encode('# 标题\n正文\n'));
@@ -99,6 +100,123 @@ void main() {
 
       expect(text, isEmpty);
       expect(encoding, FileEncoding.utf8Encoding);
+    });
+  });
+}
+
+/// UTF-16 written without a byte order mark.
+///
+/// Notepad writes the mark; plenty of tools do not. Without it such a file was
+/// read as Latin-1, and every Chinese character came out as two pieces of
+/// nonsense — the document opened, looked ruined, and saving it would have
+/// made that permanent.
+/// The bytes [text] makes in UTF-16, with no mark in front.
+Uint8List utf16(String text, {required bool big}) {
+  final out = BytesBuilder();
+  for (final unit in text.codeUnits) {
+    out.addByte(big ? unit >> 8 : unit & 0xFF);
+    out.addByte(big ? unit & 0xFF : unit >> 8);
+  }
+  return out.toBytes();
+}
+
+void _bomlessUtf16() {
+
+  const sample = '# 中文标题\n\n这是一段用 UTF-16 写的正文，含**加粗**。\n';
+
+  group('a file with no mark is still read', () {
+    test('little endian', () {
+      final (text, encoding) = FileEncoding.decode(utf16(sample, big: false));
+      // The no-mark variant: kept apart from the one with a mark so that
+      // saving does not put a mark on a file that never had one.
+      expect(encoding, FileEncoding.utf16leNoBom);
+      expect(text, sample);
+    });
+
+    test('big endian', () {
+      final (text, encoding) = FileEncoding.decode(utf16(sample, big: true));
+      expect(encoding, FileEncoding.utf16beNoBom);
+      expect(text, sample);
+    });
+
+    test('a word whose lower half is zero does not throw it off', () {
+      // `一` is U+4E00, so its low byte lands on the side that should be
+      // empty. Requiring that side to be empty would miss any document with
+      // the commonest word in the language in it.
+      final (text, encoding) = FileEncoding.decode(
+          utf16('# 第一章\n\n第一段落，写了一些话。\n\n- 一条\n- 两条\n', big: false));
+      expect(encoding, FileEncoding.utf16leNoBom);
+      expect(text, contains('第一段落'));
+    });
+
+    test('what this cannot tell, stated rather than hidden', () {
+      // The signal is the zero byte an ASCII character brings, so a short run
+      // of nothing but Chinese carries almost none. Real markdown always has
+      // ASCII in it — the `#`, the brackets, the blank lines — which is why
+      // the case above works and this one does not. Written down so the limit
+      // is a decision rather than a surprise.
+      final (_, encoding) =
+          FileEncoding.decode(utf16('第一段。\n第二段。\n', big: false));
+      expect(encoding, isNot(FileEncoding.utf16leNoBom));
+    });
+  });
+
+  group('saving gives back the bytes that were opened', () {
+    // A file that arrived without a byte order mark must not gain one by
+    // being opened and saved: those are two bytes nobody asked to change,
+    // and every tool that compares files would report it.
+    void survivesRoundTrip(String name, Uint8List bytes) {
+      test(name, () {
+        final (text, encoding) = FileEncoding.decode(bytes);
+        expect(encoding.encode(text), bytes, reason: '$name 回写后字节变了');
+      });
+    }
+
+    const text = '# 标题\n\n正文一段，含 ASCII 与中文。\n';
+
+    survivesRoundTrip('UTF-16 LE with no mark', utf16(text, big: false));
+    survivesRoundTrip('UTF-16 BE with no mark', utf16(text, big: true));
+    survivesRoundTrip(
+      'UTF-16 LE with a mark',
+      Uint8List.fromList([0xFF, 0xFE, ...utf16(text, big: false)]),
+    );
+    survivesRoundTrip(
+      'UTF-16 BE with a mark',
+      Uint8List.fromList([0xFE, 0xFF, ...utf16(text, big: true)]),
+    );
+    survivesRoundTrip(
+      'UTF-8',
+      Uint8List.fromList(utf8.encode(text)),
+    );
+    survivesRoundTrip(
+      'UTF-8 with a mark',
+      Uint8List.fromList([0xEF, 0xBB, 0xBF, ...utf8.encode(text)]),
+    );
+  });
+
+  group('what is not UTF-16', () {
+    test('UTF-8 Chinese', () {
+      final (_, encoding) =
+          FileEncoding.decode(Uint8List.fromList(utf8.encode(sample)));
+      expect(encoding, FileEncoding.utf8Encoding);
+    });
+
+    test('ASCII', () {
+      final (_, encoding) = FileEncoding.decode(
+          Uint8List.fromList(utf8.encode('# Title\n\nplain text here\n')));
+      expect(encoding, FileEncoding.utf8Encoding);
+    });
+
+    test('a file too short to tell', () {
+      final (_, encoding) =
+          FileEncoding.decode(Uint8List.fromList([0x23, 0x20, 0x41]));
+      expect(encoding, isNot(FileEncoding.utf16leNoBom));
+    });
+
+    test('an odd number of bytes is not UTF-16', () {
+      final bytes = utf16(sample, big: false).toList()..add(0x41);
+      final (_, encoding) = FileEncoding.decode(Uint8List.fromList(bytes));
+      expect(encoding, isNot(FileEncoding.utf16leNoBom));
     });
   });
 }

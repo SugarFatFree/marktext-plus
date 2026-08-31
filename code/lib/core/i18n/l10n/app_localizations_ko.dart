@@ -317,6 +317,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get formatTableAlignNone => '열 정렬 해제';
 
   @override
+  String get formatTableTidy => '표 소스 정리';
+
+  @override
   String get paragraphMoveBlockUp => '블록 위로 이동';
 
   @override
@@ -976,6 +979,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get viewReloadImages => '이미지 다시 불러오기';
+
+  @override
+  String get formatMermaidBlock => 'Mermaid 다이어그램';
 
   @override
   String get formatFrontMatter => '프런트 매터';

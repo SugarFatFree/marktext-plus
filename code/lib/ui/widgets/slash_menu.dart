@@ -78,6 +78,19 @@ List<SlashCommand> slashCommands(AppLocalizations l10n) => [
         action: FormatAction.codeBlock,
         icon: Icons.code,
       ),
+      // Beside the code fence it resembles. About five entries fit before the
+      // list has to be scrolled, so this one is reached either by scrolling or
+      // — faster — by typing any of its keywords: `/mermaid`, `/图`, `/流程图`.
+      // It is the block this editor is built around, and the only one with
+      // three parts to remember: the fence, the word, and a first line that
+      // decides what kind of diagram it is.
+      SlashCommand(
+        id: 'mermaid-block',
+        label: l10n.formatMermaidBlock,
+        keywords: const ['mermaid', 'diagram', 'flow', '图', '流程图', '图表'],
+        action: FormatAction.mermaidBlock,
+        icon: Icons.account_tree_outlined,
+      ),
       SlashCommand(
         id: 'quote-block',
         label: l10n.formatQuoteBlock,
@@ -106,6 +119,19 @@ List<SlashCommand> slashCommands(AppLocalizations l10n) => [
         action: FormatAction.frontMatter,
         icon: Icons.article_outlined,
       ),
+      // Last, not first as upstream has them. Upstream is a WYSIWYG, where a
+      // heading has no other way in; here `##` is two keystrokes, so these are
+      // for a reader who has just found `/` and does not know that yet. Six of
+      // them at the top would push the blocks that are genuinely awkward to
+      // type — the table, the fence, the diagram — off the visible list.
+      for (var level = 1; level <= 6; level++)
+        SlashCommand(
+          id: 'heading-$level',
+          label: l10n.formatHeading(level),
+          keywords: ['h$level', '#' * level, 'heading', '标题'],
+          action: _headingActions[level - 1],
+          icon: Icons.title,
+        ),
     ];
 
 /// The menu that opens when `/` is typed at the start of an empty block.
@@ -261,3 +287,13 @@ class _SlashMenuState extends State<SlashMenu> {
     );
   }
 }
+
+/// The heading actions in level order, so the menu can be built with a loop.
+const _headingActions = [
+  FormatAction.heading1,
+  FormatAction.heading2,
+  FormatAction.heading3,
+  FormatAction.heading4,
+  FormatAction.heading5,
+  FormatAction.heading6,
+];

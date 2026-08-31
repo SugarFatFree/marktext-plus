@@ -176,10 +176,17 @@ void main() {
       expect(children.single, isA<ParagraphNode>());
     });
 
-    test('content and spans are still populated', () {
-      // Anything still reading them keeps working.
+    test('the content is kept, and the text lives in the blocks inside', () {
+      // `content` is what the quote was written as, and is still there. The
+      // parsed text belongs to the blocks the quote holds: parsing it on the
+      // quote as well meant parsing it twice, which cost a third of the time
+      // on a document full of quotations and grew quadratically on a nested
+      // one. Every reader of a document walks into the children anyway.
       expect(quoteOf('> just text').content, 'just text');
-      expect(quoteOf('> **bold**').inlineSpans.first.type, InlineType.bold);
+      expect(quoteOf('> **bold**').inlineSpans, isEmpty);
+
+      final paragraph = quoteOf('> **bold**').children.single as ParagraphNode;
+      expect(paragraph.inlineSpans.first.type, InlineType.bold);
     });
   });
 
@@ -404,10 +411,15 @@ void main() {
     test('*** is bold and italic, not bold with a stray asterisk', () {
       // Read as the bold branch, `***x***` matched `**` + `*x` + `**` and left
       // the last asterisk behind as text.
+      //
+      // It is an italic holding a bold now, which is the shape the format
+      // gives it and the shape marked — the parser upstream MarkText uses —
+      // produces: `<em><strong>…</strong></em>`.
       final spans = spansOf('***bold italic***');
 
       expect(spans, hasLength(1));
-      expect(spans.single.type, InlineType.boldItalic);
+      expect(spans.single.type, InlineType.italic);
+      expect(spans.single.children.single.type, InlineType.bold);
       expect(spans.single.text, 'bold italic');
     });
 
@@ -415,7 +427,8 @@ void main() {
       final spans = spansOf('___bold italic___');
 
       expect(spans, hasLength(1));
-      expect(spans.single.type, InlineType.boldItalic);
+      expect(spans.single.type, InlineType.italic);
+      expect(spans.single.children.single.type, InlineType.bold);
       expect(spans.single.text, 'bold italic');
     });
 
@@ -527,10 +540,17 @@ void main() {
     test('a tag wrapping other markup is left alone', () {
       // Reading that needs a real HTML parser, and guessing would be worse
       // than showing what the author wrote.
+      // The tag is understood and so is the markup it wraps: `<b>a *b* c</b>`
+      // is bold holding an italic, which is what every other reader makes of
+      // it. It used to be left as characters because the italic was matched
+      // first and split the text the tag needed to be seen whole.
       final spans = on.parseInline('<b>a *b* c</b>');
 
-      expect(spans.first.text, contains('<b>'));
-      expect(spans.last.text, contains('</b>'));
+      expect(spans.single.type, InlineType.bold);
+      expect(
+        spans.single.children.map((c) => c.type).toList(),
+        contains(InlineType.italic),
+      );
     });
   });
 
@@ -1169,7 +1189,11 @@ void _htmlBlockTests() {
     test('any tag alone on its line does start a block', () {
       // Condition 7 of the spec, and the shape a README uses for a badge:
       // the anchor and the image each sit on a line of their own.
-      for (final line in ['<img src="a.png">', '<br>', '<a href="x">']) {
+      //
+      // `<img>` is deliberately not in this list: see the image tests below.
+      // It is the one tag whose meaning the editor can draw, and drawing a
+      // picture is what the document asked for.
+      for (final line in ['<br>', '<a href="x">']) {
         final nodes = parser.parse('text\n\n$line\n\n# After\n');
         expect(
           nodes.where((n) => n.type == NodeType.htmlBlock).length,
@@ -1194,6 +1218,10 @@ void _htmlBlockTests() {
       // `<a href="x">` opens a block; the matching `</a>` sits four blocks
       // further down. Scanning that far for it swallowed the heading and the
       // prose in between. CommonMark ends the block at the blank line.
+      //
+      // The closing tag is a block of its own — that is how `</details>` ends
+      // a collapsible section — so what this guards is the gap: the heading
+      // and the prose between the two tags stay where they were written.
       const doc =
           '<a href="x">\n'
           '\n'
@@ -1206,7 +1234,15 @@ void _htmlBlockTests() {
       final nodes = parser.parse(doc);
 
       expect(nodes.where((n) => n.type == NodeType.heading).length, 1);
-      expect(nodes.where((n) => n.type == NodeType.paragraph).length, 2);
+      expect((nodes.firstWhere((n) => n.type == NodeType.heading)
+              as HeadingNode)
+          .content, 'Middle');
+      final paragraphs =
+          nodes.where((n) => n.type == NodeType.paragraph).toList();
+      expect(paragraphs, hasLength(1));
+      expect(paragraphs.single.rawContent.trim(), 'prose');
+      expect(nodes.last.type, NodeType.htmlBlock);
+      expect(nodes.last.rawContent, contains('</a>'));
     });
 
     test('markdown inside a details block is still markdown', () {
@@ -1621,14 +1657,17 @@ void _nestedQuoteTests() {
 
       final outer = nodes.single as BlockquoteNode;
       expect(outer.depth, 0);
+      // The third line carries on the inner quote's paragraph rather than
+      // returning to the outer one — a paragraph is continued by the line
+      // below it whatever depth of markers that line has. marked, the parser
+      // upstream uses, gives `inner outer again` here too.
       expect(outer.children.map((c) => c.type).toList(), [
         NodeType.paragraph,
         NodeType.blockquote,
-        NodeType.paragraph,
       ]);
       final inner = outer.children[1] as BlockquoteNode;
       expect(inner.depth, 1);
-      expect(inner.content, 'inner');
+      expect(inner.content, 'inner\nouter again');
       expect(inner.content, isNot(contains('>')));
     });
 

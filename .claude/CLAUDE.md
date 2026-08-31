@@ -4,7 +4,7 @@
 
 基于 Flutter 构建的轻量级跨平台 Markdown 编辑器，重新设计自 [MarkText](https://github.com/marktext/marktext)。
 
-- **当前版本**: V1.2.0
+- **当前版本**: V1.5.5（`dev` 上正在攒 V1.5.6）
 - **开源协议**: MIT
 - **支持平台**: Windows, macOS, Linux
 - **主要语言**: Dart/Flutter
@@ -37,7 +37,7 @@ marktext-plus/
 │   ├── vX.Y.Z/                # 版本设计文档（PRD、规格说明、实现计划）
 │   └── i18n/                  # README 翻译（11 种语言）
 ├── scripts/
-│   └── release.sh             # 自动化发布脚本
+│   └── install-linux-desktop.sh   # Linux 桌面项安装（没有 release.sh，见下）
 └── .claude/
     ├── CLAUDE.md              # 本文件（项目开发记忆）
     └── commands/
@@ -67,6 +67,10 @@ marktext-plus/
 - **JSON 配置**: 通过 ConfigService 直接读写文件（不使用 shared_preferences/hive）
 - **配置存储位置**: 系统应用支持目录（`path_provider.getApplicationSupportDirectory()`）
 
+### 版本号在两处
+`code/pubspec.yaml` 的 `version:` 与 `code/lib/core/constants.dart` 的 `appVersion`，
+发版时两处都要改，只改一处会让「关于」对话框和安装包版本对不上。
+
 ### 国际化
 - **flutter_localizations + intl + .arb 文件**
 - **12 种语言**: en, zh, ja, ko, de, fr, it, ru, es, pt, ar, pt_BR
@@ -80,7 +84,10 @@ marktext-plus/
 
 ### Mermaid 图表
 - **纯 Dart/Flutter 实现**: 不依赖 WebView
-- **支持图表类型**: Flowchart, Sequence, Gantt, Pie, Radar, Timeline, XY Chart, Kanban
+- **支持图表类型（22 种，全部接入渲染器）**: Flowchart, Sequence, Class, State, ER, Journey,
+  GitGraph, Mindmap, Pie, Gantt, Timeline, Kanban, Radar, Quadrant, Requirement, Sankey,
+  Block, C4, Treemap, Architecture, Packet, XY Chart
+  （核实办法：`grep 'case DiagramType\.' lib/ui/editor/mermaid/parser/mermaid_parser.dart`）
 - **布局引擎**: Dagre + Sugiyama 分层布局
 - **交互功能**: 复制源码按钮
 
@@ -94,7 +101,7 @@ marktext-plus/
 - **测试结构**: `test/` 目录镜像 `lib/` 结构
 
 ### Git 工作流
-- **主分支**: `main`（稳定版本）
+- **主分支**: `main`（稳定版本）——**每次发版都必须把 dev 合并进 main**，并同步更新 README
 - **开发分支**: `dev`（日常开发）
 - **提交格式**: 
   - `feat: 新功能描述`
@@ -102,7 +109,8 @@ marktext-plus/
   - `docs: 文档更新`
   - `chore: 构建/工具链更新`
   - `release: prepare vX.Y.Z`
-- **发布流程**: 使用 `scripts/release.sh` 自动化发布
+- **发布流程**: 手工按 `.claude/commands/release.md` 执行（`scripts/release.sh` **并不存在**，
+  该文档末尾只是给出了它的内容供参考）
 
 ### 版本管理
 - **语义化版本**: `major.minor.patch`
@@ -144,10 +152,10 @@ flutter test
 # 运行特定测试文件
 flutter test test/services/markdown_parser_test.dart
 
-# 构建发布版本
-flutter build windows --release
-flutter build linux --release
-flutter build macos --release
+# 构建打包：不在本机做！
+# 完整构建一次要 ~1.2GB 磁盘、几十秒 CPU，本机资源宝贵。
+# 四个平台的包一律由 .github/workflows/release.yml 在 CI 上出。
+# 推送前本地只跑：flutter test 与 dart analyze --fatal-infos lib test
 
 # 生成本地化文件（修改 .arb 文件后）
 flutter gen-l10n
@@ -158,23 +166,24 @@ flutter clean
 
 ## 发布流程
 
-使用自动化脚本：
+按 `.claude/commands/release.md` 手工执行（**没有** `scripts/release.sh`）：
 
-```bash
-./scripts/release.sh 1.1.4
-```
-
-或手动执行（参考 `.claude/commands/release.md`）：
-
-1. 更新 `code/pubspec.yaml` 版本号
-2. 更新 `CHANGELOG.md` 添加版本条目
-3. 提交并推送到 `dev` 分支
-4. 合并到 `main` 分支
-5. 创建并推送 tag
+1. 走完该文档的「发布前必须检查」六项
+2. 更新 `code/pubspec.yaml` 与 `code/lib/core/constants.dart` 的版本号
+3. **更新 README.md**（功能表、版本引用、截图路径）
+4. 更新 `CHANGELOG.md`，把 `## [Unreleased] - vX.Y.Z` 改成 `## [vX.Y.Z] - 日期`
+5. 提交并推送到 `dev`
+6. **合并到 `main` 并推送**
+7. 创建并推送 tag，由 CI/CD 出包（**本机不做完整构建**）
 
 ## 已知问题和限制
 
 ### Windows 平台
+- **Windows on ARM**: 暂时做不了。GitHub 的 ARM runner 可用，引擎产物
+  （`windows-arm64`）存在，flutter 工具也认 `TargetPlatform.windows_arm64` 并会给
+  CMake 传 `-A ARM64`——但 `build_windows.dart` 只按宿主 ABI 选目标、没有开关，
+  且 Flutter **不发布 arm64 的 Windows SDK**（`flutter_windows_arm64_*.zip` 为 404，
+  releases 清单 732 条全是 x64）。等上游发包，理由记在 `.github/workflows/release.yml` 里
 - **单实例模式**: 依赖 `windows_single_instance` 包，仅 Windows 支持
 - **文件关联**: 需要通过 MSIX 安装包才能正确关联 `.md` 文件
 - **换行符**: 已修复 `\r\n` 导致 Markdown 语法失效的问题
@@ -182,28 +191,38 @@ flutter clean
 ### Mermaid 渲染
 - **复杂图表**: 超大型图表可能性能下降
 - **语法支持**: 部分高级 Mermaid 语法尚未实现
-- **导出**: HTML 导出使用 CDN（v11）；**PDF 与 Word 导出会把图表渲染成 PNG 嵌入**（`app_menu_bar._renderMermaidImages` 先离屏渲染，再交给 `ExportService`），单张渲染失败时跳过该图而不影响整篇
+- **导出**: HTML 导出把图表与高亮**内嵌**，普通文档零外链；只有含数学公式时仍从 jsdelivr 取 KaTeX（见 `html_export_offline_test`，这是仅剩的一处外链）。**PDF 与 Word 导出会把图表渲染成 PNG 嵌入**（`app_menu_bar._renderMermaidImages` 先离屏渲染，再交给 `ExportService`），单张渲染失败时跳过该图而不影响整篇
 
 ### 配置迁移
 - **V1.1.3 变更**: 配置目录从 `~/.marktext-plus/` 迁移到系统应用目录
 - **旧配置**: 不会自动迁移，用户需手动重新配置
 
-## 最近更新（V1.2.0）
+## 最近更新
 
-### 新增功能
-- 预览模式富文本复制（Ctrl+C 自动写入 HTML 格式到剪贴板，粘贴到 Word 保留格式）—— **仅 Windows**：走 user32/kernel32 的 FFI 写 `HTML Format`，macOS / Linux 降级为纯文本（见 v1.2.0 FEAT-001）
-- 导出为 Word (.docx)（使用 `docx_creator` 包，支持标题/列表/表格/内联格式）
+**不要在这里维护版本流水账**——它会过期，而且已经有三处更权威的来源：
 
-### 修复
-- 预览模式复制粘贴到 Word 格式丢失
-- PDF 导出多语言字符乱码（加载系统 TTF 字体作为 fallback）
-- PDF 导出 TTC 字体解析崩溃（移除 .ttc 文件，添加 try-catch 兜底）
-- PDF 导出 Emoji 显示为方框（添加 seguiemj.ttf + emoji 规范化）
-- 预览模式渲染性能退化（AST 缓存 + HTML 缓存 + 移除字体预验证）
+- `CHANGELOG.md`：面向用户的逐版说明
+- `docs/vX.Y.Z/bugfix.md`：每个 BUG 的现象、根因、修复、验证
+- `docs/vX.Y.Z/PRD_需求文档.md`：每个 FEAT 的需求与验收
 
-### 改进
-- 移除冗余的"复制为 HTML"工具栏按钮
-- 预览模式大文档渲染速度提升约 3 倍
+只在这里记**跨版本仍然成立的结论**（见上面各节）。
+
+### 排查缺陷时最有效的两条视角
+
+反复奏效、值得优先用的：
+
+1. **一条规则被抄了好几份，其中一份没跟上。** 标题、列表、强调、编码这些规则
+   在解析器、语法高亮、格式动作、导出里各有一份实现，只要有一份没同步，
+   用户就会看到「预览和源码区说法不一致」。修法是把规则收敛到解析器里，
+   让其他地方来问它（如 `headingLevelOf` / `headingTextOf` / `continuesListItems`）。
+2. **编辑器说了与事实不符的话。** 状态栏写的编码不是真正写盘的编码；
+   工具栏显示的标题级别和预览画出来的不一致；染成粗体的内容预览并不加粗。
+
+### 测试纪律
+
+**每个修复都要先证明测试能失败**：把改动改回旧逻辑，确认失败条数和失败信息
+正是预期的那种损坏。注意两种无效的"破坏"：改成不能编译（那是加载失败，
+不是行为失败），以及改动的字段本来就永远不为 null（那什么也没证明）。
 
 ## 开发注意事项
 

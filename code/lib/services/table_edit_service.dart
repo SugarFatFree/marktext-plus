@@ -28,6 +28,14 @@ enum TableEdit {
   alignCenter,
   alignRight,
   alignNone,
+
+  /// Lay the table out again without changing anything in it.
+  ///
+  /// Every other edit reformats the table as a side effect of what it does.
+  /// Editing a cell's text by hand — fixing a typo — has no such side effect,
+  /// so the columns stop lining up in the source and stay that way. This is
+  /// that reformatting on its own.
+  tidy,
 }
 
 /// A table found in the source, and where the caret sits inside it.
@@ -180,6 +188,9 @@ class TableEditService {
         aligns[column] = ColumnAlign.right;
       case TableEdit.alignNone:
         aligns[column] = ColumnAlign.none;
+      case TableEdit.tidy:
+        // Nothing to change: `render` below is the whole command.
+        break;
     }
 
     final rendered = render(rows, aligns);

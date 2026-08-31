@@ -101,9 +101,14 @@ void main() {
       }
     }
 
-    // Measured 2026-08-30. Raise it whenever the work raises it; never lower
+    // Measured 2026-08-31. Raise it whenever the work raises it; never lower
     // it to make a change pass.
-    const floor = 388;
+    //
+    // The blocks are joined with a newline above, which `normalise` mostly
+    // folds away — but not everywhere, and a scratch script joining them with
+    // nothing counted one example differently. This is the number that
+    // counts; anything measured another way is measuring another thing.
+    const floor = 486;
     expect(passed, greaterThanOrEqualTo(floor),
         reason: '解析能力相比 $floor 例退步了');
     if (passed > floor) {

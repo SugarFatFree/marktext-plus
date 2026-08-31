@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 
@@ -109,6 +110,64 @@ class SourceEditor extends ConsumerStatefulWidget {
     FormatAction.subscript: ('~', '~'),
   };
 
+  /// Where the text a paste just inserted sits, given what the document
+  /// looked like before it.
+  ///
+  /// The framework replaces the selection with the plain flavour and the
+  /// handlers here put something better in its place, so they have to know
+  /// exactly what to take back out. Subtracting the two lengths alone gives
+  /// the *net* change, which is the pasted length only when nothing was
+  /// selected: pasting five characters over three grew the document by two.
+  /// Reading that as the pasted length left three characters of the raw paste
+  /// behind and wrote the replacement over the text after it.
+  static ({int start, int end}) pastedRange({
+    required int lengthBefore,
+    required int selectionStart,
+    required int selectionEnd,
+    required int lengthAfter,
+  }) {
+    final start = selectionStart.clamp(0, lengthBefore);
+    final removed = selectionEnd.clamp(start, lengthBefore) - start;
+    final pasted = lengthAfter - lengthBefore + removed;
+    return (start: start, end: start + (pasted < 0 ? 0 : pasted));
+  }
+
+  /// A URL, and only a URL: what a paste has to be for it to become a link.
+  ///
+  /// A scheme is required. `www.example.com` written in a sentence is prose,
+  /// and turning a paste of it into a link would be guessing.
+  static final _pastedUrlRe =
+      RegExp(r'^(?:(?:https?|ftp|file):\/\/|mailto:)\S+$', caseSensitive: false);
+
+  /// The markdown a paste of [pasted] over [selected] should produce, or null
+  /// when this is an ordinary paste.
+  ///
+  /// Selecting some words and pasting a web address over them is how a link
+  /// gets written in every other editor; here it replaced the words with the
+  /// address, and the words had to be typed again.
+  static String? linkFromPaste(String selected, String pasted) {
+    if (selected.isEmpty || selected.contains('\n')) return null;
+    final url = pasted.trim();
+    if (!_pastedUrlRe.hasMatch(url)) return null;
+    // Pasting a URL over something that is already a link would nest one
+    // inside the other, which markdown has no meaning for.
+    if (selected.contains('](')) return null;
+    return '[$selected]($url)';
+  }
+
+  /// The line [line] becomes at heading [level], or as a paragraph when
+  /// [level] is null.
+  ///
+  /// The rule for what counts as a heading is the parser's, not a second copy
+  /// of it. A local `^(#{1,6})\s+` missed the three columns of indentation
+  /// the format allows and the empty heading a line passes through while it is
+  /// being typed, so `   ## Title` gained a marker instead of changing level,
+  /// and asking for a paragraph left it a heading.
+  static String applyHeadingLevel(String line, int? level) {
+    final body = md.MarkdownParser.headingTextOf(line) ?? line;
+    return level == null ? body : '${'#' * level} $body';
+  }
+
   static ({String text, int start, int end}) toggleWrap(
     String text,
     int start,
@@ -116,6 +175,50 @@ class SourceEditor extends ConsumerStatefulWidget {
     String before,
     String after,
   ) {
+    // Emphasis markers have to touch the words they mark. `**加粗。**后面` is
+    // not bold anywhere — the closing run sits between a full stop and a
+    // letter, which the format says can neither open nor close — and a reader
+    // who selects a sentence including its punctuation and presses Ctrl+B
+    // would otherwise be handed markup that renders as its own asterisks.
+    // The punctuation goes outside the markers, where it reads the same and
+    // the emphasis works: `**加粗**。后面`.
+    //
+    // Only for the markers the rule applies to — `*`, `_` and GFM's `~~`,
+    // which marked and GitHub judge the same way. Inline code, and this
+    // editor's own `==` and `++`, have no such rule and wrap whatever is
+    // selected, punctuation and all.
+    //
+    // This parser is more forgiving than GitHub about `~~文字。~~后面`, and
+    // stays so — a document should not stop rendering because it was opened
+    // here. What is written from here is another matter: markup this editor
+    // produces should mean the same wherever it is read.
+    final flanks = before == after &&
+        (before.startsWith('*') ||
+            before.startsWith('_') ||
+            before.startsWith('~'));
+
+    // A selection covering more than one block is marked block by block.
+    // Wrapping it whole put the markers around a blank line, a list's own
+    // bullets, or a heading's `#` — none of which is emphasis anywhere, so
+    // selecting two paragraphs and pressing Ctrl+B produced asterisks on
+    // screen and a heading that had stopped being a heading.
+    final segments = _inlineSegments(text, start, end);
+    if (segments.length > 1) {
+      return _wrapEach(text, segments, before, after, flanks);
+    }
+    if (segments.length == 1) {
+      start = segments.single.$1;
+      end = segments.single.$2;
+    }
+
+    if (flanks) {
+      final trimmed = _trimForFlanking(text, start, end);
+      if (trimmed != null) {
+        start = trimmed.$1;
+        end = trimmed.$2;
+      }
+    }
+
     final selected = text.substring(start, end);
 
     // A doubled marker belongs to the longer syntax: `**bold**` must not read
@@ -166,6 +269,158 @@ class SourceEditor extends ConsumerStatefulWidget {
       end: start + before.length + selected.length,
     );
   }
+
+  /// The runs of ordinary text inside a selection, one per block.
+  ///
+  /// A blank line ends a block, and a line that opens one — a heading, a list
+  /// item, a quote — carries a marker that belongs to the structure rather
+  /// than to the words, so the marker is left out. What comes back is what a
+  /// reader meant to mark when they dragged across half a document.
+  static List<(int, int)> _inlineSegments(String text, int start, int end) {
+    final segments = <(int, int)>[];
+    var lineStart = start;
+    var previousHadMarker = true;
+
+    while (lineStart < end) {
+      var hadMarker = false;
+      var lineEnd = text.indexOf('\n', lineStart);
+      if (lineEnd == -1 || lineEnd > end) lineEnd = end;
+
+      var from = lineStart;
+      var to = lineEnd;
+      // A marker only counts when the selection reaches the line's own start;
+      // half a line selected from the middle is just text.
+      if (from == 0 || (from > 0 && text[from - 1] == '\n')) {
+        final marker = _blockMarkerRe.matchAsPrefix(text, from);
+        if (marker != null && marker.end <= to) {
+          from = marker.end;
+          hadMarker = true;
+        }
+      }
+      while (to > from && text[to - 1].trim().isEmpty) {
+        to--;
+      }
+      while (from < to && text[from].trim().isEmpty) {
+        from++;
+      }
+      if (from < to) {
+        // Two plain lines of one paragraph are one run: emphasis crosses a
+        // line break inside a block, so marking them separately would put in
+        // markers the document does not need. Only a blank line or a line
+        // that opens a block of its own starts a new run.
+        final joinable = !hadMarker &&
+            !previousHadMarker &&
+            segments.isNotEmpty &&
+            from > 0 &&
+            text[from - 1] == '\n' &&
+            segments.last.$2 == from - 1;
+        if (joinable) {
+          segments[segments.length - 1] = (segments.last.$1, to);
+        } else {
+          segments.add((from, to));
+        }
+        previousHadMarker = hadMarker;
+      } else {
+        // A blank line: whatever follows it belongs to another block.
+        previousHadMarker = true;
+      }
+
+      lineStart = lineEnd + 1;
+    }
+    return segments;
+  }
+
+  /// What opens a block: a heading, a bullet, a step, a quote, a task box.
+  static final _blockMarkerRe = RegExp(
+    r'\s*(?:#{1,6}\s+|>\s?|(?:[-*+]|\d{1,9}[.)])\s+(?:\[[ xX]\]\s+)?)',
+  );
+
+  /// Wraps each run separately, last first so the earlier offsets still hold.
+  static ({String text, int start, int end}) _wrapEach(
+    String text,
+    List<(int, int)> segments,
+    String before,
+    String after,
+    bool flanks,
+  ) {
+    // Already marked everywhere? Then this is the second press, and it takes
+    // the marking off — the same toggle a single run gets.
+    final wrapped = segments.every((s) {
+      final piece = text.substring(s.$1, s.$2);
+      return piece.length >= before.length + after.length &&
+          piece.startsWith(before) &&
+          piece.endsWith(after);
+    });
+
+    var out = text;
+    for (final segment in segments.reversed) {
+      var (from, to) = segment;
+      if (wrapped) {
+        out = out.replaceRange(
+          from,
+          to,
+          out.substring(from + before.length, to - after.length),
+        );
+        continue;
+      }
+      if (flanks) {
+        final trimmed = _trimForFlanking(out, from, to);
+        if (trimmed != null) {
+          from = trimmed.$1;
+          to = trimmed.$2;
+        }
+      }
+      out = out.replaceRange(
+        from,
+        to,
+        before + out.substring(from, to) + after,
+      );
+    }
+
+    final first = segments.first.$1;
+    final grew = out.length - text.length;
+    return (text: out, start: first, end: segments.last.$2 + grew);
+  }
+
+  /// Shrinks a selection past the whitespace and punctuation at its ends, so
+  /// emphasis markers land where they can open and close.
+  ///
+  /// Returns null when there is nothing but punctuation to mark — a selection
+  /// of `——` is wrapped as it is rather than as nothing.
+  static (int, int)? _trimForFlanking(String text, int start, int end) {
+    var from = start;
+    var to = end;
+    bool trimmable(String c) => c.trim().isEmpty || _flankingPunctuation.hasMatch(c);
+
+    while (from < to && trimmable(text[from])) {
+      from++;
+    }
+    while (to > from && trimmable(text[to - 1])) {
+      to--;
+    }
+    if (from >= to) return null;
+    return (from, to);
+  }
+
+  /// Sentence punctuation, listed rather than taken as a range.
+  ///
+  /// A range of "everything the format calls punctuation" would include the
+  /// markdown characters themselves, and trimming those breaks what is being
+  /// marked: applying italic to `**bold**` would eat the asterisks and take a
+  /// layer off instead of adding one, and bolding `见[链接](url)` would move
+  /// the closing bracket outside and leave a link that is no longer a link.
+  ///
+  /// The CJK marks are the reason this exists: a sentence in Chinese ends in
+  /// `。` far more often than an English one ends in `.` inside the words a
+  /// reader would select.
+  static final _flankingPunctuation = RegExp(
+    '[' r'.,;:!?' '\u2018\u2019\u201c\u201d'
+    '\u3002\uff0c\u3001\uff1b\uff1a\uff01\uff1f'
+    '\u2026\u2014\u00b7\uff5e'
+    '\u300c\u300d\u300e\u300f\uff08\uff09'
+    '\u300a\u300b\u3008\u3009\u3010\u3011'
+    ']',
+  );
 
   /// The outermost block containing [line], or null when [line] is blank
   /// space between blocks.
@@ -318,9 +573,22 @@ class SourceEditor extends ConsumerStatefulWidget {
 class _SourceEditorState extends ConsumerState<SourceEditor> {
   late HighlightingController _controller;
   late ScrollController _editorScrollController;
-  late ScrollController _gutterScrollController;
+
+  /// The gutter's own box, so a line's position on screen can be turned into
+  /// a position inside it.
+  final GlobalKey _gutterKey = GlobalKey();
+
+  /// The line numbers on screen right now, and where each one sits.
+  ///
+  /// Read from the editor's own text layout rather than counted off at a
+  /// fixed height. The gutter used to be a list of equal-height rows, one per
+  /// line of source — which is only right while no line wraps. A paragraph in
+  /// Markdown is usually a single long line, so it wraps as a matter of
+  /// course, and one wrapped paragraph put the numbers 153 pixels out of step
+  /// with the text they number. There is no setting to turn the gutter off,
+  /// so everyone saw it.
+  List<({int number, double dy})> _gutterMarks = const [];
   Timer? _debounce;
-  bool _isSyncingScroll = false;
   bool _isInitialized = false;
 
   /// Held from [initState] so [dispose] can still reach it.
@@ -409,7 +677,6 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
       defaultColor: Colors.white,
     );
     _editorScrollController = ScrollController();
-    _gutterScrollController = ScrollController();
     _controller.addListener(_onTextChanged);
     _controller.addListener(_onSelectionChanged);
     _editorScrollController.addListener(_onEditorScroll);
@@ -487,7 +754,7 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     _formatToolbar = null;
     _fieldFocus.dispose();
     _editorScrollController.dispose();
-    _gutterScrollController.dispose();
+
     super.dispose();
   }
 
@@ -857,25 +1124,44 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
   /// that have no HTML at all.
   Future<void> _handleRichPaste() async {
     final selectionBefore = _controller.selection;
-    final lengthBefore = _controller.text.length;
+    final textBefore = _controller.text;
+    final lengthBefore = textBefore.length;
+    final selected = selectionBefore.isValid && !selectionBefore.isCollapsed
+        ? textBefore.substring(selectionBefore.start, selectionBefore.end)
+        : '';
 
+    // Read after the paste has landed, so what was inserted can be seen. The
+    // plain flavour is allowed to arrive first on purpose: waiting on the
+    // clipboard before every paste would make every paste feel slow.
     final html = await ClipboardService.readHtml();
-    if (html == null || !mounted) return;
+    if (!mounted) return;
 
-    final markdown = HtmlToMarkdown.convert(html);
-    if (markdown == null) return;
-
-    // What the framework pasted, which is what has to be taken back out.
     final text = _controller.text;
-    final inserted = text.length - lengthBefore;
-    if (inserted <= 0) return;
-    final start = selectionBefore.isValid ? selectionBefore.start : 0;
-    final end = start + inserted;
-    if (end > text.length) return;
+    final range = SourceEditor.pastedRange(
+      lengthBefore: lengthBefore,
+      selectionStart: selectionBefore.isValid ? selectionBefore.start : 0,
+      selectionEnd: selectionBefore.isValid ? selectionBefore.end : 0,
+      lengthAfter: text.length,
+    );
+    if (range.end <= range.start || range.end > text.length) return;
+    final pasted = text.substring(range.start, range.end);
+
+    // A web address dropped on some selected words is a link, whichever
+    // flavour the clipboard also carried: copying an address out of a browser
+    // brings an HTML flavour with it, and converting that would throw the
+    // words away.
+    final link = SourceEditor.linkFromPaste(selected, pasted);
+    final replacement = link ??
+        (html == null ? null : HtmlToMarkdown.convert(html));
+    if (replacement == null) return;
 
     _controller.value = TextEditingValue(
-      text: text.substring(0, start) + markdown + text.substring(end),
-      selection: TextSelection.collapsed(offset: start + markdown.length),
+      text: text.substring(0, range.start) +
+          replacement +
+          text.substring(range.end),
+      selection: TextSelection.collapsed(
+        offset: range.start + replacement.length,
+      ),
     );
   }
 
@@ -976,17 +1262,73 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     // the text under it moves. Rebuilding the entry is enough; it recomputes
     // the position from the current scroll offset.
     _formatToolbar?.markNeedsBuild();
-    if (_isSyncingScroll) return;
-    _isSyncingScroll = true;
-    if (_gutterScrollController.hasClients &&
-        _gutterScrollController.position.hasContentDimensions) {
-      final offset = _editorScrollController.offset.clamp(
-        _gutterScrollController.position.minScrollExtent,
-        _gutterScrollController.position.maxScrollExtent,
-      );
-      _gutterScrollController.jumpTo(offset);
+    _updateGutterMarks();
+  }
+
+  /// The render object that laid the text out, found by descending from the
+  /// field. Asking it where a line begins is the only way to be sure the
+  /// number beside it is beside it.
+  RenderEditable? _renderEditable() {
+    final root = _fieldKey.currentContext?.findRenderObject();
+    if (root == null) return null;
+    RenderEditable? found;
+    void visit(RenderObject node) {
+      if (found != null) return;
+      if (node is RenderEditable) {
+        found = node;
+        return;
+      }
+      node.visitChildren(visit);
     }
-    _isSyncingScroll = false;
+
+    visit(root);
+    return found;
+  }
+
+  /// Works out which line numbers are on screen and where to draw them.
+  ///
+  /// Only the visible ones: a five megabyte document has no business asking
+  /// the layout about lines nobody is looking at.
+  void _updateGutterMarks() {
+    final editable = _renderEditable();
+    final gutter = _gutterKey.currentContext?.findRenderObject() as RenderBox?;
+    if (editable == null || gutter == null || !gutter.hasSize) return;
+
+    final gutterTop = gutter.localToGlobal(Offset.zero).dy;
+    final gutterBottom = gutterTop + gutter.size.height;
+
+    final text = _controller.text;
+    final starts = _ensureLineStarts(text);
+
+    // Where the top of the gutter falls in the text, so the walk starts at
+    // the first line that could be visible rather than at the first line.
+    final atTop = editable.getPositionForPoint(Offset(0, gutterTop));
+    var line = _positionOf(text, atTop.offset).$1;
+    if (line > 0) line--;
+
+    final marks = <({int number, double dy})>[];
+    while (line < starts.length && marks.length < 500) {
+      final rect =
+          editable.getLocalRectForCaret(TextPosition(offset: starts[line]));
+      final y = editable.localToGlobal(Offset(0, rect.top)).dy;
+      if (y > gutterBottom) break;
+      if (y + rect.height >= gutterTop) {
+        marks.add((number: line + 1, dy: y - gutterTop));
+      }
+      line++;
+    }
+
+    if (marks.length == _gutterMarks.length) {
+      var same = true;
+      for (var i = 0; i < marks.length; i++) {
+        if (marks[i] != _gutterMarks[i]) {
+          same = false;
+          break;
+        }
+      }
+      if (same) return;
+    }
+    if (mounted) setState(() => _gutterMarks = marks);
   }
 
   /// Applies whatever the user has bound [event] to, if it edits the document.
@@ -1365,6 +1707,12 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
         _applyLinePrefixAtCursor('> ');
       case FormatAction.codeBlock:
         _insertBlock('```\n', '\n```');
+      case FormatAction.mermaidBlock:
+        // A diagram that draws something the moment it is inserted, rather
+        // than an empty fence: the arrow is the syntax worth showing, and the
+        // node names are letters so the skeleton reads the same in every
+        // language the editor speaks.
+        _insertAtCursor('```mermaid\ngraph TD\n    A --> B\n```\n');
       case FormatAction.mathBlock:
         _insertBlock('\$\$\n', '\n\$\$');
       case FormatAction.table:
@@ -1455,6 +1803,8 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
         _applyTableEdit(TableEdit.alignRight);
       case FormatAction.tableAlignNone:
         _applyTableEdit(TableEdit.alignNone);
+      case FormatAction.tableTidy:
+        _applyTableEdit(TableEdit.tidy);
       case FormatAction.moveBlockUp:
         _moveBlock(up: true);
       case FormatAction.moveBlockDown:
@@ -1464,7 +1814,12 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
           final selected = text.substring(selection.start, selection.end);
           final cleaned = selected
               .replaceAll(RegExp(r'\*{1,3}|~~|`|==|\+\+|\^|~|\$'), '')
-              .replaceAll(RegExp(r'^#{1,6}\s+', multiLine: true), '');
+              // Same heading rule as everywhere else: indentation counts,
+              // and `#tag` is not a heading to strip.
+              .replaceAll(
+                RegExp(r'^ {0,3}#{1,6}(?:[ \t]+|$)', multiLine: true),
+                '',
+              );
           _controller.value = TextEditingValue(
             text:
                 text.substring(0, selection.start) +
@@ -1567,9 +1922,6 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     );
   }
 
-  /// Matches a heading marker at the start of a line.
-  static final _headingPrefixRe = RegExp(r'^(#{1,6})\s+');
-
   /// Sets the current line's heading level, or clears it when [level] is null.
   ///
   /// Replaces any marker already there. Prepending unconditionally — which is
@@ -1586,10 +1938,7 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     if (lineEnd == -1) lineEnd = text.length;
 
     final line = text.substring(lineStart, lineEnd);
-    final existing = _headingPrefixRe.firstMatch(line);
-    final body = existing == null ? line : line.substring(existing.end);
-
-    final replacement = level == null ? body : '${'#' * level} $body';
+    final replacement = SourceEditor.applyHeadingLevel(line, level);
     final delta = replacement.length - line.length;
 
     _controller.value = TextEditingValue(
@@ -1614,10 +1963,10 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     var lineEnd = text.indexOf('\n', lineStart);
     if (lineEnd == -1) lineEnd = text.length;
 
-    final match = _headingPrefixRe.firstMatch(
-      text.substring(lineStart, lineEnd),
-    );
-    return match == null ? 0 : match.group(1)!.length;
+    return md.MarkdownParser.headingLevelOf(
+          text.substring(lineStart, lineEnd),
+        ) ??
+        0;
   }
 
   /// Moves the current line up or down the heading scale.
@@ -1980,6 +2329,11 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     // Current line for highlighting
     final currentLine = ref.watch(editorProvider.select((s) => s.cursorLine));
 
+    // After the text has been laid out, and not before: the numbers are
+    // placed from that layout. Nothing happens when the answer is the same as
+    // last time, so this settles in a frame rather than looping.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _updateGutterMarks());
+
     return Center(
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: maxWidth),
@@ -2001,6 +2355,7 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
+              key: _gutterKey,
               width: gutterWidth,
               decoration: BoxDecoration(
                 color: tokens.colorSurface,
@@ -2008,30 +2363,30 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
                   right: BorderSide(color: tokens.colorBorder, width: 1),
                 ),
               ),
-              child: ScrollConfiguration(
-                behavior: ScrollConfiguration.of(context).copyWith(
-                  scrollbars: false,
-                  physics: const ClampingScrollPhysics(),
-                ),
-                child: ListView.builder(
-                  controller: _gutterScrollController,
-                  padding: EdgeInsets.fromLTRB(8, 8, 8, 8 + bottomRoom),
-                  itemCount: lineCount,
-                  itemExtent: config.fontSize * config.lineHeight,
-                  itemBuilder: (context, index) => Align(
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      '${index + 1}',
-                      style: TextStyle(
-                        color: index == currentLine
-                            ? tokens.colorText
-                            : tokens.colorTextMuted,
-                        fontFamily: config.fontFamily,
-                        fontSize: 12,
-                        height: config.lineHeight,
+              // Each number is placed where its line actually starts, which
+              // the editor's layout is asked for. A scrolling list of
+              // equal-height rows cannot do that: a wrapped line is taller
+              // than one row and every number below it slid up.
+              child: ClipRect(
+                child: Stack(
+                  children: [
+                    for (final mark in _gutterMarks)
+                      Positioned(
+                        top: mark.dy,
+                        right: 8,
+                        child: Text(
+                          '${mark.number}',
+                          style: TextStyle(
+                            color: mark.number - 1 == currentLine
+                                ? tokens.colorText
+                                : tokens.colorTextMuted,
+                            fontFamily: config.fontFamily,
+                            fontSize: 12,
+                            height: config.lineHeight,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
+                  ],
                 ),
               ),
             ),

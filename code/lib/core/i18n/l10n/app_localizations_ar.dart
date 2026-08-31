@@ -322,6 +322,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get formatTableAlignNone => 'إزالة محاذاة العمود';
 
   @override
+  String get formatTableTidy => 'محاذاة مصدر الجدول';
+
+  @override
   String get paragraphMoveBlockUp => 'نقل الكتلة لأعلى';
 
   @override
@@ -985,6 +988,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get viewReloadImages => 'إعادة تحميل الصور';
+
+  @override
+  String get formatMermaidBlock => 'مخطط Mermaid';
 
   @override
   String get formatFrontMatter => 'بيانات المقدمة';

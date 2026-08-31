@@ -154,6 +154,7 @@
   "formatTableAlignCenter": "Align Column Center",
   "formatTableAlignRight": "Align Column Right",
   "formatTableAlignNone": "Clear Column Alignment",
+  "formatTableTidy": "Tidy Table Source",
   "paragraphMoveBlockUp": "Move Block Up",
   "paragraphMoveBlockDown": "Move Block Down",
   "formatLink": "Link",
@@ -468,6 +469,10 @@
   },
   "@viewCommandPalette": {
     "description": "View menu item that opens the command palette"
+  },
+  "formatMermaidBlock": "Mermaid diagram",
+  "@formatMermaidBlock": {
+    "description": "Slash-menu label for inserting a mermaid diagram block"
   },
   "formatFrontMatter": "Front Matter",
   "@formatFrontMatter": {

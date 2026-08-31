@@ -18,11 +18,24 @@ enum FileEncoding {
   /// saved from Notepad lost its BOM the first time it was written back.
   utf8Bom('UTF-8 BOM'),
 
-  /// UTF-16, little-endian, which is what Windows tools call "Unicode".
-  utf16le('UTF-16 LE'),
+  /// UTF-16, little-endian, with a byte order mark — what Windows tools call
+  /// "Unicode".
+  utf16le('UTF-16 LE BOM'),
 
-  /// UTF-16, big-endian.
-  utf16be('UTF-16 BE'),
+  /// UTF-16, big-endian, with a byte order mark.
+  utf16be('UTF-16 BE BOM'),
+
+  /// The same two without the mark, kept apart so a file that arrived without
+  /// one does not gain one by being saved.
+  ///
+  /// Plenty of tools write UTF-16 with no mark. Reading it is a guess from
+  /// where the zero bytes fall; writing it back is not a guess, and a file
+  /// that grew two bytes it never had would show up as a change in every
+  /// tool that compares files.
+  utf16leNoBom('UTF-16 LE'),
+
+  /// Big-endian, no mark.
+  utf16beNoBom('UTF-16 BE'),
 
   /// The encoding most Chinese documents were written in before UTF-8.
   ///
@@ -55,6 +68,22 @@ enum FileEncoding {
     }
     if (_hasUtf16Bom(bytes, big: true)) {
       return (_decodeUtf16(bytes.sublist(2), big: true), FileEncoding.utf16be);
+    }
+
+    // UTF-16 with no byte order mark. Notepad writes one, plenty of tools do
+    // not, and without it such a file was read as Latin-1 — every Chinese
+    // character came out as two pieces of nonsense.
+    //
+    // A text file never contains a zero byte, and UTF-16 is full of them:
+    // every ASCII character brings one, always on the same side of its pair.
+    // Markdown is never all Chinese — the `#`, the line breaks, the brackets
+    // are all ASCII — so there is always something to see.
+    final bomless = _looksLikeBomlessUtf16(bytes);
+    if (bomless != null) {
+      return (
+        _decodeUtf16(bytes, big: !bomless),
+        bomless ? FileEncoding.utf16leNoBom : FileEncoding.utf16beNoBom,
+      );
     }
 
     final hasUtf8Bom =
@@ -99,12 +128,17 @@ enum FileEncoding {
       case FileEncoding.utf8Encoding:
       case FileEncoding.utf8Bom:
         return utf8.decode(bytes, allowMalformed: true);
+      // Both variants read a mark if one is there: the reader may be telling
+      // this app what a file is, and being wrong about the mark should not
+      // put two stray characters at the top of the document.
       case FileEncoding.utf16le:
+      case FileEncoding.utf16leNoBom:
         return _decodeUtf16(
           _hasUtf16Bom(bytes, big: false) ? bytes.sublist(2) : bytes,
           big: false,
         );
       case FileEncoding.utf16be:
+      case FileEncoding.utf16beNoBom:
         return _decodeUtf16(
           _hasUtf16Bom(bytes, big: true) ? bytes.sublist(2) : bytes,
           big: true,
@@ -135,6 +169,45 @@ enum FileEncoding {
   /// read this way would come out as Chinese. Chinese text is mostly
   /// double-byte, and accented European text is mostly ASCII, which is what
   /// the share measures.
+  /// Whether [bytes] look like UTF-16 with no mark: true for little endian,
+  /// false for big endian, null for anything else.
+  ///
+  /// Judged on where the zero bytes fall rather than how many: a byte-oriented
+  /// text encoding has none at all, so a file with them heaped on one side of
+  /// every pair is not one. A small share is asked for as well, so that a
+  /// single stray zero in a damaged file does not decide it.
+  ///
+  /// The other side is allowed a few rather than none: a character whose lower
+  /// half is zero — `一` is U+4E00 — puts one there, and a document with a
+  /// common word in it would otherwise be missed.
+  static bool? _looksLikeBomlessUtf16(Uint8List bytes) {
+    if (bytes.length < 8 || bytes.length.isOdd) return null;
+
+    // A few kilobytes is plenty to tell, and bounds the cost on a large file.
+    final limit = bytes.length < 4096 ? bytes.length : 4096;
+    var evenZeros = 0;
+    var oddZeros = 0;
+    for (var i = 0; i < limit; i++) {
+      if (bytes[i] != 0) continue;
+      if (i.isEven) {
+        evenZeros++;
+      } else {
+        oddZeros++;
+      }
+    }
+
+    final pairs = limit ~/ 2;
+    final enough = pairs * 0.05;
+    // Twice as many on one side as the other. In little endian the odd byte
+    // of each pair is the upper half: zero for every ASCII character, never
+    // zero for a Chinese one. The even byte is the lower half, zero only for
+    // a character whose code point ends in `00` — `一` is U+4E00, and it is
+    // common enough that demanding none of those missed ordinary documents.
+    if (oddZeros >= enough && oddZeros > evenZeros * 2) return true;
+    if (evenZeros >= enough && evenZeros > oddZeros * 2) return false;
+    return null;
+  }
+
   static bool _looksLikeGbk(Uint8List bytes) {
     // Too short to tell. `Öl` is three bytes, two of which are a valid GBK
     // sequence for a real character — no test can separate that from German
@@ -161,21 +234,48 @@ enum FileEncoding {
   }
 
   /// Turns [content] back into bytes in this encoding.
-  Uint8List encode(String content) {
+  Uint8List encode(String content) => encodeWithFallback(content).bytes;
+
+  /// The bytes to write, and the encoding they are actually in.
+  ///
+  /// Not always this one: a character the encoding cannot hold means writing
+  /// UTF-8 instead, because keeping the character matters more than keeping
+  /// the encoding. The caller is told which happened so that what the status
+  /// bar says about the document stays true — a file written as UTF-8 while
+  /// the editor still calls it GBK is the editor telling the reader something
+  /// that is not so.
+  ({Uint8List bytes, FileEncoding used}) encodeWithFallback(String content) {
+    final bytes = _encodeOrNull(content);
+    return bytes == null
+        ? (bytes: Uint8List.fromList(utf8.encode(content)), used: utf8Encoding)
+        : (bytes: bytes, used: this);
+  }
+
+  /// The bytes in this encoding, or null when it cannot hold the text.
+  Uint8List? _encodeOrNull(String content) {
     switch (this) {
       case FileEncoding.utf8Encoding:
         return Uint8List.fromList(utf8.encode(content));
       case FileEncoding.utf8Bom:
         return Uint8List.fromList([0xEF, 0xBB, 0xBF, ...utf8.encode(content)]);
       case FileEncoding.gbk:
+        // A character GBK cannot hold — an emoji typed into an old note —
+        // means writing UTF-8 instead: that keeps the character, where
+        // refusing would lose the save.
+        //
+        // Whether it can hold it is decided by reading the bytes back, not by
+        // waiting for the encoder to complain. It does not complain: given an
+        // emoji it returns bytes that GBK itself cannot read, so the file was
+        // written, and the next time it was opened *the whole document* came
+        // back as nonsense — one character the encoding could not take cost
+        // everything around it.
         try {
-          return Uint8List.fromList(charset.gbk.encode(content));
+          final bytes = Uint8List.fromList(charset.gbk.encode(content));
+          if (charset.gbk.decode(bytes) == content) return bytes;
         } catch (_) {
-          // A character GBK cannot hold — an emoji, say, typed into an old
-          // note. Writing UTF-8 keeps the character; refusing would lose the
-          // save.
-          return Uint8List.fromList(utf8.encode(content));
+          // Either half may throw; either way GBK is not what this is.
         }
+        return null;
 
       case FileEncoding.latin1Encoding:
         // A character outside Latin-1 cannot be written; those bytes were
@@ -184,12 +284,16 @@ enum FileEncoding {
         try {
           return Uint8List.fromList(latin1.encode(content));
         } on ArgumentError {
-          return Uint8List.fromList(utf8.encode(content));
+          return null;
         }
       case FileEncoding.utf16le:
-        return _encodeUtf16(content, big: false);
+        return _encodeUtf16(content, big: false, bom: true);
       case FileEncoding.utf16be:
-        return _encodeUtf16(content, big: true);
+        return _encodeUtf16(content, big: true, bom: true);
+      case FileEncoding.utf16leNoBom:
+        return _encodeUtf16(content, big: false, bom: false);
+      case FileEncoding.utf16beNoBom:
+        return _encodeUtf16(content, big: true, bom: false);
     }
   }
 
@@ -210,16 +314,24 @@ enum FileEncoding {
     return String.fromCharCodes(units);
   }
 
-  static Uint8List _encodeUtf16(String content, {required bool big}) {
+  static Uint8List _encodeUtf16(
+    String content, {
+    required bool big,
+    required bool bom,
+  }) {
     final units = content.codeUnits;
-    // Two bytes per code unit, after the byte order mark this writes back.
-    final out = Uint8List(2 + units.length * 2);
-    out[0] = big ? 0xFE : 0xFF;
-    out[1] = big ? 0xFF : 0xFE;
+    // A mark only when the file had one. Adding one to a file that arrived
+    // without it would change two bytes nobody asked to change.
+    final start = bom ? 2 : 0;
+    final out = Uint8List(start + units.length * 2);
+    if (bom) {
+      out[0] = big ? 0xFE : 0xFF;
+      out[1] = big ? 0xFF : 0xFE;
+    }
     for (var i = 0; i < units.length; i++) {
       final unit = units[i];
-      out[2 + i * 2] = big ? unit >> 8 : unit & 0xFF;
-      out[3 + i * 2] = big ? unit & 0xFF : unit >> 8;
+      out[start + i * 2] = big ? unit >> 8 : unit & 0xFF;
+      out[start + i * 2 + 1] = big ? unit & 0xFF : unit >> 8;
     }
     return out;
   }

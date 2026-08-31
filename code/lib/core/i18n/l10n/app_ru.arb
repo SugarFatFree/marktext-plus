@@ -144,6 +144,7 @@
   "formatTableAlignCenter": "Выровнять столбец по центру",
   "formatTableAlignRight": "Выровнять столбец по правому краю",
   "formatTableAlignNone": "Убрать выравнивание столбца",
+  "formatTableTidy": "Выровнять исходник таблицы",
   "paragraphMoveBlockUp": "Переместить блок вверх",
   "paragraphMoveBlockDown": "Переместить блок вниз",
   "formatLink": "Ссылка",
@@ -372,6 +373,10 @@
   "fileClearRecentFiles": "Очистить недавние файлы",
   "viewCommandPalette": "Палитра команд",
   "viewReloadImages": "Перезагрузить изображения",
+  "formatMermaidBlock": "Диаграмма Mermaid",
+  "@formatMermaidBlock": {
+    "description": "Slash-menu label for inserting a mermaid diagram block"
+  },
   "formatFrontMatter": "Front matter",
   "formatHtmlBlock": "HTML-блок",
   "updateUpToDate": "У вас последняя версия",

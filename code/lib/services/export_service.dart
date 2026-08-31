@@ -43,11 +43,6 @@ class ExportService {
 
   static List<pw.Font>? _cachedFontFallbacks;
 
-  /// Table cells are stored as raw strings, so their inline content has to be
-  /// parsed at export time — the same thing the preview does when rendering
-  /// them. Without this, `**bold**` reached the output with its asterisks.
-  static final _cellParser = MarkdownParser();
-
   /// Whether a fenced block tagged [lang] is a diagram.
   ///
   /// Asks the renderer rather than keeping a list here. There used to be four
@@ -557,14 +552,14 @@ class ExportService {
         // plain strings: a cell written `**bold**` reached Word with its
         // asterisks showing, and the column alignments were dropped along
         // with them.
-        DocxTableCell cell(String text, int column, {required bool header}) =>
+        DocxTableCell cell(List<InlineSpan> spans, int column,
+                {required bool header}) =>
             DocxTableCell(
               children: [
                 DocxParagraph(
                   align: _docxAlign(table.alignments, column),
                   children: [
-                    for (final run
-                        in _inlineSpansToDocxTexts(_cellParser.parseInline(text)))
+                    for (final run in _inlineSpansToDocxTexts(spans))
                       // A header row is bold, as builder.table made it; the
                       // runs keep whatever else the cell asked for.
                       header
@@ -583,14 +578,14 @@ class ExportService {
                 isHeader: true,
                 cells: [
                   for (var i = 0; i < colCount; i++)
-                    cell(table.headers[i], i, header: true),
+                    cell(table.headerSpansAt(i), i, header: true),
                 ],
               ),
-              for (final row in table.rows)
+              for (var r = 0; r < table.rows.length; r++)
                 DocxTableRow(
                   cells: [
                     for (var i = 0; i < colCount; i++)
-                      cell(i < row.length ? row[i] : '', i, header: false),
+                      cell(table.cellSpans(r, i), i, header: false),
                   ],
                 ),
             ],
@@ -646,6 +641,8 @@ class ExportService {
 
       case NodeType.htmlBlock:
         final html = node as HtmlBlockNode;
+        // A comment is not content; Word has nowhere to put one.
+        if (html.isComment) return builder;
         return builder.add(
           DocxParagraph(
             children: [
@@ -683,10 +680,6 @@ class ExportService {
       switch (span.type) {
         InlineType.bold => run.copyWith(fontWeight: DocxFontWeight.bold),
         InlineType.italic => run.copyWith(fontStyle: DocxFontStyle.italic),
-        InlineType.boldItalic => run.copyWith(
-            fontWeight: DocxFontWeight.bold,
-            fontStyle: DocxFontStyle.italic,
-          ),
         InlineType.strikethrough => run.copyWith(
             decorations: [...run.decorations, DocxTextDecoration.strikethrough],
           ),
@@ -708,12 +701,6 @@ class ExportService {
   static DocxText _docxTextFor(InlineSpan span) {
     {
       switch (span.type) {
-        case InlineType.boldItalic:
-          return DocxText(
-            span.text,
-            fontWeight: DocxFontWeight.bold,
-            fontStyle: DocxFontStyle.italic,
-          );
         case InlineType.bold:
           return DocxText(span.text, fontWeight: DocxFontWeight.bold);
         case InlineType.italic:
@@ -764,6 +751,15 @@ class ExportService {
           // Images are not embedded here; the alt text is all that survives,
           // which is better than dropping the span entirely.
           return DocxText(span.text);
+        case InlineType.ruby:
+          // Word can annotate a run, but the builder used here writes plain
+          // runs, so the reading is put where it can still be read: after the
+          // text, in brackets, the way a dictionary prints it.
+          return DocxText(
+            span.title == null || span.title!.isEmpty
+                ? span.text
+                : '${span.text}(${span.title})',
+          );
         case InlineType.text:
           return DocxText(span.text);
       }
@@ -841,17 +837,16 @@ class ExportService {
         final buffer = StringBuffer('<table>\n<thead>\n<tr>\n');
         for (var i = 0; i < table.headers.length; i++) {
           final content =
-              _inlineSpansToHtml(_cellParser.parseInline(table.headers[i]));
+              _inlineSpansToHtml(table.headerSpansAt(i));
           buffer.write('  <th${_htmlAlign(table.alignments, i)}>'
               '$content</th>\n');
         }
         buffer.write('</tr>\n</thead>\n<tbody>\n');
         final colCount = table.headers.length;
-        for (final row in table.rows) {
+        for (var r = 0; r < table.rows.length; r++) {
           buffer.write('<tr>\n');
           for (var i = 0; i < colCount; i++) {
-            final cell = i < row.length ? row[i] : '';
-            final content = _inlineSpansToHtml(_cellParser.parseInline(cell));
+            final content = _inlineSpansToHtml(table.cellSpans(r, i));
             buffer.write('  <td${_htmlAlign(table.alignments, i)}>'
                 '$content</td>\n');
           }
@@ -906,16 +901,16 @@ class ExportService {
           return true;
         case ParagraphNode(:final inlineSpans):
         case HeadingNode(:final inlineSpans):
-        case BlockquoteNode(:final inlineSpans):
           if (inSpans(inlineSpans)) return true;
+        case BlockquoteNode():
+          // Nothing to read here: a quote's text lives in the blocks inside
+          // it, and the walk this sits in visits those.
+          break;
         case ListNode(:final items):
           if (items.any((item) => inSpans(item.inlineSpans))) return true;
-        case TableNode(:final headers, :final rows):
-          // Cells are raw text until the export parses them, so this asks the
-          // same parser the export will ask — a check that reads the cell any
-          // other way would disagree with what ends up in the file.
-          for (final cell in [headers, ...rows].expand((row) => row)) {
-            if (inSpans(_cellParser.parseInline(cell))) return true;
+        case TableNode(:final headerSpans, :final rowSpans):
+          for (final cell in [headerSpans, ...rowSpans].expand((r) => r)) {
+            if (inSpans(cell)) return true;
           }
         default:
           break;
@@ -938,7 +933,7 @@ class ExportService {
     if (language.isEmpty) return _escapeHtml(code);
     try {
       final result =
-          CodeHighlighting.instance.parse(code, language: language);
+          CodeHighlighting.highlight(code, language: language);
       final nodes = result.nodes;
       if (nodes == null || nodes.isEmpty) return _escapeHtml(code);
       return _highlightNodesToHtml(nodes);
@@ -1186,8 +1181,11 @@ class ExportService {
       switch (span.type) {
         case InlineType.text:
           return text;
-        case InlineType.boldItalic:
-          return '<strong><em>$text</em></strong>';
+        case InlineType.ruby:
+          // A browser draws this itself, and `<rp>` gives one that cannot the
+          // brackets a reader expects instead.
+          final reading = _escapeHtml(span.title ?? '');
+          return '<ruby>$text<rp>(</rp><rt>$reading</rt><rp>)</rp></ruby>';
         case InlineType.bold:
           return '<strong>$text</strong>';
         case InlineType.italic:
@@ -1210,7 +1208,13 @@ class ExportService {
           final title = span.title != null
               ? ' title="${_escapeHtml(span.title!)}"'
               : '';
-          final img = '<img src="$src" alt="$alt"$title>';
+          // A size the document asked for is part of what it said; dropping it
+          // would export a picture at a size the reader never chose.
+          final sized = [
+            if (span.width != null) ' width="${span.width!.round()}"',
+            if (span.height != null) ' height="${span.height!.round()}"',
+          ].join();
+          final img = '<img src="$src" alt="$alt"$title$sized>';
           // An image wrapped in a link — a badge — is an anchor around it.
           final linkHref = span.linkHref;
           if (linkHref == null || linkHref.isEmpty) return img;
@@ -1316,7 +1320,15 @@ class ExportService {
     if (_dataScheme.hasMatch(collapsed) && !_dataImage.hasMatch(collapsed)) {
       return '';
     }
-    return _escapeHtml(url);
+    // A space in an address is not valid in the attribute it goes into, and
+    // `[文档](</我的 文件.md>)` — a file name with a space, written the one way
+    // markdown allows — produced `href="/我的 文件.md"`. Only the spaces are
+    // encoded: encoding the rest would turn an address that already carries
+    // `%20` into one carrying `%2520`.
+    //
+    // The address kept in the document is untouched, so the preview still
+    // opens the file it names.
+    return _escapeHtml(url.replaceAll(' ', '%20').replaceAll('\t', '%09'));
   }
 
   static String _escapeHtml(String text) {
@@ -1350,10 +1362,6 @@ class ExportService {
     /// The style one emphasis adds on top of the style around it, so nested
     /// markup renders as both — the same rule the preview follows.
     pw.TextStyle emphasised(InlineType type) => switch (type) {
-          InlineType.boldItalic => baseStyle.copyWith(
-              fontWeight: pw.FontWeight.bold,
-              fontStyle: pw.FontStyle.italic,
-            ),
           InlineType.bold =>
             baseStyle.copyWith(fontWeight: pw.FontWeight.bold),
           InlineType.italic =>
@@ -1388,13 +1396,13 @@ class ExportService {
         );
       }
       switch (span.type) {
-        case InlineType.boldItalic:
+        case InlineType.ruby:
+          // The pdf package has no baseline shift and no ruby, so the reading
+          // follows the text in brackets rather than being dropped.
+          final reading = _normalizeForPdf(span.title ?? '');
           return pw.TextSpan(
-            text: text,
-            style: baseStyle.copyWith(
-              fontWeight: pw.FontWeight.bold,
-              fontStyle: pw.FontStyle.italic,
-            ),
+            text: reading.isEmpty ? text : '$text($reading)',
+            style: baseStyle,
           );
         case InlineType.bold:
           return pw.TextSpan(
@@ -1756,14 +1764,13 @@ class ExportService {
                 pw.TableRow(
                   decoration: pw.BoxDecoration(color: _pdfTableHeaderBg),
                   children: table.headers.asMap().entries.map((entry) {
-                    final header = entry.value;
                     return pw.Padding(
                       padding: const pw.EdgeInsets.all(8),
                       child: pw.RichText(
                         textAlign: _pdfAlign(table.alignments, entry.key),
                         text: pw.TextSpan(
                           children: _inlineSpansToPdf(
-                            _cellParser.parseInline(header),
+                            table.headerSpansAt(entry.key),
                             baseStyle: pw.TextStyle(
                               fontSize: _pdfBodySize,
                               fontWeight: pw.FontWeight.bold,
@@ -1787,14 +1794,13 @@ class ExportService {
                         ? pw.BoxDecoration(color: _pdfTableAltBg)
                         : null,
                     children: row.asMap().entries.map((cellEntry) {
-                      final cell = cellEntry.value;
                       return pw.Padding(
                         padding: const pw.EdgeInsets.all(8),
                         child: pw.RichText(
                           textAlign: _pdfAlign(table.alignments, cellEntry.key),
                           text: pw.TextSpan(
                             children: _inlineSpansToPdf(
-                              _cellParser.parseInline(cell),
+                              table.cellSpans(rowIndex, cellEntry.key),
                               baseStyle: pw.TextStyle(
                                 fontSize: _pdfBodySize,
                                 height: 1.3,
@@ -1878,6 +1884,8 @@ class ExportService {
 
       case NodeType.htmlBlock:
         final html = node as HtmlBlockNode;
+        // As in Word: a comment is not something a page can show.
+        if (html.isComment) return const [];
         return [
           pw.Container(
             margin: pw.EdgeInsets.only(bottom: _pdfSpaceAfter),
@@ -2045,7 +2053,6 @@ class ExportService {
     for (final node in MarkdownParser.walk(ast)) {
       if (node is ParagraphNode) scan(node.inlineSpans);
       if (node is HeadingNode) scan(node.inlineSpans);
-      if (node is BlockquoteNode) scan(node.inlineSpans);
       if (node is ListNode) {
         for (final item in node.items) {
           scan(item.inlineSpans);

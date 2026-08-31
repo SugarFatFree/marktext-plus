@@ -325,6 +325,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get formatTableAlignNone => 'Remover alinhamento da coluna';
 
   @override
+  String get formatTableTidy => 'Alinhar a origem da tabela';
+
+  @override
   String get paragraphMoveBlockUp => 'Mover bloco para cima';
 
   @override
@@ -995,6 +998,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get viewReloadImages => 'Recarregar imagens';
 
   @override
+  String get formatMermaidBlock => 'Diagrama Mermaid';
+
+  @override
   String get formatFrontMatter => 'Front matter';
 
   @override
@@ -1333,6 +1339,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get formatTableAlignNone => 'Remover alinhamento da coluna';
+
+  @override
+  String get formatTableTidy => 'Alinhar a origem da tabela';
 
   @override
   String get paragraphMoveBlockUp => 'Mover bloco para cima';
@@ -2001,6 +2010,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get viewReloadImages => 'Recarregar imagens';
+
+  @override
+  String get formatMermaidBlock => 'Diagrama Mermaid';
 
   @override
   String get formatFrontMatter => 'Front matter';

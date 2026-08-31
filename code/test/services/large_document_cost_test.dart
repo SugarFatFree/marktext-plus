@@ -66,13 +66,36 @@ void main() {
   });
 
   test('the parser depends on nothing that cannot cross an isolate', () {
-    final source = File('lib/services/markdown_parser.dart').readAsStringSync();
-    final imports = RegExp(r"^import '([^']+)';", multiLine: true)
-        .allMatches(source)
-        .map((m) => m.group(1)!)
-        .toList();
-    expect(imports, everyElement(startsWith('dart:')),
+    // Follows the imports rather than requiring them all to be `dart:`. What
+    // matters is that nothing in the parser's reach pulls in Flutter — a file
+    // of its own that imports only `dart:` is no obstacle to an isolate, and
+    // insisting otherwise would have made splitting one out look like a fault.
+    final seen = <String>{};
+    final queue = <String>['lib/services/markdown_parser.dart'];
+    final offenders = <String>[];
+
+    while (queue.isNotEmpty) {
+      final path = queue.removeLast();
+      if (!seen.add(path)) continue;
+      final source = File(path).readAsStringSync();
+      for (final match
+          in RegExp(r"^import '([^']+)';", multiLine: true).allMatches(source)) {
+        final target = match.group(1)!;
+        if (target.startsWith('dart:')) continue;
+        if (target.startsWith('package:')) {
+          offenders.add('$path -> $target');
+          continue;
+        }
+        // A relative import, resolved against the importing file's folder.
+        final folder = path.substring(0, path.lastIndexOf('/'));
+        queue.add('$folder/$target');
+      }
+    }
+
+    expect(offenders, isEmpty,
         reason: '解析器一旦依赖 Flutter，就不能再放到另一个 isolate 上跑');
+    expect(seen, contains('lib/services/inline_emphasis.dart'),
+        reason: '强调解析已经拆出去了，这条检查必须跟着走进去');
   });
 
   test('heading lines read from the AST agree with the outline', () {

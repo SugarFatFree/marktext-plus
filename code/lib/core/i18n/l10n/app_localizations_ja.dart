@@ -317,6 +317,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get formatTableAlignNone => '列の配置を解除';
 
   @override
+  String get formatTableTidy => '表のソースを整える';
+
+  @override
   String get paragraphMoveBlockUp => 'ブロックを上へ';
 
   @override
@@ -976,6 +979,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get viewReloadImages => '画像を再読み込み';
+
+  @override
+  String get formatMermaidBlock => 'Mermaid 図';
 
   @override
   String get formatFrontMatter => 'フロントマター';

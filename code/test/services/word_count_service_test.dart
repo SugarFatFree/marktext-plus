@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/services/word_count_service.dart';
 
 void main() {
+  _destinationsAreNotWords();
   final service = WordCountService();
 
   group('WordCountService', () {
@@ -86,6 +87,138 @@ void main() {
     test('punctuation alone is not a word', () {
       expect(service.countWords('... --- !!!').words, 0);
       expect(service.countWords('，。！').words, 0);
+    });
+  });
+}
+
+/// Where a link says to go is not part of what the reader is reading.
+///
+/// `见[链接](https://example.com/very/long/path)这里` reads as five characters
+/// and was counted as eleven words. A document with references in it reported
+/// a length its prose does not have, and a word count is the number a writer
+/// works to. Upstream MarkText counts what it draws, and what it draws is the
+/// label.
+void _destinationsAreNotWords() {
+  final service = WordCountService();
+
+  group('a destination is not counted', () {
+    test('a link counts its label only', () {
+      expect(
+        service.countWords('见[链接](https://example.com/very/long/path)这里')
+            .words,
+        service.countWords('见链接这里').words,
+      );
+    });
+
+    test('an image counts its alt text only', () {
+      expect(
+        service.countWords('![一张图](/path/to/image.png)').words,
+        service.countWords('一张图').words,
+      );
+    });
+
+    test('an address with brackets in it is still skipped whole', () {
+      // `…/wiki/A_(b)` — one nested pair, which addresses do carry.
+      expect(
+        service.countWords('见[条目](https://ex.com/wiki/A_(b))这里').words,
+        service.countWords('见条目这里').words,
+      );
+    });
+  });
+
+  group('what the reader never sees is not counted', () {
+    test('the metadata block at the top', () {
+      // A title, an author and a few tags added fourteen words to a document
+      // that has five.
+      expect(
+        service
+            .countWords('---\ntitle: 我的文档标题\nauthor: 某人\ntags: 甲 乙 丙\n---\n\n正文一句话。')
+            .words,
+        service.countWords('正文一句话。').words,
+      );
+    });
+
+    test('a note left in an HTML comment', () {
+      expect(
+        service.countWords('正文<!-- 这是给编辑看的注释文字 -->结束').words,
+        service.countWords('正文结束').words,
+      );
+    });
+
+    test('a comment spanning lines', () {
+      expect(
+        service.countWords('正文\n<!--\n很多\n注释文字\n-->\n结束').words,
+        service.countWords('正文\n结束').words,
+      );
+    });
+  });
+
+  group('a line that only points somewhere', () {
+    test('the address and title in a definition are not counted', () {
+      // `[a]: https://example.com "标题在这里"` is shown nowhere. The label
+      // itself is still counted — one word against the dozen the address was
+      // worth — which is the part left to do.
+      final withDefinition = service
+          .countWords('正文有[链接][a]。\n\n[a]: https://example.com "标题在这里"')
+          .words;
+      final withoutIt = service.countWords('正文有[链接][a]。').words;
+      expect(withDefinition, withoutIt + 1);
+    });
+
+    test('an indented definition counts as little', () {
+      expect(service.countWords('  [a]: https://example.com "标题"').words, 1);
+    });
+
+    test('a colon after brackets mid-line is ordinary text', () {
+      // Only a label opening its own line is a definition. `见[注一]: 说明` in
+      // the middle of a sentence is a sentence.
+      const line = '见[注一]: 这是正文里的说明';
+      expect(service.countWords(line).words,
+          service.countWords('见 注一  这是正文里的说明').words);
+    });
+  });
+
+  group('what only looks like something invisible', () {
+    test('three dashes that never close are not front matter', () {
+      // One line that looks like an opener must not swallow the document.
+      final counted = service.countWords('---\n正文一句话。\n还有一句。').words;
+      expect(counted, greaterThan(4));
+    });
+
+    test('an unclosed comment ends at the document, not before it', () {
+      expect(service.countWords('正文<!-- 没有闭合').words, greaterThan(0));
+    });
+
+    test('a rule below text is not front matter', () {
+      // `---` under a paragraph is a heading underline, not an opener: only
+      // the very first line can open a metadata block.
+      expect(service.countWords('标题\n---\n正文').words,
+          service.countWords('标题\n正文').words);
+    });
+  });
+
+  group('what is still counted', () {
+    test('an autolink is text the reader sees', () {
+      // `<https://example.com>` is displayed as itself, so it counts.
+      expect(service.countWords('<https://example.com>').words,
+          greaterThan(1));
+    });
+
+    test('brackets that are not a link', () {
+      expect(service.countWords('见 [注一] 这里').words,
+          service.countWords('见 注一 这里').words);
+    });
+
+    test('an unclosed destination does not swallow the document', () {
+      // A `(` with no `)` must end at the line, or the rest of the file would
+      // stop counting.
+      final counted = service.countWords('见[链接](未闭合\n后面还有很多字').words;
+      expect(counted, greaterThan(4));
+    });
+
+    test('emphasis markers were never words anyway', () {
+      expect(service.countWords('这是一段**中文**文字').words,
+          service.countWords('这是一段中文文字').words);
     });
   });
 }

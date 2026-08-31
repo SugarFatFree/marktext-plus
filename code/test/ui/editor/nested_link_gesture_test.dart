@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/core/config/app_config.dart';
 import 'package:marktext_plus/core/config/config_service.dart';
 import 'package:marktext_plus/core/i18n/l10n/app_localizations.dart';
+import 'package:marktext_plus/providers/editor_provider.dart';
 import 'package:marktext_plus/providers/settings_provider.dart';
 import 'package:marktext_plus/ui/editor/markdown_renderer.dart';
 
@@ -60,13 +61,14 @@ void main() {
 
   Future<ProviderContainer> pumpPreview(
     WidgetTester tester,
-    String markdown,
-  ) async {
+    String markdown, {
+    bool enableHtml = false,
+  }) async {
     final container = ProviderContainer(overrides: [
       settingsProvider.overrideWith(
         (ref) => SettingsNotifier(
           ConfigService(configDir: configDir.path),
-          AppConfig(),
+          AppConfig(enableHtml: enableHtml),
         ),
       ),
     ]);
@@ -120,5 +122,51 @@ void main() {
     expect(spans, isNotEmpty, reason: '嵌套的斜体没有单独成片');
     expect(spans.first.style?.fontWeight, FontWeight.bold, reason: '外层加粗丢了');
     expect(spans.first.style?.fontStyle, FontStyle.italic);
+  });
+
+  testWidgets('a ruby reading is drawn above its text', (tester) async {
+    // Ruby is the one inline construct a run of styled text cannot express:
+    // the reading has to sit above, so it is drawn as a widget. Asserting the
+    // geometry rather than the presence of two Texts — two labels side by side
+    // would satisfy a weaker test and be wrong.
+    await pumpPreview(
+      tester,
+      '汉字<ruby>漢<rt>hàn</rt></ruby>注音\n',
+      enableHtml: true,
+    );
+
+    final reading = find.text('hàn');
+    final base = find.text('漢');
+    expect(reading, findsOneWidget, reason: '注音没有画出来');
+    expect(base, findsOneWidget);
+
+    final readingBox = tester.getRect(reading);
+    final baseBox = tester.getRect(base);
+    expect(readingBox.bottom, lessThanOrEqualTo(baseBox.top + 1),
+        reason: '注音没有落在文字上方');
+    expect(readingBox.height, lessThan(baseBox.height),
+        reason: '注音应当比正文小');
+  });
+
+  testWidgets('a search finds words inside emphasis', (tester) async {
+    // Emphasis draws its children now, and the highlighting is applied to the
+    // pieces of text at the leaves. A wrapper that painted its own text
+    // instead would show the words once and highlight nothing.
+    final container = await pumpPreview(tester, '这里有 **加粗文字** 收尾\n');
+    container.read(editorProvider.notifier).updatePreviewSearch(
+          query: '加粗',
+          caseSensitive: false,
+          wholeWord: false,
+          useRegex: false,
+          currentMatchIndex: 0,
+        );
+    await tester.pump();
+
+    final hits = spansWithText(tester, '加粗');
+    expect(hits, isNotEmpty, reason: '强调里的文字没有被搜索高亮');
+    expect(hits.first.style?.fontWeight, FontWeight.bold,
+        reason: '高亮的那片丢了加粗');
+    expect(hits.first.style?.backgroundColor, isNotNull,
+        reason: '没有画出高亮底色');
   });
 }

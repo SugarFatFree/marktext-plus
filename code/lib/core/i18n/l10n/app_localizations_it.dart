@@ -326,6 +326,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get formatTableAlignNone => 'Rimuovi allineamento colonna';
 
   @override
+  String get formatTableTidy => 'Allinea il sorgente della tabella';
+
+  @override
   String get paragraphMoveBlockUp => 'Sposta blocco su';
 
   @override
@@ -994,6 +997,9 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get viewReloadImages => 'Ricarica immagini';
+
+  @override
+  String get formatMermaidBlock => 'Diagramma Mermaid';
 
   @override
   String get formatFrontMatter => 'Front matter';

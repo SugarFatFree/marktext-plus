@@ -1,3 +1,5 @@
+import 'markdown_parser.dart';
+
 class WordCount {
   final int words;
   final int characters;
@@ -29,10 +31,112 @@ class WordCountService {
     bool paragraphHasText = false;
     int newlineRun = 0;
 
+    // Where a link or an image says to go, which the reader never sees.
+    // `见[链接](https://example.com/very/long/path)这里` reads as five
+    // characters and was counted as eleven words: a document with a few
+    // references in it reported a length its prose does not have, and a word
+    // count is the number writers work to. Upstream MarkText counts what is
+    // drawn, and what is drawn is the label.
+    //
+    // Still one pass and no parsing: the destination is whatever sits between
+    // `](` and the parenthesis that closes it, and one nested pair is allowed
+    // because addresses carry them — `…/wiki/A_(b)`.
+    bool afterCloseBracket = false;
+    int destinationDepth = 0;
+
+    // A line that only says where a label points — `[a]: https://example.com
+    // "标题"` — is not shown anywhere, and the address and title in it are the
+    // bulk of what was being counted. Recognised where it is: a label opening
+    // a line and closing on a colon. The label's own word is still counted,
+    // which is one word against the dozen the address was worth.
+    bool onlySpacesSoFar = true;
+    bool labelOpenedLine = false;
+    bool skipToNewline = false;
+
+    // The block of metadata at the top, which the reader never sees. A title,
+    // an author and a few tags added fourteen words to a document with five in
+    // it. Counted here rather than parsed: the block is at a known place and
+    // ends at a known line, so finding it costs a look at the first few lines.
+    var skipRunes = _frontMatterRunes(markdown);
+
+    // `<!-- … -->`, which is a note to whoever is writing rather than to
+    // whoever is reading. Recognised from the four characters just seen, so
+    // no lookahead is needed — and `<!--` holds no word characters, so
+    // nothing has been miscounted by the time it is recognised.
+    var inComment = false;
+    int previous1 = 0;
+    int previous2 = 0;
+    int previous3 = 0;
+
     for (final rune in markdown.runes) {
       // Counted in code points, so an emoji or a rare ideograph is one
       // character rather than the two UTF-16 units it occupies.
       characters++;
+
+      if (skipRunes > 0) {
+        skipRunes--;
+        if (rune == 0x0A) newlineRun = 1;
+        continue;
+      }
+
+      if (skipToNewline) {
+        if (rune != 0x0A) {
+          inWord = false;
+          continue;
+        }
+        skipToNewline = false;
+      }
+
+      if (rune == 0x0A) {
+        onlySpacesSoFar = true;
+        labelOpenedLine = false;
+      } else if (rune == 0x5B && onlySpacesSoFar) {
+        labelOpenedLine = true;
+        onlySpacesSoFar = false;
+      } else if (rune != 0x20 && rune != 0x09) {
+        onlySpacesSoFar = false;
+      }
+      if (labelOpenedLine && afterCloseBracket && rune == 0x3A) {
+        labelOpenedLine = false;
+        skipToNewline = true;
+        inWord = false;
+        continue;
+      }
+
+      // `<!--` seen: everything up to `-->` is a note to the author.
+      if (!inComment &&
+          rune == 0x2D &&
+          previous1 == 0x2D &&
+          previous2 == 0x21 &&
+          previous3 == 0x3C) {
+        inComment = true;
+      }
+      previous3 = previous2;
+      previous2 = previous1;
+      previous1 = rune;
+      if (inComment) {
+        if (rune == 0x3E && previous2 == 0x2D && previous3 == 0x2D) {
+          inComment = false;
+        }
+        inWord = false;
+        continue;
+      }
+
+      if (destinationDepth > 0) {
+        if (rune == 0x28) destinationDepth++;
+        if (rune == 0x29) destinationDepth--;
+        // A newline ends it: an unclosed `(` must not swallow the document.
+        if (rune == 0x0A) destinationDepth = 0;
+        inWord = false;
+        continue;
+      }
+      if (afterCloseBracket && rune == 0x28) {
+        afterCloseBracket = false;
+        destinationDepth = 1;
+        inWord = false;
+        continue;
+      }
+      afterCloseBracket = rune == 0x5D;
 
       if (rune == 0x0A) {
         newlineRun++;
@@ -122,4 +226,30 @@ class WordCountService {
     if (rune >= 0xFF01 && rune <= 0xFF20) return false; // fullwidth punctuation
     return true;
   }
+}
+
+/// How many runes of front matter [markdown] opens with, or zero.
+///
+/// The delimiters are the parser's own, so the two agree about what a front
+/// matter block is; only the length is wanted here.
+int _frontMatterRunes(String markdown) {
+  final firstBreak = markdown.indexOf('\n');
+  if (firstBreak < 0) return 0;
+  final opener = markdown.substring(0, firstBreak).trim();
+  if (!MarkdownParser.isFrontMatterOpener(opener)) return 0;
+
+  final closer = opener == '{' ? '}' : opener;
+  var from = firstBreak + 1;
+  while (from < markdown.length) {
+    var lineEnd = markdown.indexOf('\n', from);
+    if (lineEnd < 0) lineEnd = markdown.length;
+    if (markdown.substring(from, lineEnd).trim() == closer) {
+      final end = lineEnd < markdown.length ? lineEnd + 1 : lineEnd;
+      return markdown.substring(0, end).runes.length;
+    }
+    from = lineEnd + 1;
+  }
+  // No closing delimiter: not a front matter block, and the document is not
+  // going to be skipped whole because of one line that looked like an opener.
+  return 0;
 }

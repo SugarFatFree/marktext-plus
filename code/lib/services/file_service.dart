@@ -118,13 +118,18 @@ class FileService {
   /// This is what "overwrite" means once the reader has been asked, and what
   /// Save As does. When the file may have changed underneath the editor —
   /// which is every ordinary save — use [saveDocumentIfUnchanged] instead.
-  static Future<void> saveDocument(
+  /// Returns the encoding the file was actually written in, which is not
+  /// always [encoding]: text holding a character that encoding cannot carry
+  /// is written as UTF-8 instead. The caller updates the document with it so
+  /// the status bar keeps telling the truth.
+  static Future<FileEncoding> saveDocument(
     String path,
     String content, {
     LineEnding lineEnding = LineEnding.lf,
     FileEncoding encoding = FileEncoding.utf8Encoding,
   }) async {
-    final bytes = encoding.encode(lineEnding.apply(content));
+    final written = encoding.encodeWithFallback(lineEnding.apply(content));
+    final bytes = written.bytes;
 
     // Write through a symlink to whatever it points at. Renaming over the link
     // itself would replace it with a regular file, quietly detaching the
@@ -146,6 +151,7 @@ class FileService {
     }
 
     await writeBytesAtomically(target, bytes);
+    return written.used;
   }
 
   /// Writes [bytes] to [path] so that the file is only ever its old contents
@@ -348,7 +354,8 @@ class FileService {
   /// hypothetical and needs no deliberate act: open a file, type, have a git
   /// checkout or a sync client rewrite it, and a few seconds later the editor
   /// wrote over that change without a word.
-  static Future<void> saveDocumentIfUnchanged(
+  /// Returns the encoding actually written, as [saveDocument] does.
+  static Future<FileEncoding> saveDocumentIfUnchanged(
     String path,
     String content, {
     required ({DateTime modified, int size})? expect,
@@ -358,7 +365,7 @@ class FileService {
     if (await hasChangedSince(path, expect)) {
       throw FileChangedOnDiskException(path);
     }
-    await saveDocument(path, content,
+    return saveDocument(path, content,
         lineEnding: lineEnding, encoding: encoding);
   }
 }

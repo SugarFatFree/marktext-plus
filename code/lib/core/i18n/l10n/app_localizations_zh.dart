@@ -316,6 +316,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get formatTableAlignNone => '清除整列对齐';
 
   @override
+  String get formatTableTidy => '整理表格源码';
+
+  @override
   String get paragraphMoveBlockUp => '上移块';
 
   @override
@@ -975,6 +978,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get viewReloadImages => '重新加载图片';
+
+  @override
+  String get formatMermaidBlock => 'Mermaid 图表';
 
   @override
   String get formatFrontMatter => '前置元数据';

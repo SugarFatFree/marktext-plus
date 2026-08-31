@@ -323,6 +323,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get formatTableAlignNone => 'Spaltenausrichtung aufheben';
 
   @override
+  String get formatTableTidy => 'Tabellenquelltext ausrichten';
+
+  @override
   String get paragraphMoveBlockUp => 'Block nach oben';
 
   @override
@@ -989,6 +992,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get viewReloadImages => 'Bilder neu laden';
+
+  @override
+  String get formatMermaidBlock => 'Mermaid-Diagramm';
 
   @override
   String get formatFrontMatter => 'Front Matter';

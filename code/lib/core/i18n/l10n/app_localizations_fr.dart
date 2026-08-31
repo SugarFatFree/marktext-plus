@@ -327,6 +327,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get formatTableAlignNone => 'Supprimer l\'alignement de la colonne';
 
   @override
+  String get formatTableTidy => 'Aligner la source du tableau';
+
+  @override
   String get paragraphMoveBlockUp => 'Déplacer le bloc vers le haut';
 
   @override
@@ -997,6 +1000,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get viewReloadImages => 'Recharger les images';
+
+  @override
+  String get formatMermaidBlock => 'Diagramme Mermaid';
 
   @override
   String get formatFrontMatter => 'En-tête YAML';

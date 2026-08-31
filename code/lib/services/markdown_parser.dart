@@ -2,6 +2,8 @@
 // Uses regex-based line scanning for block-level and inline parsing.
 
 import 'dart:convert' show LineSplitter;
+
+import 'inline_emphasis.dart';
 import 'dart:math' as math;
 
 // -- Enums --
@@ -35,7 +37,14 @@ enum InlineType {
   subscript,
   underline,
   footnoteRef,
-  boldItalic,
+
+  /// Text with a pronunciation written above it: `<ruby>漢<rt>hàn</rt></ruby>`.
+  ///
+  /// How Japanese furigana and Chinese pinyin are written. The base text is
+  /// the span's `text` and the reading is its `title`, because the two belong
+  /// to one another — drawn as two spans they would come apart at a line
+  /// break, and read aloud as two words.
+  ruby,
 }
 
 // -- Inline Span --
@@ -66,6 +75,14 @@ class InlineSpan {
   /// nothing.
   final List<InlineSpan> children;
 
+  /// The size an `<img>` tag asked for, in CSS pixels.
+  ///
+  /// Only a raw `<img>` carries these — markdown's own image syntax has no
+  /// way to say how big a picture should be, which is why a document that
+  /// needs to say it falls back to the tag.
+  final double? width;
+  final double? height;
+
   const InlineSpan({
     required this.type,
     required this.text,
@@ -73,6 +90,8 @@ class InlineSpan {
     this.title,
     this.linkHref,
     this.children = const [],
+    this.width,
+    this.height,
   });
 }
 
@@ -271,11 +290,40 @@ class TableNode extends MarkdownNode {
   final List<List<String>> rows;
   final List<String> alignments; // 'left', 'center', 'right', 'default'
 
+  /// The cells' inline content, parsed once with the rest of the document.
+  ///
+  /// A cell used to be kept as source and parsed again by everyone who read
+  /// it — the preview, the HTML export, the PDF, the Word file — which cost
+  /// twice over. It was wrong: the export's parser was a static built with
+  /// the default settings, so a `<br>` in a cell appeared in the preview and
+  /// not in the file. And it was slow: the preview re-parsed every cell on
+  /// every rebuild, which is every caret move, at 23 ms for a five hundred
+  /// row table against 5 ms to parse the whole document.
+  ///
+  /// [headerSpans] runs parallel to [headers] and [rowSpans] to [rows]; the
+  /// source strings stay because editing a table works on them.
+  final List<List<InlineSpan>> headerSpans;
+  final List<List<List<InlineSpan>>> rowSpans;
+
   TableNode({
     required this.headers,
     required this.rows,
     this.alignments = const [],
+    this.headerSpans = const [],
+    this.rowSpans = const [],
   });
+
+  /// The parsed content of the cell at [column] of [row], empty when the row
+  /// is short — the same guard every reader used to write for itself.
+  List<InlineSpan> cellSpans(int row, int column) {
+    if (row >= rowSpans.length) return const [];
+    final cells = rowSpans[row];
+    return column < cells.length ? cells[column] : const [];
+  }
+
+  /// The parsed content of header [column].
+  List<InlineSpan> headerSpansAt(int column) =>
+      column < headerSpans.length ? headerSpans[column] : const [];
 
   @override
   NodeType get type => NodeType.table;
@@ -341,6 +389,14 @@ class HtmlBlockNode extends MarkdownNode {
   final String html;
 
   HtmlBlockNode({required this.html});
+
+  /// Whether this block is nothing but an HTML comment.
+  ///
+  /// A comment is written to be invisible — `<!-- TODO -->`, a note left for
+  /// whoever reads the source next — so every renderer skips it. The one
+  /// exception is the HTML export, where passing it through is what keeps it
+  /// a comment.
+  bool get isComment => html.trimLeft().startsWith('<!--');
 
   @override
   NodeType get type => NodeType.htmlBlock;
@@ -413,6 +469,31 @@ class MarkdownParser {
   /// Lines inside a fenced code block are not headings. `# install deps` in a
   /// shell snippet is a comment, and counting it filled the outline with
   /// entries that scrolled somewhere unrelated.
+  /// The heading level [line] carries, or null when it is not a heading.
+  ///
+  /// Public because the source pane colours headings as they are typed and has
+  /// to reach the same answer as the pane beside it. Asking `startsWith('#')`
+  /// instead coloured `#标签` — a tag in a note — as a heading the preview
+  /// would not draw, missed a heading written with the three columns of
+  /// indentation the format allows, and took seven hashes for a heading when
+  /// six is the most there is.
+  static int? headingLevelOf(String line) {
+    return _headingRe.firstMatch(line)?.group(1)?.length;
+  }
+
+  /// The text of the heading on [line], or null when it is not a heading.
+  ///
+  /// The marker is more than the hashes: up to three columns of indentation
+  /// may sit in front of them, and a run of hashes may close the line. The
+  /// heading actions used to strip only `#{1,6}` and a space, so setting a
+  /// level on `   ## Title` prepended a second marker and left the first one
+  /// in the text.
+  static String? headingTextOf(String line) {
+    final match = _headingRe.firstMatch(line);
+    if (match == null) return null;
+    return match.group(2) ?? '';
+  }
+
   static List<({int line, int level, String text})> headingOutline(
       String source) {
     // A byte order mark would sit in front of the first '#' and stop it
@@ -548,13 +629,17 @@ class MarkdownParser {
   /// An ordered list item. CommonMark allows `)` as well as `.` after the
   /// number, and the editor's own prefix handling already accepted both — only
   /// the parser did not, so `1) one` rendered as an ordinary paragraph.
-  static final _olRe = RegExp(r'^[\s]*\d+[.)]\s+(.+)$');
+  /// At most nine digits, as the format has it. A longer run of digits before
+  /// a full stop is not a step in a list — it is a phone number, an order
+  /// reference, an identifier — and reading it as one renumbered the document
+  /// from wherever that number happened to be.
+  static final _olRe = RegExp(r'^[\s]*\d{1,9}[.)]\s+(.+)$');
 
   /// The number an ordered item was written with.
   ///
   /// Separate from [_olRe] rather than a group added to it: that pattern's
   /// group 1 is the item's content and is read in several places.
-  static final _olNumberRe = RegExp(r'^\s*(\d+)[.)]\s');
+  static final _olNumberRe = RegExp(r'^\s*(\d{1,9})[.)]\s');
   /// A table row. GFM makes the outer pipes optional, so `a | b` is a row;
   /// requiring them turned such a table into an ordinary paragraph.
   static final _tableRowRe = RegExp(r'^\s*\|?.*\|.*\|?\s*$');
@@ -590,8 +675,13 @@ class MarkdownParser {
   /// The tag name must be followed by something that can start an attribute
   /// list or close the tag, which keeps `<https://example.com>` — an autolink,
   /// not an element — out of this branch.
+  ///
+  /// A closing tag counts too. `</details>` on a line of its own is how every
+  /// collapsible section in a README ends, and matching only opening tags left
+  /// it as a paragraph of escaped angle brackets under the section it was
+  /// supposed to close.
   static final _htmlBlockStartRe =
-      RegExp(r'^<([a-zA-Z][a-zA-Z0-9-]*)(?=[\s/>])');
+      RegExp(r'^</?([a-zA-Z][a-zA-Z0-9-]*)(?=[\s/>])');
 
   /// Tag names that begin an HTML *block*.
   ///
@@ -621,7 +711,7 @@ class MarkdownParser {
   /// on lines of their own, and it is what separates them from a line of
   /// `<kbd>Ctrl</kbd>+<kbd>C</kbd>`, where the tag is followed by content.
   static final _htmlTagAloneRe =
-      RegExp(r'^<[a-zA-Z][a-zA-Z0-9-]*(?:\s[^<>]*?)?/?>\s*$');
+      RegExp(r'^</?[a-zA-Z][a-zA-Z0-9-]*(?:\s[^<>]*?)?/?>\s*$');
 
   /// A link reference definition: `[label]: url "title"`.
   ///
@@ -898,16 +988,42 @@ class MarkdownParser {
       // simply empty.
       final first = marker.firstMatch(block.first)?.group(1) ?? '';
 
-      // The item's own text runs to the first blank line; anything after it
-      // is a block the item carries, parsed on its own terms.
-      final blank = block.indexWhere((line) => line.trim().isEmpty);
-      final lead = blank < 0 ? block.skip(1) : block.take(blank).skip(1);
-      final carried = blank < 0
+      // The item's own text runs to the first line that opens a block of its
+      // own; everything from there is a block the item carries, parsed on its
+      // own terms.
+      //
+      // It used to run to the first blank line, which is only the commonest
+      // of the ways an item's text ends. Written the way install steps are
+      // written —
+      //
+      //     - install the dependencies
+      //       ```bash
+      //       npm i
+      //       ```
+      //
+      // — the fence lines were folded into the sentence and read as inline
+      // markup, so the block came out as a code *span* with the language name
+      // inside it and the code itself flattened onto one line. A quote under an
+      // item lost its `>` the same way. The same rule the paragraph loop stops
+      // at answers this, measured from where the item's text begins.
+      final contentColumn = _contentColumn(block.first);
+      final body = _dedent(block.skip(1), contentColumn).split('\n');
+      var cut = block.length;
+      if (block.length > 1) {
+        for (var j = 0; j < body.length; j++) {
+          if (_startsAnotherBlock(body, j)) {
+            cut = j + 1;
+            break;
+          }
+        }
+      }
+      final lead = block.skip(1).take(cut - 1);
+      final carried = cut >= block.length
           ? const <MarkdownNode>[]
-          : parse(_dedent(block.skip(blank + 1)));
+          : parse(_dedent(block.skip(cut), contentColumn));
       // A block's lines are consecutive in the document, so the blocks the
-      // item carries start `blank + 1` lines after the item's own first line.
-      _shiftSpans(carried, itemStarts[index] + blank + 1);
+      // item carries start `cut` lines after the item's own first line.
+      _shiftSpans(carried, itemStarts[index] + cut);
 
       final content = lead.isEmpty
           ? first
@@ -948,16 +1064,24 @@ class MarkdownParser {
   /// loop would push out of it: a blank line between items, which used to
   /// split one list into two, and an indented continuation line, which used
   /// to become a paragraph wedged between them.
-  /// Removes the common indentation from an item's carried block, so it is
-  /// parsed as the code fence or quote it is rather than as indented code.
-  static String _dedent(Iterable<String> lines) {
+  /// Removes an item's own indentation from a block it carries, so the block
+  /// is parsed as the code fence or quote it is rather than as indented code.
+  ///
+  /// Only as far as [column], where the item's text begins. Removing whatever
+  /// indentation the lines happened to share took away the four extra columns
+  /// that make a block of code a block of code, so a code sample written under
+  /// a step — indented rather than fenced — came out as an ordinary paragraph
+  /// with its spacing lost. Never more than the lines actually have, so a
+  /// block indented less than its item still keeps what it has.
+  static String _dedent(Iterable<String> lines, int column) {
     final kept = lines.toList();
     final indents = kept
         .where((line) => line.trim().isNotEmpty)
         .map(_indentColumns);
     final common = indents.isEmpty ? 0 : indents.reduce(math.min);
+    final strip = math.min(column, common);
     return kept
-        .map((line) => line.length <= common ? '' : line.substring(common))
+        .map((line) => line.length <= strip ? '' : line.substring(strip))
         .join('\n');
   }
 
@@ -1013,8 +1137,12 @@ class MarkdownParser {
   /// [_ulRe] and [_olRe] both require content, because an empty marker is not
   /// an item of a parsed document. Pressing Enter on one is exactly when that
   /// matters, so continuation needs its own reading of the line.
+  ///
+  /// The nine-digit limit is the same one [_olRe] carries, and for the same
+  /// reason: a phone number followed by a full stop is not a step in a list,
+  /// and pressing Enter at the end of one used to offer the next number up.
   static final _continuationRe =
-      RegExp(r'^(\s*)([-*+]|\d+[.)])(\s+)(.*)$');
+      RegExp(r'^(\s*)([-*+]|\d{1,9}[.)])(\s+)(.*)$');
 
   /// What pressing Enter at the end of [line] should carry to the next line.
   ///
@@ -1025,9 +1153,9 @@ class MarkdownParser {
   /// a writer ends a list: the marker comes off instead of another appearing.
   static ({String marker, bool isEmpty})? listContinuation(String line) {
     // `- - -` and `* * *` are thematic breaks, however much the first
-    // characters look like a bullet. This parser reads them as list items —
-    // the list branch is tried before the rule — but there is no reason for
-    // the editor to put a marker under one.
+    // characters look like a bullet, and the parser reads them as rules. The
+    // check is kept here as well because this function is asked about a line
+    // as it is typed, before any of that runs.
     if (RegExp(r'^\s*([-*_])(\s*\1){2,}\s*$').hasMatch(line)) return null;
 
     // A quote carries on the same way a list does, and upstream MarkText's
@@ -1223,7 +1351,8 @@ class MarkdownParser {
   void _addShortcutReference(
     List<InlineSpan> spans,
     String label,
-    String written, {
+    String written,
+    int depth, {
     required bool isImage,
   }) {
     final definition = _linkDefinitions[label.toLowerCase()];
@@ -1231,11 +1360,26 @@ class MarkdownParser {
       spans.add(InlineSpan(type: InlineType.text, text: written));
       return;
     }
+    if (isImage) {
+      // Alt text is text, the way it is for every other image form.
+      spans.add(InlineSpan(
+        type: InlineType.image,
+        text: _altText(label, depth),
+        href: definition.url,
+        title: definition.title,
+      ));
+      return;
+    }
     spans.add(InlineSpan(
-      type: isImage ? InlineType.image : InlineType.link,
+      type: InlineType.link,
       text: label,
       href: definition.url,
       title: definition.title,
+      // The third of the three link branches, and the last one still reading
+      // its text as characters. The inline form learned to parse it, then the
+      // `[text][label]` form did, and `[**Download**]` went on showing its
+      // asterisks inside the link.
+      children: _nestedSpans(label, depth, insideLink: true),
     ));
   }
 
@@ -1276,11 +1420,38 @@ class MarkdownParser {
     final lines = const LineSplitter().convert(source);
 
     _linkDefinitions.clear();
+    // Definitions are gathered before anything is parsed, because a reference
+    // may be written above the definition it uses. That pass has to know what
+    // a code fence is: a document explaining markdown shows definitions inside
+    // fences — this project's own does — and every one of them was registered,
+    // so `[example]` in the prose afterwards silently became a link to
+    // whatever the example said.
+    var fence = '';
     for (final line in lines) {
+      final fenceMatch = _codeFenceRe.firstMatch(line);
+      if (fence.isEmpty) {
+        if (fenceMatch != null) fence = fenceMatch.group(1)!;
+      } else {
+        // Closed by a fence of the same character, at least as long — a longer
+        // fence is how a document shows ``` inside a code block.
+        final closer = _codeFenceEndRe.firstMatch(line)?.group(1);
+        if (closer != null &&
+            closer[0] == fence[0] &&
+            closer.length >= fence.length) {
+          fence = '';
+        }
+        continue;
+      }
+      if (fenceMatch != null) continue;
+
       final match = _linkDefRe.firstMatch(line);
       if (match == null) continue;
-      _linkDefinitions[match.group(1)!.toLowerCase()] =
-          (url: match.group(2)!, title: match.group(3));
+      // The first definition of a label wins, as CommonMark has it; a second
+      // one is a mistake in the document, and taking it meant the mistake won.
+      _linkDefinitions.putIfAbsent(
+        match.group(1)!.toLowerCase(),
+        () => (url: match.group(2)!, title: match.group(3)),
+      );
     }
 
     final nodes = <MarkdownNode>[];
@@ -1371,6 +1542,74 @@ class MarkdownParser {
         continue;
       }
 
+      // A picture written as a tag, which is the only way markdown has of
+      // saying how big it should be. Read as an HTML block it was drawn as its
+      // own source in a grey box: upstream MarkText's own documentation writes
+      // sixty pictures this way, and every one of them opened here as a line
+      // of angle brackets.
+      //
+      // Only a tag alone on its line. One inside a table cell or a centring
+      // wrapper is part of an HTML block that would have to be rendered whole,
+      // which is a different and much larger job.
+      final imageTag = _lonelyImageTagRe.firstMatch(line.trim());
+      if (imageTag != null) {
+        final attributes = _htmlAttributes(imageTag.group(1)!);
+        final source = attributes['src'];
+        if (source != null && source.isNotEmpty) {
+          i++;
+          nodes.add(_withSpan(
+            ParagraphNode(
+              content: line.trim(),
+              inlineSpans: [
+                InlineSpan(
+                  type: InlineType.image,
+                  text: attributes['alt'] ?? '',
+                  href: source,
+                  title: attributes['title'],
+                  width: double.tryParse(attributes['width'] ?? ''),
+                  height: double.tryParse(attributes['height'] ?? ''),
+                ),
+              ],
+            ),
+            blockStart,
+            i,
+          ));
+          continue;
+        }
+      }
+
+      // An HTML comment: CommonMark's second kind of html block.
+      //
+      // A comment is invisible by definition, and this drew it as a paragraph
+      // of escaped angle brackets — `<!-- TODO -->` shown to the reader is the
+      // one thing a comment must not be. The block ends at the line holding
+      // `-->`, wherever on that line it falls.
+      //
+      // An unclosed comment stays a paragraph rather than swallowing the rest
+      // of the document, which is what the format says to do with it. This is
+      // a live editor: `<!--` is a state every comment passes through on the
+      // way to being written, and blanking the page below the caret while
+      // someone types is worse than showing four characters of markup.
+      if (_indentColumns(line) <= 3 && line.trimLeft().startsWith('<!--')) {
+        var end = -1;
+        if (line.trimLeft().substring(4).contains('-->')) {
+          end = i;
+        } else {
+          for (var j = i + 1; j < lines.length; j++) {
+            if (lines[j].contains('-->')) {
+              end = j;
+              break;
+            }
+          }
+        }
+        if (end >= 0) {
+          final comment = lines.getRange(i, end + 1).join('\n');
+          i = end + 1;
+          nodes.add(_withSpan(HtmlBlockNode(html: comment), blockStart, i));
+          continue;
+        }
+      }
+
       // HTML block
       final htmlMatch = _htmlBlockStartRe.firstMatch(line);
       if (htmlMatch != null &&
@@ -1398,9 +1637,17 @@ class MarkdownParser {
           //
           // Look before consuming anything: a tag with neither a close nor a
           // blank line after it should cost one line, not the document.
+          //
+          // Four tags are the exception, and the format names them: `<pre>`,
+          // `<script>`, `<style>` and `<textarea>` hold text that is not
+          // markdown, and a blank line inside one of them is part of that
+          // text. Ending at it cut a script or a preformatted sample in half
+          // and read the rest as prose — asterisks in the sample became
+          // italics, and the closing tag showed up as `&lt;/pre&gt;`.
+          final rawText = _rawTextHtmlTags.contains(tag.toLowerCase());
           var lastLine = -1;
           for (var j = i; j < lines.length; j++) {
-            if (lines[j].trim().isEmpty) {
+            if (!rawText && lines[j].trim().isEmpty) {
               lastLine = j - 1;
               break;
             }
@@ -1501,9 +1748,28 @@ class MarkdownParser {
         final quoteStart = i;
         final bqLines = <String>[];
 
-        while (i < lines.length && _blockquoteRe.hasMatch(lines[i])) {
-          bqLines.add(lines[i].replaceFirst(_blockquoteStripRe, ''));
-          i++;
+        while (i < lines.length) {
+          if (_blockquoteRe.hasMatch(lines[i])) {
+            bqLines.add(lines[i].replaceFirst(_blockquoteStripRe, ''));
+            i++;
+            continue;
+          }
+          // A quoted paragraph carried on without repeating the `>`, which is
+          // how anyone quoting more than a line writes it. The rest of the
+          // sentence used to fall out of the quote and stand on its own,
+          // outside the box, as an ordinary paragraph.
+          //
+          // Only after a line with words on it, and only for a line that
+          // opens nothing of its own: a heading, a list or a fence below a
+          // quote is not part of it.
+          if (bqLines.isNotEmpty &&
+              bqLines.last.trim().isNotEmpty &&
+              !_startsAnotherBlock(lines, i)) {
+            bqLines.add(lines[i]);
+            i++;
+            continue;
+          }
+          break;
         }
 
         final content = bqLines.join('\n').trim();
@@ -1519,9 +1785,14 @@ class MarkdownParser {
         nodes.add(_withSpan(
           BlockquoteNode(
             content: content,
-            inlineSpans: parseInline(content),
+            // Empty on purpose. The quote's text belongs to the blocks
+            // inside it, and every reader of a document walks into those —
+            // parsing it here as well meant parsing it twice, which cost a
+            // third of the time on a document full of quotations and grew
+            // quadratically on a nested one, each level parsing everything
+            // below it again.
+            inlineSpans: const [],
             // Parsed again so a list or a heading inside the quote is one.
-            // The spans stay for anything still reading them.
             children: quoted,
             // Counting from zero for the outermost quote.
             depth: quoteDepth,
@@ -1557,6 +1828,10 @@ class MarkdownParser {
             headers: headers,
             rows: rows,
             alignments: alignments,
+            headerSpans: [for (final h in headers) parseInline(h)],
+            rowSpans: [
+              for (final row in rows) [for (final cell in row) parseInline(cell)]
+            ],
           ),
           blockStart,
           i,
@@ -1749,6 +2024,8 @@ class MarkdownParser {
       title: restored.title,
       linkHref: restored.linkHref,
       children: children,
+      width: restored.width,
+      height: restored.height,
     );
   }
 
@@ -1801,6 +2078,49 @@ class MarkdownParser {
             InlineSpan(type: InlineType.text, text: span.text),
       ];
 
+  /// The text an image's alt attribute should carry.
+  ///
+  /// Alt text is text: `![foo *bar*](/img)` describes the picture as "foo
+  /// bar", not as "foo *bar*". The markers were passed through, so a picture
+  /// that failed to load — the moment alt text is for — described itself in
+  /// markdown.
+  String _altText(String alt, int depth) {
+    final spans = _nestedSpans(alt, depth);
+    return spans.isEmpty ? alt : _flattenText(spans);
+  }
+
+  /// The text [spans] read as, with the markup dropped.
+  static String _flattenText(List<InlineSpan> spans) => [
+        for (final span in spans)
+          if (span.children.isEmpty) span.text else _flattenText(span.children),
+      ].join();
+
+  /// An `<img>` tag with nothing else on its line.
+  ///
+  /// Written as `<img …>`, `<img … />` or `<img …></img>`; the attributes are
+  /// read separately because their order is up to whoever wrote the tag.
+  static final _lonelyImageTagRe = RegExp(
+    r'^<img\s+([^<>]*?)/?>(?:</img>)?$',
+    caseSensitive: false,
+  );
+
+  /// The attributes of an HTML tag, lowercased by name.
+  ///
+  /// Values may be in single quotes, double quotes, or none at all, which is
+  /// three spellings of the same thing and all three appear in real documents.
+  static Map<String, String> _htmlAttributes(String source) {
+    final found = <String, String>{};
+    for (final match in _htmlAttributeRe.allMatches(source)) {
+      found[match.group(1)!.toLowerCase()] =
+          match.group(2) ?? match.group(3) ?? match.group(4) ?? '';
+    }
+    return found;
+  }
+
+  static final _htmlAttributeRe = RegExp(
+    '''([a-zA-Z_:][-a-zA-Z0-9_:.]*)\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s"'>]+))''',
+  );
+
   /// Characters that could begin markup inside a span.
   static final _nestableRe = RegExp(r'[*_\[!`~<^:$=]');
 
@@ -1838,7 +2158,7 @@ class MarkdownParser {
       // whole thing as literal text.
       // The destination may be empty — `[TODO]()` is a placeholder people
       // write — and with `+` the whole thing fell back to literal text.
-      r'''|\[((?:[^\[\]]|\[[^\[\]]*\])*)\]\(\s*(?:<([^>]*)>|((?:[^()\s"]|\([^()]*\))*))'''
+      r'''|\[((?:[^\[\]]|\[(?:[^\[\]]|\[[^\[\]]*\])*\])*)\]\(\s*(?:<([^>]*)>|((?:[^()\s"]|\([^()]*\))*))'''
       r'''(?:\s+(?:"([^"]*)"|'([^']*)'))?\s*\)'''  // 6 text, 7/8 href, 9/10 title
       r'|\[\^([^\]]+)\]'           // footnote ref
       // A code span is delimited by a run of backticks and closed by a run of
@@ -1863,8 +2183,14 @@ class MarkdownParser {
       // Without it `2 ** 3 ** 4` came out with a bold 3, and `** note **`
       // — a line someone typed with spaces for emphasis of their own — was
       // silently turned into bold.
-      r'|\*\*\*([^\s].*?[^\s]|[^\s])\*\*\*'  // bold italic ***
-      r'|\*\*([^\s].*?[^\s]|[^\s])\*\*'  // bold **
+      // *** bold italic — now decided by resolveEmphasis, which needs the whole
+      // paragraph to answer. The alternative stays so the group numbers
+      // after it, and the backreference among them, do not move.
+      r'|(?!)(\uFFFF)'
+      // ** bold — now decided by resolveEmphasis, which needs the whole
+      // paragraph to answer. The alternative stays so the group numbers
+      // after it, and the backreference among them, do not move.
+      r'|(?!)(\uFFFF)'
       // `_` must not sit inside a word, or snake_case_names read as emphasis.
       // The boundary excludes `_` itself as well: in `read__me__now` the
       // second underscore of the pair is not alphanumeric, so without it the
@@ -1875,8 +2201,14 @@ class MarkdownParser {
       // `пристаням_стремятся_` and any Chinese text with underscores in it
       // came out emphasised — the boundary saw a non-ASCII letter as "not a
       // word character" and let the delimiter through.
-      r'|(?<![\p{L}\p{N}_])___([^\s].*?[^\s]|[^\s])___(?![\p{L}\p{N}_])'
-      r'|(?<![\p{L}\p{N}_])__([^\s].*?[^\s]|[^\s])__(?![\p{L}\p{N}_])'
+      // ___ bold italic — now decided by resolveEmphasis, which needs the whole
+      // paragraph to answer. The alternative stays so the group numbers
+      // after it, and the backreference among them, do not move.
+      r'|(?!)(\uFFFF)'
+      // __ bold — now decided by resolveEmphasis, which needs the whole
+      // paragraph to answer. The alternative stays so the group numbers
+      // after it, and the backreference among them, do not move.
+      r'|(?!)(\uFFFF)'
       r'|~~(.+?)~~'                // strikethrough
       // No spaces inside, or `x^2 and y^3` becomes one long superscript.
       r'|\^([^\s^]+)\^'            // superscript
@@ -1888,11 +2220,22 @@ class MarkdownParser {
       // this branch. Without the guards, `2 ** 3 ** 4` failed the `**` branch
       // on its spaces and was then picked up here as an italic containing a
       // literal asterisk — visibly worse than the bold it used to produce.
-      r'|\*(?!\*)([^\s].*?[^\s]|[^\s])(?<!\*)\*(?!\*)'  // italic *
-      r'|(?<![\p{L}\p{N}_])_(?!_)([^\s].*?[^\s]|[^\s])(?<!_)_(?![\p{L}\p{N}_])'  // italic _
+      // * italic — now decided by resolveEmphasis, which needs the whole
+      // paragraph to answer. The alternative stays so the group numbers
+      // after it, and the backreference among them, do not move.
+      r'|(?!)(\uFFFF)'
+      // _ italic — now decided by resolveEmphasis, which needs the whole
+      // paragraph to answer. The alternative stays so the group numbers
+      // after it, and the backreference among them, do not move.
+      r'|(?!)(\uFFFF)'
       // Appended rather than inserted: these add groups 19..21, leaving every
       // existing branch's numbering alone.
-      r'|<((?:https?|ftp|mailto):[^>\s]+)>'         // 19 autolink
+      // Any scheme, as the format has it — `<irc://…>`, `<tel:…>`,
+      // `<vscode://…>`, `<file:///…>` — not the four that happened to be
+      // listed. It also has to be tried before the email branch below, or
+      // `<MAILTO:FOO@BAR.BAZ>` is read as an address and gets a second
+      // `mailto:` put in front of it, which links to nothing.
+      r'|<([a-zA-Z][a-zA-Z0-9+.\-]{1,31}:[^<>\s]*)>'  // 19 autolink
       // Both brackets use the balanced shape the inline-link branch uses. With
       // `[^\]]+` the engine handed a long run of `[` back one character at a
       // time from every starting position, and a line of 60,000 of them took
@@ -1960,7 +2303,7 @@ class MarkdownParser {
         // An image that is itself a link.
         spans.add(InlineSpan(
           type: InlineType.image,
-          text: match.group(1) ?? '',
+          text: _altText(match.group(1) ?? '', depth),
           href: badgeSrc,
           linkHref: match.group(4) ?? match.group(5),
         ));
@@ -1968,7 +2311,7 @@ class MarkdownParser {
         // Image: ![alt](src "title")
         spans.add(InlineSpan(
           type: InlineType.image,
-          text: match.group(6) ?? '',
+          text: _altText(match.group(6) ?? '', depth),
           href: imageSrc,
           title: match.group(9) ?? match.group(10),
         ));
@@ -2023,34 +2366,6 @@ class MarkdownParser {
           text: match.group(21)!,
           children: _nestedSpans(match.group(21)!, depth),
         ));
-      } else if (match.group(22) != null) {
-        // Bold italic ***
-        spans.add(InlineSpan(
-          type: InlineType.boldItalic,
-          text: match.group(22)!,
-          children: _nestedSpans(match.group(22)!, depth),
-        ));
-      } else if (match.group(23) != null) {
-        // Bold **
-        spans.add(InlineSpan(
-          type: InlineType.bold,
-          text: match.group(23)!,
-          children: _nestedSpans(match.group(23)!, depth),
-        ));
-      } else if (match.group(24) != null) {
-        // Bold italic ___
-        spans.add(InlineSpan(
-          type: InlineType.boldItalic,
-          text: match.group(24)!,
-          children: _nestedSpans(match.group(24)!, depth),
-        ));
-      } else if (match.group(25) != null) {
-        // Bold __
-        spans.add(InlineSpan(
-          type: InlineType.bold,
-          text: match.group(25)!,
-          children: _nestedSpans(match.group(25)!, depth),
-        ));
       } else if (match.group(26) != null) {
         // Strikethrough
         spans.add(InlineSpan(
@@ -2064,20 +2379,6 @@ class MarkdownParser {
       } else if (match.group(28) != null) {
         // Subscript
         spans.add(InlineSpan(type: InlineType.subscript, text: match.group(28)!));
-      } else if (match.group(29) != null) {
-        // Italic *
-        spans.add(InlineSpan(
-          type: InlineType.italic,
-          text: match.group(29)!,
-          children: _nestedSpans(match.group(29)!, depth),
-        ));
-      } else if (match.group(30) != null) {
-        // Italic _
-        spans.add(InlineSpan(
-          type: InlineType.italic,
-          text: match.group(30)!,
-          children: _nestedSpans(match.group(30)!, depth),
-        ));
       } else if (match.group(31) != null) {
         // Autolink: <https://example.com>
         final url = match.group(31)!;
@@ -2132,7 +2433,7 @@ class MarkdownParser {
         } else {
           spans.add(InlineSpan(
             type: InlineType.image,
-            text: match.group(37)!,
+            text: _altText(match.group(37)!, depth),
             href: definition.url,
             title: definition.title,
           ));
@@ -2153,15 +2454,20 @@ class MarkdownParser {
             text: match.group(32)!,
             href: definition.url,
             title: definition.title,
+            // The second of the two link branches. The first one — the inline
+            // `[text](url)` form — learned to read markup in its text, and
+            // this one was left reading it as characters, so the same
+            // `[**Download**][dl]` came out with its asterisks showing.
+            children: _nestedSpans(match.group(32)!, depth, insideLink: true),
           ));
         }
       } else if (match.group(39) != null) {
         // Shortcut image: `![foo]`, the label being the text itself.
-        _addShortcutReference(spans, match.group(39)!, match.group(0)!,
+        _addShortcutReference(spans, match.group(39)!, match.group(0)!, depth,
             isImage: true);
       } else if (match.group(40) != null) {
         // Shortcut link: `[foo]`.
-        _addShortcutReference(spans, match.group(40)!, match.group(0)!,
+        _addShortcutReference(spans, match.group(40)!, match.group(0)!, depth,
             isImage: false);
       }
 
@@ -2184,7 +2490,10 @@ class MarkdownParser {
     // Before escapes are restored and entities decoded, so `\<b>` and
     // `&lt;b&gt;` both stay literal text — they are how a document writes a
     // tag it does not want interpreted.
-    return enableHtml ? _expandInlineHtml(spans) : spans;
+    final expanded = enableHtml ? _expandInlineHtml(spans) : spans;
+    // Emphasis last: it is the one construct whose meaning depends on the
+    // whole paragraph rather than on the characters where it starts.
+    return resolveEmphasis(expanded);
   }
 
   /// Joins runs of plain text that ended up as separate spans.
@@ -2229,13 +2538,25 @@ class MarkdownParser {
     'sup': InlineType.superscript,
   };
 
+  /// The tags whose content is text rather than markdown.
+  ///
+  /// Named by the format itself. A blank line inside one of them belongs to
+  /// the text, so the block runs to its closing tag however far down that is.
+  static const _rawTextHtmlTags = {'pre', 'script', 'style', 'textarea'};
+
   /// A supported tag pair with plain content, or a line break.
   ///
   /// The content may not itself contain `<` or `>`: a tag wrapping other
   /// markup needs a real HTML parser, and guessing at it would be worse than
   /// leaving it as written.
   static final _inlineHtmlRe = RegExp(
-    r'<(b|strong|i|em|u|mark|code|kbd|del|s|strike|sub|sup)>([^<>]*)</\1>'
+    // Ruby first, and with its own groups: it is the one tag whose content is
+    // two things — the text and its reading. `<rp>` is the fallback a reader
+    // without ruby support sees, and is dropped here because this one draws
+    // the reading itself.
+    r'<ruby>([^<>]*)(?:<rp>[^<>]*</rp>)?<rt>([^<>]*)</rt>'
+    r'(?:<rp>[^<>]*</rp>)?</ruby>'
+    r'|<(b|strong|i|em|u|mark|code|kbd|del|s|strike|sub|sup)>([^<>]*)</\3>'
     r'|<br\s*/?>',
     caseSensitive: false,
   );
@@ -2260,15 +2581,30 @@ class MarkdownParser {
           ));
         }
 
-        final tag = match.group(1)?.toLowerCase();
-        if (tag == null) {
+        final tag = match.group(3)?.toLowerCase();
+        if (match.group(1) != null) {
+          result.add(InlineSpan(
+            type: InlineType.ruby,
+            text: match.group(1)!,
+            title: match.group(2) ?? '',
+          ));
+        } else if (tag == null) {
           // `<br>`: a line break inside the paragraph, which is what the
           // renderer already makes of a newline.
           result.add(const InlineSpan(type: InlineType.text, text: '\n'));
         } else {
+          // The text a tag wraps is text like any other: `<b>a *b* c</b>` is
+          // bold holding an italic, not bold holding two asterisks.
+          final inner = match.group(4) ?? '';
+          final nested = resolveEmphasis(
+            [InlineSpan(type: InlineType.text, text: inner)],
+          );
           result.add(InlineSpan(
             type: _inlineHtmlTypes[tag]!,
-            text: match.group(2) ?? '',
+            text: inner,
+            children: nested.length == 1 && nested.single.type == InlineType.text
+                ? const []
+                : nested,
           ));
         }
         last = match.end;
@@ -2362,6 +2698,8 @@ class MarkdownParser {
       // one left out is silently lost for any text containing an escape.
       linkHref: span.linkHref == null ? null : restore(span.linkHref!),
       children: span.children,
+      width: span.width,
+      height: span.height,
     );
   }
 

@@ -1,0 +1,148 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:marktext_plus/services/export_service.dart';
+import 'package:marktext_plus/services/markdown_parser.dart';
+import 'package:marktext_plus/ui/editor/syntax_highlighter.dart';
+
+/// The source pane's tint against what the preview actually draws.
+///
+/// Two panes, two readings of the same characters: the pane being typed in
+/// colours emphasis from patterns, and the pane beside it draws emphasis from
+/// the parser. When they disagree the editor contradicts itself — the source
+/// says a sentence is bold and the preview shows its asterisks — and the
+/// reader has no way to tell which one is right.
+///
+/// This asserts the property rather than either answer, so it keeps holding
+/// when either side changes.
+void main() {
+  const colors = HighlightColors(
+    heading: Colors.blue,
+    bold: Colors.red,
+    code: Colors.green,
+    link: Colors.purple,
+    defaultColor: Colors.black,
+  );
+
+  bool tinted(String line) =>
+      MarkdownSyntaxHighlighter.highlightLine(line, colors).any((span) =>
+          span.style?.fontWeight == FontWeight.bold ||
+          span.style?.fontStyle == FontStyle.italic ||
+          span.style?.decoration == TextDecoration.lineThrough);
+
+  bool drawn(String line) => MarkdownParser()
+      .parse(line)
+      .map(ExportService.nodeToHtml)
+      .join()
+      .contains(RegExp(r'<(strong|em|del)>'));
+
+  void agree(String line) {
+    test(line, () {
+      expect(tinted(line), drawn(line),
+          reason: tinted(line)
+              ? '源码区染了色，预览却不画'
+              : '预览画了，源码区没染色');
+    });
+  }
+
+  group('emphasis beside punctuation', () {
+    // The shapes a Chinese sentence produces, where the flanking rule decides.
+    agree('**加粗。**后面接中文');
+    agree('**加粗**。后面接中文');
+    agree('**bold.**after');
+    agree('前面**「加粗」**后面');
+    agree('*斜体。*后面');
+    agree('*斜体*。后面');
+  });
+
+  group('ordinary emphasis', () {
+    agree('普通 **加粗** 文字');
+    agree('一句 *斜体* 话');
+    agree('~~删除线~~ 后面');
+    agree('没有任何标记的一行');
+  });
+
+  group('markers that are not emphasis', () {
+    agree('价格 3*4 元 和 5*6 元');
+    agree('snake_case_name 是一个词');
+    agree('a * b * c');
+  });
+
+  group('strikethrough follows this parser, not GitHub', () {
+    // Deliberately more forgiving here than GitHub, so the tint follows the
+    // pane beside it rather than the format.
+    agree('~~删除。~~后面');
+  });
+
+  group('headings agree too', () {
+    // The tint used to ask `startsWith('#')`, which is not the question: a tag
+    // in a note is not a heading, seven hashes are not a heading, and three
+    // columns of indentation do not stop one being a heading.
+    bool tintedAsHeading(String line) =>
+        MarkdownSyntaxHighlighter.highlightLine(line, colors)
+            .any((span) => span.style?.color == colors.heading);
+
+    bool parsedAsHeading(String line) {
+      final nodes = MarkdownParser().parse(line);
+      return nodes.isNotEmpty && nodes.first.type == NodeType.heading;
+    }
+
+    for (final line in [
+      '# 正常标题',
+      '#标签写法',
+      '####### 七个井号',
+      '#',
+      '  # 缩进两格的标题',
+      '     # 缩进五格',
+      '###### 六级',
+      '## 二级 ##',
+    ]) {
+      test(line, () {
+        expect(tintedAsHeading(line), parsedAsHeading(line),
+            reason: tintedAsHeading(line)
+                ? '源码区染成标题，预览却不是'
+                : '预览是标题，源码区没染');
+      });
+    }
+  });
+
+  group('links and code agree too', () {
+    bool tintedAs(String line, Color colour) =>
+        MarkdownSyntaxHighlighter.highlightLine(line, colors)
+            .any((span) => span.style?.color == colour);
+
+    String htmlOf(String line) =>
+        MarkdownParser().parse(line).map(ExportService.nodeToHtml).join();
+
+    void linksAgree(String line) {
+      test('link: $line', () {
+        final drawn = htmlOf(line).contains(RegExp(r'<(a|img)[ >]'));
+        expect(tintedAs(line, colors.link), drawn,
+            reason: '源码区与预览对"这是不是链接"意见不同');
+      });
+    }
+
+    // Two levels of brackets in the text: the parser reads it, and a tint that
+    // stopped one level short said a link was not a link.
+    linksAgree('[见 [附录 [A]]](/url)');
+    linksAgree('[见 [1] 这里](/url)');
+    linksAgree('[链接](/url)');
+    linksAgree('![图](/a.png)');
+    linksAgree('[未闭合(/url)');
+    linksAgree('见 …/wiki/A_(b) 这样的地址');
+
+    void codeAgrees(String line) {
+      test('code: $line', () {
+        // Any kind of code: the tint uses one colour for a fence and for an
+        // inline span, so the question is whether this is code at all.
+        final drawn = htmlOf(line).contains('<code');
+        expect(tintedAs(line, colors.code), drawn,
+            reason: '源码区与预览对"这是不是代码"意见不同');
+      });
+    }
+
+    codeAgrees('`代码`');
+    codeAgrees('``里面有 ` 反引号``');
+    codeAgrees('`未闭合的代码');
+    codeAgrees('文字 `代码` 文字');
+  });
+}

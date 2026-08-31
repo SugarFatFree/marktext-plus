@@ -687,6 +687,12 @@ abstract class AppLocalizations {
   /// **'Clear Column Alignment'**
   String get formatTableAlignNone;
 
+  /// No description provided for @formatTableTidy.
+  ///
+  /// In en, this message translates to:
+  /// **'Tidy Table Source'**
+  String get formatTableTidy;
+
   /// No description provided for @paragraphMoveBlockUp.
   ///
   /// In en, this message translates to:
@@ -1964,6 +1970,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reload Images'**
   String get viewReloadImages;
+
+  /// Slash-menu label for inserting a mermaid diagram block
+  ///
+  /// In en, this message translates to:
+  /// **'Mermaid diagram'**
+  String get formatMermaidBlock;
 
   /// Paragraph menu item that inserts a YAML front matter block
   ///
