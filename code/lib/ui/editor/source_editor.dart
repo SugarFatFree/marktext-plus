@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 
@@ -572,9 +573,22 @@ class SourceEditor extends ConsumerStatefulWidget {
 class _SourceEditorState extends ConsumerState<SourceEditor> {
   late HighlightingController _controller;
   late ScrollController _editorScrollController;
-  late ScrollController _gutterScrollController;
+
+  /// The gutter's own box, so a line's position on screen can be turned into
+  /// a position inside it.
+  final GlobalKey _gutterKey = GlobalKey();
+
+  /// The line numbers on screen right now, and where each one sits.
+  ///
+  /// Read from the editor's own text layout rather than counted off at a
+  /// fixed height. The gutter used to be a list of equal-height rows, one per
+  /// line of source — which is only right while no line wraps. A paragraph in
+  /// Markdown is usually a single long line, so it wraps as a matter of
+  /// course, and one wrapped paragraph put the numbers 153 pixels out of step
+  /// with the text they number. There is no setting to turn the gutter off,
+  /// so everyone saw it.
+  List<({int number, double dy})> _gutterMarks = const [];
   Timer? _debounce;
-  bool _isSyncingScroll = false;
   bool _isInitialized = false;
 
   /// Held from [initState] so [dispose] can still reach it.
@@ -663,7 +677,6 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
       defaultColor: Colors.white,
     );
     _editorScrollController = ScrollController();
-    _gutterScrollController = ScrollController();
     _controller.addListener(_onTextChanged);
     _controller.addListener(_onSelectionChanged);
     _editorScrollController.addListener(_onEditorScroll);
@@ -741,7 +754,7 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     _formatToolbar = null;
     _fieldFocus.dispose();
     _editorScrollController.dispose();
-    _gutterScrollController.dispose();
+
     super.dispose();
   }
 
@@ -1249,17 +1262,73 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     // the text under it moves. Rebuilding the entry is enough; it recomputes
     // the position from the current scroll offset.
     _formatToolbar?.markNeedsBuild();
-    if (_isSyncingScroll) return;
-    _isSyncingScroll = true;
-    if (_gutterScrollController.hasClients &&
-        _gutterScrollController.position.hasContentDimensions) {
-      final offset = _editorScrollController.offset.clamp(
-        _gutterScrollController.position.minScrollExtent,
-        _gutterScrollController.position.maxScrollExtent,
-      );
-      _gutterScrollController.jumpTo(offset);
+    _updateGutterMarks();
+  }
+
+  /// The render object that laid the text out, found by descending from the
+  /// field. Asking it where a line begins is the only way to be sure the
+  /// number beside it is beside it.
+  RenderEditable? _renderEditable() {
+    final root = _fieldKey.currentContext?.findRenderObject();
+    if (root == null) return null;
+    RenderEditable? found;
+    void visit(RenderObject node) {
+      if (found != null) return;
+      if (node is RenderEditable) {
+        found = node;
+        return;
+      }
+      node.visitChildren(visit);
     }
-    _isSyncingScroll = false;
+
+    visit(root);
+    return found;
+  }
+
+  /// Works out which line numbers are on screen and where to draw them.
+  ///
+  /// Only the visible ones: a five megabyte document has no business asking
+  /// the layout about lines nobody is looking at.
+  void _updateGutterMarks() {
+    final editable = _renderEditable();
+    final gutter = _gutterKey.currentContext?.findRenderObject() as RenderBox?;
+    if (editable == null || gutter == null || !gutter.hasSize) return;
+
+    final gutterTop = gutter.localToGlobal(Offset.zero).dy;
+    final gutterBottom = gutterTop + gutter.size.height;
+
+    final text = _controller.text;
+    final starts = _ensureLineStarts(text);
+
+    // Where the top of the gutter falls in the text, so the walk starts at
+    // the first line that could be visible rather than at the first line.
+    final atTop = editable.getPositionForPoint(Offset(0, gutterTop));
+    var line = _positionOf(text, atTop.offset).$1;
+    if (line > 0) line--;
+
+    final marks = <({int number, double dy})>[];
+    while (line < starts.length && marks.length < 500) {
+      final rect =
+          editable.getLocalRectForCaret(TextPosition(offset: starts[line]));
+      final y = editable.localToGlobal(Offset(0, rect.top)).dy;
+      if (y > gutterBottom) break;
+      if (y + rect.height >= gutterTop) {
+        marks.add((number: line + 1, dy: y - gutterTop));
+      }
+      line++;
+    }
+
+    if (marks.length == _gutterMarks.length) {
+      var same = true;
+      for (var i = 0; i < marks.length; i++) {
+        if (marks[i] != _gutterMarks[i]) {
+          same = false;
+          break;
+        }
+      }
+      if (same) return;
+    }
+    if (mounted) setState(() => _gutterMarks = marks);
   }
 
   /// Applies whatever the user has bound [event] to, if it edits the document.
@@ -2260,6 +2329,11 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     // Current line for highlighting
     final currentLine = ref.watch(editorProvider.select((s) => s.cursorLine));
 
+    // After the text has been laid out, and not before: the numbers are
+    // placed from that layout. Nothing happens when the answer is the same as
+    // last time, so this settles in a frame rather than looping.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _updateGutterMarks());
+
     return Center(
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: maxWidth),
@@ -2281,6 +2355,7 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
+              key: _gutterKey,
               width: gutterWidth,
               decoration: BoxDecoration(
                 color: tokens.colorSurface,
@@ -2288,30 +2363,30 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
                   right: BorderSide(color: tokens.colorBorder, width: 1),
                 ),
               ),
-              child: ScrollConfiguration(
-                behavior: ScrollConfiguration.of(context).copyWith(
-                  scrollbars: false,
-                  physics: const ClampingScrollPhysics(),
-                ),
-                child: ListView.builder(
-                  controller: _gutterScrollController,
-                  padding: EdgeInsets.fromLTRB(8, 8, 8, 8 + bottomRoom),
-                  itemCount: lineCount,
-                  itemExtent: config.fontSize * config.lineHeight,
-                  itemBuilder: (context, index) => Align(
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      '${index + 1}',
-                      style: TextStyle(
-                        color: index == currentLine
-                            ? tokens.colorText
-                            : tokens.colorTextMuted,
-                        fontFamily: config.fontFamily,
-                        fontSize: 12,
-                        height: config.lineHeight,
+              // Each number is placed where its line actually starts, which
+              // the editor's layout is asked for. A scrolling list of
+              // equal-height rows cannot do that: a wrapped line is taller
+              // than one row and every number below it slid up.
+              child: ClipRect(
+                child: Stack(
+                  children: [
+                    for (final mark in _gutterMarks)
+                      Positioned(
+                        top: mark.dy,
+                        right: 8,
+                        child: Text(
+                          '${mark.number}',
+                          style: TextStyle(
+                            color: mark.number - 1 == currentLine
+                                ? tokens.colorText
+                                : tokens.colorTextMuted,
+                            fontFamily: config.fontFamily,
+                            fontSize: 12,
+                            height: config.lineHeight,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
+                  ],
                 ),
               ),
             ),
