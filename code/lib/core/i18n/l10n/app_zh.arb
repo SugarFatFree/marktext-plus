@@ -56,6 +56,11 @@
   },
   "saveFailed": "保存失败：{message}",
   "exportFailed": "导出文档失败：{message}",
+  "exportInProgress": "正在导出…",
+  "exportSucceeded": "已导出到 {file}",
+  "@exportSucceeded": {
+    "placeholders": { "file": { "type": "String" } }
+  },
   "fileOpenFailed": "打开文件失败：{message}",
   "saveConflictTitle": "文件已在磁盘上被修改",
   "saveConflictBody": "打开之后，别的程序修改了“{name}”。现在保存会覆盖掉那些改动。",

@@ -56,6 +56,11 @@
   },
   "saveFailed": "Impossible d'enregistrer le fichier : {message}",
   "exportFailed": "Impossible d’exporter le document : {message}",
+  "exportInProgress": "Exportation…",
+  "exportSucceeded": "Exporté vers {file}",
+  "@exportSucceeded": {
+    "placeholders": { "file": { "type": "String" } }
+  },
   "fileOpenFailed": "Impossible d’ouvrir le fichier : {message}",
   "saveConflictTitle": "Fichier modifié sur le disque",
   "saveConflictBody": "Quelque chose d’autre a modifié « {name} » depuis son ouverture. Enregistrer maintenant écraserait cette modification.",

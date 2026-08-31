@@ -87,6 +87,14 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get exportInProgress => 'エクスポート中…';
+
+  @override
+  String exportSucceeded(String file) {
+    return '$file にエクスポートしました';
+  }
+
+  @override
   String fileOpenFailed(String message) {
     return 'ファイルを開けませんでした：$message';
   }

@@ -56,6 +56,11 @@
   },
   "saveFailed": "تعذّر حفظ الملف: {message}",
   "exportFailed": "تعذّر تصدير المستند: {message}",
+  "exportInProgress": "جارٍ التصدير…",
+  "exportSucceeded": "تم التصدير إلى {file}",
+  "@exportSucceeded": {
+    "placeholders": { "file": { "type": "String" } }
+  },
   "fileOpenFailed": "تعذّر فتح الملف: {message}",
   "saveConflictTitle": "تغيّر الملف على القرص",
   "saveConflictBody": "غيّر برنامج آخر «{name}» بعد فتحه. الحفظ الآن سيكتب فوق ذلك التغيير.",

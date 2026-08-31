@@ -56,6 +56,11 @@
   },
   "saveFailed": "Could not save the file: {message}",
   "exportFailed": "Could not export the document: {message}",
+  "exportInProgress": "Exporting…",
+  "exportSucceeded": "Exported to {file}",
+  "@exportSucceeded": {
+    "placeholders": { "file": { "type": "String" } }
+  },
   "fileOpenFailed": "Could not open the file: {message}",
   "@fileOpenFailed": {"placeholders": {"message": {"type": "String"}}},
   "@exportFailed": {"placeholders": {"message": {"type": "String"}}},

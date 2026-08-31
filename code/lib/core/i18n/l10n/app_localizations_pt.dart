@@ -94,6 +94,14 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get exportInProgress => 'A exportar…';
+
+  @override
+  String exportSucceeded(String file) {
+    return 'Exportado para $file';
+  }
+
+  @override
   String fileOpenFailed(String message) {
     return 'Não foi possível abrir o ficheiro: $message';
   }
@@ -1107,6 +1115,14 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String exportFailed(String message) {
     return 'Não foi possível exportar o documento: $message';
+  }
+
+  @override
+  String get exportInProgress => 'Exportando…';
+
+  @override
+  String exportSucceeded(String file) {
+    return 'Exportado para $file';
   }
 
   @override

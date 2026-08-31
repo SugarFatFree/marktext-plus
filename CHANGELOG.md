@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - v1.5.7
 
+### Added
+- An export says that it is running, and says where the file went when it is done. Choosing a filename used to be followed by a still window for as long as the export took — three seconds for a hundred kilobyte document as a PDF — and then by nothing at all, so there was no way to tell a finished export from one that had never started. Only failure spoke. The heavy part of a PDF export still runs on the window's own thread, so the spinner will not turn while it does; what it gives is a window that says what it is busy with
+
 ### Fixed
 - A quotation earlier in the document no longer stops every reference link below it from working. A quote's contents, and the blocks a list item carries, are parsed by asking the parser to parse again — and it began each parse by forgetting the addresses it had collected for the document, which it does so that one document's labels cannot resolve in the next. So a single `>` near the top left `[手册][doc]` on the page as those characters, with the address below it never used
 - A list whose bullets drift by a space is still one list. Depth was the rank of an item's indentation among all the indentations the document happened to use, so four bullets each indented one space further than the last drew four lists inside one another. An item is inside another only when it is indented to where that item's text begins — two columns for `- `, three for `1. `, four for `10. ` — which is what `marked` does and what the specification says

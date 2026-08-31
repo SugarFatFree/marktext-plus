@@ -56,6 +56,11 @@
   },
   "saveFailed": "Не удалось сохранить файл: {message}",
   "exportFailed": "Не удалось экспортировать документ: {message}",
+  "exportInProgress": "Экспорт…",
+  "exportSucceeded": "Экспортировано в {file}",
+  "@exportSucceeded": {
+    "placeholders": { "file": { "type": "String" } }
+  },
   "fileOpenFailed": "Не удалось открыть файл: {message}",
   "saveConflictTitle": "Файл изменён на диске",
   "saveConflictBody": "После открытия «{name}» был изменён другой программой. Сохранение сейчас перезапишет эти изменения.",

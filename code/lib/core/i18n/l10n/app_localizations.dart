@@ -243,6 +243,18 @@ abstract class AppLocalizations {
   /// **'Could not export the document: {message}'**
   String exportFailed(String message);
 
+  /// No description provided for @exportInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Exporting…'**
+  String get exportInProgress;
+
+  /// No description provided for @exportSucceeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Exported to {file}'**
+  String exportSucceeded(String file);
+
   /// No description provided for @fileOpenFailed.
   ///
   /// In en, this message translates to:

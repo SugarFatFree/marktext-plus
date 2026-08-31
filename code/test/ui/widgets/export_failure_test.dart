@@ -60,6 +60,21 @@ void main() {
     }
   });
 
+  test('every language can say an export is running, and where it went',
+      () async {
+    // Both are shown at moments the reader is waiting for an answer; an
+    // untranslated one would be English in the middle of a localised
+    // application, like the failure message beside it.
+    for (final locale in AppLocalizations.supportedLocales) {
+      final l10n = await AppLocalizations.delegate.load(locale);
+      expect(l10n.exportInProgress, isNotEmpty, reason: '$locale');
+      final done = l10n.exportSucceeded('note.pdf');
+      expect(done, isNotEmpty, reason: '$locale');
+      expect(done, contains('note.pdf'),
+          reason: '$locale 的文案没有说导出到了哪个文件');
+    }
+  });
+
   test('no async void handler does file work without catching it', () {
     // The general form of this bug. A `void ... async` method is an event
     // handler: nothing awaits it, so anything it throws becomes an unhandled
@@ -107,7 +122,11 @@ void main() {
           }
         }
         final body = lines.sublist(i, end + 1).join('\n');
-        if (risky.hasMatch(body) && !body.contains('catch')) {
+        // `runExport` catches and reports on the handler's behalf; the test
+        // below checks that it really does, so delegating to it counts as
+        // handling.
+        final handled = body.contains('catch') || body.contains('runExport(');
+        if (risky.hasMatch(body) && !handled) {
           final name = RegExp(r'void\s+(\w+)').firstMatch(lines[i])!.group(1);
           offenders.add('$path:${i + 1} $name');
         }
@@ -118,10 +137,13 @@ void main() {
             '失败时用户只会看到"点了没反应"');
   });
 
-  test('every export entry point catches what it calls', () {
+  test('every export entry point reports what it calls', () {
     // A structural check, because the behaviour cannot be reached without a
     // file picker and a printer. It covers an export added later, which is
     // the case that would otherwise repeat this bug.
+    //
+    // Either the handler catches for itself, or it hands the work to
+    // `runExport`, which reports the failure and says where the file went.
     final source =
         File('lib/ui/widgets/app_menu_bar.dart').readAsStringSync();
     for (final entry in ['_exportHtml', '_exportPdf', '_exportWord', '_print']) {
@@ -129,9 +151,25 @@ void main() {
       expect(start, isNot(-1), reason: '找不到 $entry');
       final end = source.indexOf('\n  }', start);
       final body = source.substring(start, end);
-      expect(body, contains('reportExportFailure'),
-          reason: '$entry 没有报告失败：导出失败时用户什么都不会看到');
+      expect(
+        body.contains('reportExportFailure') || body.contains('runExport('),
+        isTrue,
+        reason: '$entry 没有报告失败：导出失败时用户什么都不会看到',
+      );
     }
+  });
+
+  test('the runner the handlers delegate to does report failures', () {
+    // Without this, the allowance above would be a hole: a handler could
+    // "delegate" to something that swallowed everything.
+    final app = File('lib/app.dart').readAsStringSync();
+    final start = app.indexOf('Future<void> runExport(');
+    expect(start, isNot(-1), reason: '找不到 runExport');
+    final body = app.substring(start, app.indexOf('\nvoid ', start));
+    expect(body, contains('reportExportFailure'),
+        reason: 'runExport 不上报失败，委托给它的处理器就等于没处理');
+    expect(body, contains('exportSucceeded'),
+        reason: 'runExport 不说导出去了哪里');
   });
 
   group('a failed export leaves the previous one alone', () {

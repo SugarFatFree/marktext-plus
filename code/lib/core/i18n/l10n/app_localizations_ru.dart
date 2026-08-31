@@ -92,6 +92,14 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String get exportInProgress => 'Экспорт…';
+
+  @override
+  String exportSucceeded(String file) {
+    return 'Экспортировано в $file';
+  }
+
+  @override
   String fileOpenFailed(String message) {
     return 'Не удалось открыть файл: $message';
   }

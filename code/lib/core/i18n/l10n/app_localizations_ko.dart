@@ -87,6 +87,14 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get exportInProgress => '내보내는 중…';
+
+  @override
+  String exportSucceeded(String file) {
+    return '$file(으)로 내보냈습니다';
+  }
+
+  @override
   String fileOpenFailed(String message) {
     return '파일을 열지 못했습니다: $message';
   }

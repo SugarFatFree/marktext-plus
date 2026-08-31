@@ -56,6 +56,11 @@
   },
   "saveFailed": "Datei konnte nicht gespeichert werden: {message}",
   "exportFailed": "Das Dokument konnte nicht exportiert werden: {message}",
+  "exportInProgress": "Wird exportiert…",
+  "exportSucceeded": "Nach {file} exportiert",
+  "@exportSucceeded": {
+    "placeholders": { "file": { "type": "String" } }
+  },
   "fileOpenFailed": "Die Datei konnte nicht geöffnet werden: {message}",
   "saveConflictTitle": "Datei auf der Festplatte geändert",
   "saveConflictBody": "Etwas anderes hat „{name}“ seit dem Öffnen geändert. Jetzt zu speichern würde diese Änderung überschreiben.",

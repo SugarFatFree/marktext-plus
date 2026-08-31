@@ -94,6 +94,14 @@ class AppLocalizationsIt extends AppLocalizations {
   }
 
   @override
+  String get exportInProgress => 'Esportazione…';
+
+  @override
+  String exportSucceeded(String file) {
+    return 'Esportato in $file';
+  }
+
+  @override
   String fileOpenFailed(String message) {
     return 'Impossibile aprire il file: $message';
   }

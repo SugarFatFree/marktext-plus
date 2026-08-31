@@ -86,6 +86,14 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get exportInProgress => '正在导出…';
+
+  @override
+  String exportSucceeded(String file) {
+    return '已导出到 $file';
+  }
+
+  @override
   String fileOpenFailed(String message) {
     return '打开文件失败：$message';
   }

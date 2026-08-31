@@ -56,6 +56,11 @@
   },
   "saveFailed": "Não foi possível guardar o ficheiro: {message}",
   "exportFailed": "Não foi possível exportar o documento: {message}",
+  "exportInProgress": "A exportar…",
+  "exportSucceeded": "Exportado para {file}",
+  "@exportSucceeded": {
+    "placeholders": { "file": { "type": "String" } }
+  },
   "fileOpenFailed": "Não foi possível abrir o ficheiro: {message}",
   "saveConflictTitle": "O ficheiro mudou no disco",
   "saveConflictBody": "Algo mais alterou «{name}» desde que foi aberto. Guardar agora escreveria por cima dessa alteração.",
