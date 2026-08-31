@@ -21,10 +21,15 @@
 
 MarkText Plus is a **modern Markdown editor** reimagined from the original [MarkText](https://github.com/marktext/marktext), rebuilt with Flutter for true cross-platform support. It solves the pain points of traditional Markdown editors:
 
-- ❌ Heavy and slow startup times → ✅ **Lightning-fast** with self-built parser
+- ❌ Heavy and slow startup times → ✅ **Lightning-fast** with a self-built parser and renderer
+- ❌ Diagrams need an embedded browser → ✅ **22 Mermaid diagram types drawn in pure Dart**, no WebView
 - ❌ Limited theme options → ✅ **8 beautiful themes** (light & dark)
 - ❌ Poor cross-platform experience → ✅ **Native performance** on Windows, macOS, Linux
 - ❌ Complex setup → ✅ **3 commands to get started**
+
+Staying light is a standing constraint, not a launch slogan: 22 direct dependencies,
+no embedded browser, no editor framework. The parser, the renderer, the syntax
+highlighter and the diagram engine are all written here.
 
 ## 🚀 Quick Start
 
@@ -40,16 +45,46 @@ That's it! The editor will launch with a sample document ready to edit.
 
 ## ✨ Features
 
+### Editing
+
 | Feature | Description |
 |---------|-------------|
-| **📝 Three Edit Modes** | Source code with syntax highlighting, live preview, and split-view |
+| **📝 Three Edit Modes** | Source with syntax highlighting, live preview, and a draggable split view |
+| **✏️ Edit in the Preview** | Double-tap a block to open it as Markdown in place; `Esc` discards, arrow keys step to the block above or below. Task boxes tick with a single click, diagrams get an edit button |
+| **⌨️ Command Palette & `/` Menu** | `Ctrl+Shift+P` to run anything by name; `/` in the editor to insert a block |
+| **📊 Table Editing** | Insert and delete rows and columns, set per-column alignment |
+| **🔀 Move Blocks** | Lift a paragraph, list or fence up and down the document with one shortcut |
+| **🔍 Find & Replace** | Whole-word and regular-expression search, with replace-all across the document |
+| **🖼️ Images** | Paste or drop a picture and it is filed next to the document and linked |
+
+### Rendering
+
+| Feature | Description |
+|---------|-------------|
+| **📈 Mermaid Diagrams** | **22 diagram types** drawn in pure Dart, **no WebView**: flowchart, sequence, class, state, ER, user journey, git graph, mindmap, pie, Gantt, timeline, kanban, radar, quadrant, requirement, sankey, block, C4, treemap, architecture, packet and XY chart |
+| **∑ Math** | LaTeX inline and block formulas via KaTeX-compatible rendering |
+| **📋 CommonMark + GFM** | Tables, task lists, strikethrough, autolinks, footnotes, front matter, `<ruby>` annotations |
 | **🎨 8 Beautiful Themes** | Red Graphite, Shibuya, Pink Blossom, Sky Blue, Dark Graphite, Dieci OLED, Nord, Midnight |
-| **🌍 12 Languages** | English, Chinese, Japanese, Korean, German, French, Italian, Russian, Spanish, Portuguese, Arabic, Brazilian Portuguese |
-| **⚡ Lightning Fast** | Self-built Markdown parser & renderer — no heavy dependencies |
-| **🔍 Find & Replace** | Full-featured search with regex support |
+| **🌍 12 Languages** | English, Chinese, Japanese, Korean, German, French, Italian, Russian, Spanish, Portuguese, Arabic, Brazilian Portuguese — Arabic laid out right-to-left |
+
+### Files & Output
+
+| Feature | Description |
+|---------|-------------|
+| **📤 Export** | HTML, PDF and Word `.docx`. An exported HTML file fetches nothing over the network — diagrams and highlighted code travel inside it — unless the document contains maths, which still asks for KaTeX |
+| **🔤 Encodings** | UTF-8, UTF-16 and GBK detected on open (with or without a byte order mark) and written back as they were found |
 | **📂 File Tree** | Sidebar navigation with drag-and-drop folder support |
+| **👀 External Changes** | A document edited by another program is noticed while it is open |
+| **💾 Safe Saving** | Atomic writes, so an interrupted save cannot leave a half-written file |
 | **⌨️ Customizable Shortcuts** | Fully configurable keyboard bindings |
-| **💾 Auto Save** | JSON-based persistent configuration, never lose your work |
+
+### Built to stay light
+
+| | |
+|---------|-------------|
+| **⚡ Fast start** | No embedded browser, no editor framework, 22 direct dependencies |
+| **📄 Large files** | Parsing, highlighting and search are all single-pass and budgeted by tests that fail if a change makes them slower |
+| **🧪 Tested** | 1850 tests covering the parser, the exporters, the providers and the editor widgets |
 
 ## 🎨 Themes
 

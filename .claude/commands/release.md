@@ -16,17 +16,45 @@
 export VERSION=1.1.4  # 替换为实际版本号
 ```
 
+## 发布前必须检查（缺一不可）
+
+发版前逐项确认，任何一项不满足就先补齐再继续：
+
+1. `docs/vX.Y.Z/bugfix.md` 存在，总览表格行数 == 正文小节数，覆盖本版全部修复
+2. `docs/vX.Y.Z/PRD_需求文档.md` 存在，总览表格行数 == 正文小节数，覆盖本版全部功能
+3. `CHANGELOG.md` 的本版条目与上面两份文档对得上
+4. **README.md 已更新**——功能表、版本引用、截图路径要反映本版真实能力
+   （历史教训：README 从 v1.1.2 之后连续多版没更新，功能表停在 8 行，
+   Mermaid / 命令面板 / 导出 / 大纲 等一概没写）
+5. `code/pubspec.yaml` 与 `code/lib/core/constants.dart` 的版本号都已改
+6. 本机跑过 `flutter test` 全绿、`dart analyze --fatal-infos lib test` 无问题
+   （**不在本机做完整构建**，打包一律交给 CI/CD）
+
+发布后再确认一次：
+
+```bash
+git fetch origin
+# tag 必须在 main 上，否则说明第 4 步的合并没做成
+git merge-base --is-ancestor vX.Y.Z origin/main && echo "tag 已在 main 上"
+# main 不应落后 dev
+git rev-list --count origin/main..origin/dev   # 期望 0
+```
+
 ## 发布步骤
 
 ### 1. 更新 README 文件
 
-```bash
-# 检查 README.md 是否需要更新版本引用
-# 通常图片路径、徽章等可能包含版本号
-grep -r "v[0-9]\+\.[0-9]\+\.[0-9]\+" README.md docs/i18n/
+发版必做，不是「如果需要」：
 
-# 如果需要更新，手动编辑相关文件
+```bash
+# 版本引用、截图路径
+grep -rn "v[0-9]\+\.[0-9]\+\.[0-9]\+" README.md docs/i18n/
+
+# 功能表是否漏了本版新增能力
+sed -n '/## ✨ Features/,/## 🎨 Themes/p' README.md
 ```
+
+README 改完后，`docs/i18n/` 下的翻译版本同步更新。
 
 ### 2. 更新版本记录
 
