@@ -154,6 +154,7 @@
   "formatTableAlignCenter": "Align Column Center",
   "formatTableAlignRight": "Align Column Right",
   "formatTableAlignNone": "Clear Column Alignment",
+  "formatTableTidy": "Tidy Table Source",
   "paragraphMoveBlockUp": "Move Block Up",
   "paragraphMoveBlockDown": "Move Block Down",
   "formatLink": "Link",

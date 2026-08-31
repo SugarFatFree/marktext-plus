@@ -376,6 +376,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
           '${l10n.formatTableSubmenu} · ${l10n.formatTableAlignRight}',
       FormatAction.tableAlignNone:
           '${l10n.formatTableSubmenu} · ${l10n.formatTableAlignNone}',
+      FormatAction.tableTidy:
+          '${l10n.formatTableSubmenu} · ${l10n.formatTableTidy}',
       FormatAction.moveBlockUp: l10n.paragraphMoveBlockUp,
       FormatAction.moveBlockDown: l10n.paragraphMoveBlockDown,
     };

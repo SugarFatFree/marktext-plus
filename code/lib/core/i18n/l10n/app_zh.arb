@@ -144,6 +144,7 @@
   "formatTableAlignCenter": "整列居中",
   "formatTableAlignRight": "整列右对齐",
   "formatTableAlignNone": "清除整列对齐",
+  "formatTableTidy": "整理表格源码",
   "paragraphMoveBlockUp": "上移块",
   "paragraphMoveBlockDown": "下移块",
   "formatLink": "链接",

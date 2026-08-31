@@ -144,6 +144,7 @@
   "formatTableAlignCenter": "Spalte zentriert",
   "formatTableAlignRight": "Spalte rechtsbündig",
   "formatTableAlignNone": "Spaltenausrichtung aufheben",
+  "formatTableTidy": "Tabellenquelltext ausrichten",
   "paragraphMoveBlockUp": "Block nach oben",
   "paragraphMoveBlockDown": "Block nach unten",
   "formatLink": "Link",

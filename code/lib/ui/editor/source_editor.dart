@@ -1734,6 +1734,8 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
         _applyTableEdit(TableEdit.alignRight);
       case FormatAction.tableAlignNone:
         _applyTableEdit(TableEdit.alignNone);
+      case FormatAction.tableTidy:
+        _applyTableEdit(TableEdit.tidy);
       case FormatAction.moveBlockUp:
         _moveBlock(up: true);
       case FormatAction.moveBlockDown:

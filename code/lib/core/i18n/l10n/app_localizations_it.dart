@@ -326,6 +326,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get formatTableAlignNone => 'Rimuovi allineamento colonna';
 
   @override
+  String get formatTableTidy => 'Allinea il sorgente della tabella';
+
+  @override
   String get paragraphMoveBlockUp => 'Sposta blocco su';
 
   @override

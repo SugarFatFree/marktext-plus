@@ -144,6 +144,7 @@
   "formatTableAlignCenter": "Colonne centrée",
   "formatTableAlignRight": "Colonne alignée à droite",
   "formatTableAlignNone": "Supprimer l'alignement de la colonne",
+  "formatTableTidy": "Aligner la source du tableau",
   "paragraphMoveBlockUp": "Déplacer le bloc vers le haut",
   "paragraphMoveBlockDown": "Déplacer le bloc vers le bas",
   "formatLink": "Lien",

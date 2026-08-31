@@ -323,6 +323,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get formatTableAlignNone => 'Убрать выравнивание столбца';
 
   @override
+  String get formatTableTidy => 'Выровнять исходник таблицы';
+
+  @override
   String get paragraphMoveBlockUp => 'Переместить блок вверх';
 
   @override

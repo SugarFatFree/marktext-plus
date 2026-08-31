@@ -322,6 +322,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get formatTableAlignNone => 'إزالة محاذاة العمود';
 
   @override
+  String get formatTableTidy => 'محاذاة مصدر الجدول';
+
+  @override
   String get paragraphMoveBlockUp => 'نقل الكتلة لأعلى';
 
   @override

@@ -316,6 +316,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get formatTableAlignNone => '清除整列对齐';
 
   @override
+  String get formatTableTidy => '整理表格源码';
+
+  @override
   String get paragraphMoveBlockUp => '上移块';
 
   @override

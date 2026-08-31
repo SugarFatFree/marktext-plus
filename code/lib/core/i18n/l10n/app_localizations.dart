@@ -687,6 +687,12 @@ abstract class AppLocalizations {
   /// **'Clear Column Alignment'**
   String get formatTableAlignNone;
 
+  /// No description provided for @formatTableTidy.
+  ///
+  /// In en, this message translates to:
+  /// **'Tidy Table Source'**
+  String get formatTableTidy;
+
   /// No description provided for @paragraphMoveBlockUp.
   ///
   /// In en, this message translates to:

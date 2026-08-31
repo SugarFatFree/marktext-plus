@@ -144,6 +144,7 @@
   "formatTableAlignCenter": "Выровнять столбец по центру",
   "formatTableAlignRight": "Выровнять столбец по правому краю",
   "formatTableAlignNone": "Убрать выравнивание столбца",
+  "formatTableTidy": "Выровнять исходник таблицы",
   "paragraphMoveBlockUp": "Переместить блок вверх",
   "paragraphMoveBlockDown": "Переместить блок вниз",
   "formatLink": "Ссылка",

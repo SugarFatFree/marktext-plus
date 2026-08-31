@@ -325,6 +325,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get formatTableAlignNone => 'Remover alinhamento da coluna';
 
   @override
+  String get formatTableTidy => 'Alinhar a origem da tabela';
+
+  @override
   String get paragraphMoveBlockUp => 'Mover bloco para cima';
 
   @override
@@ -1336,6 +1339,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get formatTableAlignNone => 'Remover alinhamento da coluna';
+
+  @override
+  String get formatTableTidy => 'Alinhar a origem da tabela';
 
   @override
   String get paragraphMoveBlockUp => 'Mover bloco para cima';
