@@ -43,11 +43,6 @@ class ExportService {
 
   static List<pw.Font>? _cachedFontFallbacks;
 
-  /// Table cells are stored as raw strings, so their inline content has to be
-  /// parsed at export time — the same thing the preview does when rendering
-  /// them. Without this, `**bold**` reached the output with its asterisks.
-  static final _cellParser = MarkdownParser();
-
   /// Whether a fenced block tagged [lang] is a diagram.
   ///
   /// Asks the renderer rather than keeping a list here. There used to be four
@@ -557,14 +552,14 @@ class ExportService {
         // plain strings: a cell written `**bold**` reached Word with its
         // asterisks showing, and the column alignments were dropped along
         // with them.
-        DocxTableCell cell(String text, int column, {required bool header}) =>
+        DocxTableCell cell(List<InlineSpan> spans, int column,
+                {required bool header}) =>
             DocxTableCell(
               children: [
                 DocxParagraph(
                   align: _docxAlign(table.alignments, column),
                   children: [
-                    for (final run
-                        in _inlineSpansToDocxTexts(_cellParser.parseInline(text)))
+                    for (final run in _inlineSpansToDocxTexts(spans))
                       // A header row is bold, as builder.table made it; the
                       // runs keep whatever else the cell asked for.
                       header
@@ -583,14 +578,14 @@ class ExportService {
                 isHeader: true,
                 cells: [
                   for (var i = 0; i < colCount; i++)
-                    cell(table.headers[i], i, header: true),
+                    cell(table.headerSpansAt(i), i, header: true),
                 ],
               ),
-              for (final row in table.rows)
+              for (var r = 0; r < table.rows.length; r++)
                 DocxTableRow(
                   cells: [
                     for (var i = 0; i < colCount; i++)
-                      cell(i < row.length ? row[i] : '', i, header: false),
+                      cell(table.cellSpans(r, i), i, header: false),
                   ],
                 ),
             ],
@@ -842,17 +837,16 @@ class ExportService {
         final buffer = StringBuffer('<table>\n<thead>\n<tr>\n');
         for (var i = 0; i < table.headers.length; i++) {
           final content =
-              _inlineSpansToHtml(_cellParser.parseInline(table.headers[i]));
+              _inlineSpansToHtml(table.headerSpansAt(i));
           buffer.write('  <th${_htmlAlign(table.alignments, i)}>'
               '$content</th>\n');
         }
         buffer.write('</tr>\n</thead>\n<tbody>\n');
         final colCount = table.headers.length;
-        for (final row in table.rows) {
+        for (var r = 0; r < table.rows.length; r++) {
           buffer.write('<tr>\n');
           for (var i = 0; i < colCount; i++) {
-            final cell = i < row.length ? row[i] : '';
-            final content = _inlineSpansToHtml(_cellParser.parseInline(cell));
+            final content = _inlineSpansToHtml(table.cellSpans(r, i));
             buffer.write('  <td${_htmlAlign(table.alignments, i)}>'
                 '$content</td>\n');
           }
@@ -914,12 +908,9 @@ class ExportService {
           break;
         case ListNode(:final items):
           if (items.any((item) => inSpans(item.inlineSpans))) return true;
-        case TableNode(:final headers, :final rows):
-          // Cells are raw text until the export parses them, so this asks the
-          // same parser the export will ask — a check that reads the cell any
-          // other way would disagree with what ends up in the file.
-          for (final cell in [headers, ...rows].expand((row) => row)) {
-            if (inSpans(_cellParser.parseInline(cell))) return true;
+        case TableNode(:final headerSpans, :final rowSpans):
+          for (final cell in [headerSpans, ...rowSpans].expand((r) => r)) {
+            if (inSpans(cell)) return true;
           }
         default:
           break;
@@ -1773,14 +1764,13 @@ class ExportService {
                 pw.TableRow(
                   decoration: pw.BoxDecoration(color: _pdfTableHeaderBg),
                   children: table.headers.asMap().entries.map((entry) {
-                    final header = entry.value;
                     return pw.Padding(
                       padding: const pw.EdgeInsets.all(8),
                       child: pw.RichText(
                         textAlign: _pdfAlign(table.alignments, entry.key),
                         text: pw.TextSpan(
                           children: _inlineSpansToPdf(
-                            _cellParser.parseInline(header),
+                            table.headerSpansAt(entry.key),
                             baseStyle: pw.TextStyle(
                               fontSize: _pdfBodySize,
                               fontWeight: pw.FontWeight.bold,
@@ -1804,14 +1794,13 @@ class ExportService {
                         ? pw.BoxDecoration(color: _pdfTableAltBg)
                         : null,
                     children: row.asMap().entries.map((cellEntry) {
-                      final cell = cellEntry.value;
                       return pw.Padding(
                         padding: const pw.EdgeInsets.all(8),
                         child: pw.RichText(
                           textAlign: _pdfAlign(table.alignments, cellEntry.key),
                           text: pw.TextSpan(
                             children: _inlineSpansToPdf(
-                              _cellParser.parseInline(cell),
+                              table.cellSpans(rowIndex, cellEntry.key),
                               baseStyle: pw.TextStyle(
                                 fontSize: _pdfBodySize,
                                 height: 1.3,

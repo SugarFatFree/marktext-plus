@@ -34,6 +34,7 @@
 | BUG-202 | 2026-08-31 | 列表项下不空行写代码块，整块被吞成行内代码 | P1 | 已修复 |
 | BUG-203 | 2026-08-31 | HTML 注释 `<!-- -->` 在预览里以字面形式显示出来 | P2 | 已修复 |
 | BUG-204 | 2026-08-31 | `<details>` 折叠块的 `</details>` 漏成一段字面文字 | P2 | 已修复 |
+| BUG-205 | 2026-08-31 | 表格单元格被反复解析：导出无视 HTML 设置，预览每次重建重解析 23ms | P2 | 已修复 |
 
 ## BUG-173：引用式链接的标签里，标记仍显示成字面量
 
@@ -1509,3 +1510,72 @@ CommonMark 一致性 **478 → 486**，下限同步提到 486。
 - `code/test/services/html_comment_test.dart`（新增，9 条）
 - `code/test/services/markdown_parser_test.dart`（一条断言改写）
 - `code/test/services/commonmark_spec_test.dart`（下限 478 → 486）
+
+---
+
+## BUG-205：表格单元格被反复解析——导出无视设置，预览每次重建重解析
+
+### 现象
+
+两个看似无关、实则同源的问题。
+
+**其一（正确性）**：打开「启用 HTML」后，
+`| A | 甲<br>乙 |` 在预览里正确换行，导出到 HTML / PDF / Word 却变成字面的
+`&lt;br&gt;`。单元格内换行正是 `<br>` 在 markdown 里最主要的用途。
+
+**其二（性能）**：一张 500×5 的表格，**预览每次重建都要重新解析全部单元格，
+耗时 23 ms**——超过一帧（16.7ms）的预算，而且光标移动、主题切换、搜索都会触发重建。
+作为对照，整篇文档完整解析一次只要 5 ms，也就是说这份重复解析的代价是
+整篇解析的 4.6 倍，每次重建付一遍。
+
+### 根因分析
+
+**表格单元格是唯一以「未解析的源码」形式存储的结构**。
+其它块都在 `MarkdownNode` 上带着 `inlineSpans`，唯独 `TableNode` 只存 `List<String>`，
+于是四个读取方各自重新解析一遍：
+
+| 读取方 | 用的解析器 | 跟随设置？ |
+|---|---|---|
+| 预览 | `_inlineParser`（按设置构造） | ✅ 但每次 build 都重解析 |
+| HTML 导出 | `ExportService._cellParser` | ❌ 写死默认配置 |
+| PDF 导出 | 同上 | ❌ |
+| Word 导出 | 同上 | ❌ |
+
+`_cellParser` 是个 `static final MarkdownParser()`，构造时用的是默认参数，
+完全无视调用方一路传进来的 `enableHtml`。
+
+代码里那条注释本身就透露了这种脆弱：
+「单元格在导出解析之前一直是原始文本，所以这里必须问导出会问的同一个解析器——
+用别的方式读单元格会和最终写进文件的内容不一致」。
+
+### 修复方案
+
+不是把设置再多传一层，而是**消除重复解析本身**：
+`TableNode` 增加 `headerSpans` 与 `rowSpans`，在解析文档时一次性算好，
+四个读取方都用它。
+
+- 新增 `cellSpans(row, column)` 与 `headerSpansAt(column)`，
+  越界返回空——这个边界判断原来在四个调用点各写了一遍。
+- 源码字符串保留：编辑表格（增删行列、改对齐）操作的是它。
+- `ExportService._cellParser` 删除。
+
+这样配置只在解析时读一次，读取方不可能再各说各话。
+
+### 验证
+
+新增 6 条。正确性：同一份表格，`enableHtml` 开时导出含 `<br>`、关时含 `&lt;br&gt;`。
+性能：500×5 的表格读取全部单元格 100 遍，预算 300 ms
+（真实值约 11 ms，重新解析则是 1356 ms，余量两个数量级，不受机器抖动影响）。
+
+两半分别破坏验证：把导出改回写死配置的解析器 → 正确性那条失败；
+把 `cellSpans` 改成每次重新解析 → 性能那条失败（1356 ms vs 300 ms 预算）。
+
+### 影响
+
+单次预览重建读取全部单元格：**23 ms → 0.11 ms**（约 209 倍）。
+
+### 涉及文件
+
+- `code/lib/services/markdown_parser.dart`、`code/lib/services/export_service.dart`、
+  `code/lib/ui/editor/markdown_renderer.dart`
+- `code/test/services/table_cell_spans_test.dart`（新增，6 条）

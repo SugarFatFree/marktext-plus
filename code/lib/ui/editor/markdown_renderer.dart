@@ -1566,7 +1566,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
                 padding: const EdgeInsets.all(8),
                 child: Text.rich(
                   _buildInlineSpans(
-                    _inlineParser.parseInline(node.headers[i]),
+                    node.headerSpansAt(i),
                     theme,
                     theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.bold,
@@ -1578,7 +1578,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
               ),
           ],
         ),
-        for (final row in node.rows)
+        for (var r = 0; r < node.rows.length; r++)
           TableRow(
             children: [
               for (var i = 0; i < colCount; i++)
@@ -1586,7 +1586,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
                   padding: const EdgeInsets.all(8),
                   child: Text.rich(
                     _buildInlineSpans(
-                      _inlineParser.parseInline(i < row.length ? row[i] : ''),
+                      node.cellSpans(r, i),
                       theme,
                       const TextStyle(),
                     ),
