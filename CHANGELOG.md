@@ -5,6 +5,11 @@ All notable changes to MarkText Plus will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - v1.5.7
+
+### Fixed
+- A link reference definition written across more than one line is read as one. Keeping addresses at the bottom of a document is what reference links are for, and wrapping a long one is ordinary — but only the single-line form was recognised, so a wrapped definition stopped being metadata: its title was lost, and its remainder, along with every definition under it, was drawn in the document as a paragraph for the reader to see. CommonMark conformance 486 → 491
+
 ## [v1.5.6] - 2026-09-01
 
 ### Added

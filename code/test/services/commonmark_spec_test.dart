@@ -108,7 +108,7 @@ void main() {
     // folds away — but not everywhere, and a scratch script joining them with
     // nothing counted one example differently. This is the number that
     // counts; anything measured another way is measuring another thing.
-    const floor = 486;
+    const floor = 491;
     expect(passed, greaterThanOrEqualTo(floor),
         reason: '解析能力相比 $floor 例退步了');
     if (passed > floor) {
