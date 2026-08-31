@@ -18,11 +18,24 @@ enum FileEncoding {
   /// saved from Notepad lost its BOM the first time it was written back.
   utf8Bom('UTF-8 BOM'),
 
-  /// UTF-16, little-endian, which is what Windows tools call "Unicode".
-  utf16le('UTF-16 LE'),
+  /// UTF-16, little-endian, with a byte order mark — what Windows tools call
+  /// "Unicode".
+  utf16le('UTF-16 LE BOM'),
 
-  /// UTF-16, big-endian.
-  utf16be('UTF-16 BE'),
+  /// UTF-16, big-endian, with a byte order mark.
+  utf16be('UTF-16 BE BOM'),
+
+  /// The same two without the mark, kept apart so a file that arrived without
+  /// one does not gain one by being saved.
+  ///
+  /// Plenty of tools write UTF-16 with no mark. Reading it is a guess from
+  /// where the zero bytes fall; writing it back is not a guess, and a file
+  /// that grew two bytes it never had would show up as a change in every
+  /// tool that compares files.
+  utf16leNoBom('UTF-16 LE'),
+
+  /// Big-endian, no mark.
+  utf16beNoBom('UTF-16 BE'),
 
   /// The encoding most Chinese documents were written in before UTF-8.
   ///
@@ -69,7 +82,7 @@ enum FileEncoding {
     if (bomless != null) {
       return (
         _decodeUtf16(bytes, big: !bomless),
-        bomless ? FileEncoding.utf16le : FileEncoding.utf16be,
+        bomless ? FileEncoding.utf16leNoBom : FileEncoding.utf16beNoBom,
       );
     }
 
@@ -115,12 +128,17 @@ enum FileEncoding {
       case FileEncoding.utf8Encoding:
       case FileEncoding.utf8Bom:
         return utf8.decode(bytes, allowMalformed: true);
+      // Both variants read a mark if one is there: the reader may be telling
+      // this app what a file is, and being wrong about the mark should not
+      // put two stray characters at the top of the document.
       case FileEncoding.utf16le:
+      case FileEncoding.utf16leNoBom:
         return _decodeUtf16(
           _hasUtf16Bom(bytes, big: false) ? bytes.sublist(2) : bytes,
           big: false,
         );
       case FileEncoding.utf16be:
+      case FileEncoding.utf16beNoBom:
         return _decodeUtf16(
           _hasUtf16Bom(bytes, big: true) ? bytes.sublist(2) : bytes,
           big: true,
@@ -242,9 +260,13 @@ enum FileEncoding {
           return Uint8List.fromList(utf8.encode(content));
         }
       case FileEncoding.utf16le:
-        return _encodeUtf16(content, big: false);
+        return _encodeUtf16(content, big: false, bom: true);
       case FileEncoding.utf16be:
-        return _encodeUtf16(content, big: true);
+        return _encodeUtf16(content, big: true, bom: true);
+      case FileEncoding.utf16leNoBom:
+        return _encodeUtf16(content, big: false, bom: false);
+      case FileEncoding.utf16beNoBom:
+        return _encodeUtf16(content, big: true, bom: false);
     }
   }
 
@@ -265,16 +287,24 @@ enum FileEncoding {
     return String.fromCharCodes(units);
   }
 
-  static Uint8List _encodeUtf16(String content, {required bool big}) {
+  static Uint8List _encodeUtf16(
+    String content, {
+    required bool big,
+    required bool bom,
+  }) {
     final units = content.codeUnits;
-    // Two bytes per code unit, after the byte order mark this writes back.
-    final out = Uint8List(2 + units.length * 2);
-    out[0] = big ? 0xFE : 0xFF;
-    out[1] = big ? 0xFF : 0xFE;
+    // A mark only when the file had one. Adding one to a file that arrived
+    // without it would change two bytes nobody asked to change.
+    final start = bom ? 2 : 0;
+    final out = Uint8List(start + units.length * 2);
+    if (bom) {
+      out[0] = big ? 0xFE : 0xFF;
+      out[1] = big ? 0xFF : 0xFE;
+    }
     for (var i = 0; i < units.length; i++) {
       final unit = units[i];
-      out[2 + i * 2] = big ? unit >> 8 : unit & 0xFF;
-      out[3 + i * 2] = big ? unit & 0xFF : unit >> 8;
+      out[start + i * 2] = big ? unit >> 8 : unit & 0xFF;
+      out[start + i * 2 + 1] = big ? unit & 0xFF : unit >> 8;
     }
     return out;
   }
