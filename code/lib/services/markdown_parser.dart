@@ -1579,6 +1579,16 @@ class MarkdownParser {
   /// link stays plain text.
   final Map<String, ({String url, String? title})> _linkDefinitions = {};
 
+  /// How many [parse] calls are on the stack.
+  ///
+  /// A quote's contents and the blocks a list item carries are parsed by
+  /// calling [parse] again on this same object, and [parse] began by emptying
+  /// the definitions it had collected. So a quote anywhere above a reference
+  /// link wiped every definition in the document: `[手册][doc]` came out as
+  /// the characters `[手册][doc]`, with the definition below it drawn or
+  /// dropped but never used. Only the outermost call starts from nothing.
+  int _parseDepth = 0;
+
   /// Parse markdown text into a list of block-level nodes.
   /// [quoteDepth] is how many blockquotes enclose this text; it is set by
   /// the parser itself when it descends into a quote, not by callers.
@@ -1591,7 +1601,8 @@ class MarkdownParser {
     // creating intermediate string copies (faster than replaceAll for large files)
     final lines = const LineSplitter().convert(source);
 
-    _linkDefinitions.clear();
+    if (_parseDepth == 0) _linkDefinitions.clear();
+    _parseDepth++;
     // Definitions are gathered before anything is parsed, because a reference
     // may be written above the definition it uses. That pass has to know what
     // a code fence is: a document explaining markdown shows definitions inside
@@ -2154,8 +2165,10 @@ class MarkdownParser {
       }
     }
 
+    _parseDepth--;
     return nodes;
   }
+
   /// Any ASCII punctuation may be escaped with a backslash.
   static final _escapedPunctRe = RegExp(r'\\([!-/:-@\[-`{-~])');
 
