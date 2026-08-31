@@ -199,6 +199,33 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   void _scrollToTargetLine(int? line) {
     if (line == null) return;
 
+    // Draw down to the line before looking for its key.
+    //
+    // A long document arrives on screen a batch at a time, and a heading that
+    // has not been drawn has no key — so asking for one sent [_keyForLine] to
+    // its fallback, the last heading that *had* been drawn, which can be
+    // thousands of lines short of where the reader asked to go. The target was
+    // then cleared either way, so nothing ever corrected it: clicking an entry
+    // near the end of a long document's outline landed somewhere else and
+    // stayed there.
+    if (_renderUpTo(line)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _scrollToTargetLine(line);
+      });
+      return;
+    }
+
+    // Past the end of what has been parsed. Only a prefix of a long document
+    // exists at first, and [_keyForLine] answers with the nearest heading
+    // above rather than nothing — which here would be the last heading of the
+    // prefix, taken as success and the request thrown away. Leave it standing;
+    // [_adoptFullParse] asks again when the rest arrives.
+    final parsed = _cachedNodes;
+    if (_awaitingFullParse != null &&
+        (parsed == null || parsed.isEmpty || line > parsed.last.sourceEnd)) {
+      return;
+    }
+
     final key = _keyForLine(line);
     if (key?.currentContext != null) {
       Scrollable.ensureVisible(
@@ -208,6 +235,30 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       );
     }
     ref.read(editorProvider.notifier).clearScrollTarget();
+  }
+
+  /// Extends the progressive render far enough to cover source [line].
+  ///
+  /// Returns whether it had to grow. False means the line is already drawn —
+  /// or that there is nothing left to draw — and the caller can go on to look
+  /// for its key.
+  bool _renderUpTo(int line) {
+    final nodes = _cachedNodes;
+    if (nodes == null || _renderedNodeCount >= nodes.length) return false;
+
+    // Source lines are numbered from one here and from zero on the node.
+    var needed = nodes.length;
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i].sourceStart + 1 > line) {
+        needed = i;
+        break;
+      }
+    }
+    if (needed < 1) needed = 1;
+    if (needed <= _renderedNodeCount) return false;
+
+    setState(() => _renderedNodeCount = needed);
+    return true;
   }
 
   /// The key of the block the preview should scroll to for source [line].
@@ -796,6 +847,16 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       // way it does for a document that was parsed in one go.
       _renderedNodeCount = _renderedNodeCount.clamp(0, nodes.length);
     });
+
+    // A scroll asked for while only the prefix existed was left standing
+    // rather than thrown away, because the line it names may only now have a
+    // block to point at.
+    final pending = ref.read(editorProvider).targetScrollLine;
+    if (pending != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _scrollToTargetLine(pending);
+      });
+    }
   }
 
   void _startEditing(md.MarkdownNode node) {
