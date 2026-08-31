@@ -234,7 +234,25 @@ enum FileEncoding {
   }
 
   /// Turns [content] back into bytes in this encoding.
-  Uint8List encode(String content) {
+  Uint8List encode(String content) => encodeWithFallback(content).bytes;
+
+  /// The bytes to write, and the encoding they are actually in.
+  ///
+  /// Not always this one: a character the encoding cannot hold means writing
+  /// UTF-8 instead, because keeping the character matters more than keeping
+  /// the encoding. The caller is told which happened so that what the status
+  /// bar says about the document stays true — a file written as UTF-8 while
+  /// the editor still calls it GBK is the editor telling the reader something
+  /// that is not so.
+  ({Uint8List bytes, FileEncoding used}) encodeWithFallback(String content) {
+    final bytes = _encodeOrNull(content);
+    return bytes == null
+        ? (bytes: Uint8List.fromList(utf8.encode(content)), used: utf8Encoding)
+        : (bytes: bytes, used: this);
+  }
+
+  /// The bytes in this encoding, or null when it cannot hold the text.
+  Uint8List? _encodeOrNull(String content) {
     switch (this) {
       case FileEncoding.utf8Encoding:
         return Uint8List.fromList(utf8.encode(content));
@@ -257,7 +275,7 @@ enum FileEncoding {
         } catch (_) {
           // Either half may throw; either way GBK is not what this is.
         }
-        return Uint8List.fromList(utf8.encode(content));
+        return null;
 
       case FileEncoding.latin1Encoding:
         // A character outside Latin-1 cannot be written; those bytes were
@@ -266,7 +284,7 @@ enum FileEncoding {
         try {
           return Uint8List.fromList(latin1.encode(content));
         } on ArgumentError {
-          return Uint8List.fromList(utf8.encode(content));
+          return null;
         }
       case FileEncoding.utf16le:
         return _encodeUtf16(content, big: false, bom: true);

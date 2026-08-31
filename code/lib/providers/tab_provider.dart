@@ -497,13 +497,18 @@ class TabNotifier extends StateNotifier<TabState> {
     // to make.
     if (tab.diskConflict) return;
     try {
-      await FileService.saveDocumentIfUnchanged(
+      // What was written may not be the encoding asked for: a character the
+      // document's encoding cannot carry is written as UTF-8 instead. The tab
+      // takes that on, or the status bar would go on naming an encoding the
+      // file is no longer in.
+      final written = await FileService.saveDocumentIfUnchanged(
         tab.filePath!,
         tab.content,
         expect: tab.diskStamp,
         lineEnding: tab.lineEnding,
         encoding: tab.encoding,
       );
+      if (written != tab.encoding) _setEncoding(tabId, written);
       await _markSavedWithStamp(tabId, tab.filePath!);
     } on FileChangedOnDiskException {
       // Something else rewrote the file while this document was being edited.
@@ -539,6 +544,18 @@ class TabNotifier extends StateNotifier<TabState> {
   void markDiskConflict(String id) => _setDiskConflict(id, true);
 
   /// Records, or clears, that a tab's file changed underneath the editor.
+  /// Records the encoding a save actually used.
+  ///
+  /// Only when it differs from what was asked for, which happens when the
+  /// document holds a character the encoding cannot carry.
+  void _setEncoding(String id, FileEncoding encoding) {
+    state = state.copyWith(
+      tabs: state.tabs
+          .map((tab) => tab.id == id ? tab.copyWith(encoding: encoding) : tab)
+          .toList(),
+    );
+  }
+
   void _setDiskConflict(String id, bool conflict) {
     if (state.tabs.where((t) => t.id == id).firstOrNull?.diskConflict ==
         conflict) {
