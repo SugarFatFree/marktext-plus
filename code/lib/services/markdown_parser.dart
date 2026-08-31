@@ -1232,9 +1232,13 @@ class MarkdownParser {
         .map(_indentColumns);
     final common = indents.isEmpty ? 0 : indents.reduce(math.min);
     final strip = math.min(column, common);
-    return kept
-        .map((line) => line.length <= strip ? '' : line.substring(strip))
-        .join('\n');
+    // Columns, not characters. The width was measured with tabs counted as
+    // four and then that many *characters* were cut off the front, so a line
+    // indented with one tab lost the tab and the text after it: `\t乙这段`
+    // under a bullet came out as `这段`, with a character of the reader's
+    // writing quietly deleted. [_stripIndent] already counted this correctly
+    // for fenced and indented code; this was the one place that did not ask.
+    return kept.map((line) => _stripIndent(line, strip)).join('\n');
   }
 
   /// The column an item's own text starts at, which is where any block it
