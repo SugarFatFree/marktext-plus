@@ -12,6 +12,12 @@ import 'package:marktext_plus/services/clipboard_service.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('Windows plain text uses CRLF so Notepad keeps every line', () {
+    expect(ClipboardService.windowsPlainText('one\ntwo\nthree'),
+        'one\r\ntwo\r\nthree');
+    expect(ClipboardService.windowsPlainText('one\r\ntwo'), 'one\r\ntwo');
+  });
+
   test('the channel has one name, spelled the same in three languages', () {
     // Dart asks on it, the GTK runner answers on it, and so does the macOS
     // app delegate. A typo in any one of them is a copy that silently loses

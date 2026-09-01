@@ -69,6 +69,16 @@ class RichCopyService {
           span.children.isEmpty ? span.text : _spans(span.children))
       .join();
 
+  /// HTML for Markdown copied from the source editor.
+  ///
+  /// Source mode owns the Markdown text, so unlike preview selection it can
+  /// parse the selection directly and preserve headings, emphasis, lists and
+  /// links for word processors. The original source string remains the plain
+  /// clipboard flavour for text editors.
+  static String htmlForMarkdownSelection(String markdown) => MarkdownParser(
+        enableHtml: true,
+      ).parse(markdown).map(ExportService.nodeToHtml).join('\n');
+
   /// HTML for [selection], as it appears inside [ast].
   ///
   /// Returns null when the selection cannot be placed — a caller with nothing

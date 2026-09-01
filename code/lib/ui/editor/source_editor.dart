@@ -21,6 +21,7 @@ import '../../core/i18n/l10n/app_localizations.dart';
 import '../widgets/language_picker.dart';
 import '../../services/html_to_markdown.dart';
 import '../../services/clipboard_service.dart';
+import '../../services/rich_copy_service.dart';
 import '../../services/table_edit_service.dart';
 import '../../services/block_move_service.dart';
 import '../widgets/format_toolbar.dart';
@@ -1451,6 +1452,23 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     final selection = _controller.selection;
     if (!selection.isValid) return KeyEventResult.ignored;
     final text = _controller.text;
+
+    // Source mode owns the Markdown, so Ctrl+C must publish both the original
+    // text and a rendered HTML flavour. The framework's default copy only
+    // publishes plain text, which makes Word lose every heading and emphasis.
+    // It also goes through the native Windows path so line breaks remain line
+    // breaks in Notepad.
+    if (event.logicalKey == LogicalKeyboardKey.keyC &&
+        (HardwareKeyboard.instance.isControlPressed ||
+            HardwareKeyboard.instance.isMetaPressed) &&
+        !selection.isCollapsed) {
+      final selected = text.substring(selection.start, selection.end);
+      final html = RichCopyService.htmlForMarkdownSelection(selected);
+      // Deliberately not awaited: the native clipboard write must not block
+      // the key event, and the plain/HTML flavours are written as one call.
+      unawaited(ClipboardService.copyWithHtml(selected, html));
+      return KeyEventResult.handled;
+    }
 
     // Handle Ctrl+V / Cmd+V: try to paste image from clipboard
     if (event.logicalKey == LogicalKeyboardKey.keyV &&

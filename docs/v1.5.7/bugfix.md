@@ -7,6 +7,7 @@
 | BUG-214 | 2026-09-01 | 缩进漂移一个空格的列表被画成层层嵌套 | P2 | 已修复 |
 | BUG-215 | 2026-09-01 | 文档里出现过引用块或带块的列表项，其后所有引用式链接全部失效 | P1 | 已修复 |
 | BUG-216 | 2026-09-01 | 从网页粘贴：任务勾选状态、代码语言、样式排版的加粗全部丢失 | P2 | 已修复 |
+| BUG-217 | 2026-09-01 | 源码区 Ctrl+A 后复制到 Word 丢失格式，复制到记事本丢失换行 | P1 | 已修复 |
 
 ---
 
@@ -362,3 +363,34 @@ CommonMark 一致性 **492 → 493**，下限同步提到 493。
 
 - `code/lib/services/html_to_markdown.dart`
 - `code/test/services/paste_from_the_web_test.dart`（新增，15 条）
+
+---
+
+## BUG-217：源码区全选复制丢失富文本格式和换行
+
+### 现象
+
+在源码编辑区使用 `Ctrl+A` 后再按 `Ctrl+C`，粘贴到 Word 时标题、粗体、列表等 Markdown 语义全部消失；粘贴到记事本时部分 Windows 路径下的换行也会丢失。
+
+### 根因分析
+
+源码编辑区之前让 Flutter `TextField` 处理默认复制。默认实现只写入 `ClipboardData.text`，没有写入 `HTML Format`，因此 Word 只能收到 Markdown 源文字符号，无法恢复标题和强调。Windows 原生剪贴板的 `CF_UNICODETEXT` 写入也直接使用 LF；部分 Windows 文本消费者要求标准 CRLF，导致纯文本粘贴时换行不稳定。
+
+### 修复方案
+
+- 在源码编辑器的 `Ctrl+C` / `Cmd+C` 分支中截取当前选择，同时保留原始 Markdown 作为纯文本，并通过 `RichCopyService.htmlForMarkdownSelection` 生成 HTML 富文本。
+- 统一走 `ClipboardService.copyWithHtml`，Word 等富文本应用读取 HTML，记事本等纯文本应用读取原始内容。
+- Windows 写入 `CF_UNICODETEXT` 前将 LF 规范化为 CRLF，避免文本应用吞掉换行。
+- 未选中文本时继续交给 Flutter 默认行为，避免改变光标和普通输入流程。
+
+### 验证
+
+新增服务测试验证源码 Markdown 会生成标题、粗体和列表 HTML，并验证 Windows 纯文本的 LF → CRLF 规范化；复制专测试例通过。完整测试与静态分析均通过。
+
+### 涉及文件
+
+- `code/lib/ui/editor/source_editor.dart`
+- `code/lib/services/rich_copy_service.dart`
+- `code/lib/services/clipboard_service.dart`
+- `code/test/services/rich_copy_test.dart`
+- `code/test/services/clipboard_channel_test.dart`

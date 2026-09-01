@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
 import 'package:ffi/ffi.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 class ClipboardService {
@@ -39,6 +40,12 @@ class ClipboardService {
 
     await Clipboard.setData(ClipboardData(text: plainText));
   }
+
+  /// Converts line feeds to the CRLF form expected by Windows text
+  /// consumers such as classic Notepad.
+  @visibleForTesting
+  static String windowsPlainText(String text) =>
+      text.replaceAll('\r\n', '\n').replaceAll('\n', '\r\n');
 
   /// The HTML flavour of whatever is on the clipboard, if it has one.
   ///
@@ -179,7 +186,7 @@ class ClipboardService {
     int Function(int) globalUnlock,
     int Function(int, int) setClipboardData,
   ) {
-    final units = text.codeUnits;
+    final units = windowsPlainText(text).codeUnits;
     final hMem = globalAlloc(0x0002, (units.length + 1) * 2);
     if (hMem == 0) return;
     final ptr = globalLock(hMem);
