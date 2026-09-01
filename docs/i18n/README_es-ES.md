@@ -35,16 +35,48 @@ Eso es todo. El editor se abrirá con un documento de ejemplo listo para editar.
 
 ## ✨ Características
 
-| Feature | Description |
+### Edición
+
+| Función | Descripción |
 |---------|-------------|
-| **📝 Tres modos de edición** | Código fuente con resaltado de sintaxis, vista previa en vivo y vista dividida |
-| **🎨 8 temas hermosos** | Red Graphite, Shibuya, Pink Blossom, Sky Blue, Dark Graphite, Dieci OLED, Nord, Midnight |
-| **🌍 12 idiomas** | Inglés, chino, japonés, coreano, alemán, francés, italiano, ruso, español, portugués, árabe y portugués brasileño |
-| **⚡ Respuesta rápida** | Parser y renderizador Markdown propios, sin dependencias pesadas |
-| **🔍 Buscar y reemplazar** | Búsqueda completa con soporte para expresiones regulares |
-| **📂 Árbol de archivos** | Navegación lateral con soporte para arrastrar y soltar carpetas |
-| **⌨️ Atajos personalizables** | Asignaciones de teclado totalmente configurables |
-| **💾 Guardado automático** | Configuración persistente basada en JSON para no perder tu trabajo |
+| **📝 Tres modos de edición** | Código fuente con resaltado, vista previa en vivo y vista dividida arrastrable |
+| **✏️ Editar en la vista previa** | Haz doble clic en un bloque para editar Markdown en su sitio; `Esc` descarta y las casillas se marcan con un clic |
+| **⌨️ Paleta de comandos y menú `/`** | `Ctrl+Shift+P` ejecuta cualquier comando y `/` inserta un bloque |
+| **📊 Edición de tablas** | Inserta y elimina filas y columnas y alinea cada columna |
+| **🔀 Mover bloques** | Sube o baja un párrafo, lista o bloque cercado con un atajo |
+| **🔍 Buscar y reemplazar** | Busca palabras completas y expresiones regulares y reemplaza todo el documento |
+| **🔗 Pegar un enlace** | Selecciona palabras y pega una dirección web para convertirlas en enlace |
+| **📐 Alinear tablas** | Recoloca las barras sin cambiar el contenido; los caracteres CJK cuentan como dos columnas |
+| **🖼️ Imágenes** | Pega o arrastra una imagen; se guarda junto al documento y queda enlazada |
+
+### Renderizado
+
+| Función | Descripción |
+|---------|-------------|
+| **📈 Diagramas Mermaid** | **22 tipos** dibujados con Dart puro, **sin WebView** |
+| **∑ Matemáticas** | Fórmulas LaTeX en línea y en bloque con renderizado compatible con KaTeX |
+| **📋 CommonMark + GFM** | Tablas, tareas, tachado, autolinks, notas al pie y anotaciones `<ruby>` |
+| **🎨 8 temas** | Red Graphite, Shibuya, Pink Blossom, Sky Blue, Dark Graphite, Dieci OLED, Nord, Midnight |
+| **🌍 12 idiomas** | Inglés, chino, japonés, coreano, alemán, francés, italiano, ruso, español, portugués, árabe y portugués brasileño; árabe en RTL |
+
+### Archivos y salida
+
+| Función | Descripción |
+|---------|-------------|
+| **📤 Exportación** | HTML, PDF y Word `.docx`; los diagramas y el código resaltado viajan dentro del HTML, mientras las matemáticas siguen usando KaTeX |
+| **🔤 Codificaciones** | Detecta UTF-8, UTF-16 y GBK al abrir, con o sin BOM, y guarda usando la codificación encontrada |
+| **📂 Árbol de archivos** | Navegación lateral con carpetas arrastrables |
+| **👀 Cambios externos** | Detecta mientras está abierto si otro programa modifica el documento |
+| **💾 Guardado seguro** | Escrituras atómicas para evitar archivos incompletos si se interrumpe el guardado |
+| **⌨️ Atajos personalizables** | Asignaciones de teclado completamente configurables |
+
+### Diseñado para seguir siendo ligero
+
+| | |
+|---------|-------------|
+| **⚡ Arranque rápido** | Sin navegador integrado ni framework de edición, con 22 dependencias directas |
+| **📄 Archivos grandes** | Parser, resaltado y búsqueda de una sola pasada, con presupuestos fijados por pruebas |
+| **🧪 Probado** | 2009 pruebas para parser, exportadores, providers y widgets del editor |
 
 ## ⚖️ Comparativa
 

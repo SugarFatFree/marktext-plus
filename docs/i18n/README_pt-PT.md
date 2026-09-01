@@ -35,16 +35,48 @@ flutter pub get && flutter run
 
 ## ✨ Funcionalidades
 
+### Edição
+
 | Feature | Description |
 |---------|-------------|
-| **📝 Três modos de edição** | Código-fonte com realce de sintaxe, pré-visualização em direto e vista dividida |
-| **🎨 8 temas elegantes** | Red Graphite, Shibuya, Pink Blossom, Sky Blue, Dark Graphite, Dieci OLED, Nord, Midnight |
-| **🌍 12 idiomas** | Inglês, chinês, japonês, coreano, alemão, francês, italiano, russo, espanhol, português, árabe e português do Brasil |
-| **⚡ Resposta rápida** | Parser e renderizador Markdown próprios, sem dependências pesadas |
-| **🔍 Procurar e substituir** | Pesquisa completa com suporte para expressões regulares |
-| **📂 Árvore de ficheiros** | Navegação lateral com suporte para arrastar e largar pastas |
-| **⌨️ Atalhos personalizáveis** | Associações de teclado totalmente configuráveis |
-| **💾 Gravação automática** | Configuração persistente em JSON para nunca perder o trabalho |
+| **📝 Three edit modes** | Source with syntax highlighting, live preview and draggable split view |
+| **✏️ Edit in preview** | Double-click a block to edit Markdown in place; `Esc` discards and task boxes toggle with one click |
+| **⌨️ Command palette and `/` menu** | `Ctrl+Shift+P` runs commands and `/` inserts a block |
+| **📊 Table editing** | Insert or delete rows and columns and align each column |
+| **🔀 Move blocks** | Move paragraphs, lists or fences up and down with one shortcut |
+| **🔍 Find and replace** | Whole-word and regular-expression search across the document |
+| **🔗 Paste a link** | Select words and paste a web address to make a link |
+| **📐 Tidy tables** | Realign table pipes without changing content; CJK characters count as two columns |
+| **🖼️ Images** | Paste or drop a picture to store it beside the document and link it |
+
+### Renderização
+
+| Feature | Description |
+|---------|-------------|
+| **📈 Mermaid diagrams** | **22 types** drawn in pure Dart, **without WebView** |
+| **∑ Math** | Inline and block LaTeX with KaTeX-compatible rendering |
+| **📋 CommonMark + GFM** | Tables, task lists, strikethrough, autolinks, footnotes and `<ruby>` annotations |
+| **🎨 8 themes** | Red Graphite, Shibuya, Pink Blossom, Sky Blue, Dark Graphite, Dieci OLED, Nord, Midnight |
+| **🌍 12 languages** | English, Chinese, Japanese, Korean, German, French, Italian, Russian, Spanish, Portuguese, Arabic and Brazilian Portuguese; Arabic uses RTL |
+
+### Ficheiros e saída
+
+| Feature | Description |
+|---------|-------------|
+| **📤 Export** | HTML, PDF and Word `.docx`; diagrams and highlighted code are embedded in HTML, while maths still uses KaTeX |
+| **🔤 Encodings** | UTF-8, UTF-16 and GBK detected on open, with or without BOM, and written back as found |
+| **📂 File tree** | Sidebar navigation with folder drag and drop |
+| **👀 External changes** | Notices edits made by another program while the document is open |
+| **💾 Safe saving** | Atomic writes prevent partial files after interruption |
+| **⌨️ Custom shortcuts** | Fully configurable keyboard bindings |
+
+### Feito para continuar leve
+
+| | |
+|---------|-------------|
+| **⚡ Fast start** | No embedded browser or editor framework, 22 direct dependencies |
+| **📄 Large files** | Single-pass parsing, highlighting and search with tested budgets |
+| **🧪 Tested** | 2009 tests covering parser, exporters, providers and editor widgets |
 
 ## ⚖️ Comparação
 

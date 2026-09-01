@@ -35,16 +35,48 @@ C’est tout. L’editeur se lance avec un document d’exemple pret a etre modi
 
 ## ✨ Fonctionnalites
 
-| Feature | Description |
+### Édition
+
+| Fonction | Description |
 |---------|-------------|
-| **📝 Trois modes d’edition** | Code source avec coloration syntaxique, apercu en direct et vue partagee |
-| **🎨 8 beaux themes** | Red Graphite, Shibuya, Pink Blossom, Sky Blue, Dark Graphite, Dieci OLED, Nord, Midnight |
-| **🌍 12 langues** | Anglais, chinois, japonais, coreen, allemand, francais, italien, russe, espagnol, portugais, arabe et portugais bresilien |
-| **⚡ Tres rapide** | Parseur et moteur de rendu Markdown maison, sans dependances lourdes |
-| **🔍 Rechercher et remplacer** | Recherche complete avec prise en charge des expressions regulieres |
-| **📂 Arborescence de fichiers** | Navigation laterale avec prise en charge du glisser-deposer des dossiers |
-| **⌨️ Raccourcis personnalisables** | Assignations clavier entierement configurables |
-| **💾 Sauvegarde automatique** | Configuration persistante basee sur JSON pour ne jamais perdre son travail |
+| **📝 Trois modes d’édition** | Code source avec coloration, aperçu en direct et vue partagée déplaçable |
+| **✏️ Modifier dans l’aperçu** | Double-cliquez sur un bloc pour ouvrir son Markdown sur place ; `Esc` annule et les cases se cochent en un clic |
+| **⌨️ Palette de commandes et menu `/`** | `Ctrl+Shift+P` exécute une commande et `/` insère un bloc |
+| **📊 Édition des tableaux** | Insérer ou supprimer lignes et colonnes, puis aligner chaque colonne |
+| **🔀 Déplacer des blocs** | Monter ou descendre un paragraphe, une liste ou une clôture avec un raccourci |
+| **🔍 Rechercher et remplacer** | Rechercher des mots entiers ou des expressions régulières dans le document |
+| **🔗 Coller un lien** | Sélectionner des mots puis coller une adresse Web pour créer un lien |
+| **📐 Aligner un tableau** | Réaligner les barres sans modifier le contenu ; un caractère CJK vaut deux colonnes |
+| **🖼️ Images** | Coller ou déposer une image pour la ranger à côté du document et la lier |
+
+### Rendu
+
+| Fonction | Description |
+|---------|-------------|
+| **📈 Diagrammes Mermaid** | **22 types** dessinés en Dart pur, **sans WebView** |
+| **∑ Mathématiques** | Formules LaTeX en ligne et en bloc avec un rendu compatible KaTeX |
+| **📋 CommonMark + GFM** | Tableaux, tâches, barré, autoliens, notes de bas de page et annotations `<ruby>` |
+| **🎨 8 thèmes** | Red Graphite, Shibuya, Pink Blossom, Sky Blue, Dark Graphite, Dieci OLED, Nord, Midnight |
+| **🌍 12 langues** | Anglais, chinois, japonais, coréen, allemand, français, italien, russe, espagnol, portugais, arabe et portugais brésilien ; arabe en RTL |
+
+### Fichiers et sortie
+
+| Fonction | Description |
+|---------|-------------|
+| **📤 Export** | HTML, PDF et Word `.docx` ; diagrammes et code sont intégrés au HTML, tandis que les mathématiques utilisent encore KaTeX |
+| **🔤 Encodages** | UTF-8, UTF-16 et GBK détectés à l’ouverture, avec ou sans BOM, puis réécrits dans le même encodage |
+| **📂 Arborescence** | Navigation latérale avec glisser-déposer de dossiers |
+| **👀 Modifications externes** | Les modifications d’un autre programme sont détectées pendant l’ouverture |
+| **💾 Enregistrement sûr** | Écritures atomiques pour éviter un fichier incomplet après interruption |
+| **⌨️ Raccourcis personnalisables** | Raccourcis clavier entièrement configurables |
+
+### Conçu pour rester léger
+
+| | |
+|---------|-------------|
+| **⚡ Démarrage rapide** | Aucun navigateur intégré ni framework d’édition, 22 dépendances directes |
+| **📄 Gros fichiers** | Analyse, coloration et recherche en un seul passage, avec des budgets testés |
+| **🧪 Testé** | 2009 tests couvrant le parseur, les exporteurs, les providers et les widgets |
 
 ## ⚖️ Comparaison
 

@@ -86,7 +86,7 @@ That's it! The editor will launch with a sample document ready to edit.
 |---------|-------------|
 | **⚡ Fast start** | No embedded browser, no editor framework, 22 direct dependencies |
 | **📄 Large files** | Parsing, highlighting and search are all single-pass and budgeted by tests that fail if a change makes them slower |
-| **🧪 Tested** | 1946 tests covering the parser, the exporters, the providers and the editor widgets |
+| **🧪 Tested** | 2009 tests covering the parser, the exporters, the providers and the editor widgets |
 
 ## ⚖️ How it compares
 

@@ -35,16 +35,48 @@ Das ist alles. Der Editor startet mit einem Beispieldokument und ist sofort eins
 
 ## ✨ Funktionen
 
-| Feature | Description |
+### Bearbeiten
+
+| Funktion | Beschreibung |
 |---------|-------------|
-| **📝 Drei Bearbeitungsmodi** | Quellcode mit Syntaxhervorhebung, Live-Vorschau und geteilte Ansicht |
-| **🎨 8 schöne Themes** | Red Graphite, Shibuya, Pink Blossom, Sky Blue, Dark Graphite, Dieci OLED, Nord, Midnight |
-| **🌍 12 Sprachen** | Englisch, Chinesisch, Japanisch, Koreanisch, Deutsch, Französisch, Italienisch, Russisch, Spanisch, Portugiesisch, Arabisch und Brasilianisches Portugiesisch |
-| **⚡ Sehr schnell** | Eigener Markdown-Parser und Renderer ohne schwere Abhängigkeiten |
-| **🔍 Suchen & Ersetzen** | Vollständige Suche mit Regex-Unterstützung |
-| **📂 Dateibaum** | Seitenleisten-Navigation mit Drag-and-Drop für Ordner |
+| **📝 Drei Bearbeitungsmodi** | Quelltext mit Syntaxhervorhebung, Live-Vorschau und eine ziehbare geteilte Ansicht |
+| **✏️ In der Vorschau bearbeiten** | Doppelklick auf einen Block öffnet Markdown an Ort und Stelle; `Esc` verwirft, Aufgabenboxen reagieren auf einen Klick |
+| **⌨️ Befehls-Palette und `/`-Menü** | `Ctrl+Shift+P` führt jeden Befehl aus, `/` fügt einen Block ein |
+| **📊 Tabellenbearbeitung** | Zeilen und Spalten einfügen oder löschen und Spalten ausrichten |
+| **🔀 Blöcke verschieben** | Absatz, Liste oder Fence mit einem Tastenkürzel nach oben oder unten bewegen |
+| **🔍 Suchen und Ersetzen** | Ganze Wörter und reguläre Ausdrücke suchen und im Dokument ersetzen |
+| **🔗 Link einfügen** | Wörter markieren und eine Webadresse darüber einfügen, um einen Link zu erzeugen |
+| **📐 Tabelle ausrichten** | Pipes neu ausrichten, ohne den Inhalt zu ändern; CJK-Zeichen zählen als zwei Spalten |
+| **🖼️ Bilder** | Bild einfügen oder ablegen; es wird neben dem Dokument gespeichert und verknüpft |
+
+### Darstellung
+
+| Funktion | Beschreibung |
+|---------|-------------|
+| **📈 Mermaid-Diagramme** | **22 Diagrammtypen** in reinem Dart gezeichnet, **ohne WebView** |
+| **∑ Mathematik** | Inline- und Block-LaTeX mit KaTeX-kompatibler Darstellung |
+| **📋 CommonMark + GFM** | Tabellen, Aufgabenlisten, Durchstreichungen, Autolinks, Fußnoten und `<ruby>`-Annotationen |
+| **🎨 8 Themes** | Red Graphite, Shibuya, Pink Blossom, Sky Blue, Dark Graphite, Dieci OLED, Nord, Midnight |
+| **🌍 12 Sprachen** | Englisch, Chinesisch, Japanisch, Koreanisch, Deutsch, Französisch, Italienisch, Russisch, Spanisch, Portugiesisch, Arabisch und brasilianisches Portugiesisch; Arabisch mit RTL |
+
+### Dateien und Ausgabe
+
+| Funktion | Beschreibung |
+|---------|-------------|
+| **📤 Export** | HTML, PDF und Word `.docx`; Diagramme und Code sind im HTML eingebettet, Mathematik nutzt weiterhin KaTeX |
+| **🔤 Zeichencodierungen** | UTF-8, UTF-16 und GBK beim Öffnen erkannt, mit oder ohne BOM, und unverändert zurückgeschrieben |
+| **📂 Dateibaum** | Seitennavigation mit Drag-and-Drop für Ordner |
+| **👀 Externe Änderungen** | Änderungen durch andere Programme werden während des Öffnens erkannt |
+| **💾 Sicheres Speichern** | Atomare Schreibvorgänge verhindern halbe Dateien nach einem Abbruch |
 | **⌨️ Anpassbare Tastenkürzel** | Tastaturbelegungen vollständig konfigurierbar |
-| **💾 Automatisches Speichern** | JSON-basierte persistente Konfiguration, damit keine Arbeit verloren geht |
+
+### Leichtgewichtig bleiben
+
+| | |
+|---------|-------------|
+| **⚡ Schneller Start** | Kein eingebetteter Browser, kein Editor-Framework, 22 direkte Abhängigkeiten |
+| **📄 Große Dateien** | Parser, Hervorhebung und Suche arbeiten in einem Durchlauf und werden per Tests begrenzt |
+| **🧪 Getestet** | 2009 Tests für Parser, Exporte, Provider und Editor-Widgets |
 
 ## ⚖️ Im Vergleich
 

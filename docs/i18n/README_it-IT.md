@@ -35,16 +35,48 @@ Tutto qui. L’editor si avvierà con un documento di esempio pronto per la modi
 
 ## ✨ Funzionalità
 
-| Feature | Description |
+### Modifica
+
+| Funzione | Descrizione |
 |---------|-------------|
-| **📝 Tre modalità di modifica** | Codice sorgente con evidenziazione sintattica, anteprima live e vista divisa |
-| **🎨 8 temi eleganti** | Red Graphite, Shibuya, Pink Blossom, Sky Blue, Dark Graphite, Dieci OLED, Nord, Midnight |
-| **🌍 12 lingue** | Inglese, cinese, giapponese, coreano, tedesco, francese, italiano, russo, spagnolo, portoghese, arabo e portoghese brasiliano |
-| **⚡ Reattività elevata** | Parser e renderer Markdown sviluppati internamente, senza dipendenze pesanti |
-| **🔍 Trova e sostituisci** | Ricerca completa con supporto per le espressioni regolari |
-| **📂 Albero file** | Navigazione laterale con supporto drag-and-drop delle cartelle |
+| **📝 Tre modalità di modifica** | Codice sorgente con evidenziazione, anteprima live e vista divisa trascinabile |
+| **✏️ Modifica nell’anteprima** | Doppio clic su un blocco per modificare Markdown sul posto; `Esc` annulla e le caselle si spuntano con un clic |
+| **⌨️ Tavolozza comandi e menu `/`** | `Ctrl+Shift+P` esegue ogni comando e `/` inserisce un blocco |
+| **📊 Modifica tabelle** | Inserisci o elimina righe e colonne e allinea ogni colonna |
+| **🔀 Sposta blocchi** | Sposta paragrafi, liste o fence su e giù con una scorciatoia |
+| **🔍 Trova e sostituisci** | Cerca parole intere ed espressioni regolari nell’intero documento |
+| **🔗 Incolla un link** | Seleziona parole e incolla un indirizzo Web per creare un link |
+| **📐 Allinea una tabella** | Riallinea i separatori senza cambiare il contenuto; i caratteri CJK valgono due colonne |
+| **🖼️ Immagini** | Incolla o trascina un’immagine per salvarla accanto al documento e collegarla |
+
+### Rendering
+
+| Funzione | Descrizione |
+|---------|-------------|
+| **📈 Diagrammi Mermaid** | **22 tipi** disegnati in puro Dart, **senza WebView** |
+| **∑ Matematica** | Formule LaTeX inline e a blocco con rendering compatibile con KaTeX |
+| **📋 CommonMark + GFM** | Tabelle, task list, barrato, autolink, note a piè di pagina e annotazioni `<ruby>` |
+| **🎨 8 temi** | Red Graphite, Shibuya, Pink Blossom, Sky Blue, Dark Graphite, Dieci OLED, Nord, Midnight |
+| **🌍 12 lingue** | Inglese, cinese, giapponese, coreano, tedesco, francese, italiano, russo, spagnolo, portoghese, arabo e portoghese brasiliano; arabo RTL |
+
+### File e output
+
+| Funzione | Descrizione |
+|---------|-------------|
+| **📤 Esportazione** | HTML, PDF e Word `.docx`; diagrammi e codice sono incorporati nell’HTML, mentre la matematica usa ancora KaTeX |
+| **🔤 Codifiche** | Rileva UTF-8, UTF-16 e GBK all’apertura, con o senza BOM, e riscrive con la codifica trovata |
+| **📂 Albero file** | Navigazione laterale con trascinamento delle cartelle |
+| **👀 Modifiche esterne** | Rileva modifiche al documento fatte da altri programmi mentre è aperto |
+| **💾 Salvataggio sicuro** | Scrittura atomica per evitare file incompleti dopo un’interruzione |
 | **⌨️ Scorciatoie personalizzabili** | Associazioni da tastiera completamente configurabili |
-| **💾 Salvataggio automatico** | Configurazione persistente basata su JSON per non perdere mai il lavoro |
+
+### Progettato per restare leggero
+
+| | |
+|---------|-------------|
+| **⚡ Avvio rapido** | Nessun browser incorporato o framework di editing, 22 dipendenze dirette |
+| **📄 File grandi** | Analisi, evidenziazione e ricerca a passaggio singolo, con budget verificati dai test |
+| **🧪 Testato** | 2009 test per parser, esportatori, provider e widget dell’editor |
 
 ## ⚖️ A confronto
 

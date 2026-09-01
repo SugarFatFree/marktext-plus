@@ -15,7 +15,7 @@
 **Files:**
 - Read: `README.md:40-89`
 - Read: `docs/i18n/README_*.md:36-48`
-- Create: `code/tool/validate_readmes.dart`
+- Create: `code/test/services/readme_validation_test.dart`
 
 - [ ] **Step 1: 确认主 README 四组表的事实条目**
 
@@ -75,16 +75,16 @@
 ### Task 4: 解析器和导出验证
 
 **Files:**
-- Create: `code/tool/validate_readmes.dart`
+- Create: `code/test/services/readme_validation_test.dart`
 - Test: `code/test/services/html_export_offline_test.dart`
 
 - [ ] **Step 1: 运行 12 份 README 结构探针**
 
-  新建 `code/tool/validate_readmes.dart`，使用 `MarkdownParser().parse` 读取仓库根目录的 `README.md` 和 `docs/i18n/README_*.md`；对每个文件断言：解析节点数大于 0、文本不含 `\uFFFD`、功能区包含四个三级标题、存在“MarkText Plus”横向对比表。脚本遇到任一失败立即抛出异常，并打印文件名和失败条件。
+  新建 `code/test/services/readme_validation_test.dart`，使用 `MarkdownParser(enableHtml: true).parse` 和 `ExportService.exportToHtml` 读取并导出仓库根目录的 `README.md` 和 `docs/i18n/README_*.md`；对每个文件断言：解析节点数大于 0、文本不含 `\uFFFD`、功能区包含四个三级标题、存在“MarkText Plus”横向对比表、HTML 导出非空。
 
-  Run from `code/`: `dart run tool/validate_readmes.dart`
+  Run from `code/`: `flutter test test/services/readme_validation_test.dart`
 
-  Expected: 输出 12 个文件的成功校验结果并以退出码 0 结束。
+  Expected: 12 个文件的验证测试通过。
 
 - [ ] **Step 2: 运行测试和静态分析**
 
