@@ -95,9 +95,17 @@ this space. Everything in the MarkText column was read out of its source at
 `v0.20.0-dev`; the Typora column is from its published documentation, since it
 is closed source and cannot be checked the same way.
 
+The start-up figures come from one Windows machine, all three programs on it.
+This one's are instrumented — it writes a `startup-trace.log` of its own, and
+the numbers are four launches of it — while the other two were timed by hand,
+so treat them as the rougher pair. Most of this program's start-up is not its
+own code: of the 0.7 s, about 0.5 s is Windows loading the executable and the
+Flutter engine booting, and 0.15 s is everything the editor itself does.
+
 | | **MarkText Plus** | **MarkText** (upstream) | **Typora** |
 |---|---|---|---|
 | **Runtime** | Flutter — compiled, no embedded browser | Electron 42 | Electron |
+| **Cold start** (to the document on screen) | ~0.7 s warm, ~1.4 s cold | 2–3 s | 2–3 s |
 | **Direct dependencies** | 22 | 56 (desktop package) | closed source |
 | **Licence** | MIT, free | MIT, free | Paid, closed source |
 | **Editing** | Source, preview, and a split view whose halves follow each other; blocks are edited in place in the preview | Live preview (WYSIWYG), plus a source mode | Live preview (WYSIWYG), plus a source mode |
@@ -127,7 +135,7 @@ it is not worth reading.
 
 - **No embedded browser.** The parser, the renderer, the syntax highlighter and
   the diagram engine are all written here and compiled in. That is the whole
-  reason for the project.
+  reason for the project, and the start-up figures above are what it buys.
 - **Diagrams without JavaScript.** Twenty-two Mermaid types drawn by a Dart
   painter, so they render in the PDF and the Word file as pictures rather than
   as a script the reader's machine has to run.
