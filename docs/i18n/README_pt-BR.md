@@ -46,6 +46,42 @@ flutter pub get && flutter run
 | **⌨️ Atalhos personalizáveis** | Atalhos de teclado totalmente configuráveis |
 | **💾 Salvamento automático** | Configuração persistente em JSON para nunca perder o trabalho |
 
+## ⚖️ Comparação
+
+Face ao editor de que este é uma reinterpretação, e face ao mais conhecido da área. Tudo o que consta na coluna do MarkText foi lido do seu código-fonte na `v0.20.0-dev`; a coluna do Typora vem da sua documentação publicada, uma vez que é de código fechado e não pode ser verificado da mesma forma.
+
+Os tempos de arranque vêm de uma só máquina com Windows, com os três programas nela. Os deste programa são instrumentados — escreve o seu próprio `startup-trace.log`, e os números são de quatro arranques — enquanto os outros dois foram cronometrados à mão: veja-os como o par mais grosseiro. A maior parte do arranque aqui não é código próprio: dos 0,7 s, cerca de 0,5 s cabem ao Windows a carregar o executável e ao motor Flutter a arrancar, e 0,15 s a tudo o que o editor faz.
+
+| | **MarkText Plus** | **MarkText** (original) | **Typora** |
+|---|---|---|---|
+| **Ambiente de execução** | Flutter — compilado, sem navegador incorporado | Electron 42 | Electron |
+| **Arranque** (até o documento aparecer) | ~0,7 s a quente, ~1,4 s a frio | 2–3 s | 2–3 s |
+| **Dependências diretas** | 22 | 56 (pacote desktop) | código fechado |
+| **Licença** | MIT, gratuito | MIT, gratuito | Pago, código fechado |
+| **Edição** | Código, pré-visualização e uma visão dividida cujas metades se acompanham; os blocos são editados no lugar dentro da pré-visualização | Pré-visualização ao vivo (WYSIWYG), mais um modo de código | Pré-visualização ao vivo (WYSIWYG), mais um modo de código |
+| **Diagramas** | 22 tipos de Mermaid, desenhados em Dart sem WebView | Mermaid, flowchart.js, Vega-Lite, PlantUML — todos através de JavaScript | Mermaid, flowchart.js, js-sequence, PlantUML |
+| **Matemática** | Compatível com KaTeX | KaTeX | KaTeX |
+| **Exportação** | HTML, PDF, Word — tudo integrado | HTML, PDF, Markdown; mais formatos se o pandoc estiver instalado | Muitos formatos, a maioria através do pandoc |
+| **Temas** | 8 | 32 | Muitos, e uma vasta coleção da comunidade |
+| **Idiomas da interface** | 12 | 10 | Vários |
+| **Plataformas** | Windows, macOS, Linux (x64 e arm64) | Windows, macOS, Linux | Windows, macOS, Linux |
+
+### Onde os outros estão à frente
+
+Vale a pena dizê-lo com clareza: uma comparação que só elogia quem a escreve não merece ser lida.
+
+- **Pré-visualização ao vivo.** O Typora e o MarkText editam diretamente o documento já composto, sem modo a trocar. Este editor dá três painéis e permite abrir um bloco no lugar; é outra coisa, e para quem vem do Typora é a diferença que se nota primeiro.
+- **Temas.** Trinta e dois contra oito, e o Typora tem anos de CSS da comunidade atrás de si.
+- **Abrangência dos diagramas.** PlantUML e Vega-Lite não estão implementados aqui.
+- **Anos.** O Typora é refinado há uma década. Este é um programa jovem e nota-se em alguns pontos.
+
+### Onde este está à frente
+
+- **Sem navegador incorporado.** O analisador, o renderizador, o realce de sintaxe e o motor de diagramas estão todos escritos aqui e compilados. É toda a razão do projeto, e os tempos de arranque acima são o que isso rende.
+- **Diagramas sem JavaScript.** Vinte e dois tipos de Mermaid desenhados por um pintor Dart, de modo que entram no PDF e no arquivo Word como imagens e não como um script que a máquina do leitor tenha de executar.
+- **Exportação para Word sem pandoc.** Nenhum segundo programa para instalar.
+- **Gratuito e de código aberto**, o que o Typora não é.
+
 ## 🎨 Temas
 
 <table>
