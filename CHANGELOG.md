@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - v1.5.7
 
 ### Added
+- In split view the preview follows the pane being edited. It had no synchronisation at all: the editing pane moved and the preview stayed where it was, which is most of what a split view is for. It anchors on the headings and interpolates between them rather than matching a fraction of the way down — the two panes have nothing like the same height, since a comment is forty lines of source and no height at all on the other side
 - A PDF is laid out away from the window, so exporting one no longer stops everything until it is done — three seconds for a hundred kilobyte document, longer for a large one. It is not a trade: measured on the same document it is faster there too
 - An export says that it is running, and says where the file went when it is done. Choosing a filename used to be followed by a still window for as long as the export took — three seconds for a hundred kilobyte document as a PDF — and then by nothing at all, so there was no way to tell a finished export from one that had never started. Only failure spoke. The PDF layout has since moved off the window's thread as well, so the spinner turns
 

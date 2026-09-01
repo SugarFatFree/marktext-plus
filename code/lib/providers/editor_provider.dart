@@ -85,6 +85,15 @@ class EditorState {
   final bool canRedo;
   final bool showFindReplace;
   final int? targetScrollLine;
+
+  /// The source line at the top of the editing pane, for the preview beside
+  /// it to follow.
+  ///
+  /// Separate from [targetScrollLine], which is a request made once — by the
+  /// outline, or by a search hit — and cleared when it has been honoured.
+  /// This one is a running position: it changes as the reader scrolls and is
+  /// never cleared.
+  final int? syncSourceLine;
   final SearchTarget searchTarget;
   final String previewSearchQuery;
   final bool previewSearchCaseSensitive;
@@ -120,6 +129,7 @@ class EditorState {
     this.canRedo = false,
     this.showFindReplace = false,
     this.targetScrollLine,
+    this.syncSourceLine,
     this.searchTarget = SearchTarget.source,
     this.previewSearchQuery = '',
     this.previewSearchCaseSensitive = false,
@@ -142,6 +152,7 @@ class EditorState {
     bool? canRedo,
     bool? showFindReplace,
     int? targetScrollLine,
+    int? syncSourceLine,
     bool clearTargetScrollLine = false,
     SearchTarget? searchTarget,
     String? previewSearchQuery,
@@ -163,6 +174,7 @@ class EditorState {
       canRedo: canRedo ?? this.canRedo,
       showFindReplace: showFindReplace ?? this.showFindReplace,
       targetScrollLine: clearTargetScrollLine ? null : (targetScrollLine ?? this.targetScrollLine),
+      syncSourceLine: syncSourceLine ?? this.syncSourceLine,
       searchTarget: searchTarget ?? this.searchTarget,
       previewSearchQuery: previewSearchQuery ?? this.previewSearchQuery,
       previewSearchCaseSensitive: previewSearchCaseSensitive ?? this.previewSearchCaseSensitive,
@@ -445,6 +457,14 @@ class EditorNotifier extends StateNotifier<EditorState> {
 
   void scrollToLine(int line) {
     state = state.copyWith(targetScrollLine: line);
+  }
+
+  /// Reports where the editing pane is looking, so the preview can look there
+  /// too. Nothing is done when the line has not changed: this is called on
+  /// every scroll event.
+  void reportSourceLine(int line) {
+    if (state.syncSourceLine == line) return;
+    state = state.copyWith(syncSourceLine: line);
   }
 
   /// Drops every decoded image and asks the preview to read them again.

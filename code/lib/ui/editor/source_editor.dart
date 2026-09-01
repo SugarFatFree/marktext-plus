@@ -49,7 +49,13 @@ class SourceEditor extends ConsumerStatefulWidget {
     this.initialContent = '',
     this.externalRevision = 0,
     this.onChanged,
+    this.reportsScrollPosition = false,
   });
+
+  /// Whether to publish the line at the top of the viewport, for a preview
+  /// beside this pane to follow. Only split view wants it; on its own the
+  /// pane has nobody to tell.
+  final bool reportsScrollPosition;
 
   @override
   ConsumerState<SourceEditor> createState() => _SourceEditorState();
@@ -1263,6 +1269,25 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     // the position from the current scroll offset.
     _formatToolbar?.markNeedsBuild();
     _updateGutterMarks();
+    _reportTopLine();
+  }
+
+  /// Tells whoever is beside us which line is at the top of the viewport.
+  ///
+  /// The exact line, from the layout — not the offset divided by a line
+  /// height, which stops being the line the moment a paragraph wraps, and in
+  /// Markdown a paragraph is normally one long line.
+  void _reportTopLine() {
+    if (!widget.reportsScrollPosition) return;
+    final editable = _renderEditable();
+    if (editable == null) return;
+    final box = _fieldKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) return;
+
+    final top = box.localToGlobal(Offset.zero).dy;
+    final at = editable.getPositionForPoint(Offset(0, top));
+    final line = _positionOf(_controller.text, at.offset).$1;
+    ref.read(editorProvider.notifier).reportSourceLine(line + 1);
   }
 
   /// The render object that laid the text out, found by descending from the

@@ -147,6 +147,8 @@ class _SplitEditorState extends ConsumerState<SplitEditor> {
                 initialContent: _content,
                 externalRevision: _externalRevision + widget.externalRevision,
                 onChanged: _onContentChanged,
+                // Only here: the pane has a preview beside it to tell.
+                reportsScrollPosition: true,
               ),
             ),
             MouseRegion(
@@ -189,6 +191,8 @@ class _SplitEditorState extends ConsumerState<SplitEditor> {
                 child: MarkdownRenderer(
                   markdown: _renderedContent,
                   onSourceChanged: _onPreviewEdited,
+                  // And only here: the preview has a pane to follow.
+                  followsSource: true,
                 ),
               ),
             ),
