@@ -94,6 +94,31 @@ class HtmlToMarkdown {
           final (inner, next) = _until(tokens, index, token.name);
           out.write('${'#' * level} ${_inline(inner)}\n\n');
           index = next;
+        case 'span' || 'b' || 'strong' || 'i' || 'em' || 'u' || 'del' || 's' ||
+              'a' || 'font':
+          // An inline tag met where a block was expected. Word processors on
+          // the web wrap what they put on the clipboard in one — Google Docs
+          // in a `<b>`, others in a `<span>` or a `<font>` — and skipping the
+          // tag left its children to be met one at a time, so a styled run
+          // came out as one paragraph per span with its emphasis gone.
+          //
+          // Read as inline unless it really does hold blocks, which is the
+          // same question the div below answers.
+          final (inner, next) = _until(tokens, index, token.name);
+          if (inner.any((t) => t.isTag && _isBlock(t.name))) {
+            // Blocks inside it: the wrapper's own styling has nowhere to go —
+            // markdown cannot put a heading in bold — so only its contents
+            // carry over, which is what the div below does too.
+            _writeBlocks(inner, out);
+          } else {
+            final text = _inline([
+              token,
+              ...inner,
+              _Token.tag(name: token.name, closing: true, attributes: ''),
+            ]);
+            if (text.isNotEmpty) out.write('$text\n\n');
+          }
+          index = next;
         case 'div':
           // A div is a container, not a paragraph: browsers wrap whole
           // fragments in one, and treating it as a paragraph flattened every
@@ -128,7 +153,13 @@ class HtmlToMarkdown {
         case 'pre':
           final (inner, next) = _until(tokens, index, token.name);
           final code = inner.map((t) => t.isText ? t.text : '').join();
-          out.write('```\n${_decode(code).trimRight()}\n```\n\n');
+          // The language, where the page says what it is. Every site that
+          // shows code says so on the `<code>` element — GitHub, Prism and
+          // highlight.js all write `language-dart` — and dropping it meant a
+          // snippet pasted from documentation arrived with no colouring at
+          // all, in a program whose fences carry a language.
+          final language = _codeLanguage(inner);
+          out.write('```$language\n${_decode(code).trimRight()}\n```\n\n');
           index = next;
         case 'table':
           final (inner, next) = _until(tokens, index, token.name);
@@ -162,7 +193,11 @@ class HtmlToMarkdown {
             (t) => t.isTag && !t.closing && (t.name == 'ul' || t.name == 'ol'));
         final own = nestedStart < 0 ? inner : inner.sublist(0, nestedStart);
         final marker = ordered ? '${number++}. ' : '- ';
-        out.write('$marker${_inline(own)}\n');
+        // A checkbox in the item is the item's state, and it is the whole
+        // point of a list that has them. It used to be dropped, so a list of
+        // things to do pasted from a page arrived with everything unticked
+        // and nothing to say which had been done.
+        out.write('$marker${_taskBox(own)}${_inline(own)}\n');
 
         if (nestedStart >= 0) {
           final nested = StringBuffer();
@@ -305,7 +340,12 @@ class HtmlToMarkdown {
         case 'strong' || 'b':
           final (inner, next) = _until(tokens, index, token.name);
           final text = _inline(inner);
-          if (text.isNotEmpty) out.write('**$text**');
+          // A `<b>` that says in its own style that it is not bold is not
+          // bold. Google Docs wraps everything it puts on the clipboard in
+          // exactly that — `<b style="font-weight:normal">` — so a fragment
+          // copied out of it arrived with the whole paste in asterisks.
+          final reallyBold = !_styleSaysNotBold(token.attributes);
+          if (text.isNotEmpty) out.write(reallyBold ? '**$text**' : text);
           index = next;
         case 'em' || 'i':
           final (inner, next) = _until(tokens, index, token.name);
@@ -334,11 +374,101 @@ class HtmlToMarkdown {
         case 'br':
           out.write('  \n');
           index++;
+        case 'span':
+          // Word processors on the web mark up with styles rather than with
+          // tags: Google Docs writes `font-weight:700` where a page would
+          // write `<b>`. Without this, everything pasted from one arrived as
+          // plain text with its emphasis gone.
+          final (inner, next) = _until(tokens, index, 'span');
+          final text = _inline(inner);
+          out.write(_wrapStyled(text, token.attributes));
+          index = next;
         default:
           index++;
       }
     }
     return out.toString().trim();
+  }
+
+  /// One declaration out of a `style` attribute.
+  static String? _style(String attributes, String property) {
+    final style = _attribute(attributes, 'style');
+    if (style == null) return null;
+    for (final declaration in style.split(';')) {
+      final colon = declaration.indexOf(':');
+      if (colon < 0) continue;
+      if (declaration.substring(0, colon).trim().toLowerCase() != property) {
+        continue;
+      }
+      return declaration.substring(colon + 1).trim().toLowerCase();
+    }
+    return null;
+  }
+
+  /// Whether a `<b>`'s own style contradicts it.
+  static bool _styleSaysNotBold(String attributes) {
+    final weight = _style(attributes, 'font-weight');
+    if (weight == null) return false;
+    return !_isBoldWeight(weight);
+  }
+
+  static bool _isBoldWeight(String weight) {
+    if (weight == 'bold' || weight == 'bolder') return true;
+    final number = int.tryParse(weight);
+    return number != null && number >= 600;
+  }
+
+  /// [text] with whatever the span's style asks for around it.
+  static String _wrapStyled(String text, String attributes) {
+    if (text.isEmpty) return text;
+    var out = text;
+    final decoration = _style(attributes, 'text-decoration') ??
+        _style(attributes, 'text-decoration-line');
+    if (decoration != null && decoration.contains('line-through')) {
+      out = '~~$out~~';
+    }
+    final style = _style(attributes, 'font-style');
+    if (style == 'italic' || style == 'oblique') out = '*$out*';
+    final weight = _style(attributes, 'font-weight');
+    if (weight != null && _isBoldWeight(weight)) out = '**$out**';
+    return out;
+  }
+
+  /// `[x] ` or `[ ] ` when the item carries a checkbox, and nothing when it
+  /// does not.
+  static String _taskBox(List<_Token> item) {
+    for (final token in item) {
+      if (!token.isTag || token.closing || token.name != 'input') continue;
+      final type = _attribute(token.attributes, 'type')?.toLowerCase();
+      if (type != 'checkbox') continue;
+      // `checked` is a boolean attribute: it may be written bare, or as
+      // `checked=""`, or as `checked="checked"`. Its presence is what counts.
+      final ticked = RegExp(r'(^|\s)checked(\s|=|$)')
+          .hasMatch(token.attributes);
+      return ticked ? '[x] ' : '[ ] ';
+    }
+    return '';
+  }
+
+  /// The language a `<pre>` block's `<code>` element names, or an empty
+  /// string.
+  ///
+  /// `class="language-dart"` is what GitHub, Prism and highlight.js all
+  /// write; `lang-dart` is the older spelling. The class list may hold other
+  /// names beside it — highlight.js writes `hljs language-dart`.
+  static String _codeLanguage(List<_Token> inner) {
+    for (final token in inner) {
+      if (!token.isTag || token.closing || token.name != 'code') continue;
+      final classes = _attribute(token.attributes, 'class') ?? '';
+      for (final name in classes.split(RegExp(r'\s+'))) {
+        for (final prefix in const ['language-', 'lang-']) {
+          if (name.length > prefix.length && name.startsWith(prefix)) {
+            return name.substring(prefix.length);
+          }
+        }
+      }
+    }
+    return '';
   }
 
   static String? _attribute(String attributes, String name) {

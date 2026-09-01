@@ -6,6 +6,7 @@
 | BUG-213 | 2026-09-01 | 列表项下用 Tab 缩进的内容，开头的字被静默删掉 | P1 | 已修复 |
 | BUG-214 | 2026-09-01 | 缩进漂移一个空格的列表被画成层层嵌套 | P2 | 已修复 |
 | BUG-215 | 2026-09-01 | 文档里出现过引用块或带块的列表项，其后所有引用式链接全部失效 | P1 | 已修复 |
+| BUG-216 | 2026-09-01 | 从网页粘贴：任务勾选状态、代码语言、样式排版的加粗全部丢失 | P2 | 已修复 |
 
 ---
 
@@ -304,3 +305,60 @@ CommonMark 一致性 **492 → 493**，下限同步提到 493。
 - `code/test/services/definitions_survive_nesting_test.dart`（新增，8 条）
 - `code/test/services/export_survives_new_constructs_test.dart`
   （文档扩充为累积式，并补上本版构件的断言）
+
+---
+
+## BUG-216：从网页粘贴时丢失勾选状态、代码语言与样式化的排版
+
+### 现象
+
+剪贴板的 HTML 版本转成 Markdown 时，有四处信息被丢掉：
+
+| 粘贴来源 | 丢了什么 |
+|---|---|
+| GitHub / Notion 的待办清单 | `<input type="checkbox" checked>` → `- 已办`，**勾选状态全没了** |
+| 任何文档站的代码块 | `class="language-dart"` → 光秃秃的 ` ``` `，**语言丢失，粘过来没有高亮** |
+| Google Docs 等网页文字处理器 | `<span style="font-weight:700">` **完全不识别**，加粗/斜体/删除线全变普通文字 |
+| Google Docs 的片段 | 它把内容包在 `<b style="font-weight:normal">` 里——**内联场景下整段会被错误加粗** |
+
+### 根因分析
+
+- **勾选状态**：`_writeList` 只写 `- ` 或 `1. `，从不看条目里有没有 `<input>`。
+- **代码语言**：`pre` 分支只取文本，不读内层 `<code>` 的 `class`。
+- **样式排版**：转换器只认标签（`<b>`/`<i>`/`<del>`），而网页文字处理器用的是内联样式。
+- **Google Docs 的包裹层**：`<b>` 分支无条件加粗，不看它自己的 style 是否说了「不粗」。
+
+### 一处先被证伪、再被证实的猜想
+
+我最初以为 Google Docs 的外层 `<b style="font-weight:normal">` 会让**整段粘贴变粗**。
+实测：**不会**——因为它包着块级 `<p>`，块级处理会跳过该标签。
+
+但顺着这条线继续试内联场景（复制一个片段、没有 `<p>`），
+`<p><b style="font-weight:normal">不该粗</b></p>` **确实**输出了 `**不该粗**`。
+**猜想的方向对、给出的机制错**；不实测就会把这条当成不存在。
+
+### 修复方案
+
+- `_taskBox`：条目里找 `<input type="checkbox">`，输出 `[x] ` / `[ ] `。
+  `checked` 是布尔属性，三种写法（裸写、`=""`、`="checked"`）都认。
+- `_codeLanguage`：读内层 `<code>` 的 class，支持 `language-` 与 `lang-` 两种前缀，
+  且能从 `hljs language-go` 这类多值 class 里挑出来。
+- `_style` / `_wrapStyled`：解析内联样式里的 `font-weight`（`bold` 与 ≥600 的数值）、
+  `font-style`、`text-decoration`。`text-decoration:none` 不能当成删除线。
+- `<b>`/`<strong>` 若自身 style 声明了非粗体字重，就不加粗。
+- 块级遇到行内包裹标签（`span`/`b`/`strong`/`i`/`em`/`u`/`del`/`s`/`a`/`font`）时，
+  内部没有块级元素就整体按行内处理——否则 Google Docs 的片段会变成
+  「一个 span 一个段落」且样式全失。
+
+### 验证
+
+新增 15 条。护栏 6 条：真正的 `<b>` 仍加粗、无样式的 span 不留痕迹、
+`text-decoration:none` 不是删除线、单选框不是任务框、
+未标语言的代码块仍是无标签围栏、标题/列表/表格/链接照常转换。
+
+四处修复分别破坏后共 8 条失败。
+
+### 涉及文件
+
+- `code/lib/services/html_to_markdown.dart`
+- `code/test/services/paste_from_the_web_test.dart`（新增，15 条）
