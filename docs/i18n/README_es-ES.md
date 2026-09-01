@@ -76,7 +76,7 @@ Eso es todo. El editor se abrirá con un documento de ejemplo listo para editar.
 |---------|-------------|
 | **⚡ Arranque rápido** | Sin navegador integrado ni framework de edición, con 22 dependencias directas |
 | **📄 Archivos grandes** | Parser, resaltado y búsqueda de una sola pasada, con presupuestos fijados por pruebas |
-| **🧪 Probado** | 2009 pruebas para parser, exportadores, providers y widgets del editor |
+| **🧪 Probado** | 2012 pruebas para parser, exportadores, providers y widgets del editor |
 
 ## ⚖️ Comparativa
 

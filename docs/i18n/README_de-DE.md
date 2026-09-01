@@ -76,7 +76,7 @@ Das ist alles. Der Editor startet mit einem Beispieldokument und ist sofort eins
 |---------|-------------|
 | **⚡ Schneller Start** | Kein eingebetteter Browser, kein Editor-Framework, 22 direkte Abhängigkeiten |
 | **📄 Große Dateien** | Parser, Hervorhebung und Suche arbeiten in einem Durchlauf und werden per Tests begrenzt |
-| **🧪 Getestet** | 2009 Tests für Parser, Exporte, Provider und Editor-Widgets |
+| **🧪 Getestet** | 2012 Tests für Parser, Exporte, Provider und Editor-Widgets |
 
 ## ⚖️ Im Vergleich
 

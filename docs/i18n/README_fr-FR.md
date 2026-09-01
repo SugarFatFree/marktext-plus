@@ -76,7 +76,7 @@ C’est tout. L’editeur se lance avec un document d’exemple pret a etre modi
 |---------|-------------|
 | **⚡ Démarrage rapide** | Aucun navigateur intégré ni framework d’édition, 22 dépendances directes |
 | **📄 Gros fichiers** | Analyse, coloration et recherche en un seul passage, avec des budgets testés |
-| **🧪 Testé** | 2009 tests couvrant le parseur, les exporteurs, les providers et les widgets |
+| **🧪 Testé** | 2012 tests couvrant le parseur, les exporteurs, les providers et les widgets |
 
 ## ⚖️ Comparaison
 

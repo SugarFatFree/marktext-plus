@@ -76,7 +76,7 @@ flutter pub get && flutter run
 |---------|-------------|
 | **⚡ Fast start** | No embedded browser or editor framework, 22 direct dependencies |
 | **📄 Large files** | Single-pass parsing, highlighting and search with tested budgets |
-| **🧪 Tested** | 2009 tests covering parser, exporters, providers and editor widgets |
+| **🧪 Tested** | 2012 tests covering parser, exporters, providers and editor widgets |
 
 ## ⚖️ Comparação
 

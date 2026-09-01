@@ -76,7 +76,7 @@ Tutto qui. L’editor si avvierà con un documento di esempio pronto per la modi
 |---------|-------------|
 | **⚡ Avvio rapido** | Nessun browser incorporato o framework di editing, 22 dipendenze dirette |
 | **📄 File grandi** | Analisi, evidenziazione e ricerca a passaggio singolo, con budget verificati dai test |
-| **🧪 Testato** | 2009 test per parser, esportatori, provider e widget dell’editor |
+| **🧪 Testato** | 2012 test per parser, esportatori, provider e widget dell’editor |
 
 ## ⚖️ A confronto
 
