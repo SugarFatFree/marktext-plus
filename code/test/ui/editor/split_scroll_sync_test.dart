@@ -9,6 +9,7 @@ import 'package:marktext_plus/core/config/config_service.dart';
 import 'package:marktext_plus/core/i18n/l10n/app_localizations.dart';
 import 'package:marktext_plus/providers/settings_provider.dart';
 import 'package:marktext_plus/ui/editor/markdown_renderer.dart';
+import 'package:marktext_plus/ui/editor/source_editor.dart';
 import 'package:marktext_plus/ui/editor/split_editor.dart';
 
 /// Scrolling one half of the split view moves the other.
@@ -202,6 +203,71 @@ void main() {
     final dy = tester.renderObject<RenderBox>(heading).localToGlobal(Offset.zero).dy;
     expect(dy, greaterThan(-200), reason: '按比例同步会把预览滚过头（y=$dy）');
     expect(dy, lessThan(600), reason: '预览没有跟到该到的地方（y=$dy）');
+  });
+
+  /// Where the editing pane has scrolled to.
+  double sourceOffset(WidgetTester tester) {
+    final scrollable = find.descendant(
+      of: find.byType(SourceEditor),
+      matching: find.byType(Scrollable),
+    );
+    // The gutter is no longer a scroll view, so the text field's is the only
+    // one here; `.last` would find the same thing.
+    return tester.state<ScrollableState>(scrollable.first).position.pixels;
+  }
+
+  testWidgets('and the editing pane follows the preview', (tester) async {
+    // The reading half is the one people scroll, so this direction matters as
+    // much as the other.
+    await show(tester);
+    expect(sourceOffset(tester), 0, reason: '前提：两边都在顶部');
+
+    final preview = find.descendant(
+      of: find.byType(MarkdownRenderer),
+      matching: find.byType(Scrollable),
+    );
+    tester.state<ScrollableState>(preview.first).position.jumpTo(1500);
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+
+    expect(sourceOffset(tester), greaterThan(100),
+        reason: '滚动了预览，源码区却没有跟着动');
+  });
+
+  testWidgets('the two do not chase each other', (tester) async {
+    // Each follows the other, so without a guard a move is answered by a
+    // move. Where the round trip happens to be a fixed point that settles at
+    // once and nothing is visibly wrong — which is why driving the preview
+    // proves nothing here. Driving the *editing* pane to where the preview
+    // has run out of document does not settle: the two push each other
+    // forever, and this test hangs rather than failing an expectation.
+    await show(tester);
+    final source = tester.state<ScrollableState>(
+      find
+          .descendant(
+            of: find.byType(SourceEditor),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+
+    for (final through in [0.4, 0.8, 0.98, 1.0]) {
+      source.position.jumpTo(source.position.maxScrollExtent * through);
+      for (var i = 0; i < 5; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      final settledSource = sourceOffset(tester);
+      final settledPreview = previewOffset(tester);
+
+      for (var i = 0; i < 30; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      expect(sourceOffset(tester), closeTo(settledSource, 2),
+          reason: '滚到 ${(through * 100).round()}% 之后源码区自己动了起来');
+      expect(previewOffset(tester), closeTo(settledPreview, 2),
+          reason: '滚到 ${(through * 100).round()}% 之后预览自己动了起来');
+    }
   });
 
   testWidgets('a preview on its own is left alone', (tester) async {

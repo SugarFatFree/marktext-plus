@@ -98,6 +98,15 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   /// position inside the document.
   final GlobalKey _viewportKey = GlobalKey();
 
+  /// When this pane was last moved by the pane beside it rather than by the
+  /// reader.
+  ///
+  /// The two follow each other, so without this each would answer the other's
+  /// move with one of its own and they would chase each other down the
+  /// document. Whoever is being scrolled is the one driving; a move that
+  /// arrives within a moment of a programmatic one is that move, not a reader.
+  DateTime? _movedBySource;
+
   /// A scroll request that cannot be honoured until the rest of the document
   /// has been parsed.
   ///
@@ -225,6 +234,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             if (next != null) _syncToSourceLine(next);
           },
         );
+        _previewScroll.addListener(_reportPreviewLine);
       }
     });
   }
@@ -305,7 +315,52 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     // Jumping, not animating: this runs on every scroll event, and an
     // animation started sixty times a second never finishes one.
     if ((clamped - _previewScroll.offset).abs() < 1) return;
+    _movedBySource = DateTime.now();
     _previewScroll.jumpTo(clamped);
+  }
+
+  /// Tells the pane beside us which line the preview is showing.
+  void _reportPreviewLine() {
+    if (!widget.followsSource || !_previewScroll.hasClients) return;
+    final moved = _movedBySource;
+    if (moved != null &&
+        DateTime.now().difference(moved) < const Duration(milliseconds: 200)) {
+      return;
+    }
+    final line = _lineAtTopOfPreview();
+    if (line == null) return;
+    ref.read(editorProvider.notifier).reportPreviewLine(line);
+  }
+
+  /// The source line the top of the preview is showing.
+  ///
+  /// The inverse of [_contentOffsetForLine]: find the heading the reader has
+  /// scrolled past, and count forwards through the lines by how far into that
+  /// section they are.
+  int? _lineAtTopOfPreview() {
+    if (_headingKeys.isEmpty) return null;
+    final at = _previewScroll.offset;
+
+    int? here;
+    double hereY = 0;
+    int? next;
+    double nextY = 0;
+    for (final entry in _headingKeys.entries) {
+      final y = _contentYOf(entry.value);
+      if (y == null) continue;
+      if (y <= at + 1 && (here == null || y > hereY)) {
+        here = entry.key;
+        hereY = y;
+      }
+      if (y > at + 1 && (next == null || y < nextY)) {
+        next = entry.key;
+        nextY = y;
+      }
+    }
+    if (here == null) return 1;
+    if (next == null || nextY <= hereY) return here;
+    final through = ((at - hereY) / (nextY - hereY)).clamp(0.0, 1.0);
+    return here + ((next - here) * through).round();
   }
 
   /// Where source [line] sits inside the preview's scrolling content.
@@ -396,6 +451,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       recognizer.dispose();
     }
     _hoveredLink.dispose();
+    _previewScroll.removeListener(_reportPreviewLine);
     _previewScroll.dispose();
     _editController.dispose();
     _editFocusNode.dispose();

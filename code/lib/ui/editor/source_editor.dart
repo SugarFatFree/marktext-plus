@@ -584,6 +584,11 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
   /// a position inside it.
   final GlobalKey _gutterKey = GlobalKey();
 
+  /// When this pane was last moved by the preview rather than by the reader.
+  /// Without it the two panes would answer each other's moves and chase one
+  /// another down the document.
+  DateTime? _movedByPreview;
+
   /// The line numbers on screen right now, and where each one sits.
   ///
   /// Read from the editor's own text layout rather than counted off at a
@@ -708,6 +713,17 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
       // the request lands before this editor exists and the listener above
       // never sees it change. Honour whatever is already pending.
       _scrollToTargetLine(ref.read(editorProvider).targetScrollLine);
+
+      // And the other half of the split view's scrolling: where the preview
+      // has been scrolled to.
+      if (widget.reportsScrollPosition) {
+        ref.listenManual(
+          editorProvider.select((s) => s.syncPreviewLine),
+          (prev, next) {
+            if (next != null) _followPreviewToLine(next);
+          },
+        );
+      }
     });
   }
 
@@ -1272,6 +1288,34 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     _reportTopLine();
   }
 
+  /// Scrolls so that source [line] is at the top, because the preview beside
+  /// us has been scrolled there.
+  ///
+  /// The line's position comes from the text layout rather than from a line
+  /// height multiplied out: with a wrapped paragraph the two are not the same
+  /// number, and in Markdown a paragraph is normally one long line.
+  void _followPreviewToLine(int line) {
+    if (!widget.reportsScrollPosition) return;
+    if (!_editorScrollController.hasClients) return;
+    final editable = _renderEditable();
+    final box = _fieldKey.currentContext?.findRenderObject() as RenderBox?;
+    if (editable == null || box == null || !box.hasSize) return;
+
+    final starts = _ensureLineStarts(_controller.text);
+    final index = (line - 1).clamp(0, starts.length - 1);
+    final rect =
+        editable.getLocalRectForCaret(TextPosition(offset: starts[index]));
+    final lineTop = editable.localToGlobal(Offset(0, rect.top)).dy;
+    final paneTop = box.localToGlobal(Offset.zero).dy;
+
+    final position = _editorScrollController.position;
+    final target = (_editorScrollController.offset + (lineTop - paneTop))
+        .clamp(position.minScrollExtent, position.maxScrollExtent);
+    if ((target - _editorScrollController.offset).abs() < 1) return;
+    _movedByPreview = DateTime.now();
+    _editorScrollController.jumpTo(target);
+  }
+
   /// Tells whoever is beside us which line is at the top of the viewport.
   ///
   /// The exact line, from the layout — not the offset divided by a line
@@ -1279,6 +1323,11 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
   /// Markdown a paragraph is normally one long line.
   void _reportTopLine() {
     if (!widget.reportsScrollPosition) return;
+    final moved = _movedByPreview;
+    if (moved != null &&
+        DateTime.now().difference(moved) < const Duration(milliseconds: 200)) {
+      return;
+    }
     final editable = _renderEditable();
     if (editable == null) return;
     final box = _fieldKey.currentContext?.findRenderObject() as RenderBox?;

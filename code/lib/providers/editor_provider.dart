@@ -94,6 +94,10 @@ class EditorState {
   /// This one is a running position: it changes as the reader scrolls and is
   /// never cleared.
   final int? syncSourceLine;
+
+  /// The source line at the top of the preview, for the editing pane beside
+  /// it to follow. The other direction of [syncSourceLine].
+  final int? syncPreviewLine;
   final SearchTarget searchTarget;
   final String previewSearchQuery;
   final bool previewSearchCaseSensitive;
@@ -130,6 +134,7 @@ class EditorState {
     this.showFindReplace = false,
     this.targetScrollLine,
     this.syncSourceLine,
+    this.syncPreviewLine,
     this.searchTarget = SearchTarget.source,
     this.previewSearchQuery = '',
     this.previewSearchCaseSensitive = false,
@@ -153,6 +158,7 @@ class EditorState {
     bool? showFindReplace,
     int? targetScrollLine,
     int? syncSourceLine,
+    int? syncPreviewLine,
     bool clearTargetScrollLine = false,
     SearchTarget? searchTarget,
     String? previewSearchQuery,
@@ -175,6 +181,7 @@ class EditorState {
       showFindReplace: showFindReplace ?? this.showFindReplace,
       targetScrollLine: clearTargetScrollLine ? null : (targetScrollLine ?? this.targetScrollLine),
       syncSourceLine: syncSourceLine ?? this.syncSourceLine,
+      syncPreviewLine: syncPreviewLine ?? this.syncPreviewLine,
       searchTarget: searchTarget ?? this.searchTarget,
       previewSearchQuery: previewSearchQuery ?? this.previewSearchQuery,
       previewSearchCaseSensitive: previewSearchCaseSensitive ?? this.previewSearchCaseSensitive,
@@ -465,6 +472,13 @@ class EditorNotifier extends StateNotifier<EditorState> {
   void reportSourceLine(int line) {
     if (state.syncSourceLine == line) return;
     state = state.copyWith(syncSourceLine: line);
+  }
+
+  /// The other direction: where the preview is looking, for the editing pane
+  /// to follow.
+  void reportPreviewLine(int line) {
+    if (state.syncPreviewLine == line) return;
+    state = state.copyWith(syncPreviewLine: line);
   }
 
   /// Drops every decoded image and asks the preview to read them again.
