@@ -8,6 +8,7 @@
 | BUG-215 | 2026-09-01 | 文档里出现过引用块或带块的列表项，其后所有引用式链接全部失效 | P1 | 已修复 |
 | BUG-216 | 2026-09-01 | 从网页粘贴：任务勾选状态、代码语言、样式排版的加粗全部丢失 | P2 | 已修复 |
 | BUG-217 | 2026-09-01 | 源码区 Ctrl+A 后复制到 Word 丢失格式，复制到记事本丢失换行 | P1 | 已修复 |
+| BUG-218 | 2026-09-01 | 编辑菜单中的复制和剪切没有保留 Markdown 富文本格式 | P2 | 已修复 |
 
 ---
 
@@ -394,3 +395,28 @@ CommonMark 一致性 **492 → 493**，下限同步提到 493。
 - `code/lib/services/clipboard_service.dart`
 - `code/test/services/rich_copy_test.dart`
 - `code/test/services/clipboard_channel_test.dart`
+
+---
+
+## BUG-218：编辑菜单复制和剪切未保留富文本格式
+
+### 现象
+
+源码区通过编辑菜单执行“复制”或“剪切”时，粘贴到 Word 只有 Markdown 源文本，标题、粗体、列表和链接没有格式。
+
+### 根因分析
+
+快捷键路径已改为调用 `ClipboardService.copyWithHtml`，但编辑菜单的两个入口仍直接调用 `Clipboard.setData(ClipboardData(text: selected))`，形成了第二份落后的复制实现。
+
+### 修复方案
+
+复制和剪切菜单统一调用 `RichCopyService.htmlForMarkdownSelection` 生成 HTML，并通过 `ClipboardService.copyWithHtml` 同时写入纯文本和 HTML；剪切仍立即删除编辑器中的选区。
+
+### 验证
+
+新增菜单复制守卫测试，确认复制和剪切入口各调用一次富文本转换与双格式剪贴板服务；`unawaited` 守卫、全量测试和静态分析通过。
+
+### 涉及文件
+
+- `code/lib/ui/widgets/app_menu_bar.dart`
+- `code/test/ui/widgets/menu_copy_rich_guard_test.dart`

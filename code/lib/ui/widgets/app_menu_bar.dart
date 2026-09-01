@@ -33,6 +33,8 @@ import '../editor/mermaid/parser/mermaid_parser.dart';
 import '../../providers/sidebar_provider.dart';
 import 'command_palette.dart';
 import '../../services/file_service.dart';
+import '../../services/clipboard_service.dart';
+import '../../services/rich_copy_service.dart';
 import 'package:window_manager/window_manager.dart';
 import '../../providers/window_provider.dart';
 import '../../providers/update_provider.dart';
@@ -531,7 +533,10 @@ class AppMenuBar extends ConsumerWidget {
             if (!sel.isValid || sel.isCollapsed) return;
             final text = controller.text;
             final selected = text.substring(sel.start, sel.end);
-            Clipboard.setData(ClipboardData(text: selected));
+            final html = RichCopyService.htmlForMarkdownSelection(selected);
+            // Deliberately not awaited: cutting must update the editor
+            // immediately while the native clipboard receives both flavours.
+            unawaited(ClipboardService.copyWithHtml(selected, html));
             controller.value = TextEditingValue(
               text: text.substring(0, sel.start) + text.substring(sel.end),
               selection: TextSelection.collapsed(offset: sel.start),
@@ -546,7 +551,10 @@ class AppMenuBar extends ConsumerWidget {
             final sel = controller.selection;
             if (!sel.isValid || sel.isCollapsed) return;
             final selected = controller.text.substring(sel.start, sel.end);
-            Clipboard.setData(ClipboardData(text: selected));
+            final html = RichCopyService.htmlForMarkdownSelection(selected);
+            // Deliberately not awaited: the menu should return immediately
+            // while the native clipboard receives both flavours.
+            unawaited(ClipboardService.copyWithHtml(selected, html));
           },
         ),
         MenuItemButton(
