@@ -7,6 +7,7 @@
 | FEAT-079 | 2026-09-01 | PDF 排版移出主 isolate，导出期间窗口不再冻住 | P2 | 中 | 已完成 |
 | FEAT-080 | 2026-09-01 | 分屏模式下预览跟随源码区滚动 | P1 | 中 | 已完成 |
 | FEAT-081 | 2026-09-01 | 分屏滚动同步改为双向，并加防回环抑制 | P1 | 中 | 已完成 |
+| FEAT-082 | 2026-09-01 | README 增加与 Typora、MarkText 原版的对比表 | P3 | 低 | 已完成 |
 
 ---
 
@@ -299,3 +300,60 @@ Word 导出（117 KB 约 546 ms）与 HTML（约 225 ms）没有一并改。
 - `code/lib/providers/editor_provider.dart`（新增 `syncPreviewLine`）
 - `code/lib/ui/editor/source_editor.dart`、`code/lib/ui/editor/markdown_renderer.dart`
 - `code/test/ui/editor/split_scroll_sync_test.dart`（新增 1 条，改写 1 条，共 6 条）
+
+---
+
+## FEAT-082：README 增加横向对比表
+
+| 字段 | 内容 |
+|------|------|
+| 实现日期 | 2026-09-01 |
+| 需求描述 | 在 README 里增加与 Typora、MarkText（原版）的对比表格 |
+| 用户场景 | 来看项目的人第一个问题就是「和 Typora、和原版 MarkText 比怎么样」 |
+| 优先级 | P3 |
+| 难易度 | 低 |
+
+### 事实来源（每一格都要能追溯）
+
+**MarkText 原版**：本地就有仓库，逐项读源码核实：
+
+| 项 | 出处 |
+|---|---|
+| v0.20.0-dev、Electron 42 | `package.json` |
+| 56 个直接依赖 | `packages/desktop/package.json` |
+| **32 个主题** | `packages/desktop/src/renderer/src/assets/themes/` 计数 |
+| 10 种界面语言 | `packages/desktop/static/locales/` 计数 |
+| 图表库：mermaid 11 / flowchart.js / vega-embed | 依赖清单；PlantUML 见 e2e 用例 |
+| 导出 HTML / PDF / Markdown，更多格式靠 pandoc | 菜单命令 + 源码里对 pandoc 的引用 |
+| MIT | `LICENSE` |
+
+**Typora**：闭源，无法用同样方式核实，所以**只写架构层面有把握的事实**
+（Electron、闭源付费、实时预览、导出多依赖 pandoc），
+**不写任何具体数字**（语言数、主题数、价格都不写——价格还会过期）。
+表头上方明确注明了两列的取证方式不同。
+
+**本项目**：22 个直接依赖、8 个主题、12 种语言、22 种图表、
+HTML/PDF/Word——这些数字本会话里都反复核实过。
+
+### 刻意加的「对方更强」小节
+
+对比表最容易写成自我吹嘘。所以专门列了一节写清楚我们不如对方的地方：
+
+- **实时预览**：Typora 和 MarkText 都是直接编辑渲染后的文档，不需要切模式；
+  本项目是三种视图 + 块内就地编辑，**是另一种东西**，Typora 用户第一眼就会察觉
+- **主题**：32 比 8，Typora 还有多年社区 CSS 积累
+- **图表广度**：PlantUML、Vega-Lite 本项目没有
+- **年头**：Typora 打磨了十年
+
+**没有写的东西**：内存占用、启动耗时的对比数字。
+架构差异（有没有内嵌浏览器）是事实，可以写；
+但具体数字我没有在同一台机器上测过 Typora 和 MarkText，**写了就是编的**。
+
+### 验证
+
+把改完的 README 交给本项目自己的解析器与 HTML 导出跑了一遍：
+60 个块、7 张表格全部正确渲染，对比表的表头与各行内容都在。
+
+### 涉及文件
+
+- `README.md`

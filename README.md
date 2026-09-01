@@ -88,6 +88,52 @@ That's it! The editor will launch with a sample document ready to edit.
 | **📄 Large files** | Parsing, highlighting and search are all single-pass and budgeted by tests that fail if a change makes them slower |
 | **🧪 Tested** | 1946 tests covering the parser, the exporters, the providers and the editor widgets |
 
+## ⚖️ How it compares
+
+Against the editor it is reimagined from, and against the best-known one in
+this space. Everything in the MarkText column was read out of its source at
+`v0.20.0-dev`; the Typora column is from its published documentation, since it
+is closed source and cannot be checked the same way.
+
+| | **MarkText Plus** | **MarkText** (upstream) | **Typora** |
+|---|---|---|---|
+| **Runtime** | Flutter — compiled, no embedded browser | Electron 42 | Electron |
+| **Direct dependencies** | 22 | 56 (desktop package) | closed source |
+| **Licence** | MIT, free | MIT, free | Paid, closed source |
+| **Editing** | Source, preview, and a split view whose halves follow each other; blocks are edited in place in the preview | Live preview (WYSIWYG), plus a source mode | Live preview (WYSIWYG), plus a source mode |
+| **Diagrams** | 22 Mermaid types, drawn in Dart with no WebView | Mermaid, flowchart.js, Vega-Lite, PlantUML — all through JavaScript | Mermaid, flowchart.js, js-sequence, PlantUML |
+| **Maths** | KaTeX-compatible | KaTeX | KaTeX |
+| **Export** | HTML, PDF, Word — all built in | HTML, PDF, Markdown; more formats if pandoc is installed | Many formats, most of them through pandoc |
+| **Themes** | 8 | 32 | Many, and a large community collection |
+| **Interface languages** | 12 | 10 | Several |
+| **Platforms** | Windows, macOS, Linux (x64 and arm64) | Windows, macOS, Linux | Windows, macOS, Linux |
+
+### Where the others are ahead
+
+Worth saying plainly, because a comparison that only flatters the thing writing
+it is not worth reading.
+
+- **Live preview.** Typora and MarkText both edit the rendered document
+  directly, with no mode to switch. This editor gives you three panes and lets
+  you open a block in place; that is a different thing, and for someone used to
+  Typora it is the difference they will notice first.
+- **Themes.** Thirty-two against eight, and Typora has years of community CSS
+  behind it.
+- **Diagram breadth.** PlantUML and Vega-Lite are not implemented here.
+- **Years.** Typora has been refined for a decade. This is a young program and
+  reads like one in places.
+
+### Where this one is ahead
+
+- **No embedded browser.** The parser, the renderer, the syntax highlighter and
+  the diagram engine are all written here and compiled in. That is the whole
+  reason for the project.
+- **Diagrams without JavaScript.** Twenty-two Mermaid types drawn by a Dart
+  painter, so they render in the PDF and the Word file as pictures rather than
+  as a script the reader's machine has to run.
+- **Word export without pandoc.** No second program to install.
+- **Free and open**, which Typora is not.
+
 ## 🎨 Themes
 
 <table>
