@@ -27,7 +27,7 @@
 ## 方案更新
 
 - 插件市场改为无审核 GitHub Topic 发现：公开仓库添加 `marktext-plus-plugin` 即可被搜索，应用标记为 Community/Unverified。
-- 专用组织不是前置条件；官方 SDK 和示例插件先放在个人账号仓库。
+- 官方插件仓库已集中在 `marktext-plus-plugins` 组织；第三方插件仍保留在各自公开仓库。
 
 ## 错误记录
 
