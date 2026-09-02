@@ -393,5 +393,14 @@
   "updateAvailable": "Nouvelle version disponible",
   "updateDismiss": "Ignorer",
   "linkOpenFailed": "Impossible d'ouvrir le lien",
-  "recentFileMissing": "Ce fichier n’existe plus ; il a été retiré de la liste"
+  "recentFileMissing": "Ce fichier n’existe plus ; il a été retiré de la liste",
+  "settingsAi": "Modèles IA",
+  "settingsAiEnabled": "Activer les plugins IA",
+  "settingsAiProvider": "Fournisseur IA",
+  "settingsAiEndpoint": "Point de terminaison API",
+  "settingsAiModel": "Modèle",
+  "settingsAiKeyReference": "Référence de clé API",
+  "settingsAiSecurityHint": "La clé API est résolue par le coffre de secrets du plugin et n’est pas écrite dans config.json.",
+  "settingsAiOpenai": "Fournisseur OpenAI",
+  "settingsAiAnthropic": "Fournisseur Anthropic"
 }

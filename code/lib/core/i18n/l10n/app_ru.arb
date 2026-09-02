@@ -393,5 +393,14 @@
   "updateAvailable": "Доступна новая версия",
   "updateDismiss": "Скрыть",
   "linkOpenFailed": "Не удалось открыть ссылку",
-  "recentFileMissing": "Этого файла больше нет; он удалён из списка"
+  "recentFileMissing": "Этого файла больше нет; он удалён из списка",
+  "settingsAi": "Модели ИИ",
+  "settingsAiEnabled": "Включить плагины ИИ",
+  "settingsAiProvider": "Провайдер ИИ",
+  "settingsAiEndpoint": "Конечная точка API",
+  "settingsAiModel": "Модель",
+  "settingsAiKeyReference": "Ссылка на ключ API",
+  "settingsAiSecurityHint": "Ключ API извлекается из хранилища секретов плагина и не записывается в config.json.",
+  "settingsAiOpenai": "Провайдер OpenAI",
+  "settingsAiAnthropic": "Провайдер Anthropic"
 }

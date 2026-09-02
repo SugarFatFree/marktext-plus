@@ -393,5 +393,14 @@
   "updateAvailable": "新しいバージョンがあります",
   "updateDismiss": "閉じる",
   "linkOpenFailed": "リンクを開けませんでした",
-  "recentFileMissing": "そのファイルは存在しません。一覧から削除しました"
+  "recentFileMissing": "そのファイルは存在しません。一覧から削除しました",
+  "settingsAi": "AI モデル",
+  "settingsAiEnabled": "AI プラグインを有効化",
+  "settingsAiProvider": "AI プロバイダー",
+  "settingsAiEndpoint": "API エンドポイント",
+  "settingsAiModel": "モデル",
+  "settingsAiKeyReference": "API キー参照",
+  "settingsAiSecurityHint": "API キーはプラグインのシークレットストアから取得され、config.json には書き込まれません。",
+  "settingsAiOpenai": "OpenAI プロバイダー",
+  "settingsAiAnthropic": "Anthropic プロバイダー"
 }

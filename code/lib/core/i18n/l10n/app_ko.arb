@@ -393,5 +393,14 @@
   "updateAvailable": "새 버전이 있습니다",
   "updateDismiss": "닫기",
   "linkOpenFailed": "링크를 열 수 없습니다",
-  "recentFileMissing": "해당 파일이 없습니다. 목록에서 제거했습니다"
+  "recentFileMissing": "해당 파일이 없습니다. 목록에서 제거했습니다",
+  "settingsAi": "AI 모델",
+  "settingsAiEnabled": "AI 플러그인 활성화",
+  "settingsAiProvider": "AI 제공자",
+  "settingsAiEndpoint": "API 엔드포인트",
+  "settingsAiModel": "모델",
+  "settingsAiKeyReference": "API 키 참조",
+  "settingsAiSecurityHint": "API 키는 플러그인 비밀 저장소에서 확인하며 config.json에 기록하지 않습니다.",
+  "settingsAiOpenai": "OpenAI 제공자",
+  "settingsAiAnthropic": "Anthropic 제공자"
 }

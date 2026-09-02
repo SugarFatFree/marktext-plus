@@ -393,5 +393,14 @@
   "updateUpToDate": "已经是最新版本",
   "updateCheckFailed": "检查更新失败",
   "linkOpenFailed": "无法打开链接",
-  "recentFileMissing": "该文件已不存在，已从列表中移除"
+  "recentFileMissing": "该文件已不存在，已从列表中移除",
+  "settingsAi": "AI 大模型",
+  "settingsAiEnabled": "启用 AI 插件",
+  "settingsAiProvider": "AI 服务商",
+  "settingsAiEndpoint": "API 端点",
+  "settingsAiModel": "模型",
+  "settingsAiKeyReference": "API 密钥引用",
+  "settingsAiSecurityHint": "API 密钥由插件密钥存储读取，不会写入 config.json。",
+  "settingsAiOpenai": "OpenAI 服务商",
+  "settingsAiAnthropic": "Anthropic 服务商"
 }

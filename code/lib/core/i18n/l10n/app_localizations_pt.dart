@@ -1026,6 +1026,34 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get recentFileMissing =>
       'Esse arquivo não existe mais; foi removido da lista';
+
+  @override
+  String get settingsAi => 'Modelos de IA';
+
+  @override
+  String get settingsAiEnabled => 'Ativar plugins de IA';
+
+  @override
+  String get settingsAiProvider => 'Fornecedor de IA';
+
+  @override
+  String get settingsAiEndpoint => 'Endpoint da API';
+
+  @override
+  String get settingsAiModel => 'Modelo';
+
+  @override
+  String get settingsAiKeyReference => 'Referência da chave da API';
+
+  @override
+  String get settingsAiSecurityHint =>
+      'A chave da API é obtida no armazenamento seguro do plugin e não é gravada em config.json.';
+
+  @override
+  String get settingsAiOpenai => 'Provedor OpenAI';
+
+  @override
+  String get settingsAiAnthropic => 'Provedor Anthropic';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -2048,4 +2076,32 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get recentFileMissing =>
       'Esse arquivo não existe mais; foi removido da lista';
+
+  @override
+  String get settingsAi => 'Modelos de IA';
+
+  @override
+  String get settingsAiEnabled => 'Ativar plugins de IA';
+
+  @override
+  String get settingsAiProvider => 'Provedor de IA';
+
+  @override
+  String get settingsAiEndpoint => 'Endpoint da API';
+
+  @override
+  String get settingsAiModel => 'Modelo';
+
+  @override
+  String get settingsAiKeyReference => 'Referência da chave da API';
+
+  @override
+  String get settingsAiSecurityHint =>
+      'A chave da API é obtida no armazenamento seguro do plugin e não é gravada em config.json.';
+
+  @override
+  String get settingsAiOpenai => 'Provedor OpenAI';
+
+  @override
+  String get settingsAiAnthropic => 'Provedor Anthropic';
 }

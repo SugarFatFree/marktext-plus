@@ -1018,4 +1018,32 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get recentFileMissing =>
       'لم يعد هذا الملف موجودًا، وقد أُزيل من القائمة';
+
+  @override
+  String get settingsAi => 'نماذج الذكاء الاصطناعي';
+
+  @override
+  String get settingsAiEnabled => 'تمكين إضافات الذكاء الاصطناعي';
+
+  @override
+  String get settingsAiProvider => 'موفر الذكاء الاصطناعي';
+
+  @override
+  String get settingsAiEndpoint => 'نقطة نهاية API';
+
+  @override
+  String get settingsAiModel => 'النموذج';
+
+  @override
+  String get settingsAiKeyReference => 'مرجع مفتاح API';
+
+  @override
+  String get settingsAiSecurityHint =>
+      'يُستخرج مفتاح API من مخزن أسرار الإضافة ولا يُكتب في config.json.';
+
+  @override
+  String get settingsAiOpenai => 'OpenAI (موفر)';
+
+  @override
+  String get settingsAiAnthropic => 'Anthropic (موفر)';
 }

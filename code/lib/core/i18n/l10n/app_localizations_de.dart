@@ -1022,4 +1022,32 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get recentFileMissing =>
       'Diese Datei ist nicht mehr vorhanden und wurde aus der Liste entfernt';
+
+  @override
+  String get settingsAi => 'KI-Modelle';
+
+  @override
+  String get settingsAiEnabled => 'KI-Plugins aktivieren';
+
+  @override
+  String get settingsAiProvider => 'KI-Anbieter';
+
+  @override
+  String get settingsAiEndpoint => 'API-Endpunkt';
+
+  @override
+  String get settingsAiModel => 'Modell';
+
+  @override
+  String get settingsAiKeyReference => 'Referenz des API-Schlüssels';
+
+  @override
+  String get settingsAiSecurityHint =>
+      'Der API-Schlüssel wird aus dem Geheimnisspeicher des Plugins gelesen und nicht in config.json geschrieben.';
+
+  @override
+  String get settingsAiOpenai => 'OpenAI-Anbieter';
+
+  @override
+  String get settingsAiAnthropic => 'Anthropic-Anbieter';
 }

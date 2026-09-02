@@ -1,0 +1,16 @@
+# v1.6.0 工作进度
+
+## 2026-09-02
+
+- 已确认专用 GitHub 插件索引仓库方案。
+- 已确认插件采用独立进程 + JSON-RPC/stdio，避免插件故障卡死主应用。
+- 已确认主题插件首版采用数据型主题包。
+- 已确认 AI 配置需要 provider-neutral 模型和受控 secret bridge。
+- 已发现当前 `AppConfig`、设置页和发布文档入口。
+- 尚未修改应用代码，等待 Phase 1 架构文件完成后开始 TDD 实现。
+- 已实现 AI provider 配置模型与设置页（OpenAI/Anthropic、endpoint、model、secret reference）。
+- 已实现插件 manifest、日志轮转、ZIP 安全安装、HTTPS catalog 和 SHA-256 校验。
+- 已实现独立插件进程宿主、请求超时和日志转发。
+- v1.6.0 文档已创建；SDK/AI 翻译插件 GitHub 仓库因缺少 GitHub 写授权尚未创建。
+- 版本元数据已切换到 `1.6.0+1` / `appVersion 1.6.0`，CHANGELOG 开始 v1.6.0 开发段。
+- 已补充外部 SDK 与 AI 翻译插件仓库规划，远程仓库待 GitHub 写授权。

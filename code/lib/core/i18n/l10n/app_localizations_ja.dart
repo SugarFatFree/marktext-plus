@@ -1008,4 +1008,32 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get recentFileMissing => 'そのファイルは存在しません。一覧から削除しました';
+
+  @override
+  String get settingsAi => 'AI モデル';
+
+  @override
+  String get settingsAiEnabled => 'AI プラグインを有効化';
+
+  @override
+  String get settingsAiProvider => 'AI プロバイダー';
+
+  @override
+  String get settingsAiEndpoint => 'API エンドポイント';
+
+  @override
+  String get settingsAiModel => 'モデル';
+
+  @override
+  String get settingsAiKeyReference => 'API キー参照';
+
+  @override
+  String get settingsAiSecurityHint =>
+      'API キーはプラグインのシークレットストアから取得され、config.json には書き込まれません。';
+
+  @override
+  String get settingsAiOpenai => 'OpenAI プロバイダー';
+
+  @override
+  String get settingsAiAnthropic => 'Anthropic プロバイダー';
 }

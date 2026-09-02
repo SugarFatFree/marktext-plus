@@ -2024,6 +2024,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'That file is no longer there; it has been removed from the list'**
   String get recentFileMissing;
+
+  /// No description provided for @settingsAi.
+  ///
+  /// In en, this message translates to:
+  /// **'AI models'**
+  String get settingsAi;
+
+  /// No description provided for @settingsAiEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable AI plugins'**
+  String get settingsAiEnabled;
+
+  /// No description provided for @settingsAiProvider.
+  ///
+  /// In en, this message translates to:
+  /// **'AI provider'**
+  String get settingsAiProvider;
+
+  /// No description provided for @settingsAiEndpoint.
+  ///
+  /// In en, this message translates to:
+  /// **'API endpoint'**
+  String get settingsAiEndpoint;
+
+  /// No description provided for @settingsAiModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Model'**
+  String get settingsAiModel;
+
+  /// No description provided for @settingsAiKeyReference.
+  ///
+  /// In en, this message translates to:
+  /// **'API key reference'**
+  String get settingsAiKeyReference;
+
+  /// No description provided for @settingsAiSecurityHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The API key is resolved by the plugin secret store and is not written to config.json.'**
+  String get settingsAiSecurityHint;
+
+  /// No description provided for @settingsAiOpenai.
+  ///
+  /// In en, this message translates to:
+  /// **'OpenAI'**
+  String get settingsAiOpenai;
+
+  /// No description provided for @settingsAiAnthropic.
+  ///
+  /// In en, this message translates to:
+  /// **'Anthropic'**
+  String get settingsAiAnthropic;
 }
 
 class _AppLocalizationsDelegate

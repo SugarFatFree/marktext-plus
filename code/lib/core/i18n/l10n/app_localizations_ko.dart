@@ -1008,4 +1008,32 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get recentFileMissing => '해당 파일이 없습니다. 목록에서 제거했습니다';
+
+  @override
+  String get settingsAi => 'AI 모델';
+
+  @override
+  String get settingsAiEnabled => 'AI 플러그인 활성화';
+
+  @override
+  String get settingsAiProvider => 'AI 제공자';
+
+  @override
+  String get settingsAiEndpoint => 'API 엔드포인트';
+
+  @override
+  String get settingsAiModel => '모델';
+
+  @override
+  String get settingsAiKeyReference => 'API 키 참조';
+
+  @override
+  String get settingsAiSecurityHint =>
+      'API 키는 플러그인 비밀 저장소에서 확인하며 config.json에 기록하지 않습니다.';
+
+  @override
+  String get settingsAiOpenai => 'OpenAI 제공자';
+
+  @override
+  String get settingsAiAnthropic => 'Anthropic 제공자';
 }

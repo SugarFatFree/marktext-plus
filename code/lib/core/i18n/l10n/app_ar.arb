@@ -393,5 +393,14 @@
   "updateAvailable": "يتوفر إصدار جديد",
   "updateDismiss": "تجاهل",
   "linkOpenFailed": "تعذّر فتح الرابط",
-  "recentFileMissing": "لم يعد هذا الملف موجودًا، وقد أُزيل من القائمة"
+  "recentFileMissing": "لم يعد هذا الملف موجودًا، وقد أُزيل من القائمة",
+  "settingsAi": "نماذج الذكاء الاصطناعي",
+  "settingsAiEnabled": "تمكين إضافات الذكاء الاصطناعي",
+  "settingsAiProvider": "موفر الذكاء الاصطناعي",
+  "settingsAiEndpoint": "نقطة نهاية API",
+  "settingsAiModel": "النموذج",
+  "settingsAiKeyReference": "مرجع مفتاح API",
+  "settingsAiSecurityHint": "يُستخرج مفتاح API من مخزن أسرار الإضافة ولا يُكتب في config.json.",
+  "settingsAiOpenai": "OpenAI (موفر)",
+  "settingsAiAnthropic": "Anthropic (موفر)"
 }

@@ -1007,4 +1007,31 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get recentFileMissing => '该文件已不存在，已从列表中移除';
+
+  @override
+  String get settingsAi => 'AI 大模型';
+
+  @override
+  String get settingsAiEnabled => '启用 AI 插件';
+
+  @override
+  String get settingsAiProvider => 'AI 服务商';
+
+  @override
+  String get settingsAiEndpoint => 'API 端点';
+
+  @override
+  String get settingsAiModel => '模型';
+
+  @override
+  String get settingsAiKeyReference => 'API 密钥引用';
+
+  @override
+  String get settingsAiSecurityHint => 'API 密钥由插件密钥存储读取，不会写入 config.json。';
+
+  @override
+  String get settingsAiOpenai => 'OpenAI 服务商';
+
+  @override
+  String get settingsAiAnthropic => 'Anthropic 服务商';
 }

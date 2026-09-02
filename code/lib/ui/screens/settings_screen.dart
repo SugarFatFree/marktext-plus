@@ -9,7 +9,7 @@ import '../../core/theme/app_theme.dart';
 import '../../services/keybinding_service.dart';
 import '../../services/image_service.dart';
 
-enum _Category { general, editor, markdown, theme, keybindings }
+enum _Category { general, editor, markdown, theme, keybindings, ai }
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -109,6 +109,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 _catTile(_Category.markdown, l10n.settingsMarkdown, Icons.code, tokens),
                 _catTile(_Category.theme, l10n.settingsTheme, Icons.palette, tokens),
                 _catTile(_Category.keybindings, l10n.settingsKeybindings, Icons.keyboard, tokens),
+                _catTile(_Category.ai, l10n.settingsAi, Icons.auto_awesome, tokens),
               ],
             ),
           ),
@@ -197,6 +198,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         return _themeSection(l10n);
       case _Category.keybindings:
         return _keybindingsSection(l10n);
+      case _Category.ai:
+        return _aiSection(l10n);
     }
   }
 
@@ -288,6 +291,95 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 },
               ),
           ),
+        ),
+      ],
+    );
+  }
+
+  // -- AI --
+  Widget _aiSection(AppLocalizations l10n) {
+    final config = ref.watch(settingsProvider);
+    final notifier = ref.read(settingsProvider.notifier);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(l10n.settingsAi,
+            style: Theme.of(context).textTheme.headlineSmall),
+        const SizedBox(height: 24),
+        _row(
+          l10n.settingsAiEnabled,
+          Switch(
+            value: config.aiEnabled,
+            onChanged: (value) => notifier.updateConfig(
+              (c) => c.copyWith(aiEnabled: value),
+            ),
+          ),
+        ),
+        _row(
+          l10n.settingsAiProvider,
+          SizedBox(
+            width: 220,
+            child: DropdownButton<AiProvider>(
+              isExpanded: true,
+              value: config.aiProvider,
+              items: [
+                DropdownMenuItem(
+                  value: AiProvider.openai,
+                  child: Text(l10n.settingsAiOpenai),
+                ),
+                DropdownMenuItem(
+                  value: AiProvider.anthropic,
+                  child: Text(l10n.settingsAiAnthropic),
+                ),
+              ],
+              onChanged: (value) {
+                if (value == null) return;
+                notifier.updateConfig((c) => c.copyWith(aiProvider: value));
+              },
+            ),
+          ),
+        ),
+        _row(
+          l10n.settingsAiEndpoint,
+          SizedBox(
+            width: 360,
+            child: TextField(
+              controller: _field('aiEndpoint', config.aiEndpoint),
+              onSubmitted: (value) => notifier.updateConfig(
+                (c) => c.copyWith(aiEndpoint: value.trim()),
+              ),
+            ),
+          ),
+        ),
+        _row(
+          l10n.settingsAiModel,
+          SizedBox(
+            width: 360,
+            child: TextField(
+              controller: _field('aiModel', config.aiModel),
+              onSubmitted: (value) => notifier.updateConfig(
+                (c) => c.copyWith(aiModel: value.trim()),
+              ),
+            ),
+          ),
+        ),
+        _row(
+          l10n.settingsAiKeyReference,
+          SizedBox(
+            width: 360,
+            child: TextField(
+              controller: _field('aiApiKeyRef', config.aiApiKeyRef),
+              onSubmitted: (value) => notifier.updateConfig(
+                (c) => c.copyWith(aiApiKeyRef: value.trim()),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          l10n.settingsAiSecurityHint,
+          style: Theme.of(context).textTheme.bodySmall,
         ),
       ],
     );

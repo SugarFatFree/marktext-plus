@@ -393,5 +393,14 @@
   "updateAvailable": "Neue Version verfügbar",
   "updateDismiss": "Ausblenden",
   "linkOpenFailed": "Link konnte nicht geöffnet werden",
-  "recentFileMissing": "Diese Datei ist nicht mehr vorhanden und wurde aus der Liste entfernt"
+  "recentFileMissing": "Diese Datei ist nicht mehr vorhanden und wurde aus der Liste entfernt",
+  "settingsAi": "KI-Modelle",
+  "settingsAiEnabled": "KI-Plugins aktivieren",
+  "settingsAiProvider": "KI-Anbieter",
+  "settingsAiEndpoint": "API-Endpunkt",
+  "settingsAiModel": "Modell",
+  "settingsAiKeyReference": "Referenz des API-Schlüssels",
+  "settingsAiSecurityHint": "Der API-Schlüssel wird aus dem Geheimnisspeicher des Plugins gelesen und nicht in config.json geschrieben.",
+  "settingsAiOpenai": "OpenAI-Anbieter",
+  "settingsAiAnthropic": "Anthropic-Anbieter"
 }

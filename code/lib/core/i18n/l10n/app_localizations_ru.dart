@@ -1021,4 +1021,32 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get recentFileMissing => 'Этого файла больше нет; он удалён из списка';
+
+  @override
+  String get settingsAi => 'Модели ИИ';
+
+  @override
+  String get settingsAiEnabled => 'Включить плагины ИИ';
+
+  @override
+  String get settingsAiProvider => 'Провайдер ИИ';
+
+  @override
+  String get settingsAiEndpoint => 'Конечная точка API';
+
+  @override
+  String get settingsAiModel => 'Модель';
+
+  @override
+  String get settingsAiKeyReference => 'Ссылка на ключ API';
+
+  @override
+  String get settingsAiSecurityHint =>
+      'Ключ API извлекается из хранилища секретов плагина и не записывается в config.json.';
+
+  @override
+  String get settingsAiOpenai => 'Провайдер OpenAI';
+
+  @override
+  String get settingsAiAnthropic => 'Провайдер Anthropic';
 }

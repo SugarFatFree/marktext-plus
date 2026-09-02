@@ -499,5 +499,14 @@
   "recentFileMissing": "That file is no longer there; it has been removed from the list",
   "@linkOpenFailed": {
     "description": "Shown when a link in the preview cannot be opened"
-  }
+  },
+  "settingsAi": "AI models",
+  "settingsAiEnabled": "Enable AI plugins",
+  "settingsAiProvider": "AI provider",
+  "settingsAiEndpoint": "API endpoint",
+  "settingsAiModel": "Model",
+  "settingsAiKeyReference": "API key reference",
+  "settingsAiSecurityHint": "The API key is resolved by the plugin secret store and is not written to config.json.",
+  "settingsAiOpenai": "OpenAI",
+  "settingsAiAnthropic": "Anthropic"
 }

@@ -1018,4 +1018,32 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get recentFileMissing =>
       'That file is no longer there; it has been removed from the list';
+
+  @override
+  String get settingsAi => 'AI models';
+
+  @override
+  String get settingsAiEnabled => 'Enable AI plugins';
+
+  @override
+  String get settingsAiProvider => 'AI provider';
+
+  @override
+  String get settingsAiEndpoint => 'API endpoint';
+
+  @override
+  String get settingsAiModel => 'Model';
+
+  @override
+  String get settingsAiKeyReference => 'API key reference';
+
+  @override
+  String get settingsAiSecurityHint =>
+      'The API key is resolved by the plugin secret store and is not written to config.json.';
+
+  @override
+  String get settingsAiOpenai => 'OpenAI';
+
+  @override
+  String get settingsAiAnthropic => 'Anthropic';
 }

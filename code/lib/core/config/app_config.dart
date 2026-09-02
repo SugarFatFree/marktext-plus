@@ -4,6 +4,8 @@ enum EditMode { source, preview, split }
 
 enum FileOpenBehavior { newWindow, existingWindow, notSet }
 
+enum AiProvider { openai, anthropic }
+
 class AppConfig {
   bool sideBarVisible;
   bool tabBarVisible;
@@ -96,6 +98,14 @@ class AppConfig {
   List<String> sessionTabs;
   String sessionActiveTab;
 
+  /// AI settings used by plugins. The key itself is never stored here;
+  /// [aiApiKeyRef] names an entry in the platform secret store.
+  bool aiEnabled;
+  AiProvider aiProvider;
+  String aiEndpoint;
+  String aiModel;
+  String aiApiKeyRef;
+
   AppConfig({
     this.sideBarVisible = true,
     this.tabBarVisible = true,
@@ -140,6 +150,11 @@ class AppConfig {
     this.sideBarOpenedFiles = const [],
     this.sessionTabs = const [],
     this.sessionActiveTab = '',
+    this.aiEnabled = false,
+    this.aiProvider = AiProvider.openai,
+    this.aiEndpoint = '',
+    this.aiModel = '',
+    this.aiApiKeyRef = '',
   });
 
   Map<String, dynamic> toJson() => {
@@ -186,6 +201,11 @@ class AppConfig {
     'sideBarOpenedFiles': sideBarOpenedFiles,
     'sessionTabs': sessionTabs,
     'sessionActiveTab': sessionActiveTab,
+    'aiEnabled': aiEnabled,
+    'aiProvider': aiProvider.name,
+    'aiEndpoint': aiEndpoint,
+    'aiModel': aiModel,
+    'aiApiKeyRef': aiApiKeyRef,
   };
 
   factory AppConfig.fromJson(Map<String, dynamic> json) {
@@ -199,12 +219,16 @@ class AppConfig {
       lineHeight: _parseDouble(json['lineHeight'], 1.6),
       autoSave: json['autoSave'] as bool? ?? true,
       autoSaveDelay: json['autoSaveDelay'] as int? ?? 5000,
-      themeName: AppTheme.migrateName(json['themeName'] as String? ?? 'redGraphite'),
+      themeName: AppTheme.migrateName(
+        json['themeName'] as String? ?? 'redGraphite',
+      ),
       followSystemTheme: json['followSystemTheme'] as bool? ?? false,
       lightModeTheme: AppTheme.migrateName(
-          json['lightModeTheme'] as String? ?? 'redGraphite'),
+        json['lightModeTheme'] as String? ?? 'redGraphite',
+      ),
       darkModeTheme: AppTheme.migrateName(
-          json['darkModeTheme'] as String? ?? 'darkGraphite'),
+        json['darkModeTheme'] as String? ?? 'darkGraphite',
+      ),
       locale: json['locale'] as String? ?? '',
       bulletListMarker: json['bulletListMarker'] as String? ?? '-',
       tabSize: json['tabSize'] as int? ?? 4,
@@ -213,16 +237,17 @@ class AppConfig {
       codeBlockLineNumbers: json['codeBlockLineNumbers'] as bool? ?? true,
       autoPairBracket: json['autoPairBracket'] as bool? ?? true,
       autoPairQuote: json['autoPairQuote'] as bool? ?? true,
-      autoPairMarkdownSyntax:
-          json['autoPairMarkdownSyntax'] as bool? ?? true,
+      autoPairMarkdownSyntax: json['autoPairMarkdownSyntax'] as bool? ?? true,
       windowWidth: _parseDouble(json['windowWidth'], 1200),
       windowHeight: _parseDouble(json['windowHeight'], 800),
       windowX: _parseDouble(json['windowX'], 0),
       windowY: _parseDouble(json['windowY'], 0),
       isMaximized: json['isMaximized'] as bool? ?? false,
-      recentFiles: (json['recentFiles'] as List<dynamic>?)
-          ?.map((e) => e as String)
-          .toList() ?? [],
+      recentFiles:
+          (json['recentFiles'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
       focusMode: json['focusMode'] as bool? ?? false,
       typewriterMode: json['typewriterMode'] as bool? ?? false,
       codeFontFamily: json['codeFontFamily'] as String? ?? 'Courier New',
@@ -235,15 +260,22 @@ class AppConfig {
       lastUpdateCheck: json['lastUpdateCheck'] as String? ?? '',
       skipVersion: json['skipVersion'] as String? ?? '',
       sideBarDirectory: json['sideBarDirectory'] as String? ?? '',
-      sideBarOpenedFiles: (json['sideBarOpenedFiles'] as List?)?.cast<String>() ?? const [],
+      sideBarOpenedFiles:
+          (json['sideBarOpenedFiles'] as List?)?.cast<String>() ?? const [],
       sessionTabs: (json['sessionTabs'] as List?)?.cast<String>() ?? const [],
       sessionActiveTab: json['sessionActiveTab'] as String? ?? '',
+      aiEnabled: json['aiEnabled'] as bool? ?? false,
+      aiProvider: _parseAiProvider(json['aiProvider']),
+      aiEndpoint: json['aiEndpoint'] as String? ?? '',
+      aiModel: json['aiModel'] as String? ?? '',
+      aiApiKeyRef: json['aiApiKeyRef'] as String? ?? '',
     );
   }
 
   static EditMode _parseEditMode(dynamic value) {
     if (value is String) {
-      return EditMode.values.where((e) => e.name == value).firstOrNull ?? EditMode.preview;
+      return EditMode.values.where((e) => e.name == value).firstOrNull ??
+          EditMode.preview;
     }
     return EditMode.preview;
   }
@@ -253,11 +285,22 @@ class AppConfig {
     return defaultValue;
   }
 
+  static AiProvider _parseAiProvider(dynamic value) {
+    if (value is String) {
+      return AiProvider.values
+              .where((provider) => provider.name == value)
+              .firstOrNull ??
+          AiProvider.openai;
+    }
+    return AiProvider.openai;
+  }
+
   static FileOpenBehavior _parseFileOpenBehavior(dynamic value) {
     if (value is String) {
       return FileOpenBehavior.values
-          .where((e) => e.name == value)
-          .firstOrNull ?? FileOpenBehavior.notSet;
+              .where((e) => e.name == value)
+              .firstOrNull ??
+          FileOpenBehavior.notSet;
     }
     return FileOpenBehavior.notSet;
   }
@@ -306,6 +349,11 @@ class AppConfig {
     List<String>? sideBarOpenedFiles,
     List<String>? sessionTabs,
     String? sessionActiveTab,
+    bool? aiEnabled,
+    AiProvider? aiProvider,
+    String? aiEndpoint,
+    String? aiModel,
+    String? aiApiKeyRef,
   }) {
     return AppConfig(
       sideBarVisible: sideBarVisible ?? this.sideBarVisible,
@@ -326,8 +374,7 @@ class AppConfig {
       tabSize: tabSize ?? this.tabSize,
       enableHtml: enableHtml ?? this.enableHtml,
       wrapCodeBlocks: wrapCodeBlocks ?? this.wrapCodeBlocks,
-      codeBlockLineNumbers:
-          codeBlockLineNumbers ?? this.codeBlockLineNumbers,
+      codeBlockLineNumbers: codeBlockLineNumbers ?? this.codeBlockLineNumbers,
       autoPairBracket: autoPairBracket ?? this.autoPairBracket,
       autoPairQuote: autoPairQuote ?? this.autoPairQuote,
       autoPairMarkdownSyntax:
@@ -353,6 +400,11 @@ class AppConfig {
       sideBarOpenedFiles: sideBarOpenedFiles ?? this.sideBarOpenedFiles,
       sessionTabs: sessionTabs ?? this.sessionTabs,
       sessionActiveTab: sessionActiveTab ?? this.sessionActiveTab,
+      aiEnabled: aiEnabled ?? this.aiEnabled,
+      aiProvider: aiProvider ?? this.aiProvider,
+      aiEndpoint: aiEndpoint ?? this.aiEndpoint,
+      aiModel: aiModel ?? this.aiModel,
+      aiApiKeyRef: aiApiKeyRef ?? this.aiApiKeyRef,
     );
   }
 }
