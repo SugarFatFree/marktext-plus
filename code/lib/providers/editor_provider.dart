@@ -104,6 +104,7 @@ class EditorState {
   final bool previewSearchWholeWord;
   final bool previewSearchUseRegex;
   final int previewCurrentMatchIndex;
+  final String selectedText;
 
   /// Bumped each time the user asks to step to another search match.
   ///
@@ -141,6 +142,7 @@ class EditorState {
     this.previewSearchWholeWord = false,
     this.previewSearchUseRegex = false,
     this.previewCurrentMatchIndex = -1,
+    this.selectedText = '',
     this.findStepRequest = 0,
     this.imageRevision = 0,
     this.findStepForward = true,
@@ -166,6 +168,7 @@ class EditorState {
     bool? previewSearchWholeWord,
     bool? previewSearchUseRegex,
     int? previewCurrentMatchIndex,
+    String? selectedText,
     int? findStepRequest,
     int? imageRevision,
     bool? findStepForward,
@@ -188,6 +191,7 @@ class EditorState {
       previewSearchWholeWord: previewSearchWholeWord ?? this.previewSearchWholeWord,
       previewSearchUseRegex: previewSearchUseRegex ?? this.previewSearchUseRegex,
       previewCurrentMatchIndex: previewCurrentMatchIndex ?? this.previewCurrentMatchIndex,
+      selectedText: selectedText ?? this.selectedText,
       findStepRequest: findStepRequest ?? this.findStepRequest,
       imageRevision: imageRevision ?? this.imageRevision,
       findStepForward: findStepForward ?? this.findStepForward,
@@ -522,6 +526,11 @@ class EditorNotifier extends StateNotifier<EditorState> {
       previewSearchQuery: '',
       previewCurrentMatchIndex: -1,
     );
+  }
+
+  void setSelectedText(String text) {
+    if (state.selectedText == text) return;
+    state = state.copyWith(selectedText: text);
   }
 }
 

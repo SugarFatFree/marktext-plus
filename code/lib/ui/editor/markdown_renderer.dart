@@ -50,6 +50,10 @@ class MarkdownRenderer extends ConsumerStatefulWidget {
   /// it: on its own the preview has nobody to follow.
   final bool followsSource;
 
+  @visibleForTesting
+  static double bottomRoomForHeight(double height) =>
+      (height * 0.25).clamp(0.0, 500.0);
+
   @override
   ConsumerState<MarkdownRenderer> createState() => _MarkdownRendererState();
 }
@@ -813,6 +817,9 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         key: _viewportKey,
         controller: _previewScroll,
         child: SelectionArea(
+          onSelectionChanged: (content) => ref
+              .read(editorProvider.notifier)
+              .setSelectedText(content?.plainText ?? ''),
           child: Center(
             child: ConstrainedBox(
               constraints: BoxConstraints(
@@ -1458,7 +1465,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   /// screen.
   double _bottomRoom(BuildContext context) {
     final height = MediaQuery.maybeOf(context)?.size.height ?? 0;
-    return (height * 0.6).clamp(0.0, 600.0);
+    return MarkdownRenderer.bottomRoomForHeight(height);
   }
 
   /// A size from the original design, at the reader's scale.

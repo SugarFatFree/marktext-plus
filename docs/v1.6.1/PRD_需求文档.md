@@ -9,6 +9,8 @@
 | FEAT-096 | 2026-09-02 | 社区插件详情与安装流程 | P1 | 中 | 已完成 |
 | FEAT-097 | 2026-09-02 | AI key 输入与插件 secret bridge | P1 | 中 | 已完成 |
 | FEAT-098 | 2026-09-02 | 插件独立设置页和菜单贡献宿主渲染 | P1 | 高 | 已完成 |
+| FEAT-099 | 2026-09-02 | 预览选区翻译与全文双视图预览 | P1 | 中 | 已完成 |
+| FEAT-100 | 2026-09-02 | 预览底部留白适配 | P2 | 低 | 已完成 |
 
 ---
 
@@ -88,3 +90,25 @@
 | 实现方案 | `PluginSettingsScreen` 通过 `getSettings`/`setSettings` JSON-RPC 工作；`AppMenuBar` 渲染 commands/menus；工具栏使用固定槽位 |
 | 验收标准 | 设置页可读写 JSON，菜单动作通过独立进程执行，插件不能注入任意坐标或 Widget |
 | 涉及文件 | `plugin_settings_screen.dart`、`app_menu_bar.dart`、`plugin_action_service.dart` |
+
+## FEAT-099：预览选区翻译与全文双视图预览
+
+| 字段 | 内容 |
+|------|------|
+| 实现日期 | 2026-09-02 |
+| 需求描述 | 支持预览选区翻译，全文翻译以双视图只读结果展示且不修改原文 |
+| 用户场景 | 用户在预览或源码中选择内容，或查看整篇译文并决定是否手工采用 |
+| 实现方案 | `EditorState.selectedText` 统一选区；插件返回结果后用左右 `SelectableText` 展示原文和译文 |
+| 验收标准 | 预览选区可识别，全文翻译不改写 tab 内容，结果可复制 |
+| 涉及文件 | `editor_provider.dart`、`markdown_renderer.dart`、`plugin_panel.dart` |
+
+## FEAT-100：预览底部留白适配
+
+| 字段 | 内容 |
+|------|------|
+| 实现日期 | 2026-09-02 |
+| 需求描述 | 将预览底部滚动余量从 60% 调整为 25% 视口高度 |
+| 用户场景 | 短文档滚动到底部时仍保留舒适余量，但不出现半屏空白 |
+| 实现方案 | `MarkdownRenderer.bottomRoomForHeight` 使用 25% 比例和 500px 上限 |
+| 验收标准 | 800px 视口余量为 200px，长视口不无限增长 |
+| 涉及文件 | `markdown_renderer.dart`、`preview_bottom_room_test.dart` |

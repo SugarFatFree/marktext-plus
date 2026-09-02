@@ -77,7 +77,7 @@ flutter pub get && flutter run
 | **🧩 Open plugins** | Discover public plugins through [GitHub Topic: `marktext-plus-plugin`](https://github.com/topics/marktext-plus-plugin); every plugin is labelled Community/Unverified and runs out of process |
 | **⚡ 빠른 시작** | 내장 브라우저와 편집 프레임워크 없이 직접 의존성 22개 |
 | **📄 대용량 파일** | 파싱·강조·검색을 단일 패스로 처리하고 테스트 예산으로 관리 |
-| **🧪 테스트 완료** | 파서, 내보내기, provider, 편집기 위젯을 2027개 테스트로 검증 |
+| **🧪 테스트 완료** | 파서, 내보내기, provider, 편집기 위젯을 2028개 테스트로 검증 |
 ## ⚖️ 다른 편집기와 비교
 
 이 프로젝트가 다시 만든 원본 편집기, 그리고 이 분야에서 가장 잘 알려진 편집기와 비교했습니다. MarkText 열의 모든 수치는 `v0.20.0-dev` 소스에서 직접 읽은 것입니다. Typora 는 비공개 소스라 같은 방식으로 확인할 수 없어, 공개된 문서에 적힌 내용만 실었습니다.

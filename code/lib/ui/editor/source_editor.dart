@@ -51,12 +51,16 @@ class SourceEditor extends ConsumerStatefulWidget {
     this.externalRevision = 0,
     this.onChanged,
     this.reportsScrollPosition = false,
+    this.constrainWidth = true,
   });
 
   /// Whether to publish the line at the top of the viewport, for a preview
   /// beside this pane to follow. Only split view wants it; on its own the
   /// pane has nobody to tell.
   final bool reportsScrollPosition;
+
+  /// Source mode should use the whole available editor width.
+  final bool constrainWidth;
 
   @override
   ConsumerState<SourceEditor> createState() => _SourceEditorState();
@@ -1249,6 +1253,11 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     if (_isInitialized) _syncLanguagePicker(text);
 
     ref.read(editorProvider.notifier).updateCursor(line, col);
+    ref.read(editorProvider.notifier).setSelectedText(
+      selection.isCollapsed
+          ? ''
+          : text.substring(selection.start, selection.end),
+    );
 
     if (_isInitialized) _syncFormatToolbar();
 
@@ -2428,7 +2437,10 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
 
     return Center(
       child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: maxWidth),
+        constraints: BoxConstraints(
+          minWidth: widget.constrainWidth ? 0 : double.infinity,
+          maxWidth: widget.constrainWidth ? maxWidth : double.infinity,
+        ),
         child: LayoutBuilder(
           builder: (context, outer) {
             // Room under the last line, so it can be scrolled up to where the

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Plugin settings and menu contributions are rendered by the host through the isolated plugin protocol.
+- AI translation now uses selections from source or preview and shows full-document results in a non-destructive split view.
 - Plugin entry, Topic discovery feedback, toolbar alignment, plugin lifecycle controls and isolated plugin actions are refined for the next release.
 - AI model settings now save while typing, accept a real API key into the system secret store, and can test provider configuration; the translation plugin receives that key only in memory.
 

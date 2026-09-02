@@ -10,10 +10,10 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/i18n/l10n/app_localizations.dart';
 import '../../providers/editor_provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../providers/tab_provider.dart';
 import '../../services/plugin_catalog_service.dart';
 import '../../services/plugin_manager.dart';
 import '../../services/plugin_manifest.dart';
-import '../../services/plugin_process_host.dart';
 import '../screens/plugin_settings_screen.dart';
 import '../../services/plugin_secret_store.dart';
 
@@ -159,52 +159,17 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
     if (mounted) setState(() => _installedFuture = manager.loadInstalled());
   }
 
-  Future<void> _translateSelection(PluginManifest plugin) async {
-    final editor = ref.read(editorProvider.notifier).controller;
-    if (editor == null || editor.selection.isCollapsed) {
-      setState(() => _error = StateError('Select Markdown text first'));
-      return;
-    }
-    final targetController = TextEditingController(text: 'English');
-    final target = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Translate selection'),
-        content: TextField(
-          controller: targetController,
-          autofocus: true,
-          decoration: const InputDecoration(labelText: 'Target language'),
-          onSubmitted: (value) => Navigator.of(context).pop(value.trim()),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(targetController.text.trim()),
-            child: const Text('Translate'),
-          ),
-        ],
-      ),
-    );
-    targetController.dispose();
-    if (target == null || target.isEmpty || !mounted) return;
-
-    final selection = editor.selection;
-    final source = editor.text.substring(selection.start, selection.end);
+  Future<String> _translateText(PluginManifest plugin, String source, String target) async {
     final config = ref.read(settingsProvider);
     final apiKey = await PluginSecretBridge(PlatformSecretStore())
         .resolve(config.aiApiKeyRef);
     if (apiKey == null || apiKey.isEmpty) {
-      setState(() => _error = StateError('Configure the AI key reference first'));
-      return;
+      throw StateError('Configure and save the AI API key first');
     }
 
-    PluginProcessHost? host;
+    final manager = await _manager();
+    final host = await manager.startPlugin(plugin);
     try {
-      final manager = await _manager();
-      host = await manager.startPlugin(plugin);
       await host.call('initialize', params: {
         'provider': config.aiProvider.name,
         'endpoint': config.aiEndpoint,
@@ -219,18 +184,100 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
       if (translated is! String || translated.isEmpty) {
         throw const FormatException('AI plugin returned no translation');
       }
-      editor.value = editor.value.copyWith(
-        text: editor.text.substring(0, selection.start) +
-            translated +
-            editor.text.substring(selection.end),
-        selection: TextSelection.collapsed(
-          offset: selection.start + translated.length,
+      return translated;
+    } finally {
+      await host.stop();
+    }
+  }
+
+  Future<String?> _askTargetLanguage(String title) async {
+    final controller = TextEditingController(text: 'English');
+    final result = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(title),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Target language'),
+          onSubmitted: (value) => Navigator.of(dialogContext).pop(value.trim()),
         ),
-      );
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(controller.text.trim()),
+            child: const Text('Translate'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    return result?.isEmpty ?? true ? null : result;
+  }
+
+  Future<void> _showTranslation(String source, String translated, {required bool fullDocument}) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(fullDocument ? 'Full document translation' : 'Translation result'),
+        content: SizedBox(
+          width: 900,
+          height: 520,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: SelectableText(source),
+              ),
+              const VerticalDivider(width: 24),
+              Expanded(
+                child: SelectableText(translated),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _translateSelection(PluginManifest plugin) async {
+    final source = ref.read(editorProvider).selectedText;
+    if (source.trim().isEmpty) {
+      setState(() => _error = StateError('Select Markdown text first'));
+      return;
+    }
+    final target = await _askTargetLanguage('Translate selection');
+    if (target == null || !mounted) return;
+    try {
+      final translated = await _translateText(plugin, source, target);
+      if (mounted) await _showTranslation(source, translated, fullDocument: false);
     } catch (error) {
       if (mounted) setState(() => _error = error);
-    } finally {
-      await host?.stop();
+    }
+  }
+
+  Future<void> _translateFullDocument(PluginManifest plugin) async {
+    final document = ref.read(activeTabProvider)?.content;
+    if (document == null || document.trim().isEmpty) {
+      setState(() => _error = StateError('Open a Markdown document first'));
+      return;
+    }
+    final target = await _askTargetLanguage('Translate full document');
+    if (target == null || !mounted) return;
+    try {
+      final translated = await _translateText(plugin, document, target);
+      if (mounted) await _showTranslation(document, translated, fullDocument: true);
+    } catch (error) {
+      if (mounted) setState(() => _error = error);
     }
   }
 
@@ -335,12 +382,27 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
                                     label: const Text('Settings'),
                                   ),
                                 if (plugin.id.contains('ai-translate'))
-                                  TextButton.icon(
-                                    onPressed: enabled.data == true
-                                        ? () => _translateSelection(plugin)
-                                        : null,
-                                    icon: const Icon(Icons.translate, size: 16),
-                                    label: const Text('Translate'),
+                                  PopupMenuButton<String>(
+                                    tooltip: 'Translation actions',
+                                    icon: const Icon(Icons.translate, size: 18),
+                                    enabled: enabled.data == true,
+                                    onSelected: (action) {
+                                      if (action == 'selection') {
+                                        _translateSelection(plugin);
+                                      } else {
+                                        _translateFullDocument(plugin);
+                                      }
+                                    },
+                                    itemBuilder: (context) => const [
+                                      PopupMenuItem(
+                                        value: 'selection',
+                                        child: Text('Translate selection'),
+                                      ),
+                                      PopupMenuItem(
+                                        value: 'document',
+                                        child: Text('Translate full document'),
+                                      ),
+                                    ],
                                   ),
                                 IconButton(
                                   tooltip: 'Uninstall',
