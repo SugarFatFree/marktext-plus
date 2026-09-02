@@ -7,6 +7,8 @@
 | FEAT-087 | 2026-09-02 | 插件市场 HTTPS 索引和 SHA-256 校验 | P1 | 中 | 已完成 |
 | FEAT-088 | 2026-09-02 | OpenAI/Anthropic AI 配置项 | P2 | 中 | 已完成 |
 | FEAT-089 | 2026-09-02 | 插件 SDK 和 AI 翻译插件独立仓库 | P1 | 高 | 已完成 |
+| FEAT-090 | 2026-09-02 | 插件管理 UI | P1 | 中 | 已完成 |
+| FEAT-091 | 2026-09-02 | 系统密钥环 secret bridge | P1 | 中 | 已完成 |
 
 ---
 
@@ -36,7 +38,7 @@
 | 字段 | 内容 |
 |------|------|
 | 实现日期 | 2026-09-02 |
-| 需求描述 | 从受信 registry 获取插件并校验下载内容 |
+| 需求描述 | 从公开 GitHub Topic 发现插件并校验下载内容 |
 | 实现方案 | GitHub Topic `marktext-plus-plugin` 自动发现公开仓库，再读取最新 Release 的 HTTPS ZIP 和 SHA-256 |
 | 验收标准 | 无 Topic、无可验证 Release、非 HTTPS 或摘要不匹配时不进入可安装列表 |
 | 涉及文件 | `code/lib/services/plugin_catalog_service.dart` |
@@ -61,6 +63,17 @@
 | 实现方案 | `FutureBuilder` 延迟加载 `PluginManager`；文件选择器安装 ZIP；按钮触发 `PluginCatalogService.searchGitHubTopic`；所有结果标记 Community/Unverified |
 | 验收标准 | 设置页无溢出、插件列表异步加载、ZIP 安装成功后刷新、Topic 发现失败不影响编辑器 |
 | 涉及文件 | `code/lib/ui/screens/settings_screen.dart`、插件本地化文件 |
+
+## FEAT-091：系统密钥环 secret bridge
+
+| 字段 | 内容 |
+|------|------|
+| 实现日期 | 2026-09-02 |
+| 需求描述 | 让 AI 插件按 reference 获取 API key，而不把密钥写入普通配置文件 |
+| 用户场景 | 用户配置 OpenAI 或 Anthropic 后，插件需要调用模型但不能读取无关密钥 |
+| 实现方案 | `PlatformSecretStore` 使用 flutter_secure_storage 对接 Windows Credential Manager、macOS Keychain 和 Linux secret service；`PluginSecretBridge` 只解析指定 reference |
+| 验收标准 | secret 可读写删除，空 reference 不访问存储，`config.json` 不含 API key |
+| 涉及文件 | `code/lib/services/plugin_secret_store.dart` |
 
 ## FEAT-089：插件 SDK 和 AI 翻译插件独立仓库
 
