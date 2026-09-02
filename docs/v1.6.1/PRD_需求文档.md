@@ -6,6 +6,7 @@
 | FEAT-093 | 2026-09-02 | 插件开发 SDK 快速入口 | P2 | 低 | 已完成 |
 | FEAT-094 | 2026-09-02 | 插件启用/禁用、卸载和 AI 翻译动作 | P1 | 中 | 已完成 |
 | FEAT-095 | 2026-09-02 | 插件权限和菜单/工具栏贡献描述 | P1 | 高 | 已完成 |
+| FEAT-096 | 2026-09-02 | 社区插件详情与安装流程 | P1 | 中 | 已完成 |
 
 ---
 
@@ -52,3 +53,14 @@
 | 实现方案 | manifest 增加 `permissions`、`commands`、`menus`、`toolbar`、`settings`；`PluginActionService` 通过独立进程执行，宿主只渲染固定菜单和工具栏槽位，禁止任意坐标和任意 Widget 注入 |
 | 验收标准 | manifest 可解析，命令和 toolbar 已注册到宿主；菜单/设置 descriptor 已定义协议，固定槽位不改变主窗口布局稳定性 |
 | 涉及文件 | `plugin_manifest.dart`、SDK schema；菜单/工具栏渲染仍在后续迭代 |
+
+## FEAT-096：社区插件详情与安装流程
+
+| 字段 | 内容 |
+|------|------|
+| 实现日期 | 2026-09-02 |
+| 需求描述 | 点击社区插件后查看详情，并提供明确的安装操作 |
+| 用户场景 | 用户需要先查看作者仓库、版本、说明和未验证提示，再决定安装 |
+| 实现方案 | `PluginCatalogEntry` 保存 repository URL；`PluginPanel` 用详情对话框展示信息并调用带 SHA-256 校验的安装服务 |
+| 验收标准 | 点击条目有反馈，详情可滚动，Install 能触发安装，网络/空列表状态可读 |
+| 涉及文件 | `plugin_catalog_service.dart`、`plugin_panel.dart` |

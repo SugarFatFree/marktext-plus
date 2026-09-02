@@ -14,6 +14,7 @@ class PluginCatalogEntry {
     required this.downloadUrl,
     required this.sha256,
     this.description = '',
+    this.repositoryUrl,
   });
 
   final String id;
@@ -22,6 +23,7 @@ class PluginCatalogEntry {
   final Uri downloadUrl;
   final String sha256;
   final String description;
+  final Uri? repositoryUrl;
 
   factory PluginCatalogEntry.fromJson(Map<String, dynamic> json) {
     String requiredString(String key) {
@@ -43,6 +45,7 @@ class PluginCatalogEntry {
       downloadUrl: url,
       sha256: requiredString('sha256').toLowerCase(),
       description: (json['description'] as String?)?.trim() ?? '',
+      repositoryUrl: Uri.tryParse((json['repository'] as String?) ?? ''),
     );
   }
 }
@@ -147,6 +150,7 @@ class PluginCatalogService {
               downloadUrl: Uri.parse(browserUrl),
               sha256: digest.substring('sha256:'.length),
               description: (item['description'] as String?) ?? '',
+              repositoryUrl: Uri.https('github.com', '/$fullName'),
             ),
           );
           break;

@@ -9,9 +9,11 @@ void main() {
       'version': '1.0.0',
       'downloadUrl': 'https://example.com/demo.zip',
       'sha256': 'ABC123',
+      'repository': 'https://github.com/example/demo',
     });
     expect(entry.downloadUrl.scheme, 'https');
     expect(entry.sha256, 'abc123');
+    expect(entry.repositoryUrl.toString(), 'https://github.com/example/demo');
     expect(
       () => PluginCatalogEntry.fromJson({
         'id': 'bad',

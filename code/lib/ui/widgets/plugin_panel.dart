@@ -28,6 +28,7 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
   Future<List<PluginManifest>>? _installedFuture;
   Future<List<PluginCatalogEntry>>? _catalogFuture;
   Object? _error;
+  String? _installingId;
 
   Future<PluginManager> _manager() => _managerFuture ??=
       getApplicationSupportDirectory().then(
@@ -59,6 +60,81 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
       _error = null;
       _catalogFuture = PluginCatalogService().searchGitHubTopic();
     });
+  }
+
+  Future<void> _installCommunity(PluginCatalogEntry plugin) async {
+    if (_installingId != null) return;
+    setState(() {
+      _error = null;
+      _installingId = plugin.id;
+    });
+    try {
+      final manager = await _manager();
+      await PluginCatalogService().install(plugin, manager);
+      if (!mounted) return;
+      setState(() {
+        _installingId = null;
+        _installedFuture = manager.loadInstalled();
+      });
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _installingId = null;
+          _error = error;
+        });
+      }
+    }
+  }
+
+  Future<void> _showDetails(PluginCatalogEntry plugin) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(plugin.name),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Version: ${plugin.version}'),
+              const SizedBox(height: 10),
+              SelectableText(
+                plugin.description.isEmpty
+                    ? 'No description provided by the author.'
+                    : plugin.description,
+              ),
+              const SizedBox(height: 10),
+              if (plugin.repositoryUrl != null)
+                SelectableText(plugin.repositoryUrl.toString()),
+              const SizedBox(height: 10),
+              const Text('Community / Unverified. Review the source before installing.'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Close'),
+          ),
+          if (plugin.repositoryUrl != null)
+            TextButton(
+              onPressed: () => launchUrl(
+                plugin.repositoryUrl!,
+                mode: LaunchMode.externalApplication,
+              ),
+              child: const Text('Open repository'),
+            ),
+          FilledButton.icon(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              _installCommunity(plugin);
+            },
+            icon: const Icon(Icons.download),
+            label: const Text('Install'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _openSdk() async {
@@ -157,6 +233,11 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
     }
   }
 
+  Widget _sectionTitle(String title) => Padding(
+        padding: const EdgeInsets.only(top: 16, bottom: 6),
+        child: Text(title, style: Theme.of(context).textTheme.labelLarge),
+      );
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -164,84 +245,103 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
       (manager) => manager.loadInstalled(),
     );
     return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      padding: const EdgeInsets.fromLTRB(10, 8, 8, 14),
       children: [
-        Text(l10n.settingsPlugins,
-            style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 6),
-        Text(l10n.settingsPluginsUnverified,
-            style: Theme.of(context).textTheme.bodySmall),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 6,
-          runSpacing: 6,
+        Row(
           children: [
-            OutlinedButton.icon(
+            Expanded(
+              child: Text(l10n.settingsPlugins,
+                  style: Theme.of(context).textTheme.titleMedium),
+            ),
+            IconButton(
+              tooltip: l10n.settingsPluginsInstallZip,
+              icon: const Icon(Icons.folder_open, size: 18),
               onPressed: _installZip,
-              icon: const Icon(Icons.folder_open, size: 16),
-              label: Text(l10n.settingsPluginsInstallZip),
+              visualDensity: VisualDensity.compact,
             ),
-            OutlinedButton.icon(
+            IconButton(
+              tooltip: l10n.settingsPluginsDiscover,
+              icon: const Icon(Icons.travel_explore, size: 18),
               onPressed: _discover,
-              icon: const Icon(Icons.travel_explore, size: 16),
-              label: Text(l10n.settingsPluginsDiscover),
+              visualDensity: VisualDensity.compact,
             ),
-            TextButton.icon(
+            IconButton(
+              tooltip: 'Develop a plugin',
+              icon: const Icon(Icons.code, size: 18),
               onPressed: _openSdk,
-              icon: const Icon(Icons.code, size: 16),
-              label: const Text('Develop a plugin'),
+              visualDensity: VisualDensity.compact,
             ),
           ],
         ),
+        Text(l10n.settingsPluginsUnverified,
+            style: Theme.of(context).textTheme.bodySmall),
         if (_error != null) ...[
-          const SizedBox(height: 10),
-          Text(
+          const SizedBox(height: 8),
+          SelectableText(
             '$_error',
             style: TextStyle(color: Theme.of(context).colorScheme.error),
           ),
         ],
-        const SizedBox(height: 14),
-        Text(l10n.settingsPluginsInstalled,
-            style: Theme.of(context).textTheme.titleSmall),
+        _sectionTitle(l10n.settingsPluginsInstalled),
         FutureBuilder<List<PluginManifest>>(
           future: installed,
           builder: (context, snapshot) {
-            if (snapshot.hasError) return Text('${snapshot.error}');
+            if (snapshot.hasError) return SelectableText('${snapshot.error}');
             if (!snapshot.hasData) return const LinearProgressIndicator();
             if (snapshot.data!.isEmpty) return Text(l10n.settingsPluginsEmpty);
             return Column(
               children: snapshot.data!.map((plugin) {
                 return FutureBuilder<bool>(
                   future: _manager().then((manager) => manager.isEnabled(plugin.id)),
-                  builder: (context, enabled) => ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.extension, size: 18),
-                    title: Text(plugin.name),
-                    subtitle: Text('${plugin.id} · ${plugin.version}'),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Switch(
-                          value: enabled.data ?? true,
-                          onChanged: enabled.connectionState == ConnectionState.waiting
-                              ? null
-                              : (value) => _toggle(plugin, value),
+                  builder: (context, enabled) => Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Theme.of(context).dividerColor),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.extension, size: 17),
+                                const SizedBox(width: 6),
+                                Expanded(child: Text(plugin.name, overflow: TextOverflow.ellipsis)),
+                                Switch(
+                                  value: enabled.data ?? true,
+                                  onChanged: enabled.connectionState == ConnectionState.waiting
+                                      ? null
+                                      : (value) => _toggle(plugin, value),
+                                ),
+                              ],
+                            ),
+                            Text('${plugin.id} · ${plugin.version}',
+                                style: Theme.of(context).textTheme.bodySmall),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                if (plugin.id.contains('ai-translate'))
+                                  TextButton.icon(
+                                    onPressed: enabled.data == true
+                                        ? () => _translateSelection(plugin)
+                                        : null,
+                                    icon: const Icon(Icons.translate, size: 16),
+                                    label: const Text('Translate'),
+                                  ),
+                                IconButton(
+                                  tooltip: 'Uninstall',
+                                  icon: const Icon(Icons.delete_outline, size: 18),
+                                  onPressed: () => _uninstall(plugin),
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
-                        if (plugin.id.contains('ai-translate'))
-                          IconButton(
-                            tooltip: 'Translate selection',
-                            icon: const Icon(Icons.translate, size: 18),
-                            onPressed: enabled.data == true
-                                ? () => _translateSelection(plugin)
-                                : null,
-                          ),
-                        IconButton(
-                          tooltip: 'Uninstall',
-                          icon: const Icon(Icons.delete_outline, size: 18),
-                          onPressed: () => _uninstall(plugin),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 );
@@ -250,11 +350,11 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
           },
         ),
         if (_catalogFuture != null) ...[
-          const SizedBox(height: 14),
+          _sectionTitle(l10n.settingsPluginsDiscover),
           FutureBuilder<List<PluginCatalogEntry>>(
             future: _catalogFuture,
             builder: (context, snapshot) {
-              if (snapshot.hasError) return Text('${snapshot.error}');
+              if (snapshot.hasError) return SelectableText('${snapshot.error}');
               if (!snapshot.hasData) return const LinearProgressIndicator();
               if (snapshot.data!.isEmpty) {
                 return const Text('No installable releases found for this topic.');
@@ -264,9 +364,22 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
                     .map((plugin) => ListTile(
                           dense: true,
                           contentPadding: EdgeInsets.zero,
-                          leading: const Icon(Icons.public, size: 18),
-                          title: Text(plugin.name),
+                          leading: const Icon(Icons.public, size: 17),
+                          title: Text(plugin.name, overflow: TextOverflow.ellipsis),
                           subtitle: Text('${plugin.version} · Community / Unverified'),
+                          onTap: () => _showDetails(plugin),
+                          trailing: _installingId == plugin.id
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : IconButton(
+                                  tooltip: 'Install',
+                                  icon: const Icon(Icons.download, size: 18),
+                                  onPressed: () => _installCommunity(plugin),
+                                  visualDensity: VisualDensity.compact,
+                                ),
                         ))
                     .toList(),
               );

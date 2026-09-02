@@ -443,8 +443,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$error')),
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('AI configuration test failed'),
+          content: SingleChildScrollView(
+            child: SelectableText('$error'),
+          ),
+          actions: [
+            TextButton.icon(
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: '$error'));
+                if (dialogContext.mounted) Navigator.of(dialogContext).pop();
+              },
+              icon: const Icon(Icons.copy),
+              label: const Text('Copy error'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
       );
     } finally {
       if (mounted) setState(() => _testingAi = false);
