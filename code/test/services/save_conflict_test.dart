@@ -254,7 +254,13 @@ void main() {
     ));
 
     notifier.updateContent('tab', 'mine\n');
-    await waitFor(() => File(path).readAsStringSync() == 'mine\n');
+    await waitFor(() {
+      final tab =
+          container.read(tabProvider).tabs.firstWhere((t) => t.id == 'tab');
+      return File(path).readAsStringSync() == 'mine\n' &&
+          !tab.isModified &&
+          !tab.diskConflict;
+    });
 
     expect(File(path).readAsStringSync(), 'mine\n',
         reason: '自动保存根本没触发，上一条测试就是空跑的');
