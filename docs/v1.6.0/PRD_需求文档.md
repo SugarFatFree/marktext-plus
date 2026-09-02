@@ -37,8 +37,8 @@
 |------|------|
 | 实现日期 | 2026-09-02 |
 | 需求描述 | 从受信 registry 获取插件并校验下载内容 |
-| 实现方案 | 专用 GitHub 组织的 `registry.json` 提供 HTTPS URL 和 SHA-256 |
-| 验收标准 | 非 HTTPS 或摘要不匹配时拒绝安装 |
+| 实现方案 | GitHub Topic `marktext-plus-plugin` 自动发现公开仓库，再读取最新 Release 的 HTTPS ZIP 和 SHA-256 |
+| 验收标准 | 无 Topic、无可验证 Release、非 HTTPS 或摘要不匹配时不进入可安装列表 |
 | 涉及文件 | `code/lib/services/plugin_catalog_service.dart` |
 
 ## FEAT-088：OpenAI/Anthropic AI 配置项

@@ -6,7 +6,7 @@
 
 - 插件 manifest、ZIP 安装、路径穿越防护和原子安装。
 - 独立进程 JSON-RPC/stdio 宿主，支持请求超时和插件日志。
-- HTTPS 插件市场索引与 SHA-256 下载校验。
+- GitHub Topic `marktext-plus-plugin` 的开放插件发现，以及 Release ZIP 的 SHA-256 下载校验。
 - 设置页增加 OpenAI 和 Anthropic provider、endpoint、model、secret reference 配置。
 
 ## Reliability

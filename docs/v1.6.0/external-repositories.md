@@ -27,4 +27,9 @@
 
 ## 仓库创建状态
 
-当前工作区没有 GitHub CLI，也没有 GitHub API 写权限；只能完成本地应用代码和协议文档，不能安全地替用户创建远程仓库或推送代码。仓库名和 registry 约定已固定，获得授权后按文档直接创建即可。
+两个仓库已创建并推送到 `SugarFatFree` 账号：
+
+- https://github.com/SugarFatFree/marktext-plus-plugin-sdk
+- https://github.com/SugarFatFree/marktext-plus-ai-translate-plugin
+
+两个仓库均已添加 Topic `marktext-plus-plugin`。当前不要求创建 Organization；第三方开发者可以在自己的公开仓库添加同一 Topic，由应用自动发现并标记为 Community/Unverified。
