@@ -8,7 +8,7 @@
 
 - Moved the plugin entry into the left sidebar below Files, Search and Table of Contents.
 - Added a direct “Develop a plugin” link to the public plugin SDK.
-- GitHub Topic discovery now uses the system proxy environment when configured and reports network/empty-release states instead of appearing silent.
+- GitHub Topic discovery now uses the system proxy environment when configured, reports network/empty-release states, and can find the example AI plugin ZIP.
 - Tightened the top-right toolbar layout and changed zoom controls to magnifying-glass icons.
 
 ## 中文
@@ -17,5 +17,5 @@
 
 - 将插件入口移动到左侧边栏，位于文件、搜索和目录按钮下方。
 - 增加“开发插件”入口，直接打开公开插件 SDK。
-- GitHub Topic 发现会使用系统代理环境，并明确显示网络错误或没有可安装 Release 的状态。
+- GitHub Topic 发现会使用系统代理环境，明确显示网络错误或没有可安装 Release 的状态，并已补齐示例 AI 插件 ZIP。
 - 收紧右上角工具栏布局，并将缩放按钮改为放大镜图标。

@@ -29,7 +29,7 @@
 
 ### 修复方案
 
-GitHub 请求使用 `HttpClient.findProxyFromEnvironment` 解析 `HTTP_PROXY`、`HTTPS_PROXY` 和 `NO_PROXY` 等环境；插件面板显示请求错误和“没有可安装 Release”的明确状态。
+GitHub 请求使用 `HttpClient.findProxyFromEnvironment` 解析 `HTTP_PROXY`、`HTTPS_PROXY` 和 `NO_PROXY` 等环境；插件面板显示请求错误和“没有可安装 Release”的明确状态。市场只展示带 ZIP 和 digest 的 Release，因此官方 AI 翻译插件也补充了 `v0.1.0` 可安装 ZIP。
 
 ### 验证
 
