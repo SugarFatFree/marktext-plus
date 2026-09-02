@@ -1565,12 +1565,18 @@ class AppMenuBar extends ConsumerWidget {
     return SubmenuButton(
       leadingIcon: const Icon(Icons.extension, size: 16),
       menuChildren: [
-        for (final plugin in plugins)
+        for (final plugin in plugins) ...[
           for (final command in plugin.commands)
             MenuItemButton(
               child: Text('${plugin.name}: ${command.title}'),
               onPressed: () => _runPluginAction(ref, plugin, command.id),
             ),
+          for (final menu in plugin.menus)
+            MenuItemButton(
+              child: Text('${plugin.name}: ${menu.title}'),
+              onPressed: () => _runPluginAction(ref, plugin, menu.id),
+            ),
+        ],
       ],
       child: Text(l10n.settingsPlugins),
     );

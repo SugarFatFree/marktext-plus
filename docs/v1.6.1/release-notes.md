@@ -9,6 +9,7 @@
 - Moved the plugin entry into the left sidebar below Files, Search and Table of Contents.
 - Added a direct “Develop a plugin” link to the public plugin SDK.
 - GitHub Topic discovery now uses the system proxy environment when configured, reports network/empty-release states, and can find the example AI plugin ZIP.
+- Plugins can expose host-rendered JSON settings and commands without injecting arbitrary Flutter widgets.
 - Tightened the top-right toolbar layout and changed zoom controls to magnifying-glass icons.
 
 ## 中文

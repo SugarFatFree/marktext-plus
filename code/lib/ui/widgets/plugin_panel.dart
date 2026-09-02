@@ -14,6 +14,7 @@ import '../../services/plugin_catalog_service.dart';
 import '../../services/plugin_manager.dart';
 import '../../services/plugin_manifest.dart';
 import '../../services/plugin_process_host.dart';
+import '../screens/plugin_settings_screen.dart';
 import '../../services/plugin_secret_store.dart';
 
 class PluginPanel extends ConsumerStatefulWidget {
@@ -323,6 +324,16 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
+                                if (plugin.settings.isNotEmpty)
+                                  TextButton.icon(
+                                    onPressed: () => Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => PluginSettingsScreen(plugin: plugin),
+                                      ),
+                                    ),
+                                    icon: const Icon(Icons.settings, size: 16),
+                                    label: const Text('Settings'),
+                                  ),
                                 if (plugin.id.contains('ai-translate'))
                                   TextButton.icon(
                                     onPressed: enabled.data == true

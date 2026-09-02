@@ -8,6 +8,7 @@
 | FEAT-095 | 2026-09-02 | 插件权限和菜单/工具栏贡献描述 | P1 | 高 | 已完成 |
 | FEAT-096 | 2026-09-02 | 社区插件详情与安装流程 | P1 | 中 | 已完成 |
 | FEAT-097 | 2026-09-02 | AI key 输入与插件 secret bridge | P1 | 中 | 已完成 |
+| FEAT-098 | 2026-09-02 | 插件独立设置页和菜单贡献宿主渲染 | P1 | 高 | 已完成 |
 
 ---
 
@@ -76,3 +77,14 @@
 | 实现方案 | 设置页密码字段写入系统密钥环；`PluginSecretBridge` 按 reference 读取；插件通过 JSON-RPC initialize 接收内存 key |
 | 验收标准 | key 不出现在 config.json，测试连接可读取已保存 key，插件可获得正确 key |
 | 涉及文件 | `plugin_secret_store.dart`、`settings_screen.dart`、`ai_connection_service.dart`、`plugin_panel.dart` |
+
+## FEAT-098：插件独立设置页和菜单贡献宿主渲染
+
+| 字段 | 内容 |
+|------|------|
+| 实现日期 | 2026-09-02 |
+| 需求描述 | 让插件提供设置 descriptor 和菜单 descriptor，由主应用在受控页面和菜单中渲染 |
+| 用户场景 | 插件拥有自己的 JSON 设置，或在插件菜单中提供动作，而不直接修改 Flutter UI 树 |
+| 实现方案 | `PluginSettingsScreen` 通过 `getSettings`/`setSettings` JSON-RPC 工作；`AppMenuBar` 渲染 commands/menus；工具栏使用固定槽位 |
+| 验收标准 | 设置页可读写 JSON，菜单动作通过独立进程执行，插件不能注入任意坐标或 Widget |
+| 涉及文件 | `plugin_settings_screen.dart`、`app_menu_bar.dart`、`plugin_action_service.dart` |
