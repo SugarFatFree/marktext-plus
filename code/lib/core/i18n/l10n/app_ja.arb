@@ -400,7 +400,7 @@
   "settingsAiEndpoint": "API エンドポイント",
   "settingsAiModel": "モデル",
   "settingsAiKeyReference": "API キー参照",
-  "settingsAiSecurityHint": "API キーはプラグインのシークレットストアから取得され、config.json には書き込まれません。",
+  "settingsAiSecurityHint": "この設定を簡単にするため、API キーは config.json に平文で保存されます。ファイルを保護してください。",
   "settingsAiOpenai": "OpenAI プロバイダー",
   "settingsAiAnthropic": "Anthropic プロバイダー",
   "settingsPlugins": "プラグイン",

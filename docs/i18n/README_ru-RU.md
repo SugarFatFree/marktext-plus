@@ -77,7 +77,7 @@ flutter pub get && flutter run
 | **🧩 Open plugins** | Discover public plugins through [GitHub Topic: `marktext-plus-plugin`](https://github.com/topics/marktext-plus-plugin); every plugin is labelled Community/Unverified and runs out of process |
 | **⚡ Fast start** | No embedded browser or editor framework, 22 direct dependencies |
 | **📄 Large files** | Single-pass parsing, highlighting and search with tested budgets |
-| **🧪 Tested** | 2028 tests covering parser, exporters, providers and editor widgets |
+| **🧪 Tested** | 2025 tests covering parser, exporters, providers and editor widgets |
 
 ## ⚖️ Сравнение
 

@@ -11,7 +11,6 @@ import '../../core/theme/app_theme.dart';
 import '../../services/keybinding_service.dart';
 import '../../services/image_service.dart';
 import '../../services/ai_connection_service.dart';
-import '../../services/plugin_secret_store.dart';
 
 enum _Category { general, editor, markdown, theme, keybindings, ai }
 
@@ -38,8 +37,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   /// the field while what the reader is typing does not get overwritten.
   final _lastFromConfig = <String, String>{};
   Timer? _aiSaveTimer;
-  Timer? _apiKeySaveTimer;
-  final _apiKeyController = TextEditingController();
   bool _testingAi = false;
 
   void _queueAiField(String field, String value) {
@@ -50,32 +47,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       notifier.updateConfig((config) => switch (field) {
             'endpoint' => config.copyWith(aiEndpoint: value.trim()),
             'model' => config.copyWith(aiModel: value.trim()),
-            'keyReference' => config.copyWith(aiApiKeyRef: value.trim()),
+            'apiKey' => config.copyWith(aiApiKey: value),
             _ => config,
           });
-    });
-  }
-
-  void _queueApiKey(String value) {
-    _apiKeySaveTimer?.cancel();
-    _apiKeySaveTimer = Timer(const Duration(milliseconds: 400), () async {
-      if (!mounted) return;
-      final reference = ref.read(settingsProvider).aiApiKeyRef.trim();
-      if (reference.isEmpty) return;
-      final bridge = PluginSecretBridge(PlatformSecretStore());
-      if (value.isEmpty) {
-        await bridge.remove(reference);
-      } else {
-        await bridge.store(reference, value);
-      }
     });
   }
 
   @override
   void dispose() {
     _aiSaveTimer?.cancel();
-    _apiKeySaveTimer?.cancel();
-    _apiKeyController.dispose();
     for (final controller in _fields.values) {
       controller.dispose();
     }
@@ -427,28 +407,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ),
         _row(
-          l10n.settingsAiKeyReference,
-          SizedBox(
-            width: 360,
-            child: TextField(
-              controller: _field('aiApiKeyRef', config.aiApiKeyRef),
-              onChanged: (value) => _queueAiField('keyReference', value),
-              onSubmitted: (value) => notifier.updateConfig(
-                (c) => c.copyWith(aiApiKeyRef: value.trim()),
-              ),
-            ),
-          ),
-        ),
-        _row(
           l10n.settingsAiApiKey,
           SizedBox(
             width: 360,
             child: TextField(
-              controller: _apiKeyController,
-              obscureText: true,
-              onChanged: _queueApiKey,
-              decoration: InputDecoration(
-                hintText: l10n.settingsAiApiKeyHint,
+              controller: _field('aiApiKey', config.aiApiKey),
+              obscureText: false,
+              onChanged: (value) => _queueAiField('apiKey', value),
+              onSubmitted: (value) => notifier.updateConfig(
+                (c) => c.copyWith(aiApiKey: value),
               ),
             ),
           ),
@@ -466,10 +433,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     setState(() => _testingAi = true);
     try {
       final config = ref.read(settingsProvider);
-      await AiConnectionService.testConnection(
-        config,
-        PluginSecretBridge(PlatformSecretStore()),
-      );
+      await AiConnectionService.testConnection(config);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.settingsAiTestSuccess)),

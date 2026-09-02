@@ -1027,7 +1027,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsAiKeyReference => 'API 密钥引用';
 
   @override
-  String get settingsAiSecurityHint => 'API 密钥由插件密钥存储读取，不会写入 config.json。';
+  String get settingsAiSecurityHint =>
+      'API 密钥会以明文保存在 config.json 中，这是为了保持配置简单。请保护好该文件。';
 
   @override
   String get settingsAiOpenai => 'OpenAI 服务商';

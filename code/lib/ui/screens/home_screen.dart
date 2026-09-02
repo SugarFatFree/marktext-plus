@@ -18,6 +18,7 @@ import '../../providers/file_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/tab_provider.dart';
 import '../../providers/update_provider.dart';
+import '../../providers/plugin_provider.dart';
 import '../../models/tab_info.dart';
 import '../../services/command_registry.dart';
 import '../../services/update_service.dart';
@@ -32,6 +33,7 @@ import '../widgets/editor_tab_bar.dart';
 import '../editor/source_editor.dart';
 import '../editor/markdown_renderer.dart';
 import '../editor/split_editor.dart';
+import 'plugin_detail_view.dart';
 import '../../services/keybinding_service.dart';
 import '../../services/file_service.dart';
 import '../../services/image_service.dart';
@@ -860,6 +862,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
   static const _maxZoom = 32.0;
 
   Widget _buildEditorArea(EditMode editMode) {
+    final pluginDetail = ref.watch(pluginDetailProvider);
+    if (pluginDetail != null) {
+      return PluginDetailView(plugin: pluginDetail);
+    }
     final activeTab = ref.watch(activeTabProvider);
     if (activeTab == null) {
       final l10n = AppLocalizations.of(context)!;
@@ -973,6 +979,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
               // typing, and the revision is what tells it apart.
               externalRevision: activeTab.externalRevision,
               onChanged: onContentChanged,
+              constrainWidth: false,
             ),
           ),
           // EditMode.preview (index 1)

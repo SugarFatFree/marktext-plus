@@ -162,6 +162,22 @@ class PluginCatalogService {
     }
   }
 
+  Future<String> fetchReadme(Uri repositoryUrl) async {
+    final segments = repositoryUrl.pathSegments.where((s) => s.isNotEmpty).toList();
+    if (segments.length < 2) throw const FormatException('Invalid plugin repository URL');
+    final raw = Uri.https('raw.githubusercontent.com', '/${segments[0]}/${segments[1]}/HEAD/README.md');
+    final client = _client();
+    try {
+      final response = await (await client.getUrl(raw)).close();
+      if (response.statusCode != HttpStatus.ok) {
+        throw HttpException('README returned HTTP ${response.statusCode}');
+      }
+      return await utf8.decoder.bind(response).join();
+    } finally {
+      client.close(force: true);
+    }
+  }
+
   /// Downloads one catalog entry to a temporary file, verifies its digest,
   /// then delegates extraction and manifest validation to [manager].
   Future<PluginManifest> install(

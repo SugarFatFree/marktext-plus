@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import '../core/config/app_config.dart';
-import 'plugin_secret_store.dart';
 
 class AiConnectionService {
   const AiConnectionService._();
@@ -24,20 +23,14 @@ class AiConnectionService {
     return base.replace(path: '$path$suffix');
   }
 
-  static Future<void> testConnection(
-    AppConfig config,
-    PluginSecretBridge secrets,
-  ) async {
+  static Future<void> testConnection(AppConfig config) async {
     if (!config.aiEnabled) {
       throw const FormatException('Enable AI plugins before testing the connection');
     }
-    if (config.aiModel.trim().isEmpty || config.aiApiKeyRef.trim().isEmpty) {
+    if (config.aiModel.trim().isEmpty || config.aiApiKey.trim().isEmpty) {
       throw const FormatException('Model and API key reference are required');
     }
-    final key = await secrets.resolve(config.aiApiKeyRef);
-    if (key == null || key.isEmpty) {
-      throw const FormatException('The API key reference was not found');
-    }
+    final key = config.aiApiKey.trim();
     final client = HttpClient();
     client.findProxy = (uri) => HttpClient.findProxyFromEnvironment(
           uri,

@@ -1043,7 +1043,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsAiSecurityHint =>
-      'Der API-Schlüssel wird aus dem Geheimnisspeicher des Plugins gelesen und nicht in config.json geschrieben.';
+      'Der API-Schlüssel wird für eine einfache Konfiguration im Klartext in config.json gespeichert. Schützen Sie diese Datei.';
 
   @override
   String get settingsAiOpenai => 'OpenAI-Anbieter';

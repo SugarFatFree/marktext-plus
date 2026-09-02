@@ -400,7 +400,7 @@
   "settingsAiEndpoint": "API 端点",
   "settingsAiModel": "模型",
   "settingsAiKeyReference": "API 密钥引用",
-  "settingsAiSecurityHint": "API 密钥由插件密钥存储读取，不会写入 config.json。",
+  "settingsAiSecurityHint": "API 密钥会以明文保存在 config.json 中，这是为了保持配置简单。请保护好该文件。",
   "settingsAiOpenai": "OpenAI 服务商",
   "settingsAiAnthropic": "Anthropic 服务商",
   "settingsPlugins": "插件",

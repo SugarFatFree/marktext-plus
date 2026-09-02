@@ -1042,7 +1042,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get settingsAiSecurityHint =>
-      'Ключ API извлекается из хранилища секретов плагина и не записывается в config.json.';
+      'Для простоты настройки ключ API сохраняется в открытом виде в config.json. Защитите этот файл.';
 
   @override
   String get settingsAiOpenai => 'Провайдер OpenAI';

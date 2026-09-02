@@ -7,7 +7,6 @@ import Foundation
 
 import desktop_drop
 import file_picker
-import flutter_secure_storage_macos
 import pasteboard
 import printing
 import screen_retriever_macos
@@ -17,7 +16,6 @@ import window_manager
 func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
   DesktopDropPlugin.register(with: registry.registrar(forPlugin: "DesktopDropPlugin"))
   FilePickerPlugin.register(with: registry.registrar(forPlugin: "FilePickerPlugin"))
-  FlutterSecureStoragePlugin.register(with: registry.registrar(forPlugin: "FlutterSecureStoragePlugin"))
   PasteboardPlugin.register(with: registry.registrar(forPlugin: "PasteboardPlugin"))
   PrintingPlugin.register(with: registry.registrar(forPlugin: "PrintingPlugin"))
   ScreenRetrieverMacosPlugin.register(with: registry.registrar(forPlugin: "ScreenRetrieverMacosPlugin"))

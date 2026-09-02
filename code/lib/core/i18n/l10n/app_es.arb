@@ -400,7 +400,7 @@
   "settingsAiEndpoint": "Punto final de API",
   "settingsAiModel": "Modelo",
   "settingsAiKeyReference": "Referencia de clave API",
-  "settingsAiSecurityHint": "La clave API se obtiene del almacén de secretos del plugin y no se escribe en config.json.",
+  "settingsAiSecurityHint": "Para mantener esta configuración sencilla, la clave API se guarda en texto plano en config.json. Protege el archivo.",
   "settingsAiOpenai": "Proveedor OpenAI",
   "settingsAiAnthropic": "Proveedor Anthropic",
   "settingsPlugins": "Complementos",

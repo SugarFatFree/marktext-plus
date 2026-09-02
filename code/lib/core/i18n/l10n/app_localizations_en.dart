@@ -1039,7 +1039,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsAiSecurityHint =>
-      'The API key is resolved by the plugin secret store and is not written to config.json.';
+      'The API key is stored as plain text in config.json because this setting is intentionally simple. Protect the file.';
 
   @override
   String get settingsAiOpenai => 'OpenAI';

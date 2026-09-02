@@ -400,7 +400,7 @@
   "settingsAiEndpoint": "Конечная точка API",
   "settingsAiModel": "Модель",
   "settingsAiKeyReference": "Ссылка на ключ API",
-  "settingsAiSecurityHint": "Ключ API извлекается из хранилища секретов плагина и не записывается в config.json.",
+  "settingsAiSecurityHint": "Для простоты настройки ключ API сохраняется в открытом виде в config.json. Защитите этот файл.",
   "settingsAiOpenai": "Провайдер OpenAI",
   "settingsAiAnthropic": "Провайдер Anthropic",
   "settingsPlugins": "Плагины",

@@ -6,8 +6,8 @@
 | FEAT-093 | 2026-09-02 | 插件开发 SDK 快速入口 | P2 | 低 | 已完成 |
 | FEAT-094 | 2026-09-02 | 插件启用/禁用、卸载和 AI 翻译动作 | P1 | 中 | 已完成 |
 | FEAT-095 | 2026-09-02 | 插件权限和菜单/工具栏贡献描述 | P1 | 高 | 已完成 |
-| FEAT-096 | 2026-09-02 | 社区插件详情与安装流程 | P1 | 中 | 已完成 |
-| FEAT-097 | 2026-09-02 | AI key 输入与插件 secret bridge | P1 | 中 | 已完成 |
+| FEAT-096 | 2026-09-02 | 社区插件详情页签与安装流程 | P1 | 中 | 已完成 |
+| FEAT-097 | 2026-09-02 | 单一 AI API key 配置与插件传递 | P1 | 中 | 已完成 |
 | FEAT-098 | 2026-09-02 | 插件独立设置页和菜单贡献宿主渲染 | P1 | 高 | 已完成 |
 | FEAT-099 | 2026-09-02 | 预览选区翻译与全文双视图预览 | P1 | 中 | 已完成 |
 | FEAT-100 | 2026-09-02 | 预览底部留白适配 | P2 | 低 | 已完成 |
@@ -58,26 +58,26 @@
 | 验收标准 | manifest 可解析，命令和 toolbar 已注册到宿主；菜单/设置 descriptor 已定义协议，固定槽位不改变主窗口布局稳定性 |
 | 涉及文件 | `plugin_manifest.dart`、SDK schema；菜单/工具栏渲染仍在后续迭代 |
 
-## FEAT-096：社区插件详情与安装流程
+## FEAT-096：社区插件详情页签与安装流程
 
 | 字段 | 内容 |
 |------|------|
 | 实现日期 | 2026-09-02 |
 | 需求描述 | 点击社区插件后查看详情，并提供明确的安装操作 |
 | 用户场景 | 用户需要先查看作者仓库、版本、说明和未验证提示，再决定安装 |
-| 实现方案 | `PluginCatalogEntry` 保存 repository URL；`PluginPanel` 用详情对话框展示信息并调用带 SHA-256 校验的安装服务 |
+| 实现方案 | `PluginCatalogEntry` 保存 repository URL；`PluginPanel` 用主内容区详情页签展示信息并调用带 SHA-256 校验的安装服务 |
 | 验收标准 | 点击条目有反馈，详情可滚动，Install 能触发安装，网络/空列表状态可读 |
 | 涉及文件 | `plugin_catalog_service.dart`、`plugin_panel.dart` |
 
-## FEAT-097：AI key 输入与插件 secret bridge
+## FEAT-097：单一 AI API key 配置与插件传递
 
 | 字段 | 内容 |
 |------|------|
 | 实现日期 | 2026-09-02 |
-| 需求描述 | 允许用户输入真实 API key，并让插件按 reference 使用它 |
+| 需求描述 | 允许用户通过单一字段输入真实 API key，并让插件使用它 |
 | 用户场景 | 配置 OpenAI 或 Anthropic 后测试连接、使用 AI 翻译插件 |
-| 实现方案 | 设置页密码字段写入系统密钥环；`PluginSecretBridge` 按 reference 读取；插件通过 JSON-RPC initialize 接收内存 key |
-| 验收标准 | key 不出现在 config.json，测试连接可读取已保存 key，插件可获得正确 key |
+| 实现方案 | 设置页单一明文字段写入 `AppConfig`；插件通过 JSON-RPC initialize 接收内存 key |
+| 验收标准 | key 按用户选择保存在 config.json，且只通过 initialize 传给插件，测试连接可读取已保存 key，插件可获得正确 key |
 | 涉及文件 | `plugin_secret_store.dart`、`settings_screen.dart`、`ai_connection_service.dart`、`plugin_panel.dart` |
 
 ## FEAT-098：插件独立设置页和菜单贡献宿主渲染

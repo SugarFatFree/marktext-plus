@@ -1,7 +1,6 @@
 import '../core/config/app_config.dart';
 import '../services/plugin_manager.dart';
 import '../services/plugin_manifest.dart';
-import '../services/plugin_secret_store.dart';
 
 /// Executes manifest-declared actions through the isolated plugin process.
 class PluginActionService {
@@ -17,13 +16,12 @@ class PluginActionService {
     if (!await manager.isEnabled(plugin.id)) return;
     final host = await manager.startPlugin(plugin);
     try {
-      final key = await PluginSecretBridge(PlatformSecretStore())
-          .resolve(config.aiApiKeyRef);
+      final key = config.aiApiKey.trim();
       await host.call('initialize', params: {
         'provider': config.aiProvider.name,
         'endpoint': config.aiEndpoint,
         'model': config.aiModel,
-        if (key != null && key.isNotEmpty) 'apiKey': key,
+        if (key.isNotEmpty) 'apiKey': key,
       });
       await host.call('execute', params: {'action': action, ...params});
     } finally {

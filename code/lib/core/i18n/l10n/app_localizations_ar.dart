@@ -1039,7 +1039,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get settingsAiSecurityHint =>
-      'يُستخرج مفتاح API من مخزن أسرار الإضافة ولا يُكتب في config.json.';
+      'يُحفظ مفتاح API كنص واضح في config.json للحفاظ على بساطة الإعداد. احمِ هذا الملف.';
 
   @override
   String get settingsAiOpenai => 'OpenAI (موفر)';

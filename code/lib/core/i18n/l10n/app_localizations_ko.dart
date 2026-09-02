@@ -1029,7 +1029,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get settingsAiSecurityHint =>
-      'API 키는 플러그인 비밀 저장소에서 확인하며 config.json에 기록하지 않습니다.';
+      '설정을 단순하게 유지하기 위해 API 키는 config.json에 평문으로 저장됩니다. 파일을 보호하세요.';
 
   @override
   String get settingsAiOpenai => 'OpenAI 제공자';

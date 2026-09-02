@@ -400,7 +400,7 @@
   "settingsAiEndpoint": "نقطة نهاية API",
   "settingsAiModel": "النموذج",
   "settingsAiKeyReference": "مرجع مفتاح API",
-  "settingsAiSecurityHint": "يُستخرج مفتاح API من مخزن أسرار الإضافة ولا يُكتب في config.json.",
+  "settingsAiSecurityHint": "يُحفظ مفتاح API كنص واضح في config.json للحفاظ على بساطة الإعداد. احمِ هذا الملف.",
   "settingsAiOpenai": "OpenAI (موفر)",
   "settingsAiAnthropic": "Anthropic (موفر)",
   "settingsPlugins": "الإضافات",

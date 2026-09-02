@@ -1047,7 +1047,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get settingsAiSecurityHint =>
-      'A chave da API é obtida no armazenamento seguro do plugin e não é gravada em config.json.';
+      'Para manter esta configuração simples, a chave da API é guardada em texto simples em config.json. Proteja o ficheiro.';
 
   @override
   String get settingsAiOpenai => 'Provedor OpenAI';
@@ -2134,7 +2134,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get settingsAiSecurityHint =>
-      'A chave da API é obtida no armazenamento seguro do plugin e não é gravada em config.json.';
+      'Para manter esta configuração simples, a chave da API é armazenada em texto simples em config.json. Proteja o arquivo.';
 
   @override
   String get settingsAiOpenai => 'Provedor OpenAI';

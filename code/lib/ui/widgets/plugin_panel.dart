@@ -15,7 +15,7 @@ import '../../services/plugin_catalog_service.dart';
 import '../../services/plugin_manager.dart';
 import '../../services/plugin_manifest.dart';
 import '../screens/plugin_settings_screen.dart';
-import '../../services/plugin_secret_store.dart';
+import '../../providers/plugin_provider.dart';
 
 class PluginPanel extends ConsumerStatefulWidget {
   const PluginPanel({super.key});
@@ -87,55 +87,8 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
     }
   }
 
-  Future<void> _showDetails(PluginCatalogEntry plugin) async {
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(plugin.name),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Version: ${plugin.version}'),
-              const SizedBox(height: 10),
-              SelectableText(
-                plugin.description.isEmpty
-                    ? 'No description provided by the author.'
-                    : plugin.description,
-              ),
-              const SizedBox(height: 10),
-              if (plugin.repositoryUrl != null)
-                SelectableText(plugin.repositoryUrl.toString()),
-              const SizedBox(height: 10),
-              const Text('Community / Unverified. Review the source before installing.'),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Close'),
-          ),
-          if (plugin.repositoryUrl != null)
-            TextButton(
-              onPressed: () => launchUrl(
-                plugin.repositoryUrl!,
-                mode: LaunchMode.externalApplication,
-              ),
-              child: const Text('Open repository'),
-            ),
-          FilledButton.icon(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              _installCommunity(plugin);
-            },
-            icon: const Icon(Icons.download),
-            label: const Text('Install'),
-          ),
-        ],
-      ),
-    );
+  void _showDetails(PluginCatalogEntry plugin) {
+    ref.read(pluginDetailProvider.notifier).state = plugin;
   }
 
   Future<void> _openSdk() async {
@@ -161,9 +114,8 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
 
   Future<String> _translateText(PluginManifest plugin, String source, String target) async {
     final config = ref.read(settingsProvider);
-    final apiKey = await PluginSecretBridge(PlatformSecretStore())
-        .resolve(config.aiApiKeyRef);
-    if (apiKey == null || apiKey.isEmpty) {
+    final apiKey = config.aiApiKey.trim();
+    if (apiKey.isEmpty) {
       throw StateError('Configure and save the AI API key first');
     }
 

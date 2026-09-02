@@ -98,13 +98,13 @@ class AppConfig {
   List<String> sessionTabs;
   String sessionActiveTab;
 
-  /// AI settings used by plugins. The key itself is never stored here;
-  /// [aiApiKeyRef] names an entry in the platform secret store.
+  /// AI settings used by plugins. The key is intentionally visible in the
+  /// settings UI because the user asked for a single straightforward field.
   bool aiEnabled;
+  String aiApiKey;
   AiProvider aiProvider;
   String aiEndpoint;
   String aiModel;
-  String aiApiKeyRef;
 
   AppConfig({
     this.sideBarVisible = true,
@@ -151,10 +151,10 @@ class AppConfig {
     this.sessionTabs = const [],
     this.sessionActiveTab = '',
     this.aiEnabled = false,
+    this.aiApiKey = '',
     this.aiProvider = AiProvider.openai,
     this.aiEndpoint = '',
     this.aiModel = '',
-    this.aiApiKeyRef = '',
   });
 
   Map<String, dynamic> toJson() => {
@@ -202,10 +202,10 @@ class AppConfig {
     'sessionTabs': sessionTabs,
     'sessionActiveTab': sessionActiveTab,
     'aiEnabled': aiEnabled,
+    'aiApiKey': aiApiKey,
     'aiProvider': aiProvider.name,
     'aiEndpoint': aiEndpoint,
     'aiModel': aiModel,
-    'aiApiKeyRef': aiApiKeyRef,
   };
 
   factory AppConfig.fromJson(Map<String, dynamic> json) {
@@ -265,10 +265,10 @@ class AppConfig {
       sessionTabs: (json['sessionTabs'] as List?)?.cast<String>() ?? const [],
       sessionActiveTab: json['sessionActiveTab'] as String? ?? '',
       aiEnabled: json['aiEnabled'] as bool? ?? false,
+      aiApiKey: json['aiApiKey'] as String? ?? '',
       aiProvider: _parseAiProvider(json['aiProvider']),
       aiEndpoint: json['aiEndpoint'] as String? ?? '',
       aiModel: json['aiModel'] as String? ?? '',
-      aiApiKeyRef: json['aiApiKeyRef'] as String? ?? '',
     );
   }
 
@@ -350,10 +350,10 @@ class AppConfig {
     List<String>? sessionTabs,
     String? sessionActiveTab,
     bool? aiEnabled,
+    String? aiApiKey,
     AiProvider? aiProvider,
     String? aiEndpoint,
     String? aiModel,
-    String? aiApiKeyRef,
   }) {
     return AppConfig(
       sideBarVisible: sideBarVisible ?? this.sideBarVisible,
@@ -401,10 +401,10 @@ class AppConfig {
       sessionTabs: sessionTabs ?? this.sessionTabs,
       sessionActiveTab: sessionActiveTab ?? this.sessionActiveTab,
       aiEnabled: aiEnabled ?? this.aiEnabled,
+      aiApiKey: aiApiKey ?? this.aiApiKey,
       aiProvider: aiProvider ?? this.aiProvider,
       aiEndpoint: aiEndpoint ?? this.aiEndpoint,
       aiModel: aiModel ?? this.aiModel,
-      aiApiKeyRef: aiApiKeyRef ?? this.aiApiKeyRef,
     );
   }
 }

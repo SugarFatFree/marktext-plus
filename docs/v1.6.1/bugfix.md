@@ -7,7 +7,7 @@
 | BUG-223 | 2026-09-02 | AI 大模型 endpoint、model 和密钥引用未在离开设置页时保存 | P1 | 已修复 |
 | BUG-224 | 2026-09-02 | 已安装插件没有启用/禁用、卸载和实际使用入口 | P1 | 已修复 |
 | BUG-225 | 2026-09-02 | 社区插件列表点击无响应，缺少详情和安装按钮 | P1 | 已修复 |
-| BUG-226 | 2026-09-02 | AI key reference 没有对应密钥输入和保存入口，插件无法找到真实 key | P1 | 已修复 |
+| BUG-226 | 2026-09-02 | AI API key 没有对应密钥输入和保存入口，插件无法找到真实 key | P1 | 已修复 |
 | BUG-227 | 2026-09-02 | 预览区已选中文字却被插件面板误判为没有选区 | P1 | 已修复 |
 | BUG-228 | 2026-09-02 | 预览文档底部留白过大，影响滚动阅读 | P2 | 已修复 |
 
@@ -47,7 +47,7 @@ GitHub 请求使用 `HttpClient.findProxyFromEnvironment` 解析 `HTTP_PROXY`、
 
 ### 现象
 
-endpoint、model 和 API key reference 只有按 Enter 才会写入配置；直接切换页面或关闭设置后再次打开，输入内容消失。
+endpoint、model 和 API key 只有按 Enter 才会写入配置；直接切换页面或关闭设置后再次打开，输入内容消失。
 
 ### 根因分析
 
@@ -77,7 +77,7 @@ Topic 搜索返回插件后，点击列表项没有任何反馈；安装按钮�
 
 ### 修复方案
 
-社区插件条目现在可点击打开详情对话框，显示版本、描述、仓库和 Community / Unverified 提示，并提供明确的 Install、Open repository 操作；列表仍保留快速下载图标。
+社区插件条目现在可点击打开主内容区详情页签，显示版本、描述、仓库和 Community / Unverified 提示，并提供明确的 Install、Open repository 操作；列表仍保留快速下载图标。
 
 ### 验证
 
@@ -85,23 +85,23 @@ Topic 搜索返回插件后，点击列表项没有任何反馈；安装按钮�
 
 ---
 
-## BUG-226：AI key reference 没有真实密钥写入入口
+## BUG-226：AI API key 没有真实密钥写入入口
 
 ### 现象
 
-用户填写 API key reference 后点击测试配置，提示 `The API key reference was not found`；AI 翻译插件也无法取得真实 API key。
+用户填写 API key 后点击测试配置，提示 `The API key was not found`；AI 翻译插件也无法取得真实 API key。
 
 ### 根因分析
 
-reference 只是系统密钥环中的索引名，旧设置页没有 API key 输入框，用户填写的内容不会写入系统密钥环。
+旧设置页把 API key 拆成 reference 和另一个未实现的密钥存储路径，用户无法判断该填什么。
 
 ### 修复方案
 
-新增独立的密码输入框，输入内容通过 `PluginSecretBridge.store` 写入 Windows Credential Manager、macOS Keychain 或 Linux Secret Service；配置文件仍只保存 reference。插件启动时由宿主解析 reference，并通过 `initialize` 的内存参数传给插件。
+设置页现在只有一个明文 API key 字段，直接写入 config.json，并通过 `initialize` 的内存参数传给插件。
 
 ### 验证
 
-新增 secret bridge 测试，验证 reference 写入、读取和删除；AI endpoint、设置页和全量测试通过。
+新增配置回归测试，验证单一 API key 往返保存；AI endpoint、设置页和全量测试通过。
 
 ---
 

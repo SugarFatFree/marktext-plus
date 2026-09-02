@@ -1048,7 +1048,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get settingsAiSecurityHint =>
-      'La clave API se obtiene del almacén de secretos del plugin y no se escribe en config.json.';
+      'Para mantener esta configuración sencilla, la clave API se guarda en texto plano en config.json. Protege el archivo.';
 
   @override
   String get settingsAiOpenai => 'Proveedor OpenAI';

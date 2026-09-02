@@ -400,7 +400,7 @@
   "settingsAiEndpoint": "Point de terminaison API",
   "settingsAiModel": "Modèle",
   "settingsAiKeyReference": "Référence de clé API",
-  "settingsAiSecurityHint": "La clé API est résolue par le coffre de secrets du plugin et n’est pas écrite dans config.json.",
+  "settingsAiSecurityHint": "Pour garder ce réglage simple, la clé API est enregistrée en clair dans config.json. Protégez ce fichier.",
   "settingsAiOpenai": "Fournisseur OpenAI",
   "settingsAiAnthropic": "Fournisseur Anthropic",
   "settingsPlugins": "Extensions",

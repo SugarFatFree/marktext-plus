@@ -1029,7 +1029,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsAiSecurityHint =>
-      'API キーはプラグインのシークレットストアから取得され、config.json には書き込まれません。';
+      'この設定を簡単にするため、API キーは config.json に平文で保存されます。ファイルを保護してください。';
 
   @override
   String get settingsAiOpenai => 'OpenAI プロバイダー';

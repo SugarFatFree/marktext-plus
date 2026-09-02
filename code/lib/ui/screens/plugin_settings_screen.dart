@@ -9,7 +9,6 @@ import '../../providers/settings_provider.dart';
 import '../../services/plugin_manager.dart';
 import '../../services/plugin_manifest.dart';
 import '../../services/plugin_process_host.dart';
-import '../../services/plugin_secret_store.dart';
 
 /// Host-rendered settings for a plugin. The plugin supplies JSON data, never
 /// Flutter widgets, so a plugin cannot alter the editor's layout tree.
@@ -50,13 +49,12 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
       final host = await manager.startPlugin(widget.plugin);
       _host = host;
       final config = ref.read(settingsProvider);
-      final key = await PluginSecretBridge(PlatformSecretStore())
-          .resolve(config.aiApiKeyRef);
+      final key = config.aiApiKey.trim();
       await host.call('initialize', params: {
         'provider': config.aiProvider.name,
         'endpoint': config.aiEndpoint,
         'model': config.aiModel,
-        if (key != null && key.isNotEmpty) 'apiKey': key,
+        if (key.isNotEmpty) 'apiKey': key,
       });
       final response = await host.call('getSettings');
       final settings = response['result'];
