@@ -1,11 +1,8 @@
-import 'dart:io';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import '../../core/i18n/l10n/app_localizations.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/locale_provider.dart';
@@ -13,13 +10,10 @@ import '../../core/config/app_config.dart';
 import '../../core/theme/app_theme.dart';
 import '../../services/keybinding_service.dart';
 import '../../services/image_service.dart';
-import '../../services/plugin_catalog_service.dart';
-import '../../services/plugin_manager.dart';
-import '../../services/plugin_manifest.dart';
 import '../../services/ai_connection_service.dart';
 import '../../services/plugin_secret_store.dart';
 
-enum _Category { general, editor, markdown, theme, keybindings, ai, plugins }
+enum _Category { general, editor, markdown, theme, keybindings, ai }
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -43,9 +37,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   /// What the config last said, so a value changed elsewhere still reaches
   /// the field while what the reader is typing does not get overwritten.
   final _lastFromConfig = <String, String>{};
+  Timer? _aiSaveTimer;
+  bool _testingAi = false;
+
+  void _queueAiField(String field, String value) {
+    _aiSaveTimer?.cancel();
+    _aiSaveTimer = Timer(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+      final notifier = ref.read(settingsProvider.notifier);
+      notifier.updateConfig((config) => switch (field) {
+            'endpoint' => config.copyWith(aiEndpoint: value.trim()),
+            'model' => config.copyWith(aiModel: value.trim()),
+            'keyReference' => config.copyWith(aiApiKeyRef: value.trim()),
+            _ => config,
+          });
+    });
+  }
 
   @override
   void dispose() {
+    _aiSaveTimer?.cancel();
     for (final controller in _fields.values) {
       controller.dispose();
     }
@@ -120,7 +131,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 _catTile(_Category.theme, l10n.settingsTheme, Icons.palette, tokens),
                 _catTile(_Category.keybindings, l10n.settingsKeybindings, Icons.keyboard, tokens),
                 _catTile(_Category.ai, l10n.settingsAi, Icons.auto_awesome, tokens),
-                _catTile(_Category.plugins, l10n.settingsPlugins, Icons.extension, tokens),
               ],
             ),
           ),
@@ -211,8 +221,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         return _keybindingsSection(l10n);
       case _Category.ai:
         return _aiSection(l10n);
-      case _Category.plugins:
-        return _pluginsSection(l10n);
     }
   }
 
@@ -309,37 +317,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Future<PluginManager>? _pluginManagerFuture;
-  Future<List<PluginManifest>>? _installedPluginsFuture;
-  Future<List<PluginCatalogEntry>>? _catalogFuture;
-  bool _testingAi = false;
-
-  Future<PluginManager> _pluginManager() => _pluginManagerFuture ??=
-      getApplicationSupportDirectory().then(
-        (directory) => PluginManager(p.join(directory.path, 'plugins')),
-      );
-
-  Future<void> _installPluginZip() async {
-    final picked = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['zip'],
-    );
-    final path = picked?.files.single.path;
-    if (path == null) return;
-    final manager = await _pluginManager();
-    await manager.installZip(File(path));
-    if (!mounted) return;
-    setState(() {
-      _installedPluginsFuture = manager.loadInstalled();
-    });
-  }
-
-  void _discoverPlugins() {
-    setState(() {
-      _catalogFuture = PluginCatalogService().searchGitHubTopic();
-    });
-  }
-
   // -- AI --
   Widget _aiSection(AppLocalizations l10n) {
     final config = ref.watch(settingsProvider);
@@ -410,6 +387,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             width: 360,
             child: TextField(
               controller: _field('aiEndpoint', config.aiEndpoint),
+              onChanged: (value) => _queueAiField('endpoint', value),
               onSubmitted: (value) => notifier.updateConfig(
                 (c) => c.copyWith(aiEndpoint: value.trim()),
               ),
@@ -422,6 +400,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             width: 360,
             child: TextField(
               controller: _field('aiModel', config.aiModel),
+              onChanged: (value) => _queueAiField('model', value),
               onSubmitted: (value) => notifier.updateConfig(
                 (c) => c.copyWith(aiModel: value.trim()),
               ),
@@ -434,6 +413,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             width: 360,
             child: TextField(
               controller: _field('aiApiKeyRef', config.aiApiKeyRef),
+              onChanged: (value) => _queueAiField('keyReference', value),
               onSubmitted: (value) => notifier.updateConfig(
                 (c) => c.copyWith(aiApiKeyRef: value.trim()),
               ),
@@ -469,88 +449,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     } finally {
       if (mounted) setState(() => _testingAi = false);
     }
-  }
-
-  // -- Plugins --
-  Widget _pluginsSection(AppLocalizations l10n) {
-    final installed = _installedPluginsFuture ??=
-        _pluginManager().then((manager) => manager.loadInstalled());
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(l10n.settingsPlugins,
-            style: Theme.of(context).textTheme.headlineSmall),
-        const SizedBox(height: 24),
-        Text(l10n.settingsPluginsUnverified,
-            style: Theme.of(context).textTheme.bodySmall),
-        const SizedBox(height: 16),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            OutlinedButton.icon(
-              onPressed: _installPluginZip,
-              icon: const Icon(Icons.folder_open),
-              label: Text(l10n.settingsPluginsInstallZip),
-            ),
-            OutlinedButton.icon(
-              onPressed: _discoverPlugins,
-              icon: const Icon(Icons.travel_explore),
-              label: Text(l10n.settingsPluginsDiscover),
-            ),
-          ],
-        ),
-        const SizedBox(height: 20),
-        Text(l10n.settingsPluginsInstalled,
-            style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 8),
-        FutureBuilder<List<PluginManifest>>(
-          future: installed,
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) {
-              return const SizedBox(
-                height: 32,
-                child: Center(child: CircularProgressIndicator()),
-              );
-            }
-            final plugins = snapshot.data!;
-            if (plugins.isEmpty) return Text(l10n.settingsPluginsEmpty);
-            return Column(
-              children: plugins
-                  .map((plugin) => ListTile(
-                        dense: true,
-                        leading: const Icon(Icons.extension),
-                        title: Text(plugin.name),
-                        subtitle: Text('${plugin.id} · ${plugin.version}'),
-                      ))
-                  .toList(),
-            );
-          },
-        ),
-        if (_catalogFuture != null) ...[
-          const SizedBox(height: 20),
-          FutureBuilder<List<PluginCatalogEntry>>(
-            future: _catalogFuture,
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) {
-                return const CircularProgressIndicator();
-              }
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: snapshot.data!
-                    .map((plugin) => ListTile(
-                          dense: true,
-                          leading: const Icon(Icons.public),
-                          title: Text(plugin.name),
-                          subtitle: Text('${plugin.version} · Community / Unverified'),
-                        ))
-                    .toList(),
-              );
-            },
-          ),
-        ],
-      ],
-    );
   }
 
   // -- Editor --

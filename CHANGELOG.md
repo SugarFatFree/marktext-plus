@@ -8,7 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - v1.6.1
 
 ### Changed
-- Plugin entry, Topic discovery feedback and toolbar alignment are refined for the next release.
+- Plugin entry, Topic discovery feedback, toolbar alignment and plugin lifecycle controls are refined for the next release.
+- AI model settings now save while typing, and the settings page can test provider configuration from the system secret store.
 
 ## [v1.6.0] - 2026-09-02
 

@@ -9,9 +9,10 @@ import 'plugin_logger.dart';
 /// A plugin never shares the editor isolate. A hung request is bounded by a
 /// timeout and terminates only that child process.
 class PluginProcessHost {
-  PluginProcessHost({required this.executable, required this.logger});
+  PluginProcessHost({required this.executable, required this.logger, this.arguments = const []});
 
   final String executable;
+  final List<String> arguments;
   final PluginLogger logger;
   Process? _process;
   int _nextId = 0;
@@ -21,11 +22,11 @@ class PluginProcessHost {
 
   bool get isRunning => _process != null;
 
-  Future<void> start({List<String> arguments = const [], String? workingDirectory}) async {
+  Future<void> start({List<String>? arguments, String? workingDirectory}) async {
     if (isRunning) return;
     final process = await Process.start(
       executable,
-      arguments,
+      arguments ?? this.arguments,
       workingDirectory: workingDirectory,
       runInShell: false,
     );

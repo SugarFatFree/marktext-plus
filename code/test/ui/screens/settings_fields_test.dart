@@ -108,6 +108,21 @@ void main() {
         reason: '别处改了配置，字段应当跟上');
   });
 
+  testWidgets('AI text settings save while typing without pressing Enter',
+      (tester) async {
+    await pump(tester);
+    await tester.tap(find.text('AI models'));
+    await tester.pump();
+
+    final fields = find.byType(TextField);
+    expect(fields, findsWidgets);
+    await tester.enterText(fields.at(0), 'https://api.example.test');
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(container.read(settingsProvider).aiEndpoint,
+        'https://api.example.test');
+  });
+
   group('the page fits the window it is given', () {
     // Every row was laid out with neither side able to give way, so the whole
     // page overflowed to the right below about a thousand pixels — striped,
