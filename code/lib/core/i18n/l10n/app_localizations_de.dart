@@ -1039,9 +1039,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsAiModel => 'Modell';
 
   @override
-  String get settingsAiKeyReference => 'Referenz des API-Schlüssels';
-
-  @override
   String get settingsAiSecurityHint =>
       'Der API-Schlüssel wird für eine einfache Konfiguration im Klartext in config.json gespeichert. Schützen Sie diese Datei.';
 

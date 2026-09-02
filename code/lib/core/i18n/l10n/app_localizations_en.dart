@@ -1035,9 +1035,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsAiModel => 'Model';
 
   @override
-  String get settingsAiKeyReference => 'API key reference';
-
-  @override
   String get settingsAiSecurityHint =>
       'The API key is stored as plain text in config.json because this setting is intentionally simple. Protect the file.';
 

@@ -1038,9 +1038,6 @@ class AppLocalizationsRu extends AppLocalizations {
   String get settingsAiModel => 'Модель';
 
   @override
-  String get settingsAiKeyReference => 'Ссылка на ключ API';
-
-  @override
   String get settingsAiSecurityHint =>
       'Для простоты настройки ключ API сохраняется в открытом виде в config.json. Защитите этот файл.';
 

@@ -505,7 +505,6 @@
   "settingsAiProvider": "AI provider",
   "settingsAiEndpoint": "API endpoint",
   "settingsAiModel": "Model",
-  "settingsAiKeyReference": "API key reference",
   "settingsAiSecurityHint": "The API key is stored as plain text in config.json because this setting is intentionally simple. Protect the file.",
   "settingsAiOpenai": "OpenAI",
   "settingsAiAnthropic": "Anthropic",

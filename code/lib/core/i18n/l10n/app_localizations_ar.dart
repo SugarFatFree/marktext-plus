@@ -1035,9 +1035,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settingsAiModel => 'النموذج';
 
   @override
-  String get settingsAiKeyReference => 'مرجع مفتاح API';
-
-  @override
   String get settingsAiSecurityHint =>
       'يُحفظ مفتاح API كنص واضح في config.json للحفاظ على بساطة الإعداد. احمِ هذا الملف.';
 

@@ -399,7 +399,6 @@
   "settingsAiProvider": "AI 제공자",
   "settingsAiEndpoint": "API 엔드포인트",
   "settingsAiModel": "모델",
-  "settingsAiKeyReference": "API 키 참조",
   "settingsAiSecurityHint": "설정을 단순하게 유지하기 위해 API 키는 config.json에 평문으로 저장됩니다. 파일을 보호하세요.",
   "settingsAiOpenai": "OpenAI 제공자",
   "settingsAiAnthropic": "Anthropic 제공자",

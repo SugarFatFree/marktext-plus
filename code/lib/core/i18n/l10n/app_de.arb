@@ -399,7 +399,6 @@
   "settingsAiProvider": "KI-Anbieter",
   "settingsAiEndpoint": "API-Endpunkt",
   "settingsAiModel": "Modell",
-  "settingsAiKeyReference": "Referenz des API-Schlüssels",
   "settingsAiSecurityHint": "Der API-Schlüssel wird für eine einfache Konfiguration im Klartext in config.json gespeichert. Schützen Sie diese Datei.",
   "settingsAiOpenai": "OpenAI-Anbieter",
   "settingsAiAnthropic": "Anthropic-Anbieter",

@@ -399,7 +399,6 @@
   "settingsAiProvider": "Fornecedor de IA",
   "settingsAiEndpoint": "Endpoint da API",
   "settingsAiModel": "Modelo",
-  "settingsAiKeyReference": "Referência da chave da API",
   "settingsAiSecurityHint": "Para manter esta configuração simples, a chave da API é guardada em texto simples em config.json. Proteja o ficheiro.",
   "settingsAiOpenai": "Provedor OpenAI",
   "settingsAiAnthropic": "Provedor Anthropic",

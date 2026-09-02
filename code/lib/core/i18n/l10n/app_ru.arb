@@ -399,7 +399,6 @@
   "settingsAiProvider": "Провайдер ИИ",
   "settingsAiEndpoint": "Конечная точка API",
   "settingsAiModel": "Модель",
-  "settingsAiKeyReference": "Ссылка на ключ API",
   "settingsAiSecurityHint": "Для простоты настройки ключ API сохраняется в открытом виде в config.json. Защитите этот файл.",
   "settingsAiOpenai": "Провайдер OpenAI",
   "settingsAiAnthropic": "Провайдер Anthropic",

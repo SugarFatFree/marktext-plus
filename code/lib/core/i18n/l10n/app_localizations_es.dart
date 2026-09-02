@@ -1044,9 +1044,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get settingsAiModel => 'Modelo';
 
   @override
-  String get settingsAiKeyReference => 'Referencia de clave API';
-
-  @override
   String get settingsAiSecurityHint =>
       'Para mantener esta configuración sencilla, la clave API se guarda en texto plano en config.json. Protege el archivo.';
 

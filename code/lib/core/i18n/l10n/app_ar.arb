@@ -399,7 +399,6 @@
   "settingsAiProvider": "موفر الذكاء الاصطناعي",
   "settingsAiEndpoint": "نقطة نهاية API",
   "settingsAiModel": "النموذج",
-  "settingsAiKeyReference": "مرجع مفتاح API",
   "settingsAiSecurityHint": "يُحفظ مفتاح API كنص واضح في config.json للحفاظ على بساطة الإعداد. احمِ هذا الملف.",
   "settingsAiOpenai": "OpenAI (موفر)",
   "settingsAiAnthropic": "Anthropic (موفر)",

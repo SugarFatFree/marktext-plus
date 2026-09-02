@@ -28,7 +28,7 @@ class AiConnectionService {
       throw const FormatException('Enable AI plugins before testing the connection');
     }
     if (config.aiModel.trim().isEmpty || config.aiApiKey.trim().isEmpty) {
-      throw const FormatException('Model and API key reference are required');
+      throw const FormatException('Model and API key are required');
     }
     final key = config.aiApiKey.trim();
     final client = HttpClient();

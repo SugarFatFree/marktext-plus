@@ -399,7 +399,6 @@
   "settingsAiProvider": "AI プロバイダー",
   "settingsAiEndpoint": "API エンドポイント",
   "settingsAiModel": "モデル",
-  "settingsAiKeyReference": "API キー参照",
   "settingsAiSecurityHint": "この設定を簡単にするため、API キーは config.json に平文で保存されます。ファイルを保護してください。",
   "settingsAiOpenai": "OpenAI プロバイダー",
   "settingsAiAnthropic": "Anthropic プロバイダー",

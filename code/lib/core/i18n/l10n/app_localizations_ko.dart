@@ -1025,9 +1025,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsAiModel => '모델';
 
   @override
-  String get settingsAiKeyReference => 'API 키 참조';
-
-  @override
   String get settingsAiSecurityHint =>
       '설정을 단순하게 유지하기 위해 API 키는 config.json에 평문으로 저장됩니다. 파일을 보호하세요.';
 

@@ -399,7 +399,6 @@
   "settingsAiProvider": "Proveedor de IA",
   "settingsAiEndpoint": "Punto final de API",
   "settingsAiModel": "Modelo",
-  "settingsAiKeyReference": "Referencia de clave API",
   "settingsAiSecurityHint": "Para mantener esta configuración sencilla, la clave API se guarda en texto plano en config.json. Protege el archivo.",
   "settingsAiOpenai": "Proveedor OpenAI",
   "settingsAiAnthropic": "Proveedor Anthropic",

@@ -1043,9 +1043,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get settingsAiModel => 'Modelo';
 
   @override
-  String get settingsAiKeyReference => 'Referência da chave da API';
-
-  @override
   String get settingsAiSecurityHint =>
       'Para manter esta configuração simples, a chave da API é guardada em texto simples em config.json. Proteja o ficheiro.';
 
@@ -2128,9 +2125,6 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get settingsAiModel => 'Modelo';
-
-  @override
-  String get settingsAiKeyReference => 'Referência da chave da API';
 
   @override
   String get settingsAiSecurityHint =>

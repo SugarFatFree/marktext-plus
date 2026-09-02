@@ -2055,12 +2055,6 @@ abstract class AppLocalizations {
   /// **'Model'**
   String get settingsAiModel;
 
-  /// No description provided for @settingsAiKeyReference.
-  ///
-  /// In en, this message translates to:
-  /// **'API key reference'**
-  String get settingsAiKeyReference;
-
   /// No description provided for @settingsAiSecurityHint.
   ///
   /// In en, this message translates to:

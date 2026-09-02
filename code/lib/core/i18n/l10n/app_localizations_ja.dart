@@ -1025,9 +1025,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsAiModel => 'モデル';
 
   @override
-  String get settingsAiKeyReference => 'API キー参照';
-
-  @override
   String get settingsAiSecurityHint =>
       'この設定を簡単にするため、API キーは config.json に平文で保存されます。ファイルを保護してください。';
 

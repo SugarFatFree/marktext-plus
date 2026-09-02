@@ -1024,9 +1024,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsAiModel => '模型';
 
   @override
-  String get settingsAiKeyReference => 'API 密钥引用';
-
-  @override
   String get settingsAiSecurityHint =>
       'API 密钥会以明文保存在 config.json 中，这是为了保持配置简单。请保护好该文件。';
 
