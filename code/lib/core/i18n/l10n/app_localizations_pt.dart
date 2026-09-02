@@ -1073,6 +1073,17 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get settingsPluginsUnverified =>
       'Comunidade / Não verificado. Reveja o código antes de ativar.';
+
+  @override
+  String get settingsAiTest => 'Testar configuração';
+
+  @override
+  String get settingsAiEndpointHint =>
+      'Introduza apenas a raiz do fornecedor; não adicione /v1/messages nem /v1/chat/completions.';
+
+  @override
+  String get settingsAiTestSuccess =>
+      'O teste da configuração de IA foi bem-sucedido.';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -2142,4 +2153,15 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get settingsPluginsUnverified =>
       'Comunidade / Não verificado. Revise o código antes de ativar.';
+
+  @override
+  String get settingsAiTest => 'Testar configuração';
+
+  @override
+  String get settingsAiEndpointHint =>
+      'Informe apenas a raiz do provedor; não adicione /v1/messages nem /v1/chat/completions.';
+
+  @override
+  String get settingsAiTestSuccess =>
+      'O teste da configuração de IA foi bem-sucedido.';
 }

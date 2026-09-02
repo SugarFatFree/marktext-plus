@@ -1065,4 +1065,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsPluginsUnverified =>
       'Community / Unverified. Review the source before enabling.';
+
+  @override
+  String get settingsAiTest => 'Test configuration';
+
+  @override
+  String get settingsAiEndpointHint =>
+      'Enter the provider root only; do not add /v1/messages or /v1/chat/completions.';
+
+  @override
+  String get settingsAiTestSuccess => 'AI configuration test succeeded.';
 }

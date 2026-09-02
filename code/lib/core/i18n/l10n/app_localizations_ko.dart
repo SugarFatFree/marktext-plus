@@ -1054,4 +1054,14 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get settingsPluginsUnverified => '커뮤니티 / 검증되지 않음. 활성화하기 전에 소스를 확인하세요.';
+
+  @override
+  String get settingsAiTest => '구성 테스트';
+
+  @override
+  String get settingsAiEndpointHint =>
+      '제공자 루트만 입력하고 /v1/messages 또는 /v1/chat/completions를 추가하지 마세요.';
+
+  @override
+  String get settingsAiTestSuccess => 'AI 구성 테스트가 성공했습니다.';
 }

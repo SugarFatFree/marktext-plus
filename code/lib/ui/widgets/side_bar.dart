@@ -20,6 +20,7 @@ import '../../providers/sidebar_provider.dart';
 import '../../services/file_service.dart';
 import '../../services/trash_service.dart';
 import 'editor_tab_bar.dart';
+import 'plugin_panel.dart';
 
 
 /// Which question to ask before removing something.
@@ -129,6 +130,7 @@ class _SideBarState extends ConsumerState<SideBar> {
           _buildIconButton(Icons.folder_outlined, SideBarTab.files, l10n.sidebarFiles, tokens),
           _buildIconButton(Icons.search, SideBarTab.search, l10n.sidebarSearch, tokens),
           _buildIconButton(Icons.list, SideBarTab.toc, l10n.sidebarToc, tokens),
+          _buildIconButton(Icons.extension, SideBarTab.plugins, l10n.settingsPlugins, tokens),
           const Spacer(),
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
@@ -217,6 +219,7 @@ class _SideBarState extends ConsumerState<SideBar> {
           SideBarTab.files => _buildFileTree(l10n),
           SideBarTab.search => _buildSearchPanel(l10n),
           SideBarTab.toc => _buildTocPanel(l10n),
+          SideBarTab.plugins => const PluginPanel(),
         },
       ),
     );

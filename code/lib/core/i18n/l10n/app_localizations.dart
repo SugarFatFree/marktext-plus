@@ -2114,6 +2114,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Community / Unverified. Review the source before enabling.'**
   String get settingsPluginsUnverified;
+
+  /// No description provided for @settingsAiTest.
+  ///
+  /// In en, this message translates to:
+  /// **'Test configuration'**
+  String get settingsAiTest;
+
+  /// No description provided for @settingsAiEndpointHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the provider root only; do not add /v1/messages or /v1/chat/completions.'**
+  String get settingsAiEndpointHint;
+
+  /// No description provided for @settingsAiTestSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'AI configuration test succeeded.'**
+  String get settingsAiTestSuccess;
 }
 
 class _AppLocalizationsDelegate

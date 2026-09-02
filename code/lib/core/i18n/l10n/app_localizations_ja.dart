@@ -1054,4 +1054,14 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsPluginsUnverified => 'コミュニティ / 未検証。有効化する前にソースを確認してください。';
+
+  @override
+  String get settingsAiTest => '設定をテスト';
+
+  @override
+  String get settingsAiEndpointHint =>
+      'プロバイダーのルートだけを入力し、/v1/messages や /v1/chat/completions は追加しないでください。';
+
+  @override
+  String get settingsAiTestSuccess => 'AI 設定のテストに成功しました。';
 }

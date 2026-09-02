@@ -408,5 +408,8 @@
   "settingsPluginsDiscover": "Descobrir plugins da comunidade",
   "settingsPluginsInstallZip": "Instalar ZIP",
   "settingsPluginsEmpty": "Nenhum plugin instalado",
-  "settingsPluginsUnverified": "Comunidade / Não verificado. Revise o código antes de ativar."
+  "settingsPluginsUnverified": "Comunidade / Não verificado. Revise o código antes de ativar.",
+  "settingsAiTest": "Testar configuração",
+  "settingsAiEndpointHint": "Informe apenas a raiz do provedor; não adicione /v1/messages nem /v1/chat/completions.",
+  "settingsAiTestSuccess": "O teste da configuração de IA foi bem-sucedido."
 }

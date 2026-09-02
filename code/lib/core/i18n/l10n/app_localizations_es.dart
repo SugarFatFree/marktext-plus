@@ -1074,4 +1074,15 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get settingsPluginsUnverified =>
       'Comunidad / No verificado. Revisa el código antes de activarlo.';
+
+  @override
+  String get settingsAiTest => 'Probar configuración';
+
+  @override
+  String get settingsAiEndpointHint =>
+      'Introduce solo la raíz del proveedor; no añadas /v1/messages ni /v1/chat/completions.';
+
+  @override
+  String get settingsAiTestSuccess =>
+      'La prueba de configuración de IA tuvo éxito.';
 }

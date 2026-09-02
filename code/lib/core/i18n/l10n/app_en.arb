@@ -514,5 +514,8 @@
   "settingsPluginsDiscover": "Discover community plugins",
   "settingsPluginsInstallZip": "Install ZIP",
   "settingsPluginsEmpty": "No plugins installed",
-  "settingsPluginsUnverified": "Community / Unverified. Review the source before enabling."
+  "settingsPluginsUnverified": "Community / Unverified. Review the source before enabling.",
+  "settingsAiTest": "Test configuration",
+  "settingsAiEndpointHint": "Enter the provider root only; do not add /v1/messages or /v1/chat/completions.",
+  "settingsAiTestSuccess": "AI configuration test succeeded."
 }

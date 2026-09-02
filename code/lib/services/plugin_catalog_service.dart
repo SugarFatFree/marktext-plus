@@ -49,11 +49,24 @@ class PluginCatalogEntry {
 
 /// Reads the signed/transport-secured plugin registry lazily.
 class PluginCatalogService {
+  /// Uses the operating system proxy variables when present. GitHub requests
+  /// are user-triggered, so a proxy failure is reported by the panel rather
+  /// than delaying application startup.
+  HttpClient _client() {
+    final client = HttpClient();
+    client.findProxy = (uri) => HttpClient.findProxyFromEnvironment(
+          uri,
+          environment: Platform.environment,
+        );
+    client.userAgent = 'MarkTextPlus/1.6.0';
+    return client;
+  }
+
   Future<List<PluginCatalogEntry>> fetch(Uri registryUrl) async {
     if (!registryUrl.isScheme('https')) {
       throw ArgumentError.value(registryUrl, 'registryUrl', 'must use HTTPS');
     }
-    final client = HttpClient();
+    final client = _client();
     try {
       final request = await client.getUrl(registryUrl);
       final response = await request.close();
@@ -82,7 +95,7 @@ class PluginCatalogService {
   Future<List<PluginCatalogEntry>> searchGitHubTopic({
     int perPage = 30,
   }) async {
-    final client = HttpClient();
+    final client = _client();
     try {
       final searchUrl = Uri.https('api.github.com', '/search/repositories', {
         'q': 'topic:marktext-plus-plugin',
@@ -151,7 +164,7 @@ class PluginCatalogService {
     PluginCatalogEntry entry,
     PluginManager manager,
   ) async {
-    final client = HttpClient();
+    final client = _client();
     final temporary = File(
       '${Directory.systemTemp.path}${Platform.pathSeparator}'
       'marktext-plugin-${entry.id.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_')}.zip',

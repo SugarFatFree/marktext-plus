@@ -408,5 +408,8 @@
   "settingsPluginsDiscover": "发现社区插件",
   "settingsPluginsInstallZip": "安装 ZIP",
   "settingsPluginsEmpty": "尚未安装插件",
-  "settingsPluginsUnverified": "社区 / 未验证。启用前请检查源代码。"
+  "settingsPluginsUnverified": "社区 / 未验证。启用前请检查源代码。",
+  "settingsAiTest": "测试配置",
+  "settingsAiEndpointHint": "只填写服务商根地址；不要添加 /v1/messages 或 /v1/chat/completions。",
+  "settingsAiTestSuccess": "AI 配置测试成功。"
 }

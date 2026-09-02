@@ -1069,4 +1069,15 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get settingsPluginsUnverified =>
       'Community / Ungeprüft. Prüfen Sie den Quellcode vor der Aktivierung.';
+
+  @override
+  String get settingsAiTest => 'Konfiguration testen';
+
+  @override
+  String get settingsAiEndpointHint =>
+      'Geben Sie nur die Anbieter-Basisadresse ein; fügen Sie nicht /v1/messages oder /v1/chat/completions hinzu.';
+
+  @override
+  String get settingsAiTestSuccess =>
+      'Der KI-Konfigurationstest war erfolgreich.';
 }

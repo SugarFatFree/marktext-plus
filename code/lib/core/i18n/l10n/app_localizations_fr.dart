@@ -1077,4 +1077,14 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get settingsPluginsUnverified =>
       'Communautaire / non vérifié. Consultez le code avant activation.';
+
+  @override
+  String get settingsAiTest => 'Tester la configuration';
+
+  @override
+  String get settingsAiEndpointHint =>
+      'Saisissez uniquement la racine du fournisseur ; n’ajoutez pas /v1/messages ni /v1/chat/completions.';
+
+  @override
+  String get settingsAiTestSuccess => 'Le test de configuration IA a réussi.';
 }

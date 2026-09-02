@@ -1065,4 +1065,14 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get settingsPluginsUnverified =>
       'مجتمعي / غير موثّق. راجع المصدر قبل التفعيل.';
+
+  @override
+  String get settingsAiTest => 'اختبار الإعدادات';
+
+  @override
+  String get settingsAiEndpointHint =>
+      'أدخل جذر الموفر فقط؛ لا تضف /v1/messages أو /v1/chat/completions.';
+
+  @override
+  String get settingsAiTestSuccess => 'نجح اختبار إعدادات الذكاء الاصطناعي.';
 }

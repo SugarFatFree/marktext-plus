@@ -408,5 +408,8 @@
   "settingsPluginsDiscover": "اكتشاف الإضافات المجتمعية",
   "settingsPluginsInstallZip": "تثبيت ZIP",
   "settingsPluginsEmpty": "لا توجد إضافات مثبتة",
-  "settingsPluginsUnverified": "مجتمعي / غير موثّق. راجع المصدر قبل التفعيل."
+  "settingsPluginsUnverified": "مجتمعي / غير موثّق. راجع المصدر قبل التفعيل.",
+  "settingsAiTest": "اختبار الإعدادات",
+  "settingsAiEndpointHint": "أدخل جذر الموفر فقط؛ لا تضف /v1/messages أو /v1/chat/completions.",
+  "settingsAiTestSuccess": "نجح اختبار إعدادات الذكاء الاصطناعي."
 }

@@ -16,6 +16,8 @@ import '../../services/image_service.dart';
 import '../../services/plugin_catalog_service.dart';
 import '../../services/plugin_manager.dart';
 import '../../services/plugin_manifest.dart';
+import '../../services/ai_connection_service.dart';
+import '../../services/plugin_secret_store.dart';
 
 enum _Category { general, editor, markdown, theme, keybindings, ai, plugins }
 
@@ -310,6 +312,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Future<PluginManager>? _pluginManagerFuture;
   Future<List<PluginManifest>>? _installedPluginsFuture;
   Future<List<PluginCatalogEntry>>? _catalogFuture;
+  bool _testingAi = false;
 
   Future<PluginManager> _pluginManager() => _pluginManagerFuture ??=
       getApplicationSupportDirectory().then(
@@ -381,6 +384,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
           ),
         ),
+        Text(
+          l10n.settingsAiEndpointHint,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        const SizedBox(height: 8),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: OutlinedButton.icon(
+            onPressed: _testingAi ? null : () => _testAiConfiguration(l10n),
+            icon: _testingAi
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.network_check),
+            label: Text(l10n.settingsAiTest),
+          ),
+        ),
+        const SizedBox(height: 8),
         _row(
           l10n.settingsAiEndpoint,
           SizedBox(
@@ -424,6 +447,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ],
     );
+  }
+
+  Future<void> _testAiConfiguration(AppLocalizations l10n) async {
+    setState(() => _testingAi = true);
+    try {
+      final config = ref.read(settingsProvider);
+      await AiConnectionService.testConnection(
+        config,
+        PluginSecretBridge(PlatformSecretStore()),
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.settingsAiTestSuccess)),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$error')),
+      );
+    } finally {
+      if (mounted) setState(() => _testingAi = false);
+    }
   }
 
   // -- Plugins --

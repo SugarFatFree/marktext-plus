@@ -408,5 +408,8 @@
   "settingsPluginsDiscover": "コミュニティプラグインを探す",
   "settingsPluginsInstallZip": "ZIP をインストール",
   "settingsPluginsEmpty": "インストール済みプラグインはありません",
-  "settingsPluginsUnverified": "コミュニティ / 未検証。有効化する前にソースを確認してください。"
+  "settingsPluginsUnverified": "コミュニティ / 未検証。有効化する前にソースを確認してください。",
+  "settingsAiTest": "設定をテスト",
+  "settingsAiEndpointHint": "プロバイダーのルートだけを入力し、/v1/messages や /v1/chat/completions は追加しないでください。",
+  "settingsAiTestSuccess": "AI 設定のテストに成功しました。"
 }

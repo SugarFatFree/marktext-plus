@@ -1068,4 +1068,15 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get settingsPluginsUnverified =>
       'Сообщество / Не проверено. Изучите исходный код перед включением.';
+
+  @override
+  String get settingsAiTest => 'Проверить конфигурацию';
+
+  @override
+  String get settingsAiEndpointHint =>
+      'Укажите только корень провайдера; не добавляйте /v1/messages или /v1/chat/completions.';
+
+  @override
+  String get settingsAiTestSuccess =>
+      'Проверка конфигурации ИИ прошла успешно.';
 }

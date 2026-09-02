@@ -83,7 +83,7 @@ class AppMenuBar extends ConsumerWidget {
             // The menus scroll on their own when six of them will not fit;
             // the Spacer stays outside, in a row that still has a width, so
             // the toolbar keeps its place at the right edge.
-            Flexible(
+            Expanded(
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: MenuBar(
@@ -103,7 +103,6 @@ class AppMenuBar extends ConsumerWidget {
                 ),
               ),
             ),
-            const Spacer(),
             if (constraints.maxWidth >= 820)
               _buildToolbarIcons(ref, tokens, l10n),
           ],
@@ -1522,7 +1521,7 @@ class AppMenuBar extends ConsumerWidget {
         const SizedBox(width: 4),
         // Zoom out
         IconButton(
-          icon: const Icon(Icons.remove),
+          icon: const Icon(Icons.zoom_out),
           iconSize: 18,
           tooltip: l10n.viewZoomOut,
           onPressed: () {
@@ -1533,7 +1532,7 @@ class AppMenuBar extends ConsumerWidget {
         const SizedBox(width: 4),
         // Zoom in
         IconButton(
-          icon: const Icon(Icons.add),
+          icon: const Icon(Icons.zoom_in),
           iconSize: 18,
           tooltip: l10n.viewZoomIn,
           onPressed: () {

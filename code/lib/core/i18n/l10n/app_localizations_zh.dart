@@ -1052,4 +1052,14 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsPluginsUnverified => '社区 / 未验证。启用前请检查源代码。';
+
+  @override
+  String get settingsAiTest => '测试配置';
+
+  @override
+  String get settingsAiEndpointHint =>
+      '只填写服务商根地址；不要添加 /v1/messages 或 /v1/chat/completions。';
+
+  @override
+  String get settingsAiTestSuccess => 'AI 配置测试成功。';
 }

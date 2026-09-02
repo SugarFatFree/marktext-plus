@@ -408,5 +408,8 @@
   "settingsPluginsDiscover": "커뮤니티 플러그인 찾기",
   "settingsPluginsInstallZip": "ZIP 설치",
   "settingsPluginsEmpty": "설치된 플러그인이 없습니다",
-  "settingsPluginsUnverified": "커뮤니티 / 검증되지 않음. 활성화하기 전에 소스를 확인하세요."
+  "settingsPluginsUnverified": "커뮤니티 / 검증되지 않음. 활성화하기 전에 소스를 확인하세요.",
+  "settingsAiTest": "구성 테스트",
+  "settingsAiEndpointHint": "제공자 루트만 입력하고 /v1/messages 또는 /v1/chat/completions를 추가하지 마세요.",
+  "settingsAiTestSuccess": "AI 구성 테스트가 성공했습니다."
 }
