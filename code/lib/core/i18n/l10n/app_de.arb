@@ -402,5 +402,11 @@
   "settingsAiKeyReference": "Referenz des API-Schlüssels",
   "settingsAiSecurityHint": "Der API-Schlüssel wird aus dem Geheimnisspeicher des Plugins gelesen und nicht in config.json geschrieben.",
   "settingsAiOpenai": "OpenAI-Anbieter",
-  "settingsAiAnthropic": "Anthropic-Anbieter"
+  "settingsAiAnthropic": "Anthropic-Anbieter",
+  "settingsPlugins": "Erweiterungen",
+  "settingsPluginsInstalled": "Installierte Plugins",
+  "settingsPluginsDiscover": "Community-Plugins entdecken",
+  "settingsPluginsInstallZip": "ZIP installieren",
+  "settingsPluginsEmpty": "Keine Plugins installiert",
+  "settingsPluginsUnverified": "Community / Ungeprüft. Prüfen Sie den Quellcode vor der Aktivierung."
 }

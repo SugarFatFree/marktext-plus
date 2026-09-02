@@ -1046,4 +1046,23 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsAiAnthropic => 'Anthropic';
+
+  @override
+  String get settingsPlugins => 'Plugins';
+
+  @override
+  String get settingsPluginsInstalled => 'Installed plugins';
+
+  @override
+  String get settingsPluginsDiscover => 'Discover community plugins';
+
+  @override
+  String get settingsPluginsInstallZip => 'Install ZIP';
+
+  @override
+  String get settingsPluginsEmpty => 'No plugins installed';
+
+  @override
+  String get settingsPluginsUnverified =>
+      'Community / Unverified. Review the source before enabling.';
 }

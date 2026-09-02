@@ -1049,4 +1049,23 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get settingsAiAnthropic => 'Провайдер Anthropic';
+
+  @override
+  String get settingsPlugins => 'Плагины';
+
+  @override
+  String get settingsPluginsInstalled => 'Установленные плагины';
+
+  @override
+  String get settingsPluginsDiscover => 'Найти плагины сообщества';
+
+  @override
+  String get settingsPluginsInstallZip => 'Установить ZIP';
+
+  @override
+  String get settingsPluginsEmpty => 'Плагины не установлены';
+
+  @override
+  String get settingsPluginsUnverified =>
+      'Сообщество / Не проверено. Изучите исходный код перед включением.';
 }

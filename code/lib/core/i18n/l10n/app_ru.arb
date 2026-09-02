@@ -402,5 +402,11 @@
   "settingsAiKeyReference": "Ссылка на ключ API",
   "settingsAiSecurityHint": "Ключ API извлекается из хранилища секретов плагина и не записывается в config.json.",
   "settingsAiOpenai": "Провайдер OpenAI",
-  "settingsAiAnthropic": "Провайдер Anthropic"
+  "settingsAiAnthropic": "Провайдер Anthropic",
+  "settingsPlugins": "Плагины",
+  "settingsPluginsInstalled": "Установленные плагины",
+  "settingsPluginsDiscover": "Найти плагины сообщества",
+  "settingsPluginsInstallZip": "Установить ZIP",
+  "settingsPluginsEmpty": "Плагины не установлены",
+  "settingsPluginsUnverified": "Сообщество / Не проверено. Изучите исходный код перед включением."
 }

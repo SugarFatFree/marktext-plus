@@ -51,6 +51,17 @@
 | 验收标准 | 配置可持久化，未知 provider 回退 OpenAI，JSON 不含 API key |
 | 涉及文件 | `app_config.dart`、`settings_screen.dart`、本地化文件 |
 
+## FEAT-090：插件管理 UI
+
+| 字段 | 内容 |
+|------|------|
+| 实现日期 | 2026-09-02 |
+| 需求描述 | 在设置页提供异步插件列表、ZIP 安装和 GitHub Topic 发现入口 |
+| 用户场景 | 用户主动打开设置页后安装或查看社区插件，启动阶段不产生网络和扫描开销 |
+| 实现方案 | `FutureBuilder` 延迟加载 `PluginManager`；文件选择器安装 ZIP；按钮触发 `PluginCatalogService.searchGitHubTopic`；所有结果标记 Community/Unverified |
+| 验收标准 | 设置页无溢出、插件列表异步加载、ZIP 安装成功后刷新、Topic 发现失败不影响编辑器 |
+| 涉及文件 | `code/lib/ui/screens/settings_screen.dart`、插件本地化文件 |
+
 ## FEAT-089：插件 SDK 和 AI 翻译插件独立仓库
 
 | 字段 | 内容 |

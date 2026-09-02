@@ -402,5 +402,11 @@
   "settingsAiKeyReference": "Referência da chave da API",
   "settingsAiSecurityHint": "A chave da API é obtida no armazenamento seguro do plugin e não é gravada em config.json.",
   "settingsAiOpenai": "Provedor OpenAI",
-  "settingsAiAnthropic": "Provedor Anthropic"
+  "settingsAiAnthropic": "Provedor Anthropic",
+  "settingsPlugins": "Extensões",
+  "settingsPluginsInstalled": "Plugins instalados",
+  "settingsPluginsDiscover": "Descobrir plugins da comunidade",
+  "settingsPluginsInstallZip": "Instalar ZIP",
+  "settingsPluginsEmpty": "Nenhum plugin instalado",
+  "settingsPluginsUnverified": "Comunidade / Não verificado. Reveja o código antes de ativar."
 }

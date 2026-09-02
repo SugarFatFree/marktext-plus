@@ -402,5 +402,11 @@
   "settingsAiKeyReference": "مرجع مفتاح API",
   "settingsAiSecurityHint": "يُستخرج مفتاح API من مخزن أسرار الإضافة ولا يُكتب في config.json.",
   "settingsAiOpenai": "OpenAI (موفر)",
-  "settingsAiAnthropic": "Anthropic (موفر)"
+  "settingsAiAnthropic": "Anthropic (موفر)",
+  "settingsPlugins": "الإضافات",
+  "settingsPluginsInstalled": "الإضافات المثبتة",
+  "settingsPluginsDiscover": "اكتشاف الإضافات المجتمعية",
+  "settingsPluginsInstallZip": "تثبيت ZIP",
+  "settingsPluginsEmpty": "لا توجد إضافات مثبتة",
+  "settingsPluginsUnverified": "مجتمعي / غير موثّق. راجع المصدر قبل التفعيل."
 }

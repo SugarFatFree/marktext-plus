@@ -1034,4 +1034,22 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsAiAnthropic => 'Anthropic 服务商';
+
+  @override
+  String get settingsPlugins => '插件';
+
+  @override
+  String get settingsPluginsInstalled => '已安装插件';
+
+  @override
+  String get settingsPluginsDiscover => '发现社区插件';
+
+  @override
+  String get settingsPluginsInstallZip => '安装 ZIP';
+
+  @override
+  String get settingsPluginsEmpty => '尚未安装插件';
+
+  @override
+  String get settingsPluginsUnverified => '社区 / 未验证。启用前请检查源代码。';
 }

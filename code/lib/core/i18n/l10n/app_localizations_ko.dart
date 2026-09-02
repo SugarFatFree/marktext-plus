@@ -1036,4 +1036,22 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get settingsAiAnthropic => 'Anthropic 제공자';
+
+  @override
+  String get settingsPlugins => '플러그인';
+
+  @override
+  String get settingsPluginsInstalled => '설치된 플러그인';
+
+  @override
+  String get settingsPluginsDiscover => '커뮤니티 플러그인 찾기';
+
+  @override
+  String get settingsPluginsInstallZip => 'ZIP 설치';
+
+  @override
+  String get settingsPluginsEmpty => '설치된 플러그인이 없습니다';
+
+  @override
+  String get settingsPluginsUnverified => '커뮤니티 / 검증되지 않음. 활성화하기 전에 소스를 확인하세요.';
 }

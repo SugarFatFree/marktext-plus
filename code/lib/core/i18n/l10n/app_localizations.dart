@@ -2078,6 +2078,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Anthropic'**
   String get settingsAiAnthropic;
+
+  /// No description provided for @settingsPlugins.
+  ///
+  /// In en, this message translates to:
+  /// **'Plugins'**
+  String get settingsPlugins;
+
+  /// No description provided for @settingsPluginsInstalled.
+  ///
+  /// In en, this message translates to:
+  /// **'Installed plugins'**
+  String get settingsPluginsInstalled;
+
+  /// No description provided for @settingsPluginsDiscover.
+  ///
+  /// In en, this message translates to:
+  /// **'Discover community plugins'**
+  String get settingsPluginsDiscover;
+
+  /// No description provided for @settingsPluginsInstallZip.
+  ///
+  /// In en, this message translates to:
+  /// **'Install ZIP'**
+  String get settingsPluginsInstallZip;
+
+  /// No description provided for @settingsPluginsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No plugins installed'**
+  String get settingsPluginsEmpty;
+
+  /// No description provided for @settingsPluginsUnverified.
+  ///
+  /// In en, this message translates to:
+  /// **'Community / Unverified. Review the source before enabling.'**
+  String get settingsPluginsUnverified;
 }
 
 class _AppLocalizationsDelegate

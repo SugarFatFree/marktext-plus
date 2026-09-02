@@ -402,5 +402,11 @@
   "settingsAiKeyReference": "API キー参照",
   "settingsAiSecurityHint": "API キーはプラグインのシークレットストアから取得され、config.json には書き込まれません。",
   "settingsAiOpenai": "OpenAI プロバイダー",
-  "settingsAiAnthropic": "Anthropic プロバイダー"
+  "settingsAiAnthropic": "Anthropic プロバイダー",
+  "settingsPlugins": "プラグイン",
+  "settingsPluginsInstalled": "インストール済みプラグイン",
+  "settingsPluginsDiscover": "コミュニティプラグインを探す",
+  "settingsPluginsInstallZip": "ZIP をインストール",
+  "settingsPluginsEmpty": "インストール済みプラグインはありません",
+  "settingsPluginsUnverified": "コミュニティ / 未検証。有効化する前にソースを確認してください。"
 }

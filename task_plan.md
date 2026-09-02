@@ -11,7 +11,7 @@
 - [complete] Phase 3: ZIP 安装与校验、GitHub Topic 异步发现和安装接口
 - [complete] Phase 4: AI provider 配置与设置 UI
 - [complete] Phase 5: SDK 与 AI 翻译插件本地骨架及仓库文档
-- [in_progress] Phase 6: 测试、版本文档、v1.6.0 发布准备
+- [complete] Phase 6: 测试、版本文档、v1.6.0 发布准备
 - [complete] Phase 7: GitHub 仓库创建/推送
 
 ## 约束

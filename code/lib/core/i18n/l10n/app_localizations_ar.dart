@@ -1046,4 +1046,23 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get settingsAiAnthropic => 'Anthropic (موفر)';
+
+  @override
+  String get settingsPlugins => 'الإضافات';
+
+  @override
+  String get settingsPluginsInstalled => 'الإضافات المثبتة';
+
+  @override
+  String get settingsPluginsDiscover => 'اكتشاف الإضافات المجتمعية';
+
+  @override
+  String get settingsPluginsInstallZip => 'تثبيت ZIP';
+
+  @override
+  String get settingsPluginsEmpty => 'لا توجد إضافات مثبتة';
+
+  @override
+  String get settingsPluginsUnverified =>
+      'مجتمعي / غير موثّق. راجع المصدر قبل التفعيل.';
 }

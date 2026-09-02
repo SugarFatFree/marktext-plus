@@ -402,5 +402,11 @@
   "settingsAiKeyReference": "Référence de clé API",
   "settingsAiSecurityHint": "La clé API est résolue par le coffre de secrets du plugin et n’est pas écrite dans config.json.",
   "settingsAiOpenai": "Fournisseur OpenAI",
-  "settingsAiAnthropic": "Fournisseur Anthropic"
+  "settingsAiAnthropic": "Fournisseur Anthropic",
+  "settingsPlugins": "Extensions",
+  "settingsPluginsInstalled": "Plugins installés",
+  "settingsPluginsDiscover": "Découvrir les plugins communautaires",
+  "settingsPluginsInstallZip": "Installer un ZIP",
+  "settingsPluginsEmpty": "Aucun plugin installé",
+  "settingsPluginsUnverified": "Communautaire / non vérifié. Consultez le code avant activation."
 }

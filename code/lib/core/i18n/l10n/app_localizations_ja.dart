@@ -1036,4 +1036,22 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsAiAnthropic => 'Anthropic プロバイダー';
+
+  @override
+  String get settingsPlugins => 'プラグイン';
+
+  @override
+  String get settingsPluginsInstalled => 'インストール済みプラグイン';
+
+  @override
+  String get settingsPluginsDiscover => 'コミュニティプラグインを探す';
+
+  @override
+  String get settingsPluginsInstallZip => 'ZIP をインストール';
+
+  @override
+  String get settingsPluginsEmpty => 'インストール済みプラグインはありません';
+
+  @override
+  String get settingsPluginsUnverified => 'コミュニティ / 未検証。有効化する前にソースを確認してください。';
 }

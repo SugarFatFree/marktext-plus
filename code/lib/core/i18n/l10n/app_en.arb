@@ -508,5 +508,11 @@
   "settingsAiKeyReference": "API key reference",
   "settingsAiSecurityHint": "The API key is resolved by the plugin secret store and is not written to config.json.",
   "settingsAiOpenai": "OpenAI",
-  "settingsAiAnthropic": "Anthropic"
+  "settingsAiAnthropic": "Anthropic",
+  "settingsPlugins": "Plugins",
+  "settingsPluginsInstalled": "Installed plugins",
+  "settingsPluginsDiscover": "Discover community plugins",
+  "settingsPluginsInstallZip": "Install ZIP",
+  "settingsPluginsEmpty": "No plugins installed",
+  "settingsPluginsUnverified": "Community / Unverified. Review the source before enabling."
 }

@@ -1050,4 +1050,23 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsAiAnthropic => 'Anthropic-Anbieter';
+
+  @override
+  String get settingsPlugins => 'Erweiterungen';
+
+  @override
+  String get settingsPluginsInstalled => 'Installierte Plugins';
+
+  @override
+  String get settingsPluginsDiscover => 'Community-Plugins entdecken';
+
+  @override
+  String get settingsPluginsInstallZip => 'ZIP installieren';
+
+  @override
+  String get settingsPluginsEmpty => 'Keine Plugins installiert';
+
+  @override
+  String get settingsPluginsUnverified =>
+      'Community / Ungeprüft. Prüfen Sie den Quellcode vor der Aktivierung.';
 }

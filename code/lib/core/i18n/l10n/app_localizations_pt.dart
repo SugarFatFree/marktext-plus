@@ -1054,6 +1054,25 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get settingsAiAnthropic => 'Provedor Anthropic';
+
+  @override
+  String get settingsPlugins => 'Extensões';
+
+  @override
+  String get settingsPluginsInstalled => 'Plugins instalados';
+
+  @override
+  String get settingsPluginsDiscover => 'Descobrir plugins da comunidade';
+
+  @override
+  String get settingsPluginsInstallZip => 'Instalar ZIP';
+
+  @override
+  String get settingsPluginsEmpty => 'Nenhum plugin instalado';
+
+  @override
+  String get settingsPluginsUnverified =>
+      'Comunidade / Não verificado. Reveja o código antes de ativar.';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -2104,4 +2123,23 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get settingsAiAnthropic => 'Provedor Anthropic';
+
+  @override
+  String get settingsPlugins => 'Extensões';
+
+  @override
+  String get settingsPluginsInstalled => 'Plugins instalados';
+
+  @override
+  String get settingsPluginsDiscover => 'Descobrir plugins da comunidade';
+
+  @override
+  String get settingsPluginsInstallZip => 'Instalar ZIP';
+
+  @override
+  String get settingsPluginsEmpty => 'Nenhum plugin instalado';
+
+  @override
+  String get settingsPluginsUnverified =>
+      'Comunidade / Não verificado. Revise o código antes de ativar.';
 }

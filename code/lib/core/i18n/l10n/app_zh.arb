@@ -402,5 +402,11 @@
   "settingsAiKeyReference": "API 密钥引用",
   "settingsAiSecurityHint": "API 密钥由插件密钥存储读取，不会写入 config.json。",
   "settingsAiOpenai": "OpenAI 服务商",
-  "settingsAiAnthropic": "Anthropic 服务商"
+  "settingsAiAnthropic": "Anthropic 服务商",
+  "settingsPlugins": "插件",
+  "settingsPluginsInstalled": "已安装插件",
+  "settingsPluginsDiscover": "发现社区插件",
+  "settingsPluginsInstallZip": "安装 ZIP",
+  "settingsPluginsEmpty": "尚未安装插件",
+  "settingsPluginsUnverified": "社区 / 未验证。启用前请检查源代码。"
 }

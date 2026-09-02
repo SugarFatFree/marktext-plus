@@ -1055,4 +1055,23 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get settingsAiAnthropic => 'Proveedor Anthropic';
+
+  @override
+  String get settingsPlugins => 'Complementos';
+
+  @override
+  String get settingsPluginsInstalled => 'Plugins instalados';
+
+  @override
+  String get settingsPluginsDiscover => 'Descubrir plugins de la comunidad';
+
+  @override
+  String get settingsPluginsInstallZip => 'Instalar ZIP';
+
+  @override
+  String get settingsPluginsEmpty => 'No hay plugins instalados';
+
+  @override
+  String get settingsPluginsUnverified =>
+      'Comunidad / No verificado. Revisa el código antes de activarlo.';
 }
