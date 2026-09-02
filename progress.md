@@ -13,5 +13,5 @@
 - 已实现独立插件进程宿主、请求超时和日志转发。
 - v1.6.0 文档已创建；SDK/AI 翻译插件 GitHub 仓库已创建并推送。
 - 版本元数据已切换到 `1.6.0+1` / `appVersion 1.6.0`，CHANGELOG 开始 v1.6.0 开发段。
-- 已补充外部 SDK 与 AI 翻译插件仓库规划，远程仓库待 GitHub 写授权。
+- 已补充外部 SDK 与 AI 翻译插件仓库规划；两个仓库已创建、推送并添加 Topic。
 - 两个仓库已添加 Topic `marktext-plus-plugin`，采用无审核社区插件发现模式。主应用已增加 GitHub Topic 搜索和 Release digest 读取。
