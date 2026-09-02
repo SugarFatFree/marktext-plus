@@ -17,3 +17,4 @@
 - 两个仓库已添加 Topic `marktext-plus-plugin`，采用无审核社区插件发现模式。主应用已增加 GitHub Topic 搜索和 Release digest 读取。
 - 插件管理 UI 已接入设置页：异步已安装列表、ZIP 安装和 GitHub Topic 发现。
 - v1.6.0 全量测试已达 2019 项通过，静态分析无问题。
+- 组织迁移后的 Linux CI 首次失败原因是缺少 libsecret-1-dev，已修正 CI 安装依赖，等待重跑。

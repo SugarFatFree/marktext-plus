@@ -34,4 +34,4 @@
 | 错误 | 处理 |
 |---|---|
 | `dart run` 不能导入 Flutter `dart:ui` | README 验证工具改为 Flutter test；本计划中的插件测试也使用 Flutter test 或纯 Dart 独立包分开执行 |
-| 当前工作区没有 `gh` CLI | 已使用指定 `/iflytek/workspace/znhu/github/gh_2.93.0_linux_amd64/bin/gh` 完成仓库创建和推送 |
+| Linux CI 缺少 `libsecret-1-dev` | `flutter_secure_storage_linux` 构建依赖已加入 `.github/workflows/ci.yml`，等待远程 CI 验证 |
