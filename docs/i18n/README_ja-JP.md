@@ -26,7 +26,7 @@ MarkText Plus は、オリジナルの [MarkText](https://github.com/marktext/ma
 30 秒以内で起動できます。
 
 ```bash
-git clone https://github.com/SugarFatFree/marktext-plus.git
+git clone https://github.com/marktext-plus/marktext-plus.git
 cd marktext-plus/code
 flutter pub get && flutter run
 ```
@@ -77,7 +77,7 @@ flutter pub get && flutter run
 | **🧩 Open plugins** | Discover public plugins through GitHub Topic `marktext-plus-plugin`; every plugin is labelled Community/Unverified and runs out of process |
 | **⚡ 高速起動** | 埋め込みブラウザーと編集フレームワークを使わず、直接依存は 22 個 |
 | **📄 大きなファイル** | 解析、ハイライト、検索は単一パスで処理し、テストで予算を管理 |
-| **🧪 テスト済み** | パーサー、エクスポーター、provider、エディター widget を 2019 件のテストで検証 |
+| **🧪 テスト済み** | パーサー、エクスポーター、provider、エディター widget を 2021 件のテストで検証 |
 ## ⚖️ 他のエディタとの比較
 
 本プロジェクトが作り直した元のエディタと、この分野で最も知られているエディタとの比較です。MarkText の列はすべて `v0.20.0-dev` のソースから読み取りました。Typora はクローズドソースで同じようには確認できないため、公開されているドキュメントに書かれている内容だけを載せています。
@@ -143,7 +143,7 @@ flutter pub get && flutter run
 
 ### プレビルド版をダウンロード
 
-[Releases](https://github.com/SugarFatFree/marktext-plus/releases) から、お使いのプラットフォーム向け最新バージョンをダウンロードしてください。
+[Releases](https://github.com/marktext-plus/marktext-plus/releases) から、お使いのプラットフォーム向け最新バージョンをダウンロードしてください。
 
 | Platform | Architecture | Format |
 |----------|-------------|--------|
@@ -156,7 +156,7 @@ flutter pub get && flutter run
 > **前提条件**: Flutter 3.x+、Dart 3.x+
 
 ```bash
-git clone https://github.com/SugarFatFree/marktext-plus.git
+git clone https://github.com/marktext-plus/marktext-plus.git
 cd marktext-plus/code
 flutter pub get && flutter run
 ```

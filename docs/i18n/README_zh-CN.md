@@ -4,10 +4,10 @@
 
 **让写作成为一种享受的轻量级跨平台 Markdown 编辑器**
 
-[![Release](https://img.shields.io/github/v/release/SugarFatFree/marktext-plus?style=flat-square)](https://github.com/SugarFatFree/marktext-plus/releases)
-[![License](https://img.shields.io/github/license/SugarFatFree/marktext-plus?style=flat-square)](../../LICENSE)
+[![Release](https://img.shields.io/github/v/release/marktext-plus/marktext-plus?style=flat-square)](https://github.com/marktext-plus/marktext-plus/releases)
+[![License](https://img.shields.io/github/license/marktext-plus/marktext-plus?style=flat-square)](../../LICENSE)
 [![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?style=flat-square&logo=flutter)](https://flutter.dev)
-[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square)](https://github.com/SugarFatFree/marktext-plus)
+[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square)](https://github.com/marktext-plus/marktext-plus)
 
 [English](../../README.md) | [日本語](README_ja-JP.md) | [한국어](README_ko-KR.md) | [Deutsch](README_de-DE.md) | [Français](README_fr-FR.md) | [Italiano](README_it-IT.md) | [Русский](README_ru-RU.md) | [Español](README_es-ES.md) | [Português](README_pt-PT.md) | [العربية](README_ar-SA.md) | [Português (Brasil)](README_pt-BR.md)
 
@@ -31,7 +31,7 @@ MarkText Plus 是一款**现代化的 Markdown 编辑器**，重新设计自原�
 不到 30 秒即可运行：
 
 ```bash
-git clone https://github.com/SugarFatFree/marktext-plus.git
+git clone https://github.com/marktext-plus/marktext-plus.git
 cd marktext-plus/code
 flutter pub get && flutter run
 ```
@@ -82,7 +82,7 @@ flutter pub get && flutter run
 | **🧩 Open plugins** | Discover public plugins through GitHub Topic `marktext-plus-plugin`; every plugin is labelled Community/Unverified and runs out of process |
 | **⚡ 快速启动** | 没有内嵌浏览器和编辑器框架，只有 22 个直接依赖 |
 | **📄 大文件** | 解析、语法高亮和搜索均为单遍处理，并由性能测试设置预算 |
-| **🧪 测试充分** | 2019 项测试覆盖解析器、导出器、providers 和编辑器组件 |
+| **🧪 测试充分** | 2021 项测试覆盖解析器、导出器、providers 和编辑器组件 |
 
 ## ⚖️ 横向对比
 
@@ -149,7 +149,7 @@ flutter pub get && flutter run
 
 ### 下载预编译版本
 
-从 [Releases](https://github.com/SugarFatFree/marktext-plus/releases) 下载适合你平台的最新版本。
+从 [Releases](https://github.com/marktext-plus/marktext-plus/releases) 下载适合你平台的最新版本。
 
 | 平台 | 架构 | 格式 |
 |------|------|------|
@@ -162,7 +162,7 @@ flutter pub get && flutter run
 > **前置要求**：Flutter 3.x+、Dart 3.x+
 
 ```bash
-git clone https://github.com/SugarFatFree/marktext-plus.git
+git clone https://github.com/marktext-plus/marktext-plus.git
 cd marktext-plus/code
 flutter pub get && flutter run
 ```

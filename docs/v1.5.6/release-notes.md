@@ -57,6 +57,6 @@ document draws its text like any other; and emphasis works when the paragraph
 wraps between its two markers.
 
 The full list is in
-[CHANGELOG.md](https://github.com/SugarFatFree/marktext-plus/blob/main/CHANGELOG.md),
+[CHANGELOG.md](https://github.com/marktext-plus/marktext-plus/blob/main/CHANGELOG.md),
 and every fix is written up with its cause and its evidence in
-[docs/v1.5.6/](https://github.com/SugarFatFree/marktext-plus/tree/main/docs/v1.5.6).
+[docs/v1.5.6/](https://github.com/marktext-plus/marktext-plus/tree/main/docs/v1.5.6).

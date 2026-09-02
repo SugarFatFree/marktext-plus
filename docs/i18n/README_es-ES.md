@@ -26,7 +26,7 @@ MarkText Plus es un **editor Markdown moderno**, reimaginado a partir del [MarkT
 Listo en menos de 30 segundos.
 
 ```bash
-git clone https://github.com/SugarFatFree/marktext-plus.git
+git clone https://github.com/marktext-plus/marktext-plus.git
 cd marktext-plus/code
 flutter pub get && flutter run
 ```
@@ -77,7 +77,7 @@ Eso es todo. El editor se abrirá con un documento de ejemplo listo para editar.
 | **🧩 Open plugins** | Discover public plugins through GitHub Topic `marktext-plus-plugin`; every plugin is labelled Community/Unverified and runs out of process |
 | **⚡ Arranque rápido** | Sin navegador integrado ni framework de edición, con 22 dependencias directas |
 | **📄 Archivos grandes** | Parser, resaltado y búsqueda de una sola pasada, con presupuestos fijados por pruebas |
-| **🧪 Probado** | 2019 pruebas para parser, exportadores, providers y widgets del editor |
+| **🧪 Probado** | 2021 pruebas para parser, exportadores, providers y widgets del editor |
 
 ## ⚖️ Comparativa
 
@@ -144,7 +144,7 @@ Conviene decirlo con claridad, porque una comparativa que solo halaga a quien la
 
 ### Descargar binarios precompilados
 
-Descarga la última versión para tu plataforma desde [Releases](https://github.com/SugarFatFree/marktext-plus/releases).
+Descarga la última versión para tu plataforma desde [Releases](https://github.com/marktext-plus/marktext-plus/releases).
 
 | Platform | Architecture | Format |
 |----------|-------------|--------|
@@ -157,7 +157,7 @@ Descarga la última versión para tu plataforma desde [Releases](https://github.
 > **Requisitos previos**: Flutter 3.x+, Dart 3.x+
 
 ```bash
-git clone https://github.com/SugarFatFree/marktext-plus.git
+git clone https://github.com/marktext-plus/marktext-plus.git
 cd marktext-plus/code
 flutter pub get && flutter run
 ```

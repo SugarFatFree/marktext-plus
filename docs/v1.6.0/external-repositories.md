@@ -29,7 +29,7 @@
 
 两个仓库已创建并推送到 `SugarFatFree` 账号：
 
-- https://github.com/SugarFatFree/marktext-plus-plugin-sdk
-- https://github.com/SugarFatFree/marktext-plus-ai-translate-plugin
+- https://github.com/marktext-plus/marktext-plus-plugin-sdk
+- https://github.com/marktext-plus/marktext-plus-ai-translate-plugin
 
 两个仓库均已添加 Topic `marktext-plus-plugin`。当前不要求创建 Organization；第三方开发者可以在自己的公开仓库添加同一 Topic，由应用自动发现并标记为 Community/Unverified。
