@@ -5,7 +5,7 @@ All notable changes to MarkText Plus will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - v1.6.0
+## [v1.6.0] - 2026-09-02
 
 ### Added
 - In split view the two halves follow each other's scrolling, in both directions. It had no synchronisation at all: the editing pane moved and the preview stayed where it was, which is most of what a split view is for. It anchors on the headings and interpolates between them rather than matching a fraction of the way down — the two panes have nothing like the same height, since a comment is forty lines of source and no height at all on the other side
