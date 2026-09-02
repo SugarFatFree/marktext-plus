@@ -6,7 +6,7 @@
 | FEAT-086 | 2026-09-02 | 插件日志隔离与轮转 | P1 | 中 | 已完成 |
 | FEAT-087 | 2026-09-02 | 插件市场 HTTPS 索引和 SHA-256 校验 | P1 | 中 | 已完成 |
 | FEAT-088 | 2026-09-02 | OpenAI/Anthropic AI 配置项 | P2 | 中 | 已完成 |
-| FEAT-089 | 2026-09-02 | 插件 SDK 和 AI 翻译插件独立仓库 | P1 | 高 | 待 GitHub 授权 |
+| FEAT-089 | 2026-09-02 | 插件 SDK 和 AI 翻译插件独立仓库 | P1 | 高 | 已完成 |
 
 ---
 
@@ -68,6 +68,6 @@
 |------|------|
 | 实现日期 | 2026-09-02 |
 | 需求描述 | 提供 SDK 和读取统一 AI 配置的翻译插件示例 |
-| 实现方案 | 规划 `marktext-plus-plugin-sdk` 与 `marktext-plus-ai-translate-plugin` 两个公开仓库；当前无 GitHub 写授权 |
+| 实现方案 | 两个公开仓库已创建于 `marktext-plus-plugins` 组织，并添加 Topic `marktext-plus-plugin` |
 | 验收标准 | 仓库公开、SDK 含 manifest/JSON-RPC 示例、翻译插件具备日志和错误处理 |
-| 涉及文件 | 待外部仓库创建 |
+| 涉及文件 | `https://github.com/marktext-plus-plugins/marktext-plus-plugin-sdk`、`https://github.com/marktext-plus-plugins/marktext-plus-ai-translate-plugin` |

@@ -15,7 +15,7 @@
 
 ## AI 翻译插件
 
-建议仓库：`marktext-plus/marktext-plus-ai-translate-plugin`
+建议仓库：`marktext-plus-plugins/marktext-plus-ai-translate-plugin`
 
 首版内容：
 

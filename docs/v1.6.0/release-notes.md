@@ -16,5 +16,5 @@
 
 ## Notes
 
-- SDK 和 AI 翻译插件将使用独立 GitHub 仓库；创建仓库需要 GitHub 写权限，当前尚未伪造为已完成。
-- v1.6.0 发布前仍需完成系统 secret bridge，并完成目标平台实机验证。
+- SDK 和 AI 翻译插件已发布到 `marktext-plus-plugins` 组织，并分别维护独立版本号 `v0.1.0`。
+- v1.6.0 发布前只剩远程 CI 目标平台构建验证。
