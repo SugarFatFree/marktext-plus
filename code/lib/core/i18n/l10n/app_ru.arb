@@ -411,5 +411,7 @@
   "settingsPluginsUnverified": "Сообщество / Не проверено. Изучите исходный код перед включением.",
   "settingsAiTest": "Проверить конфигурацию",
   "settingsAiEndpointHint": "Укажите только корень провайдера; не добавляйте /v1/messages или /v1/chat/completions.",
-  "settingsAiTestSuccess": "Проверка конфигурации ИИ прошла успешно."
+  "settingsAiTestSuccess": "Проверка конфигурации ИИ прошла успешно.",
+  "settingsAiApiKey": "Ключ API",
+  "settingsAiApiKeyHint": "Ключ API сохраняется в системном хранилище секретов под указанной ссылкой."
 }

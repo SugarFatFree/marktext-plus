@@ -7,6 +7,7 @@
 | BUG-223 | 2026-09-02 | AI 大模型 endpoint、model 和密钥引用未在离开设置页时保存 | P1 | 已修复 |
 | BUG-224 | 2026-09-02 | 已安装插件没有启用/禁用、卸载和实际使用入口 | P1 | 已修复 |
 | BUG-225 | 2026-09-02 | 社区插件列表点击无响应，缺少详情和安装按钮 | P1 | 已修复 |
+| BUG-226 | 2026-09-02 | AI key reference 没有对应密钥输入和保存入口，插件无法找到真实 key | P1 | 已修复 |
 
 ---
 
@@ -79,3 +80,23 @@ Topic 搜索返回插件后，点击列表项没有任何反馈；安装按钮�
 ### 验证
 
 插件 catalog 和设置页面专项测试、全量测试及静态分析通过。
+
+---
+
+## BUG-226：AI key reference 没有真实密钥写入入口
+
+### 现象
+
+用户填写 API key reference 后点击测试配置，提示 `The API key reference was not found`；AI 翻译插件也无法取得真实 API key。
+
+### 根因分析
+
+reference 只是系统密钥环中的索引名，旧设置页没有 API key 输入框，用户填写的内容不会写入系统密钥环。
+
+### 修复方案
+
+新增独立的密码输入框，输入内容通过 `PluginSecretBridge.store` 写入 Windows Credential Manager、macOS Keychain 或 Linux Secret Service；配置文件仍只保存 reference。插件启动时由宿主解析 reference，并通过 `initialize` 的内存参数传给插件。
+
+### 验证
+
+新增 secret bridge 测试，验证 reference 写入、读取和删除；AI endpoint、设置页和全量测试通过。

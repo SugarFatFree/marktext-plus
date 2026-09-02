@@ -1062,4 +1062,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsAiTestSuccess => 'AI 配置测试成功。';
+
+  @override
+  String get settingsAiApiKey => 'API 密钥';
+
+  @override
+  String get settingsAiApiKeyHint => 'API 密钥会以指定引用名保存到系统密钥存储中。';
 }

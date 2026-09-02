@@ -1075,4 +1075,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsAiTestSuccess => 'AI configuration test succeeded.';
+
+  @override
+  String get settingsAiApiKey => 'API key';
+
+  @override
+  String get settingsAiApiKeyHint =>
+      'Stored in the system secret store under the reference above.';
 }

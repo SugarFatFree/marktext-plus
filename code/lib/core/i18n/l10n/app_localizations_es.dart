@@ -1085,4 +1085,11 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get settingsAiTestSuccess =>
       'La prueba de configuración de IA tuvo éxito.';
+
+  @override
+  String get settingsAiApiKey => 'Clave API';
+
+  @override
+  String get settingsAiApiKeyHint =>
+      'La clave API se guarda en el almacén de secretos del sistema con la referencia indicada.';
 }

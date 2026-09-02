@@ -1064,4 +1064,10 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsAiTestSuccess => 'AI 設定のテストに成功しました。';
+
+  @override
+  String get settingsAiApiKey => 'API キー';
+
+  @override
+  String get settingsAiApiKeyHint => 'API キーは指定した参照名でシステムのシークレットストアに保存されます。';
 }

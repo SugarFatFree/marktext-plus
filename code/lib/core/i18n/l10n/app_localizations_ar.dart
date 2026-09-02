@@ -1075,4 +1075,11 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get settingsAiTestSuccess => 'نجح اختبار إعدادات الذكاء الاصطناعي.';
+
+  @override
+  String get settingsAiApiKey => 'مفتاح API';
+
+  @override
+  String get settingsAiApiKeyHint =>
+      'يُحفظ مفتاح API في مخزن أسرار النظام تحت المرجع المحدد.';
 }

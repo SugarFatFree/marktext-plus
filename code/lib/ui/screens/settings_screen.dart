@@ -38,6 +38,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   /// the field while what the reader is typing does not get overwritten.
   final _lastFromConfig = <String, String>{};
   Timer? _aiSaveTimer;
+  Timer? _apiKeySaveTimer;
+  final _apiKeyController = TextEditingController();
   bool _testingAi = false;
 
   void _queueAiField(String field, String value) {
@@ -54,9 +56,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     });
   }
 
+  void _queueApiKey(String value) {
+    _apiKeySaveTimer?.cancel();
+    _apiKeySaveTimer = Timer(const Duration(milliseconds: 400), () async {
+      if (!mounted) return;
+      final reference = ref.read(settingsProvider).aiApiKeyRef.trim();
+      if (reference.isEmpty) return;
+      final bridge = PluginSecretBridge(PlatformSecretStore());
+      if (value.isEmpty) {
+        await bridge.remove(reference);
+      } else {
+        await bridge.store(reference, value);
+      }
+    });
+  }
+
   @override
   void dispose() {
     _aiSaveTimer?.cancel();
+    _apiKeySaveTimer?.cancel();
+    _apiKeyController.dispose();
     for (final controller in _fields.values) {
       controller.dispose();
     }
@@ -416,6 +435,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               onChanged: (value) => _queueAiField('keyReference', value),
               onSubmitted: (value) => notifier.updateConfig(
                 (c) => c.copyWith(aiApiKeyRef: value.trim()),
+              ),
+            ),
+          ),
+        ),
+        _row(
+          l10n.settingsAiApiKey,
+          SizedBox(
+            width: 360,
+            child: TextField(
+              controller: _apiKeyController,
+              obscureText: true,
+              onChanged: _queueApiKey,
+              decoration: InputDecoration(
+                hintText: l10n.settingsAiApiKeyHint,
               ),
             ),
           ),

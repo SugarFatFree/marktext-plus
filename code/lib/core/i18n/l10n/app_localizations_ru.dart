@@ -1079,4 +1079,11 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get settingsAiTestSuccess =>
       'Проверка конфигурации ИИ прошла успешно.';
+
+  @override
+  String get settingsAiApiKey => 'Ключ API';
+
+  @override
+  String get settingsAiApiKeyHint =>
+      'Ключ API сохраняется в системном хранилище секретов под указанной ссылкой.';
 }

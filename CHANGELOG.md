@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Plugin entry, Topic discovery feedback, toolbar alignment, plugin lifecycle controls and isolated plugin actions are refined for the next release.
-- AI model settings now save while typing, and the settings page can test provider configuration from the system secret store.
+- AI model settings now save while typing, accept a real API key into the system secret store, and can test provider configuration; the translation plugin receives that key only in memory.
 
 ## [v1.6.0] - 2026-09-02
 

@@ -411,5 +411,7 @@
   "settingsPluginsUnverified": "Community / Ungeprüft. Prüfen Sie den Quellcode vor der Aktivierung.",
   "settingsAiTest": "Konfiguration testen",
   "settingsAiEndpointHint": "Geben Sie nur die Anbieter-Basisadresse ein; fügen Sie nicht /v1/messages oder /v1/chat/completions hinzu.",
-  "settingsAiTestSuccess": "Der KI-Konfigurationstest war erfolgreich."
+  "settingsAiTestSuccess": "Der KI-Konfigurationstest war erfolgreich.",
+  "settingsAiApiKey": "API-Schlüssel",
+  "settingsAiApiKeyHint": "Der API-Schlüssel wird unter der angegebenen Referenz im System-Geheimnisspeicher gespeichert."
 }

@@ -411,5 +411,7 @@
   "settingsPluginsUnverified": "コミュニティ / 未検証。有効化する前にソースを確認してください。",
   "settingsAiTest": "設定をテスト",
   "settingsAiEndpointHint": "プロバイダーのルートだけを入力し、/v1/messages や /v1/chat/completions は追加しないでください。",
-  "settingsAiTestSuccess": "AI 設定のテストに成功しました。"
+  "settingsAiTestSuccess": "AI 設定のテストに成功しました。",
+  "settingsAiApiKey": "API キー",
+  "settingsAiApiKeyHint": "API キーは指定した参照名でシステムのシークレットストアに保存されます。"
 }

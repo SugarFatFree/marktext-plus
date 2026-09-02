@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/core/config/app_config.dart';
 import 'package:marktext_plus/services/ai_connection_service.dart';
+import 'package:marktext_plus/services/plugin_secret_store.dart';
 
 void main() {
   test('builds provider paths from an endpoint root', () {
@@ -28,5 +29,12 @@ void main() {
       ),
       throwsFormatException,
     );
+  });
+
+  test('stores an API key under the configured reference', () async {
+    final store = MemorySecretStore();
+    final bridge = PluginSecretBridge(store);
+    await bridge.store('provider-key', 'secret-value');
+    expect(await bridge.resolve('provider-key'), 'secret-value');
   });
 }

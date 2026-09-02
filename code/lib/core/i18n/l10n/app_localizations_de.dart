@@ -1080,4 +1080,11 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get settingsAiTestSuccess =>
       'Der KI-Konfigurationstest war erfolgreich.';
+
+  @override
+  String get settingsAiApiKey => 'API-Schlüssel';
+
+  @override
+  String get settingsAiApiKeyHint =>
+      'Der API-Schlüssel wird unter der angegebenen Referenz im System-Geheimnisspeicher gespeichert.';
 }

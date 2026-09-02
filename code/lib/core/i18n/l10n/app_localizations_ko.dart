@@ -1064,4 +1064,10 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get settingsAiTestSuccess => 'AI 구성 테스트가 성공했습니다.';
+
+  @override
+  String get settingsAiApiKey => 'API 키';
+
+  @override
+  String get settingsAiApiKeyHint => 'API 키는 지정한 참조 이름으로 시스템 비밀 저장소에 저장됩니다.';
 }

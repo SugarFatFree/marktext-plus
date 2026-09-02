@@ -7,6 +7,7 @@
 | FEAT-094 | 2026-09-02 | 插件启用/禁用、卸载和 AI 翻译动作 | P1 | 中 | 已完成 |
 | FEAT-095 | 2026-09-02 | 插件权限和菜单/工具栏贡献描述 | P1 | 高 | 已完成 |
 | FEAT-096 | 2026-09-02 | 社区插件详情与安装流程 | P1 | 中 | 已完成 |
+| FEAT-097 | 2026-09-02 | AI key 输入与插件 secret bridge | P1 | 中 | 已完成 |
 
 ---
 
@@ -64,3 +65,14 @@
 | 实现方案 | `PluginCatalogEntry` 保存 repository URL；`PluginPanel` 用详情对话框展示信息并调用带 SHA-256 校验的安装服务 |
 | 验收标准 | 点击条目有反馈，详情可滚动，Install 能触发安装，网络/空列表状态可读 |
 | 涉及文件 | `plugin_catalog_service.dart`、`plugin_panel.dart` |
+
+## FEAT-097：AI key 输入与插件 secret bridge
+
+| 字段 | 内容 |
+|------|------|
+| 实现日期 | 2026-09-02 |
+| 需求描述 | 允许用户输入真实 API key，并让插件按 reference 使用它 |
+| 用户场景 | 配置 OpenAI 或 Anthropic 后测试连接、使用 AI 翻译插件 |
+| 实现方案 | 设置页密码字段写入系统密钥环；`PluginSecretBridge` 按 reference 读取；插件通过 JSON-RPC initialize 接收内存 key |
+| 验收标准 | key 不出现在 config.json，测试连接可读取已保存 key，插件可获得正确 key |
+| 涉及文件 | `plugin_secret_store.dart`、`settings_screen.dart`、`ai_connection_service.dart`、`plugin_panel.dart` |

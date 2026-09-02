@@ -36,6 +36,20 @@ class PluginSecretBridge {
     if (reference.trim().isEmpty) return Future<String?>.value();
     return _store.read(reference.trim());
   }
+
+  Future<void> remove(String reference) {
+    if (reference.trim().isEmpty) return Future<void>.value();
+    return _store.delete(reference.trim());
+  }
+
+  Future<void> store(String reference, String value) {
+    if (reference.trim().isEmpty) {
+      return Future<void>.error(
+        const FormatException('secret reference must not be empty'),
+      );
+    }
+    return _store.write(reference.trim(), value);
+  }
 }
 
 /// In-memory adapter used by tests and by plugin development tooling.

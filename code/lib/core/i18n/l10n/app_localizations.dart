@@ -2132,6 +2132,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'AI configuration test succeeded.'**
   String get settingsAiTestSuccess;
+
+  /// No description provided for @settingsAiApiKey.
+  ///
+  /// In en, this message translates to:
+  /// **'API key'**
+  String get settingsAiApiKey;
+
+  /// No description provided for @settingsAiApiKeyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Stored in the system secret store under the reference above.'**
+  String get settingsAiApiKeyHint;
 }
 
 class _AppLocalizationsDelegate

@@ -411,5 +411,7 @@
   "settingsPluginsUnverified": "Community / Non verificato. Controlla il codice prima di abilitarlo.",
   "settingsAiTest": "Testa configurazione",
   "settingsAiEndpointHint": "Inserisci solo la radice del provider; non aggiungere /v1/messages o /v1/chat/completions.",
-  "settingsAiTestSuccess": "Il test della configurazione IA è riuscito."
+  "settingsAiTestSuccess": "Il test della configurazione IA è riuscito.",
+  "settingsAiApiKey": "Chiave API",
+  "settingsAiApiKeyHint": "La chiave API viene salvata nel gestore dei segreti di sistema con il riferimento indicato."
 }

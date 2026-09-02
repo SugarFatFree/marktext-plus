@@ -1084,6 +1084,13 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get settingsAiTestSuccess =>
       'O teste da configuração de IA foi bem-sucedido.';
+
+  @override
+  String get settingsAiApiKey => 'Chave da API';
+
+  @override
+  String get settingsAiApiKeyHint =>
+      'A chave da API é guardada no armazenamento seguro do sistema com a referência indicada.';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -2164,4 +2171,11 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get settingsAiTestSuccess =>
       'O teste da configuração de IA foi bem-sucedido.';
+
+  @override
+  String get settingsAiApiKey => 'Chave da API';
+
+  @override
+  String get settingsAiApiKeyHint =>
+      'A chave da API é armazenada no cofre de segredos do sistema usando a referência informada.';
 }
