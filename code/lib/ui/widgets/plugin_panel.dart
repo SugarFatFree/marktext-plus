@@ -8,11 +8,11 @@ import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/i18n/l10n/app_localizations.dart';
-import '../../providers/editor_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/tab_provider.dart';
 import '../../services/plugin_catalog_service.dart';
 import '../../services/plugin_manager.dart';
+import '../../services/plugin_translation_service.dart';
 import '../../services/plugin_manifest.dart';
 import '../screens/plugin_settings_screen.dart';
 import '../../providers/plugin_provider.dart';
@@ -113,33 +113,14 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
   }
 
   Future<String> _translateText(PluginManifest plugin, String source, String target) async {
-    final config = ref.read(settingsProvider);
-    final apiKey = config.aiApiKey.trim();
-    if (apiKey.isEmpty) {
-      throw StateError('Configure and save the AI API key first');
-    }
-
-    final manager = await _manager();
-    final host = await manager.startPlugin(plugin);
-    try {
-      await host.call('initialize', params: {
-        'provider': config.aiProvider.name,
-        'endpoint': config.aiEndpoint,
-        'model': config.aiModel,
-        'apiKey': apiKey,
-      });
-      final response = await host.call('translate', params: {
-        'text': source,
-        'targetLanguage': target,
-      });
-      final translated = response['result'];
-      if (translated is! String || translated.isEmpty) {
-        throw const FormatException('AI plugin returned no translation');
-      }
-      return translated;
-    } finally {
-      await host.stop();
-    }
+    final dir = await getApplicationSupportDirectory();
+    return PluginTranslationService.translate(
+      plugin: plugin,
+      source: source,
+      targetLanguage: target,
+      config: ref.read(settingsProvider),
+      manager: PluginManager(p.join(dir.path, 'plugins')),
+    );
   }
 
   Future<String?> _askTargetLanguage(String title) async {
@@ -201,22 +182,6 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
     );
   }
 
-  Future<void> _translateSelection(PluginManifest plugin) async {
-    final source = ref.read(editorProvider).selectedText;
-    if (source.trim().isEmpty) {
-      setState(() => _error = StateError('Select Markdown text first'));
-      return;
-    }
-    final target = await _askTargetLanguage('Translate selection');
-    if (target == null || !mounted) return;
-    try {
-      final translated = await _translateText(plugin, source, target);
-      if (mounted) await _showTranslation(source, translated, fullDocument: false);
-    } catch (error) {
-      if (mounted) setState(() => _error = error);
-    }
-  }
-
   Future<void> _translateFullDocument(PluginManifest plugin) async {
     final document = ref.read(activeTabProvider)?.content;
     if (document == null || document.trim().isEmpty) {
@@ -263,6 +228,22 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
               tooltip: l10n.settingsPluginsDiscover,
               icon: const Icon(Icons.travel_explore, size: 18),
               onPressed: _discover,
+              visualDensity: VisualDensity.compact,
+            ),
+            IconButton(
+              tooltip: 'Translate full document',
+              icon: const Icon(Icons.translate, size: 18),
+              onPressed: () async {
+                final plugins = await installed;
+                final plugin = plugins
+                    .where((plugin) => plugin.id.contains('ai-translate'))
+                    .firstOrNull;
+                if (plugin == null) {
+                  if (mounted) setState(() => _error = StateError('Install the AI Translate plugin first'));
+                  return;
+                }
+                await _translateFullDocument(plugin);
+              },
               visualDensity: VisualDensity.compact,
             ),
             IconButton(
@@ -332,29 +313,6 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
                                     ),
                                     icon: const Icon(Icons.settings, size: 16),
                                     label: const Text('Settings'),
-                                  ),
-                                if (plugin.id.contains('ai-translate'))
-                                  PopupMenuButton<String>(
-                                    tooltip: 'Translation actions',
-                                    icon: const Icon(Icons.translate, size: 18),
-                                    enabled: enabled.data == true,
-                                    onSelected: (action) {
-                                      if (action == 'selection') {
-                                        _translateSelection(plugin);
-                                      } else {
-                                        _translateFullDocument(plugin);
-                                      }
-                                    },
-                                    itemBuilder: (context) => const [
-                                      PopupMenuItem(
-                                        value: 'selection',
-                                        child: Text('Translate selection'),
-                                      ),
-                                      PopupMenuItem(
-                                        value: 'document',
-                                        child: Text('Translate full document'),
-                                      ),
-                                    ],
                                   ),
                                 IconButton(
                                   tooltip: 'Uninstall',
