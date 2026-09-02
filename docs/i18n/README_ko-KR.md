@@ -74,7 +74,7 @@ flutter pub get && flutter run
 
 | | |
 |---------|-------------|
-| **🧩 Open plugins** | Discover public plugins through GitHub Topic `marktext-plus-plugin`; every plugin is labelled Community/Unverified and runs out of process |
+| **🧩 Open plugins** | Discover public plugins through [GitHub Topic: `marktext-plus-plugin`](https://github.com/topics/marktext-plus-plugin); every plugin is labelled Community/Unverified and runs out of process |
 | **⚡ 빠른 시작** | 내장 브라우저와 편집 프레임워크 없이 직접 의존성 22개 |
 | **📄 대용량 파일** | 파싱·강조·검색을 단일 패스로 처리하고 테스트 예산으로 관리 |
 | **🧪 테스트 완료** | 파서, 내보내기, provider, 편집기 위젯을 2021개 테스트로 검증 |
