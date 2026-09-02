@@ -43,6 +43,43 @@ String _requiredString(Map<String, dynamic> json, String key) {
   return value.trim();
 }
 
+
+class PluginMenuItem {
+  const PluginMenuItem({
+    required this.id,
+    required this.title,
+    required this.location,
+  });
+
+  final String id;
+  final String title;
+  final String location;
+
+  factory PluginMenuItem.fromJson(Map<String, dynamic> json) => PluginMenuItem(
+        id: _requiredString(json, 'id'),
+        title: _requiredString(json, 'title'),
+        location: _requiredString(json, 'location'),
+      );
+
+  Map<String, dynamic> toJson() =>
+      {'id': id, 'title': title, 'location': location};
+}
+
+class PluginSettingPage {
+  const PluginSettingPage({required this.id, required this.title});
+
+  final String id;
+  final String title;
+
+  factory PluginSettingPage.fromJson(Map<String, dynamic> json) =>
+      PluginSettingPage(
+        id: _requiredString(json, 'id'),
+        title: _requiredString(json, 'title'),
+      );
+
+  Map<String, dynamic> toJson() => {'id': id, 'title': title};
+}
+
 /// Metadata declared by an installed MarkText Plus plugin.
 ///
 /// The manifest is the only plugin data read during startup. Executable code
@@ -58,6 +95,8 @@ class PluginManifest {
     this.permissions = const <String>[],
     this.commands = const <PluginCommand>[],
     this.toolbar = const <PluginToolbarItem>[],
+    this.menus = const <PluginMenuItem>[],
+    this.settings = const <PluginSettingPage>[],
   });
 
   final String id;
@@ -69,6 +108,8 @@ class PluginManifest {
   final List<String> permissions;
   final List<PluginCommand> commands;
   final List<PluginToolbarItem> toolbar;
+  final List<PluginMenuItem> menus;
+  final List<PluginSettingPage> settings;
 
   factory PluginManifest.fromJson(Map<String, dynamic> json) {
     String requiredString(String key) => _requiredString(json, key);
@@ -103,6 +144,8 @@ class PluginManifest {
       permissions: strings('permissions'),
       commands: objects('commands', PluginCommand.fromJson),
       toolbar: objects('toolbar', PluginToolbarItem.fromJson),
+      menus: objects('menus', PluginMenuItem.fromJson),
+      settings: objects('settings', PluginSettingPage.fromJson),
     );
   }
 
@@ -118,5 +161,9 @@ class PluginManifest {
           'commands': commands.map((item) => item.toJson()).toList(),
         if (toolbar.isNotEmpty)
           'toolbar': toolbar.map((item) => item.toJson()).toList(),
+        if (menus.isNotEmpty)
+          'menus': menus.map((item) => item.toJson()).toList(),
+        if (settings.isNotEmpty)
+          'settings': settings.map((item) => item.toJson()).toList(),
       };
 }
