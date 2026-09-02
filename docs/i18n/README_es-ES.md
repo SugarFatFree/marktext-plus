@@ -74,9 +74,10 @@ Eso es todo. El editor se abrirá con un documento de ejemplo listo para editar.
 
 | | |
 |---------|-------------|
+| **🧩 Open plugins** | Discover public plugins through GitHub Topic `marktext-plus-plugin`; every plugin is labelled Community/Unverified and runs out of process |
 | **⚡ Arranque rápido** | Sin navegador integrado ni framework de edición, con 22 dependencias directas |
 | **📄 Archivos grandes** | Parser, resaltado y búsqueda de una sola pasada, con presupuestos fijados por pruebas |
-| **🧪 Probado** | 2012 pruebas para parser, exportadores, providers y widgets del editor |
+| **🧪 Probado** | 2019 pruebas para parser, exportadores, providers y widgets del editor |
 
 ## ⚖️ Comparativa
 

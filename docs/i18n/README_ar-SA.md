@@ -74,9 +74,10 @@ flutter pub get && flutter run
 
 | | |
 |---------|-------------|
+| **🧩 Open plugins** | Discover public plugins through GitHub Topic `marktext-plus-plugin`; every plugin is labelled Community/Unverified and runs out of process |
 | **⚡ بدء سريع** | بلا متصفح مضمّن أو إطار تحرير، و22 تبعية مباشرة |
 | **📄 ملفات كبيرة** | تحليل وتمييز وبحث بمرور واحد، مع اختبارات أداء محددة |
-| **🧪 مختبر جيد** | 2012 اختبارًا تغطي المحلل والمصدّرات والـ providers وواجهات المحرر |
+| **🧪 مختبر جيد** | 2019 اختبارًا تغطي المحلل والمصدّرات والـ providers وواجهات المحرر |
 
 ## ⚖️ المقارنة
 

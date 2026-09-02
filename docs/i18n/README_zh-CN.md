@@ -79,9 +79,10 @@ flutter pub get && flutter run
 
 | | |
 |---------|-------------|
+| **🧩 Open plugins** | Discover public plugins through GitHub Topic `marktext-plus-plugin`; every plugin is labelled Community/Unverified and runs out of process |
 | **⚡ 快速启动** | 没有内嵌浏览器和编辑器框架，只有 22 个直接依赖 |
 | **📄 大文件** | 解析、语法高亮和搜索均为单遍处理，并由性能测试设置预算 |
-| **🧪 测试充分** | 2012 项测试覆盖解析器、导出器、providers 和编辑器组件 |
+| **🧪 测试充分** | 2019 项测试覆盖解析器、导出器、providers 和编辑器组件 |
 
 ## ⚖️ 横向对比
 
