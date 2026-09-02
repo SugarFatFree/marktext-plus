@@ -96,6 +96,19 @@ void main() {
     });
   });
 
+  group('source markdown copy', () {
+    test('keeps source newlines while giving word processors rich HTML', () {
+      final html = RichCopyService.htmlForMarkdownSelection(
+        '# Title\n\nA **bold** paragraph.\n\n- one\n- two\n',
+      );
+
+      expect(html, contains('<h1>Title</h1>'));
+      expect(html, contains('<strong>bold</strong>'));
+      expect(html, contains('<ul>'));
+      expect(html, contains('<li>one</li>'));
+    });
+  });
+
   group('the text a selection returns matches what is drawn', () {
     // plainTextOf is what a selection is matched against. Emphasis holding
     // markup keeps its own source text alongside the spans that text became,

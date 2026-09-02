@@ -56,6 +56,11 @@
   },
   "saveFailed": "Não foi possível guardar o ficheiro: {message}",
   "exportFailed": "Não foi possível exportar o documento: {message}",
+  "exportInProgress": "A exportar…",
+  "exportSucceeded": "Exportado para {file}",
+  "@exportSucceeded": {
+    "placeholders": { "file": { "type": "String" } }
+  },
   "fileOpenFailed": "Não foi possível abrir o ficheiro: {message}",
   "saveConflictTitle": "O ficheiro mudou no disco",
   "saveConflictBody": "Algo mais alterou «{name}» desde que foi aberto. Guardar agora escreveria por cima dessa alteração.",
@@ -388,5 +393,20 @@
   "updateAvailable": "Nova versão disponível",
   "updateDismiss": "Dispensar",
   "linkOpenFailed": "Não foi possível abrir a ligação",
-  "recentFileMissing": "Esse arquivo não existe mais; foi removido da lista"
+  "recentFileMissing": "Esse arquivo não existe mais; foi removido da lista",
+  "settingsAi": "Modelos de IA",
+  "settingsAiEnabled": "Ativar plugins de IA",
+  "settingsAiProvider": "Fornecedor de IA",
+  "settingsAiEndpoint": "Endpoint da API",
+  "settingsAiModel": "Modelo",
+  "settingsAiKeyReference": "Referência da chave da API",
+  "settingsAiSecurityHint": "A chave da API é obtida no armazenamento seguro do plugin e não é gravada em config.json.",
+  "settingsAiOpenai": "Provedor OpenAI",
+  "settingsAiAnthropic": "Provedor Anthropic",
+  "settingsPlugins": "Extensões",
+  "settingsPluginsInstalled": "Plugins instalados",
+  "settingsPluginsDiscover": "Descobrir plugins da comunidade",
+  "settingsPluginsInstallZip": "Instalar ZIP",
+  "settingsPluginsEmpty": "Nenhum plugin instalado",
+  "settingsPluginsUnverified": "Comunidade / Não verificado. Reveja o código antes de ativar."
 }

@@ -87,6 +87,14 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get exportInProgress => '내보내는 중…';
+
+  @override
+  String exportSucceeded(String file) {
+    return '$file(으)로 내보냈습니다';
+  }
+
+  @override
   String fileOpenFailed(String message) {
     return '파일을 열지 못했습니다: $message';
   }
@@ -1000,4 +1008,50 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get recentFileMissing => '해당 파일이 없습니다. 목록에서 제거했습니다';
+
+  @override
+  String get settingsAi => 'AI 모델';
+
+  @override
+  String get settingsAiEnabled => 'AI 플러그인 활성화';
+
+  @override
+  String get settingsAiProvider => 'AI 제공자';
+
+  @override
+  String get settingsAiEndpoint => 'API 엔드포인트';
+
+  @override
+  String get settingsAiModel => '모델';
+
+  @override
+  String get settingsAiKeyReference => 'API 키 참조';
+
+  @override
+  String get settingsAiSecurityHint =>
+      'API 키는 플러그인 비밀 저장소에서 확인하며 config.json에 기록하지 않습니다.';
+
+  @override
+  String get settingsAiOpenai => 'OpenAI 제공자';
+
+  @override
+  String get settingsAiAnthropic => 'Anthropic 제공자';
+
+  @override
+  String get settingsPlugins => '플러그인';
+
+  @override
+  String get settingsPluginsInstalled => '설치된 플러그인';
+
+  @override
+  String get settingsPluginsDiscover => '커뮤니티 플러그인 찾기';
+
+  @override
+  String get settingsPluginsInstallZip => 'ZIP 설치';
+
+  @override
+  String get settingsPluginsEmpty => '설치된 플러그인이 없습니다';
+
+  @override
+  String get settingsPluginsUnverified => '커뮤니티 / 검증되지 않음. 활성화하기 전에 소스를 확인하세요.';
 }

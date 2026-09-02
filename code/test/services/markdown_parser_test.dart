@@ -1449,11 +1449,20 @@ void _nestedListTests() {
       ], reason: 'depth is the rank among indent widths, not a space count');
     });
 
-    test('ordered lists nest too', () {
-      const doc = '1. one\n  2. nested\n3. two\n';
-      final list = parser.parse(doc).single as ListNode;
-      expect(list.ordered, isTrue);
-      expect(list.items.map((i) => i.depth).toList(), [0, 1, 0]);
+    test('ordered lists nest too, when the indent reaches the text', () {
+      // `1. ` puts its text at column three, so that is what a sub-item has
+      // to reach. Two spaces is short of it and makes a sibling; three
+      // nests. `marked` agrees on both, which is how this was settled — the
+      // expectation here used to be [0, 1, 0], which described what the
+      // parser did rather than what a list means.
+      final short = parser.parse('1. one\n  2. nested\n3. two\n').single
+          as ListNode;
+      expect(short.ordered, isTrue);
+      expect(short.items.map((i) => i.depth).toList(), [0, 0, 0]);
+
+      final reaches = parser.parse('1. one\n   2. nested\n3. two\n').single
+          as ListNode;
+      expect(reaches.items.map((i) => i.depth).toList(), [0, 1, 0]);
     });
 
     test('a wrapped item stays one item', () {

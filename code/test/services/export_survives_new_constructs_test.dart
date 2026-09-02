@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/services/export_service.dart';
 
-/// Every export path over the constructs whose handling changed this week.
+/// Every export path over the constructs whose handling changed recently.
 ///
 /// A construct the parser learned to read has to survive four more journeys —
 /// HTML, PDF, Word, and the preview — and three of them end in a file the
@@ -20,7 +20,10 @@ void main() {
     if (dir.existsSync()) dir.deleteSync(recursive: true);
   });
 
-  /// Everything changed this week, in one document.
+  /// Everything that changed recently, in one document.
+  ///
+  /// Grown rather than replaced each version: a construct that broke an export
+  /// arm once can break it again, and the cost of carrying it here is nothing.
   const document = '''
 # 标题里的 **加粗** 与 [链接](/url)
 
@@ -38,6 +41,24 @@ void main() {
 | 表头 **粗** | 说明 |
 |---|---|
 | `代码` | [链接](/url) |
+
+见 [手册][doc] 与 [仓库][repo]。
+
+[doc]: /doc
+  "使用手册"
+[repo]: /repo
+
+- 制表符缩进的项
+
+\t乙丙丁戊
+
+\t```dart
+\tvar x = 1;
+\t```
+
+- 平铺一
+ - 平铺二
+  - 平铺三
 ''';
 
   test('HTML carries the constructs, not just the characters', () async {
@@ -49,6 +70,16 @@ void main() {
     expect(html, contains('width="120"'), reason: '图片尺寸没有导出');
     expect(html, contains('<strong>'), reason: '嵌套的强调没有导出');
     expect(html, contains('<a href="/url">'), reason: '链接没有导出');
+
+    // Added with v1.5.7's parser fixes, which all three exports read through
+    // the same nodes.
+    expect(html, contains('title="使用手册"'),
+        reason: '折行写的链接定义，标题没有导出');
+    expect(html, contains('乙丙丁戊'), reason: '制表符缩进的段落丢了字');
+    expect(html, contains('<pre><code'), reason: '制表符缩进的围栏没有导出成代码块');
+    expect(html, contains('平铺三'), reason: '漂移缩进的列表项没有导出');
+    expect('<ul>'.allMatches(html).length, lessThan(6),
+        reason: '平铺的列表被导出成了层层嵌套');
   });
 
   test('PDF is written and is a PDF', () async {

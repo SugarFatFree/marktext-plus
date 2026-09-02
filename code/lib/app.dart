@@ -95,6 +95,79 @@ void reportExportFailure(Object error) {
   );
 }
 
+/// Runs an export, saying so while it runs and saying where it went after.
+///
+/// Exporting used to be silent both ways: the window sat there while the file
+/// was written — three seconds for a hundred kilobyte document, longer for a
+/// large one — and then nothing was said, so there was no way to tell a
+/// finished export from one that had not started. Only failure spoke.
+///
+/// The barrier is honest about what it can do: the heavy part of a PDF export
+/// runs on this isolate, so the spinner will not turn while it does. What the
+/// reader gets is a window that says what it is busy with rather than one that
+/// has apparently died.
+Future<void> runExport(String fileName, Future<void> Function() export) async {
+  final context = navigatorKey.currentContext;
+  if (context == null || !context.mounted) {
+    // No window to report to; the export still has to happen.
+    try {
+      await export();
+    } catch (e) {
+      reportExportFailure(e);
+    }
+    return;
+  }
+
+  final l10n = AppLocalizations.of(context);
+  showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => PopScope(
+      canPop: false,
+      child: AlertDialog(
+        content: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: 16),
+            Flexible(child: Text(l10n?.exportInProgress ?? 'Exporting…')),
+          ],
+        ),
+      ),
+    ),
+  );
+  // One frame, so the dialog is on screen before the work begins.
+  await Future<void>.delayed(Duration.zero);
+
+  Object? failure;
+  try {
+    await export();
+  } catch (e) {
+    failure = e;
+  }
+
+  navigatorKey.currentState?.pop();
+  if (failure != null) {
+    reportExportFailure(failure);
+    return;
+  }
+
+  final after = navigatorKey.currentContext;
+  if (after == null || !after.mounted) return;
+  final done = AppLocalizations.of(after);
+  ScaffoldMessenger.of(after).showSnackBar(
+    SnackBar(
+      content: Text(done == null
+          ? 'Exported to $fileName'
+          : done.exportSucceeded(fileName)),
+    ),
+  );
+}
+
 void reportSaveFailure(Object error) {
   final context = navigatorKey.currentContext;
   if (context == null || !context.mounted) return;

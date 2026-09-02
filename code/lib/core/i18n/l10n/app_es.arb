@@ -56,6 +56,11 @@
   },
   "saveFailed": "No se pudo guardar el archivo: {message}",
   "exportFailed": "No se pudo exportar el documento: {message}",
+  "exportInProgress": "Exportando…",
+  "exportSucceeded": "Exportado a {file}",
+  "@exportSucceeded": {
+    "placeholders": { "file": { "type": "String" } }
+  },
   "fileOpenFailed": "No se pudo abrir el archivo: {message}",
   "saveConflictTitle": "El archivo cambió en el disco",
   "saveConflictBody": "Algo más modificó «{name}» desde que se abrió. Guardar ahora sobrescribiría ese cambio.",
@@ -388,5 +393,20 @@
   "updateAvailable": "Nueva versión disponible",
   "updateDismiss": "Descartar",
   "linkOpenFailed": "No se pudo abrir el enlace",
-  "recentFileMissing": "Ese archivo ya no existe; se ha quitado de la lista"
+  "recentFileMissing": "Ese archivo ya no existe; se ha quitado de la lista",
+  "settingsAi": "Modelos de IA",
+  "settingsAiEnabled": "Activar plugins de IA",
+  "settingsAiProvider": "Proveedor de IA",
+  "settingsAiEndpoint": "Punto final de API",
+  "settingsAiModel": "Modelo",
+  "settingsAiKeyReference": "Referencia de clave API",
+  "settingsAiSecurityHint": "La clave API se obtiene del almacén de secretos del plugin y no se escribe en config.json.",
+  "settingsAiOpenai": "Proveedor OpenAI",
+  "settingsAiAnthropic": "Proveedor Anthropic",
+  "settingsPlugins": "Complementos",
+  "settingsPluginsInstalled": "Plugins instalados",
+  "settingsPluginsDiscover": "Descubrir plugins de la comunidad",
+  "settingsPluginsInstallZip": "Instalar ZIP",
+  "settingsPluginsEmpty": "No hay plugins instalados",
+  "settingsPluginsUnverified": "Comunidad / No verificado. Revisa el código antes de activarlo."
 }

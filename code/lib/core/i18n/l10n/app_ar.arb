@@ -56,6 +56,11 @@
   },
   "saveFailed": "تعذّر حفظ الملف: {message}",
   "exportFailed": "تعذّر تصدير المستند: {message}",
+  "exportInProgress": "جارٍ التصدير…",
+  "exportSucceeded": "تم التصدير إلى {file}",
+  "@exportSucceeded": {
+    "placeholders": { "file": { "type": "String" } }
+  },
   "fileOpenFailed": "تعذّر فتح الملف: {message}",
   "saveConflictTitle": "تغيّر الملف على القرص",
   "saveConflictBody": "غيّر برنامج آخر «{name}» بعد فتحه. الحفظ الآن سيكتب فوق ذلك التغيير.",
@@ -388,5 +393,20 @@
   "updateAvailable": "يتوفر إصدار جديد",
   "updateDismiss": "تجاهل",
   "linkOpenFailed": "تعذّر فتح الرابط",
-  "recentFileMissing": "لم يعد هذا الملف موجودًا، وقد أُزيل من القائمة"
+  "recentFileMissing": "لم يعد هذا الملف موجودًا، وقد أُزيل من القائمة",
+  "settingsAi": "نماذج الذكاء الاصطناعي",
+  "settingsAiEnabled": "تمكين إضافات الذكاء الاصطناعي",
+  "settingsAiProvider": "موفر الذكاء الاصطناعي",
+  "settingsAiEndpoint": "نقطة نهاية API",
+  "settingsAiModel": "النموذج",
+  "settingsAiKeyReference": "مرجع مفتاح API",
+  "settingsAiSecurityHint": "يُستخرج مفتاح API من مخزن أسرار الإضافة ولا يُكتب في config.json.",
+  "settingsAiOpenai": "OpenAI (موفر)",
+  "settingsAiAnthropic": "Anthropic (موفر)",
+  "settingsPlugins": "الإضافات",
+  "settingsPluginsInstalled": "الإضافات المثبتة",
+  "settingsPluginsDiscover": "اكتشاف الإضافات المجتمعية",
+  "settingsPluginsInstallZip": "تثبيت ZIP",
+  "settingsPluginsEmpty": "لا توجد إضافات مثبتة",
+  "settingsPluginsUnverified": "مجتمعي / غير موثّق. راجع المصدر قبل التفعيل."
 }

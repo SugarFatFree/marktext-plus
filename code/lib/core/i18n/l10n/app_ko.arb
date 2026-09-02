@@ -56,6 +56,11 @@
   },
   "saveFailed": "파일을 저장하지 못했습니다: {message}",
   "exportFailed": "문서를 내보내지 못했습니다: {message}",
+  "exportInProgress": "내보내는 중…",
+  "exportSucceeded": "{file}(으)로 내보냈습니다",
+  "@exportSucceeded": {
+    "placeholders": { "file": { "type": "String" } }
+  },
   "fileOpenFailed": "파일을 열지 못했습니다: {message}",
   "saveConflictTitle": "디스크에서 파일이 변경되었습니다",
   "saveConflictBody": "연 뒤에 다른 프로그램이 “{name}”을(를) 변경했습니다. 지금 저장하면 그 변경을 덮어씁니다.",
@@ -388,5 +393,20 @@
   "updateAvailable": "새 버전이 있습니다",
   "updateDismiss": "닫기",
   "linkOpenFailed": "링크를 열 수 없습니다",
-  "recentFileMissing": "해당 파일이 없습니다. 목록에서 제거했습니다"
+  "recentFileMissing": "해당 파일이 없습니다. 목록에서 제거했습니다",
+  "settingsAi": "AI 모델",
+  "settingsAiEnabled": "AI 플러그인 활성화",
+  "settingsAiProvider": "AI 제공자",
+  "settingsAiEndpoint": "API 엔드포인트",
+  "settingsAiModel": "모델",
+  "settingsAiKeyReference": "API 키 참조",
+  "settingsAiSecurityHint": "API 키는 플러그인 비밀 저장소에서 확인하며 config.json에 기록하지 않습니다.",
+  "settingsAiOpenai": "OpenAI 제공자",
+  "settingsAiAnthropic": "Anthropic 제공자",
+  "settingsPlugins": "플러그인",
+  "settingsPluginsInstalled": "설치된 플러그인",
+  "settingsPluginsDiscover": "커뮤니티 플러그인 찾기",
+  "settingsPluginsInstallZip": "ZIP 설치",
+  "settingsPluginsEmpty": "설치된 플러그인이 없습니다",
+  "settingsPluginsUnverified": "커뮤니티 / 검증되지 않음. 활성화하기 전에 소스를 확인하세요."
 }

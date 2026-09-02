@@ -10,8 +10,8 @@ class UpdateInfo {
 }
 
 class UpdateService {
-  static const _apiUrl = 'https://api.github.com/repos/SugarFatFree/marktext-plus/releases/latest';
-  static const _releasesUrl = 'https://github.com/SugarFatFree/marktext-plus/releases/latest';
+  static const _apiUrl = 'https://api.github.com/repos/marktext-plus/marktext-plus/releases/latest';
+  static const _releasesUrl = 'https://github.com/marktext-plus/marktext-plus/releases/latest';
 
   /// Asks GitHub for the latest release.
   ///

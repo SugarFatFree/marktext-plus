@@ -26,7 +26,7 @@ MarkText Plus est un **editeur Markdown moderne**, reinvente a partir de [MarkTe
 Pret en moins de 30 secondes.
 
 ```bash
-git clone https://github.com/SugarFatFree/marktext-plus.git
+git clone https://github.com/marktext-plus/marktext-plus.git
 cd marktext-plus/code
 flutter pub get && flutter run
 ```
@@ -35,16 +35,85 @@ C’est tout. L’editeur se lance avec un document d’exemple pret a etre modi
 
 ## ✨ Fonctionnalites
 
-| Feature | Description |
+### Édition
+
+| Fonction | Description |
 |---------|-------------|
-| **📝 Trois modes d’edition** | Code source avec coloration syntaxique, apercu en direct et vue partagee |
-| **🎨 8 beaux themes** | Red Graphite, Shibuya, Pink Blossom, Sky Blue, Dark Graphite, Dieci OLED, Nord, Midnight |
-| **🌍 12 langues** | Anglais, chinois, japonais, coreen, allemand, francais, italien, russe, espagnol, portugais, arabe et portugais bresilien |
-| **⚡ Tres rapide** | Parseur et moteur de rendu Markdown maison, sans dependances lourdes |
-| **🔍 Rechercher et remplacer** | Recherche complete avec prise en charge des expressions regulieres |
-| **📂 Arborescence de fichiers** | Navigation laterale avec prise en charge du glisser-deposer des dossiers |
-| **⌨️ Raccourcis personnalisables** | Assignations clavier entierement configurables |
-| **💾 Sauvegarde automatique** | Configuration persistante basee sur JSON pour ne jamais perdre son travail |
+| **📝 Trois modes d’édition** | Code source avec coloration, aperçu en direct et vue partagée déplaçable |
+| **✏️ Modifier dans l’aperçu** | Double-cliquez sur un bloc pour ouvrir son Markdown sur place ; `Esc` annule et les cases se cochent en un clic |
+| **⌨️ Palette de commandes et menu `/`** | `Ctrl+Shift+P` exécute une commande et `/` insère un bloc |
+| **📊 Édition des tableaux** | Insérer ou supprimer lignes et colonnes, puis aligner chaque colonne |
+| **🔀 Déplacer des blocs** | Monter ou descendre un paragraphe, une liste ou une clôture avec un raccourci |
+| **🔍 Rechercher et remplacer** | Rechercher des mots entiers ou des expressions régulières dans le document |
+| **🔗 Coller un lien** | Sélectionner des mots puis coller une adresse Web pour créer un lien |
+| **📐 Aligner un tableau** | Réaligner les barres sans modifier le contenu ; un caractère CJK vaut deux colonnes |
+| **🖼️ Images** | Coller ou déposer une image pour la ranger à côté du document et la lier |
+
+### Rendu
+
+| Fonction | Description |
+|---------|-------------|
+| **📈 Diagrammes Mermaid** | **22 types** dessinés en Dart pur, **sans WebView** |
+| **∑ Mathématiques** | Formules LaTeX en ligne et en bloc avec un rendu compatible KaTeX |
+| **📋 CommonMark + GFM** | Tableaux, tâches, barré, autoliens, notes de bas de page et annotations `<ruby>` |
+| **🎨 8 thèmes** | Red Graphite, Shibuya, Pink Blossom, Sky Blue, Dark Graphite, Dieci OLED, Nord, Midnight |
+| **🌍 12 langues** | Anglais, chinois, japonais, coréen, allemand, français, italien, russe, espagnol, portugais, arabe et portugais brésilien ; arabe en RTL |
+
+### Fichiers et sortie
+
+| Fonction | Description |
+|---------|-------------|
+| **📤 Export** | HTML, PDF et Word `.docx` ; diagrammes et code sont intégrés au HTML, tandis que les mathématiques utilisent encore KaTeX |
+| **🔤 Encodages** | UTF-8, UTF-16 et GBK détectés à l’ouverture, avec ou sans BOM, puis réécrits dans le même encodage |
+| **📂 Arborescence** | Navigation latérale avec glisser-déposer de dossiers |
+| **👀 Modifications externes** | Les modifications d’un autre programme sont détectées pendant l’ouverture |
+| **💾 Enregistrement sûr** | Écritures atomiques pour éviter un fichier incomplet après interruption |
+| **⌨️ Raccourcis personnalisables** | Raccourcis clavier entièrement configurables |
+
+### Conçu pour rester léger
+
+| | |
+|---------|-------------|
+| **🧩 Open plugins** | Discover public plugins through [GitHub Topic: `marktext-plus-plugin`](https://github.com/topics/marktext-plus-plugin); every plugin is labelled Community/Unverified and runs out of process |
+| **⚡ Démarrage rapide** | Aucun navigateur intégré ni framework d’édition, 22 dépendances directes |
+| **📄 Gros fichiers** | Analyse, coloration et recherche en un seul passage, avec des budgets testés |
+| **🧪 Testé** | 2021 tests couvrant le parseur, les exporteurs, les providers et les widgets |
+
+## ⚖️ Comparaison
+
+Face à l'éditeur dont celui-ci est la refonte, et face au plus connu du domaine. Tout ce qui figure dans la colonne MarkText a été lu dans son code source en `v0.20.0-dev` ; la colonne Typora provient de sa documentation publiée, puisqu'il est propriétaire et ne peut être vérifié de la même façon.
+
+Les temps de démarrage viennent d'une seule machine Windows, les trois programmes dessus. Ceux de ce programme sont instrumentés — il écrit son propre `startup-trace.log`, et les chiffres portent sur quatre lancements — tandis que les deux autres ont été chronométrés à la main : voyez-les comme la paire la plus grossière. L'essentiel du démarrage ici n'est pas son propre code : sur les 0,7 s, environ 0,5 s reviennent à Windows chargeant l'exécutable et au moteur Flutter qui démarre, et 0,15 s à tout ce que fait l'éditeur lui-même.
+
+| | **MarkText Plus** | **MarkText** (original) | **Typora** |
+|---|---|---|---|
+| **Environnement d'exécution** | Flutter — compilé, sans navigateur embarqué | Electron 42 | Electron |
+| **Démarrage** (jusqu'au document affiché) | ~0,7 s à chaud, ~1,4 s à froid | 2–3 s | 2–3 s |
+| **Dépendances directes** | 22 | 56 (paquet desktop) | propriétaire |
+| **Licence** | MIT, gratuit | MIT, gratuit | Payant, propriétaire |
+| **Édition** | Source, aperçu, et une vue partagée dont les deux moitiés se suivent ; les blocs se modifient sur place dans l'aperçu | Aperçu en direct (WYSIWYG), plus un mode source | Aperçu en direct (WYSIWYG), plus un mode source |
+| **Diagrammes** | 22 types Mermaid, dessinés en Dart sans WebView | Mermaid, flowchart.js, Vega-Lite, PlantUML — tous via JavaScript | Mermaid, flowchart.js, js-sequence, PlantUML |
+| **Mathématiques** | Compatible KaTeX | KaTeX | KaTeX |
+| **Export** | HTML, PDF, Word — tout est intégré | HTML, PDF, Markdown ; davantage de formats si pandoc est installé | De nombreux formats, la plupart via pandoc |
+| **Thèmes** | 8 | 32 | Nombreux, avec une vaste collection communautaire |
+| **Langues de l'interface** | 12 | 10 | Plusieurs |
+| **Plateformes** | Windows, macOS, Linux (x64 et arm64) | Windows, macOS, Linux | Windows, macOS, Linux |
+
+### Là où les autres sont devant
+
+Cela mérite d'être dit clairement : une comparaison qui ne flatte que celui qui l'écrit ne vaut pas la lecture.
+
+- **L'aperçu en direct.** Typora et MarkText modifient tous deux le document rendu, sans mode à changer. Cet éditeur propose trois volets et permet d'ouvrir un bloc sur place ; c'est autre chose, et pour qui a l'habitude de Typora, c'est la différence qui saute aux yeux en premier.
+- **Les thèmes.** Trente-deux contre huit, et Typora dispose de années de CSS communautaire.
+- **L'étendue des diagrammes.** PlantUML et Vega-Lite ne sont pas implémentés ici.
+- **Les années.** Typora est affiné depuis une décennie. Celui-ci est un jeune programme et cela se voit par endroits.
+
+### Là où celui-ci est devant
+
+- **Aucun navigateur embarqué.** L'analyseur, le rendu, la coloration syntaxique et le moteur de diagrammes sont tous écrits ici et compilés. C'est toute la raison d'être du projet, et les temps de démarrage ci-dessus sont ce qu'elle rapporte.
+- **Des diagrammes sans JavaScript.** Vingt-deux types Mermaid dessinés par un peintre Dart : ils entrent donc dans le PDF et le fichier Word comme des images, et non comme un script que la machine du lecteur doit exécuter.
+- **Export Word sans pandoc.** Aucun second programme à installer.
+- **Gratuit et libre**, ce que Typora n'est pas.
 
 ## 🎨 Themes
 
@@ -75,7 +144,7 @@ C’est tout. L’editeur se lance avec un document d’exemple pret a etre modi
 
 ### Telecharger les binaires precompiles
 
-Telechargez la derniere version adaptee a votre plateforme depuis [Releases](https://github.com/SugarFatFree/marktext-plus/releases).
+Telechargez la derniere version adaptee a votre plateforme depuis [Releases](https://github.com/marktext-plus/marktext-plus/releases).
 
 | Platform | Architecture | Format |
 |----------|-------------|--------|
@@ -88,7 +157,7 @@ Telechargez la derniere version adaptee a votre plateforme depuis [Releases](htt
 > **Prerequis** : Flutter 3.x+, Dart 3.x+
 
 ```bash
-git clone https://github.com/SugarFatFree/marktext-plus.git
+git clone https://github.com/marktext-plus/marktext-plus.git
 cd marktext-plus/code
 flutter pub get && flutter run
 ```

@@ -21,7 +21,7 @@
 | 需求描述 | 借助 GitHub Releases API 实现自动检测更新，每天检测一次，有新版本时在状态栏右下角显示醒目提示（不强制弹窗） |
 | 用户场景 | 1. 用户日常使用时，无需手动检查是否有新版本<br>2. 有新版本时，用户在状态栏看到提示，点击即可跳转下载页 |
 | 当前实现 | 无自动更新检测功能，用户需要手动访问 GitHub 查看 |
-| 实现方案 | 1. 添加 `http` 包，调用 `https://api.github.com/repos/SugarFatFree/marktext-plus/releases/latest`<br>2. 创建 `UpdateService` 比较语义化版本号，10 秒超时，网络错误静默失败<br>3. 创建 `UpdateNotifier` 管理更新状态<br>4. 在 `HomeScreen.build()` 中触发检测（24 小时内最多一次）<br>5. 状态栏右侧显示更新提示（主题色背景 + 图标 + 版本号），点击打开 GitHub Releases<br>6. `AppConfig` 添加 `lastUpdateCheck` 和 `skipVersion` 字段持久化 |
+| 实现方案 | 1. 添加 `http` 包，调用 `https://api.github.com/repos/marktext-plus/marktext-plus/releases/latest`<br>2. 创建 `UpdateService` 比较语义化版本号，10 秒超时，网络错误静默失败<br>3. 创建 `UpdateNotifier` 管理更新状态<br>4. 在 `HomeScreen.build()` 中触发检测（24 小时内最多一次）<br>5. 状态栏右侧显示更新提示（主题色背景 + 图标 + 版本号），点击打开 GitHub Releases<br>6. `AppConfig` 添加 `lastUpdateCheck` 和 `skipVersion` 字段持久化 |
 | 涉及文件 | `pubspec.yaml`<br>`lib/core/constants.dart`<br>`lib/core/config/app_config.dart`<br>`lib/services/update_service.dart`（新增）<br>`lib/providers/update_provider.dart`（新增）<br>`lib/ui/widgets/status_bar.dart`<br>`lib/ui/screens/home_screen.dart`<br>`lib/core/i18n/l10n/app_en.arb`、`app_zh.arb` |
 | 验收标准 | 1. 启动应用后，如果 GitHub 有更新版本，状态栏右侧出现蓝色提示<br>2. 点击提示打开 GitHub Releases 页面<br>3. 24 小时内不重复检测<br>4. 网络不可用时不报错，静默失败<br>5. 提示不强制弹窗，不打断用户工作 |
 

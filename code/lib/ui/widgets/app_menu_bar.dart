@@ -33,6 +33,8 @@ import '../editor/mermaid/parser/mermaid_parser.dart';
 import '../../providers/sidebar_provider.dart';
 import 'command_palette.dart';
 import '../../services/file_service.dart';
+import '../../services/clipboard_service.dart';
+import '../../services/rich_copy_service.dart';
 import 'package:window_manager/window_manager.dart';
 import '../../providers/window_provider.dart';
 import '../../providers/update_provider.dart';
@@ -531,7 +533,10 @@ class AppMenuBar extends ConsumerWidget {
             if (!sel.isValid || sel.isCollapsed) return;
             final text = controller.text;
             final selected = text.substring(sel.start, sel.end);
-            Clipboard.setData(ClipboardData(text: selected));
+            final html = RichCopyService.htmlForMarkdownSelection(selected);
+            // Deliberately not awaited: cutting must update the editor
+            // immediately while the native clipboard receives both flavours.
+            unawaited(ClipboardService.copyWithHtml(selected, html));
             controller.value = TextEditingValue(
               text: text.substring(0, sel.start) + text.substring(sel.end),
               selection: TextSelection.collapsed(offset: sel.start),
@@ -546,7 +551,10 @@ class AppMenuBar extends ConsumerWidget {
             final sel = controller.selection;
             if (!sel.isValid || sel.isCollapsed) return;
             final selected = controller.text.substring(sel.start, sel.end);
-            Clipboard.setData(ClipboardData(text: selected));
+            final html = RichCopyService.htmlForMarkdownSelection(selected);
+            // Deliberately not awaited: the menu should return immediately
+            // while the native clipboard receives both flavours.
+            unawaited(ClipboardService.copyWithHtml(selected, html));
           },
         ),
         MenuItemButton(
@@ -1157,21 +1165,21 @@ class AppMenuBar extends ConsumerWidget {
         ),
         MenuItemButton(
           child: Text(l10n.helpChangelog),
-          onPressed: () => _launchUrl('https://github.com/SugarFatFree/marktext-plus/releases'),
+          onPressed: () => _launchUrl('https://github.com/marktext-plus/marktext-plus/releases'),
         ),
         const Divider(height: 1),
         MenuItemButton(
           child: Text(l10n.helpReportBug),
-          onPressed: () => _launchUrl('https://github.com/SugarFatFree/marktext-plus/issues'),
+          onPressed: () => _launchUrl('https://github.com/marktext-plus/marktext-plus/issues'),
         ),
         MenuItemButton(
           child: Text(l10n.helpRequestFeature),
-          onPressed: () => _launchUrl('https://github.com/SugarFatFree/marktext-plus/issues'),
+          onPressed: () => _launchUrl('https://github.com/marktext-plus/marktext-plus/issues'),
         ),
         const Divider(height: 1),
         MenuItemButton(
           child: Text(l10n.helpGitHub),
-          onPressed: () => _launchUrl('https://github.com/SugarFatFree/marktext-plus'),
+          onPressed: () => _launchUrl('https://github.com/marktext-plus/marktext-plus'),
         ),
       ],
       child: Text(l10n.menuHelp, style: const TextStyle(fontSize: 13)),
@@ -1193,7 +1201,12 @@ class AppMenuBar extends ConsumerWidget {
     // each diagram and left a script from a CDN to draw it, so the diagrams
     // were blank for anyone offline — or on a network that does not reach
     // jsdelivr, which is most company networks.
-    try {
+    // Failure is reported by `runExport`, which also says the export is
+    // running and where it went. An unwritable path, a folder where a file
+    // was expected, a diagram that will not render — said out loud, because
+    // this is an `async void` handler and a throw here has nothing to catch
+    // it: choosing a filename and pressing Export used to do nothing at all.
+    await runExport(p.basename(path), () async {
       final mermaidImages = await _renderMermaidImages(activeTab.content);
       // The tab's own path is what relative image references resolve against.
       await ExportService.exportToHtml(
@@ -1203,13 +1216,7 @@ class AppMenuBar extends ConsumerWidget {
         enableHtml: ref.read(settingsProvider).enableHtml,
         mermaidImages: mermaidImages,
       );
-    } catch (e) {
-      // An unwritable path, a folder where a file was expected, a diagram
-      // that will not render. Said out loud, because this is an `async void`
-      // handler: the throw used to escape with nothing to catch it, so
-      // choosing a filename and pressing Export did nothing at all.
-      reportExportFailure(e);
-    }
+    });
   }
 
   void _exportPdf(WidgetRef ref) async {
@@ -1222,7 +1229,7 @@ class AppMenuBar extends ConsumerWidget {
       allowedExtensions: ['pdf'],
     );
     if (path == null) return;
-    try {
+    await runExport(p.basename(path), () async {
       final mermaidImages = await _renderMermaidImages(activeTab.content);
       await ExportService.exportToPdf(
         activeTab.content,
@@ -1231,9 +1238,7 @@ class AppMenuBar extends ConsumerWidget {
         sourcePath: activeTab.filePath,
         enableHtml: ref.read(settingsProvider).enableHtml,
       );
-    } catch (e) {
-      reportExportFailure(e);
-    }
+    });
   }
 
   /// Hands the document to the system print dialog.
@@ -1275,7 +1280,7 @@ class AppMenuBar extends ConsumerWidget {
       allowedExtensions: ['docx'],
     );
     if (path == null) return;
-    try {
+    await runExport(p.basename(path), () async {
       final mermaidImages = await _renderMermaidImages(activeTab.content);
       await ExportService.exportToDocx(
         activeTab.content,
@@ -1284,9 +1289,7 @@ class AppMenuBar extends ConsumerWidget {
         sourcePath: activeTab.filePath,
         enableHtml: ref.read(settingsProvider).enableHtml,
       );
-    } catch (e) {
-      reportExportFailure(e);
-    }
+    });
   }
 
   Future<Map<String, Uint8List>> _renderMermaidImages(String markdown) async {

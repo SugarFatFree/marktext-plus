@@ -92,6 +92,14 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String get exportInProgress => 'Экспорт…';
+
+  @override
+  String exportSucceeded(String file) {
+    return 'Экспортировано в $file';
+  }
+
+  @override
   String fileOpenFailed(String message) {
     return 'Не удалось открыть файл: $message';
   }
@@ -1013,4 +1021,51 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get recentFileMissing => 'Этого файла больше нет; он удалён из списка';
+
+  @override
+  String get settingsAi => 'Модели ИИ';
+
+  @override
+  String get settingsAiEnabled => 'Включить плагины ИИ';
+
+  @override
+  String get settingsAiProvider => 'Провайдер ИИ';
+
+  @override
+  String get settingsAiEndpoint => 'Конечная точка API';
+
+  @override
+  String get settingsAiModel => 'Модель';
+
+  @override
+  String get settingsAiKeyReference => 'Ссылка на ключ API';
+
+  @override
+  String get settingsAiSecurityHint =>
+      'Ключ API извлекается из хранилища секретов плагина и не записывается в config.json.';
+
+  @override
+  String get settingsAiOpenai => 'Провайдер OpenAI';
+
+  @override
+  String get settingsAiAnthropic => 'Провайдер Anthropic';
+
+  @override
+  String get settingsPlugins => 'Плагины';
+
+  @override
+  String get settingsPluginsInstalled => 'Установленные плагины';
+
+  @override
+  String get settingsPluginsDiscover => 'Найти плагины сообщества';
+
+  @override
+  String get settingsPluginsInstallZip => 'Установить ZIP';
+
+  @override
+  String get settingsPluginsEmpty => 'Плагины не установлены';
+
+  @override
+  String get settingsPluginsUnverified =>
+      'Сообщество / Не проверено. Изучите исходный код перед включением.';
 }

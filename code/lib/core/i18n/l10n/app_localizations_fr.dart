@@ -95,6 +95,14 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get exportInProgress => 'Exportation…';
+
+  @override
+  String exportSucceeded(String file) {
+    return 'Exporté vers $file';
+  }
+
+  @override
   String fileOpenFailed(String message) {
     return 'Impossible d’ouvrir le fichier : $message';
   }
@@ -1022,4 +1030,51 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get recentFileMissing =>
       'Ce fichier n’existe plus ; il a été retiré de la liste';
+
+  @override
+  String get settingsAi => 'Modèles IA';
+
+  @override
+  String get settingsAiEnabled => 'Activer les plugins IA';
+
+  @override
+  String get settingsAiProvider => 'Fournisseur IA';
+
+  @override
+  String get settingsAiEndpoint => 'Point de terminaison API';
+
+  @override
+  String get settingsAiModel => 'Modèle';
+
+  @override
+  String get settingsAiKeyReference => 'Référence de clé API';
+
+  @override
+  String get settingsAiSecurityHint =>
+      'La clé API est résolue par le coffre de secrets du plugin et n’est pas écrite dans config.json.';
+
+  @override
+  String get settingsAiOpenai => 'Fournisseur OpenAI';
+
+  @override
+  String get settingsAiAnthropic => 'Fournisseur Anthropic';
+
+  @override
+  String get settingsPlugins => 'Extensions';
+
+  @override
+  String get settingsPluginsInstalled => 'Plugins installés';
+
+  @override
+  String get settingsPluginsDiscover => 'Découvrir les plugins communautaires';
+
+  @override
+  String get settingsPluginsInstallZip => 'Installer un ZIP';
+
+  @override
+  String get settingsPluginsEmpty => 'Aucun plugin installé';
+
+  @override
+  String get settingsPluginsUnverified =>
+      'Communautaire / non vérifié. Consultez le code avant activation.';
 }

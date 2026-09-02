@@ -56,6 +56,11 @@
   },
   "saveFailed": "ファイルを保存できませんでした: {message}",
   "exportFailed": "ドキュメントを書き出せませんでした：{message}",
+  "exportInProgress": "エクスポート中…",
+  "exportSucceeded": "{file} にエクスポートしました",
+  "@exportSucceeded": {
+    "placeholders": { "file": { "type": "String" } }
+  },
   "fileOpenFailed": "ファイルを開けませんでした：{message}",
   "saveConflictTitle": "ファイルがディスク上で変更されました",
   "saveConflictBody": "開いた後に他のプログラムが「{name}」を変更しました。今保存するとその変更を上書きします。",
@@ -388,5 +393,20 @@
   "updateAvailable": "新しいバージョンがあります",
   "updateDismiss": "閉じる",
   "linkOpenFailed": "リンクを開けませんでした",
-  "recentFileMissing": "そのファイルは存在しません。一覧から削除しました"
+  "recentFileMissing": "そのファイルは存在しません。一覧から削除しました",
+  "settingsAi": "AI モデル",
+  "settingsAiEnabled": "AI プラグインを有効化",
+  "settingsAiProvider": "AI プロバイダー",
+  "settingsAiEndpoint": "API エンドポイント",
+  "settingsAiModel": "モデル",
+  "settingsAiKeyReference": "API キー参照",
+  "settingsAiSecurityHint": "API キーはプラグインのシークレットストアから取得され、config.json には書き込まれません。",
+  "settingsAiOpenai": "OpenAI プロバイダー",
+  "settingsAiAnthropic": "Anthropic プロバイダー",
+  "settingsPlugins": "プラグイン",
+  "settingsPluginsInstalled": "インストール済みプラグイン",
+  "settingsPluginsDiscover": "コミュニティプラグインを探す",
+  "settingsPluginsInstallZip": "ZIP をインストール",
+  "settingsPluginsEmpty": "インストール済みプラグインはありません",
+  "settingsPluginsUnverified": "コミュニティ / 未検証。有効化する前にソースを確認してください。"
 }

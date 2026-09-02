@@ -91,6 +91,14 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get exportInProgress => 'جارٍ التصدير…';
+
+  @override
+  String exportSucceeded(String file) {
+    return 'تم التصدير إلى $file';
+  }
+
+  @override
   String fileOpenFailed(String message) {
     return 'تعذّر فتح الملف: $message';
   }
@@ -1010,4 +1018,51 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get recentFileMissing =>
       'لم يعد هذا الملف موجودًا، وقد أُزيل من القائمة';
+
+  @override
+  String get settingsAi => 'نماذج الذكاء الاصطناعي';
+
+  @override
+  String get settingsAiEnabled => 'تمكين إضافات الذكاء الاصطناعي';
+
+  @override
+  String get settingsAiProvider => 'موفر الذكاء الاصطناعي';
+
+  @override
+  String get settingsAiEndpoint => 'نقطة نهاية API';
+
+  @override
+  String get settingsAiModel => 'النموذج';
+
+  @override
+  String get settingsAiKeyReference => 'مرجع مفتاح API';
+
+  @override
+  String get settingsAiSecurityHint =>
+      'يُستخرج مفتاح API من مخزن أسرار الإضافة ولا يُكتب في config.json.';
+
+  @override
+  String get settingsAiOpenai => 'OpenAI (موفر)';
+
+  @override
+  String get settingsAiAnthropic => 'Anthropic (موفر)';
+
+  @override
+  String get settingsPlugins => 'الإضافات';
+
+  @override
+  String get settingsPluginsInstalled => 'الإضافات المثبتة';
+
+  @override
+  String get settingsPluginsDiscover => 'اكتشاف الإضافات المجتمعية';
+
+  @override
+  String get settingsPluginsInstallZip => 'تثبيت ZIP';
+
+  @override
+  String get settingsPluginsEmpty => 'لا توجد إضافات مثبتة';
+
+  @override
+  String get settingsPluginsUnverified =>
+      'مجتمعي / غير موثّق. راجع المصدر قبل التفعيل.';
 }

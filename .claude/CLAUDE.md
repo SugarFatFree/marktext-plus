@@ -4,7 +4,7 @@
 
 基于 Flutter 构建的轻量级跨平台 Markdown 编辑器，重新设计自 [MarkText](https://github.com/marktext/marktext)。
 
-- **当前版本**: V1.5.5（`dev` 上正在攒 V1.5.6）
+- **当前版本**: V1.5.6（`dev` 上正在攒 V1.5.7）
 - **开源协议**: MIT
 - **支持平台**: Windows, macOS, Linux
 - **主要语言**: Dart/Flutter

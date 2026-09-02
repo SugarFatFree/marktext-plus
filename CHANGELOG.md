@@ -5,6 +5,22 @@ All notable changes to MarkText Plus will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.6.0] - 2026-09-02
+
+### Added
+- In split view the two halves follow each other's scrolling, in both directions. It had no synchronisation at all: the editing pane moved and the preview stayed where it was, which is most of what a split view is for. It anchors on the headings and interpolates between them rather than matching a fraction of the way down — the two panes have nothing like the same height, since a comment is forty lines of source and no height at all on the other side
+- A PDF is laid out away from the window, so exporting one no longer stops everything until it is done — three seconds for a hundred kilobyte document, longer for a large one. It is not a trade: measured on the same document it is faster there too
+- An export says that it is running, and says where the file went when it is done. Choosing a filename used to be followed by a still window for as long as the export took — three seconds for a hundred kilobyte document as a PDF — and then by nothing at all, so there was no way to tell a finished export from one that had never started. Only failure spoke. The PDF layout has since moved off the window's thread as well, so the spinner turns
+
+### Fixed
+- The Edit menu's Copy and Cut commands now use the same rich clipboard path as Ctrl+C, so Word keeps headings, emphasis, lists and links there too
+- Copying a full selection from the source pane now keeps both flavours: Word receives headings, emphasis and lists as formatted HTML, while Notepad receives the original Markdown with Windows-safe line endings
+- Pasting from a browser keeps what the page said. A task list arrived with every box unticked, a code block arrived without the language it was written in, and everything from a web word processor arrived as plain text — Google Docs and its like mark up with styles rather than with tags, and only tags were being read. A Google Docs fragment also came out entirely in bold, because it wraps what it copies in a `<b>` that says in its own style that it is not bold
+- A quotation earlier in the document no longer stops every reference link below it from working. A quote's contents, and the blocks a list item carries, are parsed by asking the parser to parse again — and it began each parse by forgetting the addresses it had collected for the document, which it does so that one document's labels cannot resolve in the next. So a single `>` near the top left `[手册][doc]` on the page as those characters, with the address below it never used
+- A list whose bullets drift by a space is still one list. Depth was the rank of an item's indentation among all the indentations the document happened to use, so four bullets each indented one space further than the last drew four lists inside one another. An item is inside another only when it is indented to where that item's text begins — two columns for `- `, three for `1. `, four for `10. ` — which is what `marked` does and what the specification says
+- Content indented with a tab under a list item keeps all of its text. The width of an indent is counted with a tab as four columns, and that many *characters* were then removed from the front of the line — but a tab is four columns and one character, so the reader's own writing made up the difference and was deleted. A paragraph indented with one tab under a bullet lost its first character, under a numbered step it lost two, and a fenced code block written that way was not recognised as one at all. Nothing said so, in the preview or in any export
+- A link reference definition written across more than one line is read as one. Keeping addresses at the bottom of a document is what reference links are for, and wrapping a long one is ordinary — but only the single-line form was recognised, so a wrapped definition stopped being metadata: its title was lost, and its remainder, along with every definition under it, was drawn in the document as a paragraph for the reader to see. CommonMark conformance 486 → 491
+
 ## [v1.5.6] - 2026-09-01
 
 ### Added

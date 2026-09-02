@@ -56,6 +56,11 @@
   },
   "saveFailed": "Could not save the file: {message}",
   "exportFailed": "Could not export the document: {message}",
+  "exportInProgress": "Exporting…",
+  "exportSucceeded": "Exported to {file}",
+  "@exportSucceeded": {
+    "placeholders": { "file": { "type": "String" } }
+  },
   "fileOpenFailed": "Could not open the file: {message}",
   "@fileOpenFailed": {"placeholders": {"message": {"type": "String"}}},
   "@exportFailed": {"placeholders": {"message": {"type": "String"}}},
@@ -494,5 +499,20 @@
   "recentFileMissing": "That file is no longer there; it has been removed from the list",
   "@linkOpenFailed": {
     "description": "Shown when a link in the preview cannot be opened"
-  }
+  },
+  "settingsAi": "AI models",
+  "settingsAiEnabled": "Enable AI plugins",
+  "settingsAiProvider": "AI provider",
+  "settingsAiEndpoint": "API endpoint",
+  "settingsAiModel": "Model",
+  "settingsAiKeyReference": "API key reference",
+  "settingsAiSecurityHint": "The API key is resolved by the plugin secret store and is not written to config.json.",
+  "settingsAiOpenai": "OpenAI",
+  "settingsAiAnthropic": "Anthropic",
+  "settingsPlugins": "Plugins",
+  "settingsPluginsInstalled": "Installed plugins",
+  "settingsPluginsDiscover": "Discover community plugins",
+  "settingsPluginsInstallZip": "Install ZIP",
+  "settingsPluginsEmpty": "No plugins installed",
+  "settingsPluginsUnverified": "Community / Unverified. Review the source before enabling."
 }

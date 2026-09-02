@@ -86,6 +86,14 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get exportInProgress => '正在导出…';
+
+  @override
+  String exportSucceeded(String file) {
+    return '已导出到 $file';
+  }
+
+  @override
   String fileOpenFailed(String message) {
     return '打开文件失败：$message';
   }
@@ -999,4 +1007,49 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get recentFileMissing => '该文件已不存在，已从列表中移除';
+
+  @override
+  String get settingsAi => 'AI 大模型';
+
+  @override
+  String get settingsAiEnabled => '启用 AI 插件';
+
+  @override
+  String get settingsAiProvider => 'AI 服务商';
+
+  @override
+  String get settingsAiEndpoint => 'API 端点';
+
+  @override
+  String get settingsAiModel => '模型';
+
+  @override
+  String get settingsAiKeyReference => 'API 密钥引用';
+
+  @override
+  String get settingsAiSecurityHint => 'API 密钥由插件密钥存储读取，不会写入 config.json。';
+
+  @override
+  String get settingsAiOpenai => 'OpenAI 服务商';
+
+  @override
+  String get settingsAiAnthropic => 'Anthropic 服务商';
+
+  @override
+  String get settingsPlugins => '插件';
+
+  @override
+  String get settingsPluginsInstalled => '已安装插件';
+
+  @override
+  String get settingsPluginsDiscover => '发现社区插件';
+
+  @override
+  String get settingsPluginsInstallZip => '安装 ZIP';
+
+  @override
+  String get settingsPluginsEmpty => '尚未安装插件';
+
+  @override
+  String get settingsPluginsUnverified => '社区 / 未验证。启用前请检查源代码。';
 }

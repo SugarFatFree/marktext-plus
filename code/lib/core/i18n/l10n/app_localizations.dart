@@ -243,6 +243,18 @@ abstract class AppLocalizations {
   /// **'Could not export the document: {message}'**
   String exportFailed(String message);
 
+  /// No description provided for @exportInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Exporting…'**
+  String get exportInProgress;
+
+  /// No description provided for @exportSucceeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Exported to {file}'**
+  String exportSucceeded(String file);
+
   /// No description provided for @fileOpenFailed.
   ///
   /// In en, this message translates to:
@@ -2012,6 +2024,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'That file is no longer there; it has been removed from the list'**
   String get recentFileMissing;
+
+  /// No description provided for @settingsAi.
+  ///
+  /// In en, this message translates to:
+  /// **'AI models'**
+  String get settingsAi;
+
+  /// No description provided for @settingsAiEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable AI plugins'**
+  String get settingsAiEnabled;
+
+  /// No description provided for @settingsAiProvider.
+  ///
+  /// In en, this message translates to:
+  /// **'AI provider'**
+  String get settingsAiProvider;
+
+  /// No description provided for @settingsAiEndpoint.
+  ///
+  /// In en, this message translates to:
+  /// **'API endpoint'**
+  String get settingsAiEndpoint;
+
+  /// No description provided for @settingsAiModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Model'**
+  String get settingsAiModel;
+
+  /// No description provided for @settingsAiKeyReference.
+  ///
+  /// In en, this message translates to:
+  /// **'API key reference'**
+  String get settingsAiKeyReference;
+
+  /// No description provided for @settingsAiSecurityHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The API key is resolved by the plugin secret store and is not written to config.json.'**
+  String get settingsAiSecurityHint;
+
+  /// No description provided for @settingsAiOpenai.
+  ///
+  /// In en, this message translates to:
+  /// **'OpenAI'**
+  String get settingsAiOpenai;
+
+  /// No description provided for @settingsAiAnthropic.
+  ///
+  /// In en, this message translates to:
+  /// **'Anthropic'**
+  String get settingsAiAnthropic;
+
+  /// No description provided for @settingsPlugins.
+  ///
+  /// In en, this message translates to:
+  /// **'Plugins'**
+  String get settingsPlugins;
+
+  /// No description provided for @settingsPluginsInstalled.
+  ///
+  /// In en, this message translates to:
+  /// **'Installed plugins'**
+  String get settingsPluginsInstalled;
+
+  /// No description provided for @settingsPluginsDiscover.
+  ///
+  /// In en, this message translates to:
+  /// **'Discover community plugins'**
+  String get settingsPluginsDiscover;
+
+  /// No description provided for @settingsPluginsInstallZip.
+  ///
+  /// In en, this message translates to:
+  /// **'Install ZIP'**
+  String get settingsPluginsInstallZip;
+
+  /// No description provided for @settingsPluginsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No plugins installed'**
+  String get settingsPluginsEmpty;
+
+  /// No description provided for @settingsPluginsUnverified.
+  ///
+  /// In en, this message translates to:
+  /// **'Community / Unverified. Review the source before enabling.'**
+  String get settingsPluginsUnverified;
 }
 
 class _AppLocalizationsDelegate

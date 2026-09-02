@@ -4,10 +4,10 @@
 
 **A lightweight, cross-platform Markdown editor that makes writing a pleasure**
 
-[![Release](https://img.shields.io/github/v/release/SugarFatFree/marktext-plus?style=flat-square)](https://github.com/SugarFatFree/marktext-plus/releases)
-[![License](https://img.shields.io/github/license/SugarFatFree/marktext-plus?style=flat-square)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/marktext-plus/marktext-plus?style=flat-square)](https://github.com/marktext-plus/marktext-plus/releases)
+[![License](https://img.shields.io/github/license/marktext-plus/marktext-plus?style=flat-square)](LICENSE)
 [![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?style=flat-square&logo=flutter)](https://flutter.dev)
-[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square)](https://github.com/SugarFatFree/marktext-plus)
+[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square)](https://github.com/marktext-plus/marktext-plus)
 
 [简体中文](docs/i18n/README_zh-CN.md) | [日本語](docs/i18n/README_ja-JP.md) | [한국어](docs/i18n/README_ko-KR.md) | [Deutsch](docs/i18n/README_de-DE.md) | [Français](docs/i18n/README_fr-FR.md) | [Italiano](docs/i18n/README_it-IT.md) | [Русский](docs/i18n/README_ru-RU.md) | [Español](docs/i18n/README_es-ES.md) | [Português](docs/i18n/README_pt-PT.md) | [العربية](docs/i18n/README_ar-SA.md) | [Português (Brasil)](docs/i18n/README_pt-BR.md)
 
@@ -36,7 +36,7 @@ highlighter and the diagram engine are all written here.
 Get up and running in less than 30 seconds:
 
 ```bash
-git clone https://github.com/SugarFatFree/marktext-plus.git
+git clone https://github.com/marktext-plus/marktext-plus.git
 cd marktext-plus/code
 flutter pub get && flutter run
 ```
@@ -84,9 +84,64 @@ That's it! The editor will launch with a sample document ready to edit.
 
 | | |
 |---------|-------------|
+| **🧩 Open plugins** | Discover public plugins through [GitHub Topic: `marktext-plus-plugin`](https://github.com/topics/marktext-plus-plugin); every plugin is labelled Community/Unverified and runs out of process |
 | **⚡ Fast start** | No embedded browser, no editor framework, 22 direct dependencies |
 | **📄 Large files** | Parsing, highlighting and search are all single-pass and budgeted by tests that fail if a change makes them slower |
-| **🧪 Tested** | 1946 tests covering the parser, the exporters, the providers and the editor widgets |
+| **🧪 Tested** | 2021 tests covering the parser, the exporters, the providers and the editor widgets |
+
+## ⚖️ How it compares
+
+Against the editor it is reimagined from, and against the best-known one in
+this space. Everything in the MarkText column was read out of its source at
+`v0.20.0-dev`; the Typora column is from its published documentation, since it
+is closed source and cannot be checked the same way.
+
+The start-up figures come from one Windows machine, all three programs on it.
+This one's are instrumented — it writes a `startup-trace.log` of its own, and
+the numbers are four launches of it — while the other two were timed by hand,
+so treat them as the rougher pair. Most of this program's start-up is not its
+own code: of the 0.7 s, about 0.5 s is Windows loading the executable and the
+Flutter engine booting, and 0.15 s is everything the editor itself does.
+
+| | **MarkText Plus** | **MarkText** (upstream) | **Typora** |
+|---|---|---|---|
+| **Runtime** | Flutter — compiled, no embedded browser | Electron 42 | Electron |
+| **Cold start** (to the document on screen) | ~0.7 s warm, ~1.4 s cold | 2–3 s | 2–3 s |
+| **Direct dependencies** | 22 | 56 (desktop package) | closed source |
+| **Licence** | MIT, free | MIT, free | Paid, closed source |
+| **Editing** | Source, preview, and a split view whose halves follow each other; blocks are edited in place in the preview | Live preview (WYSIWYG), plus a source mode | Live preview (WYSIWYG), plus a source mode |
+| **Diagrams** | 22 Mermaid types, drawn in Dart with no WebView | Mermaid, flowchart.js, Vega-Lite, PlantUML — all through JavaScript | Mermaid, flowchart.js, js-sequence, PlantUML |
+| **Maths** | KaTeX-compatible | KaTeX | KaTeX |
+| **Export** | HTML, PDF, Word — all built in | HTML, PDF, Markdown; more formats if pandoc is installed | Many formats, most of them through pandoc |
+| **Themes** | 8 | 32 | Many, and a large community collection |
+| **Interface languages** | 12 | 10 | Several |
+| **Platforms** | Windows, macOS, Linux (x64 and arm64) | Windows, macOS, Linux | Windows, macOS, Linux |
+
+### Where the others are ahead
+
+Worth saying plainly, because a comparison that only flatters the thing writing
+it is not worth reading.
+
+- **Live preview.** Typora and MarkText both edit the rendered document
+  directly, with no mode to switch. This editor gives you three panes and lets
+  you open a block in place; that is a different thing, and for someone used to
+  Typora it is the difference they will notice first.
+- **Themes.** Thirty-two against eight, and Typora has years of community CSS
+  behind it.
+- **Diagram breadth.** PlantUML and Vega-Lite are not implemented here.
+- **Years.** Typora has been refined for a decade. This is a young program and
+  reads like one in places.
+
+### Where this one is ahead
+
+- **No embedded browser.** The parser, the renderer, the syntax highlighter and
+  the diagram engine are all written here and compiled in. That is the whole
+  reason for the project, and the start-up figures above are what it buys.
+- **Diagrams without JavaScript.** Twenty-two Mermaid types drawn by a Dart
+  painter, so they render in the PDF and the Word file as pictures rather than
+  as a script the reader's machine has to run.
+- **Word export without pandoc.** No second program to install.
+- **Free and open**, which Typora is not.
 
 ## 🎨 Themes
 
@@ -117,7 +172,7 @@ That's it! The editor will launch with a sample document ready to edit.
 
 ### Download Pre-built Binaries
 
-Download the latest release for your platform from [Releases](https://github.com/SugarFatFree/marktext-plus/releases).
+Download the latest release for your platform from [Releases](https://github.com/marktext-plus/marktext-plus/releases).
 
 | Platform | Architecture | Format |
 |----------|-------------|--------|
@@ -130,7 +185,7 @@ Download the latest release for your platform from [Releases](https://github.com
 > **Prerequisites**: Flutter 3.x+, Dart 3.x+
 
 ```bash
-git clone https://github.com/SugarFatFree/marktext-plus.git
+git clone https://github.com/marktext-plus/marktext-plus.git
 cd marktext-plus/code
 flutter pub get && flutter run
 ```

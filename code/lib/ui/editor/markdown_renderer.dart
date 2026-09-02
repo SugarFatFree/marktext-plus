@@ -43,7 +43,12 @@ class MarkdownRenderer extends ConsumerStatefulWidget {
     super.key,
     required this.markdown,
     this.onSourceChanged,
+    this.followsSource = false,
   });
+
+  /// Whether to follow the editing pane's scrolling. Only split view wants
+  /// it: on its own the preview has nobody to follow.
+  final bool followsSource;
 
   @override
   ConsumerState<MarkdownRenderer> createState() => _MarkdownRendererState();
@@ -84,6 +89,23 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   /// element whose new widget is identical to its old one is not rebuilt, and
   /// a render object that was not marked dirty is not laid out again either.
   final _blockWidgets = <md.MarkdownNode, Widget>{};
+
+  /// The preview's own scrolling, so it can be moved to follow the pane
+  /// beside it.
+  final ScrollController _previewScroll = ScrollController();
+
+  /// The scroll view's box, for turning a heading's position on screen into a
+  /// position inside the document.
+  final GlobalKey _viewportKey = GlobalKey();
+
+  /// When this pane was last moved by the pane beside it rather than by the
+  /// reader.
+  ///
+  /// The two follow each other, so without this each would answer the other's
+  /// move with one of its own and they would chase each other down the
+  /// document. Whoever is being scrolled is the one driving; a move that
+  /// arrives within a moment of a programmatic one is that move, not a reader.
+  DateTime? _movedBySource;
 
   /// A scroll request that cannot be honoured until the rest of the document
   /// has been parsed.
@@ -202,6 +224,18 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       // file and asking for its line in one breath — never reaches the
       // listener above, which only fires on a change.
       _scrollToTargetLine(ref.read(editorProvider).targetScrollLine);
+
+      // Where the pane beside this one is looking, which changes as the
+      // reader scrolls rather than being a one-off request.
+      if (widget.followsSource) {
+        ref.listenManual(
+          editorProvider.select((s) => s.syncSourceLine),
+          (prev, next) {
+            if (next != null) _syncToSourceLine(next);
+          },
+        );
+        _previewScroll.addListener(_reportPreviewLine);
+      }
     });
   }
 
@@ -246,6 +280,124 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       );
     }
     ref.read(editorProvider.notifier).clearScrollTarget();
+  }
+
+  /// Moves the preview so that source [line] is at the top of it.
+  ///
+  /// Split view had no scroll synchronisation at all: the preview stayed
+  /// wherever it was while the editing pane moved, which is most of what a
+  /// split view is for.
+  ///
+  /// Anchored on the headings rather than on a fraction of the way down.
+  /// The two panes have nothing like the same height — a diagram is one line
+  /// of source and half a screen of picture — so a fraction lands
+  /// arbitrarily far from the text being written. Between two headings the
+  /// position is interpolated, so it moves smoothly within a section rather
+  /// than jumping only when one is crossed.
+  void _syncToSourceLine(int line) {
+    if (!widget.followsSource || !_previewScroll.hasClients) return;
+
+    // The block may be below where the progressive render has got to, in
+    // which case its heading has no key yet. Draw down to it and try again —
+    // the reader is scrolling towards it anyway.
+    if (_renderUpTo(line)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _syncToSourceLine(line);
+      });
+      return;
+    }
+
+    final target = _contentOffsetForLine(line);
+    if (target == null) return;
+    final position = _previewScroll.position;
+    final clamped =
+        target.clamp(position.minScrollExtent, position.maxScrollExtent);
+    // Jumping, not animating: this runs on every scroll event, and an
+    // animation started sixty times a second never finishes one.
+    if ((clamped - _previewScroll.offset).abs() < 1) return;
+    _movedBySource = DateTime.now();
+    _previewScroll.jumpTo(clamped);
+  }
+
+  /// Tells the pane beside us which line the preview is showing.
+  void _reportPreviewLine() {
+    if (!widget.followsSource || !_previewScroll.hasClients) return;
+    final moved = _movedBySource;
+    if (moved != null &&
+        DateTime.now().difference(moved) < const Duration(milliseconds: 200)) {
+      return;
+    }
+    final line = _lineAtTopOfPreview();
+    if (line == null) return;
+    ref.read(editorProvider.notifier).reportPreviewLine(line);
+  }
+
+  /// The source line the top of the preview is showing.
+  ///
+  /// The inverse of [_contentOffsetForLine]: find the heading the reader has
+  /// scrolled past, and count forwards through the lines by how far into that
+  /// section they are.
+  int? _lineAtTopOfPreview() {
+    if (_headingKeys.isEmpty) return null;
+    final at = _previewScroll.offset;
+
+    int? here;
+    double hereY = 0;
+    int? next;
+    double nextY = 0;
+    for (final entry in _headingKeys.entries) {
+      final y = _contentYOf(entry.value);
+      if (y == null) continue;
+      if (y <= at + 1 && (here == null || y > hereY)) {
+        here = entry.key;
+        hereY = y;
+      }
+      if (y > at + 1 && (next == null || y < nextY)) {
+        next = entry.key;
+        nextY = y;
+      }
+    }
+    if (here == null) return 1;
+    if (next == null || nextY <= hereY) return here;
+    final through = ((at - hereY) / (nextY - hereY)).clamp(0.0, 1.0);
+    return here + ((next - here) * through).round();
+  }
+
+  /// Where source [line] sits inside the preview's scrolling content.
+  double? _contentOffsetForLine(int line) {
+    if (_headingKeys.isEmpty) return null;
+    int? at;
+    int? next;
+    for (final headingLine in _headingKeys.keys) {
+      if (headingLine <= line && (at == null || headingLine > at)) {
+        at = headingLine;
+      }
+      if (headingLine > line && (next == null || headingLine < next)) {
+        next = headingLine;
+      }
+    }
+    if (at == null) return 0;
+
+    final start = _contentYOf(_headingKeys[at]!);
+    if (start == null) return null;
+    if (next == null || next == at) return start;
+    final end = _contentYOf(_headingKeys[next]!);
+    if (end == null) return start;
+    final through = (line - at) / (next - at);
+    return start + (end - start) * through;
+  }
+
+  /// A heading's distance from the top of the document, in the preview.
+  double? _contentYOf(GlobalKey key) {
+    final box = key.currentContext?.findRenderObject() as RenderBox?;
+    final viewport =
+        _viewportKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || viewport == null || !box.hasSize || !viewport.hasSize) {
+      return null;
+    }
+    final dy =
+        box.localToGlobal(Offset.zero).dy - viewport.localToGlobal(Offset.zero).dy;
+    return dy + _previewScroll.offset;
   }
 
   /// Extends the progressive render far enough to cover source [line].
@@ -299,6 +451,8 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       recognizer.dispose();
     }
     _hoveredLink.dispose();
+    _previewScroll.removeListener(_reportPreviewLine);
+    _previewScroll.dispose();
     _editController.dispose();
     _editFocusNode.dispose();
     super.dispose();
@@ -656,6 +810,8 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       child: Stack(
         children: [
           SingleChildScrollView(
+        key: _viewportKey,
+        controller: _previewScroll,
         child: SelectionArea(
           child: Center(
             child: ConstrainedBox(

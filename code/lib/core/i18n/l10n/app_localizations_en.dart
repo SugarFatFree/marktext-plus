@@ -90,6 +90,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get exportInProgress => 'Exporting…';
+
+  @override
+  String exportSucceeded(String file) {
+    return 'Exported to $file';
+  }
+
+  @override
   String fileOpenFailed(String message) {
     return 'Could not open the file: $message';
   }
@@ -1010,4 +1018,51 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get recentFileMissing =>
       'That file is no longer there; it has been removed from the list';
+
+  @override
+  String get settingsAi => 'AI models';
+
+  @override
+  String get settingsAiEnabled => 'Enable AI plugins';
+
+  @override
+  String get settingsAiProvider => 'AI provider';
+
+  @override
+  String get settingsAiEndpoint => 'API endpoint';
+
+  @override
+  String get settingsAiModel => 'Model';
+
+  @override
+  String get settingsAiKeyReference => 'API key reference';
+
+  @override
+  String get settingsAiSecurityHint =>
+      'The API key is resolved by the plugin secret store and is not written to config.json.';
+
+  @override
+  String get settingsAiOpenai => 'OpenAI';
+
+  @override
+  String get settingsAiAnthropic => 'Anthropic';
+
+  @override
+  String get settingsPlugins => 'Plugins';
+
+  @override
+  String get settingsPluginsInstalled => 'Installed plugins';
+
+  @override
+  String get settingsPluginsDiscover => 'Discover community plugins';
+
+  @override
+  String get settingsPluginsInstallZip => 'Install ZIP';
+
+  @override
+  String get settingsPluginsEmpty => 'No plugins installed';
+
+  @override
+  String get settingsPluginsUnverified =>
+      'Community / Unverified. Review the source before enabling.';
 }

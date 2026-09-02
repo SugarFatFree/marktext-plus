@@ -1,6 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import '../../core/i18n/l10n/app_localizations.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/locale_provider.dart';
@@ -8,8 +13,11 @@ import '../../core/config/app_config.dart';
 import '../../core/theme/app_theme.dart';
 import '../../services/keybinding_service.dart';
 import '../../services/image_service.dart';
+import '../../services/plugin_catalog_service.dart';
+import '../../services/plugin_manager.dart';
+import '../../services/plugin_manifest.dart';
 
-enum _Category { general, editor, markdown, theme, keybindings }
+enum _Category { general, editor, markdown, theme, keybindings, ai, plugins }
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -109,6 +117,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 _catTile(_Category.markdown, l10n.settingsMarkdown, Icons.code, tokens),
                 _catTile(_Category.theme, l10n.settingsTheme, Icons.palette, tokens),
                 _catTile(_Category.keybindings, l10n.settingsKeybindings, Icons.keyboard, tokens),
+                _catTile(_Category.ai, l10n.settingsAi, Icons.auto_awesome, tokens),
+                _catTile(_Category.plugins, l10n.settingsPlugins, Icons.extension, tokens),
               ],
             ),
           ),
@@ -197,6 +207,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         return _themeSection(l10n);
       case _Category.keybindings:
         return _keybindingsSection(l10n);
+      case _Category.ai:
+        return _aiSection(l10n);
+      case _Category.plugins:
+        return _pluginsSection(l10n);
     }
   }
 
@@ -289,6 +303,207 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
           ),
         ),
+      ],
+    );
+  }
+
+  Future<PluginManager>? _pluginManagerFuture;
+  Future<List<PluginManifest>>? _installedPluginsFuture;
+  Future<List<PluginCatalogEntry>>? _catalogFuture;
+
+  Future<PluginManager> _pluginManager() => _pluginManagerFuture ??=
+      getApplicationSupportDirectory().then(
+        (directory) => PluginManager(p.join(directory.path, 'plugins')),
+      );
+
+  Future<void> _installPluginZip() async {
+    final picked = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['zip'],
+    );
+    final path = picked?.files.single.path;
+    if (path == null) return;
+    final manager = await _pluginManager();
+    await manager.installZip(File(path));
+    if (!mounted) return;
+    setState(() {
+      _installedPluginsFuture = manager.loadInstalled();
+    });
+  }
+
+  void _discoverPlugins() {
+    setState(() {
+      _catalogFuture = PluginCatalogService().searchGitHubTopic();
+    });
+  }
+
+  // -- AI --
+  Widget _aiSection(AppLocalizations l10n) {
+    final config = ref.watch(settingsProvider);
+    final notifier = ref.read(settingsProvider.notifier);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(l10n.settingsAi,
+            style: Theme.of(context).textTheme.headlineSmall),
+        const SizedBox(height: 24),
+        _row(
+          l10n.settingsAiEnabled,
+          Switch(
+            value: config.aiEnabled,
+            onChanged: (value) => notifier.updateConfig(
+              (c) => c.copyWith(aiEnabled: value),
+            ),
+          ),
+        ),
+        _row(
+          l10n.settingsAiProvider,
+          SizedBox(
+            width: 220,
+            child: DropdownButton<AiProvider>(
+              isExpanded: true,
+              value: config.aiProvider,
+              items: [
+                DropdownMenuItem(
+                  value: AiProvider.openai,
+                  child: Text(l10n.settingsAiOpenai),
+                ),
+                DropdownMenuItem(
+                  value: AiProvider.anthropic,
+                  child: Text(l10n.settingsAiAnthropic),
+                ),
+              ],
+              onChanged: (value) {
+                if (value == null) return;
+                notifier.updateConfig((c) => c.copyWith(aiProvider: value));
+              },
+            ),
+          ),
+        ),
+        _row(
+          l10n.settingsAiEndpoint,
+          SizedBox(
+            width: 360,
+            child: TextField(
+              controller: _field('aiEndpoint', config.aiEndpoint),
+              onSubmitted: (value) => notifier.updateConfig(
+                (c) => c.copyWith(aiEndpoint: value.trim()),
+              ),
+            ),
+          ),
+        ),
+        _row(
+          l10n.settingsAiModel,
+          SizedBox(
+            width: 360,
+            child: TextField(
+              controller: _field('aiModel', config.aiModel),
+              onSubmitted: (value) => notifier.updateConfig(
+                (c) => c.copyWith(aiModel: value.trim()),
+              ),
+            ),
+          ),
+        ),
+        _row(
+          l10n.settingsAiKeyReference,
+          SizedBox(
+            width: 360,
+            child: TextField(
+              controller: _field('aiApiKeyRef', config.aiApiKeyRef),
+              onSubmitted: (value) => notifier.updateConfig(
+                (c) => c.copyWith(aiApiKeyRef: value.trim()),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          l10n.settingsAiSecurityHint,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+      ],
+    );
+  }
+
+  // -- Plugins --
+  Widget _pluginsSection(AppLocalizations l10n) {
+    final installed = _installedPluginsFuture ??=
+        _pluginManager().then((manager) => manager.loadInstalled());
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(l10n.settingsPlugins,
+            style: Theme.of(context).textTheme.headlineSmall),
+        const SizedBox(height: 24),
+        Text(l10n.settingsPluginsUnverified,
+            style: Theme.of(context).textTheme.bodySmall),
+        const SizedBox(height: 16),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            OutlinedButton.icon(
+              onPressed: _installPluginZip,
+              icon: const Icon(Icons.folder_open),
+              label: Text(l10n.settingsPluginsInstallZip),
+            ),
+            OutlinedButton.icon(
+              onPressed: _discoverPlugins,
+              icon: const Icon(Icons.travel_explore),
+              label: Text(l10n.settingsPluginsDiscover),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        Text(l10n.settingsPluginsInstalled,
+            style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 8),
+        FutureBuilder<List<PluginManifest>>(
+          future: installed,
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return const SizedBox(
+                height: 32,
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+            final plugins = snapshot.data!;
+            if (plugins.isEmpty) return Text(l10n.settingsPluginsEmpty);
+            return Column(
+              children: plugins
+                  .map((plugin) => ListTile(
+                        dense: true,
+                        leading: const Icon(Icons.extension),
+                        title: Text(plugin.name),
+                        subtitle: Text('${plugin.id} · ${plugin.version}'),
+                      ))
+                  .toList(),
+            );
+          },
+        ),
+        if (_catalogFuture != null) ...[
+          const SizedBox(height: 20),
+          FutureBuilder<List<PluginCatalogEntry>>(
+            future: _catalogFuture,
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) {
+                return const CircularProgressIndicator();
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: snapshot.data!
+                    .map((plugin) => ListTile(
+                          dense: true,
+                          leading: const Icon(Icons.public),
+                          title: Text(plugin.name),
+                          subtitle: Text('${plugin.version} · Community / Unverified'),
+                        ))
+                    .toList(),
+              );
+            },
+          ),
+        ],
       ],
     );
   }

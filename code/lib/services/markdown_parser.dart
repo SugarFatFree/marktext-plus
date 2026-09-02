@@ -713,15 +713,167 @@ class MarkdownParser {
   static final _htmlTagAloneRe =
       RegExp(r'^</?[a-zA-Z][a-zA-Z0-9-]*(?:\s[^<>]*?)?/?>\s*$');
 
-  /// A link reference definition: `[label]: url "title"`.
+  /// The link reference definition beginning at line [start], or null.
   ///
-  /// The label may not begin with `^`: `[^1]: note` is a footnote definition,
-  /// and this pattern matched it first. Since a link definition is dropped as
-  /// metadata rather than rendered, every footnote definition in the document
-  /// disappeared without a trace.
-  static final _linkDefRe = RegExp(
-    r'^\s{0,3}\[([^\^\]][^\]]*)\]:\s*(\S+)(?:\s+"([^"]*)")?\s*$',
-  );
+  /// A definition may be written across up to three lines — the label, then
+  /// the destination, then the title — and wrapping a long one is an ordinary
+  /// thing to do. Only the single-line form was recognised, so a wrapped
+  /// definition was not metadata at all: its title was lost, and the rest of
+  /// it was drawn in the document as a paragraph of `"the title"` and
+  /// `[next]: https://…`. One wrapped definition took the definitions under it
+  /// down with it.
+  ///
+  /// [end] is one past the last line the definition occupies.
+  static ({String label, String url, String? title, int end})? _linkDefinitionAt(
+    List<String> lines,
+    int start,
+  ) {
+    // Three lines is the most one can occupy, so that is all this reads.
+    final window = <String>[];
+    for (var i = start; i < lines.length && i < start + 3; i++) {
+      window.add(lines[i]);
+    }
+    if (window.isEmpty) return null;
+    final text = window.join('\n');
+
+    var pos = 0;
+    var spaces = 0;
+    while (pos < text.length && text[pos] == ' ' && spaces < 3) {
+      pos++;
+      spaces++;
+    }
+    if (pos >= text.length || text[pos] != '[') return null;
+    pos++;
+    // `[^1]: note` is a footnote, and reading it as a link definition made
+    // every footnote in the document disappear.
+    if (pos < text.length && text[pos] == '^') return null;
+
+    final label = StringBuffer();
+    var closed = false;
+    while (pos < text.length) {
+      final ch = text[pos];
+      if (ch == '\n') return null;
+      if (ch == '\\' && pos + 1 < text.length) {
+        label.write(text[pos + 1]);
+        pos += 2;
+        continue;
+      }
+      if (ch == ']') {
+        closed = true;
+        pos++;
+        break;
+      }
+      label.write(ch);
+      pos++;
+    }
+    if (!closed || label.isEmpty) return null;
+    if (pos >= text.length || text[pos] != ':') return null;
+    pos++;
+
+    /// Whitespace, crossing at most one line break: a blank line ends the
+    /// definition, whatever comes after it.
+    int? skipSpace(int from) {
+      var at = from;
+      var breaks = 0;
+      while (at < text.length) {
+        final ch = text[at];
+        if (ch == '\n') {
+          breaks++;
+          if (breaks > 1) return null;
+        } else if (ch != ' ' && ch != '\t') {
+          break;
+        }
+        at++;
+      }
+      return at;
+    }
+
+    final afterColon = skipSpace(pos);
+    if (afterColon == null) return null;
+    pos = afterColon;
+    if (pos >= text.length) return null;
+
+    final url = StringBuffer();
+    if (text[pos] == '<') {
+      pos++;
+      var shut = false;
+      while (pos < text.length) {
+        final ch = text[pos];
+        if (ch == '\n') return null;
+        pos++;
+        if (ch == '>') {
+          shut = true;
+          break;
+        }
+        url.write(ch);
+      }
+      if (!shut) return null;
+    } else {
+      while (pos < text.length) {
+        final ch = text[pos];
+        if (ch == ' ' || ch == '\t' || ch == '\n') break;
+        url.write(ch);
+        pos++;
+      }
+      if (url.isEmpty) return null;
+    }
+
+    int linesTo(int at) => '\n'.allMatches(text.substring(0, at)).length;
+
+    /// Whether everything left on this line is blank, which is what a
+    /// definition requires after its last part.
+    bool restOfLineBlank(int at) {
+      var i = at;
+      while (i < text.length && text[i] != '\n') {
+        if (text[i] != ' ' && text[i] != '\t') return false;
+        i++;
+      }
+      return true;
+    }
+
+    // Without a title the definition ends here, and it only counts if nothing
+    // else shares the line.
+    final withoutTitle = restOfLineBlank(pos)
+        ? (
+            label: label.toString(),
+            url: url.toString(),
+            title: null,
+            end: start + linesTo(pos) + 1,
+          )
+        : null;
+
+    final beforeTitle = skipSpace(pos);
+    if (beforeTitle == null || beforeTitle >= text.length) return withoutTitle;
+    final opener = text[beforeTitle];
+    final closer = opener == '(' ? ')' : opener;
+    if (opener != '"' && opener != "'" && opener != '(') return withoutTitle;
+
+    var at = beforeTitle + 1;
+    final title = StringBuffer();
+    var done = false;
+    while (at < text.length) {
+      final ch = text[at];
+      if (ch == '\\' && at + 1 < text.length) {
+        title.write(text[at + 1]);
+        at += 2;
+        continue;
+      }
+      at++;
+      if (ch == closer) {
+        done = true;
+        break;
+      }
+      title.write(ch);
+    }
+    if (!done || !restOfLineBlank(at)) return withoutTitle;
+
+    return (
+      label: label.toString(),
+      url: url.toString(),
+      title: title.toString(),
+      end: start + linesTo(at) + 1,
+    );
+  }
 
   /// Every node in [nodes], and every node they carry, in the order a reader
   /// meets them.
@@ -969,9 +1121,25 @@ class MarkdownParser {
     List<List<String>> itemBlocks,
     List<int> itemStarts,
   ) {
-    final widths =
-        itemBlocks.map((block) => _indentColumns(block.first)).toSet().toList()
-          ..sort();
+    // How deep each item sits, by the column its parent's *text* starts at.
+    //
+    // Every distinct indentation used to be a level of its own, so a list
+    // whose bullets drift by a space — which is what a hand-edited or pasted
+    // list looks like — came out nested one level per bullet: `- a`, ` - b`,
+    // `  - c` drew three lists inside each other where the writer had three
+    // bullets. An item is inside another only when it is indented to where
+    // that item's text begins; a column or two short of it is a sibling.
+    final depths = <int>[];
+    final openContentColumns = <int>[];
+    for (final block in itemBlocks) {
+      final indent = _indentColumns(block.first);
+      while (openContentColumns.isNotEmpty &&
+          indent < openContentColumns.last) {
+        openContentColumns.removeLast();
+      }
+      depths.add(openContentColumns.length);
+      openContentColumns.add(_contentColumn(block.first));
+    }
 
     return itemBlocks.indexed.map((entry) {
       final (index, block) = entry;
@@ -1028,7 +1196,7 @@ class MarkdownParser {
       final content = lead.isEmpty
           ? first
           : [first, ...lead.map((line) => line.trim())].join(' ');
-      final depth = widths.indexOf(_indentColumns(block.first));
+      final depth = depths[index];
 
       final taskMatch = _taskRe.firstMatch(content);
       if (taskMatch != null) {
@@ -1080,9 +1248,13 @@ class MarkdownParser {
         .map(_indentColumns);
     final common = indents.isEmpty ? 0 : indents.reduce(math.min);
     final strip = math.min(column, common);
-    return kept
-        .map((line) => line.length <= strip ? '' : line.substring(strip))
-        .join('\n');
+    // Columns, not characters. The width was measured with tabs counted as
+    // four and then that many *characters* were cut off the front, so a line
+    // indented with one tab lost the tab and the text after it: `\t乙这段`
+    // under a bullet came out as `这段`, with a character of the reader's
+    // writing quietly deleted. [_stripIndent] already counted this correctly
+    // for fenced and indented code; this was the one place that did not ask.
+    return kept.map((line) => _stripIndent(line, strip)).join('\n');
   }
 
   /// The column an item's own text starts at, which is where any block it
@@ -1407,6 +1579,16 @@ class MarkdownParser {
   /// link stays plain text.
   final Map<String, ({String url, String? title})> _linkDefinitions = {};
 
+  /// How many [parse] calls are on the stack.
+  ///
+  /// A quote's contents and the blocks a list item carries are parsed by
+  /// calling [parse] again on this same object, and [parse] began by emptying
+  /// the definitions it had collected. So a quote anywhere above a reference
+  /// link wiped every definition in the document: `[手册][doc]` came out as
+  /// the characters `[手册][doc]`, with the definition below it drawn or
+  /// dropped but never used. Only the outermost call starts from nothing.
+  int _parseDepth = 0;
+
   /// Parse markdown text into a list of block-level nodes.
   /// [quoteDepth] is how many blockquotes enclose this text; it is set by
   /// the parser itself when it descends into a quote, not by callers.
@@ -1419,7 +1601,8 @@ class MarkdownParser {
     // creating intermediate string copies (faster than replaceAll for large files)
     final lines = const LineSplitter().convert(source);
 
-    _linkDefinitions.clear();
+    if (_parseDepth == 0) _linkDefinitions.clear();
+    _parseDepth++;
     // Definitions are gathered before anything is parsed, because a reference
     // may be written above the definition it uses. That pass has to know what
     // a code fence is: a document explaining markdown shows definitions inside
@@ -1427,7 +1610,8 @@ class MarkdownParser {
     // so `[example]` in the prose afterwards silently became a link to
     // whatever the example said.
     var fence = '';
-    for (final line in lines) {
+    for (var index = 0; index < lines.length; index++) {
+      final line = lines[index];
       final fenceMatch = _codeFenceRe.firstMatch(line);
       if (fence.isEmpty) {
         if (fenceMatch != null) fence = fenceMatch.group(1)!;
@@ -1444,13 +1628,13 @@ class MarkdownParser {
       }
       if (fenceMatch != null) continue;
 
-      final match = _linkDefRe.firstMatch(line);
-      if (match == null) continue;
+      final def = _linkDefinitionAt(lines, index);
+      if (def == null) continue;
       // The first definition of a label wins, as CommonMark has it; a second
       // one is a mistake in the document, and taking it meant the mistake won.
       _linkDefinitions.putIfAbsent(
-        match.group(1)!.toLowerCase(),
-        () => (url: match.group(2)!, title: match.group(3)),
+        def.label.toLowerCase(),
+        () => (url: def.url, title: def.title),
       );
     }
 
@@ -1509,8 +1693,9 @@ class MarkdownParser {
 
       // A link reference definition is metadata, not content; leaving it to
       // the paragraph branch printed `[ref]: https://…` in the document.
-      if (_linkDefRe.hasMatch(line)) {
-        i++;
+      final linkDef = _linkDefinitionAt(lines, i);
+      if (linkDef != null) {
+        i = linkDef.end;
         continue;
       }
 
@@ -1980,8 +2165,10 @@ class MarkdownParser {
       }
     }
 
+    _parseDepth--;
     return nodes;
   }
+
   /// Any ASCII punctuation may be escaped with a backslash.
   static final _escapedPunctRe = RegExp(r'\\([!-/:-@\[-`{-~])');
 

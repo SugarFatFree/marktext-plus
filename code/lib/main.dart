@@ -183,13 +183,22 @@ void main(List<String> args) async {
   windowManager.waitUntilReadyToShow(windowOptions, () async {
     StartupTrace.mark('window ready to show');
     // Position and maximised state cannot travel in WindowOptions.
+    //
+    // Marked one call at a time. In one launch out of four this stretch took
+    // 676 ms against 5, 2 and 13 ms in the others — three quarters of a
+    // second of somebody's startup, spent in a window manager round trip
+    // that the single mark could not name. Each of these is a call into the
+    // platform and any of them can be the one that waits.
     if (config.windowX != 0 || config.windowY != 0) {
       await windowManager.setPosition(placement.position);
+      StartupTrace.mark('window position set');
     }
     if (config.isMaximized) {
       await windowManager.maximize();
+      StartupTrace.mark('window maximised');
     }
     await windowManager.show();
+    StartupTrace.mark('window show returned');
     await windowManager.focus();
     StartupTrace.mark('window shown');
     // After the window, never before it: this is a measurement, and it costs a

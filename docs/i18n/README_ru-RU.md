@@ -26,7 +26,7 @@ MarkText Plus — это **современный Markdown-редактор**, �
 Запуск менее чем за 30 секунд.
 
 ```bash
-git clone https://github.com/SugarFatFree/marktext-plus.git
+git clone https://github.com/marktext-plus/marktext-plus.git
 cd marktext-plus/code
 flutter pub get && flutter run
 ```
@@ -35,16 +35,85 @@ flutter pub get && flutter run
 
 ## ✨ Возможности
 
+### Редактирование
+
 | Feature | Description |
 |---------|-------------|
-| **📝 Три режима редактирования** | Исходный код с подсветкой синтаксиса, живой предпросмотр и разделённый вид |
-| **🎨 8 красивых тем** | Red Graphite, Shibuya, Pink Blossom, Sky Blue, Dark Graphite, Dieci OLED, Nord, Midnight |
-| **🌍 12 языков** | Английский, китайский, японский, корейский, немецкий, французский, итальянский, русский, испанский, португальский, арабский и бразильский португальский |
-| **⚡ Высокая скорость** | Собственный Markdown-парсер и рендерер без тяжёлых зависимостей |
-| **🔍 Поиск и замена** | Полноценный поиск с поддержкой регулярных выражений |
-| **📂 Дерево файлов** | Навигация в боковой панели с поддержкой перетаскивания папок |
-| **⌨️ Настраиваемые сочетания клавиш** | Полностью конфигурируемые клавиатурные привязки |
-| **💾 Автосохранение** | Постоянная JSON-конфигурация, чтобы не потерять работу |
+| **📝 Three edit modes** | Source with syntax highlighting, live preview and draggable split view |
+| **✏️ Edit in preview** | Double-click a block to edit Markdown in place; `Esc` discards and task boxes toggle with one click |
+| **⌨️ Command palette and `/` menu** | `Ctrl+Shift+P` runs commands and `/` inserts a block |
+| **📊 Table editing** | Insert or delete rows and columns and align each column |
+| **🔀 Move blocks** | Move paragraphs, lists or fences up and down with one shortcut |
+| **🔍 Find and replace** | Whole-word and regular-expression search across the document |
+| **🔗 Paste a link** | Select words and paste a web address to make a link |
+| **📐 Tidy tables** | Realign table pipes without changing content; CJK characters count as two columns |
+| **🖼️ Images** | Paste or drop a picture to store it beside the document and link it |
+
+### Отображение
+
+| Feature | Description |
+|---------|-------------|
+| **📈 Mermaid diagrams** | **22 types** drawn in pure Dart, **without WebView** |
+| **∑ Math** | Inline and block LaTeX with KaTeX-compatible rendering |
+| **📋 CommonMark + GFM** | Tables, task lists, strikethrough, autolinks, footnotes and `<ruby>` annotations |
+| **🎨 8 themes** | Red Graphite, Shibuya, Pink Blossom, Sky Blue, Dark Graphite, Dieci OLED, Nord, Midnight |
+| **🌍 12 languages** | English, Chinese, Japanese, Korean, German, French, Italian, Russian, Spanish, Portuguese, Arabic and Brazilian Portuguese; Arabic uses RTL |
+
+### Файлы и вывод
+
+| Feature | Description |
+|---------|-------------|
+| **📤 Export** | HTML, PDF and Word `.docx`; diagrams and highlighted code are embedded in HTML, while maths still uses KaTeX |
+| **🔤 Encodings** | UTF-8, UTF-16 and GBK detected on open, with or without BOM, and written back as found |
+| **📂 File tree** | Sidebar navigation with folder drag and drop |
+| **👀 External changes** | Notices edits made by another program while the document is open |
+| **💾 Safe saving** | Atomic writes prevent partial files after interruption |
+| **⌨️ Custom shortcuts** | Fully configurable keyboard bindings |
+
+### Создан лёгким
+
+| | |
+|---------|-------------|
+| **🧩 Open plugins** | Discover public plugins through [GitHub Topic: `marktext-plus-plugin`](https://github.com/topics/marktext-plus-plugin); every plugin is labelled Community/Unverified and runs out of process |
+| **⚡ Fast start** | No embedded browser or editor framework, 22 direct dependencies |
+| **📄 Large files** | Single-pass parsing, highlighting and search with tested budgets |
+| **🧪 Tested** | 2021 tests covering parser, exporters, providers and editor widgets |
+
+## ⚖️ Сравнение
+
+С редактором, из которого этот переосмыслен, и с самым известным в этой области. Всё в столбце MarkText прочитано из его исходного кода на `v0.20.0-dev`; столбец Typora взят из его опубликованной документации, поскольку он закрыт и проверить его тем же способом нельзя.
+
+Время запуска снято на одной машине с Windows, все три программы на ней. Показатели этой программы сняты приборно — она пишет собственный `startup-trace.log`, и это четыре запуска, — а две другие засекались вручную: считайте их более грубой парой. Большая часть запуска здесь — не собственный код: из 0,7 с около 0,5 с приходится на загрузку исполняемого файла в Windows и старт движка Flutter, и 0,15 с — на всё, что делает сам редактор.
+
+| | **MarkText Plus** | **MarkText** (оригинал) | **Typora** |
+|---|---|---|---|
+| **Среда выполнения** | Flutter — компилируемая, без встроенного браузера | Electron 42 | Electron |
+| **Запуск** (до появления документа) | ~0,7 с «на горячую», ~1,4 с «на холодную» | 2–3 с | 2–3 с |
+| **Прямых зависимостей** | 22 | 56 (пакет desktop) | закрытый код |
+| **Лицензия** | MIT, бесплатно | MIT, бесплатно | Платно, закрытый код |
+| **Редактирование** | Исходник, предпросмотр и разделённый вид, половины которого следуют друг за другом; блоки правятся на месте в предпросмотре | Живой предпросмотр (WYSIWYG) и режим исходника | Живой предпросмотр (WYSIWYG) и режим исходника |
+| **Диаграммы** | 22 типа Mermaid, рисуются на Dart без WebView | Mermaid, flowchart.js, Vega-Lite, PlantUML — все через JavaScript | Mermaid, flowchart.js, js-sequence, PlantUML |
+| **Формулы** | Совместимо с KaTeX | KaTeX | KaTeX |
+| **Экспорт** | HTML, PDF, Word — всё встроено | HTML, PDF, Markdown; больше форматов, если установлен pandoc | Много форматов, большинство через pandoc |
+| **Темы** | 8 | 32 | Много, плюс большая коллекция сообщества |
+| **Языки интерфейса** | 12 | 10 | Несколько |
+| **Платформы** | Windows, macOS, Linux (x64 и arm64) | Windows, macOS, Linux | Windows, macOS, Linux |
+
+### В чём другие впереди
+
+Об этом стоит сказать прямо: сравнение, которое льстит только тому, кто его пишет, читать незачем.
+
+- **Живой предпросмотр.** И Typora, и MarkText правят уже свёрстанный документ, без переключения режимов. Этот редактор даёт три панели и позволяет открыть блок на месте — это другое, и тот, кто привык к Typora, заметит эту разницу первой.
+- **Темы.** Тридцать две против восьми, и за Typora стоят годы CSS от сообщества.
+- **Широта диаграмм.** PlantUML и Vega-Lite здесь не реализованы.
+- **Годы.** Typora шлифуют десятилетие. Эта программа молода, и местами это заметно.
+
+### В чём впереди эта
+
+- **Нет встроенного браузера.** Разборщик, отрисовка, подсветка синтаксиса и движок диаграмм написаны здесь и скомпилированы. В этом весь смысл проекта, а время запуска выше — то, что он за это получает.
+- **Диаграммы без JavaScript.** Двадцать два типа Mermaid рисует Dart, поэтому в PDF и файл Word они попадают картинками, а не сценарием, который должна выполнить машина читателя.
+- **Экспорт в Word без pandoc.** Не нужно ставить вторую программу.
+- **Бесплатно и с открытым кодом**, чего о Typora сказать нельзя.
 
 ## 🎨 Темы
 
@@ -75,7 +144,7 @@ flutter pub get && flutter run
 
 ### Скачать готовые сборки
 
-Скачайте последнюю версию для вашей платформы из [Releases](https://github.com/SugarFatFree/marktext-plus/releases).
+Скачайте последнюю версию для вашей платформы из [Releases](https://github.com/marktext-plus/marktext-plus/releases).
 
 | Platform | Architecture | Format |
 |----------|-------------|--------|
@@ -88,7 +157,7 @@ flutter pub get && flutter run
 > **Требования**: Flutter 3.x+, Dart 3.x+
 
 ```bash
-git clone https://github.com/SugarFatFree/marktext-plus.git
+git clone https://github.com/marktext-plus/marktext-plus.git
 cd marktext-plus/code
 flutter pub get && flutter run
 ```

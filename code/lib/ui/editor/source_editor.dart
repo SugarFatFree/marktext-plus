@@ -21,6 +21,7 @@ import '../../core/i18n/l10n/app_localizations.dart';
 import '../widgets/language_picker.dart';
 import '../../services/html_to_markdown.dart';
 import '../../services/clipboard_service.dart';
+import '../../services/rich_copy_service.dart';
 import '../../services/table_edit_service.dart';
 import '../../services/block_move_service.dart';
 import '../widgets/format_toolbar.dart';
@@ -49,7 +50,13 @@ class SourceEditor extends ConsumerStatefulWidget {
     this.initialContent = '',
     this.externalRevision = 0,
     this.onChanged,
+    this.reportsScrollPosition = false,
   });
+
+  /// Whether to publish the line at the top of the viewport, for a preview
+  /// beside this pane to follow. Only split view wants it; on its own the
+  /// pane has nobody to tell.
+  final bool reportsScrollPosition;
 
   @override
   ConsumerState<SourceEditor> createState() => _SourceEditorState();
@@ -578,6 +585,11 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
   /// a position inside it.
   final GlobalKey _gutterKey = GlobalKey();
 
+  /// When this pane was last moved by the preview rather than by the reader.
+  /// Without it the two panes would answer each other's moves and chase one
+  /// another down the document.
+  DateTime? _movedByPreview;
+
   /// The line numbers on screen right now, and where each one sits.
   ///
   /// Read from the editor's own text layout rather than counted off at a
@@ -702,6 +714,17 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
       // the request lands before this editor exists and the listener above
       // never sees it change. Honour whatever is already pending.
       _scrollToTargetLine(ref.read(editorProvider).targetScrollLine);
+
+      // And the other half of the split view's scrolling: where the preview
+      // has been scrolled to.
+      if (widget.reportsScrollPosition) {
+        ref.listenManual(
+          editorProvider.select((s) => s.syncPreviewLine),
+          (prev, next) {
+            if (next != null) _followPreviewToLine(next);
+          },
+        );
+      }
     });
   }
 
@@ -1263,6 +1286,58 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     // the position from the current scroll offset.
     _formatToolbar?.markNeedsBuild();
     _updateGutterMarks();
+    _reportTopLine();
+  }
+
+  /// Scrolls so that source [line] is at the top, because the preview beside
+  /// us has been scrolled there.
+  ///
+  /// The line's position comes from the text layout rather than from a line
+  /// height multiplied out: with a wrapped paragraph the two are not the same
+  /// number, and in Markdown a paragraph is normally one long line.
+  void _followPreviewToLine(int line) {
+    if (!widget.reportsScrollPosition) return;
+    if (!_editorScrollController.hasClients) return;
+    final editable = _renderEditable();
+    final box = _fieldKey.currentContext?.findRenderObject() as RenderBox?;
+    if (editable == null || box == null || !box.hasSize) return;
+
+    final starts = _ensureLineStarts(_controller.text);
+    final index = (line - 1).clamp(0, starts.length - 1);
+    final rect =
+        editable.getLocalRectForCaret(TextPosition(offset: starts[index]));
+    final lineTop = editable.localToGlobal(Offset(0, rect.top)).dy;
+    final paneTop = box.localToGlobal(Offset.zero).dy;
+
+    final position = _editorScrollController.position;
+    final target = (_editorScrollController.offset + (lineTop - paneTop))
+        .clamp(position.minScrollExtent, position.maxScrollExtent);
+    if ((target - _editorScrollController.offset).abs() < 1) return;
+    _movedByPreview = DateTime.now();
+    _editorScrollController.jumpTo(target);
+  }
+
+  /// Tells whoever is beside us which line is at the top of the viewport.
+  ///
+  /// The exact line, from the layout — not the offset divided by a line
+  /// height, which stops being the line the moment a paragraph wraps, and in
+  /// Markdown a paragraph is normally one long line.
+  void _reportTopLine() {
+    if (!widget.reportsScrollPosition) return;
+    final moved = _movedByPreview;
+    if (moved != null &&
+        DateTime.now().difference(moved) < const Duration(milliseconds: 200)) {
+      return;
+    }
+    final editable = _renderEditable();
+    if (editable == null) return;
+    final box = _fieldKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) return;
+
+    final top = box.localToGlobal(Offset.zero).dy;
+    final at = editable.getPositionForPoint(Offset(0, top));
+    final line = _positionOf(_controller.text, at.offset).$1;
+    ref.read(editorProvider.notifier).reportSourceLine(line + 1);
   }
 
   /// The render object that laid the text out, found by descending from the
@@ -1377,6 +1452,23 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     final selection = _controller.selection;
     if (!selection.isValid) return KeyEventResult.ignored;
     final text = _controller.text;
+
+    // Source mode owns the Markdown, so Ctrl+C must publish both the original
+    // text and a rendered HTML flavour. The framework's default copy only
+    // publishes plain text, which makes Word lose every heading and emphasis.
+    // It also goes through the native Windows path so line breaks remain line
+    // breaks in Notepad.
+    if (event.logicalKey == LogicalKeyboardKey.keyC &&
+        (HardwareKeyboard.instance.isControlPressed ||
+            HardwareKeyboard.instance.isMetaPressed) &&
+        !selection.isCollapsed) {
+      final selected = text.substring(selection.start, selection.end);
+      final html = RichCopyService.htmlForMarkdownSelection(selected);
+      // Deliberately not awaited: the native clipboard write must not block
+      // the key event, and the plain/HTML flavours are written as one call.
+      unawaited(ClipboardService.copyWithHtml(selected, html));
+      return KeyEventResult.handled;
+    }
 
     // Handle Ctrl+V / Cmd+V: try to paste image from clipboard
     if (event.logicalKey == LogicalKeyboardKey.keyV &&
