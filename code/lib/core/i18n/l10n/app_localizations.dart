@@ -1581,6 +1581,12 @@ abstract class AppLocalizations {
   /// **'Close All Tabs'**
   String get closeAllTabs;
 
+  /// Context menu entry that opens an installed plugin's own directory in the system file manager
+  ///
+  /// In en, this message translates to:
+  /// **'Open plugin folder'**
+  String get pluginOpenFolder;
+
   /// No description provided for @revealInExplorer.
   ///
   /// In en, this message translates to:

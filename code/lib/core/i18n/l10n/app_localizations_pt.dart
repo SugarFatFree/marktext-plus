@@ -794,6 +794,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get closeAllTabs => 'Fechar todos os separadores';
 
   @override
+  String get pluginOpenFolder => 'Abrir a pasta do plugin';
+
+  @override
   String get revealInExplorer => 'Mostrar no explorador de ficheiros';
 
   @override
@@ -1903,6 +1906,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get closeAllTabs => 'Fechar todas as abas';
+
+  @override
+  String get pluginOpenFolder => 'Abrir a pasta do plugin';
 
   @override
   String get revealInExplorer => 'Mostrar no explorador de arquivos';

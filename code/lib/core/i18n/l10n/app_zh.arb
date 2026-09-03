@@ -303,6 +303,7 @@
   "closeOtherTabs": "关闭其他标签页",
   "closeTabsToRight": "关闭右侧标签页",
   "closeAllTabs": "关闭所有标签页",
+  "pluginOpenFolder": "打开插件目录",
   "revealInExplorer": "在文件管理器中显示",
   "formatTextSubmenu": "文本",
   "formatBlocksSubmenu": "块元素",

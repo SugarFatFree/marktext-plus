@@ -790,6 +790,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get closeAllTabs => 'إغلاق جميع علامات التبويب';
 
   @override
+  String get pluginOpenFolder => 'فتح مجلد الإضافة';
+
+  @override
   String get revealInExplorer => 'عرض في مستكشف الملفات';
 
   @override

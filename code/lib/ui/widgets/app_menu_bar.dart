@@ -45,6 +45,7 @@ import '../../core/constants.dart';
 import '../../services/plugin_action_service.dart';
 import '../../services/plugin_manager.dart';
 import '../../services/plugin_manifest.dart';
+import '../../utils/file_reveal.dart';
 
 class AppMenuBar extends ConsumerWidget {
   const AppMenuBar({super.key});
@@ -1127,15 +1128,9 @@ class AppMenuBar extends ConsumerWidget {
       return;
     }
     try {
-      if (Platform.isWindows) {
-        // Selects the file in Explorer rather than opening the folder, so the
-        // one that matters is the one already highlighted.
-        await Process.run('explorer.exe', ['/select,', path]);
-      } else if (Platform.isMacOS) {
-        await Process.run('open', ['-R', path]);
-      } else {
-        await Process.run('xdg-open', [p.dirname(path)]);
-      }
+      // Selects the file rather than opening the folder, so the one that
+      // matters is the one already highlighted.
+      await FileReveal.selectFile(path);
     } catch (e) {
       if (context == null || !context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

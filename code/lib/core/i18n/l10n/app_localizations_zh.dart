@@ -783,6 +783,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get closeAllTabs => '关闭所有标签页';
 
   @override
+  String get pluginOpenFolder => '打开插件目录';
+
+  @override
   String get revealInExplorer => '在文件管理器中显示';
 
   @override

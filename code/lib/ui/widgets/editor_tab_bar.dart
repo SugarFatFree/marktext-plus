@@ -1,5 +1,3 @@
-import '../../utils/file_utils.dart';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
@@ -10,6 +8,8 @@ import '../../core/i18n/l10n/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/tab_info.dart';
 import '../../providers/settings_provider.dart';
+import '../../utils/file_reveal.dart';
+import '../../utils/file_utils.dart';
 import '../../providers/tab_provider.dart';
 import '../../services/file_service.dart';
 
@@ -316,14 +316,7 @@ class _TabItemState extends ConsumerState<_TabItem> with SingleTickerProviderSta
         }
       case 'reveal':
         if (tab.filePath != null) {
-          final dir = p.dirname(tab.filePath!);
-          if (Platform.isWindows) {
-            Process.run('explorer', ['/select,', tab.filePath!]);
-          } else if (Platform.isMacOS) {
-            Process.run('open', ['-R', tab.filePath!]);
-          } else {
-            Process.run('xdg-open', [dir]);
-          }
+          await FileReveal.selectFile(tab.filePath!);
         }
     }
   }

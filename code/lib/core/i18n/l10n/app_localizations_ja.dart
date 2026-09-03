@@ -784,6 +784,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get closeAllTabs => 'すべてのタブを閉じる';
 
   @override
+  String get pluginOpenFolder => 'プラグインフォルダーを開く';
+
+  @override
   String get revealInExplorer => 'ファイルマネージャーで表示';
 
   @override

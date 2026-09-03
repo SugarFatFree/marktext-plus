@@ -303,6 +303,7 @@
   "closeOtherTabs": "Fermer les autres onglets",
   "closeTabsToRight": "Fermer les onglets à droite",
   "closeAllTabs": "Fermer tous les onglets",
+  "pluginOpenFolder": "Ouvrir le dossier de l’extension",
   "revealInExplorer": "Afficher dans l'explorateur",
   "formatTextSubmenu": "Texte",
   "formatBlocksSubmenu": "Blocs",

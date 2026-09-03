@@ -303,6 +303,7 @@
   "closeOtherTabs": "다른 탭 닫기",
   "closeTabsToRight": "오른쪽 탭 닫기",
   "closeAllTabs": "모든 탭 닫기",
+  "pluginOpenFolder": "플러그인 폴더 열기",
   "revealInExplorer": "파일 탐색기에서 표시",
   "formatTextSubmenu": "텍스트",
   "formatBlocksSubmenu": "블록",

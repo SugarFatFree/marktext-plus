@@ -3,17 +3,26 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'plugin_logger.dart';
+import 'plugin_process_registry.dart';
 
 /// JSON-RPC-over-stdio host for one plugin process.
 ///
 /// A plugin never shares the editor isolate. A hung request is bounded by a
 /// timeout and terminates only that child process.
 class PluginProcessHost {
-  PluginProcessHost({required this.executable, required this.logger, this.arguments = const []});
+  PluginProcessHost({
+    required this.executable,
+    required this.logger,
+    this.arguments = const [],
+    this.registry,
+  });
 
   final String executable;
   final List<String> arguments;
   final PluginLogger logger;
+
+  /// Where this child is written down so a crash cannot orphan it.
+  final PluginProcessRegistry? registry;
   Process? _process;
   int _nextId = 0;
   final _pending = <int, Completer<Map<String, dynamic>>>{};
@@ -21,6 +30,9 @@ class PluginProcessHost {
   StreamSubscription<String>? _stderr;
 
   bool get isRunning => _process != null;
+
+  /// How long a plugin gets to notice its stdin closed before it is killed.
+  static const _shutdownGrace = Duration(seconds: 2);
 
   Future<void> start({List<String>? arguments, String? workingDirectory}) async {
     if (isRunning) return;
@@ -31,6 +43,7 @@ class PluginProcessHost {
       runInShell: false,
     );
     _process = process;
+    await registry?.record(process.pid, executable);
     _stdout = process.stdout
         .transform(utf8.decoder)
         .transform(const LineSplitter())
@@ -50,6 +63,10 @@ class PluginProcessHost {
       }
       _pending.clear();
       _process = null;
+      // Deliberately not awaited: this runs inside an exit notification that
+      // nothing waits on, and forgetting a dead child is bookkeeping — the
+      // next start reaps whatever this misses.
+      unawaited(registry?.forget(process.pid) ?? Future<void>.value());
     }));
     await logger.info('plugin process started');
   }
@@ -100,7 +117,18 @@ class PluginProcessHost {
   Future<void> stop() async {
     final process = _process;
     if (process == null) return;
-    process.kill();
+    // Closing stdin is the signal a plugin is meant to shut down on; killing
+    // it is what happens to a plugin that ignores that.
+    try {
+      await process.stdin.close();
+    } catch (_) {
+      // The child may already be gone, which is the outcome being asked for.
+    }
+    final exited = await process.exitCode
+        .timeout(_shutdownGrace, onTimeout: () => -1)
+        .then((code) => code != -1);
+    if (!exited) process.kill();
+    await registry?.forget(process.pid);
     await _stdout?.cancel();
     await _stderr?.cancel();
     _stdout = null;

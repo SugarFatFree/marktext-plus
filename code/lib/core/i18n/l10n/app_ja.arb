@@ -303,6 +303,7 @@
   "closeOtherTabs": "他のタブを閉じる",
   "closeTabsToRight": "右側のタブを閉じる",
   "closeAllTabs": "すべてのタブを閉じる",
+  "pluginOpenFolder": "プラグインフォルダーを開く",
   "revealInExplorer": "ファイルマネージャーで表示",
   "formatTextSubmenu": "テキスト",
   "formatBlocksSubmenu": "ブロック",

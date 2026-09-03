@@ -349,6 +349,10 @@
   "closeOtherTabs": "Close Other Tabs",
   "closeTabsToRight": "Close Tabs to the Right",
   "closeAllTabs": "Close All Tabs",
+  "pluginOpenFolder": "Open plugin folder",
+  "@pluginOpenFolder": {
+    "description": "Context menu entry that opens an installed plugin's own directory in the system file manager"
+  },
   "revealInExplorer": "Reveal in File Explorer",
   "formatTextSubmenu": "Text",
   "formatBlocksSubmenu": "Blocks",

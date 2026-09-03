@@ -784,6 +784,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get closeAllTabs => '모든 탭 닫기';
 
   @override
+  String get pluginOpenFolder => '플러그인 폴더 열기';
+
+  @override
   String get revealInExplorer => '파일 탐색기에서 표시';
 
   @override

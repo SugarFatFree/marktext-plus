@@ -303,6 +303,7 @@
   "closeOtherTabs": "Cerrar otras pestañas",
   "closeTabsToRight": "Cerrar pestañas a la derecha",
   "closeAllTabs": "Cerrar todas las pestañas",
+  "pluginOpenFolder": "Abrir la carpeta del complemento",
   "revealInExplorer": "Mostrar en el explorador",
   "formatTextSubmenu": "Texto",
   "formatBlocksSubmenu": "Bloques",

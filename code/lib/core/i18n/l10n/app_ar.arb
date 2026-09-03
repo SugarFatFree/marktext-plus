@@ -303,6 +303,7 @@
   "closeOtherTabs": "إغلاق علامات التبويب الأخرى",
   "closeTabsToRight": "إغلاق علامات التبويب على اليمين",
   "closeAllTabs": "إغلاق جميع علامات التبويب",
+  "pluginOpenFolder": "فتح مجلد الإضافة",
   "revealInExplorer": "عرض في مستكشف الملفات",
   "formatTextSubmenu": "نص",
   "formatBlocksSubmenu": "كتل",

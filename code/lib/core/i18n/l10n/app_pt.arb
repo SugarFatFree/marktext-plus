@@ -303,6 +303,7 @@
   "closeOtherTabs": "Fechar outros separadores",
   "closeTabsToRight": "Fechar separadores à direita",
   "closeAllTabs": "Fechar todos os separadores",
+  "pluginOpenFolder": "Abrir a pasta do plugin",
   "revealInExplorer": "Mostrar no explorador de ficheiros",
   "formatTextSubmenu": "Texto",
   "formatBlocksSubmenu": "Blocos",

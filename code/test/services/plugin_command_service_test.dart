@@ -126,6 +126,58 @@ end
       throwsA(isA<PluginScriptException>()),
     );
   });
+
+  test('a settings page starts from what the plugin declared as defaults', () {
+    final manifest = install('', extra: {
+      'settings': [
+        {'key': 'target', 'title': 'Language', 'default': 'Japanese'},
+        {'key': 'tone', 'title': 'Tone'},
+      ],
+    });
+
+    expect(PluginCommandService(root.path).readSettings(manifest),
+        {'target': 'Japanese'},
+        reason: '没默认值的字段不该凭空造出一个空字符串');
+  });
+
+  test('what the reader saves on the settings page is what the script reads',
+      () async {
+    final manifest = install(r'''
+function on_command(ctx)
+  return { notify = storage.get("target") }
+end
+''', extra: {
+      'settings': [
+        {'key': 'target', 'title': 'Language', 'default': 'Japanese'},
+      ],
+    });
+    final service = PluginCommandService(root.path);
+
+    // The script runs once first, so the saved value has to reach a plugin
+    // that is already loaded — not only the next time the editor starts.
+    service.start(manifest, const PluginScriptContext(command: 'x'));
+    await service.writeSettings(manifest, {'target': 'Korean'});
+
+    expect(service.readSettings(manifest), {'target': 'Korean'});
+    final action = service.start(manifest, const PluginScriptContext(command: 'x'));
+    expect((action as PluginNotifyAction).message, 'Korean');
+  });
+
+  test('saving settings leaves other plugins alone', () async {
+    final manifest = install('', extra: {
+      'settings': [
+        {'key': 'target', 'title': 'Language'},
+      ],
+    });
+    final service = PluginCommandService(root.path);
+
+    await service.writeSettings(manifest, {'target': 'Korean'});
+
+    final saved = jsonDecode(
+      File('${root.path}/com.example.demo/settings.json').readAsStringSync(),
+    );
+    expect(saved, {'target': 'Korean'});
+  });
 }
 
 void _permissions() {

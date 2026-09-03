@@ -303,6 +303,7 @@
   "closeOtherTabs": "Chiudi le altre schede",
   "closeTabsToRight": "Chiudi le schede a destra",
   "closeAllTabs": "Chiudi tutte le schede",
+  "pluginOpenFolder": "Apri la cartella del plugin",
   "revealInExplorer": "Mostra nel file manager",
   "formatTextSubmenu": "Testo",
   "formatBlocksSubmenu": "Blocchi",

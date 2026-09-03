@@ -797,6 +797,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get closeAllTabs => 'Fermer tous les onglets';
 
   @override
+  String get pluginOpenFolder => 'Ouvrir le dossier de l’extension';
+
+  @override
   String get revealInExplorer => 'Afficher dans l\'explorateur';
 
   @override

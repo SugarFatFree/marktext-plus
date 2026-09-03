@@ -791,6 +791,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get closeAllTabs => 'Закрыть все вкладки';
 
   @override
+  String get pluginOpenFolder => 'Открыть папку плагина';
+
+  @override
   String get revealInExplorer => 'Показать в проводнике';
 
   @override

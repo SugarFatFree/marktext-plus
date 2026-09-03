@@ -790,6 +790,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get closeAllTabs => 'Close All Tabs';
 
   @override
+  String get pluginOpenFolder => 'Open plugin folder';
+
+  @override
   String get revealInExplorer => 'Reveal in File Explorer';
 
   @override

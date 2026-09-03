@@ -63,6 +63,25 @@ class PluginCommandService {
     );
   }
 
+  /// The plugin's settings as the reader's settings page should show them.
+  Map<String, String> readSettings(PluginManifest manifest) =>
+      _loadSettings(manifest);
+
+  /// Saves what the reader entered on the plugin's settings page.
+  ///
+  /// The loaded script is dropped afterwards, so a plugin that is already
+  /// running picks the new values up on its next command rather than at the
+  /// next launch of the editor.
+  Future<void> writeSettings(
+    PluginManifest manifest,
+    Map<String, String> values,
+  ) async {
+    final file = _settingsFile(manifest);
+    await file.parent.create(recursive: true);
+    await file.writeAsString(jsonEncode(values), flush: true);
+    _runtimes.remove(manifest.id)?.dispose();
+  }
+
   /// Writes the plugin's settings back, if it changed any.
   Future<void> flush(PluginManifest manifest) async {
     final runtime = _runtimes[manifest.id];

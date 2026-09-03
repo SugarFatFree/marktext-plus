@@ -794,6 +794,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get closeAllTabs => 'Chiudi tutte le schede';
 
   @override
+  String get pluginOpenFolder => 'Apri la cartella del plugin';
+
+  @override
   String get revealInExplorer => 'Mostra nel file manager';
 
   @override

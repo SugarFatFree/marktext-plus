@@ -795,6 +795,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get closeAllTabs => 'Cerrar todas las pestañas';
 
   @override
+  String get pluginOpenFolder => 'Abrir la carpeta del complemento';
+
+  @override
   String get revealInExplorer => 'Mostrar en el explorador';
 
   @override

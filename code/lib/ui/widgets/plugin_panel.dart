@@ -13,6 +13,7 @@ import '../../services/plugin_manager.dart';
 import '../../services/plugin_manifest.dart';
 import '../screens/plugin_settings_screen.dart';
 import '../../providers/plugin_provider.dart';
+import '../../utils/file_reveal.dart';
 
 class PluginPanel extends ConsumerStatefulWidget {
   const PluginPanel({super.key});
@@ -51,6 +52,51 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
     } catch (error) {
       if (mounted) setState(() => _error = error);
     }
+  }
+
+  /// The plugin's own directory, which is also where its settings file is.
+  Future<void> _openFolder(PluginManifest plugin) async {
+    final manager = await _manager();
+    await FileReveal.openDirectory(manager.directoryOf(plugin));
+  }
+
+  Future<void> _showPluginMenu(PluginManifest plugin, Offset position) async {
+    final overlay =
+        Overlay.of(context).context.findRenderObject()! as RenderBox;
+    final selected = await showMenu<String>(
+      context: context,
+      // A zero-sized anchor rect, so the menu is placed at the pointer and
+      // sized by its own contents; giving it the distance to the far edges
+      // instead squeezes the entry until the label overflows.
+      position: RelativeRect.fromRect(
+        Rect.fromLTWH(position.dx, position.dy, 0, 0),
+        Offset.zero & overlay.size,
+      ),
+      items: [
+        PopupMenuItem(
+          value: 'folder',
+          height: 36,
+          child: Text(
+            AppLocalizations.of(context)!.pluginOpenFolder,
+            style: const TextStyle(fontWeight: FontWeight.normal),
+          ),
+        ),
+      ],
+    );
+    if (selected == 'folder') await _openFolder(plugin);
+  }
+
+  Future<void> _openSettings(PluginManifest plugin) async {
+    final manager = await _manager();
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PluginSettingsScreen(
+          plugin: plugin,
+          installDirectory: manager.installDirectory,
+        ),
+      ),
+    );
   }
 
   void _discover() {
@@ -185,7 +231,15 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
                               children: [
                                 const Icon(Icons.extension, size: 17),
                                 const SizedBox(width: 6),
-                                Expanded(child: Text(plugin.name, overflow: TextOverflow.ellipsis)),
+                                Expanded(
+                                  child: GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onSecondaryTapDown: (details) =>
+                                        _showPluginMenu(plugin, details.globalPosition),
+                                    child: Text(plugin.name,
+                                        overflow: TextOverflow.ellipsis),
+                                  ),
+                                ),
                                 Switch(
                                   value: enabled.data ?? true,
                                   onChanged: enabled.connectionState == ConnectionState.waiting
@@ -201,11 +255,7 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
                               children: [
                                 if (plugin.settings.isNotEmpty)
                                   TextButton.icon(
-                                    onPressed: () => Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (_) => PluginSettingsScreen(plugin: plugin),
-                                      ),
-                                    ),
+                                    onPressed: () => _openSettings(plugin),
                                     icon: const Icon(Icons.settings, size: 16),
                                     label: const Text('Settings'),
                                   ),

@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'plugin_manifest.dart';
 import 'plugin_logger.dart';
 import 'plugin_process_host.dart';
+import 'plugin_process_registry.dart';
 import 'plugin_script_runtime.dart';
 
 /// Discovers and installs data/sidecar-process plugins without importing them.
@@ -82,6 +83,22 @@ class PluginManager {
     return '$os-$arch';
   }
 
+  /// The record of plugin processes this editor started.
+  PluginProcessRegistry get processRegistry =>
+      PluginProcessRegistry(File(p.join(installDirectory, 'running.json')));
+
+  /// Kills plugin processes an earlier run left behind.
+  ///
+  /// Called once when the editor starts. A plugin that ignored the closing of
+  /// its stdin — or never read it — would otherwise keep running after a crash
+  /// with nothing left that knows it exists.
+  Future<int> reapOrphanedPlugins() => processRegistry.reapOrphans();
+
+  /// Where the plugin's own files live: its manifest, its script, and the
+  /// settings file it keeps for itself.
+  String directoryOf(PluginManifest manifest) =>
+      p.join(installDirectory, manifest.id);
+
   String entrypointPath(PluginManifest manifest) => p.join(
         installDirectory,
         manifest.id,
@@ -127,6 +144,7 @@ class PluginManager {
       executable: executable,
       arguments: const [],
       logger: logger,
+      registry: processRegistry,
     );
     await host.start();
     return host;

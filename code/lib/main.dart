@@ -13,6 +13,7 @@ import 'app.dart';
 import 'core/config/config_service.dart';
 import 'core/diagnostics/startup_trace.dart';
 import 'providers/locale_provider.dart';
+import 'services/plugin_manager.dart';
 import 'providers/settings_provider.dart';
 import 'providers/tab_provider.dart';
 
@@ -140,6 +141,14 @@ void main(List<String> args) async {
   SettingsNotifier.onSaveFailed = reportSettingsSaveFailure;
   final config = await configService.load();
   StartupTrace.mark('config loaded');
+
+  // Plugin processes an earlier run left behind. A child is not killed when
+  // its parent dies, so a crash leaves every plugin process still running with
+  // nothing that knows about them. Done before the window opens, and before
+  // anything can start a plugin, so a new child is not mistaken for a stale
+  // one. With nothing to clean up this is a single check for a missing file.
+  await PluginManager(p.join(configDir, 'plugins')).reapOrphanedPlugins();
+  StartupTrace.mark('orphaned plugin processes reaped');
 
   // Where the window may actually open, given the screens attached now.
   //
