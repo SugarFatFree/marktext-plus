@@ -114,12 +114,27 @@ void main() {
     // installed .exe when the versions match — and this app's version resource
     // never changes. Three rounds of native fixes were installed and never ran
     // because of it.
-    final workflow = File('../.github/workflows/ci.yml').readAsStringSync();
-    final filesLine = workflow
-        .split('\n')
-        .firstWhere((line) => line.contains('DestDir: "{app}"'));
+    //
+    // Every installer, in both workflows, and every line rather than the first
+    // one found. This checked only the first match in ci.yml, which is the
+    // build nobody installs: release.yml — the installer people actually run —
+    // never had the flag at all, and a second installer added to ci.yml took
+    // over the assertion and hid the one it was written for.
+    for (final path in const [
+      '../.github/workflows/ci.yml',
+      '../.github/workflows/release.yml',
+    ]) {
+      final lines = File(path)
+          .readAsStringSync()
+          .split('\n')
+          .where((line) => line.contains('DestDir: "{app}"'))
+          .toList();
 
-    expect(filesLine, contains('ignoreversion'));
+      expect(lines, isNotEmpty, reason: '$path 里找不到安装包的文件段');
+      for (final line in lines) {
+        expect(line, contains('ignoreversion'), reason: path);
+      }
+    }
   });
 
   test('every CI build stamps a different version onto the executable', () {
@@ -132,7 +147,12 @@ void main() {
 
     expect(workflow, contains('--build-number='),
         reason: '每次构建版本号相同，正是安装包跳过覆盖的成因');
-    expect(workflow, isNot(contains('AppVersion=0.0.0')),
-        reason: '安装包对每个版本都显示 0.0.0');
+    for (final path in const [
+      '../.github/workflows/ci.yml',
+      '../.github/workflows/release.yml',
+    ]) {
+      expect(File(path).readAsStringSync(), isNot(contains('AppVersion=0.0.0')),
+          reason: '$path 的安装包对每个版本都显示 0.0.0');
+    }
   });
 }

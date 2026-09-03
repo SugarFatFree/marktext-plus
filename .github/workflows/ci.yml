@@ -182,14 +182,14 @@ jobs:
           $iss = @"
           [Setup]
           AppName=MarkText Plus
-          AppVersion=0.0.0
+          AppVersion=0.0.$env:GITHUB_RUN_NUMBER
           DefaultDirName={autopf}\MarkText Plus
           OutputDir=${{ github.workspace }}
           OutputBaseFilename=probe-arm64-setup
           ArchitecturesAllowed=arm64
           ArchitecturesInstallIn64BitMode=arm64
           [Files]
-          Source: "${{ github.workspace }}\code\build\windows\arm64\runner\Release\*"; DestDir: "{app}"; Flags: recursesubdirs
+          Source: "${{ github.workspace }}\code\build\windows\arm64\runner\Release\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
           "@
           $iss | Out-File -FilePath probe.iss -Encoding UTF8
           iscc probe.iss
