@@ -35,12 +35,32 @@ void main() {
       .map((m) => m.group(1)!)
       .toSet();
 
-  /// Every value the build matrix declares, by key.
-  Map<String, Set<String>> matrixValues() {
-    final block = flat.substring(
-      flat.indexOf('matrix:'),
-      flat.indexOf('runs-on: <runner>'),
-    );
+  /// The workflow split into its jobs, keyed by job name.
+  ///
+  /// Per job, not per file. This used to read the first `matrix:` in the whole
+  /// workflow and stop at the first `runs-on:` after it — fine while exactly
+  /// one job had a matrix. Adding a second one above build-linux meant its
+  /// deb and rpm architectures were never collected, and four assets that are
+  /// built every release looked as though nobody built them.
+  Map<String, String> jobs() {
+    final starts = RegExp(r'^  (\w[\w-]*):$', multiLine: true)
+        .allMatches(flat)
+        .toList();
+    return {
+      for (var i = 0; i < starts.length; i++)
+        starts[i].group(1)!: flat.substring(
+          starts[i].start,
+          i + 1 < starts.length ? starts[i + 1].start : flat.length,
+        ),
+    };
+  }
+
+  /// Every value the matrix of one job declares, by key.
+  Map<String, Set<String>> matrixValues(String job) {
+    final at = job.indexOf('matrix:');
+    if (at == -1) return const {};
+    final runsOn = job.indexOf('runs-on:', at);
+    final block = job.substring(at, runsOn == -1 ? job.length : runsOn);
     final values = <String, Set<String>>{};
     for (final line
         in RegExp(r'^\s+-?\s*(\w+): ([\w.-]+)$', multiLine: true)
@@ -73,10 +93,14 @@ void main() {
 
   test('every published asset is one some job actually builds', () {
     final promised = assetsIn(publishBlock());
-    final produced = expand(
-      assetsIn(flat.substring(0, flat.indexOf('name: Create Release'))),
-      matrixValues(),
-    );
+    // Each job's names are expanded with that job's own matrix. Pooling every
+    // matrix in the file would let one job's architectures vouch for another's
+    // filenames.
+    final produced = <String>{
+      for (final entry in jobs().entries)
+        if (entry.key != 'release')
+          ...expand(assetsIn(entry.value), matrixValues(entry.value)),
+    };
 
     expect(promised, isNotEmpty, reason: '一个产物都没解析出来，说明解析写错了');
     expect(promised.difference(produced), isEmpty,
