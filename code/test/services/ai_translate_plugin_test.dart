@@ -43,7 +43,17 @@ void main() {
     );
     final dir = Directory('${root.path}/${manifest.id}')
       ..createSync(recursive: true);
-    File('$repo/plugin.lua').copySync('${dir.path}/plugin.lua');
+    // Everything the plugin ships, not just the entrypoint: it requires the
+    // SDK module, so installing half of it proves nothing about the half that
+    // matters.
+    for (final relative in const [
+      'plugin.lua',
+      'lib/marktext-plus.lua',
+    ]) {
+      final target = File('${dir.path}/$relative')
+        ..parent.createSync(recursive: true);
+      File('$repo/$relative').copySync(target.path);
+    }
   });
   tearDown(() {
     if (present && root.existsSync()) root.deleteSync(recursive: true);

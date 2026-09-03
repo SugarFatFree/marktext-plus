@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:archive/archive.dart';
 import 'package:path/path.dart' as p;
 
+import '../core/constants.dart';
 import 'plugin_manifest.dart';
 import 'plugin_logger.dart';
 import 'plugin_process_host.dart';
@@ -13,9 +14,13 @@ import 'plugin_script_runtime.dart';
 
 /// Discovers and installs data/sidecar-process plugins without importing them.
 class PluginManager {
-  PluginManager(this.installDirectory);
+  PluginManager(this.installDirectory, {String? appVersion})
+      : appVersion = appVersion ?? AppConstants.appVersion;
 
   final String installDirectory;
+
+  /// The editor's own version, which decides which plugins it will take.
+  final String appVersion;
 
   Future<List<PluginManifest>> loadInstalled() async {
     final directory = Directory(installDirectory);
@@ -200,6 +205,16 @@ class PluginManager {
       jsonDecode(utf8.decode(manifestEntry.content as List<int>))
           as Map<String, dynamic>,
     );
+    // Before anything is written: a plugin that says which editor it needs is
+    // told here, once, rather than reaching for something absent later and
+    // failing in whatever way that happens to fail.
+    if (!manifest.isSupportedBy(appVersion)) {
+      throw FormatException(
+        '${manifest.name} needs MarkText Plus ${manifest.minAppVersion} '
+        'or newer; this is $appVersion',
+      );
+    }
+
     final temporary = Directory(
       p.join(installDirectory, '.${manifest.id}.installing'),
     );

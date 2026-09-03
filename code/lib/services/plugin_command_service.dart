@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
+import '../core/constants.dart';
 import 'plugin_js_runtime.dart';
 import 'plugin_manifest.dart';
 import 'plugin_script_runtime.dart';
@@ -14,9 +15,19 @@ import 'plugin_script_runtime.dart';
 /// in the reader's language. Each plugin gets its own settings file inside its
 /// own directory, so one plugin cannot read or overwrite another's.
 class PluginCommandService {
-  PluginCommandService(this.installDirectory, {this.locale = 'en'});
+  PluginCommandService(
+    this.installDirectory, {
+    this.locale = 'en',
+    String? appVersion,
+  }) : appVersion = appVersion ?? AppConstants.appVersion;
 
   final String installDirectory;
+
+  /// The editor's own version. Checked before a plugin runs, not only when it
+  /// is installed: a plugin directory outlives the editor that installed it —
+  /// copied between machines, or left behind when the editor is replaced with
+  /// an older one.
+  final String appVersion;
 
   /// The reader's language, used to pick among the plugin's own translations.
   final String locale;
@@ -102,6 +113,13 @@ class PluginCommandService {
   PluginRuntimeHost _runtimeFor(PluginManifest manifest) {
     final existing = _runtimes[manifest.id];
     if (existing != null) return existing;
+
+    if (!manifest.isSupportedBy(appVersion)) {
+      throw PluginScriptException(
+        '${manifest.name} needs MarkText Plus ${manifest.minAppVersion} '
+        'or newer; this is $appVersion',
+      );
+    }
 
     if (manifest.runtime == PluginRuntime.data ||
         manifest.runtime == PluginRuntime.process) {

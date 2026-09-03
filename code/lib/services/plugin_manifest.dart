@@ -394,6 +394,37 @@ class PluginManifest {
     return forOs[arch] ?? forOs['default'];
   }
 
+  /// Whether an editor at [appVersion] is new enough for this plugin.
+  ///
+  /// `minAppVersion` was parsed, stored and written back out, and checked
+  /// nowhere: a plugin declaring 1.7.0 installed and ran on 1.6.1, reaching
+  /// for whatever it was written against and failing however that happened to
+  /// fail. The author had said plainly what they needed and nothing listened.
+  ///
+  /// A version neither side can read is not a reason to refuse: the plugin is
+  /// allowed, because being unable to compare is not evidence of a mismatch.
+  bool isSupportedBy(String appVersion) {
+    final needed = _versionParts(minAppVersion);
+    final have = _versionParts(appVersion);
+    if (needed == null || have == null) return true;
+
+    for (var i = 0; i < 3; i++) {
+      if (have[i] != needed[i]) return have[i] > needed[i];
+    }
+    return true;
+  }
+
+  /// `1.10.0` as [1, 10, 0], or null when it is not three numbers.
+  ///
+  /// Compared as numbers, because as text "1.10.0" sorts before "1.9.0".
+  static List<int>? _versionParts(String version) {
+    final match = RegExp(r'^(\d+)\.(\d+)\.(\d+)').firstMatch(version.trim());
+    if (match == null) return null;
+    return [
+      for (var group = 1; group <= 3; group++) int.parse(match.group(group)!),
+    ];
+  }
+
   /// The plugin's strings in [locale], falling back to its default language.
   ///
   /// `zh_CN` finds `zh`: a plugin author who wrote one Chinese translation
