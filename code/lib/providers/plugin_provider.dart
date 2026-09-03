@@ -4,6 +4,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../services/plugin_manager.dart';
 import '../services/plugin_manifest.dart';
+import '../services/plugin_script_runtime.dart';
 import '../services/plugin_catalog_service.dart';
 
 /// Loads only manifests; plugin processes and network requests remain lazy.
@@ -74,3 +75,72 @@ class PluginPanelResult {
 
 final pluginPanelResultProvider =
     StateProvider<PluginPanelResult?>((ref) => null);
+
+/// Text a plugin asked to be shown in one of the panes beside the document.
+class PluginPaneContent {
+  const PluginPaneContent({
+    required this.pluginName,
+    required this.title,
+    required this.text,
+    required this.slot,
+    this.render = PluginPaneRender.text,
+  });
+
+  final String pluginName;
+
+  /// What the plugin called this pane, in its own language. Empty is allowed;
+  /// the pane then carries the plugin's name.
+  final String title;
+  final String text;
+  final PluginPaneSlot slot;
+
+  /// How the text is drawn: as it stands, as Markdown source, or rendered.
+  final PluginPaneRender render;
+
+  PluginPaneContent withText(String value) => PluginPaneContent(
+        pluginName: pluginName,
+        title: title,
+        text: value,
+        slot: slot,
+        render: render,
+      );
+}
+
+/// The panes plugins have open, by slot.
+///
+/// The editor already splits a tab between source and preview; this is that
+/// split offered to plugins. The document keeps the first cell of a two by two
+/// grid, and a plugin may fill the other three — no more, because a fifth pane
+/// would have nowhere to go that is not already somewhere.
+class PluginPanesNotifier extends StateNotifier<Map<PluginPaneSlot, PluginPaneContent>> {
+  PluginPanesNotifier() : super(const {});
+
+  void show(PluginPaneContent content) =>
+      state = {...state, content.slot: content};
+
+  /// Adds to what a pane holds, so a plugin can show its work as it arrives
+  /// rather than only when it is finished.
+  void append(PluginPaneContent content) {
+    final existing = state[content.slot];
+    if (existing == null) {
+      show(content);
+      return;
+    }
+    state = {
+      ...state,
+      content.slot: content.withText(
+        existing.text.isEmpty
+            ? content.text
+            : '${existing.text}\n\n${content.text}',
+      ),
+    };
+  }
+
+  void close(PluginPaneSlot slot) =>
+      state = {for (final e in state.entries) if (e.key != slot) e.key: e.value};
+
+  void closeAll() => state = const {};
+}
+
+final pluginPanesProvider = StateNotifierProvider<PluginPanesNotifier,
+    Map<PluginPaneSlot, PluginPaneContent>>((ref) => PluginPanesNotifier());

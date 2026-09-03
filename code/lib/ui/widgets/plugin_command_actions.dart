@@ -121,6 +121,59 @@ class PluginCommandActions {
     );
   }
 
+  /// Runs a command and returns the text it wanted shown.
+  ///
+  /// For a place that draws the answer itself — a side-bar drawer — rather
+  /// than one of the editor's own windows. A command that asks a question or
+  /// calls a model is not for a panel: a panel is opened and answers, and
+  /// anything that stops to ask is reported as text instead.
+  static Future<String> textFor(
+    WidgetRef ref, {
+    required BuildContext context,
+    required PluginManifest plugin,
+    required String command,
+  }) async {
+    // Read before the await: after it the context may be gone, and the
+    // reader's language is not worth a crash.
+    final locale = Localizations.localeOf(context).toString();
+    final directory = await getApplicationSupportDirectory();
+    final service = PluginCommandService(
+      p.join(directory.path, 'plugins'),
+      locale: locale,
+    );
+    final tabs = ref.read(tabProvider);
+    final active = tabs.tabs.where((tab) => tab.id == tabs.activeTabId);
+
+    try {
+      final action = service.start(
+        plugin,
+        PluginScriptContext(
+          command: command,
+          selection: ref.read(editorProvider).selectedText,
+          document: active.isEmpty ? '' : active.first.content,
+          view: ref.read(settingsProvider).editMode.name,
+        ),
+      );
+      return switch (action) {
+        PluginPaneAction(:final text) => text,
+        PluginPanelAction(:final text) => text,
+        PluginShowAction(:final text) => text,
+        PluginNotifyAction(:final message) => message,
+        PluginDiffAction(:final result) => result,
+        PluginAskAction(:final label) =>
+          '${plugin.name}: $label — a panel cannot ask a question',
+        PluginAiAction() =>
+          '${plugin.name}: a panel cannot wait for the model',
+        _ => '',
+      };
+    } catch (error) {
+      return '$error';
+    } finally {
+      await service.flush(plugin);
+      service.dispose();
+    }
+  }
+
   /// Drives one command to its end.
   ///
   /// The script is synchronous, so it hands back one action at a time and this
@@ -147,14 +200,17 @@ class PluginCommandActions {
       command: command,
       selection: selection,
       document: document,
+      view: ref.read(settingsProvider).editMode.name,
     );
 
     try {
       var action = service.start(plugin, context);
 
-      // Bounded: a plugin that answers every question with another question
-      // would otherwise keep the reader in a loop it controls.
-      for (var step = 0; step < 8; step++) {
+      // Bounded, but not so tightly that a plugin cannot walk a document: a
+      // block at a time over a long file is many steps, and each one shows
+      // its result. What needs the tight bound is questions, counted below.
+      var questions = 0;
+      for (var step = 0; step < 400; step++) {
         switch (action) {
           case PluginAskAction(
               :final label,
@@ -162,6 +218,9 @@ class PluginCommandActions {
               :final choices
             ):
             if (!navigator.mounted) return;
+            // A plugin that answers every question with another question
+            // would otherwise keep the reader in a loop it controls.
+            if (++questions > 8) break;
             final answer =
                 await _ask(navigator.context, label, defaultValue, choices);
             if (answer == null) return;
@@ -191,6 +250,33 @@ class PluginCommandActions {
               ),
             );
             return;
+
+          case PluginPaneAction(
+              :final text,
+              :final title,
+              :final slot,
+              :final render,
+              :final append,
+              :final nextPrompt
+            ):
+            final content = PluginPaneContent(
+              pluginName: plugin.name,
+              title: title,
+              text: text,
+              slot: slot,
+              render: render,
+            );
+            final panes = ref.read(pluginPanesProvider.notifier);
+            append ? panes.append(content) : panes.show(content);
+            if (nextPrompt == null) return;
+            // More to do, and the reader can already see what is done — so no
+            // dialog over the top of it. This is what lets a plugin work
+            // through a document a block at a time.
+            final reply = await AiChatService.complete(
+              config: ref.read(settingsProvider),
+              prompt: nextPrompt,
+            );
+            action = service.resumeWithResult(plugin, context, reply);
 
           case PluginPanelAction(:final text, :final title):
             ref.read(pluginPanelResultProvider.notifier).state =

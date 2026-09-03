@@ -24,6 +24,7 @@ class PluginScriptContext {
     this.selection = '',
     this.document = '',
     this.answer,
+    this.view = '',
   });
 
   /// The manifest id of the menu entry or command the reader chose.
@@ -38,11 +39,20 @@ class PluginScriptContext {
   /// What the reader typed the last time the script asked a question.
   final String? answer;
 
+  /// How the reader is looking at the document: `source`, `preview` or
+  /// `split`, and empty where there is no document in view.
+  ///
+  /// So a plugin can answer in kind. A translated document drawn as raw
+  /// Markdown beside a rendered preview is not comparable to the thing it sits
+  /// beside, and the plugin could not tell which it was.
+  final String view;
+
   PluginScriptContext withAnswer(String value) => PluginScriptContext(
         command: command,
         selection: selection,
         document: document,
         answer: value,
+        view: view,
       );
 }
 
@@ -91,6 +101,62 @@ class PluginShowAction extends PluginScriptAction {
 
   final String text;
   final String title;
+}
+
+/// Where a pane the plugin filled is put.
+///
+/// The editor already splits a tab between source and preview; this is that
+/// split offered to a plugin. The document keeps the first cell of a two by
+/// two grid and a plugin may fill the other three.
+enum PluginPaneSlot {
+  /// Beside the document.
+  right,
+
+  /// Under it.
+  bottom,
+
+  /// The fourth cell, under the right-hand pane.
+  corner,
+}
+
+/// How a pane's text is drawn.
+enum PluginPaneRender {
+  /// As it stands. The default: most answers are not documents.
+  text,
+
+  /// As Markdown source, in the editor's code font.
+  source,
+
+  /// Rendered, the way the preview draws the document.
+  preview,
+}
+
+/// Show text in one of the panes beside the document.
+class PluginPaneAction extends PluginScriptAction {
+  const PluginPaneAction({
+    required this.text,
+    this.title = '',
+    this.slot = PluginPaneSlot.right,
+    this.render = PluginPaneRender.text,
+    this.append = false,
+    this.nextPrompt,
+  });
+
+  final String text;
+  final String title;
+  final PluginPaneSlot slot;
+  final PluginPaneRender render;
+
+  /// Add to what the pane holds rather than replacing it.
+  final bool append;
+
+  /// Something more to ask the model, once this has been shown.
+  ///
+  /// This is what lets a plugin work through a document a block at a time and
+  /// show each one as it arrives. Without it every way of showing something
+  /// ended the run, so the only way to translate a document was to send the
+  /// whole thing at once and wait.
+  final String? nextPrompt;
 }
 
 /// Show one result in a panel beside the document, not on top of it.
@@ -379,6 +445,8 @@ end
       _state.pushString(context.answer);
     }
     _state.setField(-2, 'answer');
+    _state.pushString(context.view);
+    _state.setField(-2, 'view');
   }
 
   PluginScriptAction _readAction() {
@@ -392,6 +460,12 @@ end
         choices: _stringList('choices'),
       );
     }
+
+    // `pane` is read before `ai`, because a table carrying both means "show
+    // this, then ask that" — a plugin working through a document a block at a
+    // time. Reading `ai` first would swallow the block it had just finished.
+    final pane = _field('pane');
+    if (pane != null) return _readPane(pane);
 
     final ai = _field('ai');
     if (ai != null) return PluginAiAction(ai);
@@ -443,6 +517,54 @@ end
     }
     _state.pop(1);
     return values;
+  }
+
+  /// The pane the script asked for, or a complaint about how it asked.
+  PluginScriptAction _readPane(String text) {
+    final named = _field('slot');
+    final slot = named == null
+        ? PluginPaneSlot.right
+        : PluginPaneSlot.values
+            .where((value) => value.name == named)
+            .firstOrNull;
+    if (slot == null) {
+      // Guessing would put the pane somewhere the author did not ask for,
+      // with no way for them to find out why.
+      return PluginNotifyAction(
+        'unknown pane slot "$named"; expected '
+        '${PluginPaneSlot.values.map((s) => s.name).join(', ')}',
+      );
+    }
+
+    final drawn = _field('as');
+    final render = drawn == null || drawn.isEmpty
+        ? PluginPaneRender.text
+        : PluginPaneRender.values
+            .where((value) => value.name == drawn)
+            .firstOrNull;
+    if (render == null) {
+      return PluginNotifyAction(
+        'unknown pane rendering "$drawn"; expected '
+        '${PluginPaneRender.values.map((r) => r.name).join(', ')}',
+      );
+    }
+
+    return PluginPaneAction(
+      text: text,
+      title: _field('title') ?? '',
+      slot: slot,
+      render: render,
+      append: _boolean('append'),
+      nextPrompt: _field('ai'),
+    );
+  }
+
+  /// Whether `table[key]` is true. Anything else, including absent, is false.
+  bool _boolean(String key) {
+    _state.getField(-1, key);
+    final value = _state.toBoolean(-1);
+    _state.pop(1);
+    return value;
   }
 
   /// The string at `table[key]`, or null when it is absent or not a string.

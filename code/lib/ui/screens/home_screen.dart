@@ -26,7 +26,9 @@ import '../../core/constants.dart';
 import '../../utils/platform_utils.dart';
 import '../widgets/app_menu_bar.dart';
 import '../widgets/side_bar.dart';
+import '../widgets/plugin_panes.dart';
 import '../widgets/plugin_result_panel.dart';
+import '../widgets/right_side_bar.dart';
 import '../widgets/status_bar.dart';
 import '../widgets/find_replace_bar.dart';
 import '../widgets/command_palette.dart';
@@ -821,15 +823,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
                           Expanded(
                             child: Row(
                               children: [
+                                // The document, and up to three panes a plugin
+                                // filled: the split this editor already had
+                                // between source and preview, offered out.
                                 Expanded(
-                                  child: _zoomable(
-                                    _buildEditorArea(config.editMode),
+                                  child: PluginPanes(
+                                    document: _zoomable(
+                                      _buildEditorArea(config.editMode),
+                                    ),
                                   ),
                                 ),
                                 // A plugin result the reader is meant to read
                                 // against the document, so beside it rather
                                 // than over it.
                                 const PluginResultPanel(),
+                                // Nothing at all until a plugin contributes a
+                                // panel to it.
+                                const RightSideBar(),
                               ],
                             ),
                           ),

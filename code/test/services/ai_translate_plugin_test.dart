@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
 import 'package:marktext_plus/services/plugin_command_service.dart';
 import 'package:marktext_plus/services/plugin_manifest.dart';
 import 'package:marktext_plus/services/plugin_script_runtime.dart';
@@ -43,16 +44,16 @@ void main() {
     );
     final dir = Directory('${root.path}/${manifest.id}')
       ..createSync(recursive: true);
-    // Everything the plugin ships, not just the entrypoint: it requires the
-    // SDK module, so installing half of it proves nothing about the half that
-    // matters.
-    for (final relative in const [
-      'plugin.lua',
-      'lib/marktext-plus.lua',
-    ]) {
+    // Everything the plugin ships, listed by walking it rather than by naming
+    // files here: it required the SDK module and then a second one, and both
+    // times a hand-written list installed half a plugin.
+    for (final entry in Directory(repo).listSync(recursive: true)) {
+      if (entry is! File) continue;
+      final relative = p.relative(entry.path, from: repo);
+      if (!relative.endsWith('.lua') && relative != 'manifest.json') continue;
       final target = File('${dir.path}/$relative')
         ..parent.createSync(recursive: true);
-      File('$repo/$relative').copySync(target.path);
+      entry.copySync(target.path);
     }
   });
   tearDown(() {
@@ -160,22 +161,90 @@ void main() {
     expect(action.title, 'English');
   }, skip: present ? null : '插件仓库不在这台机器上');
 
-  test('a translated document goes beside the document, not over it', () {
+  test('a translated document arrives a block at a time, drawn as it is read',
+      () {
     final service = PluginCommandService(root.path);
+    const document = '# Title\n\nFirst paragraph.\n\nSecond paragraph.';
 
-    final action = service.resumeWithResult(
+    // Asked in the source view, so the answer is drawn as source.
+    final first = service.start(
       manifest,
       const PluginScriptContext(
         command: 'translate.document',
-        document: '# 标题',
-        answer: '日本語',
+        document: document,
+        answer: 'English',
+        view: 'source',
       ),
-      '# Title',
-    );
+    ) as PluginAiAction;
+    expect(first.prompt, contains('# Title'));
+    expect(first.prompt, isNot(contains('Second paragraph')),
+        reason: '整篇一次喂给模型正是要避免的事');
 
-    expect(action, isA<PluginPanelAction>(),
-        reason: '整篇译文放弹窗会盖住读者要对照的原文');
-    expect((action as PluginPanelAction).text, '# Title');
+    final one = service.resumeWithResult(
+      manifest,
+      const PluginScriptContext(
+          command: 'translate.document', answer: 'English', view: 'source'),
+      '# 标题',
+    ) as PluginPaneAction;
+    expect(one.text, '# 标题');
+    expect(one.render, PluginPaneRender.source, reason: '源码视图里问的，就该按源码画');
+    expect(one.append, isFalse, reason: '第一块是开头，不是追加');
+    expect(one.nextPrompt, contains('First paragraph'));
+
+    final two = service.resumeWithResult(
+      manifest,
+      const PluginScriptContext(
+          command: 'translate.document', answer: 'English', view: 'source'),
+      '第一段。',
+    ) as PluginPaneAction;
+    expect(two.append, isTrue, reason: '后续的块要接在前面下面');
+    expect(two.nextPrompt, contains('Second paragraph'));
+
+    final three = service.resumeWithResult(
+      manifest,
+      const PluginScriptContext(
+          command: 'translate.document', answer: 'English', view: 'source'),
+      '第二段。',
+    ) as PluginPaneAction;
+    expect(three.nextPrompt, isNull, reason: '没有下一块了');
+  }, skip: present ? null : '插件仓库不在这台机器上');
+
+  test('a document read as a preview comes back rendered', () {
+    final service = PluginCommandService(root.path);
+    service.start(
+      manifest,
+      const PluginScriptContext(
+        command: 'translate.document',
+        document: 'One.\n\nTwo.',
+        answer: 'English',
+        view: 'preview',
+      ),
+    );
+    final pane = service.resumeWithResult(
+      manifest,
+      const PluginScriptContext(
+          command: 'translate.document', answer: 'English', view: 'preview'),
+      'x',
+    ) as PluginPaneAction;
+
+    expect(pane.render, PluginPaneRender.preview);
+  }, skip: present ? null : '插件仓库不在这台机器上');
+
+  test('a fenced block is not cut in half', () {
+    final service = PluginCommandService(root.path);
+    final first = service.start(
+      manifest,
+      const PluginScriptContext(
+        command: 'translate.document',
+        document: 'Before.\n\n```dart\nvoid main() {\n\n}\n```\n\nAfter.',
+        answer: 'English',
+        view: 'source',
+      ),
+    ) as PluginAiAction;
+
+    expect(first.prompt, contains('Before.'));
+    expect(first.prompt, isNot(contains('void main')),
+        reason: '第一块只该是第一段');
   }, skip: present ? null : '插件仓库不在这台机器上');
 
   test('the language question offers the usual answers and takes any other',

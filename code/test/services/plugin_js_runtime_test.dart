@@ -82,6 +82,33 @@ function on_command(ctx) { return { notify: "ran " + ctx.command }; }
     expect((ask as PluginAskAction).choices, ['English', '日本語']);
   });
 
+  test('the JS runtime knows panes and their slots too', () {
+    final pane = PluginJsRuntime.parseAction(
+        '{"pane":"text","title":"T","slot":"corner"}') as PluginPaneAction;
+    expect(pane.slot, PluginPaneSlot.corner);
+    expect(pane.text, 'text');
+
+    expect(
+      (PluginJsRuntime.parseAction('{"pane":"text"}') as PluginPaneAction).slot,
+      PluginPaneSlot.right,
+    );
+    expect(PluginJsRuntime.parseAction('{"pane":"t","slot":"topLeft"}'),
+        isA<PluginNotifyAction>());
+  });
+
+  test('the JS runtime reads a pane that carries the next prompt', () {
+    final pane = PluginJsRuntime.parseAction(
+      '{"pane":"block one","append":true,"ai":"next","as":"preview"}',
+    ) as PluginPaneAction;
+    expect(pane.text, 'block one');
+    expect(pane.append, isTrue);
+    expect(pane.nextPrompt, 'next');
+    expect(pane.render, PluginPaneRender.preview);
+
+    // `ai` alone still means ask and wait.
+    expect(PluginJsRuntime.parseAction('{"ai":"p"}'), isA<PluginAiAction>());
+  });
+
   test('a JS question with no choices is not given any', () {
     final ask = PluginJsRuntime.parseAction('{"ask":"Anything"}')
         as PluginAskAction;

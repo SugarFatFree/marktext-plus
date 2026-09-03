@@ -75,6 +75,7 @@ void main() {
       'notify': PluginNotifyAction,
       'diff': PluginDiffAction,
       'replace': PluginReplaceAction,
+      'pane': PluginPaneAction,
     };
 
     for (final entry in shapes.entries) {
@@ -86,6 +87,11 @@ void main() {
       expect(action.runtimeType, entry.value,
           reason: '${entry.key} 是插件已经在用的写法');
     }
+  });
+
+  test('the slots a pane may be put in', () {
+    expect(PluginPaneSlot.values.map((s) => s.name).toSet(),
+        {'right', 'bottom', 'corner'});
   });
 
   test('the fields a script is given about the moment it ran', () {

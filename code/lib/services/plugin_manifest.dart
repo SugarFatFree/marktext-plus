@@ -106,6 +106,35 @@ class PluginMenuItem {
       };
 }
 
+/// A panel a plugin contributes to the right side bar.
+///
+/// The side bar is a rail of icons, so a panel has one. Opening it runs the
+/// plugin's command of the same id, and whatever that returns fills the
+/// drawer.
+class PluginSidePanel {
+  const PluginSidePanel({
+    required this.id,
+    required this.title,
+    required this.icon,
+  });
+
+  final String id;
+  final String title;
+
+  /// The name of an icon the editor knows. A panel with nothing to draw would
+  /// be a gap in the rail that opens something, so it is required.
+  final String icon;
+
+  factory PluginSidePanel.fromJson(Map<String, dynamic> json) =>
+      PluginSidePanel(
+        id: _requiredString(json, 'id'),
+        title: _requiredString(json, 'title'),
+        icon: _requiredString(json, 'icon'),
+      );
+
+  Map<String, dynamic> toJson() => {'id': id, 'title': title, 'icon': icon};
+}
+
 class PluginSettingPage {
   const PluginSettingPage({required this.id, required this.title});
 
@@ -302,6 +331,7 @@ class PluginManifest {
     this.toolbar = const <PluginToolbarItem>[],
     this.menus = const <PluginMenuItem>[],
     this.pages = const <PluginSettingPage>[],
+    this.panels = const <PluginSidePanel>[],
     this.runtime = PluginRuntime.data,
     this.settings = const <PluginSettingField>[],
     this.defaultLocale = 'en',
@@ -324,6 +354,9 @@ class PluginManifest {
   final List<PluginToolbarItem> toolbar;
   final List<PluginMenuItem> menus;
   final List<PluginSettingPage> pages;
+
+  /// Panels this plugin puts in the right side bar. Needs `ui.sidebar`.
+  final List<PluginSidePanel> panels;
 
   /// How this plugin's code runs, if it has any.
   final PluginRuntime runtime;
@@ -568,6 +601,7 @@ class PluginManifest {
       toolbar: objects('toolbar', PluginToolbarItem.fromJson),
       menus: objects('menus', PluginMenuItem.fromJson),
       pages: objects('pages', PluginSettingPage.fromJson),
+      panels: objects('panels', PluginSidePanel.fromJson),
       runtime: runtime,
       settings: objects('settings', PluginSettingField.fromJson),
       defaultLocale: (json['defaultLocale'] as String?)?.trim() ?? 'en',
@@ -593,6 +627,8 @@ class PluginManifest {
           'menus': menus.map((item) => item.toJson()).toList(),
         if (pages.isNotEmpty)
           'pages': pages.map((item) => item.toJson()).toList(),
+        if (panels.isNotEmpty)
+          'panels': panels.map((item) => item.toJson()).toList(),
         if (runtime != PluginRuntime.data) 'runtime': runtime.name,
         if (settings.isNotEmpty)
           'settings': settings.map((item) => item.toJson()).toList(),

@@ -26,11 +26,11 @@ void main() {
   final skip = sdk == null ? 'SDK 仓库不在这台机器上' : null;
 
   const actionKeys = <String>{
-    'ask', 'default', 'choices', 'ai', 'show', 'panel',
-    'title', 'notify', 'diff', 'original', 'result', 'replace',
+    'ask', 'default', 'choices', 'ai', 'show', 'panel', 'pane', 'slot',
+    'as', 'append', 'title', 'notify', 'diff', 'original', 'result', 'replace',
   };
   const contextFields = <String>{
-    'command', 'selection', 'document', 'answer',
+    'command', 'selection', 'document', 'answer', 'view',
   };
   // What the API module re-exports or wraps. `require` and the two entry
   // points are the editor's, not the module's: a plugin defines on_command

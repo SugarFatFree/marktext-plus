@@ -136,6 +136,7 @@ globalThis.require = function (name) {
         'selection': context.selection,
         'document': context.document,
         'answer': context.answer,
+        'view': context.view,
       }),
       if (result != null) jsonEncode(result),
     ].join(', ');
@@ -197,6 +198,44 @@ globalThis.require = function (name) {
         choices: choices is List
             ? [for (final c in choices) if (c is String) c]
             : const [],
+      );
+    }
+
+    // Read before `ai`: a table carrying both means "show this, then ask
+    // that", and reading `ai` first would swallow the block just finished.
+    final pane = field('pane');
+    if (pane != null) {
+      final named = field('slot');
+      final slot = named == null
+          ? PluginPaneSlot.right
+          : PluginPaneSlot.values
+              .where((value) => value.name == named)
+              .firstOrNull;
+      if (slot == null) {
+        return PluginNotifyAction(
+          'unknown pane slot "$named"; expected '
+          '${PluginPaneSlot.values.map((s) => s.name).join(', ')}',
+        );
+      }
+      final drawn = field('as');
+      final render = drawn == null || drawn.isEmpty
+          ? PluginPaneRender.text
+          : PluginPaneRender.values
+              .where((value) => value.name == drawn)
+              .firstOrNull;
+      if (render == null) {
+        return PluginNotifyAction(
+          'unknown pane rendering "$drawn"; expected '
+          '${PluginPaneRender.values.map((r) => r.name).join(', ')}',
+        );
+      }
+      return PluginPaneAction(
+        text: pane,
+        title: field('title') ?? '',
+        slot: slot,
+        render: render,
+        append: decoded['append'] == true,
+        nextPrompt: field('ai'),
       );
     }
 
