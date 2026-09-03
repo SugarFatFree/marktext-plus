@@ -83,6 +83,15 @@ class PluginManager {
     return '$os-$arch';
   }
 
+  /// The argument the editor passes to every compiled plugin it starts.
+  ///
+  /// A compiled plugin is a real executable in a folder the reader can open,
+  /// so sooner or later one gets double-clicked. Nothing can stop that, but a
+  /// plugin that looks for this can say what it is instead of sitting there
+  /// waiting on stdin for a request that is never coming. Checking for it is
+  /// the plugin author's job; passing it is the editor's.
+  static const hostHandshake = '--marktext-plus-plugin-host';
+
   /// The record of plugin processes this editor started.
   PluginProcessRegistry get processRegistry =>
       PluginProcessRegistry(File(p.join(installDirectory, 'running.json')));
@@ -142,7 +151,7 @@ class PluginManager {
     );
     final host = PluginProcessHost(
       executable: executable,
-      arguments: const [],
+      arguments: const [hostHandshake],
       logger: logger,
       registry: processRegistry,
     );

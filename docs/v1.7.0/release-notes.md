@@ -24,12 +24,18 @@ developer's.
 - Plugins ship their own translations, for whichever languages their author
   wants, independent of the twelve the editor speaks.
 - A plugin needing a real toolchain can ship compiled executables instead,
-  naming one per platform. A platform it was not built for is named to you
-  rather than guessed at.
+  named by operating system and, only where it matters, by architecture. A
+  platform it was not built for is named to you rather than guessed at.
 - Right-clicking an installed plugin opens its folder — where its settings file
   lives, under the system application-support directory.
 - Moved the plugin entry into the left sidebar below Files, Search and Table of
   Contents, with a direct link to the plugin SDK.
+- Windows on ARM builds, native rather than emulated. This was recorded as
+  impossible because Flutter publishes no arm64 Windows SDK — still true — but
+  the arm64 Dart and engine binaries have been published separately since
+  3.44.0, and an arm64 runner will fetch them. What the build produces is
+  checked by reading the machine type out of the executable rather than by
+  trusting that a build which succeeded built the right thing.
 
 ### Fixed
 
@@ -72,10 +78,13 @@ developer's.
 - 每个插件在自己的目录里保存自己的设置，设置页由编辑器按插件声明的字段绘制：开关就给开关，密码就遮起来。
   插件提供数据，不提供控件。
 - 插件自带翻译，作者想支持哪些语言就支持哪些，不受编辑器那 12 种语言限制。
-- 确实需要真正工具链的插件可以改为分发编译好的可执行文件，按平台各指定一个。没有为某平台构建时会明说，
-  而不是瞎猜一个去跑。
+- 确实需要真正工具链的插件可以改为分发编译好的可执行文件，按操作系统指定，架构只在需要区分时才写。
+  没有为某个平台构建时会明说是哪个平台，而不是瞎猜一个去跑。
 - 右键已安装插件可以打开它的目录——配置文件就在那里，位于系统应用支持目录下。
 - 插件入口移到左侧边栏，位于文件、搜索、目录之下，并提供插件 SDK 的直达链接。
+- Windows on ARM 原生构建，不再靠模拟运行 x64 版本。此前记为"做不到"，理由是 Flutter 不发布 arm64 的
+  Windows SDK——这句话至今成立——但 arm64 的 Dart 和引擎产物从 3.44.0 起就单独发布了，arm64 的构建机
+  能拉到它们。产出的架构是从可执行文件的 PE 头读出来校验的，而不是靠"构建成功"这四个字。
 
 ### 修复
 

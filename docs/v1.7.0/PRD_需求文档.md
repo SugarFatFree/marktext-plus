@@ -187,6 +187,8 @@
 | 实现方案 | `runtime: "process"` 配 `entrypoints`：**先按操作系统，架构在其下且可省**。一个路径覆盖该系统的所有架构（macOS 通用二进制就是一个文件装两种架构，本应用自己发的就是这种），也可以用 `default` 加某个架构的专门构建，专门的优先。编辑器用 `PluginManager.currentPlatform` 认自己。选进程而非 `.so`/`.dll` FFI：FFI 在进程内运行，插件一崩就带走编辑器，与"插件不能拖垮宿主"这条相矛盾；而 `dart compile exe` 是官方支持的路径 |
 | 验收标准 | 没有当前平台构建时明说"没有 linux-arm64 的构建，它带了 macos-x64、macos-arm64、windows-x64"——报的是**具体平台**而不是"支持 macOS"，否则用户还得自己推自己这台算不算；`runtime: "process"` 却没有 `entrypoints`、或声明了某个系统却在下面留空，都在解析阶段被拒；系统名或架构名拼错**报错而不是跳过**（跳过会变成"你的平台不支持"，无从解释）；任何 `.dart` 入口被拒 |
 | 涉及文件 | `plugin_manifest.dart`、`plugin_manager.dart`、`plugin_platform_test.dart` |
+| 为什么不是 .so/.dll | 两条独立理由。**一、线程给的是并发不是隔离**：`.so` 与编辑器共享地址空间，段错误、栈溢出、`abort()` 会连同用户未保存的文档一起带走进程，且没有堆栈可上报；死循环冻结窗口且无法打断；`dlclose` 不可靠，"禁用插件"其实没卸载。独立进程把这三样都拿回来了——可以崩、可以超时杀、编辑器活着并说清是哪个插件。**二、对 Dart 而言没有取舍**：`dart compile` 的子命令只有 js / jit-snapshot / kernel / exe / aot-snapshot / wasm，官方文档和 `dart-lang/sdk` 主干源码（`pkg/dartdev/lib/src/commands/compile.dart`）都没有 `dynamic-library`，全仓库搜该字符串 0 结果。`aot-snapshot` 也不是 dlopen 得到的 C 库，它需要 `dartaotruntime` 或自建嵌入器 |
+| 双击防护 | 编译型插件是文件夹里的真实可执行文件，早晚会被双击。编辑器启动时传 `--marktext-plus-plugin-host`，SDK 要求插件收不到就打印说明并退出，而不是干等 stdin 像卡死。**只能让插件有能力说清自己是什么，强制不了**——作者不写这段检查，双击照样干等，这与"stdin 收到 EOF 要退出"是同一类约定 |
 
 ## FEAT-107：右键打开插件目录
 
