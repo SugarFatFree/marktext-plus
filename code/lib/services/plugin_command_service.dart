@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
+import 'plugin_js_runtime.dart';
 import 'plugin_manifest.dart';
 import 'plugin_script_runtime.dart';
 
@@ -20,7 +21,7 @@ class PluginCommandService {
   /// The reader's language, used to pick among the plugin's own translations.
   final String locale;
 
-  final _runtimes = <String, PluginScriptRuntime>{};
+  final _runtimes = <String, PluginRuntimeHost>{};
 
   String _directoryOf(PluginManifest manifest) =>
       p.join(installDirectory, manifest.id);
@@ -79,11 +80,12 @@ class PluginCommandService {
     _runtimes.clear();
   }
 
-  PluginScriptRuntime _runtimeFor(PluginManifest manifest) {
+  PluginRuntimeHost _runtimeFor(PluginManifest manifest) {
     final existing = _runtimes[manifest.id];
     if (existing != null) return existing;
 
-    if (manifest.runtime != PluginRuntime.lua) {
+    if (manifest.runtime == PluginRuntime.data ||
+        manifest.runtime == PluginRuntime.process) {
       throw PluginScriptException(
         '${manifest.name} has no script to run: its runtime is '
         '${manifest.runtime.name}',
@@ -98,11 +100,16 @@ class PluginCommandService {
       );
     }
 
-    final runtime = PluginScriptRuntime(
-      script.readAsStringSync(),
-      storage: _loadSettings(manifest),
-      strings: manifest.stringsFor(locale),
-    );
+    final source = script.readAsStringSync();
+    final settings = _loadSettings(manifest);
+    final strings = manifest.stringsFor(locale);
+    // The plugin chose its language; nothing else in the editor cares which,
+    // because both runtimes answer with the same actions.
+    final runtime = switch (manifest.runtime) {
+      PluginRuntime.js =>
+        PluginJsRuntime(source, storage: settings, strings: strings),
+      _ => PluginScriptRuntime(source, storage: settings, strings: strings),
+    };
     _runtimes[manifest.id] = runtime;
     return runtime;
   }

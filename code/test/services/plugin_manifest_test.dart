@@ -22,6 +22,8 @@ void main() {
   });
 
   _scriptPlugins();
+  _dualRuntime();
+  _nativePlugins();
 
   test('manifest declares permissions and constrained UI contributions', () {
     final manifest = PluginManifest.fromJson({
@@ -125,5 +127,96 @@ void _scriptPlugins() {
       'entrypoint': 'theme.json',
     });
     expect(manifest.runtime, PluginRuntime.data);
+  });
+}
+
+void _dualRuntime() {
+  test('a plugin picks its own language and the editor takes either', () {
+    Map<String, dynamic> base(String runtime) => {
+          'id': 'com.example.x',
+          'name': 'X',
+          'version': '1.0.0',
+          'runtime': runtime,
+          'entrypoint': runtime == 'js' ? 'plugin.js' : 'plugin.lua',
+        };
+
+    expect(PluginManifest.fromJson(base('lua')).runtime, PluginRuntime.lua);
+    expect(PluginManifest.fromJson(base('js')).runtime, PluginRuntime.js);
+    expect(
+      () => PluginManifest.fromJson(base('python')),
+      throwsFormatException,
+      reason: '声明一个宿主跑不了的运行时，应当在安装时就说清楚',
+    );
+  });
+}
+
+void _nativePlugins() {
+  Map<String, dynamic> base(Map<String, dynamic> extra) => {
+        'id': 'com.example.native',
+        'name': 'Native',
+        'version': '1.0.0',
+        'runtime': 'process',
+        ...extra,
+      };
+
+  test('a compiled plugin names an executable per platform it supports', () {
+    final manifest = PluginManifest.fromJson(base({
+      'entrypoints': {
+        'linux-x64': 'bin/linux-x64/plugin',
+        'windows-x64': r'bin\windows-x64\plugin.exe',
+        'macos-arm64': 'bin/macos-arm64/plugin',
+      },
+    }));
+
+    expect(manifest.runtime, PluginRuntime.process);
+    expect(manifest.supportedPlatforms,
+        containsAll(['linux-x64', 'windows-x64', 'macos-arm64']));
+    expect(manifest.entrypointFor('linux-x64'), 'bin/linux-x64/plugin');
+  });
+
+  test('a platform the plugin never built for is named, not guessed at', () {
+    final manifest = PluginManifest.fromJson(base({
+      'entrypoints': {'linux-x64': 'bin/linux-x64/plugin'},
+    }));
+
+    expect(manifest.entrypointFor('windows-x64'), isNull);
+    expect(manifest.supportsPlatform('windows-x64'), isFalse);
+    expect(manifest.supportsPlatform('linux-x64'), isTrue);
+  });
+
+  test('a script plugin uses its one entrypoint on every platform', () {
+    final manifest = PluginManifest.fromJson({
+      'id': 'com.example.lua',
+      'name': 'Lua',
+      'version': '1.0.0',
+      'runtime': 'lua',
+      'entrypoint': 'plugin.lua',
+    });
+
+    expect(manifest.entrypointFor('linux-x64'), 'plugin.lua');
+    expect(manifest.entrypointFor('windows-x64'), 'plugin.lua');
+    expect(manifest.supportsPlatform('anything'), isTrue,
+        reason: '脚本插件本来就跨平台');
+  });
+
+  test('a compiled plugin with no executable at all is rejected', () {
+    expect(
+      () => PluginManifest.fromJson(base({'entrypoints': <String, String>{}})),
+      throwsFormatException,
+    );
+    expect(
+      () => PluginManifest.fromJson(base({})),
+      throwsFormatException,
+      reason: 'runtime 是 process 却没说任何平台的入口，装了也跑不了',
+    );
+  });
+
+  test('a per-platform entrypoint may not be Dart source either', () {
+    expect(
+      () => PluginManifest.fromJson(base({
+        'entrypoints': {'linux-x64': 'bin/plugin.dart'},
+      })),
+      throwsFormatException,
+    );
   });
 }

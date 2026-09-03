@@ -94,12 +94,33 @@ class PluginNoAction extends PluginScriptAction {
   const PluginNoAction();
 }
 
-/// Runs one plugin's Lua script.
+/// Runs one plugin's script, whatever language it is written in.
+///
+/// Every runtime speaks the same protocol: `on_command` returns an action, the
+/// host performs it, `on_result` gets what came back. That protocol is what
+/// lets a plugin author pick a language without the editor caring which.
+abstract class PluginRuntimeHost {
+  /// Runs the script's `on_command` for [context].
+  PluginScriptAction runCommand(PluginScriptContext context);
+
+  /// Hands a host result back to the script's `on_result`.
+  PluginScriptAction onResult(PluginScriptContext context, String result);
+
+  /// The plugin's settings, as the script left them.
+  Map<String, String> get storage;
+
+  /// Whether the script wrote anything, so the host knows to save.
+  bool get storageChanged;
+
+  void dispose();
+}
+
+/// Runs a plugin written in Lua.
 ///
 /// The interpreter is pure Dart, so a plugin is a text file that runs on any
-/// machine the editor runs on — no Dart SDK, no per-platform binaries, nothing
-/// for the plugin author to compile.
-class PluginScriptRuntime {
+/// machine the editor runs on — no SDK, no per-platform binaries, nothing for
+/// the plugin author to compile.
+class PluginScriptRuntime implements PluginRuntimeHost {
   PluginScriptRuntime(
     String source, {
     Map<String, String> storage = const {},
@@ -137,9 +158,11 @@ class PluginScriptRuntime {
   ///
   /// A plugin keeps its settings in its own file under its own directory, so
   /// one plugin cannot read or overwrite another's.
+  @override
   Map<String, String> get storage => Map.unmodifiable(_storage);
 
   /// Whether the script wrote anything, so the host knows to save.
+  @override
   bool get storageChanged => _storageChanged;
 
   /// Removes what a plugin from a stranger's repository must not reach.
@@ -208,13 +231,17 @@ class PluginScriptRuntime {
   }
 
   /// Runs the script's `on_command` for [context].
+  @override
   PluginScriptAction runCommand(PluginScriptContext context) =>
       _invoke('on_command', context, null);
 
+  @override
   /// Hands the model's reply back to the script's `on_result`.
+  @override
   PluginScriptAction onResult(PluginScriptContext context, String result) =>
       _invoke('on_result', context, result);
 
+  @override
   void dispose() => _disposed = true;
 
   PluginScriptAction _invoke(

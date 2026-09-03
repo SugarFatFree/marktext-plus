@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'plugin_manifest.dart';
 import 'plugin_logger.dart';
 import 'plugin_process_host.dart';
+import 'plugin_script_runtime.dart';
 
 /// Discovers and installs data/sidecar-process plugins without importing them.
 class PluginManager {
@@ -66,19 +67,65 @@ class PluginManager {
     await _writeState(state);
   }
 
-  String entrypointPath(PluginManifest manifest) =>
-      p.join(installDirectory, manifest.id, manifest.entrypoint);
+  /// The key a plugin uses in its manifest to name a build for this machine.
+  ///
+  /// A compiled plugin ships one executable per platform, so the editor has to
+  /// say which one it is running on in the same vocabulary the plugin author
+  /// wrote in the manifest.
+  static String get currentPlatform {
+    final os = Platform.isWindows
+        ? 'windows'
+        : Platform.isMacOS
+            ? 'macos'
+            : 'linux';
+    final arch = Platform.version.contains('arm64') ? 'arm64' : 'x64';
+    return '$os-$arch';
+  }
 
+  String entrypointPath(PluginManifest manifest) => p.join(
+        installDirectory,
+        manifest.id,
+        manifest.entrypointFor(currentPlatform) ?? manifest.entrypoint,
+      );
+
+  /// Starts a compiled plugin's own executable.
+  ///
+  /// The editor never spawns an interpreter here. Running a source file would
+  /// mean assuming a toolchain the reader has no reason to have installed, and
+  /// the one time this code did that it launched the editor's own binary and
+  /// waited forever for it to speak JSON-RPC. A compiled plugin ships a real
+  /// executable per platform, or it does not run on that platform at all.
   Future<PluginProcessHost> startPlugin(PluginManifest manifest) async {
-    final entrypoint = entrypointPath(manifest);
+    if (manifest.runtime != PluginRuntime.process) {
+      throw PluginScriptException(
+        '${manifest.name} is a ${manifest.runtime.name} plugin and runs inside '
+        'the editor, not as a separate program',
+      );
+    }
+
+    final relative = manifest.entrypointFor(currentPlatform);
+    if (relative == null) {
+      throw PluginScriptException(
+        '${manifest.name} has no build for $currentPlatform; it ships '
+        '${manifest.supportedPlatforms.join(', ')}',
+      );
+    }
+
+    final executable = p.join(installDirectory, manifest.id, relative);
+    if (!await File(executable).exists()) {
+      throw PluginScriptException(
+        '${manifest.name} names $relative for $currentPlatform but that file '
+        'is not in the installed plugin',
+      );
+    }
+
     final logger = PluginLogger(
       manifest.id,
       p.join(Directory(installDirectory).parent.path, 'logs', 'plugins'),
     );
-    final isDart = entrypoint.toLowerCase().endsWith('.dart');
     final host = PluginProcessHost(
-      executable: isDart ? Platform.resolvedExecutable : entrypoint,
-      arguments: isDart ? [entrypoint] : const [],
+      executable: executable,
+      arguments: const [],
       logger: logger,
     );
     await host.start();

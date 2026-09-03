@@ -201,8 +201,11 @@ enum PluginRuntime {
   /// No code at all — themes, snippets, syntax rules.
   data,
 
-  /// A Lua script, run by the editor's own interpreter.
+  /// A Lua script, run by the editor's own pure-Dart interpreter.
   lua,
+
+  /// A JavaScript script, run by the editor's embedded QuickJS engine.
+  js,
 
   /// A prebuilt executable the plugin ships for each platform it supports.
   process,
@@ -261,6 +264,7 @@ class PluginManifest {
     this.settings = const <PluginSettingField>[],
     this.defaultLocale = 'en',
     this.locales = const <String, Map<String, String>>{},
+    this.entrypoints = const <String, String>{},
   });
 
   final String id;
@@ -296,6 +300,24 @@ class PluginManifest {
   bool hasPermission(String permission) =>
       PluginPermission.all.contains(permission) &&
       permissions.contains(permission);
+
+  /// A compiled plugin's executable for each platform its author built for.
+  ///
+  /// Keyed `os-arch`, as in `linux-x64` or `windows-x64`. A plugin that has to
+  /// be compiled cannot be compiled once, so it says which platforms it
+  /// actually supports rather than leaving the reader to find out by clicking.
+  final Map<String, String> entrypoints;
+
+  /// The platforms this plugin runs on. A script plugin runs everywhere.
+  List<String> get supportedPlatforms => entrypoints.keys.toList();
+
+  /// Whether this plugin can run on [platform], keyed `os-arch`.
+  bool supportsPlatform(String platform) =>
+      runtime != PluginRuntime.process || entrypoints.containsKey(platform);
+
+  /// What to execute on [platform], or null when the author did not build it.
+  String? entrypointFor(String platform) =>
+      runtime == PluginRuntime.process ? entrypoints[platform] : entrypoint;
 
   /// The plugin's strings in [locale], falling back to its default language.
   ///
@@ -333,20 +355,44 @@ class PluginManifest {
 
     final runtime = switch ((json['runtime'] as String?)?.trim()) {
       'lua' => PluginRuntime.lua,
+      'js' => PluginRuntime.js,
       'process' => PluginRuntime.process,
       null || '' => PluginRuntime.data,
       final unknown => throw FormatException('unknown plugin runtime: $unknown'),
     };
 
-    final entrypoint = requiredString('entrypoint');
-    if (entrypoint.toLowerCase().endsWith('.dart')) {
-      // Running this would need a Dart SDK on the reader's machine, which the
-      // editor does not install and cannot assume. Refusing here says so at
-      // install time instead of at the moment the reader clicks the command.
+    final rawEntrypoints = json['entrypoints'];
+    final entrypoints = <String, String>{};
+    if (rawEntrypoints is Map) {
+      for (final entry in rawEntrypoints.entries) {
+        if (entry.key is String && entry.value is String) {
+          entrypoints[entry.key as String] = entry.value as String;
+        }
+      }
+    }
+
+    if (runtime == PluginRuntime.process && entrypoints.isEmpty) {
       throw const FormatException(
-        'a plugin cannot ship Dart source: use a .lua script, or a prebuilt '
-        'executable with runtime "process"',
+        'a compiled plugin must list an executable per platform in '
+        '"entrypoints", keyed os-arch such as "linux-x64"',
       );
+    }
+
+    final entrypoint = runtime == PluginRuntime.process
+        ? entrypoints.values.first
+        : requiredString('entrypoint');
+    for (final candidate in [entrypoint, ...entrypoints.values]) {
+      if (candidate.toLowerCase().endsWith('.dart')) {
+        // Running this would need a Dart SDK on the reader's machine, which
+        // the editor does not install and cannot assume. Dart compiles to a
+        // real executable — `dart compile exe` — and that is what a compiled
+        // plugin ships. Refusing here says so at install time instead of at
+        // the moment the reader clicks the command.
+        throw const FormatException(
+          'a plugin cannot ship Dart source: use a .lua or .js script, or '
+          'compile it and ship the executable with runtime "process"',
+        );
+      }
     }
 
     final rawLocales = json['locales'];
@@ -379,6 +425,7 @@ class PluginManifest {
       settings: objects('settings', PluginSettingField.fromJson),
       defaultLocale: (json['defaultLocale'] as String?)?.trim() ?? 'en',
       locales: locales,
+      entrypoints: entrypoints,
     );
   }
 
@@ -401,6 +448,7 @@ class PluginManifest {
         if (runtime != PluginRuntime.data) 'runtime': runtime.name,
         if (settings.isNotEmpty)
           'settings': settings.map((item) => item.toJson()).toList(),
+        if (entrypoints.isNotEmpty) 'entrypoints': entrypoints,
         if (locales.isNotEmpty) ...{
           'defaultLocale': defaultLocale,
           'locales': locales,
