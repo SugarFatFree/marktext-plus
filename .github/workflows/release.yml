@@ -52,13 +52,42 @@ jobs:
   # below is what those machines use meanwhile.
   build-windows:
     needs: check-version
-    runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+          - runner: windows-latest
+            arch: x64
+            inno_arch: x64compatible
+          - runner: windows-11-arm
+            arch: arm64
+            inno_arch: arm64
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: subosito/flutter-action@v2.18.0
         with:
           channel: ${{ env.FLUTTER_VERSION }}
+          # There is no arm64 Windows SDK to resolve — asking for one is what
+          # stopped an earlier attempt at this. The x64 SDK is installed on
+          # both, and the arm64 runner swaps its Dart out below.
+          architecture: x64
+          cache: false
+
+      # Flutter publishes no arm64 Windows SDK, but the arm64 Dart SDK and
+      # engine binaries have been in the bucket since 3.44.0 — the release zip
+      # simply does not bundle them, and engine-dart-sdk.stamp pins the x64 one
+      # that is there. Removing the stamp and re-running the updater in an
+      # arm64 PowerShell (the default on this runner) fetches the arm64
+      # binaries, and `flutter build windows` then targets the host.
+      - name: Swap in the arm64 Dart SDK
+        if: matrix.arch == 'arm64'
+        shell: pwsh
+        run: |
+          $root = Split-Path -Parent (Split-Path -Parent (Get-Command flutter).Source)
+          Remove-Item "$root\bin\cache\engine-dart-sdk.stamp" -Force -ErrorAction SilentlyContinue
+          & "$root\bin\internal\update_dart_sdk.ps1"
+          & "$root\bin\dart" --version
 
       - name: Install dependencies
         working-directory: code
@@ -68,10 +97,26 @@ jobs:
         working-directory: code
         run: flutter build windows --release
 
+      # A build that succeeded is not proof it built the thing we asked for:
+      # an arm64 host with an x64 Dart SDK quietly produces an x64 binary. The
+      # PE header is what actually knows.
+      - name: Check the machine type of what was built
+        shell: pwsh
+        run: |
+          $exe = "code\build\windows\${{ matrix.arch }}\runner\Release\marktext_plus.exe"
+          if (-not (Test-Path $exe)) { throw "no executable at $exe" }
+          $bytes = [System.IO.File]::ReadAllBytes($exe)
+          $machine = [BitConverter]::ToUInt16($bytes, [BitConverter]::ToInt32($bytes, 0x3C) + 4)
+          $name = switch ($machine) { 0xAA64 { "arm64" } 0x8664 { "x64" } default { "0x{0:X4}" -f $machine } }
+          Write-Host "machine type: $name"
+          if ($name -ne "${{ matrix.arch }}") {
+            throw "asked for ${{ matrix.arch }} and built $name"
+          }
+
       - name: Package zip
         run: |
-          cd code/build/windows/x64/runner/Release
-          7z a -tzip "${{ github.workspace }}/marktext-plus-${{ github.ref_name }}-windows-x64.zip" .
+          cd code/build/windows/${{ matrix.arch }}/runner/Release
+          7z a -tzip "${{ github.workspace }}/marktext-plus-${{ github.ref_name }}-windows-${{ matrix.arch }}.zip" .
 
       - name: Create Inno Setup script
         shell: pwsh
@@ -85,12 +130,13 @@ jobs:
           DefaultDirName={autopf}\MarkText Plus
           DefaultGroupName=MarkText Plus
           OutputDir=${{ github.workspace }}
-          OutputBaseFilename=marktext-plus-${{ github.ref_name }}-windows-x64-setup
+          OutputBaseFilename=marktext-plus-${{ github.ref_name }}-windows-${{ matrix.arch }}-setup
           Compression=lzma2
           SolidCompression=yes
           SetupIconFile=${{ github.workspace }}\code\windows\runner\resources\app_icon.ico
           UninstallDisplayIcon={app}\marktext_plus.exe
-          ArchitecturesInstallIn64BitMode=x64compatible
+          ArchitecturesAllowed=${{ matrix.inno_arch }}
+          ArchitecturesInstallIn64BitMode=${{ matrix.inno_arch }}
           WizardStyle=modern
           ChangesAssociations=yes
 
@@ -112,7 +158,7 @@ jobs:
           Root: HKA; Subkey: "Software\Classes\.txt\OpenWithProgids"; ValueType: string; ValueName: "MarkTextPlus.md"; ValueData: ""; Flags: uninsdeletevalue
 
           [Files]
-          Source: "${{ github.workspace }}\code\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: recursesubdirs
+          Source: "${{ github.workspace }}\code\build\windows\${{ matrix.arch }}\runner\Release\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
 
           [Icons]
           Name: "{group}\MarkText Plus"; Filename: "{app}\marktext_plus.exe"
@@ -131,10 +177,10 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: windows-x64-build
+          name: windows-${{ matrix.arch }}-build
           path: |
-            marktext-plus-${{ github.ref_name }}-windows-x64.zip
-            marktext-plus-${{ github.ref_name }}-windows-x64-setup.exe
+            marktext-plus-${{ github.ref_name }}-windows-${{ matrix.arch }}.zip
+            marktext-plus-${{ github.ref_name }}-windows-${{ matrix.arch }}-setup.exe
 
   build-macos:
     needs: check-version
@@ -415,6 +461,8 @@ jobs:
           files: |
             marktext-plus-${{ github.ref_name }}-windows-x64.zip
             marktext-plus-${{ github.ref_name }}-windows-x64-setup.exe
+            marktext-plus-${{ github.ref_name }}-windows-arm64.zip
+            marktext-plus-${{ github.ref_name }}-windows-arm64-setup.exe
             marktext-plus-${{ github.ref_name }}-macos-universal.zip
             marktext-plus-${{ github.ref_name }}-macos-universal.dmg
             marktext-plus-${{ github.ref_name }}-linux-x64.tar.gz
