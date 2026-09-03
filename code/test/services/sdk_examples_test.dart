@@ -47,8 +47,8 @@ void main() {
     for (final entry in source.listSync(recursive: true)) {
       if (entry is! File) continue;
       final relative = p.relative(entry.path, from: source.path);
-      // `sdk/` is definitions for the author's editor and never ships.
-      if (p.split(relative).first == 'sdk') continue;
+      // The definitions are for the author's editor and never ship.
+      if (p.split(relative).last.startsWith('marktext-plus.')) continue;
       final target = File('${dir.path}/$relative')
         ..parent.createSync(recursive: true);
       entry.copySync(target.path);
@@ -114,6 +114,24 @@ void main() {
     );
   }, skip: skip);
 
+  test('the definitions are not installed with the plugin', () {
+    final root = Directory.systemTemp.createTempSync('sdk_ship_');
+    addTearDown(() => root.deleteSync(recursive: true));
+    final manifest = install(root, 'lua', 'plugin.lua');
+    final installed = Directory('${root.path}/${manifest.id}');
+
+    final names = installed
+        .listSync(recursive: true)
+        .whereType<File>()
+        .map((f) => p.relative(f.path, from: installed.path))
+        .toSet();
+
+    expect(names, contains(p.join('lib', 'prompt.lua')),
+        reason: '插件自己的模块必须装进去');
+    expect(names, isNot(contains(p.join('lib', 'marktext-plus.lua'))),
+        reason: '定义文件是给作者的编辑器看的，不该进用户的插件目录');
+  }, skip: skip);
+
   test('the Lua and JS packages declare the very same plugin', () {
     // Two files that must agree, which is the shape that drifts. Everything
     // but the id, the name, the runtime and the entrypoint is compared.
@@ -147,7 +165,7 @@ void main() {
   test('the compiled example names an executable for each platform it claims',
       () {
     final manifest = PluginManifest.fromJson(
-      jsonDecode(File('$sdk/packages/process/manifest.json').readAsStringSync())
+      jsonDecode(File('$sdk/packages/dart/manifest.json').readAsStringSync())
           as Map<String, dynamic>,
     );
 
@@ -165,7 +183,7 @@ void main() {
     // Each carries its own id, so installing all three is possible and none
     // of them silently replaces another.
     final ids = <String>{};
-    for (final example in ['lua', 'js', 'process']) {
+    for (final example in ['lua', 'js', 'dart']) {
       final manifest = PluginManifest.fromJson(
         jsonDecode(File('$sdk/packages/$example/manifest.json')
             .readAsStringSync()) as Map<String, dynamic>,

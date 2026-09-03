@@ -62,7 +62,7 @@ void main() {
     // appears in a comment beside the declaration, so a substring search
     // passes even after the declaration itself is renamed away.
     final source =
-        File('$sdk/packages/js/sdk/marktext-plus.d.ts').readAsStringSync();
+        File('$sdk/packages/js/lib/marktext-plus.d.ts').readAsStringSync();
     final declared = <String>{
       // Not anchored to the start of a line: `diff` holds an inline object,
       // so `original` and `result` share a line with it.
@@ -85,7 +85,7 @@ void main() {
 
   test('the Lua definitions declare every capability and action', () {
     final source =
-        File('$sdk/packages/lua/sdk/marktext-plus.lua').readAsStringSync();
+        File('$sdk/packages/lua/lib/marktext-plus.lua').readAsStringSync();
     final declared = <String>{
       // Action keys are shown as `key = ` in the shapes block.
       ...RegExp(r'(\w+) =').allMatches(source).map((m) => m.group(1)!),
@@ -108,7 +108,7 @@ void main() {
     // `os` is what a Lua author reaches for next after `require`, and unlike
     // `require` it really is gone.
     final lua =
-        File('$sdk/packages/lua/sdk/marktext-plus.lua').readAsStringSync();
+        File('$sdk/packages/lua/lib/marktext-plus.lua').readAsStringSync();
     expect(lua, contains('os'),
         reason: '沙箱拿掉了 os，定义文件该说清楚');
   }, skip: skip);
