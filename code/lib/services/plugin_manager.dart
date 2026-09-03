@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:archive/archive.dart';
 import 'package:path/path.dart' as p;
@@ -83,14 +84,28 @@ class PluginManager {
     return '$os-$arch';
   }
 
-  /// The argument the editor passes to every compiled plugin it starts.
+  /// The environment variable a compiled plugin is handed its launch token in.
   ///
   /// A compiled plugin is a real executable in a folder the reader can open,
-  /// so sooner or later one gets double-clicked. Nothing can stop that, but a
-  /// plugin that looks for this can say what it is instead of sitting there
-  /// waiting on stdin for a request that is never coming. Checking for it is
-  /// the plugin author's job; passing it is the editor's.
-  static const hostHandshake = '--marktext-plus-plugin-host';
+  /// so sooner or later one is double-clicked or typed at a shell. **No
+  /// program can stop a file on the reader's own disk from being executed**,
+  /// and this does not try to. What it makes unforgeable is the plugin's
+  /// answer to "did the editor start me": a token generated for that one
+  /// launch cannot be typed by anyone who was not given it.
+  ///
+  /// The environment rather than the command line, because argv is readable by
+  /// anything that can run `ps` — a fixed argument, or a token sitting in
+  /// argv, is a lock with the key taped to it.
+  static const launchTokenVariable = 'MARKTEXT_PLUS_PLUGIN_TOKEN';
+
+  /// A token for one launch of one plugin.
+  static String newLaunchToken() {
+    final random = Random.secure();
+    return [
+      for (var i = 0; i < 16; i++)
+        random.nextInt(256).toRadixString(16).padLeft(2, '0'),
+    ].join();
+  }
 
   /// The record of plugin processes this editor started.
   PluginProcessRegistry get processRegistry =>
@@ -151,7 +166,8 @@ class PluginManager {
     );
     final host = PluginProcessHost(
       executable: executable,
-      arguments: const [hostHandshake],
+      arguments: const [],
+      environment: {launchTokenVariable: newLaunchToken()},
       logger: logger,
       registry: processRegistry,
     );

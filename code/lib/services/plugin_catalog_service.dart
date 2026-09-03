@@ -97,6 +97,29 @@ class PluginCatalogService {
   /// Uses the operating system proxy variables when present. GitHub requests
   /// are user-triggered, so a proxy failure is reported by the panel rather
   /// than delaying application startup.
+  /// The most recently published release, pre-release or not.
+  ///
+  /// Drafts are left out — they are not published, so nobody but their author
+  /// is meant to have them — and so is anything with no publication date,
+  /// since there is nothing to compare it by.
+  static Map<String, dynamic>? newestRelease(List<dynamic> releases) {
+    Map<String, dynamic>? best;
+    DateTime? bestAt;
+    for (final entry in releases) {
+      if (entry is! Map) continue;
+      if (entry['draft'] == true) continue;
+      final published = entry['published_at'];
+      if (published is! String) continue;
+      final at = DateTime.tryParse(published);
+      if (at == null) continue;
+      if (bestAt == null || at.isAfter(bestAt)) {
+        bestAt = at;
+        best = Map<String, dynamic>.from(entry);
+      }
+    }
+    return best;
+  }
+
   HttpClient _client() {
     final client = HttpClient();
     client.findProxy = (uri) => HttpClient.findProxyFromEnvironment(
@@ -160,19 +183,25 @@ class PluginCatalogService {
       for (final item in payload['items']) {
         if (item is! Map || item['full_name'] is! String) continue;
         final fullName = item['full_name'] as String;
+        // Every release, not `releases/latest`: that endpoint leaves out
+        // pre-releases, and a plugin here is Community/Unverified — most will
+        // sit at 0.x for a long time and publish nothing else.
         final releaseUrl = Uri.https(
           'api.github.com',
-          '/repos/$fullName/releases/latest',
+          '/repos/$fullName/releases',
+          {'per_page': '20'},
         );
         final releaseRequest = await client.getUrl(releaseUrl);
         releaseRequest.headers
             .set(HttpHeaders.acceptHeader, 'application/vnd.github+json');
         final releaseResponse = await releaseRequest.close();
         if (releaseResponse.statusCode != HttpStatus.ok) continue;
-        final release = jsonDecode(
+        final releases = jsonDecode(
           await utf8.decoder.bind(releaseResponse).join(),
         );
-        if (release is! Map || release['assets'] is! List) continue;
+        if (releases is! List) continue;
+        final release = newestRelease(releases);
+        if (release == null || release['assets'] is! List) continue;
         for (final asset in release['assets']) {
           if (asset is! Map || asset['name'] is! String) continue;
           final name = asset['name'] as String;

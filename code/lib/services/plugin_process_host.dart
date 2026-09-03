@@ -14,11 +14,16 @@ class PluginProcessHost {
     required this.executable,
     required this.logger,
     this.arguments = const [],
+    this.environment = const {},
     this.registry,
   });
 
   final String executable;
   final List<String> arguments;
+
+  /// Added to the child's environment. The launch token travels here rather
+  /// than in argv, which anything that can run `ps` may read.
+  final Map<String, String> environment;
   final PluginLogger logger;
 
   /// Where this child is written down so a crash cannot orphan it.
@@ -40,6 +45,7 @@ class PluginProcessHost {
       executable,
       arguments ?? this.arguments,
       workingDirectory: workingDirectory,
+      environment: environment,
       runInShell: false,
     );
     _process = process;

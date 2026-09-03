@@ -70,47 +70,6 @@ void main() {
     );
   });
 
-  test('a plugin is told it was started by the editor', () async {
-    // A compiled plugin is a real executable sitting in a folder the reader
-    // can open, so sooner or later someone double-clicks it. Nothing stops
-    // that, but a plugin can tell the difference and say so instead of sitting
-    // there waiting on stdin for a request that will never come — as long as
-    // the editor gives it something to check.
-    expect(PluginManager.hostHandshake, startsWith('--marktext-plus-plugin-host'));
-
-    final root = Directory.systemTemp.createTempSync('plugin_platform_');
-    addTearDown(() => root.deleteSync(recursive: true));
-
-    final manifest = PluginManifest.fromJson({
-      'id': 'com.example.native',
-      'name': 'Native',
-      'version': '1.0.0',
-      'runtime': 'process',
-      'entrypoints': {
-        PluginManager.currentPlatform.split('-').first: 'bin/echo-args',
-      },
-    });
-    final executable = File(p.join(root.path, 'com.example.native', 'bin', 'echo-args'))
-      ..createSync(recursive: true)
-      ..writeAsStringSync('#!/bin/sh\nprintf "%s" "\$@" > "\$0.args"\nsleep 5\n');
-    if (!Platform.isWindows) {
-      Process.runSync('chmod', ['+x', executable.path]);
-    }
-
-    final host = await PluginManager(root.path).startPlugin(manifest);
-    addTearDown(host.stop);
-    for (var attempt = 0; attempt < 50; attempt++) {
-      final recorded = File('${executable.path}.args');
-      if (recorded.existsSync() && recorded.readAsStringSync().isNotEmpty) {
-        expect(recorded.readAsStringSync(),
-            contains(PluginManager.hostHandshake));
-        return;
-      }
-      await Future<void>.delayed(const Duration(milliseconds: 20));
-    }
-    fail('插件没有收到任何参数');
-  }, skip: Platform.isWindows ? 'shell script fixture is POSIX-only' : null);
-
   test('a script plugin is not started as a process at all', () async {
     final root = Directory.systemTemp.createTempSync('plugin_platform_');
     addTearDown(() => root.deleteSync(recursive: true));

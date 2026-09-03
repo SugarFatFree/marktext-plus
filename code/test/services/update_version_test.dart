@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/core/constants.dart';
 import 'package:marktext_plus/services/update_service.dart';
@@ -58,5 +59,18 @@ void main() {
     expect(newer(AppConstants.appVersion, AppConstants.appVersion), isFalse);
     expect(newer('99.0.0', AppConstants.appVersion), isTrue);
     expect(newer('0.0.1', AppConstants.appVersion), isFalse);
+  });
+
+  test('the update check asks the repository this project actually lives in',
+      () {
+    // It asked marktext-plus/marktext-plus, which only still answers because
+    // GitHub redirects a renamed repository. That redirect is a courtesy, not
+    // a promise: the day the old name is taken by someone else, or the
+    // redirect is dropped, every install silently stops finding updates.
+    final source = File('lib/services/update_service.dart').readAsStringSync();
+
+    expect(source, contains('SugarFatFree/marktext-plus'));
+    expect(source, isNot(contains('marktext-plus/marktext-plus')),
+        reason: '仓库已经改名，别再依赖 301 重定向');
   });
 }

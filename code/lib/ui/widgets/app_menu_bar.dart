@@ -1164,21 +1164,21 @@ class AppMenuBar extends ConsumerWidget {
         ),
         MenuItemButton(
           child: Text(l10n.helpChangelog),
-          onPressed: () => _launchUrl('https://github.com/marktext-plus/marktext-plus/releases'),
+          onPressed: () => _launchUrl('https://github.com/SugarFatFree/marktext-plus/releases'),
         ),
         const Divider(height: 1),
         MenuItemButton(
           child: Text(l10n.helpReportBug),
-          onPressed: () => _launchUrl('https://github.com/marktext-plus/marktext-plus/issues'),
+          onPressed: () => _launchUrl('https://github.com/SugarFatFree/marktext-plus/issues'),
         ),
         MenuItemButton(
           child: Text(l10n.helpRequestFeature),
-          onPressed: () => _launchUrl('https://github.com/marktext-plus/marktext-plus/issues'),
+          onPressed: () => _launchUrl('https://github.com/SugarFatFree/marktext-plus/issues'),
         ),
         const Divider(height: 1),
         MenuItemButton(
           child: Text(l10n.helpGitHub),
-          onPressed: () => _launchUrl('https://github.com/marktext-plus/marktext-plus'),
+          onPressed: () => _launchUrl('https://github.com/SugarFatFree/marktext-plus'),
         ),
       ],
       child: Text(l10n.menuHelp, style: const TextStyle(fontSize: 13)),
