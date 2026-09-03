@@ -5,7 +5,7 @@ All notable changes to MarkText Plus will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v1.7.0] - 2026-09-03
+## [v1.6.1] - 2026-09-03
 
 ### Added
 - A plugin is now a single Lua or JavaScript file that runs inside the editor. It needs no SDK on your machine, no build step, and the same file works on Windows, macOS and Linux. Both languages speak the same protocol, so the editor does not care which one an author picked

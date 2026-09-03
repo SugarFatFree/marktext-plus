@@ -1,4 +1,4 @@
-# MarkText Plus v1.7.0
+# MarkText Plus v1.6.1
 
 > Release notes. English is the default language; the Chinese section follows.
 
