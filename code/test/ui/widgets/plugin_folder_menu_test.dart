@@ -36,22 +36,7 @@ void main() {
     if (support.existsSync()) support.deleteSync(recursive: true);
   });
 
-  void install(String id) {
-    final dir = Directory('${support.path}/plugins/$id')
-      ..createSync(recursive: true);
-    File('${dir.path}/manifest.json').writeAsStringSync(jsonEncode({
-      'id': id,
-      'name': 'Demo',
-      'version': '1.0.0',
-      'runtime': 'lua',
-      'entrypoint': 'plugin.lua',
-    }));
-  }
-
-  testWidgets('right-clicking an installed plugin offers its folder',
-      (tester) async {
-    install('com.example.demo');
-
+  Future<void> show(WidgetTester tester) async {
     await tester.pumpWidget(const ProviderScope(
       child: MaterialApp(
         locale: Locale('en'),
@@ -74,11 +59,45 @@ void main() {
       await tester.pump();
       if (find.text('Demo').evaluate().isNotEmpty) break;
     }
-
     expect(find.text('Demo'), findsOneWidget);
+  }
+
+  void install(String id) {
+    final dir = Directory('${support.path}/plugins/$id')
+      ..createSync(recursive: true);
+    File('${dir.path}/manifest.json').writeAsStringSync(jsonEncode({
+      'id': id,
+      'name': 'Demo',
+      'version': '1.0.0',
+      'runtime': 'lua',
+      'entrypoint': 'plugin.lua',
+    }));
+  }
+
+  testWidgets('right-clicking an installed plugin offers its folder',
+      (tester) async {
+    install('com.example.demo');
+
+    await show(tester);
 
     await tester.tapAt(
       tester.getCenter(find.text('Demo')),
+      buttons: kSecondaryButton,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Open plugin folder'), findsOneWidget);
+  });
+
+  testWidgets('the whole row answers the right-click, not just the name',
+      (tester) async {
+    install('com.example.demo');
+    await show(tester);
+
+    // The version line, which is what someone right-clicking a list entry is
+    // as likely to hit as the name itself.
+    await tester.tapAt(
+      tester.getCenter(find.textContaining('1.0.0')),
       buttons: kSecondaryButton,
     );
     await tester.pumpAndSettle();

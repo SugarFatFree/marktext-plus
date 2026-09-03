@@ -217,57 +217,60 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
                   future: _manager().then((manager) => manager.isEnabled(plugin.id)),
                   builder: (context, enabled) => Padding(
                     padding: const EdgeInsets.only(bottom: 4),
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Theme.of(context).dividerColor),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                const Icon(Icons.extension, size: 17),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: GestureDetector(
-                                    behavior: HitTestBehavior.opaque,
-                                    onSecondaryTapDown: (details) =>
-                                        _showPluginMenu(plugin, details.globalPosition),
+                    // The whole entry answers the right-click, not only the
+                    // name: someone reaching for a list entry is as likely to
+                    // land on the version line or the space beside it.
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onSecondaryTapDown: (details) =>
+                          _showPluginMenu(plugin, details.globalPosition),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Theme.of(context).dividerColor),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.extension, size: 17),
+                                  const SizedBox(width: 6),
+                                  Expanded(
                                     child: Text(plugin.name,
                                         overflow: TextOverflow.ellipsis),
                                   ),
-                                ),
-                                Switch(
-                                  value: enabled.data ?? true,
-                                  onChanged: enabled.connectionState == ConnectionState.waiting
-                                      ? null
-                                      : (value) => _toggle(plugin, value),
-                                ),
-                              ],
-                            ),
-                            Text('${plugin.id} · ${plugin.version}',
-                                style: Theme.of(context).textTheme.bodySmall),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                if (plugin.settings.isNotEmpty)
-                                  TextButton.icon(
-                                    onPressed: () => _openSettings(plugin),
-                                    icon: const Icon(Icons.settings, size: 16),
-                                    label: const Text('Settings'),
+                                  Switch(
+                                    value: enabled.data ?? true,
+                                    onChanged: enabled.connectionState == ConnectionState.waiting
+                                        ? null
+                                        : (value) => _toggle(plugin, value),
                                   ),
-                                IconButton(
-                                  tooltip: 'Uninstall',
-                                  icon: const Icon(Icons.delete_outline, size: 18),
-                                  onPressed: () => _uninstall(plugin),
-                                  visualDensity: VisualDensity.compact,
-                                ),
-                              ],
-                            ),
-                          ],
+                                ],
+                              ),
+                              Text('${plugin.id} · ${plugin.version}',
+                                  style: Theme.of(context).textTheme.bodySmall),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  if (plugin.settings.isNotEmpty)
+                                    TextButton.icon(
+                                      onPressed: () => _openSettings(plugin),
+                                      icon: const Icon(Icons.settings, size: 16),
+                                      label: const Text('Settings'),
+                                    ),
+                                  IconButton(
+                                    tooltip: 'Uninstall',
+                                    icon: const Icon(Icons.delete_outline, size: 18),
+                                    onPressed: () => _uninstall(plugin),
+                                    visualDensity: VisualDensity.compact,
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
