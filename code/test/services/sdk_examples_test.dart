@@ -30,7 +30,7 @@ void main() {
   final present = sdk != null;
   final skip = present ? null : 'SDK 仓库不在这台机器上';
 
-  /// Installs the example as the editor would: everything but the docs.
+  /// Installs the example as the editor would: every file it ships.
   ///
   /// Copying only the entrypoint was enough while a plugin was one file. It is
   /// not any more, and a test that installs half a plugin proves nothing about
@@ -47,8 +47,6 @@ void main() {
     for (final entry in source.listSync(recursive: true)) {
       if (entry is! File) continue;
       final relative = p.relative(entry.path, from: source.path);
-      // The definitions are for the author's editor and never ship.
-      if (p.split(relative).last.startsWith('marktext-plus.')) continue;
       final target = File('${dir.path}/$relative')
         ..parent.createSync(recursive: true);
       entry.copySync(target.path);
@@ -114,7 +112,11 @@ void main() {
     );
   }, skip: skip);
 
-  test('the definitions are not installed with the plugin', () {
+  test('the API module ships with the plugin, because it is the plugin', () {
+    // It used to be type definitions that never shipped, which meant the
+    // reference at the top of the entrypoint was a comment while the compiled
+    // example had a real import. Now it is an ordinary module the plugin
+    // requires, so a missing one is a plugin that does not run.
     final root = Directory.systemTemp.createTempSync('sdk_ship_');
     addTearDown(() => root.deleteSync(recursive: true));
     final manifest = install(root, 'lua', 'plugin.lua');
@@ -126,10 +128,7 @@ void main() {
         .map((f) => p.relative(f.path, from: installed.path))
         .toSet();
 
-    expect(names, contains(p.join('lib', 'prompt.lua')),
-        reason: '插件自己的模块必须装进去');
-    expect(names, isNot(contains(p.join('lib', 'marktext-plus.lua'))),
-        reason: '定义文件是给作者的编辑器看的，不该进用户的插件目录');
+    expect(names, contains(p.join('lib', 'marktext-plus.lua')));
   }, skip: skip);
 
   test('the Lua and JS packages declare the very same plugin', () {

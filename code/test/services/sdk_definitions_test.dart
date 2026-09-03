@@ -2,12 +2,12 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-/// The SDK's type definitions describe what the editor actually injects.
+/// The SDK's API module offers every action the editor understands.
 ///
-/// They are hand-written files in another repository describing the inside of
-/// this one — the exact shape that goes stale quietly. An author whose editor
-/// completes a capability that no longer exists is worse off than one with no
-/// completion at all.
+/// It is a hand-written file in another repository wrapping the inside of this
+/// one — the exact shape that goes stale quietly. A plugin author reaching for
+/// `sdk.panel` and finding nothing there would conclude the editor cannot do
+/// it.
 void main() {
   String? findSdk() {
     var directory = Directory.current;
@@ -32,9 +32,10 @@ void main() {
   const contextFields = <String>{
     'command', 'selection', 'document', 'answer',
   };
-  const capabilities = <String>{
-    'storage', 't', 'require', 'on_command', 'on_result',
-  };
+  // What the API module re-exports or wraps. `require` and the two entry
+  // points are the editor's, not the module's: a plugin defines on_command
+  // itself and calls require directly.
+  const wrapped = <String>{'storage', 't'};
 
   test('the runtime reads exactly the keys the definitions describe', () {
     // Read out of the runtime rather than listed here a second time: a list
@@ -57,59 +58,61 @@ void main() {
         reason: '上下文字段和定义文件对不上');
   });
 
-  test('the JavaScript declarations declare every capability and action', () {
-    // What is *declared*, not what the file happens to mention: `panel`
-    // appears in a comment beside the declaration, so a substring search
-    // passes even after the declaration itself is renamed away.
+  test('the JavaScript module exports every capability and action', () {
+    // What is *exported*, not what the file happens to mention: `panel`
+    // appears in a comment beside its function, so a substring search passes
+    // even after the function itself is renamed away.
     final source =
-        File('$sdk/packages/js/lib/marktext-plus.d.ts').readAsStringSync();
+        File('$sdk/packages/js/lib/marktext-plus.js').readAsStringSync();
     final declared = <String>{
-      // Not anchored to the start of a line: `diff` holds an inline object,
-      // so `original` and `result` share a line with it.
-      ...RegExp(r'(?:^|[\s{;])(?:readonly\s+)?(\w+)\??:', multiLine: true)
-          .allMatches(source)
-          .map((m) => m.group(1)!),
-      ...RegExp(r'^declare (?:const|function) (\w+)', multiLine: true)
-          .allMatches(source)
-          .map((m) => m.group(1)!),
-      ...RegExp(r'^\s*(\w+)\(', multiLine: true)
+      // The keys of module.exports, and the keys of the objects the action
+      // constructors return.
+      ...RegExp(r'(?:^|[\s{,])(\w+):', multiLine: true)
           .allMatches(source)
           .map((m) => m.group(1)!),
     };
 
     expect(declared, isNotEmpty, reason: '解析写错了，一个声明都没抽出来');
-    for (final name in {...capabilities, ...actionKeys, ...contextFields}) {
-      expect(declared, contains(name), reason: 'd.ts 没有声明 $name');
+    for (final name in {...wrapped, ...actionKeys}) {
+      expect(declared, contains(name), reason: 'JS 模块没有导出 $name');
     }
   }, skip: skip);
 
-  test('the Lua definitions declare every capability and action', () {
+  test('the Lua module exports every capability and action', () {
     final source =
         File('$sdk/packages/lua/lib/marktext-plus.lua').readAsStringSync();
     final declared = <String>{
-      // Action keys are shown as `key = ` in the shapes block.
+      ...RegExp(r'M\.(\w+)').allMatches(source).map((m) => m.group(1)!),
+      // The action tables the constructors return.
       ...RegExp(r'(\w+) =').allMatches(source).map((m) => m.group(1)!),
-      ...RegExp(r'---@field (\w+)').allMatches(source).map((m) => m.group(1)!),
-      ...RegExp(r'^function (\w+)', multiLine: true)
-          .allMatches(source)
-          .map((m) => m.group(1)!),
-      ...RegExp(r'^(\w+) = \{\}', multiLine: true)
-          .allMatches(source)
-          .map((m) => m.group(1)!),
     };
 
     expect(declared, isNotEmpty, reason: '解析写错了，一个声明都没抽出来');
-    for (final name in {...capabilities, ...actionKeys, ...contextFields}) {
-      expect(declared, contains(name), reason: 'Lua 定义没有声明 $name');
+    for (final name in {...wrapped, ...actionKeys}) {
+      expect(declared, contains(name), reason: 'Lua 模块没有导出 $name');
     }
   }, skip: skip);
 
-  test('the definitions say what the sandbox leaves out', () {
-    // `os` is what a Lua author reaches for next after `require`, and unlike
-    // `require` it really is gone.
-    final lua =
-        File('$sdk/packages/lua/lib/marktext-plus.lua').readAsStringSync();
-    expect(lua, contains('os'),
-        reason: '沙箱拿掉了 os，定义文件该说清楚');
+  test('the two API modules offer the same thing', () {
+    // An author picking a language must not be picking what the editor will
+    // let them say.
+    Set<String> exported(String path, RegExp pattern) => pattern
+        .allMatches(File(path).readAsStringSync())
+        .map((m) => m.group(1) ?? m.group(2))
+        .whereType<String>()
+        .toSet();
+
+    final lua = exported(
+      '$sdk/packages/lua/lib/marktext-plus.lua',
+      RegExp(r'^function M\.(\w+)|^M\.(\w+) =', multiLine: true),
+    );
+    final js = exported(
+      '$sdk/packages/js/lib/marktext-plus.js',
+      RegExp(r'^  (\w+): ', multiLine: true),
+    );
+
+    expect(lua, isNotEmpty);
+    expect(js, containsAll(lua), reason: 'JS 缺了 Lua 有的东西');
+    expect(lua, containsAll(js), reason: 'Lua 缺了 JS 有的东西');
   }, skip: skip);
 }
