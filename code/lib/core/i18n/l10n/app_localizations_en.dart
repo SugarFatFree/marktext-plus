@@ -1079,4 +1079,29 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsAiApiKeyHint =>
       'Stored in the system secret store under the reference above.';
+
+  @override
+  String get copy => 'Copy';
+
+  @override
+  String get pluginWorking => 'Working…';
+
+  @override
+  String get pluginOriginal => 'Given to the plugin';
+
+  @override
+  String get pluginResult => 'Plugin result';
+
+  @override
+  String pluginFailed(String plugin) {
+    return '$plugin failed';
+  }
+
+  @override
+  String pluginCannotEdit(String plugin) {
+    return '$plugin may not edit the document';
+  }
+
+  @override
+  String get pluginTooManySteps => 'The plugin asked too many questions';
 }

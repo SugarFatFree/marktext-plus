@@ -412,5 +412,12 @@
   "settingsAiEndpointHint": "제공자 루트만 입력하고 /v1/messages 또는 /v1/chat/completions를 추가하지 마세요.",
   "settingsAiTestSuccess": "AI 구성 테스트가 성공했습니다.",
   "settingsAiApiKey": "API 키",
-  "settingsAiApiKeyHint": "API 키는 지정한 참조 이름으로 시스템 비밀 저장소에 저장됩니다."
+  "settingsAiApiKeyHint": "API 키는 지정한 참조 이름으로 시스템 비밀 저장소에 저장됩니다.",
+  "copy": "복사",
+  "pluginWorking": "처리 중…",
+  "pluginOriginal": "플러그인에 전달한 내용",
+  "pluginResult": "플러그인 결과",
+  "pluginFailed": "{plugin} 실패",
+  "pluginCannotEdit": "{plugin}에 문서 편집 권한이 없습니다",
+  "pluginTooManySteps": "플러그인이 너무 많이 되물었습니다"
 }

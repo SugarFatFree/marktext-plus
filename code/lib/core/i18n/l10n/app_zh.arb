@@ -412,5 +412,12 @@
   "settingsAiEndpointHint": "只填写服务商根地址；不要添加 /v1/messages 或 /v1/chat/completions。",
   "settingsAiTestSuccess": "AI 配置测试成功。",
   "settingsAiApiKey": "API 密钥",
-  "settingsAiApiKeyHint": "API 密钥会以指定引用名保存到系统密钥存储中。"
+  "settingsAiApiKeyHint": "API 密钥会以指定引用名保存到系统密钥存储中。",
+  "copy": "复制",
+  "pluginWorking": "正在处理…",
+  "pluginOriginal": "传给插件的内容",
+  "pluginResult": "插件结果",
+  "pluginFailed": "{plugin} 执行失败",
+  "pluginCannotEdit": "{plugin} 没有修改文档的权限",
+  "pluginTooManySteps": "插件的追问次数过多"
 }

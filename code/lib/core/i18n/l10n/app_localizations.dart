@@ -2138,6 +2138,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Stored in the system secret store under the reference above.'**
   String get settingsAiApiKeyHint;
+
+  /// No description provided for @copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get copy;
+
+  /// No description provided for @pluginWorking.
+  ///
+  /// In en, this message translates to:
+  /// **'Working…'**
+  String get pluginWorking;
+
+  /// No description provided for @pluginOriginal.
+  ///
+  /// In en, this message translates to:
+  /// **'Given to the plugin'**
+  String get pluginOriginal;
+
+  /// No description provided for @pluginResult.
+  ///
+  /// In en, this message translates to:
+  /// **'Plugin result'**
+  String get pluginResult;
+
+  /// No description provided for @pluginFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'{plugin} failed'**
+  String pluginFailed(String plugin);
+
+  /// No description provided for @pluginCannotEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'{plugin} may not edit the document'**
+  String pluginCannotEdit(String plugin);
+
+  /// No description provided for @pluginTooManySteps.
+  ///
+  /// In en, this message translates to:
+  /// **'The plugin asked too many questions'**
+  String get pluginTooManySteps;
 }
 
 class _AppLocalizationsDelegate

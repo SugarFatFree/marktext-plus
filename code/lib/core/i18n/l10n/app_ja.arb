@@ -412,5 +412,12 @@
   "settingsAiEndpointHint": "プロバイダーのルートだけを入力し、/v1/messages や /v1/chat/completions は追加しないでください。",
   "settingsAiTestSuccess": "AI 設定のテストに成功しました。",
   "settingsAiApiKey": "API キー",
-  "settingsAiApiKeyHint": "API キーは指定した参照名でシステムのシークレットストアに保存されます。"
+  "settingsAiApiKeyHint": "API キーは指定した参照名でシステムのシークレットストアに保存されます。",
+  "copy": "コピー",
+  "pluginWorking": "処理中…",
+  "pluginOriginal": "プラグインへの入力",
+  "pluginResult": "プラグインの結果",
+  "pluginFailed": "{plugin} が失敗しました",
+  "pluginCannotEdit": "{plugin} にドキュメントを編集する権限がありません",
+  "pluginTooManySteps": "プラグインの問い合わせ回数が多すぎます"
 }

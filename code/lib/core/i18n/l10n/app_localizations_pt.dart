@@ -1088,6 +1088,31 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get settingsAiApiKeyHint =>
       'A chave da API é guardada no armazenamento seguro do sistema com a referência indicada.';
+
+  @override
+  String get copy => 'Copiar';
+
+  @override
+  String get pluginWorking => 'A processar…';
+
+  @override
+  String get pluginOriginal => 'Enviado ao plug-in';
+
+  @override
+  String get pluginResult => 'Resultado do plug-in';
+
+  @override
+  String pluginFailed(String plugin) {
+    return '$plugin falhou';
+  }
+
+  @override
+  String pluginCannotEdit(String plugin) {
+    return 'O $plugin não pode editar o documento';
+  }
+
+  @override
+  String get pluginTooManySteps => 'O plug-in fez demasiadas perguntas';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -2172,4 +2197,29 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get settingsAiApiKeyHint =>
       'A chave da API é armazenada no cofre de segredos do sistema usando a referência informada.';
+
+  @override
+  String get copy => 'Copiar';
+
+  @override
+  String get pluginWorking => 'Processando…';
+
+  @override
+  String get pluginOriginal => 'Enviado ao plug-in';
+
+  @override
+  String get pluginResult => 'Resultado do plug-in';
+
+  @override
+  String pluginFailed(String plugin) {
+    return '$plugin falhou';
+  }
+
+  @override
+  String pluginCannotEdit(String plugin) {
+    return 'O $plugin não pode editar o documento';
+  }
+
+  @override
+  String get pluginTooManySteps => 'O plug-in fez perguntas demais';
 }

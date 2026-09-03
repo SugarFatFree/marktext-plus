@@ -80,6 +80,166 @@ class PluginSettingPage {
   Map<String, dynamic> toJson() => {'id': id, 'title': title};
 }
 
+/// What a plugin is allowed to do.
+///
+/// Modelled on how VS Code and IntelliJ describe an extension: a broad surface
+/// declared up front rather than a narrow one. The difference is that nothing
+/// here is reviewed by anybody, so what a plugin declares is shown to the
+/// reader and enforced by the editor rather than taken on trust.
+class PluginPermission {
+  const PluginPermission._();
+
+  // -- The document the reader has open --
+
+  /// Read the selection and the document text.
+  static const documentRead = 'document.read';
+
+  /// Change the document — replace the selection, insert text.
+  static const documentWrite = 'document.write';
+
+  // -- Places a plugin may put things --
+
+  /// An entry in the editor's right-click menu.
+  static const uiContextMenu = 'ui.contextMenu';
+
+  /// An entry in the top menu bar.
+  static const uiMenuBar = 'ui.menuBar';
+
+  /// A button in the toolbar.
+  static const uiToolbar = 'ui.toolbar';
+
+  /// A panel of its own in the side bar.
+  static const uiSidebar = 'ui.sidebar';
+
+  /// An item in the status bar.
+  static const uiStatusBar = 'ui.statusBar';
+
+  /// A settings page of its own.
+  static const uiSettings = 'ui.settings';
+
+  /// Commands in the command palette.
+  static const uiCommandPalette = 'ui.commandPalette';
+
+  /// Messages to the reader.
+  static const uiNotifications = 'ui.notifications';
+
+  // -- Capabilities --
+
+  /// Ask the model the reader configured. The API key is never handed over.
+  static const aiChat = 'ai.chat';
+
+  /// Keep its own settings file, inside its own directory.
+  static const storageLocal = 'storage.local';
+
+  /// Read the clipboard.
+  static const clipboardRead = 'clipboard.read';
+
+  /// Write the clipboard.
+  static const clipboardWrite = 'clipboard.write';
+
+  /// Read files under the folder the reader opened.
+  static const workspaceRead = 'workspace.read';
+
+  /// Write files under the folder the reader opened.
+  static const workspaceWrite = 'workspace.write';
+
+  /// Make HTTP requests of its own choosing. The widest thing a plugin can
+  /// ask for: anything it can read, it can send anywhere.
+  static const networkRequest = 'network.request';
+
+  /// Every permission this version of the editor understands.
+  static const all = <String>[
+    documentRead,
+    documentWrite,
+    uiContextMenu,
+    uiMenuBar,
+    uiToolbar,
+    uiSidebar,
+    uiStatusBar,
+    uiSettings,
+    uiCommandPalette,
+    uiNotifications,
+    aiChat,
+    storageLocal,
+    clipboardRead,
+    clipboardWrite,
+    workspaceRead,
+    workspaceWrite,
+    networkRequest,
+  ];
+
+  /// What to tell the reader this permission lets the plugin do.
+  static String describe(String permission) => switch (permission) {
+        documentRead => 'Read the open document and your selection',
+        documentWrite => 'Change the open document',
+        uiContextMenu => 'Add entries to the right-click menu',
+        uiMenuBar => 'Add entries to the menu bar',
+        uiToolbar => 'Add buttons to the toolbar',
+        uiSidebar => 'Add a panel to the side bar',
+        uiStatusBar => 'Add an item to the status bar',
+        uiSettings => 'Add a settings page',
+        uiCommandPalette => 'Add commands to the command palette',
+        uiNotifications => 'Show you messages',
+        aiChat => 'Ask the AI model you configured (never sees your API key)',
+        storageLocal => 'Keep its own settings',
+        clipboardRead => 'Read your clipboard',
+        clipboardWrite => 'Write to your clipboard',
+        workspaceRead => 'Read files in the folder you opened',
+        workspaceWrite => 'Write files in the folder you opened',
+        networkRequest => 'Send requests to any server it chooses',
+        _ => 'Unrecognised permission — this version grants nothing for it',
+      };
+}
+
+/// How a plugin's code runs, if it has any.
+///
+/// A plugin has to run on a machine that has nothing installed but the editor.
+/// That rules out shipping source for a language whose toolchain the reader
+/// would have to install, and it is why [PluginRuntime.lua] is the default for
+/// anything with logic in it: the interpreter is part of the editor.
+enum PluginRuntime {
+  /// No code at all — themes, snippets, syntax rules.
+  data,
+
+  /// A Lua script, run by the editor's own interpreter.
+  lua,
+
+  /// A prebuilt executable the plugin ships for each platform it supports.
+  process,
+}
+
+/// One field on a plugin's own settings page.
+class PluginSettingField {
+  const PluginSettingField({
+    required this.key,
+    required this.title,
+    this.type = 'text',
+    this.defaultValue = '',
+  });
+
+  final String key;
+  final String title;
+
+  /// `text`, `password`, `boolean` or `number`. The host draws the control.
+  final String type;
+  final String defaultValue;
+
+  factory PluginSettingField.fromJson(Map<String, dynamic> json) =>
+      PluginSettingField(
+        key: _requiredString(json, 'key'),
+        title: _requiredString(json, 'title'),
+        type: (json['type'] as String?)?.trim() ?? 'text',
+        defaultValue: (json['default'] as String?) ?? '',
+      );
+
+  Map<String, dynamic> toJson() => {
+        'key': key,
+        'title': title,
+        'type': type,
+        if (defaultValue.isNotEmpty) 'default': defaultValue,
+      };
+}
+
 /// Metadata declared by an installed MarkText Plus plugin.
 ///
 /// The manifest is the only plugin data read during startup. Executable code
@@ -96,7 +256,11 @@ class PluginManifest {
     this.commands = const <PluginCommand>[],
     this.toolbar = const <PluginToolbarItem>[],
     this.menus = const <PluginMenuItem>[],
-    this.settings = const <PluginSettingPage>[],
+    this.pages = const <PluginSettingPage>[],
+    this.runtime = PluginRuntime.data,
+    this.settings = const <PluginSettingField>[],
+    this.defaultLocale = 'en',
+    this.locales = const <String, Map<String, String>>{},
   });
 
   final String id;
@@ -109,7 +273,40 @@ class PluginManifest {
   final List<PluginCommand> commands;
   final List<PluginToolbarItem> toolbar;
   final List<PluginMenuItem> menus;
-  final List<PluginSettingPage> settings;
+  final List<PluginSettingPage> pages;
+
+  /// How this plugin's code runs, if it has any.
+  final PluginRuntime runtime;
+
+  /// The fields the host draws on this plugin's own settings page.
+  final List<PluginSettingField> settings;
+
+  /// The language the plugin's own strings fall back to.
+  final String defaultLocale;
+
+  /// The plugin's own strings, by language code. A plugin can ship as many
+  /// languages as its author wants without the editor shipping any of them.
+  final Map<String, Map<String, String>> locales;
+
+  /// Whether the reader granted [permission] by installing this plugin.
+  ///
+  /// A permission this version does not understand grants nothing: a typo in a
+  /// manifest, and a capability from a newer editor, both mean the same thing
+  /// here — the plugin does not get it.
+  bool hasPermission(String permission) =>
+      PluginPermission.all.contains(permission) &&
+      permissions.contains(permission);
+
+  /// The plugin's strings in [locale], falling back to its default language.
+  ///
+  /// `zh_CN` finds `zh`: a plugin author who wrote one Chinese translation
+  /// should not have to enumerate every region that speaks it.
+  Map<String, String> stringsFor(String locale) {
+    final exact = locales[locale];
+    if (exact != null) return exact;
+    final language = locale.split(RegExp(r'[_-]')).first;
+    return locales[language] ?? locales[defaultLocale] ?? const {};
+  }
 
   factory PluginManifest.fromJson(Map<String, dynamic> json) {
     String requiredString(String key) => _requiredString(json, key);
@@ -134,18 +331,54 @@ class PluginManifest {
       ]);
     }
 
+    final runtime = switch ((json['runtime'] as String?)?.trim()) {
+      'lua' => PluginRuntime.lua,
+      'process' => PluginRuntime.process,
+      null || '' => PluginRuntime.data,
+      final unknown => throw FormatException('unknown plugin runtime: $unknown'),
+    };
+
+    final entrypoint = requiredString('entrypoint');
+    if (entrypoint.toLowerCase().endsWith('.dart')) {
+      // Running this would need a Dart SDK on the reader's machine, which the
+      // editor does not install and cannot assume. Refusing here says so at
+      // install time instead of at the moment the reader clicks the command.
+      throw const FormatException(
+        'a plugin cannot ship Dart source: use a .lua script, or a prebuilt '
+        'executable with runtime "process"',
+      );
+    }
+
+    final rawLocales = json['locales'];
+    final locales = <String, Map<String, String>>{};
+    if (rawLocales is Map) {
+      for (final entry in rawLocales.entries) {
+        final value = entry.value;
+        if (entry.key is! String || value is! Map) continue;
+        locales[entry.key as String] = {
+          for (final s in value.entries)
+            if (s.key is String && s.value is String)
+              s.key as String: s.value as String,
+        };
+      }
+    }
+
     return PluginManifest(
       id: requiredString('id'),
       name: requiredString('name'),
       version: requiredString('version'),
-      entrypoint: requiredString('entrypoint'),
+      entrypoint: entrypoint,
       minAppVersion: (json['minAppVersion'] as String?)?.trim() ?? '',
       capabilities: strings('capabilities'),
       permissions: strings('permissions'),
       commands: objects('commands', PluginCommand.fromJson),
       toolbar: objects('toolbar', PluginToolbarItem.fromJson),
       menus: objects('menus', PluginMenuItem.fromJson),
-      settings: objects('settings', PluginSettingPage.fromJson),
+      pages: objects('pages', PluginSettingPage.fromJson),
+      runtime: runtime,
+      settings: objects('settings', PluginSettingField.fromJson),
+      defaultLocale: (json['defaultLocale'] as String?)?.trim() ?? 'en',
+      locales: locales,
     );
   }
 
@@ -163,7 +396,14 @@ class PluginManifest {
           'toolbar': toolbar.map((item) => item.toJson()).toList(),
         if (menus.isNotEmpty)
           'menus': menus.map((item) => item.toJson()).toList(),
+        if (pages.isNotEmpty)
+          'pages': pages.map((item) => item.toJson()).toList(),
+        if (runtime != PluginRuntime.data) 'runtime': runtime.name,
         if (settings.isNotEmpty)
           'settings': settings.map((item) => item.toJson()).toList(),
+        if (locales.isNotEmpty) ...{
+          'defaultLocale': defaultLocale,
+          'locales': locales,
+        },
       };
 }

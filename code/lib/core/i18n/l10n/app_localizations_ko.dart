@@ -1067,4 +1067,29 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get settingsAiApiKeyHint => 'API 키는 지정한 참조 이름으로 시스템 비밀 저장소에 저장됩니다.';
+
+  @override
+  String get copy => '복사';
+
+  @override
+  String get pluginWorking => '처리 중…';
+
+  @override
+  String get pluginOriginal => '플러그인에 전달한 내용';
+
+  @override
+  String get pluginResult => '플러그인 결과';
+
+  @override
+  String pluginFailed(String plugin) {
+    return '$plugin 실패';
+  }
+
+  @override
+  String pluginCannotEdit(String plugin) {
+    return '$plugin에 문서 편집 권한이 없습니다';
+  }
+
+  @override
+  String get pluginTooManySteps => '플러그인이 너무 많이 되물었습니다';
 }

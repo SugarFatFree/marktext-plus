@@ -1079,4 +1079,29 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get settingsAiApiKeyHint =>
       'يُحفظ مفتاح API في مخزن أسرار النظام تحت المرجع المحدد.';
+
+  @override
+  String get copy => 'نسخ';
+
+  @override
+  String get pluginWorking => 'جارٍ التنفيذ…';
+
+  @override
+  String get pluginOriginal => 'ما أُرسل إلى الإضافة';
+
+  @override
+  String get pluginResult => 'نتيجة الإضافة';
+
+  @override
+  String pluginFailed(String plugin) {
+    return 'فشل $plugin';
+  }
+
+  @override
+  String pluginCannotEdit(String plugin) {
+    return 'لا تملك $plugin إذن تعديل المستند';
+  }
+
+  @override
+  String get pluginTooManySteps => 'طرحت الإضافة أسئلة كثيرة جدًا';
 }

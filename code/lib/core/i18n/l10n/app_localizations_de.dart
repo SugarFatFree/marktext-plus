@@ -1084,4 +1084,29 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get settingsAiApiKeyHint =>
       'Der API-Schlüssel wird unter der angegebenen Referenz im System-Geheimnisspeicher gespeichert.';
+
+  @override
+  String get copy => 'Kopieren';
+
+  @override
+  String get pluginWorking => 'Wird ausgeführt…';
+
+  @override
+  String get pluginOriginal => 'An das Plug-in übergeben';
+
+  @override
+  String get pluginResult => 'Ergebnis des Plug-ins';
+
+  @override
+  String pluginFailed(String plugin) {
+    return '$plugin ist fehlgeschlagen';
+  }
+
+  @override
+  String pluginCannotEdit(String plugin) {
+    return '$plugin darf das Dokument nicht bearbeiten';
+  }
+
+  @override
+  String get pluginTooManySteps => 'Das Plug-in hat zu viel nachgefragt';
 }

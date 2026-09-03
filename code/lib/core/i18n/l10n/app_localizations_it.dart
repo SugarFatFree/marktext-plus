@@ -1089,4 +1089,29 @@ class AppLocalizationsIt extends AppLocalizations {
   @override
   String get settingsAiApiKeyHint =>
       'La chiave API viene salvata nel gestore dei segreti di sistema con il riferimento indicato.';
+
+  @override
+  String get copy => 'Copia';
+
+  @override
+  String get pluginWorking => 'In corso…';
+
+  @override
+  String get pluginOriginal => 'Inviato all’estensione';
+
+  @override
+  String get pluginResult => 'Risultato dell’estensione';
+
+  @override
+  String pluginFailed(String plugin) {
+    return '$plugin non è riuscito';
+  }
+
+  @override
+  String pluginCannotEdit(String plugin) {
+    return '$plugin non può modificare il documento';
+  }
+
+  @override
+  String get pluginTooManySteps => 'L’estensione ha posto troppe domande';
 }

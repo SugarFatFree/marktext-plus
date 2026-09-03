@@ -412,5 +412,12 @@
   "settingsAiEndpointHint": "Introduce solo la raíz del proveedor; no añadas /v1/messages ni /v1/chat/completions.",
   "settingsAiTestSuccess": "La prueba de configuración de IA tuvo éxito.",
   "settingsAiApiKey": "Clave API",
-  "settingsAiApiKeyHint": "La clave API se guarda en el almacén de secretos del sistema con la referencia indicada."
+  "settingsAiApiKeyHint": "La clave API se guarda en el almacén de secretos del sistema con la referencia indicada.",
+  "copy": "Copiar",
+  "pluginWorking": "Procesando…",
+  "pluginOriginal": "Enviado al complemento",
+  "pluginResult": "Resultado del complemento",
+  "pluginFailed": "{plugin} falló",
+  "pluginCannotEdit": "{plugin} no puede editar el documento",
+  "pluginTooManySteps": "El complemento hizo demasiadas preguntas"
 }

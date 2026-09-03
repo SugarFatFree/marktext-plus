@@ -38,6 +38,7 @@ dependencies:
   http: ^1.2.2
   archive: ^4.0.9
   crypto: ^3.0.6
+  lua_dardo: ^0.0.5
 
 dev_dependencies:
   flutter_test:

@@ -1066,4 +1066,29 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsAiApiKeyHint => 'API 密钥会以指定引用名保存到系统密钥存储中。';
+
+  @override
+  String get copy => '复制';
+
+  @override
+  String get pluginWorking => '正在处理…';
+
+  @override
+  String get pluginOriginal => '传给插件的内容';
+
+  @override
+  String get pluginResult => '插件结果';
+
+  @override
+  String pluginFailed(String plugin) {
+    return '$plugin 执行失败';
+  }
+
+  @override
+  String pluginCannotEdit(String plugin) {
+    return '$plugin 没有修改文档的权限';
+  }
+
+  @override
+  String get pluginTooManySteps => '插件的追问次数过多';
 }

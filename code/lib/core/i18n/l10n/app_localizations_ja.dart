@@ -1067,4 +1067,29 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsAiApiKeyHint => 'API キーは指定した参照名でシステムのシークレットストアに保存されます。';
+
+  @override
+  String get copy => 'コピー';
+
+  @override
+  String get pluginWorking => '処理中…';
+
+  @override
+  String get pluginOriginal => 'プラグインへの入力';
+
+  @override
+  String get pluginResult => 'プラグインの結果';
+
+  @override
+  String pluginFailed(String plugin) {
+    return '$plugin が失敗しました';
+  }
+
+  @override
+  String pluginCannotEdit(String plugin) {
+    return '$plugin にドキュメントを編集する権限がありません';
+  }
+
+  @override
+  String get pluginTooManySteps => 'プラグインの問い合わせ回数が多すぎます';
 }

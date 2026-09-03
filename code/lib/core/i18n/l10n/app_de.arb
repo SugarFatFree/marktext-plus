@@ -412,5 +412,12 @@
   "settingsAiEndpointHint": "Geben Sie nur die Anbieter-Basisadresse ein; fügen Sie nicht /v1/messages oder /v1/chat/completions hinzu.",
   "settingsAiTestSuccess": "Der KI-Konfigurationstest war erfolgreich.",
   "settingsAiApiKey": "API-Schlüssel",
-  "settingsAiApiKeyHint": "Der API-Schlüssel wird unter der angegebenen Referenz im System-Geheimnisspeicher gespeichert."
+  "settingsAiApiKeyHint": "Der API-Schlüssel wird unter der angegebenen Referenz im System-Geheimnisspeicher gespeichert.",
+  "copy": "Kopieren",
+  "pluginWorking": "Wird ausgeführt…",
+  "pluginOriginal": "An das Plug-in übergeben",
+  "pluginResult": "Ergebnis des Plug-ins",
+  "pluginFailed": "{plugin} ist fehlgeschlagen",
+  "pluginCannotEdit": "{plugin} darf das Dokument nicht bearbeiten",
+  "pluginTooManySteps": "Das Plug-in hat zu viel nachgefragt"
 }

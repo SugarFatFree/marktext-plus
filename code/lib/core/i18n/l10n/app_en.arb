@@ -518,5 +518,14 @@
   "settingsAiEndpointHint": "Enter the provider root only; do not add /v1/messages or /v1/chat/completions.",
   "settingsAiTestSuccess": "AI configuration test succeeded.",
   "settingsAiApiKey": "API key",
-  "settingsAiApiKeyHint": "Stored in the system secret store under the reference above."
+  "settingsAiApiKeyHint": "Stored in the system secret store under the reference above.",
+  "copy": "Copy",
+  "pluginWorking": "Working…",
+  "pluginOriginal": "Given to the plugin",
+  "pluginResult": "Plugin result",
+  "pluginFailed": "{plugin} failed",
+  "@pluginFailed": {"placeholders": {"plugin": {"type": "String"}}},
+  "pluginCannotEdit": "{plugin} may not edit the document",
+  "@pluginCannotEdit": {"placeholders": {"plugin": {"type": "String"}}},
+  "pluginTooManySteps": "The plugin asked too many questions"
 }

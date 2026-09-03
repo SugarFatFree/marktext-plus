@@ -412,5 +412,12 @@
   "settingsAiEndpointHint": "Saisissez uniquement la racine du fournisseur ; n’ajoutez pas /v1/messages ni /v1/chat/completions.",
   "settingsAiTestSuccess": "Le test de configuration IA a réussi.",
   "settingsAiApiKey": "Clé API",
-  "settingsAiApiKeyHint": "La clé API est enregistrée dans le coffre de secrets du système sous la référence indiquée."
+  "settingsAiApiKeyHint": "La clé API est enregistrée dans le coffre de secrets du système sous la référence indiquée.",
+  "copy": "Copier",
+  "pluginWorking": "En cours…",
+  "pluginOriginal": "Transmis à l’extension",
+  "pluginResult": "Résultat de l’extension",
+  "pluginFailed": "Échec de {plugin}",
+  "pluginCannotEdit": "{plugin} n’a pas le droit de modifier le document",
+  "pluginTooManySteps": "L’extension a posé trop de questions"
 }

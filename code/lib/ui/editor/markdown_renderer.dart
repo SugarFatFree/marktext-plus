@@ -28,6 +28,7 @@ import '../../services/rich_copy_service.dart';
 import '../../services/clipboard_service.dart';
 import 'mermaid/parser/mermaid_parser.dart';
 import '../widgets/mermaid_renderer.dart';
+import '../widgets/plugin_command_actions.dart';
 import '../../services/file_service.dart';
 
 class MarkdownRenderer extends ConsumerStatefulWidget {
@@ -817,6 +818,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         key: _viewportKey,
         controller: _previewScroll,
         child: SelectionArea(
+          contextMenuBuilder: _buildPreviewContextMenu,
           onSelectionChanged: (content) => ref
               .read(editorProvider.notifier)
               .setSelectedText(content?.plainText ?? ''),
@@ -1317,6 +1319,23 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   /// bottom does the part that matters — saying where the link goes before it
   /// is followed — without a popup that has to be positioned, kept on screen
   /// and dismissed.
+  Widget _buildPreviewContextMenu(
+      BuildContext context, SelectableRegionState state) {
+    return AdaptiveTextSelectionToolbar.buttonItems(
+      anchors: state.contextMenuAnchors,
+      buttonItems: [
+        ...state.contextMenuButtonItems,
+        ...PluginCommandActions.menuItems(
+          context: context,
+          ref: ref,
+          location: PluginCommandActions.editorContextMenu,
+          selection: () => ref.read(editorProvider).selectedText,
+          document: () => widget.markdown,
+        ),
+      ],
+    );
+  }
+
   Widget _buildLinkHint(AppThemeTokens tokens) {
     return ValueListenableBuilder<String?>(
       valueListenable: _hoveredLink,

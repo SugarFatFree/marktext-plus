@@ -412,5 +412,12 @@
   "settingsAiEndpointHint": "أدخل جذر الموفر فقط؛ لا تضف /v1/messages أو /v1/chat/completions.",
   "settingsAiTestSuccess": "نجح اختبار إعدادات الذكاء الاصطناعي.",
   "settingsAiApiKey": "مفتاح API",
-  "settingsAiApiKeyHint": "يُحفظ مفتاح API في مخزن أسرار النظام تحت المرجع المحدد."
+  "settingsAiApiKeyHint": "يُحفظ مفتاح API في مخزن أسرار النظام تحت المرجع المحدد.",
+  "copy": "نسخ",
+  "pluginWorking": "جارٍ التنفيذ…",
+  "pluginOriginal": "ما أُرسل إلى الإضافة",
+  "pluginResult": "نتيجة الإضافة",
+  "pluginFailed": "فشل {plugin}",
+  "pluginCannotEdit": "لا تملك {plugin} إذن تعديل المستند",
+  "pluginTooManySteps": "طرحت الإضافة أسئلة كثيرة جدًا"
 }

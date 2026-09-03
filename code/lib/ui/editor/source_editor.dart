@@ -5,8 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 
 import '../../core/theme/app_theme.dart';
@@ -26,11 +24,8 @@ import '../../services/clipboard_service.dart';
 import '../../services/rich_copy_service.dart';
 import '../../services/table_edit_service.dart';
 import '../../services/block_move_service.dart';
-import '../../services/plugin_translation_service.dart';
-import '../../providers/plugin_provider.dart';
-import '../../services/plugin_manager.dart';
-import '../../services/plugin_manifest.dart';
 import '../widgets/format_toolbar.dart';
+import '../widgets/plugin_command_actions.dart';
 
 class SourceEditor extends ConsumerStatefulWidget {
   final String initialContent;
@@ -1455,52 +1450,21 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
   }
 
   Widget _buildContextMenu(BuildContext context, EditableTextState state) {
-    final items = [...state.contextMenuButtonItems];
-    final messenger = ScaffoldMessenger.of(context);
-    final navigator = Navigator.of(context);
-    final plugins = ref.read(installedPluginManifestsProvider).valueOrNull ??
-        const <PluginManifest>[];
-    for (final plugin in plugins.where((p) => p.id.contains('ai-translate'))) {
-      items.add(
-        ContextMenuButtonItem(
-          label: 'Translate selection',
-          onPressed: () async {
-            final selection = _controller.selection;
-            if (selection.isCollapsed) return;
-            final source = _controller.text.substring(selection.start, selection.end);
-            final directory = await getApplicationSupportDirectory();
-            try {
-              final translated = await PluginTranslationService.translate(
-                plugin: plugin,
-                source: source,
-                targetLanguage: 'English',
-                config: ref.read(settingsProvider),
-                manager: PluginManager(p.join(directory.path, 'plugins')),
-              );
-              if (!mounted || !navigator.mounted) return;
-              await showDialog<void>(
-                context: navigator.context,
-                builder: (dialogContext) => AlertDialog(
-                  title: const Text('Translation result'),
-                  content: SelectableText(translated),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(dialogContext).pop(),
-                      child: const Text('Close'),
-                    ),
-                  ],
-                ),
-              );
-            } catch (error) {
-              if (mounted && messenger.mounted) messenger.showSnackBar(SnackBar(content: Text('$error')));
-            }
-          },
-        ),
-      );
-    }
+    final selection = _controller.selection;
     return AdaptiveTextSelectionToolbar.buttonItems(
       anchors: state.contextMenuAnchors,
-      buttonItems: items,
+      buttonItems: [
+        ...state.contextMenuButtonItems,
+        ...PluginCommandActions.menuItems(
+          context: context,
+          ref: ref,
+          location: PluginCommandActions.editorContextMenu,
+          selection: () => selection.isValid && !selection.isCollapsed
+              ? _controller.text.substring(selection.start, selection.end)
+              : '',
+          document: () => _controller.text,
+        ),
+      ],
     );
   }
 

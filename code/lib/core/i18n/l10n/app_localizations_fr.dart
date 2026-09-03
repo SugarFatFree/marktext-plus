@@ -1091,4 +1091,29 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get settingsAiApiKeyHint =>
       'La clé API est enregistrée dans le coffre de secrets du système sous la référence indiquée.';
+
+  @override
+  String get copy => 'Copier';
+
+  @override
+  String get pluginWorking => 'En cours…';
+
+  @override
+  String get pluginOriginal => 'Transmis à l’extension';
+
+  @override
+  String get pluginResult => 'Résultat de l’extension';
+
+  @override
+  String pluginFailed(String plugin) {
+    return 'Échec de $plugin';
+  }
+
+  @override
+  String pluginCannotEdit(String plugin) {
+    return '$plugin n’a pas le droit de modifier le document';
+  }
+
+  @override
+  String get pluginTooManySteps => 'L’extension a posé trop de questions';
 }

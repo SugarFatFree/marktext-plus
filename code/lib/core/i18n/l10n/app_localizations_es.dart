@@ -1089,4 +1089,29 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get settingsAiApiKeyHint =>
       'La clave API se guarda en el almacén de secretos del sistema con la referencia indicada.';
+
+  @override
+  String get copy => 'Copiar';
+
+  @override
+  String get pluginWorking => 'Procesando…';
+
+  @override
+  String get pluginOriginal => 'Enviado al complemento';
+
+  @override
+  String get pluginResult => 'Resultado del complemento';
+
+  @override
+  String pluginFailed(String plugin) {
+    return '$plugin falló';
+  }
+
+  @override
+  String pluginCannotEdit(String plugin) {
+    return '$plugin no puede editar el documento';
+  }
+
+  @override
+  String get pluginTooManySteps => 'El complemento hizo demasiadas preguntas';
 }

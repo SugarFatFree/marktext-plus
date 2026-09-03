@@ -1083,4 +1083,29 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get settingsAiApiKeyHint =>
       'Ключ API сохраняется в системном хранилище секретов под указанной ссылкой.';
+
+  @override
+  String get copy => 'Копировать';
+
+  @override
+  String get pluginWorking => 'Выполняется…';
+
+  @override
+  String get pluginOriginal => 'Передано расширению';
+
+  @override
+  String get pluginResult => 'Результат расширения';
+
+  @override
+  String pluginFailed(String plugin) {
+    return '$plugin: ошибка';
+  }
+
+  @override
+  String pluginCannotEdit(String plugin) {
+    return '$plugin не может изменять документ';
+  }
+
+  @override
+  String get pluginTooManySteps => 'Расширение задало слишком много вопросов';
 }

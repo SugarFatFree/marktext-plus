@@ -8,11 +8,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/i18n/l10n/app_localizations.dart';
-import '../../providers/settings_provider.dart';
-import '../../providers/tab_provider.dart';
 import '../../services/plugin_catalog_service.dart';
 import '../../services/plugin_manager.dart';
-import '../../services/plugin_translation_service.dart';
 import '../../services/plugin_manifest.dart';
 import '../screens/plugin_settings_screen.dart';
 import '../../providers/plugin_provider.dart';
@@ -112,92 +109,6 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
     if (mounted) setState(() => _installedFuture = manager.loadInstalled());
   }
 
-  Future<String> _translateText(PluginManifest plugin, String source, String target) async {
-    final dir = await getApplicationSupportDirectory();
-    return PluginTranslationService.translate(
-      plugin: plugin,
-      source: source,
-      targetLanguage: target,
-      config: ref.read(settingsProvider),
-      manager: PluginManager(p.join(dir.path, 'plugins')),
-    );
-  }
-
-  Future<String?> _askTargetLanguage(String title) async {
-    final controller = TextEditingController(text: 'English');
-    final result = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(title),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(labelText: 'Target language'),
-          onSubmitted: (value) => Navigator.of(dialogContext).pop(value.trim()),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(controller.text.trim()),
-            child: const Text('Translate'),
-          ),
-        ],
-      ),
-    );
-    controller.dispose();
-    return result?.isEmpty ?? true ? null : result;
-  }
-
-  Future<void> _showTranslation(String source, String translated, {required bool fullDocument}) async {
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(fullDocument ? 'Full document translation' : 'Translation result'),
-        content: SizedBox(
-          width: 900,
-          height: 520,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: SelectableText(source),
-              ),
-              const VerticalDivider(width: 24),
-              Expanded(
-                child: SelectableText(translated),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _translateFullDocument(PluginManifest plugin) async {
-    final document = ref.read(activeTabProvider)?.content;
-    if (document == null || document.trim().isEmpty) {
-      setState(() => _error = StateError('Open a Markdown document first'));
-      return;
-    }
-    final target = await _askTargetLanguage('Translate full document');
-    if (target == null || !mounted) return;
-    try {
-      final translated = await _translateText(plugin, document, target);
-      if (mounted) await _showTranslation(document, translated, fullDocument: true);
-    } catch (error) {
-      if (mounted) setState(() => _error = error);
-    }
-  }
-
   Widget _sectionTitle(String title) => Padding(
         padding: const EdgeInsets.only(top: 16, bottom: 6),
         child: Text(title, style: Theme.of(context).textTheme.labelLarge),
@@ -228,22 +139,6 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
               tooltip: l10n.settingsPluginsDiscover,
               icon: const Icon(Icons.travel_explore, size: 18),
               onPressed: _discover,
-              visualDensity: VisualDensity.compact,
-            ),
-            IconButton(
-              tooltip: 'Translate full document',
-              icon: const Icon(Icons.translate, size: 18),
-              onPressed: () async {
-                final plugins = await installed;
-                final plugin = plugins
-                    .where((plugin) => plugin.id.contains('ai-translate'))
-                    .firstOrNull;
-                if (plugin == null) {
-                  if (mounted) setState(() => _error = StateError('Install the AI Translate plugin first'));
-                  return;
-                }
-                await _translateFullDocument(plugin);
-              },
               visualDensity: VisualDensity.compact,
             ),
             IconButton(
