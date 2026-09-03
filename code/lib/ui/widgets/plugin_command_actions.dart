@@ -35,6 +35,12 @@ class PluginCommandActions {
     required String Function() selection,
     required String Function() document,
   }) {
+    // Read once, here: what the reader has selected decides which entries are
+    // worth offering at all. Both were offered before — "translate the
+    // selection" with nothing selected, and "translate the document" while
+    // pointing at a paragraph.
+    final selected = selection();
+    final hasSelection = selected.trim().isNotEmpty;
     // What the installed plugins contribute is settled before anything is
     // read off the context: with no plugin contributing here there is nothing
     // to draw, and a pane that has no localisations — which is every editor
@@ -46,7 +52,9 @@ class PluginCommandActions {
         if (plugin.runtime == PluginRuntime.lua ||
             plugin.runtime == PluginRuntime.js)
           for (final menu in plugin.menus)
-            if (menu.location == location) (plugin, menu),
+            if (menu.location == location &&
+                menu.appliesTo(hasSelection: hasSelection))
+              (plugin, menu),
     ];
     if (contributions.isEmpty) return const [];
 
@@ -65,17 +73,23 @@ class PluginCommandActions {
             // A plugin's own translation of its own label wins over the
             // English fallback it declared in the manifest.
             label: strings[menu.title] ?? menu.title,
-            onPressed: () => _run(
-              navigator: navigator,
-              messenger: messenger,
-              ref: ref,
-              l10n: l10n,
-              locale: locale,
-              plugin: plugin,
-              command: menu.id,
-              selection: selection(),
-              document: document(),
-            ),
+            onPressed: () {
+              // The toolbar does not take itself down when one of its own
+              // buttons runs something, so it sat there over the document for
+              // the whole translation and after it.
+              ContextMenuController.removeAny();
+              _run(
+                navigator: navigator,
+                messenger: messenger,
+                ref: ref,
+                l10n: l10n,
+                locale: locale,
+                plugin: plugin,
+                command: menu.id,
+                selection: selected,
+                document: document(),
+              );
+            },
           ),
         );
       }
@@ -142,9 +156,14 @@ class PluginCommandActions {
       // would otherwise keep the reader in a loop it controls.
       for (var step = 0; step < 8; step++) {
         switch (action) {
-          case PluginAskAction(:final label, :final defaultValue):
+          case PluginAskAction(
+              :final label,
+              :final defaultValue,
+              :final choices
+            ):
             if (!navigator.mounted) return;
-            final answer = await _ask(navigator.context, label, defaultValue);
+            final answer =
+                await _ask(navigator.context, label, defaultValue, choices);
             if (answer == null) return;
             context = context.withAnswer(answer);
             action = service.start(plugin, context);
@@ -160,6 +179,27 @@ class PluginCommandActions {
               ),
             );
             action = service.resumeWithResult(plugin, context, reply);
+
+          case PluginShowAction(:final text, :final title):
+            if (!navigator.mounted) return;
+            await showDialog<void>(
+              context: navigator.context,
+              builder: (_) => _ResultDialog(
+                title: title.isEmpty ? plugin.name : title,
+                text: text,
+                l10n: l10n,
+              ),
+            );
+            return;
+
+          case PluginPanelAction(:final text, :final title):
+            ref.read(pluginPanelResultProvider.notifier).state =
+                PluginPanelResult(
+              pluginName: plugin.name,
+              title: title,
+              text: text,
+            );
+            return;
 
           case PluginDiffAction(:final original, :final result):
             if (!navigator.mounted) return;
@@ -207,6 +247,7 @@ class PluginCommandActions {
     BuildContext context,
     String label,
     String initial,
+    List<String> choices,
   ) async {
     final controller = TextEditingController(text: initial);
     final l10n = AppLocalizations.of(context)!;
@@ -214,10 +255,23 @@ class PluginCommandActions {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(label),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          onSubmitted: (value) => Navigator.of(dialogContext).pop(value.trim()),
+        // The list is a shortcut, not a cage: picking from it fills the box in,
+        // and anything typed there is taken as it stands.
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (choices.isNotEmpty) ...[
+              _ChoiceRow(choices: choices, controller: controller),
+              const SizedBox(height: 12),
+            ],
+            TextField(
+              controller: controller,
+              autofocus: true,
+              onSubmitted: (value) =>
+                  Navigator.of(dialogContext).pop(value.trim()),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -361,6 +415,77 @@ class _SideBySideDialog extends StatelessWidget {
               child: SingleChildScrollView(child: SelectableText(body)),
             ),
           ),
+        ),
+      ],
+    );
+  }
+}
+
+/// The answers a plugin offered outright, as chips above the box.
+///
+/// A row rather than a dropdown: with half a dozen languages the whole list is
+/// visible at once, and choosing one is a single press instead of open-then-pick.
+class _ChoiceRow extends StatelessWidget {
+  const _ChoiceRow({required this.choices, required this.controller});
+
+  final List<String> choices;
+  final TextEditingController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: controller,
+      builder: (context, value, _) => Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        children: [
+          for (final choice in choices)
+            ChoiceChip(
+              label: Text(choice),
+              selected: value.text.trim() == choice,
+              onSelected: (_) => controller.value = TextEditingValue(
+                text: choice,
+                selection: TextSelection.collapsed(offset: choice.length),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One result, shown small. Nothing is written to the document.
+class _ResultDialog extends StatelessWidget {
+  const _ResultDialog({
+    required this.title,
+    required this.text,
+    required this.l10n,
+  });
+
+  final String title;
+  final String text;
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(title),
+      // Sized to a note, not to the window: this is one answer to read, and
+      // the side-by-side dialog that used to appear here covered the document
+      // the reader was checking it against.
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 460, maxHeight: 320),
+        child: SingleChildScrollView(child: SelectableText(text)),
+      ),
+      actions: [
+        TextButton.icon(
+          onPressed: () => Clipboard.setData(ClipboardData(text: text)),
+          icon: const Icon(Icons.copy, size: 16),
+          label: Text(l10n.copy),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l10n.confirm),
         ),
       ],
     );

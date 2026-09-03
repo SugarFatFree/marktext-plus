@@ -66,6 +66,27 @@ function on_command(ctx) { return { notify: "ran " + ctx.command }; }
       'ran demo',
     );
   }, skip: !_quickJsAvailable);
+
+  test('the JS runtime understands the same actions as the Lua one', () {
+    final show = PluginJsRuntime.parseAction(
+        '{"show":"translated","title":"Japanese"}');
+    expect((show as PluginShowAction).text, 'translated');
+    expect(show.title, 'Japanese');
+
+    final panel = PluginJsRuntime.parseAction(
+        '{"panel":"the document","title":"Japanese"}');
+    expect((panel as PluginPanelAction).text, 'the document');
+
+    final ask = PluginJsRuntime.parseAction(
+        '{"ask":"Language","default":"English","choices":["English","日本語"]}');
+    expect((ask as PluginAskAction).choices, ['English', '日本語']);
+  });
+
+  test('a JS question with no choices is not given any', () {
+    final ask = PluginJsRuntime.parseAction('{"ask":"Anything"}')
+        as PluginAskAction;
+    expect(ask.choices, isEmpty);
+  });
 }
 
 /// Whether the QuickJS native library is present, which it is only in a build.

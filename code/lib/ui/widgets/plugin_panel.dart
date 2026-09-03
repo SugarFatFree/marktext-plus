@@ -271,8 +271,15 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
                                   const Icon(Icons.extension, size: 17),
                                   const SizedBox(width: 6),
                                   Expanded(
-                                    child: Text(plugin.name,
-                                        overflow: TextOverflow.ellipsis),
+                                    child: InkWell(
+                                      onTap: () => ref
+                                          .read(pluginDetailProvider.notifier)
+                                          .state = PluginCatalogEntry.installed(
+                                        plugin,
+                                      ),
+                                      child: Text(plugin.name,
+                                          overflow: TextOverflow.ellipsis),
+                                    ),
                                   ),
                                   Switch(
                                     value: enabled.data ?? true,

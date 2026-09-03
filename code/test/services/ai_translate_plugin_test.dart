@@ -132,7 +132,7 @@ void main() {
     expect((action as PluginNotifyAction).message, contains('请先选中'));
   }, skip: present ? null : '插件仓库不在这台机器上');
 
-  test('the model reply comes back as two panes, not as an edit', () {
+  test('a translated selection is one small answer, not an edit', () {
     final service = PluginCommandService(root.path);
 
     final action = service.resumeWithResult(
@@ -145,8 +145,55 @@ void main() {
       'Hello',
     );
 
-    expect(action, isA<PluginDiffAction>());
-    expect((action as PluginDiffAction).original, '你好');
-    expect(action.result, 'Hello');
+    expect(action, isA<PluginShowAction>());
+    expect((action as PluginShowAction).text, 'Hello');
+    expect(action.title, 'English');
+  }, skip: present ? null : '插件仓库不在这台机器上');
+
+  test('a translated document goes beside the document, not over it', () {
+    final service = PluginCommandService(root.path);
+
+    final action = service.resumeWithResult(
+      manifest,
+      const PluginScriptContext(
+        command: 'translate.document',
+        document: '# 标题',
+        answer: '日本語',
+      ),
+      '# Title',
+    );
+
+    expect(action, isA<PluginPanelAction>(),
+        reason: '整篇译文放弹窗会盖住读者要对照的原文');
+    expect((action as PluginPanelAction).text, '# Title');
+  }, skip: present ? null : '插件仓库不在这台机器上');
+
+  test('the language question offers the usual answers and takes any other',
+      () {
+    final service = PluginCommandService(root.path);
+
+    final action = service.start(
+      manifest,
+      const PluginScriptContext(
+        command: 'translate.selection',
+        selection: '你好',
+      ),
+    ) as PluginAskAction;
+
+    expect(action.choices, contains('日本語'));
+    expect(action.choices, contains('English'));
+    expect(action.defaultValue, isNotEmpty);
+  }, skip: present ? null : '插件仓库不在这台机器上');
+
+  test('each entry is offered only when it makes sense', () {
+    final selection = manifest.menus
+        .firstWhere((menu) => menu.id == 'translate.selection');
+    final document = manifest.menus
+        .firstWhere((menu) => menu.id == 'translate.document');
+
+    expect(selection.appliesTo(hasSelection: true), isTrue);
+    expect(selection.appliesTo(hasSelection: false), isFalse);
+    expect(document.appliesTo(hasSelection: false), isTrue);
+    expect(document.appliesTo(hasSelection: true), isFalse);
   }, skip: present ? null : '插件仓库不在这台机器上');
 }

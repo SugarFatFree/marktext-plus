@@ -44,25 +44,66 @@ String _requiredString(Map<String, dynamic> json, String key) {
 }
 
 
+/// When a menu entry applies.
+enum PluginMenuCondition {
+  /// Offered whichever way things stand.
+  always,
+
+  /// Only with something selected.
+  selection,
+
+  /// Only with nothing selected.
+  noSelection,
+}
+
 class PluginMenuItem {
   const PluginMenuItem({
     required this.id,
     required this.title,
     required this.location,
+    this.when = PluginMenuCondition.always,
   });
 
   final String id;
   final String title;
   final String location;
 
+  /// What has to be true for this entry to be worth offering.
+  ///
+  /// Without it a plugin's entries were all offered at once: "translate the
+  /// selection" with nothing selected, and "translate the document" while the
+  /// reader was pointing at a paragraph.
+  final PluginMenuCondition when;
+
+  bool appliesTo({required bool hasSelection}) => switch (when) {
+        PluginMenuCondition.always => true,
+        PluginMenuCondition.selection => hasSelection,
+        PluginMenuCondition.noSelection => !hasSelection,
+      };
+
   factory PluginMenuItem.fromJson(Map<String, dynamic> json) => PluginMenuItem(
         id: _requiredString(json, 'id'),
         title: _requiredString(json, 'title'),
         location: _requiredString(json, 'location'),
+        when: switch ((json['when'] as String?)?.trim()) {
+          null || '' || 'always' => PluginMenuCondition.always,
+          'selection' => PluginMenuCondition.selection,
+          'noSelection' => PluginMenuCondition.noSelection,
+          // Ignoring it would quietly make the entry unconditional, which is
+          // the opposite of what an author writing `when` is asking for.
+          final unknown => throw FormatException(
+              'unknown "when" on a menu entry: $unknown. '
+              'Expected always, selection or noSelection',
+            ),
+        },
       );
 
-  Map<String, dynamic> toJson() =>
-      {'id': id, 'title': title, 'location': location};
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'location': location,
+        if (when != PluginMenuCondition.always) 'when': when.name,
+      };
 }
 
 class PluginSettingPage {
@@ -254,6 +295,7 @@ class PluginManifest {
     required this.version,
     required this.entrypoint,
     this.minAppVersion = '',
+    this.repository = '',
     this.capabilities = const <String>[],
     this.permissions = const <String>[],
     this.commands = const <PluginCommand>[],
@@ -272,6 +314,10 @@ class PluginManifest {
   final String version;
   final String entrypoint;
   final String minAppVersion;
+
+  /// Where the plugin came from, if it said. Shown on its detail page so an
+  /// installed plugin can still be read about.
+  final String repository;
   final List<String> capabilities;
   final List<String> permissions;
   final List<PluginCommand> commands;
@@ -484,6 +530,7 @@ class PluginManifest {
       version: requiredString('version'),
       entrypoint: entrypoint,
       minAppVersion: (json['minAppVersion'] as String?)?.trim() ?? '',
+      repository: (json['repository'] as String?)?.trim() ?? '',
       capabilities: strings('capabilities'),
       permissions: strings('permissions'),
       commands: objects('commands', PluginCommand.fromJson),
@@ -504,6 +551,7 @@ class PluginManifest {
         'version': version,
         'entrypoint': entrypoint,
         if (minAppVersion.isNotEmpty) 'minAppVersion': minAppVersion,
+        if (repository.isNotEmpty) 'repository': repository,
         'capabilities': capabilities,
         if (permissions.isNotEmpty) 'permissions': permissions,
         if (commands.isNotEmpty)

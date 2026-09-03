@@ -193,4 +193,67 @@ end
     expect((action as PluginNotifyAction).message, isEmpty,
         reason: '插件不该能拿到文件系统和进程');
   });
+
+  test('a plugin can ask for one small window showing just the answer', () {
+    final runtime = PluginScriptRuntime(r'''
+function on_command(ctx)
+  return { show = "translated text", title = "Japanese" }
+end
+''');
+
+    final action = runtime.runCommand(const PluginScriptContext(command: 'x'));
+
+    expect(action, isA<PluginShowAction>());
+    expect((action as PluginShowAction).text, 'translated text');
+    expect(action.title, 'Japanese');
+  });
+
+  test('a plugin can ask for a panel beside the document instead', () {
+    // Side by side in a dialog is wrong for a whole document: the reader wants
+    // to read it against what is on screen, not in a box on top of it.
+    final runtime = PluginScriptRuntime(r'''
+function on_command(ctx)
+  return { panel = "the whole translated document", title = "Japanese" }
+end
+''');
+
+    final action = runtime.runCommand(const PluginScriptContext(command: 'x'));
+
+    expect(action, isA<PluginPanelAction>());
+    expect((action as PluginPanelAction).text, 'the whole translated document');
+    expect(action.title, 'Japanese');
+  });
+
+  test('a question can offer choices as well as take anything typed', () {
+    final runtime = PluginScriptRuntime(r'''
+function on_command(ctx)
+  return {
+    ask = "Target language",
+    default = "English",
+    choices = { "English", "\u{7b80}\u{4f53}\u{4e2d}\u{6587}", "\u{65e5}\u{672c}\u{8a9e}" },
+  }
+end
+''');
+
+    final action = runtime.runCommand(const PluginScriptContext(command: 'x'));
+
+    expect(action, isA<PluginAskAction>());
+    final ask = action as PluginAskAction;
+    expect(ask.defaultValue, 'English');
+    expect(ask.choices, hasLength(3));
+    expect(ask.choices.first, 'English');
+  });
+
+  test('a question with no choices still just takes what is typed', () {
+    final runtime = PluginScriptRuntime(r'''
+function on_command(ctx)
+  return { ask = "Anything", default = "" }
+end
+''');
+
+    final ask = runtime.runCommand(const PluginScriptContext(command: 'x'))
+        as PluginAskAction;
+
+    expect(ask.choices, isEmpty);
+  });
 }

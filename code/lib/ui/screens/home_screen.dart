@@ -26,6 +26,7 @@ import '../../core/constants.dart';
 import '../../utils/platform_utils.dart';
 import '../widgets/app_menu_bar.dart';
 import '../widgets/side_bar.dart';
+import '../widgets/plugin_result_panel.dart';
 import '../widgets/status_bar.dart';
 import '../widgets/find_replace_bar.dart';
 import '../widgets/command_palette.dart';
@@ -817,7 +818,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
                                 return const SizedBox.shrink();
                               },
                             ),
-                          Expanded(child: _zoomable(_buildEditorArea(config.editMode))),
+                          Expanded(
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: _zoomable(
+                                    _buildEditorArea(config.editMode),
+                                  ),
+                                ),
+                                // A plugin result the reader is meant to read
+                                // against the document, so beside it rather
+                                // than over it.
+                                const PluginResultPanel(),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                     ),

@@ -153,14 +153,28 @@ globalThis.t = function (key) {
 
     final ask = field('ask');
     if (ask != null) {
+      final choices = decoded['choices'];
       return PluginAskAction(
         label: ask,
         defaultValue: field('default') ?? '',
+        choices: choices is List
+            ? [for (final c in choices) if (c is String) c]
+            : const [],
       );
     }
 
     final ai = field('ai');
     if (ai != null) return PluginAiAction(ai);
+
+    final show = field('show');
+    if (show != null) {
+      return PluginShowAction(text: show, title: field('title') ?? '');
+    }
+
+    final panel = field('panel');
+    if (panel != null) {
+      return PluginPanelAction(text: panel, title: field('title') ?? '');
+    }
 
     final notify = field('notify');
     if (notify != null) return PluginNotifyAction(notify);

@@ -15,15 +15,51 @@ class PluginCatalogEntry {
     required this.sha256,
     this.description = '',
     this.repositoryUrl,
+    this.releaseNotes = '',
+    this.publishedAt,
   });
 
   final String id;
   final String name;
   final String version;
-  final Uri downloadUrl;
+  /// Null for a plugin that is already installed: there is nothing to fetch.
+  final Uri? downloadUrl;
   final String sha256;
   final String description;
   final Uri? repositoryUrl;
+
+  /// What the release said had changed. Markdown, as its author wrote it.
+  ///
+  /// The one thing someone deciding whether to install or update is looking
+  /// for, and the detail page had no way to show it.
+  final String releaseNotes;
+
+  /// When that release was published, if the date could be read.
+  final DateTime? publishedAt;
+
+  /// Whether this is a plugin already on the reader's machine.
+  ///
+  /// The detail page was built from a search result, so installing a plugin
+  /// took its page away: clicking it in the installed list did nothing, and
+  /// the version and notes that had been there a moment ago were gone.
+  bool get isInstalled => downloadUrl == null;
+
+  /// A page for a plugin that is already installed.
+  ///
+  /// It has no download to offer and, unless its manifest says otherwise, no
+  /// repository to read a README from — so the page shows what the manifest
+  /// knows rather than fetching something that is not there.
+  factory PluginCatalogEntry.installed(PluginManifest manifest) =>
+      PluginCatalogEntry(
+        id: manifest.id,
+        name: manifest.name,
+        version: manifest.version,
+        downloadUrl: null,
+        sha256: '',
+        repositoryUrl: manifest.repository.isEmpty
+            ? null
+            : Uri.tryParse(manifest.repository),
+      );
 
   factory PluginCatalogEntry.fromJson(Map<String, dynamic> json) {
     String requiredString(String key) {
@@ -34,6 +70,7 @@ class PluginCatalogEntry {
       return value.trim();
     }
 
+    final published = json['publishedAt'];
     final url = Uri.tryParse(requiredString('downloadUrl'));
     if (url == null || !url.isScheme('https')) {
       throw const FormatException('plugin downloadUrl must use HTTPS');
@@ -46,6 +83,11 @@ class PluginCatalogEntry {
       sha256: requiredString('sha256').toLowerCase(),
       description: (json['description'] as String?)?.trim() ?? '',
       repositoryUrl: Uri.tryParse((json['repository'] as String?) ?? ''),
+      releaseNotes: (json['releaseNotes'] as String?)?.trim() ?? '',
+      // A date nobody can read is worth less than the plugin it is attached
+      // to, so it is dropped rather than allowed to hide the entry.
+      publishedAt:
+          published is String ? DateTime.tryParse(published)?.toUtc() : null,
     );
   }
 }
@@ -151,6 +193,10 @@ class PluginCatalogService {
               sha256: digest.substring('sha256:'.length),
               description: (item['description'] as String?) ?? '',
               repositoryUrl: Uri.https('github.com', '/$fullName'),
+              releaseNotes: (release['body'] as String?)?.trim() ?? '',
+              publishedAt: DateTime.tryParse(
+                (release['published_at'] as String?) ?? '',
+              )?.toUtc(),
             ),
           );
           break;
@@ -189,8 +235,14 @@ class PluginCatalogService {
       '${Directory.systemTemp.path}${Platform.pathSeparator}'
       'marktext-plugin-${entry.id.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_')}.zip',
     );
+    final downloadUrl = entry.downloadUrl;
+    if (downloadUrl == null) {
+      throw const FormatException(
+        'this plugin is already installed; there is nothing to download',
+      );
+    }
     try {
-      final request = await client.getUrl(entry.downloadUrl);
+      final request = await client.getUrl(downloadUrl);
       final response = await request.close();
       if (response.statusCode != HttpStatus.ok) {
         throw HttpException('plugin download returned ${response.statusCode}');

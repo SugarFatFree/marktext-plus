@@ -22,6 +22,13 @@ class _PluginDetailViewState extends ConsumerState<PluginDetailView> {
   bool _installing = false;
   Object? _error;
 
+  /// Kept, so switching tabs does not fetch the README again each time.
+  Future<String>? _readme;
+
+  static String _asDate(DateTime when) =>
+      '${when.year}-${when.month.toString().padLeft(2, '0')}'
+      '-${when.day.toString().padLeft(2, '0')}';
+
   Future<void> _install() async {
     setState(() {
       _installing = true;
@@ -60,22 +67,45 @@ class _PluginDetailViewState extends ConsumerState<PluginDetailView> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(
-                    widget.plugin.name,
-                    style: Theme.of(context).textTheme.titleLarge,
-                    overflow: TextOverflow.ellipsis,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        widget.plugin.name,
+                        style: Theme.of(context).textTheme.titleLarge,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      // Which version this is, and when it was put out. The
+                      // page showed neither, so there was no way to tell what
+                      // the Install button would install.
+                      Text(
+                        [
+                          widget.plugin.version,
+                          if (widget.plugin.publishedAt != null)
+                            _asDate(widget.plugin.publishedAt!),
+                          'Community / Unverified',
+                        ].join(' · '),
+                        style: Theme.of(context).textTheme.bodySmall,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
                 ),
                 OutlinedButton.icon(
-                  onPressed: _installing ? null : _install,
+                  onPressed: (_installing || widget.plugin.isInstalled)
+                      ? null
+                      : _install,
                   icon: _installing
                       ? const SizedBox(
                           width: 16,
                           height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Icon(Icons.download),
-                  label: const Text('Install'),
+                      : Icon(widget.plugin.isInstalled
+                          ? Icons.check
+                          : Icons.download),
+                  label: Text(widget.plugin.isInstalled ? 'Installed' : 'Install'),
                 ),
               ],
             ),
@@ -90,19 +120,61 @@ class _PluginDetailViewState extends ConsumerState<PluginDetailView> {
             ),
           ),
         Expanded(
-          child: FutureBuilder<String>(
-            future: PluginCatalogService().fetchReadme(widget.plugin.repositoryUrl!),
-            builder: (context, snapshot) {
-              if (snapshot.hasError) {
-                return Center(child: SelectableText('${snapshot.error}'));
-              }
-              if (!snapshot.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              return MarkdownRenderer(markdown: snapshot.data!);
-            },
+          child: DefaultTabController(
+            length: 2,
+            child: Column(
+              children: [
+                const TabBar(
+                  tabs: [
+                    Tab(text: 'About'),
+                    Tab(text: "What's new"),
+                  ],
+                ),
+                Expanded(
+                  child: TabBarView(
+                    children: [
+                      if (widget.plugin.repositoryUrl == null)
+                        Center(
+                          child: Text(
+                            'This plugin did not say where it came from.',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        )
+                      else
+                        FutureBuilder<String>(
+                        future: _readme ??= PluginCatalogService()
+                            .fetchReadme(widget.plugin.repositoryUrl!),
+                        builder: (context, snapshot) {
+                          if (snapshot.hasError) {
+                            return Center(
+                                child: SelectableText('${snapshot.error}'));
+                          }
+                          if (!snapshot.hasData) {
+                            return const Center(
+                                child: CircularProgressIndicator());
+                          }
+                          return MarkdownRenderer(markdown: snapshot.data!);
+                        },
+                      ),
+                      // Whatever the release said had changed. Empty is said
+                      // out loud rather than shown as a blank page.
+                      widget.plugin.releaseNotes.isEmpty
+                          ? Center(
+                              child: Text(
+                                'This release came with no notes.',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            )
+                          : MarkdownRenderer(
+                              markdown: widget.plugin.releaseNotes),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
+        if (widget.plugin.repositoryUrl != null)
         Padding(
           padding: const EdgeInsets.all(12),
           child: Align(

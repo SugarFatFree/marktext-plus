@@ -52,10 +52,21 @@ sealed class PluginScriptAction {
 
 /// Ask the reader a question, then run the command again with the answer.
 class PluginAskAction extends PluginScriptAction {
-  const PluginAskAction({required this.label, required this.defaultValue});
+  const PluginAskAction({
+    required this.label,
+    required this.defaultValue,
+    this.choices = const [],
+  });
 
   final String label;
   final String defaultValue;
+
+  /// Answers worth offering outright, if the plugin knows any.
+  ///
+  /// Anything typed is still accepted: a list of common languages saves the
+  /// reader spelling one out, and does not stop them naming a language that
+  /// is not on it.
+  final List<String> choices;
 }
 
 /// Send [prompt] to the model the reader configured, then call `on_result`.
@@ -65,6 +76,25 @@ class PluginAiAction extends PluginScriptAction {
   const PluginAiAction(this.prompt);
 
   final String prompt;
+}
+
+/// Show one result, briefly and small. Nothing is written to the document.
+class PluginShowAction extends PluginScriptAction {
+  const PluginShowAction({required this.text, this.title = ''});
+
+  final String text;
+  final String title;
+}
+
+/// Show one result in a panel beside the document, not on top of it.
+///
+/// For something document-sized: a reader comparing a translation against what
+/// is on screen cannot do it through a dialog covering the screen.
+class PluginPanelAction extends PluginScriptAction {
+  const PluginPanelAction({required this.text, this.title = ''});
+
+  final String text;
+  final String title;
 }
 
 /// Show two texts side by side. Nothing is written to the document.
@@ -296,11 +326,22 @@ class PluginScriptRuntime implements PluginRuntimeHost {
       return PluginAskAction(
         label: ask,
         defaultValue: _field('default') ?? '',
+        choices: _stringList('choices'),
       );
     }
 
     final ai = _field('ai');
     if (ai != null) return PluginAiAction(ai);
+
+    final show = _field('show');
+    if (show != null) {
+      return PluginShowAction(text: show, title: _field('title') ?? '');
+    }
+
+    final panel = _field('panel');
+    if (panel != null) {
+      return PluginPanelAction(text: panel, title: _field('title') ?? '');
+    }
 
     final notify = _field('notify');
     if (notify != null) return PluginNotifyAction(notify);
@@ -317,6 +358,28 @@ class PluginScriptRuntime implements PluginRuntimeHost {
     _state.pop(1);
 
     return const PluginNoAction();
+  }
+
+  /// The strings in the array at `table[key]`, or empty when there is none.
+  List<String> _stringList(String key) {
+    if (_state.getField(-1, key) != LuaType.luaTable) {
+      _state.pop(1);
+      return const [];
+    }
+    final values = <String>[];
+    for (var index = 1;; index++) {
+      final type = _state.getI(-1, index);
+      if (type != LuaType.luaString) {
+        _state.pop(1);
+        break;
+      }
+      final value = _state.toStr(-1);
+      _state.pop(1);
+      if (value == null) break;
+      values.add(value);
+    }
+    _state.pop(1);
+    return values;
   }
 
   /// The string at `table[key]`, or null when it is absent or not a string.

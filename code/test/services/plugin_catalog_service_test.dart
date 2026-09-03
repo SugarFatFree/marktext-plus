@@ -11,7 +11,7 @@ void main() {
       'sha256': 'ABC123',
       'repository': 'https://github.com/example/demo',
     });
-    expect(entry.downloadUrl.scheme, 'https');
+    expect(entry.downloadUrl!.scheme, 'https');
     expect(entry.sha256, 'abc123');
     expect(entry.repositoryUrl.toString(), 'https://github.com/example/demo');
     expect(

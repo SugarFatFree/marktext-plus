@@ -52,3 +52,25 @@ final pluginDiscoveryProvider =
     StateNotifierProvider<PluginDiscoveryNotifier, PluginDiscovery>(
   (ref) => PluginDiscoveryNotifier(),
 );
+
+/// A result a plugin asked to be shown beside the document rather than over it.
+///
+/// Document-sized output does not belong in a dialog: a reader comparing a
+/// translation against what is on screen cannot do it through a box covering
+/// the screen.
+class PluginPanelResult {
+  const PluginPanelResult({
+    required this.pluginName,
+    required this.title,
+    required this.text,
+  });
+
+  final String pluginName;
+
+  /// What the plugin called this result, if it said. Its own language.
+  final String title;
+  final String text;
+}
+
+final pluginPanelResultProvider =
+    StateProvider<PluginPanelResult?>((ref) => null);
