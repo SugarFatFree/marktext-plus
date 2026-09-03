@@ -159,29 +159,62 @@ void _nativePlugins() {
         ...extra,
       };
 
-  test('a compiled plugin names an executable per platform it supports', () {
+  test('an executable is named per system, and per architecture under it', () {
     final manifest = PluginManifest.fromJson(base({
       'entrypoints': {
-        'linux-x64': 'bin/linux-x64/plugin',
-        'windows-x64': r'bin\windows-x64\plugin.exe',
-        'macos-arm64': 'bin/macos-arm64/plugin',
+        'windows': {'x64': r'bin\win-x64\plugin.exe', 'arm64': r'bin\win-arm64\plugin.exe'},
+        'linux': {'x64': 'bin/linux-x64/plugin'},
       },
     }));
 
-    expect(manifest.runtime, PluginRuntime.process);
-    expect(manifest.supportedPlatforms,
-        containsAll(['linux-x64', 'windows-x64', 'macos-arm64']));
+    expect(manifest.entrypointFor('windows-x64'), r'bin\win-x64\plugin.exe');
+    expect(manifest.entrypointFor('windows-arm64'), r'bin\win-arm64\plugin.exe');
     expect(manifest.entrypointFor('linux-x64'), 'bin/linux-x64/plugin');
+    expect(manifest.entrypointFor('linux-arm64'), isNull);
   });
 
-  test('a platform the plugin never built for is named, not guessed at', () {
+  test('one file may serve every architecture of a system', () {
+    // A macOS universal binary is one file holding both architectures — this
+    // application ships exactly that. Naming it once should not mean writing
+    // the same path under two keys.
     final manifest = PluginManifest.fromJson(base({
-      'entrypoints': {'linux-x64': 'bin/linux-x64/plugin'},
+      'entrypoints': {'macos': 'bin/macos/plugin'},
     }));
 
-    expect(manifest.entrypointFor('windows-x64'), isNull);
-    expect(manifest.supportsPlatform('windows-x64'), isFalse);
-    expect(manifest.supportsPlatform('linux-x64'), isTrue);
+    expect(manifest.entrypointFor('macos-arm64'), 'bin/macos/plugin');
+    expect(manifest.entrypointFor('macos-x64'), 'bin/macos/plugin');
+    expect(manifest.supportsPlatform('macos-x64'), isTrue);
+    expect(manifest.supportsPlatform('linux-x64'), isFalse);
+  });
+
+  test('a shared default and one specialised architecture live together', () {
+    final manifest = PluginManifest.fromJson(base({
+      'entrypoints': {
+        'linux': {
+          'default': 'bin/linux/plugin',
+          'arm64': 'bin/linux-arm64/plugin',
+        },
+      },
+    }));
+
+    expect(manifest.entrypointFor('linux-arm64'), 'bin/linux-arm64/plugin',
+        reason: '专门为 arm64 编的那个要优先于共用的');
+    expect(manifest.entrypointFor('linux-x64'), 'bin/linux/plugin');
+  });
+
+  test('what it supports is reported as concrete platforms', () {
+    final manifest = PluginManifest.fromJson(base({
+      'entrypoints': {
+        'macos': 'bin/macos/plugin',
+        'windows': {'arm64': r'bin\plugin.exe'},
+      },
+    }));
+
+    expect(
+      manifest.supportedPlatforms.toSet(),
+      {'macos-x64', 'macos-arm64', 'windows-arm64'},
+      reason: '告诉用户"它带了 macos"没用，用户要知道自己这台在不在里面',
+    );
   });
 
   test('a script plugin uses its one entrypoint on every platform', () {
@@ -194,14 +227,14 @@ void _nativePlugins() {
     });
 
     expect(manifest.entrypointFor('linux-x64'), 'plugin.lua');
-    expect(manifest.entrypointFor('windows-x64'), 'plugin.lua');
+    expect(manifest.entrypointFor('windows-arm64'), 'plugin.lua');
     expect(manifest.supportsPlatform('anything'), isTrue,
         reason: '脚本插件本来就跨平台');
   });
 
   test('a compiled plugin with no executable at all is rejected', () {
     expect(
-      () => PluginManifest.fromJson(base({'entrypoints': <String, String>{}})),
+      () => PluginManifest.fromJson(base({'entrypoints': <String, dynamic>{}})),
       throwsFormatException,
     );
     expect(
@@ -211,10 +244,56 @@ void _nativePlugins() {
     );
   });
 
+  test('a system named but left empty is rejected', () {
+    expect(
+      () => PluginManifest.fromJson(base({
+        'entrypoints': {'linux': <String, dynamic>{}},
+      })),
+      throwsFormatException,
+      reason: '声明支持 linux 却没给任何可执行文件，比不声明更糟',
+    );
+  });
+
+  test('an unknown system or architecture is refused, not ignored', () {
+    expect(
+      () => PluginManifest.fromJson(base({
+        'entrypoints': {'freebsd': 'bin/plugin'},
+      })),
+      throwsFormatException,
+    );
+    expect(
+      () => PluginManifest.fromJson(base({
+        'entrypoints': {
+          'linux': {'riscv': 'bin/plugin'},
+        },
+      })),
+      throwsFormatException,
+      reason: '拼错的架构名会静悄悄地变成"这个平台不支持"',
+    );
+  });
+
+  test('a manifest written back out still says the same thing', () {
+    final original = PluginManifest.fromJson(base({
+      'entrypoints': {
+        'macos': 'bin/macos/plugin',
+        'linux': {'default': 'bin/linux/plugin', 'arm64': 'bin/linux-arm64/plugin'},
+      },
+    }));
+
+    final reparsed = PluginManifest.fromJson(original.toJson());
+
+    expect(reparsed.supportedPlatforms.toSet(),
+        original.supportedPlatforms.toSet());
+    expect(reparsed.entrypointFor('macos-x64'), 'bin/macos/plugin');
+    expect(reparsed.entrypointFor('linux-arm64'), 'bin/linux-arm64/plugin');
+  });
+
   test('a per-platform entrypoint may not be Dart source either', () {
     expect(
       () => PluginManifest.fromJson(base({
-        'entrypoints': {'linux-x64': 'bin/plugin.dart'},
+        'entrypoints': {
+          'linux': {'x64': 'bin/plugin.dart'},
+        },
       })),
       throwsFormatException,
     );

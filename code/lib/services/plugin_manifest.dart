@@ -264,7 +264,7 @@ class PluginManifest {
     this.settings = const <PluginSettingField>[],
     this.defaultLocale = 'en',
     this.locales = const <String, Map<String, String>>{},
-    this.entrypoints = const <String, String>{},
+    this.entrypoints = const <String, Map<String, String>>{},
   });
 
   final String id;
@@ -301,23 +301,52 @@ class PluginManifest {
       PluginPermission.all.contains(permission) &&
       permissions.contains(permission);
 
-  /// A compiled plugin's executable for each platform its author built for.
+  /// A compiled plugin's executables, by operating system and then by
+  /// architecture.
   ///
-  /// Keyed `os-arch`, as in `linux-x64` or `windows-x64`. A plugin that has to
-  /// be compiled cannot be compiled once, so it says which platforms it
-  /// actually supports rather than leaving the reader to find out by clicking.
-  final Map<String, String> entrypoints;
+  /// The system is the part a plugin author always has to answer — a Windows
+  /// build is a different file from a Linux one. The architecture often is
+  /// not: a macOS universal binary is one file holding both, which is what
+  /// this application itself ships, and a plugin should not have to write the
+  /// same path twice to say so. So an entry is either one path for the whole
+  /// system, or a table of architectures with an optional shared `default`.
+  ///
+  /// Stored resolved: `{'macos': {'default': ..., 'arm64': ...}}`.
+  final Map<String, Map<String, String>> entrypoints;
 
-  /// The platforms this plugin runs on. A script plugin runs everywhere.
-  List<String> get supportedPlatforms => entrypoints.keys.toList();
+  /// The architectures the editor knows how to name.
+  static const architectures = ['x64', 'arm64'];
 
-  /// Whether this plugin can run on [platform], keyed `os-arch`.
+  /// The platforms this plugin runs on, as concrete `os-arch` names.
+  ///
+  /// Concrete on purpose: telling the reader a plugin "supports macOS" leaves
+  /// them to work out whether that includes the machine in front of them.
+  List<String> get supportedPlatforms => [
+        for (final os in entrypoints.keys)
+          for (final arch in architectures)
+            if (_lookUp(os, arch) != null) '$os-$arch',
+      ];
+
+  /// Whether this plugin can run on [platform], named `os-arch`.
   bool supportsPlatform(String platform) =>
-      runtime != PluginRuntime.process || entrypoints.containsKey(platform);
+      runtime != PluginRuntime.process || entrypointFor(platform) != null;
 
   /// What to execute on [platform], or null when the author did not build it.
-  String? entrypointFor(String platform) =>
-      runtime == PluginRuntime.process ? entrypoints[platform] : entrypoint;
+  ///
+  /// An architecture built for on purpose wins over the shared one; a plugin
+  /// that ships both means the specialised build to be used.
+  String? entrypointFor(String platform) {
+    if (runtime != PluginRuntime.process) return entrypoint;
+    final split = platform.lastIndexOf('-');
+    if (split == -1) return null;
+    return _lookUp(platform.substring(0, split), platform.substring(split + 1));
+  }
+
+  String? _lookUp(String os, String arch) {
+    final forOs = entrypoints[os];
+    if (forOs == null) return null;
+    return forOs[arch] ?? forOs['default'];
+  }
 
   /// The plugin's strings in [locale], falling back to its default language.
   ///
@@ -361,27 +390,67 @@ class PluginManifest {
       final unknown => throw FormatException('unknown plugin runtime: $unknown'),
     };
 
+    // Wrong keys are refused rather than skipped. A silently dropped
+    // `windwos` or `arm-64` becomes "this plugin does not support your
+    // platform" at the moment the reader clicks, with nothing to explain it.
+    const systems = ['windows', 'macos', 'linux'];
+    final entrypoints = <String, Map<String, String>>{};
     final rawEntrypoints = json['entrypoints'];
-    final entrypoints = <String, String>{};
     if (rawEntrypoints is Map) {
       for (final entry in rawEntrypoints.entries) {
-        if (entry.key is String && entry.value is String) {
-          entrypoints[entry.key as String] = entry.value as String;
+        final os = entry.key;
+        if (os is! String || !systems.contains(os)) {
+          throw FormatException(
+            'unknown operating system in "entrypoints": $os. '
+            'Expected one of ${systems.join(', ')}',
+          );
         }
+        final value = entry.value;
+        if (value is String) {
+          // One file for the whole system: a macOS universal binary, or
+          // anything else that does not vary by architecture.
+          entrypoints[os] = {'default': value};
+          continue;
+        }
+        if (value is! Map || value.isEmpty) {
+          throw FormatException(
+            '"entrypoints.$os" must be a path, or a table of architectures',
+          );
+        }
+        final byArch = <String, String>{};
+        for (final arch in value.entries) {
+          final key = arch.key;
+          if (key is! String ||
+              (key != 'default' &&
+                  !PluginManifest.architectures.contains(key))) {
+            throw FormatException(
+              'unknown architecture in "entrypoints.$os": $key. '
+              'Expected default, ${PluginManifest.architectures.join(', ')}',
+            );
+          }
+          if (arch.value is! String) {
+            throw FormatException('"entrypoints.$os.$key" must be a path');
+          }
+          byArch[key] = arch.value as String;
+        }
+        entrypoints[os] = byArch;
       }
     }
 
     if (runtime == PluginRuntime.process && entrypoints.isEmpty) {
       throw const FormatException(
-        'a compiled plugin must list an executable per platform in '
-        '"entrypoints", keyed os-arch such as "linux-x64"',
+        'a compiled plugin must name an executable per operating system in '
+        '"entrypoints", either one path or a table of architectures',
       );
     }
 
+    final everyExecutable = [
+      for (final byArch in entrypoints.values) ...byArch.values,
+    ];
     final entrypoint = runtime == PluginRuntime.process
-        ? entrypoints.values.first
+        ? everyExecutable.first
         : requiredString('entrypoint');
-    for (final candidate in [entrypoint, ...entrypoints.values]) {
+    for (final candidate in [entrypoint, ...everyExecutable]) {
       if (candidate.toLowerCase().endsWith('.dart')) {
         // Running this would need a Dart SDK on the reader's machine, which
         // the editor does not install and cannot assume. Dart compiles to a

@@ -19,8 +19,8 @@ void main() {
     final root = Directory.systemTemp.createTempSync('plugin_platform_');
     addTearDown(() => root.deleteSync(recursive: true));
 
-    final elsewhere =
-        PluginManager.currentPlatform == 'linux-x64' ? 'windows-x64' : 'linux-x64';
+    final here = PluginManager.currentPlatform.split('-').first;
+    final elsewhere = here == 'linux' ? 'windows' : 'linux';
     final manifest = PluginManifest.fromJson({
       'id': 'com.example.native',
       'name': 'Native',
@@ -55,7 +55,9 @@ void main() {
       'name': 'Native',
       'version': '1.0.0',
       'runtime': 'process',
-      'entrypoints': {PluginManager.currentPlatform: 'bin/missing'},
+      'entrypoints': {
+        PluginManager.currentPlatform.split('-').first: 'bin/missing',
+      },
     });
 
     await expectLater(

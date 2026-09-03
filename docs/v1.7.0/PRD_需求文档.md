@@ -184,8 +184,8 @@
 | 实现日期 | 2026-09-03 |
 | 需求描述 | 支持编译成原生可执行文件的插件，在 manifest 里声明支持的平台种类并指定各平台入口 |
 | 用户场景 | 插件需要真正的工具链、第三方库或长时间运行的工作，脚本运行时不够用 |
-| 实现方案 | `runtime: "process"` 配 `entrypoints`，键为 `os-arch`（`linux-x64`、`windows-x64`、`macos-arm64`……）。编辑器用 `PluginManager.currentPlatform` 认自己。选进程而非 `.so`/`.dll` FFI：FFI 在进程内运行，插件一崩就带走编辑器，与"插件不能拖垮宿主"这条相矛盾；而 `dart compile exe` 是官方支持的路径 |
-| 验收标准 | 没有当前平台构建时明说"没有 linux-x64 的构建，它只带了 windows-x64"，而不是瞎猜一个去跑；`runtime: "process"` 却没有 `entrypoints` 在解析阶段被拒；任何 `.dart` 入口被拒 |
+| 实现方案 | `runtime: "process"` 配 `entrypoints`：**先按操作系统，架构在其下且可省**。一个路径覆盖该系统的所有架构（macOS 通用二进制就是一个文件装两种架构，本应用自己发的就是这种），也可以用 `default` 加某个架构的专门构建，专门的优先。编辑器用 `PluginManager.currentPlatform` 认自己。选进程而非 `.so`/`.dll` FFI：FFI 在进程内运行，插件一崩就带走编辑器，与"插件不能拖垮宿主"这条相矛盾；而 `dart compile exe` 是官方支持的路径 |
+| 验收标准 | 没有当前平台构建时明说"没有 linux-arm64 的构建，它带了 macos-x64、macos-arm64、windows-x64"——报的是**具体平台**而不是"支持 macOS"，否则用户还得自己推自己这台算不算；`runtime: "process"` 却没有 `entrypoints`、或声明了某个系统却在下面留空，都在解析阶段被拒；系统名或架构名拼错**报错而不是跳过**（跳过会变成"你的平台不支持"，无从解释）；任何 `.dart` 入口被拒 |
 | 涉及文件 | `plugin_manifest.dart`、`plugin_manager.dart`、`plugin_platform_test.dart` |
 
 ## FEAT-107：右键打开插件目录
