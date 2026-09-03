@@ -37,19 +37,19 @@ jobs:
             exit 1
           fi
 
-  # x64 only, for now, and the reason has changed.
+  # x64 and arm64, the latter proved rather than assumed.
   #
-  # It was recorded here as impossible because Flutter publishes no arm64
-  # Windows SDK. That is still true — every one of the 732 releases in the
-  # manifest is x64 — but it turns out not to be the whole story: since 3.44.0
-  # the arm64 Dart SDK and engine binaries are in the bucket, just not bundled
-  # in the release zip, and an arm64 runner will fetch them once
-  # `engine-dart-sdk.stamp` is out of the way. `probe-windows-arm64` in ci.yml
-  # is asking the machine whether that produces a genuinely arm64 binary. This
-  # becomes a matrix like build-linux below once it answers yes.
+  # Flutter publishes no arm64 Windows SDK — every one of the 732 releases in
+  # the manifest is x64 — which is why this was recorded here as impossible for
+  # a while. What that hid is that the arm64 Dart SDK and engine binaries have
+  # been in the bucket since 3.44.0; the release zip simply does not bundle
+  # them, and `engine-dart-sdk.stamp` pins the x64 one that is there. Removing
+  # the stamp and re-running the updater in an arm64 PowerShell fetches the
+  # arm64 binaries, and `flutter build windows` then targets the host.
   #
-  # Windows 11 on ARM runs x64 binaries under emulation, so the installer
-  # below is what those machines use meanwhile.
+  # A probe in ci.yml established that, machine type read out of the PE header
+  # and installer compiled, and has been removed now that this job does the
+  # same checks on every release.
   build-windows:
     needs: check-version
     strategy:
