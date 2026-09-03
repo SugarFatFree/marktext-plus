@@ -96,6 +96,77 @@ jobs:
           # release workflow is what produces artefacts meant to last.
           retention-days: 14
 
+  # Can Windows on ARM be built at all? The answer changed under us.
+  #
+  # It was recorded here as impossible because Flutter publishes no arm64
+  # Windows SDK — still true: every one of the 732 releases in the manifest is
+  # x64, and `flutter_windows_arm64_*.zip` is a 404. What that hid is that the
+  # pieces exist separately. Since Flutter 3.44.0 the bucket carries native
+  # arm64 Dart SDK and engine binaries; the release zip simply does not bundle
+  # them, and `update_dart_sdk.ps1` will fetch the arm64 ones when it runs in an
+  # arm64 PowerShell — which is the default on an arm64 runner. It is held back
+  # only by `engine-dart-sdk.stamp`, and the engine's own
+  # `windows-arm64-release` artifacts are published for the stable we build on.
+  #
+  # So this job asks the machine rather than reasoning about it: force the
+  # arm64 Dart SDK, build, and read the machine type out of the executable's PE
+  # header. Not required to pass — until it does, nothing depends on it.
+  probe-windows-arm64:
+    name: Probe Windows arm64
+    runs-on: windows-11-arm
+    needs: analyze
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2.18.0
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          # The action cannot resolve an arm64 Windows SDK — there is none to
+          # resolve, and asking for one is what stopped the last attempt here.
+          architecture: x64
+          # This SDK gets its Dart swapped out below; it must not be cached as
+          # if it were a stock one.
+          cache: false
+
+      - name: Swap in the arm64 Dart SDK
+        shell: pwsh
+        run: |
+          $root = Split-Path -Parent (Split-Path -Parent (Get-Command flutter).Source)
+          Write-Host "Flutter root: $root"
+          Write-Host "PowerShell architecture: $env:PROCESSOR_ARCHITECTURE"
+          Remove-Item "$root\bin\cache\engine-dart-sdk.stamp" -Force -ErrorAction SilentlyContinue
+          & "$root\bin\internal\update_dart_sdk.ps1"
+          & "$root\bin\dart" --version
+
+      - name: Build
+        working-directory: code
+        run: |
+          flutter --version
+          flutter pub get
+          flutter build windows --release
+
+      - name: Read the machine type out of the executable
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem -Recurse -Filter marktext_plus.exe `
+            -Path code\build\windows | Select-Object -First 1
+          if (-not $exe) { throw "no executable was produced" }
+          Write-Host "built: $($exe.FullName)"
+          $bytes = [System.IO.File]::ReadAllBytes($exe.FullName)
+          $peOffset = [BitConverter]::ToInt32($bytes, 0x3C)
+          $machine = [BitConverter]::ToUInt16($bytes, $peOffset + 4)
+          $name = switch ($machine) {
+            0xAA64 { "arm64" }
+            0x8664 { "x64" }
+            default { "unknown (0x{0:X4})" -f $machine }
+          }
+          Write-Host "machine type: $name"
+          if ($name -ne "arm64") {
+            throw "built $name, so an arm64 host still produces an x64 binary"
+          }
+
   build-windows:
     name: Build Windows
     runs-on: windows-latest
