@@ -84,10 +84,10 @@ That's it! The editor will launch with a sample document ready to edit.
 
 | | |
 |---------|-------------|
-| **🧩 Open plugins** | Discover public plugins through [GitHub Topic: `marktext-plus-plugin`](https://github.com/topics/marktext-plus-plugin); every plugin is labelled Community/Unverified and runs out of process |
+| **🧩 Open plugins** | One Lua or JavaScript file, no SDK to install and nothing to build, sandboxed and held to the permissions it declared. Found through [GitHub Topic: `marktext-plus-plugin`](https://github.com/topics/marktext-plus-plugin), every one labelled Community/Unverified |
 | **⚡ Fast start** | No embedded browser, no editor framework, 22 direct dependencies |
 | **📄 Large files** | Parsing, highlighting and search are all single-pass and budgeted by tests that fail if a change makes them slower |
-| **🧪 Tested** | 2025 tests covering the parser, the exporters, the providers and the editor widgets |
+| **🧪 Tested** | 2097 tests covering the parser, the exporters, the providers, the plugin runtimes and the editor widgets |
 
 ## ⚖️ How it compares
 

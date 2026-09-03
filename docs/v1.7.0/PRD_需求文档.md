@@ -1,4 +1,4 @@
-# v1.6.1 功能需求文档
+# v1.7.0 功能需求文档
 
 | 编号 | 日期 | 标题 | 优先级 | 难易度 | 状态 |
 |------|------|------|--------|--------|------|
@@ -11,6 +11,14 @@
 | FEAT-098 | 2026-09-02 | 插件独立设置页和菜单贡献宿主渲染 | P1 | 高 | 已完成 |
 | FEAT-099 | 2026-09-02 | 预览选区翻译与全文双视图预览 | P1 | 中 | 已完成 |
 | FEAT-100 | 2026-09-02 | 预览底部留白适配 | P2 | 低 | 已完成 |
+| FEAT-101 | 2026-09-03 | 插件脚本运行时：Lua 沙箱与 action 协议 | P0 | 高 | 已完成 |
+| FEAT-102 | 2026-09-03 | JavaScript 运行时（QuickJS）双支持 | P1 | 高 | 已完成 |
+| FEAT-103 | 2026-09-03 | 插件权限模型：17 项，声明并强制 | P1 | 中 | 已完成 |
+| FEAT-104 | 2026-09-03 | 插件自有设置与宿主渲染的设置页 | P1 | 中 | 已完成 |
+| FEAT-105 | 2026-09-03 | 插件自带多语言，按地区回退 | P2 | 低 | 已完成 |
+| FEAT-106 | 2026-09-03 | 按平台的编译型插件（entrypoints） | P1 | 中 | 已完成 |
+| FEAT-107 | 2026-09-03 | 右键打开插件目录 | P2 | 低 | 已完成 |
+| FEAT-108 | 2026-09-03 | 插件进程登记与孤儿回收 | P1 | 中 | 已完成 |
 
 ---
 
@@ -112,3 +120,93 @@
 | 实现方案 | `MarkdownRenderer.bottomRoomForHeight` 使用 25% 比例和 500px 上限 |
 | 验收标准 | 800px 视口余量为 200px，长视口不无限增长 |
 | 涉及文件 | `markdown_renderer.dart`、`preview_bottom_room_test.dart` |
+
+## FEAT-101：插件脚本运行时——Lua 沙箱与 action 协议
+
+| 字段 | 内容 |
+|------|------|
+| 实现日期 | 2026-09-03 |
+| 需求描述 | 插件必须能在只装了编辑器的机器上运行，不依赖任何 SDK |
+| 用户场景 | 用户装一个社区插件就能用，作者写一个文件就能发布，三平台通用 |
+| 实现方案 | 内嵌 `lua_dardo`（纯 Dart，424KB）。因为解释器是同步的、没有协程，凡是耗时的事（问用户、调模型）都由脚本**返回一个 action**、宿主执行、再回调脚本——`on_command` / `on_result`。沙箱把 `os`、`package`、`require`、`dofile`、`loadfile` 全部置 nil（`openLibs` 会带进 `os.execute`/`os.remove`），只留 `string`/`table`/`math`，外加 `storage` 和 `t()` |
+| 验收标准 | 一个 `.lua` 文件在三平台通用；脚本无法读写文件、无法发起网络请求、无法执行命令；语法错误在加载时报给作者而不是抛出解释器内部异常；单次运行步数上限 8 |
+| 涉及文件 | `plugin_script_runtime.dart`、`plugin_command_service.dart`、`plugin_script_runtime_test.dart` |
+
+## FEAT-102：JavaScript 运行时（QuickJS）
+
+| 字段 | 内容 |
+|------|------|
+| 实现日期 | 2026-09-03 |
+| 需求描述 | 让插件作者可以选择 JavaScript 而不是只能写 Lua |
+| 用户场景 | 前端背景的作者不必为写一个插件先学 Lua |
+| 实现方案 | `flutter_js` 的 QuickJS。实测体积：Linux 941KB `.so`、Windows 662KB `.dll`、macOS 从源码编译。能力以普通全局变量注入并用 JSON 往返，绕开较少验证的 channel 桥。两种运行时实现同一个 `PluginRuntimeHost` 接口，编辑器不关心插件用哪种语言 |
+| 验收标准 | 与 Lua 完全相同的 action 协议和能力；`parseAction` 抽成静态函数以便在没有原生库的测试环境里验证 |
+| 涉及文件 | `plugin_js_runtime.dart`、`plugin_js_runtime_test.dart` |
+| 已知限制 | QuickJS 原生库只存在于构建产物里，`flutter test` 加载不到，因此引擎本身的行为**测试套件无法验证**，只能由 CI 的真实构建证明。Linux 与 Windows 已在 CI 通过，macOS 待 release 构建确认 |
+
+## FEAT-103：插件权限模型
+
+| 字段 | 内容 |
+|------|------|
+| 实现日期 | 2026-09-03 |
+| 需求描述 | 参考 VS Code / IntelliJ 的贡献点范围，尽量开放，但要能约束 |
+| 用户场景 | 用户在安装前看到插件要什么；插件越权时被拒绝而不是得逞 |
+| 实现方案 | 17 项权限：`document.*`、`ui.*`（9 项槽位）、`ai.chat`、`storage.local`、`clipboard.*`、`workspace.*`、`network.request`。与 VS Code/IntelliJ 的关键差别是**强制执行**——那两者展示后即信任，这里没有任何人审核，所以由编辑器检查。检查放在 `PluginCommandService._guard`，而不是各个执行点，新增调用方不会漏掉 |
+| 验收标准 | 未声明 `ai.chat` 的插件返回 `{ai=...}` 不会调用模型，而是告诉用户它没申请这项权限；未声明 `document.write` 无法替换选区 |
+| 涉及文件 | `plugin_manifest.dart`、`plugin_command_service.dart` |
+
+## FEAT-104：插件自有设置与宿主渲染的设置页
+
+| 字段 | 内容 |
+|------|------|
+| 实现日期 | 2026-09-03 |
+| 需求描述 | 允许插件保存自己的设置文件，并自行定义设置页的条目 |
+| 用户场景 | 插件记住用户的偏好；用户在真实控件上修改，而不是手写 JSON |
+| 实现方案 | manifest 的 `settings` 声明字段（`key`/`title`/`type`/`default`），编辑器据此画控件：`boolean` 给开关、`password` 遮蔽、`number` 给数字键盘。插件提供**数据而不是 Widget**，所以插件无法改动编辑器的布局树。值存在插件自己目录下的 `settings.json` |
+| 验收标准 | 每个插件只能读写自己的设置；保存后已加载的脚本被丢弃重载，下一条命令即读到新值，无需重启 |
+| 涉及文件 | `plugin_settings_screen.dart`、`plugin_command_service.dart`、`plugin_settings_screen_test.dart` |
+
+## FEAT-105：插件自带多语言
+
+| 字段 | 内容 |
+|------|------|
+| 实现日期 | 2026-09-03 |
+| 需求描述 | 允许插件自制更多国家的语言翻译，不受编辑器支持的 12 种语言限制 |
+| 用户场景 | 插件作者想支持编辑器还没支持的语言 |
+| 实现方案 | manifest 的 `locales` 是作者自己的字符串表，`defaultLocale` 是兜底。解析顺序为地区→语言→默认（`zh_CN` → `zh` → `en`）。脚本里用 `t(key)` 取，查不到时返回 key 本身，这样漏翻的条目显示成键名而不是空白菜单项 |
+| 验收标准 | 菜单标题、提问文案、设置项标题都能被翻译；插件可以只带一种语言 |
+| 涉及文件 | `plugin_manifest.dart`（`stringsFor`）、`plugin_command_service.dart` |
+
+## FEAT-106：按平台的编译型插件
+
+| 字段 | 内容 |
+|------|------|
+| 实现日期 | 2026-09-03 |
+| 需求描述 | 支持编译成原生可执行文件的插件，在 manifest 里声明支持的平台种类并指定各平台入口 |
+| 用户场景 | 插件需要真正的工具链、第三方库或长时间运行的工作，脚本运行时不够用 |
+| 实现方案 | `runtime: "process"` 配 `entrypoints`，键为 `os-arch`（`linux-x64`、`windows-x64`、`macos-arm64`……）。编辑器用 `PluginManager.currentPlatform` 认自己。选进程而非 `.so`/`.dll` FFI：FFI 在进程内运行，插件一崩就带走编辑器，与"插件不能拖垮宿主"这条相矛盾；而 `dart compile exe` 是官方支持的路径 |
+| 验收标准 | 没有当前平台构建时明说"没有 linux-x64 的构建，它只带了 windows-x64"，而不是瞎猜一个去跑；`runtime: "process"` 却没有 `entrypoints` 在解析阶段被拒；任何 `.dart` 入口被拒 |
+| 涉及文件 | `plugin_manifest.dart`、`plugin_manager.dart`、`plugin_platform_test.dart` |
+
+## FEAT-107：右键打开插件目录
+
+| 字段 | 内容 |
+|------|------|
+| 实现日期 | 2026-09-03 |
+| 需求描述 | 在已安装插件列表上右键，用系统文件管理器打开该插件的安装目录 |
+| 用户场景 | 插件目录在系统应用支持目录下，用户不可能猜到路径，而配置文件就在那里 |
+| 实现方案 | `FileReveal.openDirectory(manager.directoryOf(plugin))`。顺带把项目里抄了两份且已漂移的"在文件管理器中显示"收敛成一份（见 BUG-233） |
+| 验收标准 | 12 种语言的菜单文案；打开的是插件目录本身而不是它的上一级 |
+| 涉及文件 | `file_reveal.dart`、`plugin_panel.dart`、`plugin_manager.dart` |
+
+## FEAT-108：插件进程登记与孤儿回收
+
+| 字段 | 内容 |
+|------|------|
+| 实现日期 | 2026-09-03 |
+| 需求描述 | 主程序崩溃后不留下无人认领的插件进程 |
+| 用户场景 | 用户强杀编辑器或系统断电后，插件进程不该继续占着资源 |
+| 实现方案 | 见 BUG-232。正常关闭先关 stdin 再杀；启动过的进程记入 `plugins/running.json`，下次启动前（且在任何插件被启动之前）回收，回收前用 `/proc`（Linux）、`ps -o comm=`（macOS）、`tasklist`（Windows）确认 pid 还是同一个程序 |
+| 验收标准 | 无残留时启动只多一次"文件是否存在"的判断，不写盘，不影响秒启动；pid 被复用时不误杀 |
+| 涉及文件 | `plugin_process_registry.dart`、`plugin_process_host.dart`、`main.dart` |
+| 已知限制 | 只能回收编辑器直接启动的进程。插件自己 fork 的孙子进程不在登记表里，由插件作者负责——SDK 文档已写明 |

@@ -5,13 +5,25 @@ All notable changes to MarkText Plus will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - v1.6.1
+## [v1.7.0] - 2026-09-03
+
+### Added
+- A plugin is now a single Lua or JavaScript file that runs inside the editor. It needs no SDK on your machine, no build step, and the same file works on Windows, macOS and Linux. Both languages speak the same protocol, so the editor does not care which one an author picked
+- Plugins declare what they are allowed to do — reading your document, changing it, the clipboard, your workspace, the network, asking the model you configured — and you see the list before installing. Unlike the editors this borrows the idea from, the list is enforced rather than merely displayed: nothing here is reviewed by anybody, so a plugin doing something it did not ask for is refused
+- A plugin keeps its own settings, in its own directory, on a settings page the editor draws from what the plugin declared: a switch for a switch, a hidden box for a secret. The plugin supplies data, never widgets, so no plugin can rearrange the editor. What you save reaches a running plugin on its next command, not at the next launch
+- Plugins ship their own translations for whichever languages their author wants, independent of the twelve the editor speaks
+- A plugin that genuinely needs a real toolchain can ship compiled executables instead, naming one per platform. A platform it was not built for is named to you rather than guessed at
+- Right-clicking an installed plugin opens its folder — which is where its settings file lives, under the system application-support directory, and not somewhere anyone would guess
+
+### Fixed
+- Selecting text and right-clicking now offers what a plugin contributed, in both the editing pane and the preview. The plugin's menu entries were never read; the AI translation action had been left as an icon in the plugins panel's title bar, which is where it was easiest to put and not where anyone translating a paragraph is looking
+- "Bad state: plugin process exited" when a plugin ran. The editor started `.dart` plugins with `Platform.resolvedExecutable`, which in a release build is the editor's own binary: it launched a second editor and waited for it to speak JSON-RPC. A plugin cannot be shipped as Dart source at all — your machine has no Dart SDK — so that is now refused when the plugin is installed, with the alternative named
+- Plugin processes no longer outlive the editor. A child is not killed when its parent dies, so a crash left every plugin it had started running with nothing that knew they existed. Stopping one now closes its stdin first and only kills what ignores that, and the editor writes down what it started so the next launch can clear up
+- The AI translation plugin owns its prompt again, and shows the translation beside the original rather than replacing your selection
 
 ### Changed
-- Plugin settings and menu contributions are rendered by the host through the isolated plugin protocol.
-- AI translation now uses selections from source or preview and shows full-document results in a non-destructive split view.
-- Plugin entry, Topic discovery feedback, toolbar alignment, plugin lifecycle controls and isolated plugin actions are refined for the next release.
-- AI model settings now save while typing, accept a single visible API key field and pass it to plugins in memory, and can test provider configuration; the translation plugin receives that key only in memory.
+- AI model settings save while typing, take a single visible API key field, and can test the provider. A plugin never receives the key: the editor makes the request
+- Plugin discovery over GitHub topics uses your proxy environment and says why a search came back empty
 
 ## [v1.6.0] - 2026-09-02
 
