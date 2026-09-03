@@ -24,10 +24,15 @@ class PluginPanel extends ConsumerStatefulWidget {
 
 class _PluginPanelState extends ConsumerState<PluginPanel> {
   Future<PluginManager>? _managerFuture;
-  Future<List<PluginManifest>>? _installedFuture;
-  Future<List<PluginCatalogEntry>>? _catalogFuture;
   Object? _error;
   String? _installingId;
+
+  /// Anything that changed what is installed. The provider is what the rest of
+  /// the editor reads — the right-click menu among it — so refreshing a list
+  /// held here would have left the menus behind until the next launch, which
+  /// is exactly what it did.
+  void _installedChanged() =>
+      ref.invalidate(installedPluginManifestsProvider);
 
   Future<PluginManager> _manager() => _managerFuture ??=
       getApplicationSupportDirectory().then(
@@ -45,10 +50,8 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
       final manager = await _manager();
       await manager.installZip(File(path));
       if (!mounted) return;
-      setState(() {
-        _error = null;
-        _installedFuture = manager.loadInstalled();
-      });
+      setState(() => _error = null);
+      _installedChanged();
     } catch (error) {
       if (mounted) setState(() => _error = error);
     }
@@ -99,11 +102,15 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
     );
   }
 
-  void _discover() {
-    setState(() {
-      _error = null;
-      _catalogFuture = PluginCatalogService().searchGitHubTopic();
-    });
+  Future<void> _discover() async {
+    final discovery = ref.read(pluginDiscoveryProvider.notifier);
+    discovery.started();
+    setState(() => _error = null);
+    try {
+      discovery.succeeded(await PluginCatalogService().searchGitHubTopic());
+    } catch (error) {
+      discovery.failed('$error');
+    }
   }
 
   Future<void> _installCommunity(PluginCatalogEntry plugin) async {
@@ -116,10 +123,8 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
       final manager = await _manager();
       await PluginCatalogService().install(plugin, manager);
       if (!mounted) return;
-      setState(() {
-        _installingId = null;
-        _installedFuture = manager.loadInstalled();
-      });
+      setState(() => _installingId = null);
+      _installedChanged();
     } catch (error) {
       if (mounted) {
         setState(() {
@@ -152,20 +157,48 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
   Future<void> _uninstall(PluginManifest plugin) async {
     final manager = await _manager();
     await manager.uninstall(plugin.id);
-    if (mounted) setState(() => _installedFuture = manager.loadInstalled());
+    if (mounted) _installedChanged();
   }
 
+  /// A heading for a group of entries.
+  ///
+  /// A rule beside it, and muted: the installed section's heading sat directly
+  /// above "No plugins installed yet" in the same weight and colour, so the
+  /// two read as a heading and its one child — a plugin apparently named "not
+  /// installed yet".
   Widget _sectionTitle(String title) => Padding(
-        padding: const EdgeInsets.only(top: 16, bottom: 6),
-        child: Text(title, style: Theme.of(context).textTheme.labelLarge),
+        padding: const EdgeInsets.only(top: 18, bottom: 8),
+        child: Row(
+          children: [
+            Text(
+              title.toUpperCase(),
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: Theme.of(context).hintColor,
+                    letterSpacing: 0.8,
+                  ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(child: Divider(color: Theme.of(context).dividerColor)),
+          ],
+        ),
+      );
+
+  /// Something the panel has to say, rather than something it is listing.
+  Widget _note(String text) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Text(
+          text,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).hintColor,
+              ),
+        ),
       );
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final installed = _installedFuture ??= _manager().then(
-      (manager) => manager.loadInstalled(),
-    );
+    final installed = ref.watch(installedPluginManifestsProvider);
+    final discovery = ref.watch(pluginDiscoveryProvider);
     return ListView(
       padding: const EdgeInsets.fromLTRB(10, 8, 8, 14),
       children: [
@@ -205,14 +238,13 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
           ),
         ],
         _sectionTitle(l10n.settingsPluginsInstalled),
-        FutureBuilder<List<PluginManifest>>(
-          future: installed,
-          builder: (context, snapshot) {
-            if (snapshot.hasError) return SelectableText('${snapshot.error}');
-            if (!snapshot.hasData) return const LinearProgressIndicator();
-            if (snapshot.data!.isEmpty) return Text(l10n.settingsPluginsEmpty);
+        installed.when(
+          loading: () => const LinearProgressIndicator(),
+          error: (error, _) => SelectableText('$error'),
+          data: (plugins) {
+            if (plugins.isEmpty) return _note(l10n.settingsPluginsEmpty);
             return Column(
-              children: snapshot.data!.map((plugin) {
+              children: plugins.map((plugin) {
                 return FutureBuilder<bool>(
                   future: _manager().then((manager) => manager.isEnabled(plugin.id)),
                   builder: (context, enabled) => Padding(
@@ -280,18 +312,22 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
             );
           },
         ),
-        if (_catalogFuture != null) ...[
+        if (discovery.searching ||
+            discovery.results != null ||
+            discovery.error != null) ...[
           _sectionTitle(l10n.settingsPluginsDiscover),
-          FutureBuilder<List<PluginCatalogEntry>>(
-            future: _catalogFuture,
-            builder: (context, snapshot) {
-              if (snapshot.hasError) return SelectableText('${snapshot.error}');
-              if (!snapshot.hasData) return const LinearProgressIndicator();
-              if (snapshot.data!.isEmpty) {
-                return const Text('No installable releases found for this topic.');
-              }
-              return Column(
-                children: snapshot.data!
+          if (discovery.error != null)
+            SelectableText(
+              discovery.error!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            )
+          else if (discovery.searching)
+            const LinearProgressIndicator()
+          else if (discovery.results!.isEmpty)
+            _note('No installable releases found for this topic.')
+          else
+            Column(
+                children: discovery.results!
                     .map((plugin) => ListTile(
                           dense: true,
                           contentPadding: EdgeInsets.zero,
@@ -313,9 +349,7 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
                                 ),
                         ))
                     .toList(),
-              );
-            },
-          ),
+            ),
         ],
       ],
     );

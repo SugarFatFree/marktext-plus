@@ -2463,18 +2463,20 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
         ),
         child: LayoutBuilder(
           builder: (context, outer) {
-            // Room under the last line, so it can be scrolled up to where the
-            // eye is instead of staying pinned to the bottom edge (#2). Every
-            // editor worth the name does this; HBuilder X, which the report
-            // pointed at, does it too.
+            // A little room under the last line so it is not glued to the
+            // bottom edge (#2) — and only a little.
             //
-            // The gutter gets exactly the same room: it is a separate scroll
-            // view kept in step with the text, and giving one of them more to
-            // scroll than the other makes the line numbers stop while the
-            // text carries on.
-            final bottomRoom = outer.maxHeight.isFinite
-                ? (outer.maxHeight * 0.6).clamp(0.0, 600.0)
-                : 0.0;
+            // This is bottom `contentPadding` on the text field, and padding
+            // inside an InputDecoration does not extend what can be scrolled:
+            // it shrinks the box the text is drawn in. Asking for 60% of the
+            // pane took 60% of the pane away. On a 900-pixel editor the text
+            // had 344 pixels and the rest of the window was blank, with only
+            // that strip scrolling.
+            //
+            // Scrolling the last line up to eye level, which is what the 60%
+            // was reaching for, cannot be had this way at all. It needs the
+            // room to live inside the scrollable rather than around it.
+            final bottomRoom = 2 * config.fontSize * config.lineHeight;
             return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

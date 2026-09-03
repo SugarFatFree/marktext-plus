@@ -5,7 +5,9 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../../core/i18n/l10n/app_localizations.dart';
+import '../../providers/editor_provider.dart';
 import '../../providers/plugin_provider.dart';
+import '../../providers/tab_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../services/ai_chat_service.dart';
 import '../../services/plugin_command_service.dart';
@@ -79,6 +81,30 @@ class PluginCommandActions {
       }
     }
     return items;
+  }
+
+  /// Runs one plugin command outside a context menu — from the menu bar, say.
+  static Future<void> run(
+    WidgetRef ref, {
+    required BuildContext context,
+    required PluginManifest plugin,
+    required String command,
+  }) async {
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) return;
+    final tabs = ref.read(tabProvider);
+    final active = tabs.tabs.where((tab) => tab.id == tabs.activeTabId);
+    await _run(
+      navigator: Navigator.of(context),
+      messenger: ScaffoldMessenger.of(context),
+      ref: ref,
+      l10n: l10n,
+      locale: Localizations.localeOf(context).toString(),
+      plugin: plugin,
+      command: command,
+      selection: ref.read(editorProvider).selectedText,
+      document: active.isEmpty ? '' : active.first.content,
+    );
   }
 
   /// Drives one command to its end.

@@ -9,7 +9,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:printing/printing.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../app.dart';
 import '../../core/config/app_config.dart';
@@ -40,10 +39,10 @@ import 'package:window_manager/window_manager.dart';
 import '../../providers/window_provider.dart';
 import '../../providers/update_provider.dart';
 import '../../providers/plugin_provider.dart';
+import 'plugin_command_actions.dart';
+import 'plugin_menu_bar_entries.dart';
 import '../../services/update_service.dart';
 import '../../core/constants.dart';
-import '../../services/plugin_action_service.dart';
-import '../../services/plugin_manager.dart';
 import '../../services/plugin_manifest.dart';
 import '../../utils/file_reveal.dart';
 
@@ -105,8 +104,7 @@ class AppMenuBar extends ConsumerWidget {
                 _buildFormatMenu(l10n, ref),
                 _buildWindowMenu(l10n, ref),
                 _buildHelpMenu(l10n, ref),
-                if (ref.watch(installedPluginManifestsProvider).valueOrNull?.isNotEmpty ?? false)
-                  _buildPluginMenu(ref, l10n, ref.watch(installedPluginManifestsProvider).valueOrNull!),
+                ..._buildPluginMenu(ref, l10n),
               ],
                 ),
               ),
@@ -1492,8 +1490,6 @@ class AppMenuBar extends ConsumerWidget {
 
   Widget _buildToolbarIcons(
       WidgetRef ref, AppThemeTokens tokens, AppLocalizations l10n) {
-    final plugins = ref.watch(installedPluginManifestsProvider).valueOrNull ??
-        const <PluginManifest>[];
     final config = ref.watch(settingsProvider);
 
     return Row(
@@ -1523,13 +1519,6 @@ class AppMenuBar extends ConsumerWidget {
           onPressed: () => ref.read(settingsProvider.notifier).toggleSideBar(),
         ),
         const SizedBox(width: 4),
-        for (final plugin in plugins)
-          for (final item in plugin.toolbar)
-            IconButton(
-              icon: Icon(_pluginIcon(item.icon), size: 18),
-              tooltip: '${plugin.name}: ${item.title}',
-              onPressed: () => _runPluginAction(ref, plugin, item.id),
-            ),
         // Zoom out
         IconButton(
           icon: const Icon(Icons.zoom_out),
@@ -1555,49 +1544,35 @@ class AppMenuBar extends ConsumerWidget {
     );
   }
 
-  Widget _buildPluginMenu(
-      WidgetRef ref, AppLocalizations l10n, List<PluginManifest> plugins) {
-    return SubmenuButton(
-      leadingIcon: const Icon(Icons.extension, size: 16),
-      menuChildren: [
-        for (final plugin in plugins) ...[
-          for (final command in plugin.commands)
+  /// The Plugins menu, or nothing at all when no plugin has anything to put
+  /// in it — which is the usual case, and better than an empty menu.
+  List<Widget> _buildPluginMenu(WidgetRef ref, AppLocalizations l10n) {
+    final entries = pluginMenuBarEntries(
+      ref.watch(installedPluginManifestsProvider).valueOrNull ??
+          const <PluginManifest>[],
+      Localizations.localeOf(ref.context).toString(),
+    );
+    if (entries.isEmpty) return const [];
+
+    return [
+      SubmenuButton(
+        leadingIcon: const Icon(Icons.extension, size: 16),
+        menuChildren: [
+          for (final entry in entries)
             MenuItemButton(
-              child: Text('${plugin.name}: ${command.title}'),
-              onPressed: () => _runPluginAction(ref, plugin, command.id),
-            ),
-          for (final menu in plugin.menus)
-            MenuItemButton(
-              child: Text('${plugin.name}: ${menu.title}'),
-              onPressed: () => _runPluginAction(ref, plugin, menu.id),
+              child: Text('${entry.pluginName}: ${entry.title}'),
+              onPressed: () => PluginCommandActions.run(
+                ref,
+                context: ref.context,
+                plugin: entry.plugin,
+                command: entry.commandId,
+              ),
             ),
         ],
-      ],
-      child: Text(l10n.settingsPlugins),
-    );
+        child: Text(l10n.settingsPlugins),
+      ),
+    ];
   }
-
-  Future<void> _runPluginAction(
-      WidgetRef ref, PluginManifest plugin, String action) async {
-    final directory = await getApplicationSupportDirectory();
-    // Deliberately not awaited by toolbar/menu callbacks: the host action is
-    // isolated and its errors are logged by the plugin process host.
-    await PluginActionService.execute(
-      plugin,
-      action,
-      config: ref.read(settingsProvider),
-      manager: PluginManager(p.join(directory.path, 'plugins')),
-    );
-  }
-
-  IconData _pluginIcon(String name) => switch (name) {
-        'translate' => Icons.translate,
-        'build' => Icons.build,
-        'search' => Icons.search,
-        'settings' => Icons.settings,
-        'download' => Icons.download,
-        _ => Icons.extension,
-      };
 
   IconData _getEditModeIcon(EditMode mode) {
     return switch (mode) {
