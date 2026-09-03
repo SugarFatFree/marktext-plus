@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - AI model settings save while typing, take a single visible API key field, and can test the provider. A plugin never receives the key: the editor makes the request
 - Plugin discovery over GitHub topics uses your proxy environment and says why a search came back empty
+- The Windows installer replaces the executable rather than keeping the installed one. There was a check for this, and it read the build nobody installs — the installer people actually download had never carried the flag, so an update could leave the old program in place and only refresh the part of it written in Dart
 
 ## [v1.6.0] - 2026-09-02
 
