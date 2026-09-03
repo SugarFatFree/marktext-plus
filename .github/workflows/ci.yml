@@ -167,6 +167,37 @@ jobs:
             throw "built $name, so an arm64 host still produces an x64 binary"
           }
 
+      # The other half of shipping this: an arm64 build is only useful if the
+      # installer can be made on the same runner. Inno Setup is x86 and runs
+      # under emulation; whether the arm64 image carries it is not something to
+      # find out during a release.
+      - name: Can an installer be built here?
+        shell: pwsh
+        run: |
+          if (-not (Get-Command iscc -ErrorAction SilentlyContinue)) {
+            Write-Host "iscc not on this image; installing"
+            choco install innosetup -y --no-progress
+            $env:PATH += ";C:\Program Files (x86)\Inno Setup 6"
+          }
+          $iss = @"
+          [Setup]
+          AppName=MarkText Plus
+          AppVersion=0.0.0
+          DefaultDirName={autopf}\MarkText Plus
+          OutputDir=${{ github.workspace }}
+          OutputBaseFilename=probe-arm64-setup
+          ArchitecturesAllowed=arm64
+          ArchitecturesInstallIn64BitMode=arm64
+          [Files]
+          Source: "${{ github.workspace }}\code\build\windows\arm64\runner\Release\*"; DestDir: "{app}"; Flags: recursesubdirs
+          "@
+          $iss | Out-File -FilePath probe.iss -Encoding UTF8
+          iscc probe.iss
+          if (-not (Test-Path "probe-arm64-setup.exe")) {
+            throw "iscc reported success but produced no installer"
+          }
+          Write-Host "installer built"
+
   build-windows:
     name: Build Windows
     runs-on: windows-latest
