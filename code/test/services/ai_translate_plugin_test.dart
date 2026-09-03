@@ -9,13 +9,33 @@ import 'package:marktext_plus/services/plugin_script_runtime.dart';
 /// The plugin that ships alongside the editor, run exactly as an installation
 /// would run it: its own manifest, its own script, nothing stubbed.
 void main() {
-  const repo =
-      '/iflytek/workspace/znhu/github/marktext-plus-plugins/marktext-plus-ai-translate-plugin';
+  // The plugin is its own repository, checked out beside this one. CI has the
+  // editor and not the plugin, so these run where the plugin is and say so
+  // where it is not — rather than reading an absolute path off one machine and
+  // failing everywhere else, which is how they first reached CI.
+  const path = 'marktext-plus-plugins/marktext-plus-ai-translate-plugin';
+  String? findRepo() {
+    var directory = Directory.current;
+    // Walked upwards rather than named by an absolute path: the plugin sits
+    // beside the editor's checkout, and where that is differs per machine.
+    for (var level = 0; level < 6; level++) {
+      final candidate = '${directory.path}/$path';
+      if (File('$candidate/manifest.json').existsSync()) return candidate;
+      final parent = directory.parent;
+      if (parent.path == directory.path) break;
+      directory = parent;
+    }
+    return null;
+  }
+
+  final repo = findRepo();
+  final present = repo != null;
 
   late Directory root;
   late PluginManifest manifest;
 
   setUp(() {
+    if (!present) return;
     root = Directory.systemTemp.createTempSync('ai_translate_');
     manifest = PluginManifest.fromJson(
       jsonDecode(File('$repo/manifest.json').readAsStringSync())
@@ -26,7 +46,7 @@ void main() {
     File('$repo/plugin.lua').copySync('${dir.path}/plugin.lua');
   });
   tearDown(() {
-    if (root.existsSync()) root.deleteSync(recursive: true);
+    if (present && root.existsSync()) root.deleteSync(recursive: true);
   });
 
   test('it contributes both commands to the editor right-click menu', () {
@@ -39,7 +59,7 @@ void main() {
       manifest.menus.map((m) => m.id),
       containsAll(['translate.selection', 'translate.document']),
     );
-  });
+  }, skip: present ? null : '插件仓库不在这台机器上');
 
   test('it asks for the language, in the reader own language', () {
     final service = PluginCommandService(root.path, locale: 'zh_CN');
@@ -56,7 +76,7 @@ void main() {
     expect((action as PluginAskAction).label, '目标语言');
     expect(action.defaultValue, 'English',
         reason: '第一次运行用 manifest 里声明的默认值');
-  });
+  }, skip: present ? null : '插件仓库不在这台机器上');
 
   test('the prompt it builds carries the document and the language', () {
     final service = PluginCommandService(root.path);
@@ -77,7 +97,7 @@ void main() {
     expect(prompt, contains('# 标题'));
     expect(prompt, isNot(contains('ignored')));
     expect(prompt, contains('Markdown'));
-  });
+  }, skip: present ? null : '插件仓库不在这台机器上');
 
   test('it remembers the language the reader chose last time', () async {
     final service = PluginCommandService(root.path);
@@ -98,7 +118,7 @@ void main() {
     );
 
     expect((action as PluginAskAction).defaultValue, '日本語');
-  });
+  }, skip: present ? null : '插件仓库不在这台机器上');
 
   test('with nothing selected it says so instead of calling the model', () {
     final service = PluginCommandService(root.path, locale: 'zh_CN');
@@ -110,7 +130,7 @@ void main() {
 
     expect(action, isA<PluginNotifyAction>());
     expect((action as PluginNotifyAction).message, contains('请先选中'));
-  });
+  }, skip: present ? null : '插件仓库不在这台机器上');
 
   test('the model reply comes back as two panes, not as an edit', () {
     final service = PluginCommandService(root.path);
@@ -128,5 +148,5 @@ void main() {
     expect(action, isA<PluginDiffAction>());
     expect((action as PluginDiffAction).original, '你好');
     expect(action.result, 'Hello');
-  });
+  }, skip: present ? null : '插件仓库不在这台机器上');
 }
