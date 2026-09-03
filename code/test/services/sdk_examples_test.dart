@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
 import 'package:marktext_plus/services/plugin_command_service.dart';
 import 'package:marktext_plus/services/plugin_js_runtime.dart';
 import 'package:marktext_plus/services/plugin_manifest.dart';
@@ -17,7 +18,7 @@ void main() {
     for (var level = 0; level < 6; level++) {
       final candidate =
           '${directory.path}/marktext-plus-plugins/marktext-plus-plugin-sdk';
-      if (Directory('$candidate/examples').existsSync()) return candidate;
+      if (Directory('$candidate/packages').existsSync()) return candidate;
       final parent = directory.parent;
       if (parent.path == directory.path) break;
       directory = parent;
@@ -29,72 +30,106 @@ void main() {
   final present = sdk != null;
   final skip = present ? null : 'SDK 仓库不在这台机器上';
 
+  /// Installs the example as the editor would: everything but the docs.
+  ///
+  /// Copying only the entrypoint was enough while a plugin was one file. It is
+  /// not any more, and a test that installs half a plugin proves nothing about
+  /// the other half.
   PluginManifest install(Directory root, String example, String script) {
-    final source = '$sdk/examples/$example';
+    final source = Directory('$sdk/packages/$example');
     final manifest = PluginManifest.fromJson(
-      jsonDecode(File('$source/manifest.json').readAsStringSync())
+      jsonDecode(File('${source.path}/manifest.json').readAsStringSync())
           as Map<String, dynamic>,
     );
     final dir = Directory('${root.path}/${manifest.id}')
       ..createSync(recursive: true);
-    File('$source/$script').copySync('${dir.path}/$script');
+
+    for (final entry in source.listSync(recursive: true)) {
+      if (entry is! File) continue;
+      final relative = p.relative(entry.path, from: source.path);
+      // `sdk/` is definitions for the author's editor and never ships.
+      if (p.split(relative).first == 'sdk') continue;
+      final target = File('${dir.path}/$relative')
+        ..parent.createSync(recursive: true);
+      entry.copySync(target.path);
+    }
+    expect(File('${dir.path}/$script').existsSync(), isTrue);
     return manifest;
   }
 
-  test('the Lua example runs, and does what its README says', () {
+  test('the Lua example runs, and reaches every capability it declares', () {
     final root = Directory.systemTemp.createTempSync('sdk_lua_');
     addTearDown(() => root.deleteSync(recursive: true));
     final manifest = install(root, 'lua', 'plugin.lua');
     final service = PluginCommandService(root.path, locale: 'zh_CN');
 
     expect(manifest.runtime, PluginRuntime.lua);
-    expect(manifest.menus.single.appliesTo(hasSelection: false), isFalse,
-        reason: '示例声明了 when: selection');
 
+    // t(), through the plugin's own zh strings.
     final empty = service.start(
       manifest,
-      const PluginScriptContext(command: 'shout.selection'),
+      const PluginScriptContext(command: 'summarise.selection'),
     );
-    expect((empty as PluginNotifyAction).message, '请先选中一些文本',
-        reason: '示例的翻译表要真的被用上');
+    expect((empty as PluginNotifyAction).message, '请先选中一些文本');
 
+    // ask + choices + storage.
     final ask = service.start(
       manifest,
-      const PluginScriptContext(command: 'shout.selection', selection: 'hi'),
+      const PluginScriptContext(
+          command: 'summarise.selection', selection: 'hi'),
     ) as PluginAskAction;
-    expect(ask.label, '多大声？');
-    expect(ask.choices, contains('LOUDEST'));
+    expect(ask.label, '用哪种语言总结？');
+    expect(ask.choices, contains('日本語'));
 
-    final shown = service.start(
+    // ai, with the plugin's own prompt.
+    final ai = service.start(
       manifest,
       const PluginScriptContext(
-        command: 'shout.selection',
-        selection: 'hi',
-        answer: 'LOUDEST',
+        command: 'summarise.selection',
+        selection: 'hello world',
+        answer: '日本語',
       ),
-    ) as PluginShowAction;
-    expect(shown.text, 'HI!!!');
+    ) as PluginAiAction;
+    expect(ai.prompt, contains('日本語'));
+    expect(ai.prompt, contains('hello world'));
+
+    // show for a selection, panel for a document.
+    expect(
+      service.resumeWithResult(
+        manifest,
+        const PluginScriptContext(
+            command: 'summarise.selection', selection: 'x', answer: 'English'),
+        '- a\n- b\n- c',
+      ),
+      isA<PluginShowAction>(),
+    );
+    expect(
+      service.resumeWithResult(
+        manifest,
+        const PluginScriptContext(
+            command: 'summarise.document', document: 'x', answer: 'English'),
+        '- a\n- b\n- c',
+      ),
+      isA<PluginPanelAction>(),
+    );
   }, skip: skip);
 
-  test('the JS example declares the same plugin as the Lua one', () {
-    // The engine itself only exists in a built application, so what can be
-    // checked here is that the two examples are the same plugin in two
-    // languages rather than two different ones.
-    final lua = PluginManifest.fromJson(
-      jsonDecode(File('$sdk/examples/lua/manifest.json')
-          .readAsStringSync()) as Map<String, dynamic>,
-    );
-    final js = PluginManifest.fromJson(
-      jsonDecode(File('$sdk/examples/js/manifest.json')
-          .readAsStringSync()) as Map<String, dynamic>,
-    );
+  test('the Lua and JS packages declare the very same plugin', () {
+    // Two files that must agree, which is the shape that drifts. Everything
+    // but the id, the name, the runtime and the entrypoint is compared.
+    Map<String, dynamic> declared(String runtime) {
+      final json = jsonDecode(
+        File('$sdk/packages/$runtime/manifest.json').readAsStringSync(),
+      ) as Map<String, dynamic>;
+      return {
+        for (final entry in json.entries)
+          if (!const ['id', 'name', 'runtime', 'entrypoint']
+              .contains(entry.key))
+            entry.key: entry.value,
+      };
+    }
 
-    expect(js.runtime, PluginRuntime.js);
-    expect(js.permissions, lua.permissions);
-    expect(js.menus.single.id, lua.menus.single.id);
-    expect(js.menus.single.when, lua.menus.single.when);
-    expect(js.settings.single.key, lua.settings.single.key);
-    expect(js.stringsFor('zh'), lua.stringsFor('zh'));
+    expect(declared('js'), declared('lua'));
   }, skip: skip);
 
   test('the JS example returns actions the editor understands', () {
@@ -112,7 +147,7 @@ void main() {
   test('the compiled example names an executable for each platform it claims',
       () {
     final manifest = PluginManifest.fromJson(
-      jsonDecode(File('$sdk/examples/process/manifest.json').readAsStringSync())
+      jsonDecode(File('$sdk/packages/process/manifest.json').readAsStringSync())
           as Map<String, dynamic>,
     );
 
@@ -132,7 +167,7 @@ void main() {
     final ids = <String>{};
     for (final example in ['lua', 'js', 'process']) {
       final manifest = PluginManifest.fromJson(
-        jsonDecode(File('$sdk/examples/$example/manifest.json')
+        jsonDecode(File('$sdk/packages/$example/manifest.json')
             .readAsStringSync()) as Map<String, dynamic>,
       );
       ids.add(manifest.id);

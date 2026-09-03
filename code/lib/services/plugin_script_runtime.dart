@@ -1,5 +1,12 @@
 import 'package:lua_dardo/lua.dart';
 
+/// Reads one of a plugin's own files, by module name.
+///
+/// Returns null when the plugin has no such module. The host resolves the
+/// name; a runtime never sees a path, so it cannot be handed one that leaves
+/// the plugin's directory.
+typedef PluginModuleLoader = String? Function(String name);
+
 /// A plugin script that could not be loaded or ran into an error.
 class PluginScriptException implements Exception {
   const PluginScriptException(this.message);
@@ -155,8 +162,10 @@ class PluginScriptRuntime implements PluginRuntimeHost {
     String source, {
     Map<String, String> storage = const {},
     Map<String, String> strings = const {},
+    PluginModuleLoader? modules,
   })  : _storage = Map<String, String>.of(storage),
-        _strings = Map<String, String>.of(strings) {
+        _strings = Map<String, String>.of(strings),
+        _modules = modules {
     _state = LuaState.newState();
     _state.openLibs();
     _sandbox();
@@ -181,6 +190,7 @@ class PluginScriptRuntime implements PluginRuntimeHost {
   late final LuaState _state;
   final Map<String, String> _storage;
   final Map<String, String> _strings;
+  final PluginModuleLoader? _modules;
   bool _disposed = false;
   bool _storageChanged = false;
 
@@ -258,6 +268,59 @@ class PluginScriptRuntime implements PluginRuntimeHost {
       return 1;
     });
     _state.setGlobal('t');
+
+    _installRequire();
+  }
+
+  /// `require`, resolving only inside the plugin's own directory.
+  ///
+  /// The sandbox removed `require` outright because it can load anything on
+  /// the disk. That also made a plugin one file forever — no splitting a large
+  /// one up, and no third party wrapping these capabilities in something an
+  /// author could reuse. What was wanted was not "no require" but one that
+  /// cannot leave home: the host resolves the name and hands back source, so
+  /// this never sees a path at all.
+  void _installRequire() {
+    final modules = _modules;
+    if (modules == null) return;
+
+    _state.pushDartFunction((ls) {
+      final name = ls.toStr(1);
+      final source = name == null ? null : modules(name);
+      if (source == null) {
+        ls.pushNil();
+      } else {
+        ls.pushString(source);
+      }
+      return 1;
+    });
+    _state.setGlobal('__load');
+
+    // Written in Lua because `load` is what compiles it, and the caching and
+    // error message read better here than as stack manipulation in Dart.
+    final status = _state.loadString(r'''
+local __loaded = {}
+function require(name)
+  if __loaded[name] ~= nil then return __loaded[name] end
+  local source = __load(name)
+  if source == nil then
+    error("no module '" .. tostring(name) .. "' in this plugin", 2)
+  end
+  local chunk, err = load(source, name)
+  if chunk == nil then
+    error("module '" .. tostring(name) .. "' has an error: " .. tostring(err), 2)
+  end
+  local value = chunk()
+  if value == nil then value = true end
+  __loaded[name] = value
+  return value
+end
+''');
+    if (status != ThreadStatus.luaOk) {
+      _state.pop(1);
+      return;
+    }
+    _protectedCall(0, 0);
   }
 
   /// Runs the script's `on_command` for [context].

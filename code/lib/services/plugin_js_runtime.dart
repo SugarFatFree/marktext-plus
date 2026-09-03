@@ -18,9 +18,11 @@ class PluginJsRuntime implements PluginRuntimeHost {
     String source, {
     Map<String, String> storage = const {},
     Map<String, String> strings = const {},
+    PluginModuleLoader? modules,
   })  : _storage = Map<String, String>.of(storage),
         _runtime = getJavascriptRuntime() {
     _install(strings);
+    _installRequire(modules);
     _evaluate(source, what: 'the plugin script');
   }
 
@@ -67,6 +69,41 @@ globalThis.t = function (key) {
     : key;
 };
 ''', what: 'the plugin sandbox');
+  }
+
+  /// `require`, resolving only inside the plugin's own directory.
+  ///
+  /// QuickJS has no module system wired up here, so this is the CommonJS shape
+  /// an author writing JavaScript already knows: a module sets
+  /// `module.exports`, and requiring it twice gets the same object back. The
+  /// host resolves the name, so this never sees a path.
+  void _installRequire(PluginModuleLoader? modules) {
+    if (modules == null) return;
+
+    _runtime.onMessage('__load', (dynamic name) {
+      final source = name is String ? modules(name) : null;
+      return source ?? '';
+    });
+
+    _evaluate(r'''
+globalThis.__loaded = {};
+globalThis.require = function (name) {
+  if (Object.prototype.hasOwnProperty.call(__loaded, name)) {
+    return __loaded[name];
+  }
+  var source = sendMessage('__load', JSON.stringify(name));
+  if (!source) {
+    throw new Error("no module '" + name + "' in this plugin");
+  }
+  var module = { exports: {} };
+  // Wrapped so a module gets `module`, `exports` and `require` and nothing of
+  // this function's own scope.
+  var make = new Function('module', 'exports', 'require', source);
+  make(module, module.exports, require);
+  __loaded[name] = module.exports;
+  return module.exports;
+};
+''', what: 'the plugin module loader');
   }
 
   @override

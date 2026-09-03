@@ -124,13 +124,56 @@ class PluginCommandService {
     final strings = manifest.stringsFor(locale);
     // The plugin chose its language; nothing else in the editor cares which,
     // because both runtimes answer with the same actions.
+    final modules = _moduleLoader(manifest);
     final runtime = switch (manifest.runtime) {
-      PluginRuntime.js =>
-        PluginJsRuntime(source, storage: settings, strings: strings),
-      _ => PluginScriptRuntime(source, storage: settings, strings: strings),
+      PluginRuntime.js => PluginJsRuntime(source,
+          storage: settings, strings: strings, modules: modules),
+      _ => PluginScriptRuntime(source,
+          storage: settings, strings: strings, modules: modules),
     };
     _runtimes[manifest.id] = runtime;
     return runtime;
+  }
+
+  /// Resolves one of a plugin's module names to source, inside its own
+  /// directory and nowhere else.
+  ///
+  /// A module name is dotted — `lib.text` is `lib/text.lua` — and it is a
+  /// name, not a path: anything with a separator, a `..`, or a drive in it is
+  /// refused before it reaches the disk, and the resolved file is checked to
+  /// be under the plugin's directory afterwards as well. The second check
+  /// catches what the first cannot, a symbolic link pointing out of the
+  /// plugin.
+  PluginModuleLoader _moduleLoader(PluginManifest manifest) {
+    final extension = manifest.runtime == PluginRuntime.js ? '.js' : '.lua';
+    final directory = Directory(_directoryOf(manifest)).absolute;
+    final root = _real(directory.path);
+
+    return (String name) {
+      if (name.isEmpty) return null;
+      if (name.contains('/') ||
+          name.contains(r'\') ||
+          name.contains('..') ||
+          name.startsWith('.')) {
+        return null;
+      }
+      final file = File(
+        p.join(directory.path, '${name.replaceAll('.', p.separator)}$extension'),
+      );
+      if (!file.existsSync()) return null;
+      if (!p.isWithin(root, _real(file.path))) return null;
+      return file.readAsStringSync();
+    };
+  }
+
+  /// The path with symbolic links resolved, or the path itself when it cannot
+  /// be resolved — a link that goes nowhere is not a way out of the directory.
+  static String _real(String path) {
+    try {
+      return File(path).resolveSymbolicLinksSync();
+    } catch (_) {
+      return path;
+    }
   }
 
   /// The plugin's saved settings, over the defaults it declared.
