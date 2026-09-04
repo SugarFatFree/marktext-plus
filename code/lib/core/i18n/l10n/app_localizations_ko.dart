@@ -1095,4 +1095,18 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get pluginTooManySteps => '플러그인이 너무 많이 되물었습니다';
+
+  @override
+  String get pluginInstall => '설치';
+
+  @override
+  String get pluginInstalled => '설치됨';
+
+  @override
+  String pluginUpdateTo(String version) {
+    return '$version(으)로 업데이트';
+  }
+
+  @override
+  String get pluginFinished => '완료';
 }

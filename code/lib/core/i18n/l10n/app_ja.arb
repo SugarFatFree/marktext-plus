@@ -420,5 +420,10 @@
   "pluginResult": "プラグインの結果",
   "pluginFailed": "{plugin} が失敗しました",
   "pluginCannotEdit": "{plugin} にドキュメントを編集する権限がありません",
-  "pluginTooManySteps": "プラグインの問い合わせ回数が多すぎます"
+  "pluginTooManySteps": "プラグインの問い合わせ回数が多すぎます",
+  "pluginInstall": "インストール",
+  "pluginInstalled": "インストール済み",
+  "pluginUpdateTo": "{version} に更新",
+  "@pluginUpdateTo": {"placeholders": {"version": {"type": "String"}}},
+  "pluginFinished": "完了"
 }

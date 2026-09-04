@@ -1117,4 +1117,18 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get pluginTooManySteps => 'L’estensione ha posto troppe domande';
+
+  @override
+  String get pluginInstall => 'Installa';
+
+  @override
+  String get pluginInstalled => 'Installato';
+
+  @override
+  String pluginUpdateTo(String version) {
+    return 'Aggiorna alla $version';
+  }
+
+  @override
+  String get pluginFinished => 'Completato';
 }

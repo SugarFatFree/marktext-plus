@@ -420,5 +420,10 @@
   "pluginResult": "نتيجة الإضافة",
   "pluginFailed": "فشل {plugin}",
   "pluginCannotEdit": "لا تملك {plugin} إذن تعديل المستند",
-  "pluginTooManySteps": "طرحت الإضافة أسئلة كثيرة جدًا"
+  "pluginTooManySteps": "طرحت الإضافة أسئلة كثيرة جدًا",
+  "pluginInstall": "تثبيت",
+  "pluginInstalled": "مُثبَّت",
+  "pluginUpdateTo": "التحديث إلى {version}",
+  "@pluginUpdateTo": {"placeholders": {"version": {"type": "String"}}},
+  "pluginFinished": "اكتمل"
 }

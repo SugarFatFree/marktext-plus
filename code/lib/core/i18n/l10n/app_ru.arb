@@ -420,5 +420,10 @@
   "pluginResult": "Результат расширения",
   "pluginFailed": "{plugin}: ошибка",
   "pluginCannotEdit": "{plugin} не может изменять документ",
-  "pluginTooManySteps": "Расширение задало слишком много вопросов"
+  "pluginTooManySteps": "Расширение задало слишком много вопросов",
+  "pluginInstall": "Установить",
+  "pluginInstalled": "Установлено",
+  "pluginUpdateTo": "Обновить до {version}",
+  "@pluginUpdateTo": {"placeholders": {"version": {"type": "String"}}},
+  "pluginFinished": "Готово"
 }

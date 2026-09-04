@@ -420,5 +420,10 @@
   "pluginResult": "插件结果",
   "pluginFailed": "{plugin} 执行失败",
   "pluginCannotEdit": "{plugin} 没有修改文档的权限",
-  "pluginTooManySteps": "插件的追问次数过多"
+  "pluginTooManySteps": "插件的追问次数过多",
+  "pluginInstall": "安装",
+  "pluginInstalled": "已安装",
+  "pluginUpdateTo": "更新到 {version}",
+  "@pluginUpdateTo": {"placeholders": {"version": {"type": "String"}}},
+  "pluginFinished": "已完成"
 }

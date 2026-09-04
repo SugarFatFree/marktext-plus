@@ -1329,6 +1329,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
           context: context,
           ref: ref,
           location: PluginCommandActions.editorContextMenu,
+          half: PluginEditorView.preview,
           selection: () => ref.read(editorProvider).selectedText,
           document: () => widget.markdown,
         ),

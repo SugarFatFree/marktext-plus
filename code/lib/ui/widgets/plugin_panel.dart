@@ -135,9 +135,58 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
     }
   }
 
-  void _showDetails(PluginCatalogEntry plugin) {
-    ref.read(pluginDetailProvider.notifier).state = plugin;
+  void _showDetails(PluginCatalogEntry plugin) =>
+      openPluginDetailTab(ref, plugin);
+
+  /// The button beside a search result — or, when the reader already has it,
+  /// the fact that they do.
+  ///
+  /// A download button on something already installed said nothing about what
+  /// pressing it would do, and the list that had just installed a plugin
+  /// looked exactly as it had before.
+  Widget _discoverAction(
+    PluginCatalogEntry plugin,
+    AsyncValue<List<PluginManifest>> installed,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    final state = PluginInstallState.of(
+      plugin,
+      installed.valueOrNull ?? const <PluginManifest>[],
+    );
+    return switch (state) {
+      PluginInstallState.installed => Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          child: Text(
+            l10n.pluginInstalled,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ),
+      // An update is still one press away. Reporting "installed" and stopping
+      // there is how a reader stops getting them.
+      PluginInstallState.updatable => IconButton(
+          tooltip: l10n.pluginUpdateTo(plugin.version),
+          icon: const Icon(Icons.upgrade, size: 18),
+          onPressed: () => _installCommunity(plugin),
+          visualDensity: VisualDensity.compact,
+        ),
+      PluginInstallState.installable => IconButton(
+          tooltip: l10n.pluginInstall,
+          icon: const Icon(Icons.download, size: 18),
+          onPressed: () => _installCommunity(plugin),
+          visualDensity: VisualDensity.compact,
+        ),
+    };
   }
+
+  /// A plugin's own string in the reader's language.
+  ///
+  /// A plugin ships its own translations; the name and the description go
+  /// through them like every other string it shows. A plugin that wrote a
+  /// plain name rather than a key gets that name back unchanged.
+  String _localised(PluginManifest plugin, String value) =>
+      plugin.stringsFor(_locale)[value] ?? value;
+
+  String get _locale => Localizations.localeOf(context).toString();
 
   Future<void> _openSdk() async {
     final uri = Uri.parse(
@@ -272,13 +321,14 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
                                   const SizedBox(width: 6),
                                   Expanded(
                                     child: InkWell(
-                                      onTap: () => ref
-                                          .read(pluginDetailProvider.notifier)
-                                          .state = PluginCatalogEntry.installed(
-                                        plugin,
+                                      onTap: () => openPluginDetailTab(
+                                        ref,
+                                        PluginCatalogEntry.installed(plugin),
                                       ),
-                                      child: Text(plugin.name,
-                                          overflow: TextOverflow.ellipsis),
+                                      child: Text(
+                                        _localised(plugin, plugin.name),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
                                   ),
                                   Switch(
@@ -289,6 +339,19 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
                                   ),
                                 ],
                               ),
+                              // What it does, before what it is called
+                              // internally: the id and version answer "which
+                              // build is this", which is not the question
+                              // someone scanning the list is asking.
+                              if (plugin.description.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 2),
+                                  child: Text(
+                                    _localised(plugin, plugin.description),
+                                    style:
+                                        Theme.of(context).textTheme.bodySmall,
+                                  ),
+                                ),
                               Text('${plugin.id} · ${plugin.version}',
                                   style: Theme.of(context).textTheme.bodySmall),
                               Row(
@@ -348,12 +411,7 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
                                   height: 18,
                                   child: CircularProgressIndicator(strokeWidth: 2),
                                 )
-                              : IconButton(
-                                  tooltip: 'Install',
-                                  icon: const Icon(Icons.download, size: 18),
-                                  onPressed: () => _installCommunity(plugin),
-                                  visualDensity: VisualDensity.compact,
-                                ),
+                              : _discoverAction(plugin, installed),
                         ))
                     .toList(),
             ),

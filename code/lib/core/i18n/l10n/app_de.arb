@@ -420,5 +420,10 @@
   "pluginResult": "Ergebnis des Plug-ins",
   "pluginFailed": "{plugin} ist fehlgeschlagen",
   "pluginCannotEdit": "{plugin} darf das Dokument nicht bearbeiten",
-  "pluginTooManySteps": "Das Plug-in hat zu viel nachgefragt"
+  "pluginTooManySteps": "Das Plug-in hat zu viel nachgefragt",
+  "pluginInstall": "Installieren",
+  "pluginInstalled": "Installiert",
+  "pluginUpdateTo": "Auf {version} aktualisieren",
+  "@pluginUpdateTo": {"placeholders": {"version": {"type": "String"}}},
+  "pluginFinished": "Fertig"
 }

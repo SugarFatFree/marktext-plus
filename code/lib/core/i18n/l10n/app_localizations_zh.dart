@@ -1094,4 +1094,18 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get pluginTooManySteps => '插件的追问次数过多';
+
+  @override
+  String get pluginInstall => '安装';
+
+  @override
+  String get pluginInstalled => '已安装';
+
+  @override
+  String pluginUpdateTo(String version) {
+    return '更新到 $version';
+  }
+
+  @override
+  String get pluginFinished => '已完成';
 }

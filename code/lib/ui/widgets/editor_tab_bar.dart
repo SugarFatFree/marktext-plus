@@ -422,6 +422,20 @@ class _TabItemState extends ConsumerState<_TabItem> with SingleTickerProviderSta
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // A plugin page beside a row of documents, with nothing to
+              // say which is which, reads as a document called "AI Translate"
+              // that will not open.
+              if (widget.tab.isPluginDetail)
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: Icon(
+                    Icons.extension,
+                    size: 13,
+                    color: widget.isActive
+                        ? widget.tokens.colorText
+                        : widget.tokens.colorTextMuted,
+                  ),
+                ),
               if (widget.tab.isModified)
                 Container(
                   width: 6,

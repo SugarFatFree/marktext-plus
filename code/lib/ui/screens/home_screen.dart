@@ -18,7 +18,6 @@ import '../../providers/file_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/tab_provider.dart';
 import '../../providers/update_provider.dart';
-import '../../providers/plugin_provider.dart';
 import '../../models/tab_info.dart';
 import '../../services/command_registry.dart';
 import '../../services/update_service.dart';
@@ -27,6 +26,7 @@ import '../../utils/platform_utils.dart';
 import '../widgets/app_menu_bar.dart';
 import '../widgets/side_bar.dart';
 import '../widgets/plugin_panes.dart';
+import '../widgets/plugin_tip.dart';
 import '../widgets/plugin_result_panel.dart';
 import '../widgets/right_side_bar.dart';
 import '../widgets/status_bar.dart';
@@ -828,8 +828,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
                                 // between source and preview, offered out.
                                 Expanded(
                                   child: PluginPanes(
-                                    document: _zoomable(
-                                      _buildEditorArea(config.editMode),
+                                    // The tip goes inside the document cell,
+                                    // not over the whole grid: it is an answer
+                                    // about this text, and covering a pane's
+                                    // own title bar with it would be covering
+                                    // something else's work.
+                                    document: PluginTipLayer(
+                                      child: _zoomable(
+                                        _buildEditorArea(config.editMode),
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -887,11 +894,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
   static const _maxZoom = 32.0;
 
   Widget _buildEditorArea(EditMode editMode) {
-    final pluginDetail = ref.watch(pluginDetailProvider);
-    if (pluginDetail != null) {
-      return PluginDetailView(plugin: pluginDetail);
-    }
     final activeTab = ref.watch(activeTabProvider);
+    // A plugin page is a tab like any other, so it is reached the same way.
+    // It used to be state that replaced this whole area, which left the
+    // document it covered still active and still highlighted in the tab bar.
+    if (activeTab?.pluginDetail case final plugin?) {
+      return PluginDetailView(plugin: plugin);
+    }
     if (activeTab == null) {
       final l10n = AppLocalizations.of(context)!;
       final tokens = AppTheme.getTokens(ref.watch(settingsProvider).themeName);

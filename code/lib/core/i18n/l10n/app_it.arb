@@ -420,5 +420,10 @@
   "pluginResult": "Risultato dell’estensione",
   "pluginFailed": "{plugin} non è riuscito",
   "pluginCannotEdit": "{plugin} non può modificare il documento",
-  "pluginTooManySteps": "L’estensione ha posto troppe domande"
+  "pluginTooManySteps": "L’estensione ha posto troppe domande",
+  "pluginInstall": "Installa",
+  "pluginInstalled": "Installato",
+  "pluginUpdateTo": "Aggiorna alla {version}",
+  "@pluginUpdateTo": {"placeholders": {"version": {"type": "String"}}},
+  "pluginFinished": "Completato"
 }

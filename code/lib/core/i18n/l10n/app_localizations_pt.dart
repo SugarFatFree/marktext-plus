@@ -1116,6 +1116,20 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get pluginTooManySteps => 'O plug-in fez demasiadas perguntas';
+
+  @override
+  String get pluginInstall => 'Instalar';
+
+  @override
+  String get pluginInstalled => 'Instalado';
+
+  @override
+  String pluginUpdateTo(String version) {
+    return 'Atualizar para $version';
+  }
+
+  @override
+  String get pluginFinished => 'Concluído';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -2228,4 +2242,18 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get pluginTooManySteps => 'O plug-in fez perguntas demais';
+
+  @override
+  String get pluginInstall => 'Instalar';
+
+  @override
+  String get pluginInstalled => 'Instalado';
+
+  @override
+  String pluginUpdateTo(String version) {
+    return 'Atualizar para $version';
+  }
+
+  @override
+  String get pluginFinished => 'Concluído';
 }

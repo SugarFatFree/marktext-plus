@@ -1107,4 +1107,18 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get pluginTooManySteps => 'طرحت الإضافة أسئلة كثيرة جدًا';
+
+  @override
+  String get pluginInstall => 'تثبيت';
+
+  @override
+  String get pluginInstalled => 'مُثبَّت';
+
+  @override
+  String pluginUpdateTo(String version) {
+    return 'التحديث إلى $version';
+  }
+
+  @override
+  String get pluginFinished => 'اكتمل';
 }

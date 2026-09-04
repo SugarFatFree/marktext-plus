@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import '../../core/config/app_config.dart';
 import '../../core/i18n/l10n/app_localizations.dart';
 import '../../providers/editor_provider.dart';
 import '../../providers/plugin_provider.dart';
@@ -20,8 +21,25 @@ import '../../services/plugin_script_runtime.dart';
 /// Both panes call this. The source pane had the translate command and the
 /// preview did not, so whether the reader saw it depended on which half of a
 /// split view they had clicked in.
+/// Which half of the editor a command was started from.
+///
+/// In split view the editor is showing both at once, so "what is the reader
+/// looking at" has no single answer — but the menu does: it was opened in one
+/// half or the other. Reporting the mode instead sent plugins `split`, which
+/// they can only fall back from; a translation of a source document came back
+/// rendered, beside the source it could no longer be compared with.
+enum PluginEditorView { source, preview }
+
 class PluginCommandActions {
   const PluginCommandActions._();
+
+  /// What to tell a plugin the reader is looking at.
+  ///
+  /// The half wins where there is one, because it is the more specific truth:
+  /// a right-click happened somewhere. Only a command with no half — from the
+  /// menu bar, or the command palette — falls back to the mode.
+  static String viewFor(PluginEditorView? half, EditMode mode) =>
+      half?.name ?? mode.name;
 
   /// Where in the editor a menu entry belongs. A plugin says this in its
   /// manifest; the host decides what that location actually looks like.
@@ -32,6 +50,7 @@ class PluginCommandActions {
     required BuildContext context,
     required WidgetRef ref,
     required String location,
+    required PluginEditorView half,
     required String Function() selection,
     required String Function() document,
   }) {
@@ -63,6 +82,10 @@ class PluginCommandActions {
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     final locale = Localizations.localeOf(context).toString();
+    // Read here, while there is certainly a widget: the menu entry may be
+    // pressed long after this list was built, and the run it starts may
+    // outlive the pane it was started from.
+    final container = ProviderScope.containerOf(context, listen: false);
 
     final items = <ContextMenuButtonItem>[];
     {
@@ -81,11 +104,12 @@ class PluginCommandActions {
               _run(
                 navigator: navigator,
                 messenger: messenger,
-                ref: ref,
+                container: container,
                 l10n: l10n,
                 locale: locale,
                 plugin: plugin,
                 command: menu.id,
+                view: viewFor(half, container.read(settingsProvider).editMode),
                 selection: selected,
                 document: document(),
               );
@@ -111,11 +135,12 @@ class PluginCommandActions {
     await _run(
       navigator: Navigator.of(context),
       messenger: ScaffoldMessenger.of(context),
-      ref: ref,
+      container: ProviderScope.containerOf(context, listen: false),
       l10n: l10n,
       locale: Localizations.localeOf(context).toString(),
       plugin: plugin,
       command: command,
+      view: viewFor(null, ref.read(settingsProvider).editMode),
       selection: ref.read(editorProvider).selectedText,
       document: active.isEmpty ? '' : active.first.content,
     );
@@ -136,12 +161,13 @@ class PluginCommandActions {
     // Read before the await: after it the context may be gone, and the
     // reader's language is not worth a crash.
     final locale = Localizations.localeOf(context).toString();
+    final container = ProviderScope.containerOf(context, listen: false);
     final directory = await getApplicationSupportDirectory();
     final service = PluginCommandService(
       p.join(directory.path, 'plugins'),
       locale: locale,
     );
-    final tabs = ref.read(tabProvider);
+    final tabs = container.read(tabProvider);
     final active = tabs.tabs.where((tab) => tab.id == tabs.activeTabId);
 
     try {
@@ -149,9 +175,9 @@ class PluginCommandActions {
         plugin,
         PluginScriptContext(
           command: command,
-          selection: ref.read(editorProvider).selectedText,
+          selection: container.read(editorProvider).selectedText,
           document: active.isEmpty ? '' : active.first.content,
-          view: ref.read(settingsProvider).editMode.name,
+          view: viewFor(null, container.read(settingsProvider).editMode),
         ),
       );
       return switch (action) {
@@ -179,14 +205,22 @@ class PluginCommandActions {
   /// The script is synchronous, so it hands back one action at a time and this
   /// performs it: ask the reader, call the model, show the result. The plugin
   /// keeps the prompt and the flow; the editor keeps the credentials.
+  ///
+  /// Takes a [ProviderContainer] rather than a `WidgetRef`: a run outlives the
+  /// widget that began it. Closing the pane, or the tab, while a model call is
+  /// in flight disposed that widget, and the next `ref.read` — including the
+  /// two in the `finally`, which always run — threw "Cannot use ref after the
+  /// widget was disposed" in the reader's face. A container is the whole
+  /// application's, and outlives any of this.
   static Future<void> _run({
     required NavigatorState navigator,
     required ScaffoldMessengerState messenger,
-    required WidgetRef ref,
+    required ProviderContainer container,
     required AppLocalizations l10n,
     required String locale,
     required PluginManifest plugin,
     required String command,
+    required String view,
     required String selection,
     required String document,
   }) async {
@@ -200,7 +234,7 @@ class PluginCommandActions {
       command: command,
       selection: selection,
       document: document,
-      view: ref.read(settingsProvider).editMode.name,
+      view: view,
     );
 
     try {
@@ -229,57 +263,55 @@ class PluginCommandActions {
 
           case PluginAiAction(:final prompt):
             if (!navigator.mounted) return;
-            final reply = await _withProgress(
-              navigator,
-              l10n.pluginWorking,
-              () => AiChatService.complete(
-                config: ref.read(settingsProvider),
-                prompt: prompt,
-              ),
+            // Said beside the document, not over it. A modal barrier stopped
+            // the reader scrolling the very text the answer was about, for
+            // the several seconds a model takes.
+            container.read(pluginTipProvider.notifier).working(plugin.name);
+            final reply = await AiChatService.complete(
+              config: container.read(settingsProvider),
+              prompt: prompt,
             );
+            // Dismissing the tip is how the reader stops this. Coming back
+            // with the answer they had just closed would make the close
+            // button a suggestion.
+            if (container.read(pluginTipProvider) == null) return;
             action = service.resumeWithResult(plugin, context, reply);
 
           case PluginShowAction(:final text, :final title):
-            if (!navigator.mounted) return;
-            await showDialog<void>(
-              context: navigator.context,
-              builder: (_) => _ResultDialog(
-                title: title.isEmpty ? plugin.name : title,
-                text: text,
-                l10n: l10n,
-              ),
-            );
+            container.read(pluginTipProvider.notifier).show(
+                  title: title.isEmpty ? plugin.name : title,
+                  text: text,
+                );
             return;
 
           case PluginPaneAction(
-              :final text,
-              :final title,
-              :final slot,
-              :final render,
               :final append,
-              :final nextPrompt
+              :final nextPrompt,
+              :final slot
             ):
-            final content = PluginPaneContent(
-              pluginName: plugin.name,
-              title: title,
-              text: text,
-              slot: slot,
-              render: render,
-            );
-            final panes = ref.read(pluginPanesProvider.notifier);
+            final content =
+                PluginPaneContent.fromAction(action, plugin.name);
+            final panes = container.read(pluginPanesProvider.notifier);
+            // Closing the pane is how the reader stops this. Appending to a
+            // pane they closed would put it straight back, one block at a
+            // time, with no way to be rid of it.
+            if (append &&
+                !container.read(pluginPanesProvider).containsKey(slot)) {
+              return;
+            }
             append ? panes.append(content) : panes.show(content);
             if (nextPrompt == null) return;
             // More to do, and the reader can already see what is done — so no
             // dialog over the top of it. This is what lets a plugin work
             // through a document a block at a time.
             final reply = await AiChatService.complete(
-              config: ref.read(settingsProvider),
+              config: container.read(settingsProvider),
               prompt: nextPrompt,
             );
             action = service.resumeWithResult(plugin, context, reply);
 
           case PluginPanelAction(:final text, :final title):
-            ref.read(pluginPanelResultProvider.notifier).state =
+            container.read(pluginPanelResultProvider.notifier).state =
                 PluginPanelResult(
               pluginName: plugin.name,
               title: title,
@@ -324,6 +356,12 @@ class PluginCommandActions {
       }
       await _showFailure(navigator.context, l10n, plugin.name, '$error');
     } finally {
+      // However the run ended — finished, threw, or ran out of steps — nothing
+      // is still coming. A pane left spinning over half a translation, or a
+      // tip left saying "working", would both be the editor saying something
+      // untrue about itself.
+      container.read(pluginPanesProvider.notifier).settle();
+      container.read(pluginTipProvider.notifier).dismissIfWaiting();
       await service.flush(plugin);
       service.dispose();
     }
@@ -374,38 +412,6 @@ class PluginCommandActions {
     );
     controller.dispose();
     return (answer == null || answer.isEmpty) ? null : answer;
-  }
-
-  /// Runs [work] with a dialog on screen, because a model call takes seconds
-  /// and a window that does nothing for seconds reads as a command that never
-  /// fired.
-  static Future<String> _withProgress(
-    NavigatorState navigator,
-    String message,
-    Future<String> Function() work,
-  ) async {
-    showDialog<void>(
-      context: navigator.context,
-      barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        content: Row(
-          children: [
-            const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-            const SizedBox(width: 16),
-            Expanded(child: Text(message)),
-          ],
-        ),
-      ),
-    );
-    try {
-      return await work();
-    } finally {
-      if (navigator.canPop()) navigator.pop();
-    }
   }
 
   static Future<void> _showFailure(
@@ -536,44 +542,6 @@ class _ChoiceRow extends StatelessWidget {
             ),
         ],
       ),
-    );
-  }
-}
-
-/// One result, shown small. Nothing is written to the document.
-class _ResultDialog extends StatelessWidget {
-  const _ResultDialog({
-    required this.title,
-    required this.text,
-    required this.l10n,
-  });
-
-  final String title;
-  final String text;
-  final AppLocalizations l10n;
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(title),
-      // Sized to a note, not to the window: this is one answer to read, and
-      // the side-by-side dialog that used to appear here covered the document
-      // the reader was checking it against.
-      content: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 460, maxHeight: 320),
-        child: SingleChildScrollView(child: SelectableText(text)),
-      ),
-      actions: [
-        TextButton.icon(
-          onPressed: () => Clipboard.setData(ClipboardData(text: text)),
-          icon: const Icon(Icons.copy, size: 16),
-          label: Text(l10n.copy),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.confirm),
-        ),
-      ],
     );
   }
 }

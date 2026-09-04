@@ -420,5 +420,10 @@
   "pluginResult": "플러그인 결과",
   "pluginFailed": "{plugin} 실패",
   "pluginCannotEdit": "{plugin}에 문서 편집 권한이 없습니다",
-  "pluginTooManySteps": "플러그인이 너무 많이 되물었습니다"
+  "pluginTooManySteps": "플러그인이 너무 많이 되물었습니다",
+  "pluginInstall": "설치",
+  "pluginInstalled": "설치됨",
+  "pluginUpdateTo": "{version}(으)로 업데이트",
+  "@pluginUpdateTo": {"placeholders": {"version": {"type": "String"}}},
+  "pluginFinished": "완료"
 }

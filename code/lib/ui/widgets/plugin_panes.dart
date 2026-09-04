@@ -8,66 +8,153 @@ import '../../providers/settings_provider.dart';
 import '../editor/markdown_renderer.dart';
 import '../../services/plugin_script_runtime.dart';
 
-/// The document, and up to three panes a plugin filled, as a two by two grid.
+/// The document, and up to three panes a plugin filled.
 ///
-/// Nothing is drawn for a slot no plugin asked for: an empty pane is a strip
-/// of nothing taking space from the document. With no panes at all this is the
-/// document and no wrapper worth the name.
-class PluginPanes extends ConsumerWidget {
+/// The shape follows the count, and is symmetrical at every step:
+///
+/// * nothing filled — the document has the whole tab;
+/// * one pane — the document and the pane, side by side, half each;
+/// * two panes — the top half split down the middle, the second pane taking
+///   the bottom half whole;
+/// * three panes — both halves split down the middle, four equal cells.
+///
+/// The dividers drag, like the one between source and preview this was
+/// modelled on. It used to be trim rather than a grid — a fixed strip down one
+/// side, a fixed band along the bottom — so a translation got a sliver beside
+/// the document it translated and no two cells were the same size.
+///
+/// A slot decides which pane is which, not where it lands: a plugin that fills
+/// only the corner should not leave two empty cells to get there.
+class PluginPanes extends ConsumerStatefulWidget {
   const PluginPanes({required this.document, super.key});
 
   final Widget document;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final panes = ref.watch(pluginPanesProvider);
-    if (panes.isEmpty) return document;
-
-    final right = panes[PluginPaneSlot.right];
-    final bottom = panes[PluginPaneSlot.bottom];
-    final corner = panes[PluginPaneSlot.corner];
-
-    // The top row is the document and whatever sits beside it; the bottom row
-    // is what sits under each of those. A row with nothing in it is not drawn,
-    // so a plugin filling only the corner still gets a bottom row.
-    Widget row(Widget left, PluginPaneContent? beside) => beside == null
-        ? left
-        : Row(children: [
-            Expanded(child: left),
-            const _Divider(vertical: true),
-            SizedBox(width: 360, child: PluginPaneView(content: beside)),
-          ]);
-
-    final top = row(document, right);
-    if (bottom == null && corner == null) return top;
-
-    return Column(children: [
-      Expanded(child: top),
-      const _Divider(vertical: false),
-      SizedBox(
-        height: 240,
-        child: row(
-          bottom == null
-              ? const SizedBox.expand()
-              : PluginPaneView(content: bottom),
-          corner,
-        ),
-      ),
-    ]);
-  }
+  ConsumerState<PluginPanes> createState() => _PluginPanesState();
 }
 
-class _Divider extends StatelessWidget {
-  const _Divider({required this.vertical});
+class _PluginPanesState extends ConsumerState<PluginPanes> {
+  /// Where the vertical divider sits, as a fraction of the width. Half, so
+  /// what a plugin produced gets the same room as what it was produced from.
+  double _columns = 0.5;
+  double _rows = 0.5;
 
-  final bool vertical;
+  /// Kept off the edges, so a pane can always be grabbed again after a drag.
+  static const _least = 0.15;
+  static const _most = 0.85;
 
   @override
   Widget build(BuildContext context) {
-    final colour = Theme.of(context).dividerColor;
-    return vertical
-        ? VerticalDivider(width: 1, thickness: 1, color: colour)
-        : Divider(height: 1, thickness: 1, color: colour);
+    final panes = ref.watch(pluginPanesProvider);
+    // In the order slots are declared, so the shape of the grid is settled by
+    // how many panes there are and stays put as more arrive.
+    final filled = [
+      for (final slot in PluginPaneSlot.values)
+        if (panes[slot] != null) PluginPaneView(content: panes[slot]!),
+    ];
+    if (filled.isEmpty) return widget.document;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        Widget row(Widget left, Widget? beside) {
+          if (beside == null) return left;
+          final width = constraints.maxWidth;
+          return Row(children: [
+            SizedBox(width: width * _columns - _Grip.half, child: left),
+            _Grip(
+              key: const Key('plugin-panes-column-divider'),
+              vertical: true,
+              onDrag: (delta) => setState(() {
+                _columns = (_columns + delta / width).clamp(_least, _most);
+              }),
+            ),
+            SizedBox(width: width * (1 - _columns) - _Grip.half, child: beside),
+          ]);
+        }
+
+        final top = row(widget.document, filled.first);
+        if (filled.length == 1) return top;
+
+        // Two panes leave the bottom half whole; three split it the same way
+        // as the top, and the columns line up because they share the divider.
+        final under = filled.length == 2
+            ? filled[1]
+            : row(filled[1], filled[2]);
+
+        final height = constraints.maxHeight;
+        return Column(children: [
+          SizedBox(height: height * _rows - _Grip.half, child: top),
+          _Grip(
+            key: const Key('plugin-panes-row-divider'),
+            vertical: false,
+            onDrag: (delta) => setState(() {
+              _rows = (_rows + delta / height).clamp(_least, _most);
+            }),
+          ),
+          SizedBox(height: height * (1 - _rows) - _Grip.half, child: under),
+        ]);
+      },
+    );
+  }
+}
+
+/// A divider that can be dragged, like the one between source and preview.
+class _Grip extends StatefulWidget {
+  const _Grip({required this.vertical, required this.onDrag, super.key});
+
+  final bool vertical;
+  final void Function(double delta) onDrag;
+
+  static const thickness = 8.0;
+  static const half = thickness / 2;
+
+  @override
+  State<_Grip> createState() => _GripState();
+}
+
+class _GripState extends State<_Grip> {
+  bool _dragging = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bar = Container(
+      width: widget.vertical ? _Grip.thickness : null,
+      height: widget.vertical ? null : _Grip.thickness,
+      color: _dragging
+          ? theme.colorScheme.primary.withValues(alpha: 0.5)
+          : theme.dividerColor,
+      child: Center(
+        child: Container(
+          width: widget.vertical ? 2 : null,
+          height: widget.vertical ? null : 2,
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+        ),
+      ),
+    );
+    return MouseRegion(
+      cursor: widget.vertical
+          ? SystemMouseCursors.resizeColumn
+          : SystemMouseCursors.resizeRow,
+      child: GestureDetector(
+        onHorizontalDragStart:
+            widget.vertical ? (_) => setState(() => _dragging = true) : null,
+        onHorizontalDragUpdate: widget.vertical
+            ? (details) => widget.onDrag(details.delta.dx)
+            : null,
+        onHorizontalDragEnd:
+            widget.vertical ? (_) => setState(() => _dragging = false) : null,
+        onVerticalDragStart:
+            widget.vertical ? null : (_) => setState(() => _dragging = true),
+        onVerticalDragUpdate: widget.vertical
+            ? null
+            : (details) => widget.onDrag(details.delta.dy),
+        onVerticalDragEnd:
+            widget.vertical ? null : (_) => setState(() => _dragging = false),
+        child: bar,
+      ),
+    );
   }
 }
 
@@ -109,6 +196,11 @@ class PluginPaneView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    // Where the progress goes depends on whether there is anything to read
+    // yet. An empty pane with a spinner in the title bar and nothing under it
+    // is a pane that looks broken; once the first block lands, the spinner
+    // belongs out of the way of what the reader came to read.
+    final waitingForFirst = content.busy && content.text.isEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -118,10 +210,34 @@ class PluginPaneView extends ConsumerWidget {
           child: Row(
             children: [
               Expanded(
-                child: Text(
-                  content.title.isEmpty ? content.pluginName : content.title,
-                  style: theme.textTheme.titleSmall,
-                  overflow: TextOverflow.ellipsis,
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        content.title.isEmpty
+                            ? content.pluginName
+                            : content.title,
+                        style: theme.textTheme.titleSmall,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (content.busy && !waitingForFirst) ...[
+                      const SizedBox(width: 8),
+                      const SizedBox(
+                        width: 12,
+                        height: 12,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          l10n?.pluginWorking ?? '',
+                          style: theme.textTheme.bodySmall,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
               IconButton(
@@ -143,7 +259,27 @@ class PluginPaneView extends ConsumerWidget {
           ),
         ),
         const Divider(height: 1),
-        Expanded(child: _body(context, ref)),
+        Expanded(
+          child: waitingForFirst
+              ? Center(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        l10n?.pluginWorking ?? '',
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                )
+              : _body(context, ref),
+        ),
       ],
     );
   }

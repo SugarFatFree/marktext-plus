@@ -1117,4 +1117,18 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get pluginTooManySteps => 'El complemento hizo demasiadas preguntas';
+
+  @override
+  String get pluginInstall => 'Instalar';
+
+  @override
+  String get pluginInstalled => 'Instalado';
+
+  @override
+  String pluginUpdateTo(String version) {
+    return 'Actualizar a $version';
+  }
+
+  @override
+  String get pluginFinished => 'Finalizado';
 }

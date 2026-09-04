@@ -2186,6 +2186,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The plugin asked too many questions'**
   String get pluginTooManySteps;
+
+  /// No description provided for @pluginInstall.
+  ///
+  /// In en, this message translates to:
+  /// **'Install'**
+  String get pluginInstall;
+
+  /// No description provided for @pluginInstalled.
+  ///
+  /// In en, this message translates to:
+  /// **'Installed'**
+  String get pluginInstalled;
+
+  /// No description provided for @pluginUpdateTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Update to {version}'**
+  String pluginUpdateTo(String version);
+
+  /// No description provided for @pluginFinished.
+  ///
+  /// In en, this message translates to:
+  /// **'Finished'**
+  String get pluginFinished;
 }
 
 class _AppLocalizationsDelegate

@@ -531,5 +531,10 @@
   "@pluginFailed": {"placeholders": {"plugin": {"type": "String"}}},
   "pluginCannotEdit": "{plugin} may not edit the document",
   "@pluginCannotEdit": {"placeholders": {"plugin": {"type": "String"}}},
-  "pluginTooManySteps": "The plugin asked too many questions"
+  "pluginTooManySteps": "The plugin asked too many questions",
+  "pluginInstall": "Install",
+  "pluginInstalled": "Installed",
+  "pluginUpdateTo": "Update to {version}",
+  "@pluginUpdateTo": {"placeholders": {"version": {"type": "String"}}},
+  "pluginFinished": "Finished"
 }

@@ -1111,4 +1111,18 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get pluginTooManySteps => 'Расширение задало слишком много вопросов';
+
+  @override
+  String get pluginInstall => 'Установить';
+
+  @override
+  String get pluginInstalled => 'Установлено';
+
+  @override
+  String pluginUpdateTo(String version) {
+    return 'Обновить до $version';
+  }
+
+  @override
+  String get pluginFinished => 'Готово';
 }

@@ -323,6 +323,7 @@ class PluginManifest {
     required this.name,
     required this.version,
     required this.entrypoint,
+    this.description = '',
     this.minAppVersion = '',
     this.repository = '',
     this.capabilities = const <String>[],
@@ -343,6 +344,13 @@ class PluginManifest {
   final String name;
   final String version;
   final String entrypoint;
+
+  /// One line saying what this plugin does, for the plugin list.
+  ///
+  /// Like every other string a plugin shows, this may be a key into its own
+  /// [locales] — the reader's language is not the author's.
+  final String description;
+
   final String minAppVersion;
 
   /// Where the plugin came from, if it said. Shown on its detail page so an
@@ -436,15 +444,23 @@ class PluginManifest {
   ///
   /// A version neither side can read is not a reason to refuse: the plugin is
   /// allowed, because being unable to compare is not evidence of a mismatch.
-  bool isSupportedBy(String appVersion) {
-    final needed = _versionParts(minAppVersion);
-    final have = _versionParts(appVersion);
-    if (needed == null || have == null) return true;
+  bool isSupportedBy(String appVersion) =>
+      compareVersions(appVersion, minAppVersion) >= 0;
 
+  /// [a] against [b] as version numbers: negative, zero, positive.
+  ///
+  /// Zero when either cannot be read as three numbers — two versions nobody
+  /// can parse say nothing about which is newer, and guessing would be worse
+  /// than admitting it. The one comparison, so "is this an update" and "is
+  /// this editor new enough" cannot drift apart.
+  static int compareVersions(String a, String b) {
+    final left = _versionParts(a);
+    final right = _versionParts(b);
+    if (left == null || right == null) return 0;
     for (var i = 0; i < 3; i++) {
-      if (have[i] != needed[i]) return have[i] > needed[i];
+      if (left[i] != right[i]) return left[i] > right[i] ? 1 : -1;
     }
-    return true;
+    return 0;
   }
 
   /// `1.10.0` as [1, 10, 0], or null when it is not three numbers.
@@ -462,11 +478,24 @@ class PluginManifest {
   ///
   /// `zh_CN` finds `zh`: a plugin author who wrote one Chinese translation
   /// should not have to enumerate every region that speaks it.
+  ///
+  /// The fallback is per key, not per map. Returning the best-matching map
+  /// whole meant that a language which had translated most of a plugin but
+  /// not all of it showed the reader raw keys where the untranslated strings
+  /// belonged — worse than the English the author had already written, and
+  /// something the author could only find by reading in that language.
   Map<String, String> stringsFor(String locale) {
-    final exact = locales[locale];
-    if (exact != null) return exact;
     final language = locale.split(RegExp(r'[_-]')).first;
-    return locales[language] ?? locales[defaultLocale] ?? const {};
+    final byPriority = [
+      locales[defaultLocale],
+      locales[language],
+      locales[locale],
+    ];
+    final resolved = <String, String>{};
+    for (final strings in byPriority) {
+      if (strings != null) resolved.addAll(strings);
+    }
+    return resolved;
   }
 
   factory PluginManifest.fromJson(Map<String, dynamic> json) {
@@ -593,6 +622,7 @@ class PluginManifest {
       name: requiredString('name'),
       version: requiredString('version'),
       entrypoint: entrypoint,
+      description: (json['description'] as String?)?.trim() ?? '',
       minAppVersion: (json['minAppVersion'] as String?)?.trim() ?? '',
       repository: (json['repository'] as String?)?.trim() ?? '',
       capabilities: strings('capabilities'),
@@ -615,6 +645,7 @@ class PluginManifest {
         'name': name,
         'version': version,
         'entrypoint': entrypoint,
+        if (description.isNotEmpty) 'description': description,
         if (minAppVersion.isNotEmpty) 'minAppVersion': minAppVersion,
         if (repository.isNotEmpty) 'repository': repository,
         'capabilities': capabilities,

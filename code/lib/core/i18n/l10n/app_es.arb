@@ -420,5 +420,10 @@
   "pluginResult": "Resultado del complemento",
   "pluginFailed": "{plugin} falló",
   "pluginCannotEdit": "{plugin} no puede editar el documento",
-  "pluginTooManySteps": "El complemento hizo demasiadas preguntas"
+  "pluginTooManySteps": "El complemento hizo demasiadas preguntas",
+  "pluginInstall": "Instalar",
+  "pluginInstalled": "Instalado",
+  "pluginUpdateTo": "Actualizar a {version}",
+  "@pluginUpdateTo": {"placeholders": {"version": {"type": "String"}}},
+  "pluginFinished": "Finalizado"
 }

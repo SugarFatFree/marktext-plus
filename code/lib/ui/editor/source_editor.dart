@@ -1459,6 +1459,7 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
           context: context,
           ref: ref,
           location: PluginCommandActions.editorContextMenu,
+          half: PluginEditorView.source,
           selection: () => selection.isValid && !selection.isCollapsed
               ? _controller.text.substring(selection.start, selection.end)
               : '',

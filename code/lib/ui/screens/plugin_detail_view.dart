@@ -4,9 +4,11 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/i18n/l10n/app_localizations.dart';
 import '../../providers/plugin_provider.dart';
 import '../../services/plugin_catalog_service.dart';
 import '../../services/plugin_manager.dart';
+import '../../services/plugin_manifest.dart';
 import '../editor/markdown_renderer.dart';
 
 class PluginDetailView extends ConsumerStatefulWidget {
@@ -40,6 +42,9 @@ class _PluginDetailViewState extends ConsumerState<PluginDetailView> {
         widget.plugin,
         PluginManager(p.join(dir.path, 'plugins')),
       );
+      // What is installed changed, so every place that says so — this page
+      // and the discover list behind it — has to be asked again.
+      if (mounted) ref.invalidate(installedPluginManifestsProvider);
     } catch (error) {
       if (mounted) setState(() => _error = error);
     } finally {
@@ -47,7 +52,43 @@ class _PluginDetailViewState extends ConsumerState<PluginDetailView> {
     }
   }
 
-  void _close() => ref.read(pluginDetailProvider.notifier).state = null;
+  /// Install, update, or the fact that this is already installed.
+  ///
+  /// Asked of what is on disk, not of the page: a search result always has a
+  /// download URL, so a page built from one could never tell that the reader
+  /// had installed the plugin a moment ago.
+  Widget _installButton(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final state = PluginInstallState.of(
+      widget.plugin,
+      ref.watch(installedPluginManifestsProvider).valueOrNull ??
+          const <PluginManifest>[],
+    );
+    final installed = state == PluginInstallState.installed;
+    return OutlinedButton.icon(
+      onPressed: (_installing || installed || widget.plugin.downloadUrl == null)
+          ? null
+          : _install,
+      icon: _installing
+          ? const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Icon(switch (state) {
+              PluginInstallState.installed => Icons.check,
+              PluginInstallState.updatable => Icons.upgrade,
+              PluginInstallState.installable => Icons.download,
+            }),
+      label: Text(switch (state) {
+        PluginInstallState.installed => l10n.pluginInstalled,
+        PluginInstallState.updatable => l10n.pluginUpdateTo(
+            widget.plugin.version,
+          ),
+        PluginInstallState.installable => l10n.pluginInstall,
+      }),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,12 +101,9 @@ class _PluginDetailViewState extends ConsumerState<PluginDetailView> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
               children: [
-                IconButton(
-                  tooltip: 'Close plugin details',
-                  icon: const Icon(Icons.close),
-                  onPressed: _close,
-                ),
-                const SizedBox(width: 8),
+                // No close button: this is a tab, and the tab bar closes it.
+                // A second one on the page itself invited the reader to press
+                // the wrong one and wonder why the tab was still there.
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -84,7 +122,11 @@ class _PluginDetailViewState extends ConsumerState<PluginDetailView> {
                           widget.plugin.version,
                           if (widget.plugin.publishedAt != null)
                             _asDate(widget.plugin.publishedAt!),
-                          'Community / Unverified',
+                          // Only for something that came from a search. A
+                          // plugin the reader installed is not an unverified
+                          // stranger to them any more.
+                          if (!widget.plugin.isInstalled)
+                            'Community / Unverified',
                         ].join(' · '),
                         style: Theme.of(context).textTheme.bodySmall,
                         overflow: TextOverflow.ellipsis,
@@ -92,21 +134,7 @@ class _PluginDetailViewState extends ConsumerState<PluginDetailView> {
                     ],
                   ),
                 ),
-                OutlinedButton.icon(
-                  onPressed: (_installing || widget.plugin.isInstalled)
-                      ? null
-                      : _install,
-                  icon: _installing
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Icon(widget.plugin.isInstalled
-                          ? Icons.check
-                          : Icons.download),
-                  label: Text(widget.plugin.isInstalled ? 'Installed' : 'Install'),
-                ),
+                _installButton(context),
               ],
             ),
           ),

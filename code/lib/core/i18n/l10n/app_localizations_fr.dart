@@ -1119,4 +1119,18 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get pluginTooManySteps => 'L’extension a posé trop de questions';
+
+  @override
+  String get pluginInstall => 'Installer';
+
+  @override
+  String get pluginInstalled => 'Installé';
+
+  @override
+  String pluginUpdateTo(String version) {
+    return 'Mettre à jour vers $version';
+  }
+
+  @override
+  String get pluginFinished => 'Terminé';
 }

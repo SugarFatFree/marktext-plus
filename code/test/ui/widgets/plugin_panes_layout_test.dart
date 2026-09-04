@@ -72,13 +72,18 @@ void main() {
     expect(document.height, size.height, reason: '只放右边时不该切掉文档的高度');
   });
 
-  testWidgets('a bottom pane takes height', (tester) async {
+  testWidgets('one pane splits the width, whichever slot it claimed',
+      (tester) async {
+    // The shape follows the count, not the slot name: with one pane there is
+    // no second row to make, so a `bottom` pane sits beside the document like
+    // any other. Cutting the height for it would have left an empty cell
+    // across from it — space taken from the document for nothing.
     await pump(tester, withPanes({PluginPaneSlot.bottom: 'b'}));
 
     final document = tester.getSize(find.byKey(const Key('document')));
     final size = area(tester);
-    expect(document.height, lessThan(size.height));
-    expect(document.width, size.width);
+    expect(document.width, lessThan(size.width));
+    expect(document.height, size.height);
   });
 
   testWidgets('all three slots make four cells', (tester) async {
@@ -103,9 +108,9 @@ void main() {
     expect(find.byType(PluginPaneView), findsOneWidget);
     final document = tester.getSize(find.byKey(const Key('document')));
     final size = area(tester);
-    expect(document.width + document.height,
-        lessThan(size.width + size.height),
-        reason: '角落面板要真的占到位置');
+    expect(document.width, lessThan(size.width), reason: '角落面板要真的占到位置');
+    expect(document.height, size.height,
+        reason: '只有一个面板时是左右对分，不该再切出一整行空白');
   });
 
   testWidgets('closing a pane gives its space back', (tester) async {

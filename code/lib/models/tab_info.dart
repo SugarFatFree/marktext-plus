@@ -1,5 +1,6 @@
 import '../core/config/app_config.dart';
 import 'file_encoding.dart';
+import 'plugin_catalog_entry.dart';
 import 'line_ending.dart';
 
 class TabInfo {
@@ -59,7 +60,24 @@ class TabInfo {
     this.externalRevision = 0,
     this.diskStamp,
     this.diskConflict = false,
+    this.pluginDetail,
   });
+
+  /// A tab showing a plugin's page rather than a document.
+  ///
+  /// No file path: session persistence, the opened-files list and auto-save
+  /// all key off one, and a page is not a file.
+  factory TabInfo.pluginDetail(PluginCatalogEntry plugin) => TabInfo(
+        id: 'plugin:${plugin.id}',
+        fileName: plugin.name,
+        pluginDetail: plugin,
+      );
+
+  /// The plugin whose page this tab shows, or null for a document.
+  final PluginCatalogEntry? pluginDetail;
+
+  /// Whether this tab shows a plugin page instead of a document.
+  bool get isPluginDetail => pluginDetail != null;
 
   /// What the file looked like when it was last read or written.
   ///
@@ -94,6 +112,7 @@ class TabInfo {
     ({DateTime modified, int size})? diskStamp,
     bool? diskConflict,
     bool clearDiskStamp = false,
+    PluginCatalogEntry? pluginDetail,
   }) {
     return TabInfo(
       id: id,
@@ -115,6 +134,7 @@ class TabInfo {
       externalRevision: externalRevision ?? this.externalRevision,
       diskStamp: clearDiskStamp ? null : (diskStamp ?? this.diskStamp),
       diskConflict: diskConflict ?? this.diskConflict,
+      pluginDetail: pluginDetail ?? this.pluginDetail,
     );
   }
 }

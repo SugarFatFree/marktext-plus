@@ -1095,4 +1095,18 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get pluginTooManySteps => 'プラグインの問い合わせ回数が多すぎます';
+
+  @override
+  String get pluginInstall => 'インストール';
+
+  @override
+  String get pluginInstalled => 'インストール済み';
+
+  @override
+  String pluginUpdateTo(String version) {
+    return '$version に更新';
+  }
+
+  @override
+  String get pluginFinished => '完了';
 }
