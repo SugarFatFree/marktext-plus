@@ -19,6 +19,7 @@ class PluginCatalogEntry {
     this.releaseNotes = '',
     this.publishedAt,
     this.isPrerelease = false,
+    this.permissions = const <String>[],
   });
 
   final String id;
@@ -45,6 +46,13 @@ class PluginCatalogEntry {
   /// Shown in the list, because "0.1.3" and "0.1.3, pre-release" are not the
   /// same promise, and the reader is entitled to know which one they took.
   final bool isPrerelease;
+
+  /// What the plugin asked to be allowed to do, as its manifest listed it.
+  ///
+  /// Empty means the editor has not seen the package — a search result is a
+  /// release on GitHub, not a manifest — and the page says nothing rather
+  /// than showing an empty list, which would read as "asks for nothing".
+  final List<String> permissions;
 
   /// Whether this is a plugin already on the reader's machine.
   ///
@@ -79,6 +87,7 @@ class PluginCatalogEntry {
       repositoryUrl: manifest.repository.isEmpty
           ? null
           : Uri.tryParse(manifest.repository),
+      permissions: manifest.permissions,
     );
   }
 

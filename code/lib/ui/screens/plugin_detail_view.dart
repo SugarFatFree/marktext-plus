@@ -95,6 +95,59 @@ class _PluginDetailViewState extends ConsumerState<PluginDetailView> {
     );
   }
 
+  /// What this plugin is allowed to do, in the editor's own words.
+  ///
+  /// Only for something already installed: a search result is a release on
+  /// GitHub, and the manifest is inside the package that has not been
+  /// downloaded yet. Showing an empty list there would read as "asks for
+  /// nothing", which is a promise the editor is in no position to make.
+  ///
+  /// The permission check is real — a plugin that did not ask for
+  /// `document.read` is handed an empty document — so the reader is entitled
+  /// to see the list it is being enforced against.
+  Widget _permissions(BuildContext context) {
+    final theme = Theme.of(context);
+    final asked = widget.plugin.permissions;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Permissions', style: theme.textTheme.labelLarge),
+          const SizedBox(height: 4),
+          if (asked.isEmpty)
+            Text(
+              'This plugin asks for nothing.',
+              style: theme.textTheme.bodySmall,
+            )
+          else
+            Wrap(
+              spacing: 16,
+              runSpacing: 2,
+              children: [
+                for (final permission in asked)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.check_circle_outline,
+                        size: 14,
+                        color: theme.colorScheme.outline,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        PluginPermission.describe(permission),
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -157,6 +210,9 @@ class _PluginDetailViewState extends ConsumerState<PluginDetailView> {
             ),
           ),
         ),
+        // Before the README, not buried in a tab: what a plugin is allowed
+        // to do is part of deciding whether to keep it.
+        if (widget.plugin.isInstalled) _permissions(context),
         if (_error != null)
           Padding(
             padding: const EdgeInsets.all(12),

@@ -102,8 +102,13 @@ class PluginCommandService {
     if (needed == null || manifest.hasPermission(needed)) return action;
     // Reported to the reader rather than dropped: a plugin that does nothing
     // and says nothing is one they will file a bug about.
+    //
+    // In both languages this has to be read in: the sentence, for the reader
+    // deciding whether they mind, and the identifier, for whoever has to put
+    // it in the manifest.
     return PluginNotifyAction(
-      '${manifest.name} did not ask for the "$needed" permission',
+      '${manifest.name} did not ask for the "$needed" permission '
+      '— ${PluginPermission.describe(needed)}',
     );
   }
 

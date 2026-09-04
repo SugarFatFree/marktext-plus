@@ -121,4 +121,27 @@ void main() {
       expect((action as PluginShowAction).text, 'a document');
     });
   });
+
+  group('what the refusal tells the reader', () {
+    test('it says what the plugin wanted to do, not only the identifier', () {
+      // `ui.sidebar` is a string an author types into a manifest. The reader
+      // being told a plugin "did not ask for ui.sidebar" learns nothing they
+      // can act on — the editor already had a sentence for every permission
+      // and used it nowhere.
+      final action = run(install('paner', '{ pane = "x" }', const []));
+
+      expect(
+        (action as PluginNotifyAction).message,
+        contains(PluginPermission.describe(PluginPermission.uiSidebar)),
+        reason: '拒绝理由要说人话，标识符只对插件作者有意义',
+      );
+    });
+
+    test('the identifier is still there for whoever writes the manifest', () {
+      final action = run(install('paner', '{ pane = "x" }', const []));
+
+      expect((action as PluginNotifyAction).message,
+          contains(PluginPermission.uiSidebar));
+    });
+  });
 }
