@@ -62,51 +62,92 @@ class _PluginPanesState extends ConsumerState<PluginPanes> {
     });
     // In the order slots are declared, so the shape of the grid is settled by
     // how many panes there are and stays put as more arrive.
-    final filled = [
-      for (final slot in PluginPaneSlot.values)
-        if (panes[slot] != null) PluginPaneView(content: panes[slot]!),
-    ];
-    if (filled.isEmpty) return widget.document;
+    final right = panes[PluginPaneSlot.right];
+    final bottom = panes[PluginPaneSlot.bottom];
+    final corner = panes[PluginPaneSlot.corner];
+    final count = [right, bottom, corner].nonNulls.length;
+    if (count == 0) return widget.document;
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        Widget row(Widget left, Widget? beside) {
+        final width = constraints.maxWidth;
+        final height = constraints.maxHeight;
+
+        Widget columns(Widget left, Widget? beside) {
           if (beside == null) return left;
-          final width = constraints.maxWidth;
-          return Row(children: [
-            SizedBox(width: width * _columns - _Grip.half, child: left),
-            _Grip(
-              key: const Key('plugin-panes-column-divider'),
-              vertical: true,
-              onDrag: (delta) => setState(() {
-                _columns = (_columns + delta / width).clamp(_least, _most);
-              }),
-            ),
-            SizedBox(width: width * (1 - _columns) - _Grip.half, child: beside),
-          ]);
+          return Row(
+            children: [
+              SizedBox(width: width * _columns - _Grip.half, child: left),
+              _Grip(
+                key: const Key('plugin-panes-column-divider'),
+                vertical: true,
+                onDrag: (delta) => setState(() {
+                  _columns = (_columns + delta / width).clamp(_least, _most);
+                }),
+              ),
+              SizedBox(
+                width: width * (1 - _columns) - _Grip.half,
+                child: beside,
+              ),
+            ],
+          );
         }
 
-        final top = row(widget.document, filled.first);
-        if (filled.length == 1) return top;
+        Widget rows(Widget above, Widget under) => Column(
+              children: [
+                SizedBox(height: height * _rows - _Grip.half, child: above),
+                _Grip(
+                  key: const Key('plugin-panes-row-divider'),
+                  vertical: false,
+                  onDrag: (delta) => setState(() {
+                    _rows = (_rows + delta / height).clamp(_least, _most);
+                  }),
+                ),
+                SizedBox(
+                  height: height * (1 - _rows) - _Grip.half,
+                  child: under,
+                ),
+              ],
+            );
 
-        // Two panes leave the bottom half whole; three split it the same way
-        // as the top, and the columns line up because they share the divider.
-        final under = filled.length == 2
-            ? filled[1]
-            : row(filled[1], filled[2]);
+        // One pane is one pane: beside the document, half each, whichever slot
+        // it claimed. There is no second row to make.
+        if (count == 1) {
+          final only = right ?? bottom ?? corner!;
+          return columns(widget.document, PluginPaneView(content: only));
+        }
 
-        final height = constraints.maxHeight;
-        return Column(children: [
-          SizedBox(height: height * _rows - _Grip.half, child: top),
-          _Grip(
-            key: const Key('plugin-panes-row-divider'),
-            vertical: false,
-            onDrag: (delta) => setState(() {
-              _rows = (_rows + delta / height).clamp(_least, _most);
-            }),
+        // Two panes make three cells, and which half is the split one is the
+        // plugin's to choose: filling `right` puts a pane beside the document,
+        // so the top splits and the other pane takes the bottom row whole;
+        // filling only `bottom` and `corner` leaves the document the top row
+        // whole and divides the bottom between them.
+        if (count == 2) {
+          if (right == null) {
+            return rows(
+              widget.document,
+              columns(
+                PluginPaneView(content: bottom!),
+                PluginPaneView(content: corner!),
+              ),
+            );
+          }
+          final under = bottom ?? corner!;
+          return rows(
+            columns(widget.document, PluginPaneView(content: right)),
+            PluginPaneView(content: under),
+          );
+        }
+
+        // Four cells: the document top left, and one pane in each of the rest.
+        // The two rows share a divider, so the columns line up.
+        return rows(
+          columns(widget.document, PluginPaneView(content: right!)),
+          columns(
+            PluginPaneView(content: bottom!),
+            PluginPaneView(content: corner!),
           ),
-          SizedBox(height: height * (1 - _rows) - _Grip.half, child: under),
-        ]);
+        );
       },
     );
   }
