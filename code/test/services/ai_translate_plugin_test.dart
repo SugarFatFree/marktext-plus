@@ -484,7 +484,7 @@ void main() {
 
       expect(action.nextPrompt, '把下面的内容翻译成中文：\n\nHello.');
       service.dispose();
-    });
+    }, skip: present ? null : '插件仓库不在这台机器上');
 
     test('a per-cent sign in the document survives', () async {
       // The replacement is a document, and `gsub` reads `%` in a replacement
@@ -505,7 +505,7 @@ void main() {
 
       expect(action.nextPrompt, contains('100%'));
       service.dispose();
-    });
+    }, skip: present ? null : '插件仓库不在这台机器上');
 
     test('a template that forgets {{text}} still carries the source',
         () async {
@@ -527,7 +527,7 @@ void main() {
       expect(action.nextPrompt, contains('Hello.'));
       expect(action.nextPrompt, contains('carefully'));
       service.dispose();
-    });
+    }, skip: present ? null : '插件仓库不在这台机器上');
 
     test('with nothing written, the default prompt is used', () async {
       final service = PluginCommandService(root.path);
@@ -547,7 +547,7 @@ void main() {
       expect(action.nextPrompt, contains('Markdown'));
       expect(action.nextPrompt, contains('Hello.'));
       service.dispose();
-    });
+    }, skip: present ? null : '插件仓库不在这台机器上');
 
     test('the settings page offers the prompt, not a language nobody uses', () {
       // The default target language was a field whose value the next question
@@ -555,6 +555,6 @@ void main() {
       expect(manifest.settings.map((f) => f.key), ['prompt']);
       final strings = manifest.stringsFor('zh_CN');
       expect(strings[manifest.settings.first.title], contains('提示词'));
-    });
+    }, skip: present ? null : '插件仓库不在这台机器上');
   });
 }
