@@ -50,17 +50,29 @@ class PluginCatalogEntry {
   /// It has no download to offer and, unless its manifest says otherwise, no
   /// repository to read a README from — so the page shows what the manifest
   /// knows rather than fetching something that is not there.
-  factory PluginCatalogEntry.installed(PluginManifest manifest) =>
-      PluginCatalogEntry(
-        id: manifest.id,
-        name: manifest.name,
-        version: manifest.version,
-        downloadUrl: null,
-        sha256: '',
-        repositoryUrl: manifest.repository.isEmpty
-            ? null
-            : Uri.tryParse(manifest.repository),
-      );
+  /// A page for a plugin that is already installed, in [locale].
+  ///
+  /// The name and description go through the plugin's own translations, like
+  /// every other string it shows. An empty locale still resolves — through the
+  /// plugin's default language — so a caller with no locale to hand gets the
+  /// author's English rather than a raw key.
+  factory PluginCatalogEntry.installed(
+    PluginManifest manifest, {
+    String locale = '',
+  }) {
+    final strings = manifest.stringsFor(locale);
+    return PluginCatalogEntry(
+      id: manifest.id,
+      name: strings[manifest.name] ?? manifest.name,
+      version: manifest.version,
+      downloadUrl: null,
+      sha256: '',
+      description: strings[manifest.description] ?? manifest.description,
+      repositoryUrl: manifest.repository.isEmpty
+          ? null
+          : Uri.tryParse(manifest.repository),
+    );
+  }
 
   factory PluginCatalogEntry.fromJson(Map<String, dynamic> json) {
     String requiredString(String key) {

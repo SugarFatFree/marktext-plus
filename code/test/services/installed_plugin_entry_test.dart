@@ -47,4 +47,54 @@ void main() {
     expect(entry.repositoryUrl, isNull,
         reason: '没有仓库地址就不该去拉 README，那会变成一个说不清的错误');
   });
+
+  test('the name and description come through the plugin\'s own languages',
+      () {
+    // A plugin ships its own translations; its own name and description are
+    // strings it shows like any other. The list used to print whatever the
+    // manifest said, in whatever language the author wrote it in.
+    const manifest = PluginManifest(
+      id: 'com.example.demo',
+      name: 'AI Translate',
+      description: 'plugin.description',
+      version: '1.0.0',
+      entrypoint: 'plugin.lua',
+      runtime: PluginRuntime.lua,
+      defaultLocale: 'en',
+      locales: {
+        'en': {
+          'AI Translate': 'AI Translate',
+          'plugin.description': 'Translates things.',
+        },
+        'zh': {
+          'AI Translate': 'AI 翻译',
+          'plugin.description': '翻译内容。',
+        },
+      },
+    );
+
+    final chinese = PluginCatalogEntry.installed(manifest, locale: 'zh_CN');
+    expect(chinese.name, 'AI 翻译');
+    expect(chinese.description, '翻译内容。');
+
+    final english = PluginCatalogEntry.installed(manifest, locale: 'en');
+    expect(english.name, 'AI Translate');
+  });
+
+  test('with no locale to hand, the default language answers', () {
+    // Never a raw key: an entry built without a locale is still shown to
+    // someone.
+    const manifest = PluginManifest(
+      id: 'com.example.demo',
+      name: 'plugin.name',
+      version: '1.0.0',
+      entrypoint: 'plugin.lua',
+      runtime: PluginRuntime.lua,
+      defaultLocale: 'en',
+      locales: {
+        'en': {'plugin.name': 'Demo Plugin'},
+      },
+    );
+    expect(PluginCatalogEntry.installed(manifest).name, 'Demo Plugin');
+  });
 }

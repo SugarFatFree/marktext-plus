@@ -323,7 +323,7 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
                                     child: InkWell(
                                       onTap: () => openPluginDetailTab(
                                         ref,
-                                        PluginCatalogEntry.installed(plugin),
+                                        PluginCatalogEntry.installed(plugin, locale: _locale),
                                       ),
                                       child: Text(
                                         _localised(plugin, plugin.name),

@@ -131,6 +131,17 @@ class _PluginDetailViewState extends ConsumerState<PluginDetailView> {
                         style: Theme.of(context).textTheme.bodySmall,
                         overflow: TextOverflow.ellipsis,
                       ),
+                      // What it does. The page had the version, the date and
+                      // the README, and nothing in between that answered the
+                      // question someone opening it is asking.
+                      if (widget.plugin.description.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            widget.plugin.description,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        ),
                     ],
                   ),
                 ),

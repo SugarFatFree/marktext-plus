@@ -102,12 +102,55 @@ void main() {
       ),
     );
 
-    expect(action, isA<PluginAiAction>());
-    final prompt = (action as PluginAiAction).prompt;
+    // The pane goes up before the first request, not after it: the editor
+    // reads `pane` ahead of `ai`, so an empty pane with a request behind it is
+    // what it draws as "working". Asking first left the screen unchanged for
+    // the several seconds the first block takes.
+    expect(action, isA<PluginPaneAction>());
+    final opened = action as PluginPaneAction;
+    expect(opened.text, isEmpty, reason: 'nothing has come back yet');
+    expect(opened.append, isFalse, reason: 'this is the pane being opened');
+
+    final prompt = opened.nextPrompt!;
     expect(prompt, contains('日本語'));
     expect(prompt, contains('# 标题'));
     expect(prompt, isNot(contains('ignored')));
     expect(prompt, contains('Markdown'));
+  }, skip: present ? null : '插件仓库不在这台机器上');
+
+  test('the list can say what this plugin is, in the reader\'s language', () {
+    // The plugin list showed a bare name and nothing else, because a manifest
+    // had no description to show. Both go through the plugin's own strings.
+    expect(manifest.description, isNotEmpty,
+        reason: '插件要能在列表里说清自己是做什么的');
+
+    // Read from each language's own table, not through `stringsFor`: that
+    // falls back per key to the default language, so a language missing half
+    // its strings still answers every lookup — with English. Asking it here
+    // would assert nothing at all.
+    final needed = {
+      manifest.name,
+      manifest.description,
+      for (final menu in manifest.menus) menu.title,
+      for (final field in manifest.settings) field.title,
+    };
+    expect(manifest.locales.keys, containsAll(const [
+      'en', 'zh', 'ja', 'ko', 'de', 'fr', 'it', 'ru', 'es', 'pt', 'pt_BR', 'ar',
+    ]), reason: '插件的语言要跟上主应用的十二种');
+
+    for (final entry in manifest.locales.entries) {
+      expect(entry.value.keys, containsAll(needed),
+          reason: '${entry.key} 少了该有的翻译；'
+              '逐键回退会用英文补上，读者看不出这里漏了');
+    }
+  }, skip: present ? null : '插件仓库不在这台机器上');
+
+  test('a name that is not a key still reads as a name', () {
+    // The name is its own translation key, so an editor that does not resolve
+    // names shows "AI Translate" rather than the word "plugin.name".
+    expect(manifest.name, isNot(startsWith('plugin.')));
+    expect(manifest.stringsFor('zh')[manifest.name], isNot(manifest.name),
+        reason: '中文下应当拿到译名，否则这个键白设了');
   }, skip: present ? null : '插件仓库不在这台机器上');
 
   test('it remembers the language the reader chose last time', () async {
@@ -175,9 +218,12 @@ void main() {
         answer: 'English',
         view: 'source',
       ),
-    ) as PluginAiAction;
-    expect(first.prompt, contains('# Title'));
-    expect(first.prompt, isNot(contains('Second paragraph')),
+    ) as PluginPaneAction;
+    expect(first.text, isEmpty, reason: '窗格先开，说明自己在做，再去问模型');
+    expect(first.render, PluginPaneRender.source,
+        reason: '源码视图里问的，空窗格也该按源码画');
+    expect(first.nextPrompt, contains('# Title'));
+    expect(first.nextPrompt, isNot(contains('Second paragraph')),
         reason: '整篇一次喂给模型正是要避免的事');
 
     final one = service.resumeWithResult(
@@ -240,10 +286,10 @@ void main() {
         answer: 'English',
         view: 'source',
       ),
-    ) as PluginAiAction;
+    ) as PluginPaneAction;
 
-    expect(first.prompt, contains('Before.'));
-    expect(first.prompt, isNot(contains('void main')),
+    expect(first.nextPrompt, contains('Before.'));
+    expect(first.nextPrompt, isNot(contains('void main')),
         reason: '第一块只该是第一段');
   }, skip: present ? null : '插件仓库不在这台机器上');
 
