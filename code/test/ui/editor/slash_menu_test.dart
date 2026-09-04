@@ -40,7 +40,10 @@ void main() {
           settingsProvider.overrideWith(
             (ref) => SettingsNotifier(
               ConfigService(configDir: configDir.path),
-              AppConfig(),
+              // The source pane is what this exercises, so the editor is in
+              // the mode that shows it: it stands aside for format commands
+              // while the reader is looking at the preview.
+              AppConfig(editMode: EditMode.source),
             ),
           ),
         ],

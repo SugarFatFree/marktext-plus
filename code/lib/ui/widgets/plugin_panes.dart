@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/i18n/l10n/app_localizations.dart';
 import '../../providers/plugin_provider.dart';
+import '../../core/config/app_config.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/tab_provider.dart';
 import '../editor/markdown_renderer.dart';
@@ -70,36 +71,42 @@ class _PluginPanesState extends ConsumerState<PluginPanes> {
     });
     // In the order slots are declared, so the shape of the grid is settled by
     // how many panes there are and stays put as more arrive.
-    final right = panes[PluginPaneSlot.right];
-    final bottom = panes[PluginPaneSlot.bottom];
-    final corner = panes[PluginPaneSlot.corner];
-    final count = [right, bottom, corner].nonNulls.length;
-    if (count == 0) return widget.document;
+    final ordered = [
+      for (final slot in PluginPaneSlot.values)
+        if (panes[slot] != null) panes[slot]!,
+    ];
+
+    // The split view's two halves are two cells. That is what this grid was
+    // for: the editor could already divide a tab between source and preview,
+    // and the point was to offer that division out. Counting the document as
+    // one cell however it was drawn is what put source, preview and a
+    // translation side by side in three columns.
+    final documentCells =
+        ref.watch(settingsProvider).editMode == EditMode.split ? 2 : 1;
+
+    if (ordered.isEmpty) return widget.document;
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
         final height = constraints.maxHeight;
 
-        Widget columns(Widget left, Widget? beside) {
-          if (beside == null) return left;
-          return Row(
-            children: [
-              SizedBox(width: width * _columns - _Grip.half, child: left),
-              _Grip(
-                key: const Key('plugin-panes-column-divider'),
-                vertical: true,
-                onDrag: (delta) => setState(() {
-                  _columns = (_columns + delta / width).clamp(_least, _most);
-                }),
-              ),
-              SizedBox(
-                width: width * (1 - _columns) - _Grip.half,
-                child: beside,
-              ),
-            ],
-          );
-        }
+        Widget columns(Widget left, Widget beside) => Row(
+              children: [
+                SizedBox(width: width * _columns - _Grip.half, child: left),
+                _Grip(
+                  key: const Key('plugin-panes-column-divider'),
+                  vertical: true,
+                  onDrag: (delta) => setState(() {
+                    _columns = (_columns + delta / width).clamp(_least, _most);
+                  }),
+                ),
+                SizedBox(
+                  width: width * (1 - _columns) - _Grip.half,
+                  child: beside,
+                ),
+              ],
+            );
 
         Widget rows(Widget above, Widget under) => Column(
               children: [
@@ -118,49 +125,68 @@ class _PluginPanesState extends ConsumerState<PluginPanes> {
               ],
             );
 
-        // One pane is one pane: beside the document, half each, whichever slot
-        // it claimed. There is no second row to make.
-        if (count == 1) {
-          final only = right ?? bottom ?? corner!;
-          return columns(widget.document, PluginPaneView(content: only));
+        // A split document already fills its row, so every pane goes below it:
+        // one takes the bottom row whole, two divide it. Its own halves are
+        // the divided ones and the editor is not going to reorder source and
+        // preview to satisfy a button, so there is nothing to flip.
+        // Four cells is the most there are, so a split document leaves room
+        // for two panes and any beyond that are not drawn. The count decides
+        // the shape here rather than being capped somewhere earlier: one rule,
+        // in one place.
+        if (documentCells == 2) {
+          return rows(
+            widget.document,
+            ordered.length == 1
+                ? PluginPaneView(content: ordered.first)
+                : columns(
+                    PluginPaneView(content: ordered[0]),
+                    PluginPaneView(content: ordered[1]),
+                  ),
+          );
         }
 
-        // Two panes make three cells, and which half is the split one is the
-        // plugin's to choose: filling `right` puts a pane beside the document,
-        // so the top splits and the other pane takes the bottom row whole;
-        // filling only `bottom` and `corner` leaves the document the top row
-        // whole and divides the bottom between them.
-        if (count == 2) {
-          final first = right ?? bottom!;
-          final second = right == null ? corner! : (bottom ?? corner!);
-          final splitTop = _splitTop ?? (right != null);
+        // One pane is one pane: beside the document, half each, whichever slot
+        // it claimed. There is no second row to make.
+        if (ordered.length == 1) {
+          return columns(
+            widget.document,
+            PluginPaneView(content: ordered.first),
+          );
+        }
+
+        // Three cells: one half divided and the other whole. Which half is the
+        // plugin's to suggest — filling `right` puts a pane beside the
+        // document — and the reader's to change.
+        if (ordered.length == 2) {
+          final splitTop =
+              _splitTop ?? panes.containsKey(PluginPaneSlot.right);
           void flip() => setState(() => _splitTop = !splitTop);
 
           if (splitTop) {
             return rows(
               columns(
                 widget.document,
-                PluginPaneView(content: first, onFlip: flip),
+                PluginPaneView(content: ordered[0], onFlip: flip),
               ),
-              PluginPaneView(content: second, onFlip: flip),
+              PluginPaneView(content: ordered[1], onFlip: flip),
             );
           }
           return rows(
             widget.document,
             columns(
-              PluginPaneView(content: first, onFlip: flip),
-              PluginPaneView(content: second, onFlip: flip),
+              PluginPaneView(content: ordered[0], onFlip: flip),
+              PluginPaneView(content: ordered[1], onFlip: flip),
             ),
           );
         }
 
-        // Four cells: the document top left, and one pane in each of the rest.
-        // The two rows share a divider, so the columns line up.
+        // Four cells: the document top left, a pane in each of the rest. The
+        // rows share a divider, so the columns line up.
         return rows(
-          columns(widget.document, PluginPaneView(content: right!)),
+          columns(widget.document, PluginPaneView(content: ordered[0])),
           columns(
-            PluginPaneView(content: bottom!),
-            PluginPaneView(content: corner!),
+            PluginPaneView(content: ordered[1]),
+            PluginPaneView(content: ordered[2]),
           ),
         );
       },

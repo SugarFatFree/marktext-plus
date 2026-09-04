@@ -30,6 +30,7 @@ import 'mermaid/parser/mermaid_parser.dart';
 import '../widgets/mermaid_renderer.dart';
 import '../widgets/plugin_command_actions.dart';
 import '../../services/file_service.dart';
+import 'bottom_room.dart';
 
 class MarkdownRenderer extends ConsumerStatefulWidget {
   final String markdown;
@@ -51,9 +52,11 @@ class MarkdownRenderer extends ConsumerStatefulWidget {
   /// it: on its own the preview has nobody to follow.
   final bool followsSource;
 
+  /// Kept as a name on this class because tests and the source pane both
+  /// reach for it here; the definition lives in `bottom_room.dart`, shared
+  /// with the source pane so the two panes cannot drift apart.
   @visibleForTesting
-  static double bottomRoomForHeight(double height) =>
-      (height * 0.25).clamp(0.0, 500.0);
+  static double bottomRoomForHeight(double height) => bottomRoom(height);
 
   @override
   ConsumerState<MarkdownRenderer> createState() => _MarkdownRendererState();
@@ -1181,10 +1184,16 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       onTap: _startEditingAtEnd,
       child: Container(
         width: double.infinity,
-        constraints: BoxConstraints(minHeight: documentIsEmpty ? 160 : 96),
+        // Nothing to invite in split view: the source pane is right there with
+        // a caret in it. Two invitations to start writing, side by side, and
+        // pressing the one on the right opens a second editor that takes the
+        // caret away from the one the reader was already looking at.
+        constraints: BoxConstraints(
+          minHeight: documentIsEmpty && !widget.followsSource ? 160 : 96,
+        ),
         alignment: Alignment.topLeft,
         padding: const EdgeInsets.only(top: 12),
-        child: documentIsEmpty && l10n != null
+        child: documentIsEmpty && l10n != null && !widget.followsSource
             ? Text(
                 l10n.previewStartWriting,
                 style: TextStyle(

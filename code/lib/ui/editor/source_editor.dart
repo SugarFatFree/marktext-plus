@@ -26,6 +26,8 @@ import '../../services/table_edit_service.dart';
 import '../../services/block_move_service.dart';
 import '../widgets/format_toolbar.dart';
 import '../widgets/plugin_command_actions.dart';
+import 'bottom_room.dart';
+import '../../core/config/app_config.dart';
 
 class SourceEditor extends ConsumerStatefulWidget {
   final String initialContent;
@@ -62,6 +64,25 @@ class SourceEditor extends ConsumerStatefulWidget {
 
   /// Source mode should use the whole available editor width.
   final bool constrainWidth;
+
+  /// Whether this pane is the one that should carry out a format command.
+  ///
+  /// The editors for all three modes live in one IndexedStack, so switching
+  /// modes keeps their state — and keeps this pane building and running while
+  /// the reader is looking at the preview. It was taking every format command
+  /// with it: a line selected in the preview, Format pressed, and the change
+  /// landing wherever this pane's caret happened to be, which in a document
+  /// nobody had typed in is the first line.
+  ///
+  /// In split view both panes are on screen, so it acts — unless the preview
+  /// has a block open, in which case the pane being typed in takes it.
+  static bool actsOnFormat({
+    required EditMode mode,
+    required bool previewBlockEditing,
+  }) {
+    if (mode == EditMode.preview) return false;
+    return !previewBlockEditing;
+  }
 
   @override
   ConsumerState<SourceEditor> createState() => _SourceEditorState();
@@ -2407,12 +2428,13 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     final pendingFormat = ref.watch(
       editorProvider.select((s) => s.pendingFormat),
     );
-    // Not while the preview has a block open: in split view both panes are on
-    // screen and both would otherwise apply the same command, in two
-    // different places. The pane being typed in takes it.
     final previewEditing =
         ref.watch(editorProvider.select((s) => s.previewBlockEditing));
-    if (pendingFormat != null && !previewEditing) {
+    if (pendingFormat != null &&
+        SourceEditor.actsOnFormat(
+          mode: config.editMode,
+          previewBlockEditing: previewEditing,
+        )) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _applyFormat(pendingFormat);
         ref.read(editorProvider.notifier).clearFormat();
@@ -2464,20 +2486,14 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
         ),
         child: LayoutBuilder(
           builder: (context, outer) {
-            // A little room under the last line so it is not glued to the
-            // bottom edge (#2) — and only a little.
+            // The same room the preview leaves, from the same definition:
+            // in split view the two panes sit side by side, and two different
+            // amounts stop them lining up exactly where the reader is looking.
             //
-            // This is bottom `contentPadding` on the text field, and padding
-            // inside an InputDecoration does not extend what can be scrolled:
-            // it shrinks the box the text is drawn in. Asking for 60% of the
-            // pane took 60% of the pane away. On a 900-pixel editor the text
-            // had 344 pixels and the rest of the window was blank, with only
-            // that strip scrolling.
-            //
-            // Scrolling the last line up to eye level, which is what the 60%
-            // was reaching for, cannot be had this way at all. It needs the
-            // room to live inside the scrollable rather than around it.
-            final bottomRoom = 2 * config.fontSize * config.lineHeight;
+            // Padding inside an InputDecoration does lengthen what can be
+            // scrolled — measured, one pixel of scroll per pixel of padding —
+            // which an earlier note here got backwards.
+            final room = bottomRoom(MediaQuery.of(context).size.height);
             return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -2544,7 +2560,7 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
                         decoration: InputDecoration(
                           border: InputBorder.none,
                           contentPadding:
-                              EdgeInsets.fromLTRB(8, 8, 8, 8 + bottomRoom),
+                              EdgeInsets.fromLTRB(8, 8, 8, 8 + room),
                         ),
                         onChanged: (value) {
                           setState(() {});

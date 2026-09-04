@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:marktext_plus/ui/editor/bottom_room.dart';
 import 'package:marktext_plus/core/config/app_config.dart';
 import 'package:marktext_plus/core/config/config_service.dart';
 import 'package:marktext_plus/providers/settings_provider.dart';
@@ -65,8 +66,9 @@ void main() {
   double fieldHeight(WidgetTester tester) =>
       tester.renderObject<RenderBox>(find.byType(TextField).first).size.height;
 
-  testWidgets('text is drawn down the whole pane, not a strip at the top',
-      (tester) async {
+  testWidgets('the text fills the pane, minus the room under the last line', (
+    tester,
+  ) async {
     await pump(
       tester,
       List.generate(400, (i) => 'line ${i + 1}').join('\n'),
@@ -75,17 +77,45 @@ void main() {
 
     final field = fieldHeight(tester);
     final editable = editableHeight(tester);
-
+    // The room under the last line is deliberate and shared with the preview,
+    // so the text area is shorter than the pane by exactly that much. What
+    // would be a fault is the text occupying a strip at the top with the rest
+    // dead white — the earlier version of this measured 40%.
+    final room = bottomRoom(900);
     expect(
       editable,
-      greaterThan(field * 0.9),
-      reason: '正文区只有 ${editable.toStringAsFixed(0)} / ${field.toStringAsFixed(0)} '
-          '像素高，剩下的是死白',
+      greaterThan(field - room - 32),
+      reason: '正文区 ${editable.toStringAsFixed(0)} / ${field.toStringAsFixed(0)}，'
+          '留白应当只有 ${room.toStringAsFixed(0)}',
+    );
+    expect(editable, greaterThan(field * 0.6));
+  });
+
+  testWidgets('the end of the document can be scrolled up to eye level', (
+    tester,
+  ) async {
+    // What the room is for. Without it the last line sits pinned to the bottom
+    // edge and cannot be brought anywhere more comfortable to read.
+    await pump(
+      tester,
+      List.generate(400, (i) => 'line ${i + 1}').join('\n'),
+      const Size(1000, 900),
+    );
+
+    final scrollable = tester
+        .widget<TextField>(find.byType(TextField).first)
+        .scrollController!;
+    final content = editableHeight(tester);
+    expect(
+      scrollable.position.maxScrollExtent,
+      greaterThan(content - 900 + bottomRoom(900) - 32),
+      reason: '可滚动的范围要把最后一行送到视线高度',
     );
   });
 
-  testWidgets('a taller window gives more text, not more blank',
-      (tester) async {
+  testWidgets('a taller window gives more text, not only more blank', (
+    tester,
+  ) async {
     final document = List.generate(400, (i) => 'line ${i + 1}').join('\n');
 
     await pump(tester, document, const Size(1000, 600));
@@ -94,8 +124,13 @@ void main() {
     await pump(tester, document, const Size(1000, 1200));
     final tallWindow = editableHeight(tester);
 
-    expect(tallWindow - shortWindow, greaterThan(500),
-        reason: '窗口高了 600 像素，能看到的正文只多了 '
-            '${(tallWindow - shortWindow).toStringAsFixed(0)} 像素');
+    final gained = tallWindow - shortWindow;
+    // 600 more pixels of window, a quarter of which goes to the room under the
+    // last line — so most of it, not all of it, becomes text.
+    expect(
+      gained,
+      greaterThan(600 * 0.6),
+      reason: '窗口高了 600 像素，能看到的正文只多了 ${gained.toStringAsFixed(0)} 像素',
+    );
   });
 }

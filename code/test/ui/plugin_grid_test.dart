@@ -13,13 +13,18 @@ import 'package:marktext_plus/providers/tab_provider.dart';
 import 'package:marktext_plus/services/plugin_script_runtime.dart';
 import 'package:marktext_plus/ui/widgets/plugin_panes.dart';
 
-/// The shape follows the count, and is symmetrical at every step.
+/// The shape follows how many cells there are, and **the split view's two
+/// halves are two of them**.
+///
+/// That is what the grid was for: the editor could already divide a tab
+/// between source and preview, and the point was to offer that same division
+/// out to plugins. So a split document is two cells before a plugin fills
+/// anything, and one pane beside it makes three — which is a top half divided
+/// and a whole row underneath, not three columns.
 ///
 /// * one cell  — the document has everything;
 /// * two cells — side by side, half each;
-/// * three     — one half split and the other whole, and **the plugin decides
-///               which half is which**: filling `right` splits the top,
-///               filling `bottom` and `corner` splits the bottom;
+/// * three     — one half divided, the other whole;
 /// * four      — top left, top right, bottom left, bottom right.
 ///
 /// It was built as trim instead — a 360-pixel strip down the right and a
@@ -40,14 +45,15 @@ void main() {
   /// tab there is no document to put a pane beside, and nothing is drawn.
   Future<void> pump(
     WidgetTester tester,
-    Map<PluginPaneSlot, PluginPaneContent> panes,
-  ) async {
+    Map<PluginPaneSlot, PluginPaneContent> panes, {
+    EditMode editMode = EditMode.preview,
+  }) async {
     final container = ProviderContainer(
       overrides: [
         settingsProvider.overrideWith(
           (ref) => SettingsNotifier(
             ConfigService(configDir: configDir.path),
-            AppConfig(),
+            AppConfig(editMode: editMode),
           ),
         ),
       ],
@@ -67,7 +73,14 @@ void main() {
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: const Scaffold(
-            body: PluginPanes(document: Text('the document')),
+            body: PluginPanes(
+              // Expanded, so the cell it is given can be measured: a bare
+              // Text is only as wide as its letters.
+              document: SizedBox.expand(
+                key: Key('document'),
+                child: Text('the document'),
+              ),
+            ),
           ),
         ),
       ),
@@ -90,199 +103,196 @@ void main() {
     ),
   );
 
-  testWidgets('one cell: with no panes there is no grid at all', (
-    tester,
-  ) async {
-    await pump(tester, const {});
-    expect(find.text('the document'), findsOneWidget);
-    expect(find.byType(PluginPaneView), findsNothing);
+  group('a document that is not split counts as one cell', () {
+    testWidgets('one cell: with no panes there is no grid at all', (
+      tester,
+    ) async {
+      await pump(tester, const {});
+      expect(find.text('the document'), findsOneWidget);
+      expect(find.byType(PluginPaneView), findsNothing);
+    });
+
+    testWidgets('two cells: side by side, half each', (tester) async {
+      await pump(tester, {
+        PluginPaneSlot.right: content(PluginPaneSlot.right, 'beside'),
+      });
+
+      final whole = tester.getRect(find.byType(PluginPanes));
+      final pane = tester.getRect(find.byType(PluginPaneView));
+      expect(pane.width, closeTo(whole.width / 2, 12));
+      expect(pane.height, closeTo(whole.height, 2));
+    });
+
+    testWidgets('three cells: the top half divided, the bottom whole', (
+      tester,
+    ) async {
+      await pump(tester, {
+        PluginPaneSlot.right: content(PluginPaneSlot.right, 'top right'),
+        PluginPaneSlot.bottom: content(PluginPaneSlot.bottom, 'all the bottom'),
+      });
+
+      final whole = tester.getRect(find.byType(PluginPanes));
+      final topRight = cellFor(tester, 'top right');
+      final under = cellFor(tester, 'all the bottom');
+
+      expect(topRight.width, closeTo(whole.width / 2, 12));
+      expect(topRight.top, closeTo(whole.top, 2));
+      expect(under.width, closeTo(whole.width, 2));
+      expect(under.height, closeTo(whole.height / 2, 12));
+    });
+
+    testWidgets('four cells: top left, top right, bottom left, bottom right', (
+      tester,
+    ) async {
+      await pump(tester, {
+        PluginPaneSlot.right: content(PluginPaneSlot.right, 'top right'),
+        PluginPaneSlot.bottom: content(PluginPaneSlot.bottom, 'bottom left'),
+        PluginPaneSlot.corner: content(PluginPaneSlot.corner, 'bottom right'),
+      });
+
+      final whole = tester.getRect(find.byType(PluginPanes));
+      for (final title in ['top right', 'bottom left', 'bottom right']) {
+        final cell = cellFor(tester, title);
+        expect(cell.width, closeTo(whole.width / 2, 12), reason: title);
+        expect(cell.height, closeTo(whole.height / 2, 12), reason: title);
+      }
+      expect(
+        cellFor(tester, 'bottom left').top,
+        closeTo(cellFor(tester, 'bottom right').top, 2),
+      );
+      expect(
+        cellFor(tester, 'top right').left,
+        closeTo(cellFor(tester, 'bottom right').left, 2),
+      );
+    });
   });
 
-  testWidgets('two cells: side by side, half each', (tester) async {
-    await pump(tester, {
-      PluginPaneSlot.right: content(PluginPaneSlot.right, 'beside'),
+  group('a split document is already two cells', () {
+    testWidgets('split alone is the whole area, as it always was', (
+      tester,
+    ) async {
+      await pump(tester, const {}, editMode: EditMode.split);
+      expect(find.byType(PluginPaneView), findsNothing);
+      final area = tester.getRect(find.byType(PluginPanes));
+      final document = tester.getRect(find.byKey(const Key('document')));
+      expect(document.width, closeTo(area.width, 2));
+      expect(document.height, closeTo(area.height, 2));
     });
 
-    final whole = tester.getRect(find.byType(PluginPanes));
-    final pane = tester.getRect(find.byType(PluginPaneView));
-    expect(
-      pane.width,
-      closeTo(whole.width / 2, 12),
-      reason: '译文该和它翻译的东西一样宽',
-    );
-    expect(
-      pane.height,
-      closeTo(whole.height, 2),
-      reason: '只有一个窗格时没有第二行',
-    );
+    testWidgets('split plus one pane is three cells, not three columns', (
+      tester,
+    ) async {
+      // The bug in the screenshot: source, preview and the translation side by
+      // side across the window. Source and preview are two cells already, so
+      // one pane makes three — and three means a divided half and a whole row.
+      await pump(tester, {
+        PluginPaneSlot.right: content(PluginPaneSlot.right, 'the translation'),
+      }, editMode: EditMode.split);
+
+      final area = tester.getRect(find.byType(PluginPanes));
+      final pane = cellFor(tester, 'the translation');
+      final document = tester.getRect(find.byKey(const Key('document')));
+
+      expect(
+        pane.width,
+        closeTo(area.width, 2),
+        reason: '第三格是下半整行，不是右边第三栏',
+      );
+      expect(
+        pane.height,
+        closeTo(area.height / 2, 12),
+        reason: '它占下半',
+      );
+      expect(
+        document.width,
+        closeTo(area.width, 2),
+        reason: '源码和预览一起占满上半整行',
+      );
+      expect(document.top, lessThan(pane.top));
+    });
+
+    testWidgets('split plus two panes is four cells', (tester) async {
+      await pump(tester, {
+        PluginPaneSlot.right: content(PluginPaneSlot.right, 'left below'),
+        PluginPaneSlot.bottom: content(PluginPaneSlot.bottom, 'right below'),
+      }, editMode: EditMode.split);
+
+      final area = tester.getRect(find.byType(PluginPanes));
+      final left = cellFor(tester, 'left below');
+      final right = cellFor(tester, 'right below');
+      final document = tester.getRect(find.byKey(const Key('document')));
+
+      expect(left.width, closeTo(area.width / 2, 12));
+      expect(right.width, closeTo(area.width / 2, 12));
+      expect(left.top, closeTo(right.top, 2), reason: '两格在同一行');
+      expect(document.width, closeTo(area.width, 2), reason: '上半仍是整行');
+      expect(document.top, lessThan(left.top));
+    });
+
+    testWidgets('a third pane has nowhere to go and is not drawn', (
+      tester,
+    ) async {
+      // Two from the document and three panes is five, and there is no fifth
+      // cell. Drawing four of them and silently dropping one would be worse
+      // than what the reader gets: the two that fit, and the rest ignored.
+      await pump(tester, {
+        PluginPaneSlot.right: content(PluginPaneSlot.right, 'one'),
+        PluginPaneSlot.bottom: content(PluginPaneSlot.bottom, 'two'),
+        PluginPaneSlot.corner: content(PluginPaneSlot.corner, 'three'),
+      }, editMode: EditMode.split);
+
+      expect(find.byType(PluginPaneView), findsNWidgets(2));
+      expect(find.text('three'), findsNothing);
+    });
   });
 
-  testWidgets('two cells, whichever slot the plugin chose', (tester) async {
-    // One pane is one pane: left and right, whatever it called itself.
-    await pump(tester, {
-      PluginPaneSlot.corner: content(PluginPaneSlot.corner, 'alone'),
+  group('moving the split to the other half', () {
+    testWidgets('three cells: the reader can move it', (tester) async {
+      await pump(tester, {
+        PluginPaneSlot.right: content(PluginPaneSlot.right, 'first'),
+        PluginPaneSlot.bottom: content(PluginPaneSlot.bottom, 'second'),
+      });
+
+      final whole = tester.getRect(find.byType(PluginPanes));
+      expect(cellFor(tester, 'first').top, closeTo(whole.top, 2));
+
+      await tester.tap(find.byKey(const Key('plugin-panes-flip')).first);
+      await tester.pump();
+
+      final document = tester.getRect(find.byKey(const Key('document')));
+      final first = cellFor(tester, 'first');
+      final second = cellFor(tester, 'second');
+      expect(document.top, lessThan(first.top));
+      expect(first.top, closeTo(second.top, 2));
+      expect(first.width, closeTo(whole.width / 2, 12));
     });
 
-    final whole = tester.getRect(find.byType(PluginPanes));
-    final pane = tester.getRect(find.byType(PluginPaneView));
-    expect(pane.width, closeTo(whole.width / 2, 12));
-    expect(pane.height, closeTo(whole.height, 2));
-  });
-
-  testWidgets('three cells, top split: right and bottom', (tester) async {
-    // `right` sits beside the document, so the top half is the split one and
-    // the remaining pane takes the bottom row whole.
-    await pump(tester, {
-      PluginPaneSlot.right: content(PluginPaneSlot.right, 'top right'),
-      PluginPaneSlot.bottom: content(PluginPaneSlot.bottom, 'all the bottom'),
+    testWidgets('a split document cannot be moved below its panes', (
+      tester,
+    ) async {
+      // The divided half is the document's own, and the editor is not going to
+      // put source above preview to satisfy a button.
+      await pump(tester, {
+        PluginPaneSlot.right: content(PluginPaneSlot.right, 'the translation'),
+      }, editMode: EditMode.split);
+      expect(find.byKey(const Key('plugin-panes-flip')), findsNothing);
     });
 
-    final whole = tester.getRect(find.byType(PluginPanes));
-    final topRight = cellFor(tester, 'top right');
-    final under = cellFor(tester, 'all the bottom');
+    testWidgets('there is nothing to flip with two cells, or with four', (
+      tester,
+    ) async {
+      await pump(tester, {
+        PluginPaneSlot.right: content(PluginPaneSlot.right, 'beside'),
+      });
+      expect(find.byKey(const Key('plugin-panes-flip')), findsNothing);
 
-    expect(topRight.width, closeTo(whole.width / 2, 12));
-    expect(topRight.height, closeTo(whole.height / 2, 12));
-    expect(topRight.top, closeTo(whole.top, 2), reason: '它在上半');
-    expect(
-      under.width,
-      closeTo(whole.width, 2),
-      reason: '下半没有第二格，它就是整行',
-    );
-    expect(under.height, closeTo(whole.height / 2, 12));
-  });
-
-  testWidgets('three cells, bottom split: bottom and corner', (tester) async {
-    // The other shape, and the plugin chose it by not filling `right`: the
-    // document keeps the top row whole and the two panes divide the bottom.
-    await pump(tester, {
-      PluginPaneSlot.bottom: content(PluginPaneSlot.bottom, 'bottom left'),
-      PluginPaneSlot.corner: content(PluginPaneSlot.corner, 'bottom right'),
+      await pump(tester, {
+        PluginPaneSlot.right: content(PluginPaneSlot.right, 'top right'),
+        PluginPaneSlot.bottom: content(PluginPaneSlot.bottom, 'bottom left'),
+        PluginPaneSlot.corner: content(PluginPaneSlot.corner, 'bottom right'),
+      });
+      expect(find.byKey(const Key('plugin-panes-flip')), findsNothing);
     });
-
-    final whole = tester.getRect(find.byType(PluginPanes));
-    final left = cellFor(tester, 'bottom left');
-    final right = cellFor(tester, 'bottom right');
-    final document = tester.getRect(find.text('the document'));
-
-    expect(left.width, closeTo(whole.width / 2, 12));
-    expect(right.width, closeTo(whole.width / 2, 12));
-    expect(left.height, closeTo(whole.height / 2, 12));
-    expect(left.top, closeTo(right.top, 2), reason: '两格在同一行');
-    expect(left.left, closeTo(whole.left, 2), reason: '左下在左边');
-    expect(right.right, closeTo(whole.right, 2), reason: '右下在右边');
-    expect(
-      document.top,
-      lessThan(left.top),
-      reason: '文档独占上半整行',
-    );
-  });
-
-  testWidgets('three cells: the reader can move the split to the other half', (
-    tester,
-  ) async {
-    // The plugin picks the shape it wants; the reader is the one looking at
-    // it. Which half is divided is a view, not a decision the plugin gets to
-    // hold on to.
-    await pump(tester, {
-      PluginPaneSlot.right: content(PluginPaneSlot.right, 'first'),
-      PluginPaneSlot.bottom: content(PluginPaneSlot.bottom, 'second'),
-    });
-
-    final whole = tester.getRect(find.byType(PluginPanes));
-    expect(
-      cellFor(tester, 'first').top,
-      closeTo(whole.top, 2),
-      reason: '默认上半分割：第一个窗格在上半',
-    );
-    expect(
-      cellFor(tester, 'second').width,
-      closeTo(whole.width, 2),
-      reason: '默认下半整行',
-    );
-
-    await tester.tap(find.byKey(const Key('plugin-panes-flip')).first);
-    await tester.pump();
-
-    final document = tester.getRect(find.text('the document'));
-    final first = cellFor(tester, 'first');
-    final second = cellFor(tester, 'second');
-    expect(
-      document.top,
-      lessThan(first.top),
-      reason: '切换之后文档独占上半整行',
-    );
-    expect(first.top, closeTo(second.top, 2), reason: '两个窗格并排在下半');
-    expect(first.width, closeTo(whole.width / 2, 12));
-    expect(second.width, closeTo(whole.width / 2, 12));
-  });
-
-  testWidgets('the flip goes both ways', (tester) async {
-    await pump(tester, {
-      PluginPaneSlot.bottom: content(PluginPaneSlot.bottom, 'first'),
-      PluginPaneSlot.corner: content(PluginPaneSlot.corner, 'second'),
-    });
-
-    final whole = tester.getRect(find.byType(PluginPanes));
-    // This plugin asked for the bottom half to be the split one.
-    expect(cellFor(tester, 'first').width, closeTo(whole.width / 2, 12));
-
-    await tester.tap(find.byKey(const Key('plugin-panes-flip')).first);
-    await tester.pump();
-
-    expect(
-      cellFor(tester, 'first').top,
-      closeTo(whole.top, 2),
-      reason: '切过去之后第一个窗格在上半，与文档并排',
-    );
-    expect(
-      cellFor(tester, 'second').width,
-      closeTo(whole.width, 2),
-      reason: '另一个成了下半整行',
-    );
-  });
-
-  testWidgets('there is nothing to flip with one pane, or with four cells', (
-    tester,
-  ) async {
-    // Two cells have no second row, and four have both halves split already.
-    // A button that does nothing is worse than no button.
-    await pump(tester, {
-      PluginPaneSlot.right: content(PluginPaneSlot.right, 'beside'),
-    });
-    expect(find.byKey(const Key('plugin-panes-flip')), findsNothing);
-
-    await pump(tester, {
-      PluginPaneSlot.right: content(PluginPaneSlot.right, 'top right'),
-      PluginPaneSlot.bottom: content(PluginPaneSlot.bottom, 'bottom left'),
-      PluginPaneSlot.corner: content(PluginPaneSlot.corner, 'bottom right'),
-    });
-    expect(find.byKey(const Key('plugin-panes-flip')), findsNothing);
-  });
-
-  testWidgets('four cells: top left, top right, bottom left, bottom right', (
-    tester,
-  ) async {
-    await pump(tester, {
-      PluginPaneSlot.right: content(PluginPaneSlot.right, 'top right'),
-      PluginPaneSlot.bottom: content(PluginPaneSlot.bottom, 'bottom left'),
-      PluginPaneSlot.corner: content(PluginPaneSlot.corner, 'bottom right'),
-    });
-
-    final whole = tester.getRect(find.byType(PluginPanes));
-    final topRight = cellFor(tester, 'top right');
-    final bottomLeft = cellFor(tester, 'bottom left');
-    final bottomRight = cellFor(tester, 'bottom right');
-
-    for (final cell in [topRight, bottomLeft, bottomRight]) {
-      expect(cell.width, closeTo(whole.width / 2, 12));
-      expect(cell.height, closeTo(whole.height / 2, 12));
-    }
-    // Two above, two below; the columns line up.
-    expect(bottomLeft.top, closeTo(bottomRight.top, 2));
-    expect(topRight.left, closeTo(bottomRight.left, 2));
-    expect(topRight.top, closeTo(whole.top, 2));
-    expect(bottomLeft.left, closeTo(whole.left, 2));
   });
 
   testWidgets('the divider between the columns can be dragged', (tester) async {
@@ -296,11 +306,9 @@ void main() {
       const Offset(-120, 0),
     );
     await tester.pump();
-    final after = tester.getRect(find.byType(PluginPaneView)).width;
     expect(
-      after,
+      tester.getRect(find.byType(PluginPaneView)).width,
       greaterThan(before + 80),
-      reason: '分屏能拖，这个也该能拖',
     );
   });
 
