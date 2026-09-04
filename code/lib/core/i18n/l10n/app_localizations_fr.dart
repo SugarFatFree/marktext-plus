@@ -1167,4 +1167,15 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsMcpStopped => 'à l’arrêt';
+
+  @override
+  String pluginEdited(String plugin) {
+    return '$plugin a modifié le document';
+  }
+
+  @override
+  String get pluginApply => 'Appliquer';
+
+  @override
+  String get pluginApplied => 'Appliqué au document';
 }

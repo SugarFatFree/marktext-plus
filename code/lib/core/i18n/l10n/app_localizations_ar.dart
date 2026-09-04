@@ -1155,4 +1155,15 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get settingsMcpStopped => 'متوقف';
+
+  @override
+  String pluginEdited(String plugin) {
+    return 'غيَّر $plugin المستند';
+  }
+
+  @override
+  String get pluginApply => 'تطبيق';
+
+  @override
+  String get pluginApplied => 'طُبِّق على المستند';
 }

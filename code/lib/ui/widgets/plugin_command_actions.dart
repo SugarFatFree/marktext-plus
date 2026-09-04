@@ -12,6 +12,7 @@ import '../../providers/tab_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../services/ai_chat_service.dart';
 import '../../services/plugin_command_service.dart';
+import '../../services/plugin_document_edit.dart';
 import '../../services/plugin_manifest.dart';
 import '../../services/plugin_script_runtime.dart';
 
@@ -361,12 +362,30 @@ class PluginCommandActions {
             messenger.showSnackBar(SnackBar(content: Text(message)));
             return;
 
-          case PluginReplaceAction():
-            // Reserved for plugins that declare `document.write`. Until the
-            // editor grants that, saying so beats silently doing nothing.
-            messenger.showSnackBar(SnackBar(
-              content: Text(l10n.pluginCannotEdit(plugin.name)),
-            ));
+          case PluginReplaceAction(:final text):
+            final edit = PluginDocumentEdit.of(
+              plugin,
+              document: document,
+              selection: selection,
+              replacement: text,
+            );
+            if (edit == null) {
+              // No permission, a selection that moved while the model was
+              // thinking, or a replacement identical to what is there.
+              messenger.showSnackBar(
+                SnackBar(content: Text(l10n.pluginCannotEdit(plugin.name))),
+              );
+              return;
+            }
+            // Through the history first, so one press of undo takes it back.
+            container.read(editorProvider.notifier).pushHistory(edit.before);
+            container.read(tabProvider.notifier).updateContent(
+                  tabId,
+                  edit.after,
+                );
+            messenger.showSnackBar(
+              SnackBar(content: Text(l10n.pluginEdited(plugin.name))),
+            );
             return;
 
           case PluginNoAction():

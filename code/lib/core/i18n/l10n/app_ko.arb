@@ -436,5 +436,9 @@
   "settingsMcpWarning": "에이전트가 이 에디터의 로그를 읽고, 화면을 찍고, 조작할 수 있게 합니다. 이 컴퓨터에 포트를 엽니다: 거기에 닿을 수 있고 토큰을 가진 사람은 같은 일을 할 수 있습니다.",
   "settingsMcpCopy": "복사",
   "settingsMcpNewToken": "토큰 새로 만들기",
-  "settingsMcpStopped": "실행 중이 아님"
+  "settingsMcpStopped": "실행 중이 아님",
+  "pluginEdited": "{plugin}이(가) 문서를 변경했습니다",
+  "@pluginEdited": {"placeholders": {"plugin": {"type": "String"}}},
+  "pluginApply": "적용",
+  "pluginApplied": "문서에 반영했습니다"
 }

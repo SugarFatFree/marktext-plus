@@ -547,5 +547,9 @@
   "settingsMcpWarning": "Lets an agent read this editor's logs, take screenshots and drive it. It opens a port on this machine: anyone who can reach it and has the token can do those things.",
   "settingsMcpCopy": "Copy",
   "settingsMcpNewToken": "New token",
-  "settingsMcpStopped": "not running"
+  "settingsMcpStopped": "not running",
+  "pluginEdited": "{plugin} changed the document",
+  "@pluginEdited": {"placeholders": {"plugin": {"type": "String"}}},
+  "pluginApply": "Apply",
+  "pluginApplied": "Applied to the document"
 }

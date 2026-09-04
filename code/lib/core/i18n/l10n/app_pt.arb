@@ -436,5 +436,9 @@
   "settingsMcpWarning": "Permite que um agente leia os registos deste editor, tire capturas e o comande. Abre uma porta nesta máquina: quem lhe chegar e tiver o token pode fazer o mesmo.",
   "settingsMcpCopy": "Copiar",
   "settingsMcpNewToken": "Novo token",
-  "settingsMcpStopped": "parado"
+  "settingsMcpStopped": "parado",
+  "pluginEdited": "{plugin} alterou o documento",
+  "@pluginEdited": {"placeholders": {"plugin": {"type": "String"}}},
+  "pluginApply": "Aplicar",
+  "pluginApplied": "Aplicado ao documento"
 }

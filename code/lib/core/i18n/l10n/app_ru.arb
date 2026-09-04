@@ -436,5 +436,9 @@
   "settingsMcpWarning": "Позволяет агенту читать журналы редактора, делать снимки экрана и управлять им. На этой машине открывается порт: всякий, кто до него доберётся и знает токен, сможет то же самое.",
   "settingsMcpCopy": "Копировать",
   "settingsMcpNewToken": "Новый токен",
-  "settingsMcpStopped": "не запущен"
+  "settingsMcpStopped": "не запущен",
+  "pluginEdited": "{plugin} изменил документ",
+  "@pluginEdited": {"placeholders": {"plugin": {"type": "String"}}},
+  "pluginApply": "Применить",
+  "pluginApplied": "Записано в документ"
 }

@@ -1142,4 +1142,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsMcpStopped => '未运行';
+
+  @override
+  String pluginEdited(String plugin) {
+    return '$plugin 修改了文档';
+  }
+
+  @override
+  String get pluginApply => '采用';
+
+  @override
+  String get pluginApplied => '已写入文档';
 }

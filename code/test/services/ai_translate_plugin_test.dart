@@ -460,16 +460,23 @@ void main() {
     expect(document.appliesTo(hasSelection: true), isFalse);
   }, skip: present ? null : '插件仓库不在这台机器上');
 
-  group('the prompt is the reader\'s to change', () {
-    Future<void> writePrompt(String template) async {
+  group("the prompts are the reader's to change", () {
+    // Six of them: a system prompt and a user prompt for each of the three
+    // commands. What the model is, and what it is being given, are two
+    // different things to want to change.
+    Future<void> write(Map<String, String> values) async {
       final service = PluginCommandService(root.path);
-      await service.writeSettings(manifest, {'prompt': template});
+      await service.writeSettings(manifest, values);
       service.dispose();
     }
 
-    test('a template of their own is what gets sent', () async {
-      await writePrompt('把下面的内容翻译成\${language}：\n\n\${text}');
+    test('a translation template of their own is what gets sent', () async {
+      await write({
+        'translationSystem': '把内容翻译成 {{language}}。',
+        'translationUser': '原文：\n{{text}}',
+      });
       final service = PluginCommandService(root.path);
+      addTearDown(service.dispose);
       final action =
           service.start(
                 manifest,
@@ -482,15 +489,15 @@ void main() {
               )
               as PluginPaneAction;
 
-      expect(action.nextPrompt, '把下面的内容翻译成中文：\n\nHello.');
-      service.dispose();
+      expect(action.nextPrompt, '把内容翻译成 中文。\n\n原文：\nHello.');
     }, skip: present ? null : '插件仓库不在这台机器上');
 
     test('a per-cent sign in the document survives', () async {
       // The replacement is a document, and `gsub` reads `%` in a replacement
       // as an escape: "100%" came out mangled, or raised.
-      await writePrompt('\${language}\n\${text}');
+      await write({'translationSystem': '{{language}}', 'translationUser': '{{text}}'});
       final service = PluginCommandService(root.path);
+      addTearDown(service.dispose);
       final action =
           service.start(
                 manifest,
@@ -504,14 +511,16 @@ void main() {
               as PluginPaneAction;
 
       expect(action.nextPrompt, contains('100%'));
-      service.dispose();
     }, skip: present ? null : '插件仓库不在这台机器上');
 
-    test('a template that forgets \${text} still carries the source',
-        () async {
-      // A prompt with nothing to translate in it is worse than an untidy one.
-      await writePrompt('Translate into \${language}, carefully.');
+    test('a template that forgets {{text}} still carries the source', () async {
+      // A prompt with nothing to work on in it is worse than an untidy one.
+      await write({
+        'translationSystem': 'Translate into {{language}}, carefully.',
+        'translationUser': 'No placeholder here.',
+      });
       final service = PluginCommandService(root.path);
+      addTearDown(service.dispose);
       final action =
           service.start(
                 manifest,
@@ -526,12 +535,12 @@ void main() {
 
       expect(action.nextPrompt, contains('Hello.'));
       expect(action.nextPrompt, contains('carefully'));
-      service.dispose();
     }, skip: present ? null : '插件仓库不在这台机器上');
 
-    test('with nothing written, the default prompt is used', () async {
+    test('with nothing written, the defaults are used', () async {
+      await write({'translationSystem': '', 'translationUser': ''});
       final service = PluginCommandService(root.path);
-      await service.writeSettings(manifest, {'prompt': ''});
+      addTearDown(service.dispose);
       final action =
           service.start(
                 manifest,
@@ -546,15 +555,230 @@ void main() {
 
       expect(action.nextPrompt, contains('Markdown'));
       expect(action.nextPrompt, contains('Hello.'));
-      service.dispose();
     }, skip: present ? null : '插件仓库不在这台机器上');
 
-    test('the settings page offers the prompt, not a language nobody uses', () {
-      // The default target language was a field whose value the next question
-      // overwrote; the prompt is a thing only the reader can fix.
-      expect(manifest.settings.map((f) => f.key), ['prompt']);
-      final strings = manifest.stringsFor('zh_CN');
-      expect(strings[manifest.settings.first.title], contains('提示词'));
+    test('writing and proofreading have their own, kept apart', () async {
+      // Changing how it rewrites must not change how it translates.
+      await write({'writingSystem': 'ONLY FOR WRITING'});
+      final service = PluginCommandService(root.path);
+      addTearDown(service.dispose);
+
+      final writing =
+          service.start(
+                manifest,
+                const PluginScriptContext(
+                  command: 'ai.write',
+                  document: 'x',
+                  answer: 'shorter',
+                ),
+              )
+              as PluginPaneAction;
+      expect(writing.nextPrompt, contains('ONLY FOR WRITING'));
+
+      final translating =
+          service.start(
+                manifest,
+                const PluginScriptContext(
+                  command: 'translate.document',
+                  document: 'x',
+                  answer: 'English',
+                  view: 'source',
+                ),
+              )
+              as PluginPaneAction;
+      expect(translating.nextPrompt, isNot(contains('ONLY FOR WRITING')));
+    }, skip: present ? null : '插件仓库不在这台机器上');
+
+    test('the settings page offers all six', () {
+      expect(manifest.settings.map((f) => f.key), [
+        'writingSystem',
+        'writingUser',
+        'proofreadingSystem',
+        'proofreadingUser',
+        'translationSystem',
+        'translationUser',
+      ]);
+      // Each shows its default, so the reader can see what they are changing.
+      for (final field in manifest.settings) {
+        expect(field.defaultValue, isNotEmpty, reason: '\${field.key} 没有默认值');
+      }
+    }, skip: present ? null : '插件仓库不在这台机器上');
+  });
+
+  group('AI writing', () {
+    test('it asks what to do before doing anything', () {
+      final service = PluginCommandService(root.path);
+      addTearDown(service.dispose);
+      final action = service.start(
+        manifest,
+        const PluginScriptContext(
+          command: 'ai.write',
+          selection: 'a paragraph',
+          document: 'a paragraph',
+        ),
+      );
+      expect(action, isA<PluginAskAction>());
+      expect((action as PluginAskAction).choices, isNotEmpty,
+          reason: '常见改法该作为选项给出来，而不是每次都要自己想');
+    }, skip: present ? null : '插件仓库不在这台机器上');
+
+    test('the brief and the text both reach the model', () {
+      final service = PluginCommandService(root.path);
+      addTearDown(service.dispose);
+      final action = service.start(
+        manifest,
+        const PluginScriptContext(
+          command: 'ai.write',
+          selection: 'the old words',
+          document: 'before the old words after',
+          answer: 'Make it shorter',
+        ),
+      ) as PluginPaneAction;
+
+      expect(action.nextPrompt, contains('Make it shorter'));
+      expect(action.nextPrompt, contains('the old words'));
+      expect(action.text, isEmpty, reason: '窗格先开，说明自己在做');
+    }, skip: present ? null : '插件仓库不在这台机器上');
+
+    test('the result offers to replace what it was looking at', () {
+      final service = PluginCommandService(root.path);
+      addTearDown(service.dispose);
+      service.start(
+        manifest,
+        const PluginScriptContext(
+          command: 'ai.write',
+          selection: 'the old words',
+          document: 'before the old words after',
+          answer: 'Make it shorter',
+        ),
+      );
+      final action = service.resumeWithResult(
+        manifest,
+        const PluginScriptContext(
+          command: 'ai.write',
+          answer: 'Make it shorter',
+        ),
+        'the new words',
+      ) as PluginPaneAction;
+
+      expect(action.text, 'the new words');
+      expect(action.canApply, isTrue, reason: '改写就是要替换原文的');
+      expect(action.replaces, 'the old words');
+    }, skip: present ? null : '插件仓库不在这台机器上');
+
+    test('with nothing selected it replaces the whole document', () {
+      final service = PluginCommandService(root.path);
+      addTearDown(service.dispose);
+      service.start(
+        manifest,
+        const PluginScriptContext(
+          command: 'ai.write',
+          document: 'the whole thing',
+          answer: 'Expand with detail',
+        ),
+      );
+      final action = service.resumeWithResult(
+        manifest,
+        const PluginScriptContext(command: 'ai.write', answer: 'x'),
+        'more of it',
+      ) as PluginPaneAction;
+      expect(action.replaces, isEmpty, reason: '空字符串表示整篇');
+    }, skip: present ? null : '插件仓库不在这台机器上');
+
+    test('an empty document is a blank page, not an error', () {
+      // The side bar icon on a tab with nothing in it: writing from nothing is
+      // the point, so it must not refuse.
+      final service = PluginCommandService(root.path);
+      addTearDown(service.dispose);
+      final action = service.start(
+        manifest,
+        const PluginScriptContext(
+          command: 'ai.write',
+          document: '',
+          answer: 'Draft a release note',
+        ),
+      );
+      expect(action, isA<PluginPaneAction>());
+      expect((action as PluginPaneAction).nextPrompt,
+          contains('Draft a release note'));
+    }, skip: present ? null : '插件仓库不在这台机器上');
+  });
+
+  group('AI proofreading', () {
+    test('it goes straight to the model, with no question', () {
+      // There is nothing to ask: correcting mistakes is the whole brief.
+      final service = PluginCommandService(root.path);
+      addTearDown(service.dispose);
+      final action = service.start(
+        manifest,
+        const PluginScriptContext(
+          command: 'ai.proofread',
+          selection: 'teh cat',
+          document: 'teh cat sat',
+        ),
+      );
+      expect(action, isA<PluginPaneAction>());
+      expect((action as PluginPaneAction).nextPrompt, contains('teh cat'));
+    }, skip: present ? null : '插件仓库不在这台机器上');
+
+    test('it offers to replace, like writing does', () {
+      final service = PluginCommandService(root.path);
+      addTearDown(service.dispose);
+      service.start(
+        manifest,
+        const PluginScriptContext(
+          command: 'ai.proofread',
+          selection: 'teh cat',
+          document: 'teh cat sat',
+        ),
+      );
+      final action = service.resumeWithResult(
+        manifest,
+        const PluginScriptContext(command: 'ai.proofread'),
+        'the cat',
+      ) as PluginPaneAction;
+      expect(action.canApply, isTrue);
+      expect(action.replaces, 'teh cat');
+    }, skip: present ? null : '插件仓库不在这台机器上');
+
+    test('an empty document has nothing to correct', () {
+      final service = PluginCommandService(root.path);
+      addTearDown(service.dispose);
+      expect(
+        service.start(
+          manifest,
+          const PluginScriptContext(command: 'ai.proofread', document: ''),
+        ),
+        isA<PluginNotifyAction>(),
+      );
+    }, skip: present ? null : '插件仓库不在这台机器上');
+  });
+
+  group('translation still offers nothing to apply', () {
+    test('a translation is to read, not to accept', () {
+      // Replacing a document with its translation is not what anyone meant by
+      // "translate", and an Apply button there would be an accident waiting.
+      final service = PluginCommandService(root.path);
+      addTearDown(service.dispose);
+      service.start(
+        manifest,
+        const PluginScriptContext(
+          command: 'translate.document',
+          document: 'one\n\ntwo',
+          answer: 'English',
+          view: 'source',
+        ),
+      );
+      final action = service.resumeWithResult(
+        manifest,
+        const PluginScriptContext(
+          command: 'translate.document',
+          answer: 'English',
+          view: 'source',
+        ),
+        'uno',
+      ) as PluginPaneAction;
+      expect(action.canApply, isFalse);
     }, skip: present ? null : '插件仓库不在这台机器上');
   });
 }

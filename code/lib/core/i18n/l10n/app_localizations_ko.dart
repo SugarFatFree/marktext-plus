@@ -1143,4 +1143,15 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get settingsMcpStopped => '실행 중이 아님';
+
+  @override
+  String pluginEdited(String plugin) {
+    return '$plugin이(가) 문서를 변경했습니다';
+  }
+
+  @override
+  String get pluginApply => '적용';
+
+  @override
+  String get pluginApplied => '문서에 반영했습니다';
 }

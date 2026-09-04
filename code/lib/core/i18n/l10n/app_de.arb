@@ -436,5 +436,9 @@
   "settingsMcpWarning": "Lässt einen Agenten die Protokolle dieses Editors lesen, Bildschirmfotos machen und ihn bedienen. Es öffnet einen Port auf diesem Rechner: wer ihn erreicht und den Token hat, kann dasselbe.",
   "settingsMcpCopy": "Kopieren",
   "settingsMcpNewToken": "Neuer Token",
-  "settingsMcpStopped": "läuft nicht"
+  "settingsMcpStopped": "läuft nicht",
+  "pluginEdited": "{plugin} hat das Dokument geändert",
+  "@pluginEdited": {"placeholders": {"plugin": {"type": "String"}}},
+  "pluginApply": "Übernehmen",
+  "pluginApplied": "Ins Dokument übernommen"
 }

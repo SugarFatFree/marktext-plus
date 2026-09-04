@@ -121,6 +121,8 @@ class PluginPaneContent {
     required this.slot,
     this.render = PluginPaneRender.text,
     this.busy = false,
+    this.replaces = '',
+    this.canApply = false,
   });
 
   final String pluginName;
@@ -133,6 +135,19 @@ class PluginPaneContent {
 
   /// How the text is drawn: as it stands, as Markdown source, or rendered.
   final PluginPaneRender render;
+
+  /// The text this pane's contents would replace, when the reader accepts it.
+  ///
+  /// Empty means the whole document. Held so that accepting replaces what the
+  /// plugin was looking at rather than whatever is selected by the time the
+  /// reader gets round to pressing the button.
+  final String replaces;
+
+  /// Whether this pane offers to write itself back into the document.
+  ///
+  /// A rewrite or a correction is shown before it is applied: what a model
+  /// returns is worth reading before it lands in what you were writing.
+  final bool canApply;
 
   /// Whether the plugin has more to put here.
   ///
@@ -158,6 +173,8 @@ class PluginPaneContent {
         slot: action.slot,
         render: action.render,
         busy: action.nextPrompt != null,
+        replaces: action.replaces,
+        canApply: action.canApply,
       );
 
   PluginPaneContent withText(String value) => PluginPaneContent(
@@ -167,6 +184,8 @@ class PluginPaneContent {
         slot: slot,
         render: render,
         busy: busy,
+        replaces: replaces,
+        canApply: canApply,
       );
 
   PluginPaneContent settled() => PluginPaneContent(
@@ -176,6 +195,8 @@ class PluginPaneContent {
         slot: slot,
         render: render,
         busy: false,
+        replaces: replaces,
+        canApply: canApply,
       );
 }
 

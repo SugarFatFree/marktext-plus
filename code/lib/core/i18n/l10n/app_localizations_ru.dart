@@ -1159,4 +1159,15 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get settingsMcpStopped => 'не запущен';
+
+  @override
+  String pluginEdited(String plugin) {
+    return '$plugin изменил документ';
+  }
+
+  @override
+  String get pluginApply => 'Применить';
+
+  @override
+  String get pluginApplied => 'Записано в документ';
 }

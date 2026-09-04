@@ -53,6 +53,8 @@ void main() {
     expect(File('${dir.path}/lib/marktext-plus.lua').existsSync(), isTrue,
         reason: '入口 require 的模块必须在包里');
     expect(File('${dir.path}/lib/blocks.lua').existsSync(), isTrue);
+    expect(File('${dir.path}/lib/prompts.lua').existsSync(), isTrue,
+        reason: '提示词模块不在包里，三个功能一个也跑不起来');
   }, skip: present ? null : 'PLUGIN_ZIP 未指向一个存在的 zip');
 
   test('the packaged version matches the release it replaces', () {
@@ -87,7 +89,7 @@ void main() {
 
   test('its menus and strings survived packaging', () {
     final strings = manifest.stringsFor('zh_CN');
-    expect(strings[manifest.name], 'AI 翻译');
+    expect(strings[manifest.name], 'AI 助手');
     expect(strings[manifest.description], isNotEmpty);
     expect(manifest.locales.length, 12);
     for (final menu in manifest.menus) {

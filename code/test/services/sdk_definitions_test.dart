@@ -28,6 +28,9 @@ void main() {
   const actionKeys = <String>{
     'ask', 'default', 'choices', 'ai', 'show', 'panel', 'pane', 'slot',
     'as', 'append', 'title', 'notify', 'diff', 'original', 'result', 'replace',
+    // A pane that offers to write itself into the document, and what that
+    // would replace.
+    'apply', 'replaces',
   };
   const contextFields = <String>{
     'command', 'selection', 'document', 'answer', 'view',

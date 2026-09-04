@@ -436,5 +436,9 @@
   "settingsMcpWarning": "يتيح لوكيل أن يقرأ سجلات هذا المحرِّر، وأن يلتقط صورًا للشاشة، وأن يقوده. وهو يفتح منفذًا على هذا الجهاز: كل من بلغه ومعه الرمز يستطيع الشيء نفسه.",
   "settingsMcpCopy": "نسخ",
   "settingsMcpNewToken": "رمز جديد",
-  "settingsMcpStopped": "متوقف"
+  "settingsMcpStopped": "متوقف",
+  "pluginEdited": "غيَّر {plugin} المستند",
+  "@pluginEdited": {"placeholders": {"plugin": {"type": "String"}}},
+  "pluginApply": "تطبيق",
+  "pluginApplied": "طُبِّق على المستند"
 }

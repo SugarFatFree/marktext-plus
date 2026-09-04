@@ -236,6 +236,8 @@ globalThis.require = function (name) {
         render: render,
         append: decoded['append'] == true,
         nextPrompt: field('ai'),
+        canApply: decoded['apply'] == true,
+        replaces: field('replaces') ?? '',
       );
     }
 

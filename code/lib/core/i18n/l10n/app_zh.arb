@@ -436,5 +436,9 @@
   "settingsMcpWarning": "让 Agent 读取编辑器日志、截图并操作它。这会在本机开一个端口：能访问到它并且有令牌的人都能做这些事。",
   "settingsMcpCopy": "复制",
   "settingsMcpNewToken": "换一个令牌",
-  "settingsMcpStopped": "未运行"
+  "settingsMcpStopped": "未运行",
+  "pluginEdited": "{plugin} 修改了文档",
+  "@pluginEdited": {"placeholders": {"plugin": {"type": "String"}}},
+  "pluginApply": "采用",
+  "pluginApplied": "已写入文档"
 }

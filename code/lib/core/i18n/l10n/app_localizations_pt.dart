@@ -1164,6 +1164,17 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get settingsMcpStopped => 'parado';
+
+  @override
+  String pluginEdited(String plugin) {
+    return '$plugin alterou o documento';
+  }
+
+  @override
+  String get pluginApply => 'Aplicar';
+
+  @override
+  String get pluginApplied => 'Aplicado ao documento';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -2324,4 +2335,15 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get settingsMcpStopped => 'parado';
+
+  @override
+  String pluginEdited(String plugin) {
+    return '$plugin alterou o documento';
+  }
+
+  @override
+  String get pluginApply => 'Aplicar';
+
+  @override
+  String get pluginApplied => 'Aplicado ao documento';
 }

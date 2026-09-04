@@ -9,6 +9,8 @@ import '../../providers/settings_provider.dart';
 import '../../providers/tab_provider.dart';
 import '../editor/markdown_renderer.dart';
 import '../../services/plugin_script_runtime.dart';
+import '../../providers/editor_provider.dart';
+import '../../services/plugin_document_edit.dart';
 
 /// The document, and up to three panes a plugin filled.
 ///
@@ -53,6 +55,50 @@ class _PluginPanesState extends ConsumerState<PluginPanes> {
   /// Kept off the edges, so a pane can always be grabbed again after a drag.
   static const _least = 0.15;
   static const _most = 0.85;
+
+  /// Writes what a pane holds into the document.
+  ///
+  /// The permission is checked here rather than trusted from the plugin: the
+  /// flag says the plugin offered, and the permission says whether the editor
+  /// agreed.
+  void _apply(PluginPaneContent content) {
+    final tabs = ref.read(tabProvider);
+    final tabId = tabs.activeTabId;
+    final tab = tabs.tabs.where((t) => t.id == tabId).firstOrNull;
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    if (tab == null || tabId == null) return;
+
+    final plugin = ref
+        .read(installedPluginManifestsProvider)
+        .valueOrNull
+        ?.where((p) => p.name == content.pluginName)
+        .firstOrNull;
+    final edit = plugin == null
+        ? null
+        : PluginDocumentEdit.of(
+            plugin,
+            document: tab.content,
+            selection: content.replaces,
+            replacement: content.text,
+          );
+    if (edit == null) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(l10n?.pluginCannotEdit(content.pluginName) ?? ''),
+        ),
+      );
+      return;
+    }
+
+    // Through the history first, so one press of undo takes it back.
+    ref.read(editorProvider.notifier).pushHistory(edit.before);
+    ref.read(tabProvider.notifier).updateContent(tabId, edit.after);
+    ref.read(pluginPanesProvider.notifier).close(tabId, content.slot);
+    messenger.showSnackBar(
+      SnackBar(content: Text(l10n?.pluginApplied ?? '')),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -137,10 +183,10 @@ class _PluginPanesState extends ConsumerState<PluginPanes> {
           return rows(
             widget.document,
             ordered.length == 1
-                ? PluginPaneView(content: ordered.first)
+                ? PluginPaneView(content: ordered.first, onApply: () => _apply(ordered.first))
                 : columns(
-                    PluginPaneView(content: ordered[0]),
-                    PluginPaneView(content: ordered[1]),
+                    PluginPaneView(content: ordered[0], onApply: () => _apply(ordered[0])),
+                    PluginPaneView(content: ordered[1], onApply: () => _apply(ordered[1])),
                   ),
           );
         }
@@ -150,7 +196,7 @@ class _PluginPanesState extends ConsumerState<PluginPanes> {
         if (ordered.length == 1) {
           return columns(
             widget.document,
-            PluginPaneView(content: ordered.first),
+            PluginPaneView(content: ordered.first, onApply: () => _apply(ordered.first)),
           );
         }
 
@@ -166,16 +212,16 @@ class _PluginPanesState extends ConsumerState<PluginPanes> {
             return rows(
               columns(
                 widget.document,
-                PluginPaneView(content: ordered[0], onFlip: flip),
+                PluginPaneView(content: ordered[0], onFlip: flip, onApply: () => _apply(ordered[0])),
               ),
-              PluginPaneView(content: ordered[1], onFlip: flip),
+              PluginPaneView(content: ordered[1], onFlip: flip, onApply: () => _apply(ordered[1])),
             );
           }
           return rows(
             widget.document,
             columns(
-              PluginPaneView(content: ordered[0], onFlip: flip),
-              PluginPaneView(content: ordered[1], onFlip: flip),
+              PluginPaneView(content: ordered[0], onFlip: flip, onApply: () => _apply(ordered[0])),
+              PluginPaneView(content: ordered[1], onFlip: flip, onApply: () => _apply(ordered[1])),
             ),
           );
         }
@@ -183,10 +229,10 @@ class _PluginPanesState extends ConsumerState<PluginPanes> {
         // Four cells: the document top left, a pane in each of the rest. The
         // rows share a divider, so the columns line up.
         return rows(
-          columns(widget.document, PluginPaneView(content: ordered[0])),
+          columns(widget.document, PluginPaneView(content: ordered[0], onApply: () => _apply(ordered[0]))),
           columns(
-            PluginPaneView(content: ordered[1]),
-            PluginPaneView(content: ordered[2]),
+            PluginPaneView(content: ordered[1], onApply: () => _apply(ordered[1])),
+            PluginPaneView(content: ordered[2], onApply: () => _apply(ordered[2])),
           ),
         );
       },
@@ -255,9 +301,18 @@ class _GripState extends State<_Grip> {
 
 /// One pane: what the plugin called it, what it said, and a way to close it.
 class PluginPaneView extends ConsumerWidget {
-  const PluginPaneView({required this.content, this.onFlip, super.key});
+  const PluginPaneView({
+    required this.content,
+    this.onFlip,
+    this.onApply,
+    super.key,
+  });
 
   final PluginPaneContent content;
+
+  /// Writes what this pane holds into the document. Null when the plugin did
+  /// not offer it, or when the editor is not going to allow it.
+  final VoidCallback? onApply;
 
   /// Moves the split to the other half. Only three cells have another half to
   /// move it to: two have no second row, and four are already both split.
@@ -339,6 +394,15 @@ class PluginPaneView extends ConsumerWidget {
                   ],
                 ),
               ),
+              // Offered only when the plugin asked and it is not still
+              // filling: accepting half a rewrite would write half a rewrite.
+              if (content.canApply && !content.busy)
+                TextButton.icon(
+                  key: const Key('plugin-pane-apply'),
+                  icon: const Icon(Icons.check, size: 16),
+                  label: Text(l10n?.pluginApply ?? ''),
+                  onPressed: onApply,
+                ),
               if (onFlip != null)
                 IconButton(
                   key: const Key('plugin-panes-flip'),

@@ -436,5 +436,9 @@
   "settingsMcpWarning": "エージェントがこのエディタのログを読み、スクリーンショットを撮り、操作できるようになります。この端末でポートを開くため、そこに到達でき、トークンを持つ者は同じことができます。",
   "settingsMcpCopy": "コピー",
   "settingsMcpNewToken": "トークンを作り直す",
-  "settingsMcpStopped": "停止中"
+  "settingsMcpStopped": "停止中",
+  "pluginEdited": "{plugin} がドキュメントを変更しました",
+  "@pluginEdited": {"placeholders": {"plugin": {"type": "String"}}},
+  "pluginApply": "適用",
+  "pluginApplied": "ドキュメントに反映しました"
 }

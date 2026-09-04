@@ -436,5 +436,9 @@
   "settingsMcpWarning": "Permite que un agente lea los registros de este editor, haga capturas y lo maneje. Abre un puerto en esta máquina: quien llegue a él y tenga el token puede hacer lo mismo.",
   "settingsMcpCopy": "Copiar",
   "settingsMcpNewToken": "Token nuevo",
-  "settingsMcpStopped": "detenido"
+  "settingsMcpStopped": "detenido",
+  "pluginEdited": "{plugin} cambió el documento",
+  "@pluginEdited": {"placeholders": {"plugin": {"type": "String"}}},
+  "pluginApply": "Aplicar",
+  "pluginApplied": "Aplicado al documento"
 }

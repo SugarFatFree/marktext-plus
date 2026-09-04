@@ -1165,4 +1165,15 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get settingsMcpStopped => 'detenido';
+
+  @override
+  String pluginEdited(String plugin) {
+    return '$plugin cambió el documento';
+  }
+
+  @override
+  String get pluginApply => 'Aplicar';
+
+  @override
+  String get pluginApplied => 'Aplicado al documento';
 }

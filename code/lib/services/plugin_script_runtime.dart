@@ -140,6 +140,8 @@ class PluginPaneAction extends PluginScriptAction {
     this.render = PluginPaneRender.text,
     this.append = false,
     this.nextPrompt,
+    this.replaces = '',
+    this.canApply = false,
   });
 
   final String text;
@@ -149,6 +151,21 @@ class PluginPaneAction extends PluginScriptAction {
 
   /// Add to what the pane holds rather than replacing it.
   final bool append;
+
+  /// Offer to write this back into the document.
+  ///
+  /// A rewrite or a correction is shown before it is applied: what a model
+  /// returns is worth reading before it lands in what the reader was writing.
+  /// Needs `document.write`, and the editor checks that when the button is
+  /// pressed rather than trusting the flag.
+  final bool canApply;
+
+  /// What accepting would replace. Empty means the whole document.
+  ///
+  /// Held from when the plugin ran, so accepting replaces what it was looking
+  /// at rather than whatever happens to be selected by the time the reader
+  /// presses the button.
+  final String replaces;
 
   /// Something more to ask the model, once this has been shown.
   ///
@@ -556,6 +573,8 @@ end
       render: render,
       append: _boolean('append'),
       nextPrompt: _field('ai'),
+      canApply: _boolean('apply'),
+      replaces: _field('replaces') ?? '',
     );
   }
 

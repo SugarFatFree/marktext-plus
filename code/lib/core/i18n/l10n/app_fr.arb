@@ -436,5 +436,9 @@
   "settingsMcpWarning": "Permet à un agent de lire les journaux de cet éditeur, d’en faire des captures et de le piloter. Cela ouvre un port sur cette machine : quiconque l’atteint et possède le jeton peut en faire autant.",
   "settingsMcpCopy": "Copier",
   "settingsMcpNewToken": "Nouveau jeton",
-  "settingsMcpStopped": "à l’arrêt"
+  "settingsMcpStopped": "à l’arrêt",
+  "pluginEdited": "{plugin} a modifié le document",
+  "@pluginEdited": {"placeholders": {"plugin": {"type": "String"}}},
+  "pluginApply": "Appliquer",
+  "pluginApplied": "Appliqué au document"
 }

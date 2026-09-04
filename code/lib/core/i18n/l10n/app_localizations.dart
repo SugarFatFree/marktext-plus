@@ -2276,6 +2276,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'not running'**
   String get settingsMcpStopped;
+
+  /// No description provided for @pluginEdited.
+  ///
+  /// In en, this message translates to:
+  /// **'{plugin} changed the document'**
+  String pluginEdited(String plugin);
+
+  /// No description provided for @pluginApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get pluginApply;
+
+  /// No description provided for @pluginApplied.
+  ///
+  /// In en, this message translates to:
+  /// **'Applied to the document'**
+  String get pluginApplied;
 }
 
 class _AppLocalizationsDelegate
