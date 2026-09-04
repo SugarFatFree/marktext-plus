@@ -26,7 +26,7 @@ void main() {
       runtime: entrypoint.endsWith('.lua')
           ? PluginRuntime.lua
           : PluginRuntime.js,
-      permissions: const ['document.read', 'document.write'],
+      permissions: const ['document.read', 'document.write', 'ui.sidebar'],
     );
     final dir = Directory('${root.path}/$id')..createSync(recursive: true);
     File('${dir.path}/$entrypoint').writeAsStringSync(source);

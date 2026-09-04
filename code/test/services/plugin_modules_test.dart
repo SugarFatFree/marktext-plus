@@ -33,6 +33,10 @@ void main() {
       'version': '1.0.0',
       'runtime': 'lua',
       'entrypoint': 'plugin.lua',
+      // These exercise `require`, and report what they found by notifying.
+      // The editor enforces the declared permissions, so a test plugin has to
+      // declare what it uses like any other.
+      'permissions': ['ui.notifications'],
     });
   }
 

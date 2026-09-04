@@ -25,6 +25,11 @@ void main() {
       'version': '1.0.0',
       'runtime': 'lua',
       'entrypoint': 'plugin.lua',
+      // What these cases happen to use to report what they did. The editor
+      // enforces the declared list, so a test plugin declares like any other;
+      // `extra` overrides this where a case is about the permissions
+      // themselves.
+      'permissions': ['document.read', 'ui.notifications', 'ui.sidebar'],
       ...extra,
     };
     File('${dir.path}/manifest.json').writeAsStringSync(jsonEncode(json));

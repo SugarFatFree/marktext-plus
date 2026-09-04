@@ -29,6 +29,9 @@ void main() {
         'version': '1.0.0',
         'runtime': 'lua',
         'entrypoint': 'plugin.lua',
+        // It reports that it ran by notifying, and the editor enforces the
+        // declared list.
+        'permissions': ['ui.notifications'],
         if (minAppVersion.isNotEmpty) 'minAppVersion': minAppVersion,
       };
 

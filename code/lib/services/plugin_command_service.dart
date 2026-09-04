@@ -45,7 +45,7 @@ class PluginCommandService {
     PluginManifest manifest,
     PluginScriptContext context,
   ) =>
-      _guard(manifest, _runtimeFor(manifest).runCommand(context));
+      _guard(manifest, _runtimeFor(manifest).runCommand(_seen(manifest, context)));
 
   /// Hands a model reply back to the plugin.
   PluginScriptAction resumeWithResult(
@@ -53,7 +53,31 @@ class PluginCommandService {
     PluginScriptContext context,
     String result,
   ) =>
-      _guard(manifest, _runtimeFor(manifest).onResult(context, result));
+      _guard(
+        manifest,
+        _runtimeFor(manifest).onResult(_seen(manifest, context), result),
+      );
+
+  /// The context as this plugin is allowed to see it.
+  ///
+  /// `document.read` is the permission the reader is most likely to be
+  /// weighing, and it was the one that meant nothing: the document and the
+  /// selection were handed to every plugin regardless. Withheld rather than
+  /// refused, so a plugin that never asked simply sees an empty document —
+  /// which is a state it has to handle anyway.
+  PluginScriptContext _seen(
+    PluginManifest manifest,
+    PluginScriptContext context,
+  ) {
+    if (manifest.hasPermission(PluginPermission.documentRead)) return context;
+    return PluginScriptContext(
+      command: context.command,
+      selection: '',
+      document: '',
+      answer: context.answer,
+      view: context.view,
+    );
+  }
 
   /// Refuses an action the plugin did not declare a permission for.
   ///
@@ -63,12 +87,21 @@ class PluginCommandService {
     PluginManifest manifest,
     PluginScriptAction action,
   ) {
+    // Every action that reaches the reader, not just the two that were once
+    // thought interesting. A pane takes half the document's room; a
+    // notification interrupts; a panel occupies the side bar. None of those
+    // is something a plugin should have without saying so, and the list is
+    // only worth showing at install time if it is checked afterwards.
     final needed = switch (action) {
       PluginAiAction() => PluginPermission.aiChat,
       PluginReplaceAction() => PluginPermission.documentWrite,
+      PluginNotifyAction() => PluginPermission.uiNotifications,
+      PluginPaneAction() || PluginPanelAction() => PluginPermission.uiSidebar,
       _ => null,
     };
     if (needed == null || manifest.hasPermission(needed)) return action;
+    // Reported to the reader rather than dropped: a plugin that does nothing
+    // and says nothing is one they will file a bug about.
     return PluginNotifyAction(
       '${manifest.name} did not ask for the "$needed" permission',
     );

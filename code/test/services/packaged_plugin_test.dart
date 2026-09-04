@@ -14,6 +14,23 @@ import 'package:marktext_plus/services/plugin_script_runtime.dart';
 /// Not the working tree — the archive. Twice now a plugin has been "installed"
 /// by copying only its entrypoint, which is half a plugin; this unpacks what
 /// the reader would actually download and runs it.
+/// The plugin checkout beside this one, or null where there is none.
+///
+/// Walked upwards rather than named by an absolute path: the plugin sits
+/// beside the editor's checkout, and where that is differs per machine.
+String? _findPluginRepo() {
+  const path = 'marktext-plus-plugins/marktext-plus-ai-translate-plugin';
+  var directory = Directory.current;
+  for (var level = 0; level < 6; level++) {
+    final candidate = '${directory.path}/$path';
+    if (File('$candidate/manifest.json').existsSync()) return candidate;
+    final parent = directory.parent;
+    if (parent.path == directory.path) break;
+    directory = parent;
+  }
+  return null;
+}
+
 void main() {
   final zip = Platform.environment['PLUGIN_ZIP'];
   final present = zip != null && File(zip).existsSync();
@@ -57,10 +74,20 @@ void main() {
         reason: '提示词模块不在包里，三个功能一个也跑不起来');
   }, skip: present ? null : 'PLUGIN_ZIP 未指向一个存在的 zip');
 
-  test('the packaged version matches the release it replaces', () {
-    expect(manifest.version, '0.1.3',
-        reason: '市场显示的版本来自 release，已安装列表显示的来自这里；'
-            '两处不一致就是编辑器在说与事实不符的话');
+  test('the packaged version is the one in the repository', () {
+    // Read from the checkout rather than written here: a number spelled twice
+    // is one that drifts, and this one had to be edited by hand at every
+    // release. What matters is that the archive carries what the repository
+    // says — the marketplace shows the release's version and the installed
+    // list shows the manifest's, and two different numbers are the editor
+    // saying something untrue about itself.
+    final repo = _findPluginRepo();
+    if (repo == null) return;
+    final inRepo =
+        jsonDecode(File('$repo/manifest.json').readAsStringSync())
+            as Map<String, dynamic>;
+    expect(manifest.version, inRepo['version'],
+        reason: '包里的版本和仓库里的对不上');
   }, skip: present ? null : 'PLUGIN_ZIP 未指向一个存在的 zip');
 
   test('it runs out of the archive, and opens its pane before asking', () {
