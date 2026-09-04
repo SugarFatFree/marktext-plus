@@ -1133,4 +1133,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get pluginFinished => 'Terminé';
+
+  @override
+  String get pluginPrerelease => 'Préversion';
 }

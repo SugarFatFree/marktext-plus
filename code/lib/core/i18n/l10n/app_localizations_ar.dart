@@ -1121,4 +1121,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get pluginFinished => 'اكتمل';
+
+  @override
+  String get pluginPrerelease => 'إصدار أوّلي';
 }

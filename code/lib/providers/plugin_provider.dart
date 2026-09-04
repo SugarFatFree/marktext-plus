@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -15,6 +17,17 @@ final installedPluginManifestsProvider = FutureProvider<List<PluginManifest>>((r
   return PluginManager(p.join(directory.path, 'plugins')).loadInstalled();
 });
 
+
+/// Where each installed plugin came from, by plugin id.
+///
+/// Separate from the manifests because it is not the plugin's own claim about
+/// itself: whether a release was a pre-release is a property of the release,
+/// and the reader is entitled to know which one they took.
+final installedPluginSourcesProvider =
+    FutureProvider<Map<String, PluginSource>>((ref) async {
+  final directory = await getApplicationSupportDirectory();
+  return PluginManager(p.join(directory.path, 'plugins')).sources();
+});
 
 /// Opens a plugin's page as a tab, or returns to the one already open.
 ///
@@ -69,28 +82,6 @@ final pluginDiscoveryProvider =
     StateNotifierProvider<PluginDiscoveryNotifier, PluginDiscovery>(
   (ref) => PluginDiscoveryNotifier(),
 );
-
-/// A result a plugin asked to be shown beside the document rather than over it.
-///
-/// Document-sized output does not belong in a dialog: a reader comparing a
-/// translation against what is on screen cannot do it through a box covering
-/// the screen.
-class PluginPanelResult {
-  const PluginPanelResult({
-    required this.pluginName,
-    required this.title,
-    required this.text,
-  });
-
-  final String pluginName;
-
-  /// What the plugin called this result, if it said. Its own language.
-  final String title;
-  final String text;
-}
-
-final pluginPanelResultProvider =
-    StateProvider<PluginPanelResult?>((ref) => null);
 
 /// Text a plugin asked to be shown in one of the panes beside the document.
 class PluginPaneContent {
@@ -219,12 +210,35 @@ final pluginPanesProvider = StateNotifierProvider<PluginPanesNotifier,
 /// which means the sentence has to still be there and still be scrollable. A
 /// modal dialog is the one place it cannot be.
 class PluginTip {
-  const PluginTip({required this.title, required this.text, required this.busy});
+  const PluginTip({
+    required this.title,
+    required this.text,
+    required this.busy,
+    this.question,
+    this.answer,
+    this.choices = const <String>[],
+  });
 
   final String title;
 
   /// Empty while the plugin is still working.
   final String text;
+
+  /// What the plugin is asking, if it is asking rather than answering.
+  ///
+  /// The question used to be a modal dialog of its own — a second, larger
+  /// window for one line of input, on the way to an answer that would arrive
+  /// in a card a quarter its size.
+  final String? question;
+
+  /// Where the answer is collected, so the card can be rebuilt without losing
+  /// what has been typed.
+  final Completer<String?>? answer;
+
+  /// Answers the plugin offered outright, shown as chips.
+  final List<String> choices;
+
+  bool get asking => question != null;
   final bool busy;
 }
 
@@ -239,7 +253,38 @@ class PluginTipNotifier extends StateNotifier<PluginTip?> {
   void show({required String title, required String text}) =>
       state = PluginTip(title: title, text: text, busy: false);
 
-  void dismiss() => state = null;
+  /// Asks the reader something, in the same card the answer will appear in.
+  Completer<String?> ask({
+    required String title,
+    required String question,
+    required List<String> choices,
+  }) {
+    final answer = Completer<String?>();
+    state = PluginTip(
+      title: title,
+      text: '',
+      busy: false,
+      question: question,
+      answer: answer,
+      choices: choices,
+    );
+    return answer;
+  }
+
+  void dismiss() {
+    // A question nobody answered is a question that was declined, and the run
+    // waiting on it has to be told so rather than left holding a future that
+    // never completes.
+    final pending = state?.answer;
+    state = null;
+    if (pending != null && !pending.isCompleted) pending.complete(null);
+  }
+
+  void answerWith(String value) {
+    final pending = state?.answer;
+    state = null;
+    if (pending != null && !pending.isCompleted) pending.complete(value);
+  }
 
   /// Takes down a tip that is still waiting, leaving an answer alone.
   ///
@@ -249,6 +294,10 @@ class PluginTipNotifier extends StateNotifier<PluginTip?> {
   void dismissIfWaiting() {
     if (state?.busy ?? false) state = null;
   }
+
+  /// Whether a question is on screen, so a run knows the reader has not yet
+  /// closed the card it is waiting on.
+  bool get asking => state?.asking ?? false;
 }
 
 final pluginTipProvider =

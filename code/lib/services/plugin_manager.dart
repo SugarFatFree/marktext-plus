@@ -74,6 +74,50 @@ class PluginManager {
     await _writeState(state);
   }
 
+  File get _sourcesFile => File(p.join(installDirectory, 'sources.json'));
+
+  Future<Map<String, dynamic>> _readSources() async {
+    try {
+      if (!await _sourcesFile.exists()) return {};
+      final json = jsonDecode(await _sourcesFile.readAsString());
+      return json is Map ? Map<String, dynamic>.from(json) : {};
+    } catch (_) {
+      // A file nobody can read is no record, not a reason to stop: the plugin
+      // itself is installed and works, and this only decorates a list.
+      return {};
+    }
+  }
+
+  /// Where [id] came from, or null if nothing was recorded.
+  ///
+  /// Null for every plugin installed before this was kept, and for one
+  /// installed from a ZIP by hand — there is no release behind those to have
+  /// an answer about.
+  Future<PluginSource?> sourceOf(String id) async {
+    final entry = (await _readSources())[id];
+    return entry is Map ? PluginSource.fromJson(entry) : null;
+  }
+
+  /// Every recorded source, by plugin id.
+  Future<Map<String, PluginSource>> sources() async => {
+        for (final entry in (await _readSources()).entries)
+          if (entry.value is Map)
+            entry.key: PluginSource.fromJson(entry.value as Map),
+      };
+
+  Future<void> recordSource(String id, PluginSource source) async {
+    final all = await _readSources();
+    all[id] = source.toJson();
+    await Directory(installDirectory).create(recursive: true);
+    await _sourcesFile.writeAsString(jsonEncode(all), flush: true);
+  }
+
+  Future<void> forgetSource(String id) async {
+    final all = await _readSources();
+    if (all.remove(id) == null) return;
+    await _sourcesFile.writeAsString(jsonEncode(all), flush: true);
+  }
+
   /// The key a plugin uses in its manifest to name a build for this machine.
   ///
   /// A compiled plugin ships one executable per platform, so the editor has to
@@ -189,6 +233,7 @@ class PluginManager {
     } else {
       await _writeState(state);
     }
+    await forgetSource(id);
   }
 
   Future<PluginManifest> installZip(File zipFile) async {
@@ -239,4 +284,27 @@ class PluginManager {
       rethrow;
     }
   }
+}
+
+
+/// Where an installed plugin came from.
+///
+/// The manifest cannot say whether the reader took a pre-release — that is a
+/// property of the release, not of the plugin — and the release is not on
+/// disk. Inferring it from a leading zero would be a guess: plenty of finished
+/// software is 0.x, and a 1.0.0 pre-release is a thing that happens.
+class PluginSource {
+  const PluginSource({required this.prerelease, required this.tag});
+
+  final bool prerelease;
+
+  /// The release this came from, as its author tagged it.
+  final String tag;
+
+  factory PluginSource.fromJson(Map<dynamic, dynamic> json) => PluginSource(
+        prerelease: json['prerelease'] == true,
+        tag: json['tag'] is String ? json['tag'] as String : '',
+      );
+
+  Map<String, dynamic> toJson() => {'prerelease': prerelease, 'tag': tag};
 }

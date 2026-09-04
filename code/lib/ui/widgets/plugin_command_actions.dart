@@ -251,12 +251,25 @@ class PluginCommandActions {
               :final defaultValue,
               :final choices
             ):
-            if (!navigator.mounted) return;
             // A plugin that answers every question with another question
             // would otherwise keep the reader in a loop it controls.
             if (++questions > 8) break;
-            final answer =
-                await _ask(navigator.context, label, defaultValue, choices);
+            // Asked in the card the answer will appear in. It used to be a
+            // modal dialog of its own — a second, larger window for one line
+            // of input, on the way to an answer shown in a card a quarter its
+            // size, with the document unreachable behind both.
+            final asked = container.read(pluginTipProvider.notifier).ask(
+                  title: plugin.name,
+                  question: label,
+                  // What the plugin remembered comes first, so last time's
+                  // answer is one press away and not something to retype.
+                  choices: [
+                    if (defaultValue.isNotEmpty) defaultValue,
+                    for (final choice in choices)
+                      if (choice != defaultValue) choice,
+                  ],
+                );
+            final answer = await asked.future;
             if (answer == null) return;
             context = context.withAnswer(answer);
             action = service.start(plugin, context);
@@ -311,12 +324,19 @@ class PluginCommandActions {
             action = service.resumeWithResult(plugin, context, reply);
 
           case PluginPanelAction(:final text, :final title):
-            container.read(pluginPanelResultProvider.notifier).state =
-                PluginPanelResult(
-              pluginName: plugin.name,
-              title: title,
-              text: text,
-            );
+            // Beside the document, which is what the grid is for. It used to
+            // have a container of its own — a fixed strip pinned to the far
+            // right, outside the grid and outside the side bar — so the editor
+            // had three places to put a result and the reader had no way to
+            // tell which one a plugin would use.
+            container.read(pluginPanesProvider.notifier).show(
+                  PluginPaneContent(
+                    pluginName: plugin.name,
+                    title: title,
+                    text: text,
+                    slot: PluginPaneSlot.right,
+                  ),
+                );
             return;
 
           case PluginDiffAction(:final original, :final result):
@@ -365,53 +385,6 @@ class PluginCommandActions {
       await service.flush(plugin);
       service.dispose();
     }
-  }
-
-  static Future<String?> _ask(
-    BuildContext context,
-    String label,
-    String initial,
-    List<String> choices,
-  ) async {
-    final controller = TextEditingController(text: initial);
-    final l10n = AppLocalizations.of(context)!;
-    final answer = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(label),
-        // The list is a shortcut, not a cage: picking from it fills the box in,
-        // and anything typed there is taken as it stands.
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (choices.isNotEmpty) ...[
-              _ChoiceRow(choices: choices, controller: controller),
-              const SizedBox(height: 12),
-            ],
-            TextField(
-              controller: controller,
-              autofocus: true,
-              onSubmitted: (value) =>
-                  Navigator.of(dialogContext).pop(value.trim()),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () =>
-                Navigator.of(dialogContext).pop(controller.text.trim()),
-            child: Text(l10n.confirm),
-          ),
-        ],
-      ),
-    );
-    controller.dispose();
-    return (answer == null || answer.isEmpty) ? null : answer;
   }
 
   static Future<void> _showFailure(
@@ -513,35 +486,3 @@ class _SideBySideDialog extends StatelessWidget {
   }
 }
 
-/// The answers a plugin offered outright, as chips above the box.
-///
-/// A row rather than a dropdown: with half a dozen languages the whole list is
-/// visible at once, and choosing one is a single press instead of open-then-pick.
-class _ChoiceRow extends StatelessWidget {
-  const _ChoiceRow({required this.choices, required this.controller});
-
-  final List<String> choices;
-  final TextEditingController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    return ValueListenableBuilder<TextEditingValue>(
-      valueListenable: controller,
-      builder: (context, value, _) => Wrap(
-        spacing: 6,
-        runSpacing: 6,
-        children: [
-          for (final choice in choices)
-            ChoiceChip(
-              label: Text(choice),
-              selected: value.text.trim() == choice,
-              onSelected: (_) => controller.value = TextEditingValue(
-                text: choice,
-                selection: TextSelection.collapsed(offset: choice.length),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}

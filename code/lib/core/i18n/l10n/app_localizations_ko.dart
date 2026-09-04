@@ -1109,4 +1109,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get pluginFinished => '완료';
+
+  @override
+  String get pluginPrerelease => '프리릴리스';
 }

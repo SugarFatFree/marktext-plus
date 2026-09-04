@@ -130,4 +130,64 @@ void main() {
       expect(container.read(pluginTipProvider), isNull);
     });
   });
+
+  group('asking in the card the answer appears in', () {
+    test('a question is a tip, not a window of its own', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(pluginTipProvider.notifier).ask(
+        title: 'Demo',
+        question: 'Target language',
+        choices: const ['English', '中文'],
+      );
+      final tip = container.read(pluginTipProvider)!;
+      expect(tip.asking, isTrue);
+      expect(tip.question, 'Target language');
+      expect(tip.choices, ['English', '中文']);
+      expect(tip.busy, isFalse, reason: '在等读者，不是在等模型');
+    });
+
+    test('answering completes the run that was waiting', () async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final asked = container.read(pluginTipProvider.notifier).ask(
+        title: 'Demo',
+        question: 'Target language',
+        choices: const [],
+      );
+      container.read(pluginTipProvider.notifier).answerWith('中文');
+      expect(await asked.future, '中文');
+      expect(container.read(pluginTipProvider), isNull,
+          reason: '答完了就该收起来');
+    });
+
+    test('closing the card declines, rather than hanging the run', () async {
+      // A run awaiting a future nobody completes is a plugin that never
+      // finishes and a service that is never disposed.
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final asked = container.read(pluginTipProvider.notifier).ask(
+        title: 'Demo',
+        question: 'Target language',
+        choices: const [],
+      );
+      container.read(pluginTipProvider.notifier).dismiss();
+      expect(await asked.future, isNull);
+    });
+
+    test('a question is not mistaken for work in progress', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(pluginTipProvider.notifier).ask(
+        title: 'Demo',
+        question: 'Target language',
+        choices: const [],
+      );
+      // dismissIfWaiting takes down a tip that is waiting on the model. A
+      // question is waiting on the reader, and taking it down would answer it
+      // for them.
+      container.read(pluginTipProvider.notifier).dismissIfWaiting();
+      expect(container.read(pluginTipProvider)?.asking, isTrue);
+    });
+  });
 }

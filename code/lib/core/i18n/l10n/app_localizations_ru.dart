@@ -1125,4 +1125,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get pluginFinished => 'Готово';
+
+  @override
+  String get pluginPrerelease => 'Предрелиз';
 }

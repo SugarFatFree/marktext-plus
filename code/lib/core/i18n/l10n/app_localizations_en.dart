@@ -1121,4 +1121,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pluginFinished => 'Finished';
+
+  @override
+  String get pluginPrerelease => 'Pre-release';
 }

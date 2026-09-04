@@ -536,5 +536,6 @@
   "pluginInstalled": "Installed",
   "pluginUpdateTo": "Update to {version}",
   "@pluginUpdateTo": {"placeholders": {"version": {"type": "String"}}},
-  "pluginFinished": "Finished"
+  "pluginFinished": "Finished",
+  "pluginPrerelease": "Pre-release"
 }

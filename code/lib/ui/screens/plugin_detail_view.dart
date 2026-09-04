@@ -122,6 +122,8 @@ class _PluginDetailViewState extends ConsumerState<PluginDetailView> {
                           widget.plugin.version,
                           if (widget.plugin.publishedAt != null)
                             _asDate(widget.plugin.publishedAt!),
+                          if (widget.plugin.isPrerelease)
+                            AppLocalizations.of(context)!.pluginPrerelease,
                           // Only for something that came from a search. A
                           // plugin the reader installed is not an unverified
                           // stranger to them any more.

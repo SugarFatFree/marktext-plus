@@ -1108,4 +1108,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get pluginFinished => '已完成';
+
+  @override
+  String get pluginPrerelease => '预发布';
 }

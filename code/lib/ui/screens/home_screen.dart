@@ -27,7 +27,6 @@ import '../widgets/app_menu_bar.dart';
 import '../widgets/side_bar.dart';
 import '../widgets/plugin_panes.dart';
 import '../widgets/plugin_tip.dart';
-import '../widgets/plugin_result_panel.dart';
 import '../widgets/right_side_bar.dart';
 import '../widgets/status_bar.dart';
 import '../widgets/find_replace_bar.dart';
@@ -840,10 +839,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
                                     ),
                                   ),
                                 ),
-                                // A plugin result the reader is meant to read
-                                // against the document, so beside it rather
-                                // than over it.
-                                const PluginResultPanel(),
+                                // The right side bar is its own thing, like
+                                // the left one — a rail of plugin icons and a
+                                // drawer — and not part of the grid above.
                                 // Nothing at all until a plugin contributes a
                                 // panel to it.
                                 const RightSideBar(),

@@ -205,7 +205,14 @@ class PluginCatalogService {
         throw const FormatException('plugin SHA-256 does not match catalog');
       }
       await temporary.writeAsBytes(bytes, flush: true);
-      return await manager.installZip(temporary);
+      final manifest = await manager.installZip(temporary);
+      // Which release this was is not in the plugin — it is a property of the
+      // release — so it is written down here, at the one moment it is known.
+      await manager.recordSource(
+        manifest.id,
+        PluginSource(prerelease: entry.isPrerelease, tag: entry.version),
+      );
+      return manifest;
     } finally {
       client.close(force: true);
       if (await temporary.exists()) await temporary.delete();

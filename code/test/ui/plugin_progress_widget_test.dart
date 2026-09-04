@@ -173,6 +173,116 @@ void main() {
       expect(captured.read(pluginTipProvider), isNull);
     });
 
+    testWidgets('the document is not rebuilt when a tip comes and goes',
+        (tester) async {
+      // Closing the tip made the whole window flash. The layer returned its
+      // child directly with no tip and a Stack with one, so the editor's
+      // element moved in the tree and Flutter tore the whole subtree down and
+      // built it again — the document, its scroll position, everything.
+      late WidgetRef captured;
+      var builds = 0;
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: Consumer(
+                builder: (context, ref, _) {
+                  captured = ref;
+                  return PluginTipLayer(
+                    child: StatefulBuilder(
+                      builder: (context, _) {
+                        builds++;
+                        return const Text('the document');
+                      },
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+      final atStart = builds;
+
+      captured.read(pluginTipProvider.notifier).working('Demo');
+      await tester.pump();
+      captured.read(pluginTipProvider.notifier).dismiss();
+      await tester.pump();
+
+      expect(builds, atStart,
+          reason: '文档不该因为悬浮窗的出现和消失而重建');
+    });
+
+    testWidgets('the tip can be dragged', (tester) async {
+      late WidgetRef captured;
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: Consumer(
+                builder: (context, ref, _) {
+                  captured = ref;
+                  return const PluginTipLayer(child: Text('the document'));
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+      captured.read(pluginTipProvider.notifier)
+          .show(title: 'Demo', text: 'la traduction');
+      await tester.pump();
+
+      final before = tester.getRect(find.byType(PluginTipCard));
+      await tester.drag(find.text('Demo'), const Offset(-90, 60));
+      await tester.pump();
+      final after = tester.getRect(find.byType(PluginTipCard));
+
+      // Not an exact pixel count: a pan gesture spends its first stretch on
+      // touch slop, and how much is the framework's business. What is this
+      // widget's business is that the card follows, in the direction dragged.
+      expect(after.left, lessThan(before.left - 40),
+          reason: '抓着标题往左拖，卡片就该往左走');
+      expect(after.top, greaterThan(before.top + 20));
+    });
+
+    testWidgets('a dragged tip stays on screen', (tester) async {
+      late WidgetRef captured;
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: Consumer(
+                builder: (context, ref, _) {
+                  captured = ref;
+                  return const PluginTipLayer(child: Text('the document'));
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+      captured.read(pluginTipProvider.notifier)
+          .show(title: 'Demo', text: 'la traduction');
+      await tester.pump();
+
+      // Dragged hard towards the top left: a card that leaves the pane cannot
+      // be grabbed again to bring it back.
+      await tester.drag(find.text('Demo'), const Offset(-4000, -4000));
+      await tester.pump();
+      final card = tester.getRect(find.byType(PluginTipCard));
+      final pane = tester.getRect(find.byType(Scaffold));
+      expect(card.left, greaterThanOrEqualTo(pane.left - 1));
+      expect(card.top, greaterThanOrEqualTo(pane.top - 1));
+    });
+
     testWidgets('an answer can be dismissed too', (tester) async {
       late WidgetRef captured;
       await tester.pumpWidget(

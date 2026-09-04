@@ -17,6 +17,7 @@ class PluginCatalogEntry {
     this.repositoryUrl,
     this.releaseNotes = '',
     this.publishedAt,
+    this.isPrerelease = false,
   });
 
   final String id;
@@ -37,6 +38,12 @@ class PluginCatalogEntry {
 
   /// When that release was published, if the date could be read.
   final DateTime? publishedAt;
+
+  /// Whether the release this came from is a pre-release.
+  ///
+  /// Shown in the list, because "0.1.3" and "0.1.3, pre-release" are not the
+  /// same promise, and the reader is entitled to know which one they took.
+  final bool isPrerelease;
 
   /// Whether this is a plugin already on the reader's machine.
   ///
@@ -102,6 +109,7 @@ class PluginCatalogEntry {
       publishedAt: published is String
           ? DateTime.tryParse(published)?.toUtc()
           : null,
+      isPrerelease: json['prerelease'] == true,
     );
   }
 }
@@ -118,16 +126,43 @@ enum PluginInstallState {
   installed;
 
   /// What [entry] is, given what is on the reader's machine.
+  ///
+  /// Matched on the repository, not the id. The two ids are not the same kind
+  /// of thing: a catalogue entry is identified by where it was found —
+  /// `github.owner.repo` — and an installed plugin by whatever its manifest
+  /// calls itself. Comparing them meant every discovered plugin looked
+  /// uninstalled, however many times the reader had installed it.
   static PluginInstallState of(
     PluginCatalogEntry entry,
     List<PluginManifest> installed,
   ) {
-    final present = installed
-        .where((plugin) => plugin.id == entry.id)
-        .firstOrNull;
+    final wanted = _repositoryKey(entry.repositoryUrl?.toString());
+    final present = installed.where((plugin) {
+      if (plugin.id == entry.id) return true;
+      final theirs = _repositoryKey(plugin.repository);
+      return wanted != null && theirs == wanted;
+    }).firstOrNull;
     if (present == null) return PluginInstallState.installable;
     return PluginManifest.compareVersions(entry.version, present.version) > 0
         ? PluginInstallState.updatable
         : PluginInstallState.installed;
+  }
+
+  /// A repository URL reduced to what identifies it.
+  ///
+  /// A manifest is written by hand, so the same repository arrives spelled
+  /// several ways — a trailing slash, a `.git`, a capital letter. Null for a
+  /// plugin that names none, so that two anonymous plugins are not each other.
+  static String? _repositoryKey(String? url) {
+    if (url == null) return null;
+    final parsed = Uri.tryParse(url.trim());
+    if (parsed == null || parsed.host.isEmpty) return null;
+    var path = parsed.path;
+    if (path.endsWith('.git')) path = path.substring(0, path.length - 4);
+    while (path.endsWith('/')) {
+      path = path.substring(0, path.length - 1);
+    }
+    if (path.isEmpty) return null;
+    return '${parsed.host}$path'.toLowerCase();
   }
 }

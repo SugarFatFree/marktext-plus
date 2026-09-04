@@ -425,5 +425,6 @@
   "pluginInstalled": "已安装",
   "pluginUpdateTo": "更新到 {version}",
   "@pluginUpdateTo": {"placeholders": {"version": {"type": "String"}}},
-  "pluginFinished": "已完成"
+  "pluginFinished": "已完成",
+  "pluginPrerelease": "预发布"
 }

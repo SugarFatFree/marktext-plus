@@ -1109,4 +1109,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get pluginFinished => '完了';
+
+  @override
+  String get pluginPrerelease => 'プレリリース';
 }

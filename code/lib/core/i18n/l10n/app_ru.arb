@@ -425,5 +425,6 @@
   "pluginInstalled": "Установлено",
   "pluginUpdateTo": "Обновить до {version}",
   "@pluginUpdateTo": {"placeholders": {"version": {"type": "String"}}},
-  "pluginFinished": "Готово"
+  "pluginFinished": "Готово",
+  "pluginPrerelease": "Предрелиз"
 }

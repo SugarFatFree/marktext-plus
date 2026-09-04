@@ -2210,6 +2210,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Finished'**
   String get pluginFinished;
+
+  /// No description provided for @pluginPrerelease.
+  ///
+  /// In en, this message translates to:
+  /// **'Pre-release'**
+  String get pluginPrerelease;
 }
 
 class _AppLocalizationsDelegate

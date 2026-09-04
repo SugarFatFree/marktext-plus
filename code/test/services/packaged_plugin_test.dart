@@ -75,10 +75,13 @@ void main() {
 
     expect(action, isA<PluginPaneAction>(), reason: '打包出来的插件必须真的能跑');
     final pane = action as PluginPaneAction;
-    expect(pane.text, isEmpty);
+    expect(pane.text, isEmpty, reason: '窗格先开，再去问模型');
     expect(pane.render, PluginPaneRender.source);
     expect(pane.nextPrompt, contains('# 标题'));
-    expect(pane.nextPrompt, isNot(contains('正文二段')));
+    // These three paragraphs are well under one request's budget, so they
+    // travel together — a request each would be three round trips for text
+    // that fits in one.
+    expect(pane.nextPrompt, contains('正文二段'));
     service.dispose();
   }, skip: present ? null : 'PLUGIN_ZIP 未指向一个存在的 zip');
 

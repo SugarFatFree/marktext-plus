@@ -1130,6 +1130,9 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get pluginFinished => 'Concluído';
+
+  @override
+  String get pluginPrerelease => 'Pré-lançamento';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -2256,4 +2259,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get pluginFinished => 'Concluído';
+
+  @override
+  String get pluginPrerelease => 'Pré-lançamento';
 }

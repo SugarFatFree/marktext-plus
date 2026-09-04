@@ -1131,4 +1131,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get pluginFinished => 'Finalizado';
+
+  @override
+  String get pluginPrerelease => 'Versión preliminar';
 }

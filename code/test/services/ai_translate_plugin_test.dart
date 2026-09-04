@@ -204,15 +204,19 @@ void main() {
     expect(action.title, 'English');
   }, skip: present ? null : '插件仓库不在这台机器上');
 
-  test('a translated document arrives a block at a time, drawn as it is read',
+  test('a translated document arrives a batch at a time, drawn as it is read',
       () {
     final service = PluginCommandService(root.path);
-    const document = '# Title\n\nFirst paragraph.\n\nSecond paragraph.';
+    // Long enough to need more than one request, so the stepping is visible.
+    final document = List.generate(
+      30,
+      (i) => i == 0 ? '# Title' : 'Paragraph $i. ${'word ' * 30}',
+    ).join('\n\n');
 
     // Asked in the source view, so the answer is drawn as source.
     final first = service.start(
       manifest,
-      const PluginScriptContext(
+      PluginScriptContext(
         command: 'translate.document',
         document: document,
         answer: 'English',
@@ -223,36 +227,49 @@ void main() {
     expect(first.render, PluginPaneRender.source,
         reason: '源码视图里问的，空窗格也该按源码画');
     expect(first.nextPrompt, contains('# Title'));
-    expect(first.nextPrompt, isNot(contains('Second paragraph')),
+    expect(first.nextPrompt, isNot(contains('Paragraph 29.')),
         reason: '整篇一次喂给模型正是要避免的事');
 
     final one = service.resumeWithResult(
       manifest,
       const PluginScriptContext(
-          command: 'translate.document', answer: 'English', view: 'source'),
+        command: 'translate.document',
+        answer: 'English',
+        view: 'source',
+      ),
       '# 标题',
     ) as PluginPaneAction;
     expect(one.text, '# 标题');
     expect(one.render, PluginPaneRender.source, reason: '源码视图里问的，就该按源码画');
-    expect(one.append, isFalse, reason: '第一块是开头，不是追加');
-    expect(one.nextPrompt, contains('First paragraph'));
+    expect(one.append, isFalse, reason: '第一批是开头，不是追加');
+    expect(one.nextPrompt, isNotNull, reason: '还有没译完的');
 
     final two = service.resumeWithResult(
       manifest,
       const PluginScriptContext(
-          command: 'translate.document', answer: 'English', view: 'source'),
-      '第一段。',
+        command: 'translate.document',
+        answer: 'English',
+        view: 'source',
+      ),
+      '第一批。',
     ) as PluginPaneAction;
-    expect(two.append, isTrue, reason: '后续的块要接在前面下面');
-    expect(two.nextPrompt, contains('Second paragraph'));
+    expect(two.append, isTrue, reason: '后续的批要接在前面下面');
 
-    final three = service.resumeWithResult(
-      manifest,
-      const PluginScriptContext(
-          command: 'translate.document', answer: 'English', view: 'source'),
-      '第二段。',
-    ) as PluginPaneAction;
-    expect(three.nextPrompt, isNull, reason: '没有下一块了');
+    // Walk to the end: the last one has nothing left to ask for.
+    var last = two;
+    for (var step = 0; step < 40 && last.nextPrompt != null; step++) {
+      last = service.resumeWithResult(
+        manifest,
+        const PluginScriptContext(
+          command: 'translate.document',
+          answer: 'English',
+          view: 'source',
+        ),
+        '译文。',
+      ) as PluginPaneAction;
+    }
+    expect(last.nextPrompt, isNull, reason: '没有下一批了');
+    service.dispose();
   }, skip: present ? null : '插件仓库不在这台机器上');
 
   test('a document read as a preview comes back rendered', () {
@@ -276,21 +293,142 @@ void main() {
     expect(pane.render, PluginPaneRender.preview);
   }, skip: present ? null : '插件仓库不在这台机器上');
 
-  test('a fenced block is not cut in half', () {
+  test('short paragraphs travel together, not one request each', () {
+    // A paragraph per request is a request per paragraph: a long document
+    // became dozens of round trips, each with its own latency, for text that
+    // would have fitted in one. Batched, the first request carries as much as
+    // the budget allows.
     final service = PluginCommandService(root.path);
+    final short = List.generate(20, (i) => 'Paragraph number $i.').join('\n\n');
     final first = service.start(
       manifest,
-      const PluginScriptContext(
+      PluginScriptContext(
         command: 'translate.document',
-        document: 'Before.\n\n```dart\nvoid main() {\n\n}\n```\n\nAfter.',
+        document: short,
         answer: 'English',
         view: 'source',
       ),
     ) as PluginPaneAction;
 
-    expect(first.nextPrompt, contains('Before.'));
-    expect(first.nextPrompt, isNot(contains('void main')),
-        reason: '第一块只该是第一段');
+    final prompt = first.nextPrompt!;
+    var carried = 0;
+    for (var i = 0; i < 20; i++) {
+      if (prompt.contains('Paragraph number $i.')) carried++;
+    }
+    expect(carried, greaterThan(5),
+        reason: '这些段落加起来还很短，不该一段一个请求');
+    service.dispose();
+  }, skip: present ? null : '插件仓库不在这台机器上');
+
+  test('a long paragraph still travels alone', () {
+    final service = PluginCommandService(root.path);
+    final long = '${'x' * 4000}\n\nAfterwards.';
+    final first = service.start(
+      manifest,
+      PluginScriptContext(
+        command: 'translate.document',
+        document: long,
+        answer: 'English',
+        view: 'source',
+      ),
+    ) as PluginPaneAction;
+
+    expect(first.nextPrompt, contains('xxxx'));
+    expect(first.nextPrompt, isNot(contains('Afterwards.')),
+        reason: '一个块已经装满预算时，不该再把下一个塞进去');
+    service.dispose();
+  }, skip: present ? null : '插件仓库不在这台机器上');
+
+  test('a heading is not sent on its own', () {
+    // "## Results" by itself gives the model no idea of the register or the
+    // subject it is translating. The case that matters is a heading landing on
+    // a batch boundary — a short document merges everything regardless, and
+    // asserting on one proves nothing about the rule.
+    final service = PluginCommandService(root.path);
+    final filling = 'word ' * 320; // comfortably over the batch budget
+    final document = '$filling\n\n## Results';
+
+    final first = service.start(
+      manifest,
+      PluginScriptContext(
+        command: 'translate.document',
+        document: document,
+        answer: 'English',
+        view: 'source',
+      ),
+    ) as PluginPaneAction;
+
+    // Whatever the split does, the heading must not end up as a request by
+    // itself — here it is the last block, so without the rule it would be.
+    var prompt = first.nextPrompt!;
+    var sawHeading = false;
+    for (var step = 0; step < 20; step++) {
+      if (prompt.contains('## Results')) {
+        sawHeading = true;
+        expect(prompt, contains('word'),
+            reason: '标题必须和正文一起发，单独一条模型无从判断语域和主题');
+        break;
+      }
+      final next = service.resumeWithResult(
+        manifest,
+        const PluginScriptContext(
+          command: 'translate.document',
+          answer: 'English',
+          view: 'source',
+        ),
+        '译文。',
+      ) as PluginPaneAction;
+      if (next.nextPrompt == null) break;
+      prompt = next.nextPrompt!;
+    }
+    expect(sawHeading, isTrue, reason: '标题得真的被发出去过');
+    service.dispose();
+  }, skip: present ? null : '插件仓库不在这台机器上');
+
+  test('a fenced block is not cut in half', () {
+    // The blank line inside the fence is part of the code. Splitting there
+    // would hand the model half a program — which is what this is about, not
+    // which request the code ends up in.
+    final service = PluginCommandService(root.path);
+    final code = '```dart\nvoid main() {\n\n}\n```';
+    final first = service.start(
+      manifest,
+      PluginScriptContext(
+        command: 'translate.document',
+        document: 'Before.\n\n$code\n\nAfter.',
+        answer: 'English',
+        view: 'source',
+      ),
+    ) as PluginPaneAction;
+
+    final prompt = first.nextPrompt!;
+    expect(prompt, contains(code),
+        reason: '围栏内的空行不能成为切点，代码要整块走');
+    service.dispose();
+  }, skip: present ? null : '插件仓库不在这台机器上');
+
+  test('a long document is still more than one request', () {
+    // Batching is not "send everything": what fails costs one batch, and the
+    // reader sees the beginning while the end is still arriving.
+    final service = PluginCommandService(root.path);
+    final long = List.generate(
+      40,
+      (i) => 'Paragraph $i. ${'word ' * 30}',
+    ).join('\n\n');
+    final first = service.start(
+      manifest,
+      PluginScriptContext(
+        command: 'translate.document',
+        document: long,
+        answer: 'English',
+        view: 'source',
+      ),
+    ) as PluginPaneAction;
+
+    expect(first.nextPrompt, contains('Paragraph 0.'));
+    expect(first.nextPrompt, isNot(contains('Paragraph 39.')),
+        reason: '整篇一次喂给模型正是要避免的事');
+    service.dispose();
   }, skip: present ? null : '插件仓库不在这台机器上');
 
   test('the language question offers the usual answers and takes any other',

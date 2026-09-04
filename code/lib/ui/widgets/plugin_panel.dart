@@ -178,6 +178,28 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
     };
   }
 
+  /// The version, and whether the reader took a pre-release.
+  ///
+  /// The source is recorded at install time; a plugin installed before that
+  /// was kept, or from a ZIP by hand, simply shows its version. Guessing
+  /// "pre-release" from a leading zero would be a guess.
+  String _versionLine(PluginManifest plugin) {
+    final l10n = AppLocalizations.of(context)!;
+    final source = ref.watch(installedPluginSourcesProvider).valueOrNull;
+    final prerelease = source?[plugin.id]?.prerelease ?? false;
+    return prerelease
+        ? '${plugin.version} · ${l10n.pluginPrerelease}'
+        : plugin.version;
+  }
+
+  /// The same line for something not installed yet.
+  String _catalogLine(PluginCatalogEntry entry) {
+    final l10n = AppLocalizations.of(context)!;
+    return entry.isPrerelease
+        ? '${entry.version} · ${l10n.pluginPrerelease}'
+        : entry.version;
+  }
+
   /// A plugin's own string in the reader's language.
   ///
   /// A plugin ships its own translations; the name and the description go
@@ -352,8 +374,14 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
                                         Theme.of(context).textTheme.bodySmall,
                                   ),
                                 ),
-                              Text('${plugin.id} · ${plugin.version}',
-                                  style: Theme.of(context).textTheme.bodySmall),
+                              // The version, and whether it was a
+                              // pre-release. Not the package id: nobody
+                              // scanning a list is asking what a plugin is
+                              // called internally.
+                              Text(
+                                _versionLine(plugin),
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
@@ -403,7 +431,7 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
                           contentPadding: EdgeInsets.zero,
                           leading: const Icon(Icons.public, size: 17),
                           title: Text(plugin.name, overflow: TextOverflow.ellipsis),
-                          subtitle: Text('${plugin.version} · Community / Unverified'),
+                          subtitle: Text(_catalogLine(plugin)),
                           onTap: () => _showDetails(plugin),
                           trailing: _installingId == plugin.id
                               ? const SizedBox(
