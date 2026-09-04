@@ -74,10 +74,37 @@ C’est tout. L’editeur se lance avec un document d’exemple pret a etre modi
 
 | | |
 |---------|-------------|
-| **🧩 Open plugins** | Discover public plugins through [GitHub Topic: `marktext-plus-plugin`](https://github.com/topics/marktext-plus-plugin); every plugin is labelled Community/Unverified and runs out of process |
-| **⚡ Démarrage rapide** | Aucun navigateur intégré ni framework d’édition, 22 dépendances directes |
-| **📄 Gros fichiers** | Analyse, coloration et recherche en un seul passage, avec des budgets testés |
-| **🧪 Testé** | 2025 tests couvrant le parseur, les exporteurs, les providers et les widgets |
+| **🧩 Extensions ouvertes** | Un fichier Lua ou JavaScript, sans SDK ni compilation, en bac à sable et limité aux droits qu’il a déclarés. À trouver via [GitHub Topic: `marktext-plus-plugin`](https://github.com/topics/marktext-plus-plugin) ; chacune est marquée Communauté / non vérifiée |
+| **⚡ Démarrage rapide** | Pas de navigateur embarqué, pas de framework d’éditeur, 23 dépendances directes |
+| **📄 Gros fichiers** | Analyse, coloration et recherche se font en une passe, avec des budgets que des tests font échouer. Au-delà de 128 Ko la coloration s’arrête — la dernière taille qui s’ouvre en une seconde environ. L’édition reste possible, et les couleurs reviennent si le fichier rapetisse |
+| **🧪 Testé** | 2417 tests couvrant le parseur, les exports, les providers, les moteurs d’extension et les widgets de l’éditeur |
+
+### Extensions
+
+Écrites en Lua ou en JavaScript — un fichier et un manifeste, aucune compilation, et le même fichier tourne sur les trois plateformes. Une extension peut tenir en plusieurs fichiers, `require` n’atteignant que son propre répertoire.
+
+| Fonction | Description |
+|---------|-------------|
+| **🔐 Droits** | Déclarés dans le manifeste, montrés avant l’installation, et **appliqués**. VS Code et IntelliJ affichent une liste puis font confiance ; ici personne ne relit rien, c’est donc l’éditeur qui vérifie. Une extension qui interroge le modèle sans `ai.chat` se voit refuser, et vous êtes prévenu qu’elle a essayé |
+| **🪟 Volets** | L’éditeur partage déjà un onglet entre source et aperçu ; ce partage vous est offert. Jusqu’à quatre cases, des séparateurs qui se déplacent, et rien de dessiné pour une case que personne n’a remplie |
+| **✍️ Réécriture** | Une extension peut réécrire ce que vous avez sélectionné — après vous l’avoir montré. Le résultat arrive avec un bouton Appliquer, et appliquer passe par l’historique de l’éditeur : une annulation le reprend |
+| **⚙️ Réglages propres** | L’éditeur dessine la page à partir de ce que l’extension a déclaré : un interrupteur pour un interrupteur, un champ masqué pour un secret. Les extensions fournissent des données, jamais des widgets |
+| **🌍 Langues propres** | Une extension embarque autant de langues que son auteur le souhaite, indépendamment des douze que parle l’éditeur |
+| **🔑 Jamais vos clés** | L’éditeur détient les identifiants et fait la requête. L’extension fournit l’invite et reçoit du texte |
+
+Partez du [SDK d’extensions](https://github.com/marktext-plus-plugins/marktext-plus-plugin-sdk) — trois exemples complets à recopier et une documentation en onze langues.
+
+### Pour les agents IA
+
+Un serveur MCP facultatif, **à l’arrêt tant que vous ne l’allumez pas** : il ouvre un port sur votre machine, et quiconque l’atteint peut lire vos documents et piloter votre éditeur. C’est donc à vous de l’activer, et il porte un jeton que vous pouvez régénérer.
+
+| Outil | Description |
+|---------|-------------|
+| **`read_logs`** | Le journal de l’éditeur et celui de ses extensions, filtrable par extension et par gravité |
+| **`screenshot`** | La fenêtre telle qu’elle est |
+| **`record_gif`** | Cinq secondes au plus, pour regarder une animation |
+| **`get_state`** | Ce qui est ouvert : onglets, mode d’affichage, extensions installées, volets remplis |
+| **`control`** | Ouvrir et fermer des onglets, changer de mode, écrire du contenu, fermer un volet |
 
 ## ⚖️ Comparaison
 

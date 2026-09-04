@@ -74,10 +74,37 @@ Tutto qui. L’editor si avvierà con un documento di esempio pronto per la modi
 
 | | |
 |---------|-------------|
-| **🧩 Open plugins** | Discover public plugins through [GitHub Topic: `marktext-plus-plugin`](https://github.com/topics/marktext-plus-plugin); every plugin is labelled Community/Unverified and runs out of process |
-| **⚡ Avvio rapido** | Nessun browser incorporato o framework di editing, 22 dipendenze dirette |
-| **📄 File grandi** | Analisi, evidenziazione e ricerca a passaggio singolo, con budget verificati dai test |
-| **🧪 Testato** | 2025 test per parser, esportatori, provider e widget dell’editor |
+| **🧩 Estensioni aperte** | Un file Lua o JavaScript, senza SDK e senza build, in una sandbox e limitato ai permessi che ha dichiarato. Si trovano su [GitHub Topic: `marktext-plus-plugin`](https://github.com/topics/marktext-plus-plugin); ognuna è marcata Community/non verificata |
+| **⚡ Avvio rapido** | Nessun browser incorporato, nessun framework di editor, 23 dipendenze dirette |
+| **📄 File grandi** | Analisi, evidenziazione e ricerca in una sola passata, con budget che i test fanno fallire. Oltre 128 KB l’evidenziazione si ferma — l’ultima dimensione che si apre in circa un secondo. Si continua a modificare, e i colori tornano se il file si riduce |
+| **🧪 Testato** | 2417 test per parser, esportatori, provider, runtime delle estensioni e widget dell’editor |
+
+### Estensioni
+
+Scritte in Lua o JavaScript — un file e un manifesto, nessuna build, e lo stesso file gira su tutte e tre le piattaforme. Un’estensione può avere più file, e `require` arriva soltanto dentro la sua cartella.
+
+| Funzione | Descrizione |
+|---------|-------------|
+| **🔐 Permessi** | Dichiarati nel manifesto, mostrati prima dell’installazione e **applicati**. VS Code e IntelliJ mostrano un elenco e poi si fidano; qui non revisiona nessuno, quindi controlla l’editor. Un’estensione che interroga il modello senza `ai.chat` riceve un no, e a te viene detto che ci ha provato |
+| **🪟 Riquadri** | L’editor divide già una scheda fra sorgente e anteprima; quella divisione ti viene offerta. Fino a quattro celle, divisori che si trascinano, e nulla disegnato per una cella che nessuno ha riempito |
+| **✍️ Riscrittura** | Un’estensione può riscrivere ciò che hai selezionato — dopo avertelo mostrato. Il risultato arriva con un pulsante Applica, e applicare passa per la cronologia dell’editor: un annulla lo riporta indietro |
+| **⚙️ Impostazioni proprie** | L’editor disegna la pagina da ciò che l’estensione ha dichiarato: un interruttore per un interruttore, un campo nascosto per un segreto. Le estensioni forniscono dati, mai widget |
+| **🌍 Lingue proprie** | Un’estensione porta con sé tutte le lingue che il suo autore vuole, indipendentemente dalle dodici che parla l’editor |
+| **🔑 Mai le tue chiavi** | L’editor tiene le credenziali e fa la richiesta. L’estensione fornisce il prompt e riceve testo |
+
+Parti dall’[SDK per estensioni](https://github.com/marktext-plus-plugins/marktext-plus-plugin-sdk) — tre esempi completi da copiare e documentazione in undici lingue.
+
+### Per gli agenti IA
+
+Un server MCP facoltativo, **spento finché non lo accendi**: apre una porta sulla tua macchina, e chi la raggiunge può leggere i tuoi documenti e comandare il tuo editor. Perciò lo accendi tu, e porta un token che puoi rigenerare.
+
+| Strumento | Descrizione |
+|---------|-------------|
+| **`read_logs`** | Il registro dell’editor e quello delle estensioni, filtrabile per estensione e per gravità |
+| **`screenshot`** | La finestra com’è adesso |
+| **`record_gif`** | Al massimo cinque secondi, per guardare un’animazione |
+| **`get_state`** | Che cosa è aperto: schede, modalità di vista, estensioni installate, riquadri riempiti |
+| **`control`** | Aprire e chiudere schede, cambiare modalità, scrivere contenuto, chiudere un riquadro |
 
 ## ⚖️ A confronto
 

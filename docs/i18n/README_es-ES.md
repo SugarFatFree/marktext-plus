@@ -74,10 +74,37 @@ Eso es todo. El editor se abrirá con un documento de ejemplo listo para editar.
 
 | | |
 |---------|-------------|
-| **🧩 Open plugins** | Discover public plugins through [GitHub Topic: `marktext-plus-plugin`](https://github.com/topics/marktext-plus-plugin); every plugin is labelled Community/Unverified and runs out of process |
-| **⚡ Arranque rápido** | Sin navegador integrado ni framework de edición, con 22 dependencias directas |
-| **📄 Archivos grandes** | Parser, resaltado y búsqueda de una sola pasada, con presupuestos fijados por pruebas |
-| **🧪 Probado** | 2025 pruebas para parser, exportadores, providers y widgets del editor |
+| **🧩 Complementos abiertos** | Un archivo Lua o JavaScript, sin SDK y sin compilar, en un espacio aislado y limitado a los permisos que declaró. Se encuentran en [GitHub Topic: `marktext-plus-plugin`](https://github.com/topics/marktext-plus-plugin); cada uno va marcado como Comunidad/sin verificar |
+| **⚡ Arranque rápido** | Sin navegador incrustado ni framework de editor: 23 dependencias directas |
+| **📄 Archivos grandes** | Análisis, resaltado y búsqueda en una sola pasada, con presupuestos que hacen fallar las pruebas. Por encima de 128 KB el resaltado se detiene: es el último tamaño que abre en torno a un segundo. Se sigue editando, y los colores vuelven si el archivo mengua |
+| **🧪 Probado** | 2417 pruebas para el parser, los exportadores, los providers, los motores de complementos y los widgets del editor |
+
+### Complementos
+
+Escritos en Lua o JavaScript: un archivo y un manifiesto, sin compilar, y el mismo archivo funciona en las tres plataformas. Un complemento puede tener varios archivos, y `require` sólo llega dentro de su propio directorio.
+
+| Función | Descripción |
+|---------|-------------|
+| **🔐 Permisos** | Declarados en el manifiesto, mostrados antes de instalar y **exigidos**. VS Code e IntelliJ muestran una lista y luego confían; aquí nadie revisa nada, así que comprueba el editor. A un complemento que consulta el modelo sin `ai.chat` se le dice que no, y a ti se te dice que lo intentó |
+| **🪟 Cuadros** | El editor ya divide una pestaña entre fuente y vista previa; esa división se ofrece hacia fuera. Hasta cuatro celdas, divisores que se arrastran, y nada dibujado para una celda que nadie llenó |
+| **✍️ Escribir de vuelta** | Un complemento puede reescribir lo que seleccionaste, después de enseñártelo. El resultado llega con un botón Aplicar, y aplicar pasa por el historial del editor: deshacer lo devuelve |
+| **⚙️ Ajustes propios** | El editor dibuja la página a partir de lo que el complemento declaró: un interruptor para un interruptor, un campo oculto para un secreto. Los complementos aportan datos, nunca controles |
+| **🌍 Idiomas propios** | Un complemento trae los idiomas que su autor quiera, al margen de los doce que habla el editor |
+| **🔑 Nunca tus claves** | El editor guarda las credenciales y hace la petición. El complemento aporta la instrucción y recibe texto |
+
+Empieza por el [SDK de complementos](https://github.com/marktext-plus-plugins/marktext-plus-plugin-sdk): tres ejemplos completos para copiar y documentación en once idiomas.
+
+### Para agentes de IA
+
+Un servidor MCP opcional, **apagado hasta que lo enciendas**: abre un puerto en tu máquina, y quien llegue a él podrá leer tus documentos y manejar tu editor. Por eso lo enciendes tú, y lleva un token que puedes regenerar.
+
+| Herramienta | Descripción |
+|---------|-------------|
+| **`read_logs`** | El registro del editor y el de sus complementos, filtrable por complemento y por gravedad |
+| **`screenshot`** | La ventana tal como está |
+| **`record_gif`** | Cinco segundos como mucho, para mirar una animación |
+| **`get_state`** | Qué hay abierto: pestañas, modo de vista, complementos instalados, cuadros llenos |
+| **`control`** | Abrir y cerrar pestañas, cambiar de modo, escribir contenido, cerrar un cuadro |
 
 ## ⚖️ Comparativa
 

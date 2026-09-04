@@ -29,9 +29,13 @@ void main() {
       final comparison = markdown.indexOf('\n## ⚖️');
       expect(comparison, greaterThan(0), reason: file.path);
       final featureSection = markdown.substring(0, comparison);
+      // Editing, Rendering, Files & Output, Built to stay light, Plugins,
+      // For AI agents. Counted rather than named, because the point is that
+      // every translation has the same shape as the English one — a section
+      // added on one side and forgotten on the other is what this catches.
       expect(
         RegExp(r'^### .+', multiLine: true).allMatches(featureSection),
-        hasLength(4),
+        hasLength(6),
         reason: file.path,
       );
       expect(markdown, contains('MarkText Plus'), reason: file.path);
