@@ -426,5 +426,6 @@
   "pluginUpdateTo": "{version} に更新",
   "@pluginUpdateTo": {"placeholders": {"version": {"type": "String"}}},
   "pluginFinished": "完了",
-  "pluginPrerelease": "プレリリース"
+  "pluginPrerelease": "プレリリース",
+  "pluginFlipSplit": "もう半分を分割"
 }

@@ -537,5 +537,6 @@
   "pluginUpdateTo": "Update to {version}",
   "@pluginUpdateTo": {"placeholders": {"version": {"type": "String"}}},
   "pluginFinished": "Finished",
-  "pluginPrerelease": "Pre-release"
+  "pluginPrerelease": "Pre-release",
+  "pluginFlipSplit": "Split the other half"
 }

@@ -426,5 +426,6 @@
   "pluginUpdateTo": "التحديث إلى {version}",
   "@pluginUpdateTo": {"placeholders": {"version": {"type": "String"}}},
   "pluginFinished": "اكتمل",
-  "pluginPrerelease": "إصدار أوّلي"
+  "pluginPrerelease": "إصدار أوّلي",
+  "pluginFlipSplit": "اقسم النصف الآخر"
 }

@@ -1128,4 +1128,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get pluginPrerelease => 'Предрелиз';
+
+  @override
+  String get pluginFlipSplit => 'Разделить другую половину';
 }

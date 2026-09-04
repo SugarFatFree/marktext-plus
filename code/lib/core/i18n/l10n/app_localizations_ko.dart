@@ -1112,4 +1112,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get pluginPrerelease => '프리릴리스';
+
+  @override
+  String get pluginFlipSplit => '다른 절반을 나누기';
 }

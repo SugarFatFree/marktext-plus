@@ -1133,6 +1133,9 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get pluginPrerelease => 'Pré-lançamento';
+
+  @override
+  String get pluginFlipSplit => 'Dividir a outra metade';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -2262,4 +2265,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get pluginPrerelease => 'Pré-lançamento';
+
+  @override
+  String get pluginFlipSplit => 'Dividir a outra metade';
 }

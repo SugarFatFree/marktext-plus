@@ -2216,6 +2216,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Pre-release'**
   String get pluginPrerelease;
+
+  /// No description provided for @pluginFlipSplit.
+  ///
+  /// In en, this message translates to:
+  /// **'Split the other half'**
+  String get pluginFlipSplit;
 }
 
 class _AppLocalizationsDelegate

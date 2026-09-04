@@ -178,6 +178,88 @@ void main() {
     );
   });
 
+  testWidgets('three cells: the reader can move the split to the other half', (
+    tester,
+  ) async {
+    // The plugin picks the shape it wants; the reader is the one looking at
+    // it. Which half is divided is a view, not a decision the plugin gets to
+    // hold on to.
+    await pump(tester, {
+      PluginPaneSlot.right: content(PluginPaneSlot.right, 'first'),
+      PluginPaneSlot.bottom: content(PluginPaneSlot.bottom, 'second'),
+    });
+
+    final whole = tester.getRect(find.byType(PluginPanes));
+    expect(
+      cellFor(tester, 'first').top,
+      closeTo(whole.top, 2),
+      reason: '默认上半分割：第一个窗格在上半',
+    );
+    expect(
+      cellFor(tester, 'second').width,
+      closeTo(whole.width, 2),
+      reason: '默认下半整行',
+    );
+
+    await tester.tap(find.byKey(const Key('plugin-panes-flip')).first);
+    await tester.pump();
+
+    final document = tester.getRect(find.text('the document'));
+    final first = cellFor(tester, 'first');
+    final second = cellFor(tester, 'second');
+    expect(
+      document.top,
+      lessThan(first.top),
+      reason: '切换之后文档独占上半整行',
+    );
+    expect(first.top, closeTo(second.top, 2), reason: '两个窗格并排在下半');
+    expect(first.width, closeTo(whole.width / 2, 12));
+    expect(second.width, closeTo(whole.width / 2, 12));
+  });
+
+  testWidgets('the flip goes both ways', (tester) async {
+    await pump(tester, {
+      PluginPaneSlot.bottom: content(PluginPaneSlot.bottom, 'first'),
+      PluginPaneSlot.corner: content(PluginPaneSlot.corner, 'second'),
+    });
+
+    final whole = tester.getRect(find.byType(PluginPanes));
+    // This plugin asked for the bottom half to be the split one.
+    expect(cellFor(tester, 'first').width, closeTo(whole.width / 2, 12));
+
+    await tester.tap(find.byKey(const Key('plugin-panes-flip')).first);
+    await tester.pump();
+
+    expect(
+      cellFor(tester, 'first').top,
+      closeTo(whole.top, 2),
+      reason: '切过去之后第一个窗格在上半，与文档并排',
+    );
+    expect(
+      cellFor(tester, 'second').width,
+      closeTo(whole.width, 2),
+      reason: '另一个成了下半整行',
+    );
+  });
+
+  testWidgets('there is nothing to flip with one pane, or with four cells', (
+    tester,
+  ) async {
+    // Two cells have no second row, and four have both halves split already.
+    // A button that does nothing is worse than no button.
+    await pump(tester, {
+      PluginPaneSlot.right: content(PluginPaneSlot.right, 'beside'),
+    });
+    expect(find.byKey(const Key('plugin-panes-flip')), findsNothing);
+
+    await pump(tester, {
+      PluginPaneSlot.right: content(PluginPaneSlot.right, 'top right'),
+      PluginPaneSlot.bottom: content(PluginPaneSlot.bottom, 'bottom left'),
+      PluginPaneSlot.corner: content(PluginPaneSlot.corner, 'bottom right'),
+    });
+    expect(find.byKey(const Key('plugin-panes-flip')), findsNothing);
+  });
+
   testWidgets('four cells: top left, top right, bottom left, bottom right', (
     tester,
   ) async {

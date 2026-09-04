@@ -1112,4 +1112,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get pluginPrerelease => 'プレリリース';
+
+  @override
+  String get pluginFlipSplit => 'もう半分を分割';
 }

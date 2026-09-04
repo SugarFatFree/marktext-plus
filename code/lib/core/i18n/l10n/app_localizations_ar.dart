@@ -1124,4 +1124,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get pluginPrerelease => 'إصدار أوّلي';
+
+  @override
+  String get pluginFlipSplit => 'اقسم النصف الآخر';
 }

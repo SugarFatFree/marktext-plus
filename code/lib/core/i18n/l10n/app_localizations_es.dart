@@ -1134,4 +1134,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get pluginPrerelease => 'Versión preliminar';
+
+  @override
+  String get pluginFlipSplit => 'Dividir la otra mitad';
 }

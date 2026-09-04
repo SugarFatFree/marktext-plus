@@ -41,6 +41,14 @@ class _PluginPanesState extends ConsumerState<PluginPanes> {
   double _columns = 0.5;
   double _rows = 0.5;
 
+  /// Whether the reader moved the split to the other half.
+  ///
+  /// Null until they do, so the plugin's own choice — which it makes by
+  /// filling `right` or not — is what they see first. After that it is theirs:
+  /// which half is divided is a view of the same three panes, not a decision
+  /// the plugin gets to keep making.
+  bool? _splitTop;
+
   /// Kept off the edges, so a pane can always be grabbed again after a drag.
   static const _least = 0.15;
   static const _most = 0.85;
@@ -123,19 +131,26 @@ class _PluginPanesState extends ConsumerState<PluginPanes> {
         // filling only `bottom` and `corner` leaves the document the top row
         // whole and divides the bottom between them.
         if (count == 2) {
-          if (right == null) {
+          final first = right ?? bottom!;
+          final second = right == null ? corner! : (bottom ?? corner!);
+          final splitTop = _splitTop ?? (right != null);
+          void flip() => setState(() => _splitTop = !splitTop);
+
+          if (splitTop) {
             return rows(
-              widget.document,
               columns(
-                PluginPaneView(content: bottom!),
-                PluginPaneView(content: corner!),
+                widget.document,
+                PluginPaneView(content: first, onFlip: flip),
               ),
+              PluginPaneView(content: second, onFlip: flip),
             );
           }
-          final under = bottom ?? corner!;
           return rows(
-            columns(widget.document, PluginPaneView(content: right)),
-            PluginPaneView(content: under),
+            widget.document,
+            columns(
+              PluginPaneView(content: first, onFlip: flip),
+              PluginPaneView(content: second, onFlip: flip),
+            ),
           );
         }
 
@@ -214,9 +229,13 @@ class _GripState extends State<_Grip> {
 
 /// One pane: what the plugin called it, what it said, and a way to close it.
 class PluginPaneView extends ConsumerWidget {
-  const PluginPaneView({required this.content, super.key});
+  const PluginPaneView({required this.content, this.onFlip, super.key});
 
   final PluginPaneContent content;
+
+  /// Moves the split to the other half. Only three cells have another half to
+  /// move it to: two have no second row, and four are already both split.
+  final VoidCallback? onFlip;
 
   /// Drawn the way the plugin asked, so a translated document can be read
   /// against the document it sits beside: rendered next to a preview, source
@@ -294,6 +313,14 @@ class PluginPaneView extends ConsumerWidget {
                   ],
                 ),
               ),
+              if (onFlip != null)
+                IconButton(
+                  key: const Key('plugin-panes-flip'),
+                  tooltip: l10n?.pluginFlipSplit,
+                  icon: const Icon(Icons.swap_vert, size: 17),
+                  visualDensity: VisualDensity.compact,
+                  onPressed: onFlip,
+                ),
               IconButton(
                 tooltip: l10n?.copy,
                 icon: const Icon(Icons.copy, size: 16),

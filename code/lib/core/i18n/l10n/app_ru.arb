@@ -426,5 +426,6 @@
   "pluginUpdateTo": "Обновить до {version}",
   "@pluginUpdateTo": {"placeholders": {"version": {"type": "String"}}},
   "pluginFinished": "Готово",
-  "pluginPrerelease": "Предрелиз"
+  "pluginPrerelease": "Предрелиз",
+  "pluginFlipSplit": "Разделить другую половину"
 }

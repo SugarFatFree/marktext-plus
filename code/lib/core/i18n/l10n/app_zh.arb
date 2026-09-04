@@ -426,5 +426,6 @@
   "pluginUpdateTo": "更新到 {version}",
   "@pluginUpdateTo": {"placeholders": {"version": {"type": "String"}}},
   "pluginFinished": "已完成",
-  "pluginPrerelease": "预发布"
+  "pluginPrerelease": "预发布",
+  "pluginFlipSplit": "改为分割另一半"
 }

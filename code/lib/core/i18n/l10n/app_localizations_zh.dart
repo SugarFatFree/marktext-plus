@@ -1111,4 +1111,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get pluginPrerelease => '预发布';
+
+  @override
+  String get pluginFlipSplit => '改为分割另一半';
 }

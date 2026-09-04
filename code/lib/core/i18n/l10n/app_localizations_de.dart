@@ -1129,4 +1129,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get pluginPrerelease => 'Vorabversion';
+
+  @override
+  String get pluginFlipSplit => 'Die andere Hälfte teilen';
 }

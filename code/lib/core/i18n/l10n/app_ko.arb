@@ -426,5 +426,6 @@
   "pluginUpdateTo": "{version}(으)로 업데이트",
   "@pluginUpdateTo": {"placeholders": {"version": {"type": "String"}}},
   "pluginFinished": "완료",
-  "pluginPrerelease": "프리릴리스"
+  "pluginPrerelease": "프리릴리스",
+  "pluginFlipSplit": "다른 절반을 나누기"
 }

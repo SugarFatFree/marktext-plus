@@ -1124,4 +1124,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pluginPrerelease => 'Pre-release';
+
+  @override
+  String get pluginFlipSplit => 'Split the other half';
 }
