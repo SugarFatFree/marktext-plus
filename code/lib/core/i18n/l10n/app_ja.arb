@@ -427,5 +427,14 @@
   "@pluginUpdateTo": {"placeholders": {"version": {"type": "String"}}},
   "pluginFinished": "完了",
   "pluginPrerelease": "プレリリース",
-  "pluginFlipSplit": "もう半分を分割"
+  "pluginFlipSplit": "もう半分を分割",
+  "settingsMcp": "MCP",
+  "settingsMcpEnabled": "AI エージェントに応答",
+  "settingsMcpPort": "ポート",
+  "settingsMcpToken": "トークン",
+  "settingsMcpConfig": "エージェント用の設定",
+  "settingsMcpWarning": "エージェントがこのエディタのログを読み、スクリーンショットを撮り、操作できるようになります。この端末でポートを開くため、そこに到達でき、トークンを持つ者は同じことができます。",
+  "settingsMcpCopy": "コピー",
+  "settingsMcpNewToken": "トークンを作り直す",
+  "settingsMcpStopped": "停止中"
 }

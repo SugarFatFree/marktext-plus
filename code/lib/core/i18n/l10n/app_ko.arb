@@ -427,5 +427,14 @@
   "@pluginUpdateTo": {"placeholders": {"version": {"type": "String"}}},
   "pluginFinished": "완료",
   "pluginPrerelease": "프리릴리스",
-  "pluginFlipSplit": "다른 절반을 나누기"
+  "pluginFlipSplit": "다른 절반을 나누기",
+  "settingsMcp": "MCP",
+  "settingsMcpEnabled": "AI 에이전트에 응답",
+  "settingsMcpPort": "포트",
+  "settingsMcpToken": "토큰",
+  "settingsMcpConfig": "에이전트를 위한 설정",
+  "settingsMcpWarning": "에이전트가 이 에디터의 로그를 읽고, 화면을 찍고, 조작할 수 있게 합니다. 이 컴퓨터에 포트를 엽니다: 거기에 닿을 수 있고 토큰을 가진 사람은 같은 일을 할 수 있습니다.",
+  "settingsMcpCopy": "복사",
+  "settingsMcpNewToken": "토큰 새로 만들기",
+  "settingsMcpStopped": "실행 중이 아님"
 }

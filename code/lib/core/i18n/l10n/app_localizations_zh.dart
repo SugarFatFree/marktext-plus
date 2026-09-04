@@ -1114,4 +1114,32 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get pluginFlipSplit => '改为分割另一半';
+
+  @override
+  String get settingsMcp => 'MCP';
+
+  @override
+  String get settingsMcpEnabled => '响应 AI Agent';
+
+  @override
+  String get settingsMcpPort => '端口';
+
+  @override
+  String get settingsMcpToken => '令牌';
+
+  @override
+  String get settingsMcpConfig => '给你的 Agent 用的配置';
+
+  @override
+  String get settingsMcpWarning =>
+      '让 Agent 读取编辑器日志、截图并操作它。这会在本机开一个端口：能访问到它并且有令牌的人都能做这些事。';
+
+  @override
+  String get settingsMcpCopy => '复制';
+
+  @override
+  String get settingsMcpNewToken => '换一个令牌';
+
+  @override
+  String get settingsMcpStopped => '未运行';
 }

@@ -427,5 +427,14 @@
   "@pluginUpdateTo": {"placeholders": {"version": {"type": "String"}}},
   "pluginFinished": "Terminé",
   "pluginPrerelease": "Préversion",
-  "pluginFlipSplit": "Diviser l’autre moitié"
+  "pluginFlipSplit": "Diviser l’autre moitié",
+  "settingsMcp": "MCP",
+  "settingsMcpEnabled": "Répondre à un agent IA",
+  "settingsMcpPort": "Port",
+  "settingsMcpToken": "Jeton",
+  "settingsMcpConfig": "Configuration pour votre agent",
+  "settingsMcpWarning": "Permet à un agent de lire les journaux de cet éditeur, d’en faire des captures et de le piloter. Cela ouvre un port sur cette machine : quiconque l’atteint et possède le jeton peut en faire autant.",
+  "settingsMcpCopy": "Copier",
+  "settingsMcpNewToken": "Nouveau jeton",
+  "settingsMcpStopped": "à l’arrêt"
 }

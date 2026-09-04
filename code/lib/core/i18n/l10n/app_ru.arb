@@ -427,5 +427,14 @@
   "@pluginUpdateTo": {"placeholders": {"version": {"type": "String"}}},
   "pluginFinished": "Готово",
   "pluginPrerelease": "Предрелиз",
-  "pluginFlipSplit": "Разделить другую половину"
+  "pluginFlipSplit": "Разделить другую половину",
+  "settingsMcp": "MCP",
+  "settingsMcpEnabled": "Отвечать ИИ-агенту",
+  "settingsMcpPort": "Порт",
+  "settingsMcpToken": "Токен",
+  "settingsMcpConfig": "Настройка для вашего агента",
+  "settingsMcpWarning": "Позволяет агенту читать журналы редактора, делать снимки экрана и управлять им. На этой машине открывается порт: всякий, кто до него доберётся и знает токен, сможет то же самое.",
+  "settingsMcpCopy": "Копировать",
+  "settingsMcpNewToken": "Новый токен",
+  "settingsMcpStopped": "не запущен"
 }

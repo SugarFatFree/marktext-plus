@@ -104,6 +104,19 @@ class AppConfig {
   String aiApiKey;
   AiProvider aiProvider;
   String aiEndpoint;
+
+  /// Whether the editor answers to an agent over MCP.
+  ///
+  /// Off unless the reader turns it on: it is a port on their machine that
+  /// lets whatever reaches it read their documents and drive their editor.
+  bool mcpEnabled;
+
+  /// The port asked for first. The editor walks upward if it is taken.
+  int mcpPort;
+
+  /// The token an agent has to present. Generated when MCP is first switched
+  /// on, and kept, so a configuration written once keeps working.
+  String mcpToken;
   String aiModel;
 
   AppConfig({
@@ -154,6 +167,9 @@ class AppConfig {
     this.aiApiKey = '',
     this.aiProvider = AiProvider.openai,
     this.aiEndpoint = '',
+    this.mcpEnabled = false,
+    this.mcpPort = 10100,
+    this.mcpToken = '',
     this.aiModel = '',
   });
 
@@ -205,6 +221,9 @@ class AppConfig {
     'aiApiKey': aiApiKey,
     'aiProvider': aiProvider.name,
     'aiEndpoint': aiEndpoint,
+    'mcpEnabled': mcpEnabled,
+    'mcpPort': mcpPort,
+    'mcpToken': mcpToken,
     'aiModel': aiModel,
   };
 
@@ -268,6 +287,9 @@ class AppConfig {
       aiApiKey: json['aiApiKey'] as String? ?? '',
       aiProvider: _parseAiProvider(json['aiProvider']),
       aiEndpoint: json['aiEndpoint'] as String? ?? '',
+      mcpEnabled: json['mcpEnabled'] as bool? ?? false,
+      mcpPort: json['mcpPort'] as int? ?? 10100,
+      mcpToken: json['mcpToken'] as String? ?? '',
       aiModel: json['aiModel'] as String? ?? '',
     );
   }
@@ -354,6 +376,9 @@ class AppConfig {
     AiProvider? aiProvider,
     String? aiEndpoint,
     String? aiModel,
+    bool? mcpEnabled,
+    int? mcpPort,
+    String? mcpToken,
   }) {
     return AppConfig(
       sideBarVisible: sideBarVisible ?? this.sideBarVisible,
@@ -404,6 +429,9 @@ class AppConfig {
       aiApiKey: aiApiKey ?? this.aiApiKey,
       aiProvider: aiProvider ?? this.aiProvider,
       aiEndpoint: aiEndpoint ?? this.aiEndpoint,
+      mcpEnabled: mcpEnabled ?? this.mcpEnabled,
+      mcpPort: mcpPort ?? this.mcpPort,
+      mcpToken: mcpToken ?? this.mcpToken,
       aiModel: aiModel ?? this.aiModel,
     );
   }

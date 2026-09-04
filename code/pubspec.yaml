@@ -37,6 +37,9 @@ dependencies:
   docx_creator: ^1.2.3
   http: ^1.2.2
   archive: ^4.0.9
+  # Already in the tree by way of pdf; named here because the MCP server
+  # encodes GIFs with it, and a dependency used directly should be declared.
+  image: ^4.3.0
   crypto: ^3.0.6
   lua_dardo: ^0.0.5
   flutter_js: ^0.8.7

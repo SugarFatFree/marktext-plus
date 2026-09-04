@@ -427,5 +427,14 @@
   "@pluginUpdateTo": {"placeholders": {"version": {"type": "String"}}},
   "pluginFinished": "已完成",
   "pluginPrerelease": "预发布",
-  "pluginFlipSplit": "改为分割另一半"
+  "pluginFlipSplit": "改为分割另一半",
+  "settingsMcp": "MCP",
+  "settingsMcpEnabled": "响应 AI Agent",
+  "settingsMcpPort": "端口",
+  "settingsMcpToken": "令牌",
+  "settingsMcpConfig": "给你的 Agent 用的配置",
+  "settingsMcpWarning": "让 Agent 读取编辑器日志、截图并操作它。这会在本机开一个端口：能访问到它并且有令牌的人都能做这些事。",
+  "settingsMcpCopy": "复制",
+  "settingsMcpNewToken": "换一个令牌",
+  "settingsMcpStopped": "未运行"
 }

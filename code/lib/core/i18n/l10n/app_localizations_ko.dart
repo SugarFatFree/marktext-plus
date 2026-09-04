@@ -1115,4 +1115,32 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get pluginFlipSplit => '다른 절반을 나누기';
+
+  @override
+  String get settingsMcp => 'MCP';
+
+  @override
+  String get settingsMcpEnabled => 'AI 에이전트에 응답';
+
+  @override
+  String get settingsMcpPort => '포트';
+
+  @override
+  String get settingsMcpToken => '토큰';
+
+  @override
+  String get settingsMcpConfig => '에이전트를 위한 설정';
+
+  @override
+  String get settingsMcpWarning =>
+      '에이전트가 이 에디터의 로그를 읽고, 화면을 찍고, 조작할 수 있게 합니다. 이 컴퓨터에 포트를 엽니다: 거기에 닿을 수 있고 토큰을 가진 사람은 같은 일을 할 수 있습니다.';
+
+  @override
+  String get settingsMcpCopy => '복사';
+
+  @override
+  String get settingsMcpNewToken => '토큰 새로 만들기';
+
+  @override
+  String get settingsMcpStopped => '실행 중이 아님';
 }

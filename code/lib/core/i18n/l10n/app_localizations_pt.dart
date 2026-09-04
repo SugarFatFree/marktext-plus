@@ -1136,6 +1136,34 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get pluginFlipSplit => 'Dividir a outra metade';
+
+  @override
+  String get settingsMcp => 'MCP';
+
+  @override
+  String get settingsMcpEnabled => 'Responder a um agente de IA';
+
+  @override
+  String get settingsMcpPort => 'Porta';
+
+  @override
+  String get settingsMcpToken => 'Token';
+
+  @override
+  String get settingsMcpConfig => 'Configuração para o seu agente';
+
+  @override
+  String get settingsMcpWarning =>
+      'Permite que um agente leia os registos deste editor, tire capturas e o comande. Abre uma porta nesta máquina: quem lhe chegar e tiver o token pode fazer o mesmo.';
+
+  @override
+  String get settingsMcpCopy => 'Copiar';
+
+  @override
+  String get settingsMcpNewToken => 'Novo token';
+
+  @override
+  String get settingsMcpStopped => 'parado';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -2268,4 +2296,32 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get pluginFlipSplit => 'Dividir a outra metade';
+
+  @override
+  String get settingsMcp => 'MCP';
+
+  @override
+  String get settingsMcpEnabled => 'Responder a um agente de IA';
+
+  @override
+  String get settingsMcpPort => 'Porta';
+
+  @override
+  String get settingsMcpToken => 'Token';
+
+  @override
+  String get settingsMcpConfig => 'Configuração para o seu agente';
+
+  @override
+  String get settingsMcpWarning =>
+      'Permite que um agente leia os logs deste editor, tire capturas e o comande. Abre uma porta nesta máquina: quem chegar até ela e tiver o token pode fazer o mesmo.';
+
+  @override
+  String get settingsMcpCopy => 'Copiar';
+
+  @override
+  String get settingsMcpNewToken => 'Novo token';
+
+  @override
+  String get settingsMcpStopped => 'parado';
 }

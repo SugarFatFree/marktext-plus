@@ -8,6 +8,7 @@ import 'core/theme/app_theme.dart';
 import 'providers/settings_provider.dart';
 import 'providers/locale_provider.dart';
 import 'ui/screens/home_screen.dart';
+import 'services/window_capture.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
@@ -248,7 +249,13 @@ class MarkTextPlusApp extends ConsumerWidget {
         textDirection: textDirection == 'rtl' || locale.languageCode == 'ar'
             ? TextDirection.rtl
             : TextDirection.ltr,
-        child: const HomeScreen(),
+        // Wrapped so a picture of the window can be taken without anything
+        // else knowing it is being watched. A RepaintBoundary that nobody
+        // photographs costs a layer that would very likely exist anyway.
+        child: RepaintBoundary(
+          key: WindowCapture.boundary,
+          child: const HomeScreen(),
+        ),
       ),
     );
   }

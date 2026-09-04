@@ -2222,6 +2222,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Split the other half'**
   String get pluginFlipSplit;
+
+  /// No description provided for @settingsMcp.
+  ///
+  /// In en, this message translates to:
+  /// **'MCP'**
+  String get settingsMcp;
+
+  /// No description provided for @settingsMcpEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Answer an AI agent'**
+  String get settingsMcpEnabled;
+
+  /// No description provided for @settingsMcpPort.
+  ///
+  /// In en, this message translates to:
+  /// **'Port'**
+  String get settingsMcpPort;
+
+  /// No description provided for @settingsMcpToken.
+  ///
+  /// In en, this message translates to:
+  /// **'Token'**
+  String get settingsMcpToken;
+
+  /// No description provided for @settingsMcpConfig.
+  ///
+  /// In en, this message translates to:
+  /// **'Configuration for your agent'**
+  String get settingsMcpConfig;
+
+  /// No description provided for @settingsMcpWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Lets an agent read this editor\'s logs, take screenshots and drive it. It opens a port on this machine: anyone who can reach it and has the token can do those things.'**
+  String get settingsMcpWarning;
+
+  /// No description provided for @settingsMcpCopy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get settingsMcpCopy;
+
+  /// No description provided for @settingsMcpNewToken.
+  ///
+  /// In en, this message translates to:
+  /// **'New token'**
+  String get settingsMcpNewToken;
+
+  /// No description provided for @settingsMcpStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'not running'**
+  String get settingsMcpStopped;
 }
 
 class _AppLocalizationsDelegate

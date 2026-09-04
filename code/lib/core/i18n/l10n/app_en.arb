@@ -538,5 +538,14 @@
   "@pluginUpdateTo": {"placeholders": {"version": {"type": "String"}}},
   "pluginFinished": "Finished",
   "pluginPrerelease": "Pre-release",
-  "pluginFlipSplit": "Split the other half"
+  "pluginFlipSplit": "Split the other half",
+  "settingsMcp": "MCP",
+  "settingsMcpEnabled": "Answer an AI agent",
+  "settingsMcpPort": "Port",
+  "settingsMcpToken": "Token",
+  "settingsMcpConfig": "Configuration for your agent",
+  "settingsMcpWarning": "Lets an agent read this editor's logs, take screenshots and drive it. It opens a port on this machine: anyone who can reach it and has the token can do those things.",
+  "settingsMcpCopy": "Copy",
+  "settingsMcpNewToken": "New token",
+  "settingsMcpStopped": "not running"
 }

@@ -1115,4 +1115,32 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get pluginFlipSplit => 'もう半分を分割';
+
+  @override
+  String get settingsMcp => 'MCP';
+
+  @override
+  String get settingsMcpEnabled => 'AI エージェントに応答';
+
+  @override
+  String get settingsMcpPort => 'ポート';
+
+  @override
+  String get settingsMcpToken => 'トークン';
+
+  @override
+  String get settingsMcpConfig => 'エージェント用の設定';
+
+  @override
+  String get settingsMcpWarning =>
+      'エージェントがこのエディタのログを読み、スクリーンショットを撮り、操作できるようになります。この端末でポートを開くため、そこに到達でき、トークンを持つ者は同じことができます。';
+
+  @override
+  String get settingsMcpCopy => 'コピー';
+
+  @override
+  String get settingsMcpNewToken => 'トークンを作り直す';
+
+  @override
+  String get settingsMcpStopped => '停止中';
 }

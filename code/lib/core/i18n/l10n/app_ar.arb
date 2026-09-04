@@ -427,5 +427,14 @@
   "@pluginUpdateTo": {"placeholders": {"version": {"type": "String"}}},
   "pluginFinished": "اكتمل",
   "pluginPrerelease": "إصدار أوّلي",
-  "pluginFlipSplit": "اقسم النصف الآخر"
+  "pluginFlipSplit": "اقسم النصف الآخر",
+  "settingsMcp": "MCP",
+  "settingsMcpEnabled": "الاستجابة لوكيل ذكاء اصطناعي",
+  "settingsMcpPort": "المنفذ",
+  "settingsMcpToken": "الرمز",
+  "settingsMcpConfig": "إعداد لوكيلك",
+  "settingsMcpWarning": "يتيح لوكيل أن يقرأ سجلات هذا المحرِّر، وأن يلتقط صورًا للشاشة، وأن يقوده. وهو يفتح منفذًا على هذا الجهاز: كل من بلغه ومعه الرمز يستطيع الشيء نفسه.",
+  "settingsMcpCopy": "نسخ",
+  "settingsMcpNewToken": "رمز جديد",
+  "settingsMcpStopped": "متوقف"
 }

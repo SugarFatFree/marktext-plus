@@ -44,6 +44,7 @@ import '../../models/file_encoding.dart';
 import '../../models/line_ending.dart';
 import '../../core/diagnostics/startup_trace.dart';
 import '../../utils/file_utils.dart';
+import '../../providers/mcp_provider.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   /// Whether a dropped file is one nothing in the window will do anything
@@ -98,6 +99,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
       _openStartupFiles();
       _checkForUpdates();
       _restoreSideBarDirectory();
+      // Only if the reader turned it on; `apply` stops it otherwise, which is
+      // also what it does on the way out.
+      ref.read(mcpProvider.notifier).apply(ref.read(settingsProvider));
       StartupTrace.mark('startup side-effects dispatched');
     });
   }
@@ -730,6 +734,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
   @override
   Widget build(BuildContext context) {
     StartupTrace.markOnce('home screen first build');
+    _followMcpSetting();
     final config = ref.watch(settingsProvider);
     // Only the find bar's visibility is read here. Watching the whole editor
     // state rebuilt this entire screen on every cursor move.
@@ -891,6 +896,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
   /// The range the zoom commands and the wheel share.
   static const _minZoom = 12.0;
   static const _maxZoom = 32.0;
+
+  /// Starts or stops the MCP server when the setting changes.
+  void _followMcpSetting() {
+    ref.listen(settingsProvider, (previous, next) {
+      if (previous?.mcpEnabled == next.mcpEnabled &&
+          previous?.mcpPort == next.mcpPort &&
+          previous?.mcpToken == next.mcpToken) {
+        return;
+      }
+      ref.read(mcpProvider.notifier).apply(next);
+    });
+  }
 
   Widget _buildEditorArea(EditMode editMode) {
     final activeTab = ref.watch(activeTabProvider);

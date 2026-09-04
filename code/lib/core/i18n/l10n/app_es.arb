@@ -427,5 +427,14 @@
   "@pluginUpdateTo": {"placeholders": {"version": {"type": "String"}}},
   "pluginFinished": "Finalizado",
   "pluginPrerelease": "Versión preliminar",
-  "pluginFlipSplit": "Dividir la otra mitad"
+  "pluginFlipSplit": "Dividir la otra mitad",
+  "settingsMcp": "MCP",
+  "settingsMcpEnabled": "Responder a un agente de IA",
+  "settingsMcpPort": "Puerto",
+  "settingsMcpToken": "Token",
+  "settingsMcpConfig": "Configuración para tu agente",
+  "settingsMcpWarning": "Permite que un agente lea los registros de este editor, haga capturas y lo maneje. Abre un puerto en esta máquina: quien llegue a él y tenga el token puede hacer lo mismo.",
+  "settingsMcpCopy": "Copiar",
+  "settingsMcpNewToken": "Token nuevo",
+  "settingsMcpStopped": "detenido"
 }

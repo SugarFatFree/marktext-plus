@@ -105,6 +105,13 @@ void main() {
       'appTitle', 'settingsMarkdown', 'statusMarkdown', 'statusEncoding',
       'statusLineFeed', 'fileExportHtml', 'fileExportPdf', 'fileExportWord',
       'themeOneDark', 'themeNord', 'themeDieciOLED', 'themeShibuya',
+      // A protocol name, like HTTP.
+      'settingsMcp',
+      // "Port" is the German word too; "Token" is borrowed as-is into
+      // German, Italian, Spanish and both Portuguese variants. Checked one
+      // language at a time — the rest do translate them (Porta, Puerto, Порт,
+      // ポート, 포트, المنفذ, 端口; Jeton, Токен, トークン, 토큰, الرمز, 令牌).
+      'settingsMcpPort', 'settingsMcpToken',
       // The same word in several European languages, or borrowed as-is.
       'ok', 'settingsEditor', 'settingsGeneral', 'menuFile', 'menuFormat',
       'formatLink', 'keybindingLink', 'formatImage', 'keybindingImage',

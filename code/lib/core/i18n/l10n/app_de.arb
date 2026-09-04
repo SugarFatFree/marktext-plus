@@ -427,5 +427,14 @@
   "@pluginUpdateTo": {"placeholders": {"version": {"type": "String"}}},
   "pluginFinished": "Fertig",
   "pluginPrerelease": "Vorabversion",
-  "pluginFlipSplit": "Die andere Hälfte teilen"
+  "pluginFlipSplit": "Die andere Hälfte teilen",
+  "settingsMcp": "MCP",
+  "settingsMcpEnabled": "Einem KI-Agenten antworten",
+  "settingsMcpPort": "Port",
+  "settingsMcpToken": "Token",
+  "settingsMcpConfig": "Konfiguration für Ihren Agenten",
+  "settingsMcpWarning": "Lässt einen Agenten die Protokolle dieses Editors lesen, Bildschirmfotos machen und ihn bedienen. Es öffnet einen Port auf diesem Rechner: wer ihn erreicht und den Token hat, kann dasselbe.",
+  "settingsMcpCopy": "Kopieren",
+  "settingsMcpNewToken": "Neuer Token",
+  "settingsMcpStopped": "läuft nicht"
 }

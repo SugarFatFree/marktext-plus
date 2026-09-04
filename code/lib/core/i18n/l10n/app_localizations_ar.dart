@@ -1127,4 +1127,32 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get pluginFlipSplit => 'اقسم النصف الآخر';
+
+  @override
+  String get settingsMcp => 'MCP';
+
+  @override
+  String get settingsMcpEnabled => 'الاستجابة لوكيل ذكاء اصطناعي';
+
+  @override
+  String get settingsMcpPort => 'المنفذ';
+
+  @override
+  String get settingsMcpToken => 'الرمز';
+
+  @override
+  String get settingsMcpConfig => 'إعداد لوكيلك';
+
+  @override
+  String get settingsMcpWarning =>
+      'يتيح لوكيل أن يقرأ سجلات هذا المحرِّر، وأن يلتقط صورًا للشاشة، وأن يقوده. وهو يفتح منفذًا على هذا الجهاز: كل من بلغه ومعه الرمز يستطيع الشيء نفسه.';
+
+  @override
+  String get settingsMcpCopy => 'نسخ';
+
+  @override
+  String get settingsMcpNewToken => 'رمز جديد';
+
+  @override
+  String get settingsMcpStopped => 'متوقف';
 }

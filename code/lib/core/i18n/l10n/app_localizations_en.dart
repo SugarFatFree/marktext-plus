@@ -1127,4 +1127,32 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pluginFlipSplit => 'Split the other half';
+
+  @override
+  String get settingsMcp => 'MCP';
+
+  @override
+  String get settingsMcpEnabled => 'Answer an AI agent';
+
+  @override
+  String get settingsMcpPort => 'Port';
+
+  @override
+  String get settingsMcpToken => 'Token';
+
+  @override
+  String get settingsMcpConfig => 'Configuration for your agent';
+
+  @override
+  String get settingsMcpWarning =>
+      'Lets an agent read this editor\'s logs, take screenshots and drive it. It opens a port on this machine: anyone who can reach it and has the token can do those things.';
+
+  @override
+  String get settingsMcpCopy => 'Copy';
+
+  @override
+  String get settingsMcpNewToken => 'New token';
+
+  @override
+  String get settingsMcpStopped => 'not running';
 }

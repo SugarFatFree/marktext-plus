@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -11,8 +13,9 @@ import '../../core/theme/app_theme.dart';
 import '../../services/keybinding_service.dart';
 import '../../services/image_service.dart';
 import '../../services/ai_connection_service.dart';
+import '../../providers/mcp_provider.dart';
 
-enum _Category { general, editor, markdown, theme, keybindings, ai }
+enum _Category { general, editor, markdown, theme, keybindings, ai, mcp }
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -130,6 +133,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 _catTile(_Category.theme, l10n.settingsTheme, Icons.palette, tokens),
                 _catTile(_Category.keybindings, l10n.settingsKeybindings, Icons.keyboard, tokens),
                 _catTile(_Category.ai, l10n.settingsAi, Icons.auto_awesome, tokens),
+                _catTile(_Category.mcp, l10n.settingsMcp, Icons.hub_outlined,
+                    tokens),
               ],
             ),
           ),
@@ -220,7 +225,157 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         return _keybindingsSection(l10n);
       case _Category.ai:
         return _aiSection(l10n);
+      case _Category.mcp:
+        return _mcpSection(l10n);
     }
+  }
+
+  // -- MCP --
+  Widget _mcpSection(AppLocalizations l10n) {
+    final config = ref.watch(settingsProvider);
+    final notifier = ref.read(settingsProvider.notifier);
+    final status = ref.watch(mcpProvider);
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(l10n.settingsMcp, style: theme.textTheme.headlineSmall),
+        const SizedBox(height: 12),
+        // Said before the switch, not after: it opens a port on the reader's
+        // machine, and that is the thing to know before turning it on.
+        Text(
+          l10n.settingsMcpWarning,
+          style: theme.textTheme.bodySmall,
+        ),
+        const SizedBox(height: 20),
+        _row(
+          l10n.settingsMcpEnabled,
+          Switch(
+            value: config.mcpEnabled,
+            onChanged: (value) => notifier.updateConfig(
+              (c) => c.copyWith(
+                mcpEnabled: value,
+                // Made the first time it is switched on, and kept: rolling it
+                // every launch would silently break a configuration the
+                // reader had already written into their agent.
+                mcpToken: c.mcpToken.isEmpty ? newMcpToken() : c.mcpToken,
+              ),
+            ),
+          ),
+        ),
+        if (config.mcpEnabled) ...[
+          _row(
+            l10n.settingsMcpPort,
+            SizedBox(
+              width: 220,
+              child: TextField(
+                controller: _field(
+                  'mcpPort',
+                  '${status.port ?? config.mcpPort}',
+                ),
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  isDense: true,
+                  border: const OutlineInputBorder(),
+                  helperText: status.running
+                      ? 'listening on ${status.port}'
+                      : (status.error ?? l10n.settingsMcpStopped),
+                  helperMaxLines: 3,
+                ),
+                onSubmitted: (value) {
+                  final port = int.tryParse(value.trim());
+                  if (port == null || port < 1024 || port > 65535) return;
+                  notifier.updateConfig((c) => c.copyWith(mcpPort: port));
+                },
+              ),
+            ),
+          ),
+          _row(
+            l10n.settingsMcpToken,
+            SizedBox(
+              width: 320,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: SelectableText(
+                      config.mcpToken,
+                      maxLines: 1,
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: l10n.settingsMcpNewToken,
+                    icon: const Icon(Icons.refresh, size: 18),
+                    onPressed: () => notifier.updateConfig(
+                      (c) => c.copyWith(mcpToken: newMcpToken()),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(l10n.settingsMcpConfig, style: theme.textTheme.titleSmall),
+          const SizedBox(height: 8),
+          _mcpExample(l10n, status, config),
+        ],
+      ],
+    );
+  }
+
+  /// What to paste into the agent's MCP configuration.
+  ///
+  /// Shown filled in — the port it actually got and the token it actually
+  /// has — because a sample with placeholders in it is a second thing to get
+  /// right.
+  Widget _mcpExample(
+    AppLocalizations l10n,
+    McpStatus status,
+    AppConfig config,
+  ) {
+    final theme = Theme.of(context);
+    final port = status.port ?? config.mcpPort;
+    final example = const JsonEncoder.withIndent('  ').convert({
+      'mcpServers': {
+        'marktext-plus': {
+          'type': 'http',
+          'url': 'http://127.0.0.1:$port/mcp',
+          'headers': {'Authorization': 'Bearer ${config.mcpToken}'},
+        },
+      },
+    });
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SelectableText(
+            example,
+            style: TextStyle(
+              fontFamily: 'monospace',
+              fontSize: 12,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: TextButton.icon(
+              onPressed: () =>
+                  Clipboard.setData(ClipboardData(text: example)),
+              icon: const Icon(Icons.copy, size: 16),
+              label: Text(l10n.settingsMcpCopy),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   // -- General --

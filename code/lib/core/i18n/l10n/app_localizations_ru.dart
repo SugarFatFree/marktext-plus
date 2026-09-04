@@ -1131,4 +1131,32 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get pluginFlipSplit => 'Разделить другую половину';
+
+  @override
+  String get settingsMcp => 'MCP';
+
+  @override
+  String get settingsMcpEnabled => 'Отвечать ИИ-агенту';
+
+  @override
+  String get settingsMcpPort => 'Порт';
+
+  @override
+  String get settingsMcpToken => 'Токен';
+
+  @override
+  String get settingsMcpConfig => 'Настройка для вашего агента';
+
+  @override
+  String get settingsMcpWarning =>
+      'Позволяет агенту читать журналы редактора, делать снимки экрана и управлять им. На этой машине открывается порт: всякий, кто до него доберётся и знает токен, сможет то же самое.';
+
+  @override
+  String get settingsMcpCopy => 'Копировать';
+
+  @override
+  String get settingsMcpNewToken => 'Новый токен';
+
+  @override
+  String get settingsMcpStopped => 'не запущен';
 }
