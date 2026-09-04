@@ -5,6 +5,14 @@ All notable changes to MarkText Plus will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - v1.6.2
+
+### Fixed
+- **The permissions were being displayed, not enforced.** Seventeen of them are declared and shown; four were ever checked. A plugin whose manifest asked for nothing could still put a pane beside your document, open a panel in the side bar, and interrupt you with notifications — and `document.read`, the one you are most likely to be weighing, meant nothing at all: the document and your selection were handed to every plugin regardless of what it had asked for. A plugin that did not ask now sees an empty document, which is a state it has to handle anyway, and every action that reaches you is checked in one place
+- **You can see the list it is being enforced against.** An installed plugin's page now says what it asked for, in sentences rather than identifiers — "Read the open document and your selection", not `document.read` — above the README rather than inside a tab. A plugin that asked for nothing says so. A permission this version does not understand still takes a line, saying it grants nothing, so a `documents.read` typo does not become a plugin that silently does nothing. A plugin you have not installed shows no list: its manifest is inside a package that has not been downloaded, and an empty list there would read as a promise the editor cannot make
+- The refusal notice named only the permission — `ui.sidebar`, a string an author types into a manifest. It now carries the sentence too, for whoever is deciding whether they mind
+- The README said permissions were shown before you install. They were not, in any of the twelve languages it says it in
+
 ## [v1.6.1] - 2026-09-05
 
 ### Added
@@ -14,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Plugins can write to the document**, having shown you what they would write. A rewrite appears in a pane with an Apply button, and applying goes through the editor's history, so one press of undo takes it back
 - **Plugins can be more than one file**, and say what they are in your language: a manifest carries a description, and both it and the name go through the plugin's own translations
 - A plugin is now a single Lua or JavaScript file that runs inside the editor. It needs no SDK on your machine, no build step, and the same file works on Windows, macOS and Linux. Both languages speak the same protocol, so the editor does not care which one an author picked
-- Plugins declare what they are allowed to do — reading your document, changing it, the clipboard, your workspace, the network, asking the model you configured — and you see the list before installing. Unlike the editors this borrows the idea from, the list is enforced rather than merely displayed: nothing here is reviewed by anybody, so a plugin doing something it did not ask for is refused
+- Plugins declare what they are allowed to do — reading your document, changing it, the clipboard, your workspace, the network, asking the model you configured. Unlike the editors this borrows the idea from, the list is meant to be enforced rather than merely displayed: nothing here is reviewed by anybody, so a plugin doing something it did not ask for is refused
 - A plugin keeps its own settings, in its own directory, on a settings page the editor draws from what the plugin declared: a switch for a switch, a hidden box for a secret. The plugin supplies data, never widgets, so no plugin can rearrange the editor. What you save reaches a running plugin on its next command, not at the next launch
 - Plugins ship their own translations for whichever languages their author wants, independent of the twelve the editor speaks
 - A plugin that genuinely needs a real toolchain can ship compiled executables instead, named by operating system and, only where it matters, by architecture — a macOS universal binary is one file for both, and saying so should not mean writing the same path twice. A platform it was not built for is named to you rather than guessed at

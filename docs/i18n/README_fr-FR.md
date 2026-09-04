@@ -77,7 +77,7 @@ C’est tout. L’editeur se lance avec un document d’exemple pret a etre modi
 | **🧩 Extensions ouvertes** | Un fichier Lua ou JavaScript, sans SDK ni compilation, en bac à sable et limité aux droits qu’il a déclarés. À trouver via [GitHub Topic: `marktext-plus-plugin`](https://github.com/topics/marktext-plus-plugin) ; chacune est marquée Communauté / non vérifiée |
 | **⚡ Démarrage rapide** | Pas de navigateur embarqué, pas de framework d’éditeur, 23 dépendances directes |
 | **📄 Gros fichiers** | Analyse, coloration et recherche se font en une passe, avec des budgets que des tests font échouer. Au-delà de 128 Ko la coloration s’arrête — la dernière taille qui s’ouvre en une seconde environ. L’édition reste possible, et les couleurs reviennent si le fichier rapetisse |
-| **🧪 Testé** | 2417 tests couvrant le parseur, les exports, les providers, les moteurs d’extension et les widgets de l’éditeur |
+| **🧪 Testé** | 2432 tests couvrant le parseur, les exports, les providers, les moteurs d’extension et les widgets de l’éditeur |
 
 ### Extensions
 
@@ -85,7 +85,7 @@ C’est tout. L’editeur se lance avec un document d’exemple pret a etre modi
 
 | Fonction | Description |
 |---------|-------------|
-| **🔐 Droits** | Déclarés dans le manifeste, montrés avant l’installation, et **appliqués**. VS Code et IntelliJ affichent une liste puis font confiance ; ici personne ne relit rien, c’est donc l’éditeur qui vérifie. Une extension qui interroge le modèle sans `ai.chat` se voit refuser, et vous êtes prévenu qu’elle a essayé |
+| **🔐 Droits** | Déclarés dans le manifeste, montrés sur la page de l’extension, et **appliqués**. VS Code et IntelliJ affichent une liste puis font confiance ; ici personne ne relit rien, c’est donc l’éditeur qui vérifie. Une extension qui interroge le modèle sans `ai.chat` se voit refuser, et vous êtes prévenu qu’elle a essayé |
 | **🪟 Volets** | L’éditeur partage déjà un onglet entre source et aperçu ; ce partage vous est offert. Jusqu’à quatre cases, des séparateurs qui se déplacent, et rien de dessiné pour une case que personne n’a remplie |
 | **✍️ Réécriture** | Une extension peut réécrire ce que vous avez sélectionné — après vous l’avoir montré. Le résultat arrive avec un bouton Appliquer, et appliquer passe par l’historique de l’éditeur : une annulation le reprend |
 | **⚙️ Réglages propres** | L’éditeur dessine la page à partir de ce que l’extension a déclaré : un interrupteur pour un interrupteur, un champ masqué pour un secret. Les extensions fournissent des données, jamais des widgets |

@@ -77,7 +77,7 @@ Eso es todo. El editor se abrirá con un documento de ejemplo listo para editar.
 | **🧩 Complementos abiertos** | Un archivo Lua o JavaScript, sin SDK y sin compilar, en un espacio aislado y limitado a los permisos que declaró. Se encuentran en [GitHub Topic: `marktext-plus-plugin`](https://github.com/topics/marktext-plus-plugin); cada uno va marcado como Comunidad/sin verificar |
 | **⚡ Arranque rápido** | Sin navegador incrustado ni framework de editor: 23 dependencias directas |
 | **📄 Archivos grandes** | Análisis, resaltado y búsqueda en una sola pasada, con presupuestos que hacen fallar las pruebas. Por encima de 128 KB el resaltado se detiene: es el último tamaño que abre en torno a un segundo. Se sigue editando, y los colores vuelven si el archivo mengua |
-| **🧪 Probado** | 2417 pruebas para el parser, los exportadores, los providers, los motores de complementos y los widgets del editor |
+| **🧪 Probado** | 2432 pruebas para el parser, los exportadores, los providers, los motores de complementos y los widgets del editor |
 
 ### Complementos
 
@@ -85,7 +85,7 @@ Escritos en Lua o JavaScript: un archivo y un manifiesto, sin compilar, y el mis
 
 | Función | Descripción |
 |---------|-------------|
-| **🔐 Permisos** | Declarados en el manifiesto, mostrados antes de instalar y **exigidos**. VS Code e IntelliJ muestran una lista y luego confían; aquí nadie revisa nada, así que comprueba el editor. A un complemento que consulta el modelo sin `ai.chat` se le dice que no, y a ti se te dice que lo intentó |
+| **🔐 Permisos** | Declarados en el manifiesto, mostrados en la página del complemento y **exigidos**. VS Code e IntelliJ muestran una lista y luego confían; aquí nadie revisa nada, así que comprueba el editor. A un complemento que consulta el modelo sin `ai.chat` se le dice que no, y a ti se te dice que lo intentó |
 | **🪟 Cuadros** | El editor ya divide una pestaña entre fuente y vista previa; esa división se ofrece hacia fuera. Hasta cuatro celdas, divisores que se arrastran, y nada dibujado para una celda que nadie llenó |
 | **✍️ Escribir de vuelta** | Un complemento puede reescribir lo que seleccionaste, después de enseñártelo. El resultado llega con un botón Aplicar, y aplicar pasa por el historial del editor: deshacer lo devuelve |
 | **⚙️ Ajustes propios** | El editor dibuja la página a partir de lo que el complemento declaró: un interruptor para un interruptor, un campo oculto para un secreto. Los complementos aportan datos, nunca controles |

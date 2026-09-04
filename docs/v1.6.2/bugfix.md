@@ -6,6 +6,7 @@
 | BUG-263 | 2026-09-05 | SDK 三个示例返回 `panel` 却不声明 `ui.sidebar` | P1 | 已修复 |
 | BUG-264 | 2026-09-05 | 打包测试写死插件版本号，每次发版要手改一遍 | P2 | 已修复 |
 | BUG-265 | 2026-09-05 | 权限被强制执行，读者却没有任何地方能看到它是什么 | P1 | 已修复 |
+| BUG-266 | 2026-09-05 | README 用 12 种语言承诺「安装前给你看权限」，从未成立 | P1 | 已修复 |
 
 ---
 
@@ -147,3 +148,35 @@ networkRequest => 'Send requests to any server it chooses',
 ### 涉及文件
 
 `lib/models/plugin_catalog_entry.dart`、`lib/ui/screens/plugin_detail_view.dart`、`lib/services/plugin_command_service.dart`；`test/ui/screens/plugin_permissions_test.dart`（新增）、`test/services/plugin_permission_guard_test.dart`
+
+---
+
+## BUG-266：README 承诺了一件从未做过的事
+
+### 现象
+
+README 第 100 行：
+
+> **🔐 Permissions** | Declared in the manifest, **shown before you install**, and **enforced**.
+
+装之前从来看不到。BUG-265 修完之后也仍然看不到——那一段只对已安装的插件显示。
+
+### 根因分析
+
+CLAUDE.md 列的第二条排查视角：「编辑器说了与事实不符的话」。这次说话的是 README，而且是关于**安全**的一句话——读者据此判断装一个 Community/Unverified 的插件有多大风险。
+
+11 份翻译逐字照搬了这个承诺，所以它是 12 份文档里的 12 句不实。CHANGELOG 的 v1.6.1 条目里也有同一句。
+
+顺带发现另一处漂移：12 份 README 都写着「2417 tests」，实际 2432。一个数字写在 12 个地方，每次加测试都会漂。
+
+### 修复方案
+
+改成实话：「shown on the plugin's page」——插件页面上确实列出来了（BUG-265）。12 份全改，包括阿拉伯语的 RTL 那行。
+
+CHANGELOG 的 v1.6.1 条目删掉「and you see the list before installing」这半句。已发布条目本不该重写，但一句从未成立的安全承诺留着比改掉更糟；「enforced」改成「meant to be enforced」，因为发布时它只做到 4/17，真正做到是在 v1.6.2。
+
+**装前展示没有做。** 那要在下载并校验 ZIP 之后、启用之前插一道确认门——浏览器扩展的做法，也是唯一诚实的「装前」。那是产品决策不是缺陷修复，留给用户定夺（见 FEAT-125 末尾）。
+
+### 涉及文件
+
+`README.md`、`docs/i18n/README_*.md`（11 份）、`CHANGELOG.md`

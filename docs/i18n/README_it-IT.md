@@ -77,7 +77,7 @@ Tutto qui. L’editor si avvierà con un documento di esempio pronto per la modi
 | **🧩 Estensioni aperte** | Un file Lua o JavaScript, senza SDK e senza build, in una sandbox e limitato ai permessi che ha dichiarato. Si trovano su [GitHub Topic: `marktext-plus-plugin`](https://github.com/topics/marktext-plus-plugin); ognuna è marcata Community/non verificata |
 | **⚡ Avvio rapido** | Nessun browser incorporato, nessun framework di editor, 23 dipendenze dirette |
 | **📄 File grandi** | Analisi, evidenziazione e ricerca in una sola passata, con budget che i test fanno fallire. Oltre 128 KB l’evidenziazione si ferma — l’ultima dimensione che si apre in circa un secondo. Si continua a modificare, e i colori tornano se il file si riduce |
-| **🧪 Testato** | 2417 test per parser, esportatori, provider, runtime delle estensioni e widget dell’editor |
+| **🧪 Testato** | 2432 test per parser, esportatori, provider, runtime delle estensioni e widget dell’editor |
 
 ### Estensioni
 
@@ -85,7 +85,7 @@ Scritte in Lua o JavaScript — un file e un manifesto, nessuna build, e lo stes
 
 | Funzione | Descrizione |
 |---------|-------------|
-| **🔐 Permessi** | Dichiarati nel manifesto, mostrati prima dell’installazione e **applicati**. VS Code e IntelliJ mostrano un elenco e poi si fidano; qui non revisiona nessuno, quindi controlla l’editor. Un’estensione che interroga il modello senza `ai.chat` riceve un no, e a te viene detto che ci ha provato |
+| **🔐 Permessi** | Dichiarati nel manifesto, mostrati nella pagina dell’estensione e **applicati**. VS Code e IntelliJ mostrano un elenco e poi si fidano; qui non revisiona nessuno, quindi controlla l’editor. Un’estensione che interroga il modello senza `ai.chat` riceve un no, e a te viene detto che ci ha provato |
 | **🪟 Riquadri** | L’editor divide già una scheda fra sorgente e anteprima; quella divisione ti viene offerta. Fino a quattro celle, divisori che si trascinano, e nulla disegnato per una cella che nessuno ha riempito |
 | **✍️ Riscrittura** | Un’estensione può riscrivere ciò che hai selezionato — dopo avertelo mostrato. Il risultato arriva con un pulsante Applica, e applicare passa per la cronologia dell’editor: un annulla lo riporta indietro |
 | **⚙️ Impostazioni proprie** | L’editor disegna la pagina da ciò che l’estensione ha dichiarato: un interruttore per un interruttore, un campo nascosto per un segreto. Le estensioni forniscono dati, mai widget |
