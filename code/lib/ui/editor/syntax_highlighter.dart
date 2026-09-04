@@ -383,7 +383,24 @@ class IncrementalMarkdownHighlighter {
   /// Not about the scan itself: a document this size produces hundreds of
   /// thousands of spans, and it is laying those out that stalls the frame. An
   /// unstyled document stays fully editable.
-  static const int maxHighlightedLength = 2 * 1024 * 1024;
+  ///
+  /// Measured, opening a file of Markdown with the usual amount of `code` and
+  /// **emphasis** in it, timed to the first painted frame:
+  ///
+  /// | size   | with highlighting |
+  /// |--------|-------------------|
+  /// | 64 KB  | 1.2 s             |
+  /// | 128 KB | 1.3 s             |
+  /// | 256 KB | 8.0 s             |
+  /// | 384 KB | 24 s              |
+  /// | 512 KB | 45 s              |
+  ///
+  /// The cost is superlinear in the number of spans, so the number is a cliff
+  /// rather than a slope: 128 KB is the last size that opens in about a
+  /// second. It was two megabytes, which no document ever reached — a 739 KB
+  /// file took seven seconds to open, and the limit that was supposed to
+  /// prevent exactly that never came into play.
+  static const int maxHighlightedLength = 128 * 1024;
 
   List<String> _lines = const [];
   List<List<TextSpan>> _lineSpans = const [];
