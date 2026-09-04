@@ -82,6 +82,17 @@ class PluginDiscovery {
 class PluginDiscoveryNotifier extends StateNotifier<PluginDiscovery> {
   PluginDiscoveryNotifier() : super(const PluginDiscovery());
 
+  /// Whether opening the panel should start a search.
+  ///
+  /// Once per launch, not once per visit: the side bar destroys the panel
+  /// every time another tab is chosen, so searching "on open" would be a
+  /// network request each time the reader glanced at Files and came back.
+  /// A search that failed is not retried on its own either — there is a
+  /// button for that, and one broken network should not become a request per
+  /// glance.
+  bool get shouldSearchOnOpen =>
+      !state.searching && state.results == null && state.error == null;
+
   void started() => state = PluginDiscovery(
         results: state.results,
         searching: true,

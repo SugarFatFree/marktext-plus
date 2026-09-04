@@ -468,7 +468,7 @@ void main() {
     }
 
     test('a template of their own is what gets sent', () async {
-      await writePrompt('把下面的内容翻译成{{language}}：\n\n{{text}}');
+      await writePrompt('把下面的内容翻译成\${language}：\n\n\${text}');
       final service = PluginCommandService(root.path);
       final action =
           service.start(
@@ -489,7 +489,7 @@ void main() {
     test('a per-cent sign in the document survives', () async {
       // The replacement is a document, and `gsub` reads `%` in a replacement
       // as an escape: "100%" came out mangled, or raised.
-      await writePrompt('{{language}}\n{{text}}');
+      await writePrompt('\${language}\n\${text}');
       final service = PluginCommandService(root.path);
       final action =
           service.start(
@@ -507,10 +507,10 @@ void main() {
       service.dispose();
     }, skip: present ? null : '插件仓库不在这台机器上');
 
-    test('a template that forgets {{text}} still carries the source',
+    test('a template that forgets \${text} still carries the source',
         () async {
       // A prompt with nothing to translate in it is worse than an untidy one.
-      await writePrompt('Translate into {{language}}, carefully.');
+      await writePrompt('Translate into \${language}, carefully.');
       final service = PluginCommandService(root.path);
       final action =
           service.start(

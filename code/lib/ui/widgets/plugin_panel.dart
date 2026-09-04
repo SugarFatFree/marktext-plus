@@ -267,6 +267,21 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
     final l10n = AppLocalizations.of(context)!;
     final installed = ref.watch(installedPluginManifestsProvider);
     final discovery = ref.watch(pluginDiscoveryProvider);
+
+    // Once per launch, the first time the panel is drawn. The side bar
+    // destroys this widget whenever another tab is chosen, so doing it in
+    // initState would be a network request every time the reader glanced at
+    // Files and came back.
+    if (ref.read(pluginDiscoveryProvider.notifier).shouldSearchOnOpen) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (!ref.read(pluginDiscoveryProvider.notifier).shouldSearchOnOpen) {
+          return;
+        }
+        _discover();
+      });
+    }
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(10, 8, 8, 14),
       children: [

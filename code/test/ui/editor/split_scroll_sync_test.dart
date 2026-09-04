@@ -77,6 +77,23 @@ void main() {
     }
   }
 
+  /// Scrolls the source pane, the way a wheel or a drag would.
+  ///
+  /// Driven through the controller rather than by dragging the field: the
+  /// field is as tall as its text and does not scroll — the pane around it
+  /// does, because the room under the last line has to live inside what
+  /// scrolls — and a drag on the field never reaches it.
+  Future<void> scrollSource(WidgetTester tester, double to) async {
+    final scrollable = find.descendant(
+      of: find.byType(SourceEditor),
+      matching: find.byType(Scrollable),
+    );
+    tester.state<ScrollableState>(scrollable.first).position.jumpTo(to);
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+  }
+
   /// Where the preview has scrolled to.
   double previewOffset(WidgetTester tester) {
     final scrollable = find.descendant(
@@ -90,10 +107,7 @@ void main() {
     await show(tester);
     expect(previewOffset(tester), 0, reason: '前提：两边都在顶部');
 
-    await tester.drag(find.byType(EditableText), const Offset(0, -1500));
-    for (var i = 0; i < 10; i++) {
-      await tester.pump(const Duration(milliseconds: 50));
-    }
+    await scrollSource(tester, 1500);
 
     expect(previewOffset(tester), greaterThan(100),
         reason: '滚动了源码区，预览却没有跟着动');
@@ -102,18 +116,22 @@ void main() {
   testWidgets('it lands on the section the reader is looking at',
       (tester) async {
     await show(tester);
-    await tester.drag(find.byType(EditableText), const Offset(0, -1500));
-    for (var i = 0; i < 10; i++) {
-      await tester.pump(const Duration(milliseconds: 50));
-    }
+    await scrollSource(tester, 1500);
 
     // Whichever heading is at the top of the source, the same heading has to
     // be near the top of the preview — not merely "somewhere scrolled".
     final editable =
         tester.state<EditableTextState>(find.byType(EditableText));
-    final field = tester.renderObject<RenderBox>(find.byType(EditableText));
+    // The top of the pane, not of the field: the pane scrolls and the field
+    // stays put at the first line, so asking the field always says line 1.
+    final pane = tester.renderObject<RenderBox>(
+      find.descendant(
+        of: find.byType(SourceEditor),
+        matching: find.byType(Scrollable),
+      ).first,
+    );
     final topOfSource = editable.renderEditable
-        .getPositionForPoint(field.localToGlobal(Offset.zero))
+        .getPositionForPoint(pane.localToGlobal(Offset.zero))
         .offset;
     final line = '\n'.allMatches(source.substring(0, topOfSource)).length;
     // Walk back to the section heading that line belongs to.

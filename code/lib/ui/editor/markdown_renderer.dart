@@ -825,7 +825,14 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
           onSelectionChanged: (content) => ref
               .read(editorProvider.notifier)
               .setSelectedText(content?.plainText ?? ''),
-          child: Center(
+          // Centred inside a maximum width, which is right for a page of
+          // prose and wrong for a caret waiting on an empty document: beside a
+          // source pane that starts hard against the left, an editor floating
+          // in the middle of the pane reads as something else entirely.
+          child: Align(
+            alignment: nodes.isEmpty
+                ? AlignmentDirectional.topStart
+                : Alignment.topCenter,
             child: ConstrainedBox(
               constraints: BoxConstraints(
                 maxWidth: config.editorMaxWidth.toDouble(),

@@ -1288,6 +1288,11 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     // state change per cursor move on top of the position above.
 
     _scrollToTypewriterPosition(line);
+    // The field no longer scrolls itself, so this is the only thing that
+    // keeps the caret on screen while typing past the bottom of the pane.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _showCaret();
+    });
   }
 
   void _scrollToTypewriterPosition(int line) {
@@ -1362,7 +1367,11 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     }
     final editable = _renderEditable();
     if (editable == null) return;
-    final box = _fieldKey.currentContext?.findRenderObject() as RenderBox?;
+    // The top of the *pane*, not of the field: the pane is what scrolls now,
+    // and the field's own top stays at the first line of the document however
+    // far down the reader has gone. Asking the field gave line 1 for ever, so
+    // the preview never moved.
+    final box = _viewportBox();
     if (box == null || !box.hasSize) return;
 
     final top = box.localToGlobal(Offset.zero).dy;
@@ -1395,6 +1404,60 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
   ///
   /// Only the visible ones: a five megabyte document has no business asking
   /// the layout about lines nobody is looking at.
+  /// Puts the caret at the end of the document.
+  ///
+  /// For the blank space under the last line, which in the preview is a place
+  /// to click and start typing.
+  void _caretToEnd() {
+    _fieldFocus.requestFocus();
+    _controller.selection = TextSelection.collapsed(
+      offset: _controller.text.length,
+    );
+  }
+
+  /// Scrolls the caret into view.
+  ///
+  /// The field no longer scrolls itself, so nothing else does this: without
+  /// it, typing past the bottom of the pane leaves the caret somewhere the
+  /// reader cannot see.
+  void _showCaret() {
+    final editable = _renderEditable();
+    final position = _editorScrollController.hasClients
+        ? _editorScrollController.position
+        : null;
+    if (editable == null || position == null) return;
+
+    final caret = editable.getLocalRectForCaret(_controller.selection.base);
+    final top = editable.localToGlobal(Offset(0, caret.top)).dy;
+    final field = _fieldKey.currentContext?.findRenderObject() as RenderBox?;
+    final viewport = _viewportBox();
+    if (field == null || viewport == null) return;
+
+    final viewportTop = viewport.localToGlobal(Offset.zero).dy;
+    final viewportBottom = viewportTop + viewport.size.height;
+    // A line's worth of margin, so the caret is not flush against the edge it
+    // was just scrolled to.
+    final margin = caret.height * 2;
+
+    if (top < viewportTop + margin) {
+      position.jumpTo(
+        (position.pixels - (viewportTop + margin - top))
+            .clamp(0.0, position.maxScrollExtent),
+      );
+    } else if (top + caret.height > viewportBottom - margin) {
+      position.jumpTo(
+        (position.pixels +
+                (top + caret.height - (viewportBottom - margin)))
+            .clamp(0.0, position.maxScrollExtent),
+      );
+    }
+  }
+
+  RenderBox? _viewportBox() {
+    final object = _gutterKey.currentContext?.findRenderObject();
+    return object is RenderBox ? object : null;
+  }
+
   void _updateGutterMarks() {
     final editable = _renderEditable();
     final gutter = _gutterKey.currentContext?.findRenderObject() as RenderBox?;
@@ -2495,7 +2558,11 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
             // which an earlier note here got backwards.
             final room = bottomRoom(MediaQuery.of(context).size.height);
             return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          // Stretch, not start: the gutter and the scrolling pane both want
+          // the full height. With `start` the scroll view took the height of
+          // its contents, so a short document had a 273-pixel viewport in a
+          // 900-pixel pane and nothing scrolled at all.
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Container(
               key: _gutterKey,
@@ -2548,23 +2615,46 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
                     onKeyEvent: _handleKeyEvent,
                     child: DropTarget(
                       onDragDone: _handleImageDrop,
-                      child: TextField(
-                        key: _fieldKey,
-                        focusNode: _fieldFocus,
-                        controller: _controller,
-                        contextMenuBuilder: _buildContextMenu,
-                        scrollController: _editorScrollController,
-                        maxLines: null,
-                        expands: true,
-                        style: editorStyle,
-                        decoration: InputDecoration(
-                          border: InputBorder.none,
-                          contentPadding:
-                              EdgeInsets.fromLTRB(8, 8, 8, 8 + room),
+                      // The pane scrolls, not the field. Bottom padding inside
+                      // an InputDecoration lengthens what can be scrolled and
+                      // shortens the visible box by the same amount, so the
+                      // room ends up as dead white at the bottom of the window
+                      // whatever the reader scrolls to — measured at 659 of
+                      // 900 pixels, against the preview's full 900. The room
+                      // belongs after the last line, inside what scrolls.
+                      child: SingleChildScrollView(
+                        controller: _editorScrollController,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            TextField(
+                              key: _fieldKey,
+                              focusNode: _fieldFocus,
+                              controller: _controller,
+                              contextMenuBuilder: _buildContextMenu,
+                              maxLines: null,
+                              // Neither expands nor scrolls: it is as tall as
+                              // its text, and the pane around it scrolls.
+                              scrollPhysics:
+                                  const NeverScrollableScrollPhysics(),
+                              style: editorStyle,
+                              decoration: const InputDecoration(
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.all(8),
+                              ),
+                              onChanged: (value) {
+                                setState(() {});
+                              },
+                            ),
+                            // Tapping here puts the caret at the end, the way
+                            // tapping under the text does in the preview.
+                            GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: _caretToEnd,
+                              child: SizedBox(height: room),
+                            ),
+                          ],
                         ),
-                        onChanged: (value) {
-                          setState(() {});
-                        },
                       ),
                     ),
                   );
