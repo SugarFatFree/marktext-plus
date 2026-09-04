@@ -18,7 +18,7 @@ void main() {
     for (var level = 0; level < 6; level++) {
       final candidate =
           '${directory.path}/marktext-plus-plugins/marktext-plus-plugin-sdk';
-      if (Directory('$candidate/examples').existsSync()) return candidate;
+      if (Directory('$candidate/packages').existsSync()) return candidate;
       final parent = directory.parent;
       if (parent.path == directory.path) break;
       directory = parent;
@@ -36,7 +36,7 @@ void main() {
   /// not any more, and a test that installs half a plugin proves nothing about
   /// the other half.
   PluginManifest install(Directory root, String example, String script) {
-    final source = Directory('$sdk/examples/$example');
+    final source = Directory('$sdk/packages/$example');
     final manifest = PluginManifest.fromJson(
       jsonDecode(File('${source.path}/manifest.json').readAsStringSync())
           as Map<String, dynamic>,
@@ -136,7 +136,7 @@ void main() {
     // but the id, the name, the runtime and the entrypoint is compared.
     Map<String, dynamic> declared(String runtime) {
       final json = jsonDecode(
-        File('$sdk/examples/$runtime/manifest.json').readAsStringSync(),
+        File('$sdk/packages/$runtime/manifest.json').readAsStringSync(),
       ) as Map<String, dynamic>;
       return {
         for (final entry in json.entries)
@@ -164,7 +164,7 @@ void main() {
   test('the compiled example names an executable for each platform it claims',
       () {
     final manifest = PluginManifest.fromJson(
-      jsonDecode(File('$sdk/examples/dart/manifest.json').readAsStringSync())
+      jsonDecode(File('$sdk/packages/dart/manifest.json').readAsStringSync())
           as Map<String, dynamic>,
     );
 
@@ -184,7 +184,7 @@ void main() {
     final ids = <String>{};
     for (final example in ['lua', 'js', 'dart']) {
       final manifest = PluginManifest.fromJson(
-        jsonDecode(File('$sdk/examples/$example/manifest.json')
+        jsonDecode(File('$sdk/packages/$example/manifest.json')
             .readAsStringSync()) as Map<String, dynamic>,
       );
       ids.add(manifest.id);

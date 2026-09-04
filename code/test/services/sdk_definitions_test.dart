@@ -14,7 +14,7 @@ void main() {
     for (var level = 0; level < 6; level++) {
       final candidate =
           '${directory.path}/marktext-plus-plugins/marktext-plus-plugin-sdk';
-      if (Directory('$candidate/examples').existsSync()) return candidate;
+      if (Directory('$candidate/packages').existsSync()) return candidate;
       final parent = directory.parent;
       if (parent.path == directory.path) break;
       directory = parent;
@@ -63,7 +63,7 @@ void main() {
     // appears in a comment beside its function, so a substring search passes
     // even after the function itself is renamed away.
     final source =
-        File('$sdk/examples/js/lib/marktext-plus.js').readAsStringSync();
+        File('$sdk/packages/js/lib/marktext-plus.js').readAsStringSync();
     final declared = <String>{
       // The keys of module.exports, and the keys of the objects the action
       // constructors return.
@@ -80,7 +80,7 @@ void main() {
 
   test('the Lua module exports every capability and action', () {
     final source =
-        File('$sdk/examples/lua/lib/marktext-plus.lua').readAsStringSync();
+        File('$sdk/packages/lua/lib/marktext-plus.lua').readAsStringSync();
     final declared = <String>{
       ...RegExp(r'M\.(\w+)').allMatches(source).map((m) => m.group(1)!),
       // The action tables the constructors return.
@@ -103,11 +103,11 @@ void main() {
         .toSet();
 
     final lua = exported(
-      '$sdk/examples/lua/lib/marktext-plus.lua',
+      '$sdk/packages/lua/lib/marktext-plus.lua',
       RegExp(r'^function M\.(\w+)|^M\.(\w+) =', multiLine: true),
     );
     final js = exported(
-      '$sdk/examples/js/lib/marktext-plus.js',
+      '$sdk/packages/js/lib/marktext-plus.js',
       RegExp(r'^  (\w+): ', multiLine: true),
     );
 
