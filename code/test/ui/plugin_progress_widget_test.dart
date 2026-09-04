@@ -312,4 +312,46 @@ void main() {
       expect(find.text('la traduction'), findsNothing);
     });
   });
+
+  testWidgets('the question arrives with last time\'s answer filled in', (
+    tester,
+  ) async {
+    late WidgetRef captured;
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: Consumer(
+              builder: (context, ref, _) {
+                captured = ref;
+                return const PluginTipLayer(child: Text('the document'));
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+    captured
+        .read(pluginTipProvider.notifier)
+        .ask(
+          title: 'AI Translate',
+          question: '目标语言',
+          choices: const ['English', '中文', '日本語'],
+          answer: '中文',
+        );
+    await tester.pump();
+
+    final field = tester.widget<TextField>(find.byType(TextField));
+    expect(
+      field.controller!.text,
+      '中文',
+      reason: '上次选的语言应当已经填好，按确定就能重复',
+    );
+    final chip = tester.widget<ChoiceChip>(
+      find.ancestor(of: find.text('中文'), matching: find.byType(ChoiceChip)),
+    );
+    expect(chip.selected, isTrue, reason: '填好的那个也该是选中的');
+  });
 }

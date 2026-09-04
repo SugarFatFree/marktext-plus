@@ -268,13 +268,10 @@ class PluginCommandActions {
             final asked = container.read(pluginTipProvider.notifier).ask(
                   title: plugin.name,
                   question: label,
-                  // What the plugin remembered comes first, so last time's
-                  // answer is one press away and not something to retype.
-                  choices: [
-                    if (defaultValue.isNotEmpty) defaultValue,
-                    for (final choice in choices)
-                      if (choice != defaultValue) choice,
-                  ],
+                  choices: choices,
+                  // Already filled in, not merely offered: it is what the
+                  // reader chose last time, so pressing confirm repeats it.
+                  answer: defaultValue,
                 );
             final answer = await asked.future;
             if (answer == null) return;

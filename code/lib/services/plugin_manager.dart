@@ -294,17 +294,33 @@ class PluginManager {
 /// disk. Inferring it from a leading zero would be a guess: plenty of finished
 /// software is 0.x, and a 1.0.0 pre-release is a thing that happens.
 class PluginSource {
-  const PluginSource({required this.prerelease, required this.tag});
+  const PluginSource({
+    required this.prerelease,
+    required this.tag,
+    this.digest = '',
+  });
 
   final bool prerelease;
 
   /// The release this came from, as its author tagged it.
   final String tag;
 
+  /// The SHA-256 of the archive that was installed.
+  ///
+  /// A pre-release is updated in place — the tag does not move for every
+  /// change to something unsettled — so the version says nothing about whether
+  /// there is anything new. The archive does.
+  final String digest;
+
   factory PluginSource.fromJson(Map<dynamic, dynamic> json) => PluginSource(
         prerelease: json['prerelease'] == true,
         tag: json['tag'] is String ? json['tag'] as String : '',
+        digest: json['digest'] is String ? json['digest'] as String : '',
       );
 
-  Map<String, dynamic> toJson() => {'prerelease': prerelease, 'tag': tag};
+  Map<String, dynamic> toJson() => {
+        'prerelease': prerelease,
+        'tag': tag,
+        if (digest.isNotEmpty) 'digest': digest,
+      };
 }

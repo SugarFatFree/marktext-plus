@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/models/plugin_catalog_entry.dart';
+import 'package:marktext_plus/services/plugin_manager.dart';
 import 'package:marktext_plus/services/plugin_manifest.dart';
 
 /// What the discover list should say about a plugin the reader already has.
@@ -17,12 +18,13 @@ void main() {
     String repo,
     String version, {
     bool prerelease = false,
+    String digest = 'aaaa',
   }) => PluginCatalogEntry(
     id: 'github.example.$repo',
     name: 'Demo',
     version: version,
     downloadUrl: Uri.parse('https://example.test/$repo-$version.zip'),
-    sha256: 'a' * 64,
+    sha256: digest,
     repositoryUrl: Uri.parse('https://github.com/example/$repo'),
     isPrerelease: prerelease,
   );
@@ -119,5 +121,86 @@ void main() {
       PluginInstallState.of(result('a', 'nightly'), [installed('a', 'dev')]),
       PluginInstallState.installed,
     );
+  });
+
+  group('a pre-release updated in place', () {
+    // The tag does not move for every change to something unsettled, so the
+    // version is the same before and after. Comparing versions alone, the
+    // reader is told they already have it and never gets the new one.
+    final installed = [
+      PluginManifest(
+        id: 'com.example.demo',
+        name: 'Demo',
+        version: '0.1.3',
+        entrypoint: 'plugin.lua',
+        runtime: PluginRuntime.lua,
+        repository: 'https://github.com/example/a',
+      ),
+    ];
+
+    test('the same archive is the same plugin', () {
+      expect(
+        PluginInstallState.of(
+          result('a', '0.1.3', digest: 'aaaa'),
+          installed,
+          sources: const {
+            'com.example.demo': PluginSource(
+              prerelease: true,
+              tag: '0.1.3',
+              digest: 'aaaa',
+            ),
+          },
+        ),
+        PluginInstallState.installed,
+      );
+    });
+
+    test('a different archive at the same version is an update', () {
+      expect(
+        PluginInstallState.of(
+          result('a', '0.1.3', digest: 'bbbb'),
+          installed,
+          sources: const {
+            'com.example.demo': PluginSource(
+              prerelease: true,
+              tag: '0.1.3',
+              digest: 'aaaa',
+            ),
+          },
+        ),
+        PluginInstallState.updatable,
+        reason: '内容变了就是有更新，哪怕版本号没动',
+      );
+    });
+
+    test('with nothing recorded, the version is all there is to go on', () {
+      // Installed before the digest was kept, or from a ZIP by hand. Claiming
+      // an update on no evidence would offer one every time the list is drawn.
+      expect(
+        PluginInstallState.of(
+          result('a', '0.1.3', digest: 'bbbb'),
+          installed,
+          sources: const {},
+        ),
+        PluginInstallState.installed,
+      );
+    });
+
+    test('a newer version is an update whatever the archive says', () {
+      expect(
+        PluginInstallState.of(
+          result('a', '0.2.0', digest: 'aaaa'),
+          installed,
+          sources: const {
+            'com.example.demo': PluginSource(
+              prerelease: true,
+              tag: '0.1.3',
+              digest: 'aaaa',
+            ),
+          },
+        ),
+        PluginInstallState.updatable,
+      );
+    });
   });
 }

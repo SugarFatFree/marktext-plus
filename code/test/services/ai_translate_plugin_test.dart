@@ -459,4 +459,102 @@ void main() {
     expect(document.appliesTo(hasSelection: false), isTrue);
     expect(document.appliesTo(hasSelection: true), isFalse);
   }, skip: present ? null : '插件仓库不在这台机器上');
+
+  group('the prompt is the reader\'s to change', () {
+    Future<void> writePrompt(String template) async {
+      final service = PluginCommandService(root.path);
+      await service.writeSettings(manifest, {'prompt': template});
+      service.dispose();
+    }
+
+    test('a template of their own is what gets sent', () async {
+      await writePrompt('把下面的内容翻译成{{language}}：\n\n{{text}}');
+      final service = PluginCommandService(root.path);
+      final action =
+          service.start(
+                manifest,
+                const PluginScriptContext(
+                  command: 'translate.document',
+                  document: 'Hello.',
+                  answer: '中文',
+                  view: 'source',
+                ),
+              )
+              as PluginPaneAction;
+
+      expect(action.nextPrompt, '把下面的内容翻译成中文：\n\nHello.');
+      service.dispose();
+    });
+
+    test('a per-cent sign in the document survives', () async {
+      // The replacement is a document, and `gsub` reads `%` in a replacement
+      // as an escape: "100%" came out mangled, or raised.
+      await writePrompt('{{language}}\n{{text}}');
+      final service = PluginCommandService(root.path);
+      final action =
+          service.start(
+                manifest,
+                const PluginScriptContext(
+                  command: 'translate.document',
+                  document: 'Coverage rose to 100% this week.',
+                  answer: 'English',
+                  view: 'source',
+                ),
+              )
+              as PluginPaneAction;
+
+      expect(action.nextPrompt, contains('100%'));
+      service.dispose();
+    });
+
+    test('a template that forgets {{text}} still carries the source',
+        () async {
+      // A prompt with nothing to translate in it is worse than an untidy one.
+      await writePrompt('Translate into {{language}}, carefully.');
+      final service = PluginCommandService(root.path);
+      final action =
+          service.start(
+                manifest,
+                const PluginScriptContext(
+                  command: 'translate.document',
+                  document: 'Hello.',
+                  answer: 'English',
+                  view: 'source',
+                ),
+              )
+              as PluginPaneAction;
+
+      expect(action.nextPrompt, contains('Hello.'));
+      expect(action.nextPrompt, contains('carefully'));
+      service.dispose();
+    });
+
+    test('with nothing written, the default prompt is used', () async {
+      final service = PluginCommandService(root.path);
+      await service.writeSettings(manifest, {'prompt': ''});
+      final action =
+          service.start(
+                manifest,
+                const PluginScriptContext(
+                  command: 'translate.document',
+                  document: 'Hello.',
+                  answer: 'English',
+                  view: 'source',
+                ),
+              )
+              as PluginPaneAction;
+
+      expect(action.nextPrompt, contains('Markdown'));
+      expect(action.nextPrompt, contains('Hello.'));
+      service.dispose();
+    });
+
+    test('the settings page offers the prompt, not a language nobody uses', () {
+      // The default target language was a field whose value the next question
+      // overwrote; the prompt is a thing only the reader can fix.
+      expect(manifest.settings.map((f) => f.key), ['prompt']);
+      final strings = manifest.stringsFor('zh_CN');
+      expect(strings[manifest.settings.first.title], contains('提示词'));
+    });
+  });
 }

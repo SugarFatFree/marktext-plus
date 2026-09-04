@@ -1,3 +1,4 @@
+import '../services/plugin_manager.dart';
 import '../services/plugin_manifest.dart';
 
 /// One plugin as a catalogue lists it — a search result, or a page for
@@ -134,8 +135,9 @@ enum PluginInstallState {
   /// uninstalled, however many times the reader had installed it.
   static PluginInstallState of(
     PluginCatalogEntry entry,
-    List<PluginManifest> installed,
-  ) {
+    List<PluginManifest> installed, {
+    Map<String, PluginSource> sources = const {},
+  }) {
     final wanted = _repositoryKey(entry.repositoryUrl?.toString());
     final present = installed.where((plugin) {
       if (plugin.id == entry.id) return true;
@@ -143,9 +145,21 @@ enum PluginInstallState {
       return wanted != null && theirs == wanted;
     }).firstOrNull;
     if (present == null) return PluginInstallState.installable;
-    return PluginManifest.compareVersions(entry.version, present.version) > 0
-        ? PluginInstallState.updatable
-        : PluginInstallState.installed;
+    if (PluginManifest.compareVersions(entry.version, present.version) > 0) {
+      return PluginInstallState.updatable;
+    }
+    // A pre-release is updated in place, so the version is the same before and
+    // after and says nothing about whether there is anything new. The archive
+    // does: a different SHA-256 is a different plugin. With nothing recorded —
+    // installed before this was kept, or from a ZIP by hand — the version is
+    // all there is, and claiming an update on no evidence would offer one
+    // every time the list is drawn.
+    final was = sources[present.id]?.digest ?? '';
+    final now = entry.sha256;
+    if (was.isNotEmpty && now.isNotEmpty && was != now) {
+      return PluginInstallState.updatable;
+    }
+    return PluginInstallState.installed;
   }
 
   /// A repository URL reduced to what identifies it.

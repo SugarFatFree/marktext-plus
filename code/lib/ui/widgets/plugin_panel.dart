@@ -11,7 +11,6 @@ import '../../core/i18n/l10n/app_localizations.dart';
 import '../../services/plugin_catalog_service.dart';
 import '../../services/plugin_manager.dart';
 import '../../services/plugin_manifest.dart';
-import '../screens/plugin_settings_screen.dart';
 import '../../providers/plugin_provider.dart';
 import '../../utils/file_reveal.dart';
 
@@ -31,8 +30,12 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
   /// the editor reads — the right-click menu among it — so refreshing a list
   /// held here would have left the menus behind until the next launch, which
   /// is exactly what it did.
-  void _installedChanged() =>
-      ref.invalidate(installedPluginManifestsProvider);
+  void _installedChanged() {
+    ref.invalidate(installedPluginManifestsProvider);
+    // And where they came from: a pre-release updated in place changes the
+    // archive, not the version, so this is what tells the list it moved.
+    ref.invalidate(installedPluginSourcesProvider);
+  }
 
   Future<PluginManager> _manager() => _managerFuture ??=
       getApplicationSupportDirectory().then(
@@ -89,18 +92,8 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
     if (selected == 'folder') await _openFolder(plugin);
   }
 
-  Future<void> _openSettings(PluginManifest plugin) async {
-    final manager = await _manager();
-    if (!mounted) return;
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => PluginSettingsScreen(
-          plugin: plugin,
-          installDirectory: manager.installDirectory,
-        ),
-      ),
-    );
-  }
+  void _openSettings(PluginManifest plugin) =>
+      openPluginSettingsTab(ref, plugin);
 
   Future<void> _discover() async {
     final discovery = ref.read(pluginDiscoveryProvider.notifier);
@@ -152,6 +145,10 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
     final state = PluginInstallState.of(
       plugin,
       installed.valueOrNull ?? const <PluginManifest>[],
+      // A pre-release is updated in place, so the archive is what says whether
+      // there is anything new.
+      sources: ref.watch(installedPluginSourcesProvider).valueOrNull ??
+          const <String, PluginSource>{},
     );
     return switch (state) {
       PluginInstallState.installed => Padding(

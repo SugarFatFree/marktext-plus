@@ -247,7 +247,11 @@ class PluginCatalogService {
       // release — so it is written down here, at the one moment it is known.
       await manager.recordSource(
         manifest.id,
-        PluginSource(prerelease: entry.isPrerelease, tag: entry.version),
+        PluginSource(
+          prerelease: entry.isPrerelease,
+          tag: entry.version,
+          digest: entry.sha256,
+        ),
       );
       return manifest;
     } finally {

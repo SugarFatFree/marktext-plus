@@ -44,7 +44,10 @@ class _PluginDetailViewState extends ConsumerState<PluginDetailView> {
       );
       // What is installed changed, so every place that says so — this page
       // and the discover list behind it — has to be asked again.
-      if (mounted) ref.invalidate(installedPluginManifestsProvider);
+      if (mounted) {
+        ref.invalidate(installedPluginManifestsProvider);
+        ref.invalidate(installedPluginSourcesProvider);
+      }
     } catch (error) {
       if (mounted) setState(() => _error = error);
     } finally {
@@ -63,6 +66,8 @@ class _PluginDetailViewState extends ConsumerState<PluginDetailView> {
       widget.plugin,
       ref.watch(installedPluginManifestsProvider).valueOrNull ??
           const <PluginManifest>[],
+      sources: ref.watch(installedPluginSourcesProvider).valueOrNull ??
+          const <String, PluginSource>{},
     );
     final installed = state == PluginInstallState.installed;
     return OutlinedButton.icon(

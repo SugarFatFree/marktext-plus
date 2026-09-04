@@ -51,9 +51,13 @@ void main() {
           GlobalCupertinoLocalizations.delegate,
         ],
         supportedLocales: AppLocalizations.supportedLocales,
-        home: PluginSettingsScreen(
-          plugin: manifest,
-          installDirectory: root.path,
+        // The page is a tab now, so it draws no Scaffold of its own — the
+        // editor area it sits in has one.
+        home: Scaffold(
+          body: PluginSettingsScreen(
+            plugin: manifest,
+            installDirectory: root.path,
+          ),
         ),
       ),
     ));

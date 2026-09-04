@@ -1,5 +1,6 @@
 import '../core/config/app_config.dart';
 import 'file_encoding.dart';
+import '../services/plugin_manifest.dart';
 import 'plugin_catalog_entry.dart';
 import 'line_ending.dart';
 
@@ -61,6 +62,7 @@ class TabInfo {
     this.diskStamp,
     this.diskConflict = false,
     this.pluginDetail,
+    this.pluginSettings,
   });
 
   /// A tab showing a plugin's page rather than a document.
@@ -76,8 +78,22 @@ class TabInfo {
   /// The plugin whose page this tab shows, or null for a document.
   final PluginCatalogEntry? pluginDetail;
 
+  /// The plugin whose settings this tab shows, or null for anything else.
+  final PluginManifest? pluginSettings;
+
   /// Whether this tab shows a plugin page instead of a document.
-  bool get isPluginDetail => pluginDetail != null;
+  bool get isPluginDetail => pluginDetail != null || pluginSettings != null;
+
+  /// A tab holding a plugin's own settings.
+  ///
+  /// A page with fields to fill in and a save button is something the reader
+  /// keeps open while they work out what to put in it — which is a tab, not a
+  /// screen pushed over everything with the document hidden behind it.
+  factory TabInfo.pluginSettings(PluginManifest plugin) => TabInfo(
+        id: 'plugin-settings:${plugin.id}',
+        fileName: plugin.name,
+        pluginSettings: plugin,
+      );
 
   /// What the file looked like when it was last read or written.
   ///
@@ -113,6 +129,7 @@ class TabInfo {
     bool? diskConflict,
     bool clearDiskStamp = false,
     PluginCatalogEntry? pluginDetail,
+    PluginManifest? pluginSettings,
   }) {
     return TabInfo(
       id: id,
@@ -135,6 +152,7 @@ class TabInfo {
       diskStamp: clearDiskStamp ? null : (diskStamp ?? this.diskStamp),
       diskConflict: diskConflict ?? this.diskConflict,
       pluginDetail: pluginDetail ?? this.pluginDetail,
+      pluginSettings: pluginSettings ?? this.pluginSettings,
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/models/plugin_catalog_entry.dart';
 import 'package:marktext_plus/models/tab_info.dart';
+import 'package:marktext_plus/services/plugin_manifest.dart';
 
 /// A plugin page is something the editor has open, so it is a tab.
 ///
@@ -62,5 +63,39 @@ void main() {
       TabInfo.pluginDetail(entry).pluginDetail?.id,
       TabInfo.pluginDetail(entry).pluginDetail?.id,
     );
+  });
+
+  group('a plugin\'s settings are a tab too', () {
+    const manifest = PluginManifest(
+      id: 'com.example.demo',
+      name: 'Demo',
+      version: '1.0.0',
+      entrypoint: 'plugin.lua',
+      runtime: PluginRuntime.lua,
+    );
+
+    test('the tab holds the plugin whose settings it shows', () {
+      final tab = TabInfo.pluginSettings(manifest);
+      expect(tab.pluginSettings?.id, 'com.example.demo');
+      expect(tab.isPluginDetail, isTrue);
+    });
+
+    test('it has no file path, so nothing tries to save it', () {
+      expect(TabInfo.pluginSettings(manifest).filePath, isNull);
+    });
+
+    test('settings and the detail page are different tabs', () {
+      // Opening the settings should not replace the page, or the other way
+      // round: they are two things to have open.
+      expect(
+        TabInfo.pluginSettings(manifest).id,
+        isNot(TabInfo.pluginDetail(entry).id),
+      );
+    });
+
+    test('copyWith keeps them', () {
+      final tab = TabInfo.pluginSettings(manifest).copyWith(fileName: 'x');
+      expect(tab.pluginSettings?.id, 'com.example.demo');
+    });
   });
 }

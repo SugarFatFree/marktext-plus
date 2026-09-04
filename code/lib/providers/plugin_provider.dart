@@ -35,6 +35,24 @@ final installedPluginSourcesProvider =
 /// was open stayed the active tab, stayed highlighted in the tab bar, and had
 /// a plugin page drawn over it. A page the editor has open is a tab, like
 /// everything else it has open.
+/// The directory installed plugins live in.
+final pluginInstallDirectoryProvider = FutureProvider<String>((ref) async {
+  final directory = await getApplicationSupportDirectory();
+  return p.join(directory.path, 'plugins');
+});
+
+/// Opens a plugin's settings as a tab, or returns to the one already open.
+void openPluginSettingsTab(WidgetRef ref, PluginManifest plugin) {
+  final tab = TabInfo.pluginSettings(plugin);
+  final tabs = ref.read(tabProvider);
+  final already = tabs.tabs.where((open) => open.id == tab.id).firstOrNull;
+  if (already != null) {
+    ref.read(tabProvider.notifier).setActiveTab(already.id);
+    return;
+  }
+  ref.read(tabProvider.notifier).addTab(tab);
+}
+
 void openPluginDetailTab(WidgetRef ref, PluginCatalogEntry plugin) {
   final tab = TabInfo.pluginDetail(plugin);
   final tabs = ref.read(tabProvider);
@@ -265,6 +283,7 @@ class PluginTip {
     this.question,
     this.answer,
     this.choices = const <String>[],
+    this.suggested = '',
   });
 
   final String title;
@@ -286,6 +305,12 @@ class PluginTip {
   /// Answers the plugin offered outright, shown as chips.
   final List<String> choices;
 
+  /// What the plugin remembered from last time, already filled in.
+  ///
+  /// Offering it as one chip among many still asks the reader to pick the same
+  /// answer every time; it is what they chose, so it is what the box says.
+  final String suggested;
+
   bool get asking => question != null;
   final bool busy;
 }
@@ -306,17 +331,19 @@ class PluginTipNotifier extends StateNotifier<PluginTip?> {
     required String title,
     required String question,
     required List<String> choices,
+    String answer = '',
   }) {
-    final answer = Completer<String?>();
+    final completer = Completer<String?>();
     state = PluginTip(
       title: title,
       text: '',
       busy: false,
       question: question,
-      answer: answer,
+      answer: completer,
       choices: choices,
+      suggested: answer,
     );
-    return answer;
+    return completer;
   }
 
   void dismiss() {

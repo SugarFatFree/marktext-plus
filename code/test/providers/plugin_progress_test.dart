@@ -190,4 +190,31 @@ void main() {
       expect(container.read(pluginTipProvider)?.asking, isTrue);
     });
   });
+
+  group('the question remembers last time', () {
+    test('the answer a plugin remembered is the one already filled in', () {
+      // The plugin keeps the reader's last choice; offering it as one chip
+      // among many still asks them to pick it again every single time.
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(pluginTipProvider.notifier).ask(
+        title: 'Demo',
+        question: 'Target language',
+        choices: const ['English', '中文', '日本語'],
+        answer: '中文',
+      );
+      expect(container.read(pluginTipProvider)!.suggested, '中文');
+    });
+
+    test('with nothing remembered, nothing is filled in', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(pluginTipProvider.notifier).ask(
+        title: 'Demo',
+        question: 'Target language',
+        choices: const ['English'],
+      );
+      expect(container.read(pluginTipProvider)!.suggested, isEmpty);
+    });
+  });
 }

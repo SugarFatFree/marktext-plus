@@ -25,6 +25,7 @@ import '../../core/constants.dart';
 import '../../utils/platform_utils.dart';
 import '../widgets/app_menu_bar.dart';
 import '../widgets/side_bar.dart';
+import '../screens/plugin_settings_screen.dart';
 import '../widgets/plugin_panes.dart';
 import '../widgets/plugin_tip.dart';
 import '../widgets/right_side_bar.dart';
@@ -898,6 +899,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
     // document it covered still active and still highlighted in the tab bar.
     if (activeTab?.pluginDetail case final plugin?) {
       return PluginDetailView(plugin: plugin);
+    }
+    if (activeTab?.pluginSettings case final plugin?) {
+      return PluginSettingsScreen(plugin: plugin);
     }
     if (activeTab == null) {
       final l10n = AppLocalizations.of(context)!;

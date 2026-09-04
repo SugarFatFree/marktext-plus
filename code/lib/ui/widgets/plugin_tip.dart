@@ -117,7 +117,9 @@ class PluginTipCard extends ConsumerStatefulWidget {
 }
 
 class _PluginTipCardState extends ConsumerState<PluginTipCard> {
-  late final TextEditingController _controller = TextEditingController();
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.tip.suggested,
+  );
 
   @override
   void dispose() {
