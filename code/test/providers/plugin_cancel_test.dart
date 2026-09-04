@@ -22,11 +22,11 @@ void main() {
 
   test('a closed pane is gone, and a run can see that it is', () {
     final panes = PluginPanesNotifier();
-    panes.show(pane('first'));
-    expect(panes.state.containsKey(PluginPaneSlot.right), isTrue);
-    panes.close(PluginPaneSlot.right);
+    panes.show('tab-a', pane('first'));
+    expect(panes.forTab('tab-a').containsKey(PluginPaneSlot.right), isTrue);
+    panes.close('tab-a', PluginPaneSlot.right);
     expect(
-      panes.state.containsKey(PluginPaneSlot.right),
+      panes.forTab('tab-a').containsKey(PluginPaneSlot.right),
       isFalse,
       reason: 'the check a run makes before appending is this one',
     );
@@ -79,6 +79,6 @@ void main() {
     // Would throw if this were a WidgetRef belonging to the widget above.
     container.read(pluginTipProvider.notifier).working('Demo');
     expect(container.read(pluginTipProvider)?.busy, isTrue);
-    container.read(pluginPanesProvider.notifier).settle();
+    container.read(pluginPanesProvider.notifier).settle('tab-a');
   });
 }

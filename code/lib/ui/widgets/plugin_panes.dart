@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/i18n/l10n/app_localizations.dart';
 import '../../providers/plugin_provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../providers/tab_provider.dart';
 import '../editor/markdown_renderer.dart';
 import '../../services/plugin_script_runtime.dart';
 
@@ -46,7 +47,19 @@ class _PluginPanesState extends ConsumerState<PluginPanes> {
 
   @override
   Widget build(BuildContext context) {
-    final panes = ref.watch(pluginPanesProvider);
+    // Only this tab's. A pane belongs to the document it was opened beside;
+    // showing every tab's would put a translation of one file next to another.
+    final tabs = ref.watch(tabProvider);
+    final tabId = tabs.activeTabId ?? '';
+    final panes = ref.watch(pluginPanesProvider)[tabId] ??
+        const <PluginPaneSlot, PluginPaneContent>{};
+
+    // A tab that has been closed keeps nothing.
+    ref.listen(tabProvider, (_, next) {
+      ref.read(pluginPanesProvider.notifier).retain(
+            next.tabs.map((tab) => tab.id).toSet(),
+          );
+    });
     // In the order slots are declared, so the shape of the grid is settled by
     // how many panes there are and stays put as more arrive.
     final filled = [
@@ -253,7 +266,8 @@ class PluginPaneView extends ConsumerWidget {
                 visualDensity: VisualDensity.compact,
                 onPressed: () => ref
                     .read(pluginPanesProvider.notifier)
-                    .close(content.slot),
+                    .close(ref.read(tabProvider).activeTabId ?? '',
+                        content.slot),
               ),
             ],
           ),

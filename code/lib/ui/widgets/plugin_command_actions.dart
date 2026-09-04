@@ -230,6 +230,13 @@ class PluginCommandActions {
       locale: locale,
     );
 
+    // The tab this run belongs to, captured before anything can await: the
+    // reader may switch tabs while a model is thinking, and the translation
+    // belongs beside the document it was asked for, not beside whatever is on
+    // screen when it comes back.
+    final tabs = container.read(tabProvider);
+    final tabId = tabs.activeTabId ?? '';
+
     var context = PluginScriptContext(
       command: command,
       selection: selection,
@@ -309,10 +316,10 @@ class PluginCommandActions {
             // pane they closed would put it straight back, one block at a
             // time, with no way to be rid of it.
             if (append &&
-                !container.read(pluginPanesProvider).containsKey(slot)) {
+                !panes.forTab(tabId).containsKey(slot)) {
               return;
             }
-            append ? panes.append(content) : panes.show(content);
+            append ? panes.append(tabId, content) : panes.show(tabId, content);
             if (nextPrompt == null) return;
             // More to do, and the reader can already see what is done — so no
             // dialog over the top of it. This is what lets a plugin work
@@ -330,6 +337,7 @@ class PluginCommandActions {
             // had three places to put a result and the reader had no way to
             // tell which one a plugin would use.
             container.read(pluginPanesProvider.notifier).show(
+                  tabId,
                   PluginPaneContent(
                     pluginName: plugin.name,
                     title: title,
@@ -380,7 +388,7 @@ class PluginCommandActions {
       // is still coming. A pane left spinning over half a translation, or a
       // tip left saying "working", would both be the editor saying something
       // untrue about itself.
-      container.read(pluginPanesProvider.notifier).settle();
+      container.read(pluginPanesProvider.notifier).settle(tabId);
       container.read(pluginTipProvider.notifier).dismissIfWaiting();
       await service.flush(plugin);
       service.dispose();

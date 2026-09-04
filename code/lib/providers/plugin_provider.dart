@@ -156,52 +156,100 @@ class PluginPaneContent {
 /// split offered to plugins. The document keeps the first cell of a two by two
 /// grid, and a plugin may fill the other three — no more, because a fifth pane
 /// would have nowhere to go that is not already somewhere.
-class PluginPanesNotifier extends StateNotifier<Map<PluginPaneSlot, PluginPaneContent>> {
+class PluginPanesNotifier
+    extends StateNotifier<Map<String, Map<PluginPaneSlot, PluginPaneContent>>> {
   PluginPanesNotifier() : super(const {});
 
-  void show(PluginPaneContent content) =>
-      state = {...state, content.slot: content};
+  /// The panes open in [tabId], which is empty for a tab that has none.
+  Map<PluginPaneSlot, PluginPaneContent> forTab(String tabId) =>
+      state[tabId] ?? const {};
+
+  void show(String tabId, PluginPaneContent content) {
+    // A pane with no tab to belong to has nowhere to be drawn, and would
+    // otherwise sit in the map waiting to appear beside an unrelated document.
+    if (tabId.isEmpty) return;
+    state = {
+      ...state,
+      tabId: {...forTab(tabId), content.slot: content},
+    };
+  }
 
   /// Adds to what a pane holds, so a plugin can show its work as it arrives
   /// rather than only when it is finished.
-  void append(PluginPaneContent content) {
-    final existing = state[content.slot];
+  void append(String tabId, PluginPaneContent content) {
+    if (tabId.isEmpty) return;
+    final existing = forTab(tabId)[content.slot];
     if (existing == null) {
-      show(content);
+      show(tabId, content);
       return;
     }
     // The arriving block carries the newer answer to "is there more", so it
     // is `content` that is kept and the text that is merged into it. Keeping
     // the pane already on screen would leave it working forever, because the
     // block that ends a run is the one that says the run ended.
-    state = {
-      ...state,
-      content.slot: content.withText(
+    show(
+      tabId,
+      content.withText(
         existing.text.isEmpty
             ? content.text
             : '${existing.text}\n\n${content.text}',
       ),
+    );
+  }
+
+  void close(String tabId, PluginPaneSlot slot) {
+    final remaining = {
+      for (final entry in forTab(tabId).entries)
+        if (entry.key != slot) entry.key: entry.value,
+    };
+    state = {
+      for (final tab in state.entries)
+        if (tab.key != tabId) tab.key: tab.value,
+      if (remaining.isNotEmpty) tabId: remaining,
     };
   }
 
-  /// Stops every pane saying it is still working.
+  /// Stops every pane in [tabId] saying it is still working.
   ///
   /// Called when a run ends for any reason — including one that threw, which
   /// would otherwise leave a pane spinning over half a translation with
-  /// nothing coming.
-  void settle() => state = {
-        for (final entry in state.entries)
+  /// nothing coming. Only that tab: another tab may still be translating.
+  void settle(String tabId) {
+    final panes = forTab(tabId);
+    if (panes.isEmpty) return;
+    state = {
+      ...state,
+      tabId: {
+        for (final entry in panes.entries)
           entry.key: entry.value.busy ? entry.value.settled() : entry.value,
-      };
+      },
+    };
+  }
 
-  void close(PluginPaneSlot slot) =>
-      state = {for (final e in state.entries) if (e.key != slot) e.key: e.value};
+  /// Drops the panes of every tab that is no longer open.
+  ///
+  /// A pane belongs to its tab, so closing the tab closes the pane with it.
+  void retain(Set<String> tabIds) {
+    if (state.keys.every(tabIds.contains)) return;
+    state = {
+      for (final tab in state.entries)
+        if (tabIds.contains(tab.key)) tab.key: tab.value,
+    };
+  }
 
   void closeAll() => state = const {};
 }
 
+/// The panes plugins have open, by tab and then by slot.
+///
+/// Keyed by tab because a pane belongs to the document it was opened beside:
+/// one map for the whole editor meant a translation stayed on screen when the
+/// reader switched tabs, which is not a pane in a tab but a window in the
+/// application.
 final pluginPanesProvider = StateNotifierProvider<PluginPanesNotifier,
-    Map<PluginPaneSlot, PluginPaneContent>>((ref) => PluginPanesNotifier());
+    Map<String, Map<PluginPaneSlot, PluginPaneContent>>>(
+  (ref) => PluginPanesNotifier(),
+);
 
 
 /// One short answer from a plugin, shown beside the text rather than over it.

@@ -1,8 +1,15 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/core/i18n/l10n/app_localizations.dart';
+import 'package:marktext_plus/core/config/app_config.dart';
+import 'package:marktext_plus/core/config/config_service.dart';
+import 'package:marktext_plus/models/tab_info.dart';
 import 'package:marktext_plus/providers/plugin_provider.dart';
+import 'package:marktext_plus/providers/settings_provider.dart';
+import 'package:marktext_plus/providers/tab_provider.dart';
 import 'package:marktext_plus/services/plugin_script_runtime.dart';
 import 'package:marktext_plus/ui/widgets/plugin_panes.dart';
 
@@ -17,22 +24,54 @@ import 'package:marktext_plus/ui/widgets/plugin_panes.dart';
 /// 240-pixel band along the bottom — so a translation of a document got a
 /// sliver next to the document it translated, and no two cells matched.
 void main() {
-  Widget host(Map<PluginPaneSlot, PluginPaneContent> panes) => ProviderScope(
-    overrides: [
-      pluginPanesProvider.overrideWith((ref) {
-        final notifier = PluginPanesNotifier();
-        for (final content in panes.values) {
-          notifier.show(content);
-        }
-        return notifier;
-      }),
-    ],
-    child: MaterialApp(
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      home: const Scaffold(body: PluginPanes(document: Text('the document'))),
-    ),
-  );
+  late Directory configDir;
+
+  setUp(() {
+    configDir = Directory.systemTemp.createTempSync('grid_cfg_');
+  });
+
+  tearDown(() {
+    if (configDir.existsSync()) configDir.deleteSync(recursive: true);
+  });
+
+  /// The grid with a tab open, because a pane belongs to one: with no active
+  /// tab there is no document to put a pane beside, and nothing is drawn.
+  Future<void> pump(
+    WidgetTester tester,
+    Map<PluginPaneSlot, PluginPaneContent> panes,
+  ) async {
+    final container = ProviderContainer(
+      overrides: [
+        settingsProvider.overrideWith(
+          (ref) => SettingsNotifier(
+            ConfigService(configDir: configDir.path),
+            AppConfig(),
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    container
+        .read(tabProvider.notifier)
+        .addTab(TabInfo(id: 'tab-a', fileName: 'note.md'));
+    for (final content in panes.values) {
+      container.read(pluginPanesProvider.notifier).show('tab-a', content);
+    }
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const Scaffold(
+            body: PluginPanes(document: Text('the document')),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+  }
 
   PluginPaneContent content(PluginPaneSlot slot, String text) =>
       PluginPaneContent(
@@ -52,16 +91,16 @@ void main() {
   testWidgets('one cell: with no panes there is no grid at all', (
     tester,
   ) async {
-    await tester.pumpWidget(host(const {}));
+    await pump(tester, (const {}));
     await tester.pump();
     expect(find.text('the document'), findsOneWidget);
     expect(find.byType(PluginPaneView), findsNothing);
   });
 
   testWidgets('two cells: side by side, half each', (tester) async {
-    await tester.pumpWidget(
-      host({PluginPaneSlot.right: content(PluginPaneSlot.right, 'beside')}),
-    );
+    await pump(tester, ({
+      PluginPaneSlot.right: content(PluginPaneSlot.right, 'beside'),
+    }));
     await tester.pump();
 
     final whole = tester.getRect(find.byType(PluginPanes));
@@ -81,9 +120,9 @@ void main() {
   testWidgets('two cells, whichever slot the plugin chose', (tester) async {
     // The slot says which pane is which, not where it lands. Filling only the
     // corner used to leave two empty cells to get there.
-    await tester.pumpWidget(
-      host({PluginPaneSlot.corner: content(PluginPaneSlot.corner, 'alone')}),
-    );
+    await pump(tester, ({
+      PluginPaneSlot.corner: content(PluginPaneSlot.corner, 'alone'),
+    }));
     await tester.pump();
 
     final whole = tester.getRect(find.byType(PluginPanes));
@@ -95,12 +134,10 @@ void main() {
   testWidgets('three cells: the top half split, the bottom half whole', (
     tester,
   ) async {
-    await tester.pumpWidget(
-      host({
-        PluginPaneSlot.right: content(PluginPaneSlot.right, 'top right'),
-        PluginPaneSlot.bottom: content(PluginPaneSlot.bottom, 'all the bottom'),
-      }),
-    );
+    await pump(tester, ({
+      PluginPaneSlot.right: content(PluginPaneSlot.right, 'top right'),
+      PluginPaneSlot.bottom: content(PluginPaneSlot.bottom, 'all the bottom'),
+    }));
     await tester.pump();
 
     final whole = tester.getRect(find.byType(PluginPanes));
@@ -120,13 +157,11 @@ void main() {
   testWidgets('four cells: both halves split, all four the same', (
     tester,
   ) async {
-    await tester.pumpWidget(
-      host({
-        PluginPaneSlot.right: content(PluginPaneSlot.right, 'top right'),
-        PluginPaneSlot.bottom: content(PluginPaneSlot.bottom, 'bottom left'),
-        PluginPaneSlot.corner: content(PluginPaneSlot.corner, 'bottom right'),
-      }),
-    );
+    await pump(tester, ({
+      PluginPaneSlot.right: content(PluginPaneSlot.right, 'top right'),
+      PluginPaneSlot.bottom: content(PluginPaneSlot.bottom, 'bottom left'),
+      PluginPaneSlot.corner: content(PluginPaneSlot.corner, 'bottom right'),
+    }));
     await tester.pump();
 
     final whole = tester.getRect(find.byType(PluginPanes));
@@ -144,9 +179,9 @@ void main() {
   });
 
   testWidgets('the divider between the columns can be dragged', (tester) async {
-    await tester.pumpWidget(
-      host({PluginPaneSlot.right: content(PluginPaneSlot.right, 'beside')}),
-    );
+    await pump(tester, ({
+      PluginPaneSlot.right: content(PluginPaneSlot.right, 'beside'),
+    }));
     await tester.pump();
 
     final before = tester.getRect(find.byType(PluginPaneView)).width;
@@ -164,12 +199,10 @@ void main() {
   });
 
   testWidgets('the divider between the rows can be dragged', (tester) async {
-    await tester.pumpWidget(
-      host({
-        PluginPaneSlot.right: content(PluginPaneSlot.right, 'top right'),
-        PluginPaneSlot.bottom: content(PluginPaneSlot.bottom, 'below'),
-      }),
-    );
+    await pump(tester, ({
+      PluginPaneSlot.right: content(PluginPaneSlot.right, 'top right'),
+      PluginPaneSlot.bottom: content(PluginPaneSlot.bottom, 'below'),
+    }));
     await tester.pump();
 
     final before = cellFor(tester, 'below').height;

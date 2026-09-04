@@ -32,33 +32,33 @@ void main() {
       // The last block arrives with nothing left to do. If append kept the
       // state of the pane already on screen, the spinner would never stop.
       final panes = PluginPanesNotifier();
-      panes.show(pane('first', busy: true));
-      panes.append(pane('second'));
-      final content = panes.state[PluginPaneSlot.right]!;
+      panes.show('tab-a', pane('first', busy: true));
+      panes.append('tab-a', pane('second'));
+      final content = panes.forTab('tab-a')[PluginPaneSlot.right]!;
       expect(content.text, 'first\n\nsecond');
       expect(content.busy, isFalse, reason: 'the last block finished the run');
     });
 
     test('appending while more is coming stays working', () {
       final panes = PluginPanesNotifier();
-      panes.show(pane('first', busy: true));
-      panes.append(pane('second', busy: true));
-      expect(panes.state[PluginPaneSlot.right]!.busy, isTrue);
+      panes.show('tab-a', pane('first', busy: true));
+      panes.append('tab-a', pane('second', busy: true));
+      expect(panes.forTab('tab-a')[PluginPaneSlot.right]!.busy, isTrue);
     });
 
     test('a pane can be told the run ended even if nothing arrived', () {
       // A model call that throws must not leave a pane spinning forever.
       final panes = PluginPanesNotifier();
-      panes.show(pane('', busy: true));
-      panes.settle();
-      expect(panes.state[PluginPaneSlot.right]!.busy, isFalse);
+      panes.show('tab-a', pane('', busy: true));
+      panes.settle('tab-a');
+      expect(panes.forTab('tab-a')[PluginPaneSlot.right]!.busy, isFalse);
     });
 
     test('settling a pane does not disturb its text', () {
       final panes = PluginPanesNotifier();
-      panes.show(pane('half a translation', busy: true));
-      panes.settle();
-      expect(panes.state[PluginPaneSlot.right]!.text, 'half a translation');
+      panes.show('tab-a', pane('half a translation', busy: true));
+      panes.settle('tab-a');
+      expect(panes.forTab('tab-a')[PluginPaneSlot.right]!.text, 'half a translation');
     });
   });
 

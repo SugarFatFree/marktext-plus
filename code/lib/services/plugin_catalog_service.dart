@@ -80,6 +80,42 @@ class PluginCatalogService {
   /// adding `marktext-plus-plugin`. Repositories without a latest release, a
   /// ZIP asset, or GitHub's SHA-256 asset digest are listed nowhere as
   /// installable, because discovery and installation trust are separate.
+  /// What went wrong, in terms the reader can act on.
+  ///
+  /// GitHub allows ten unauthenticated searches a minute, and pressing the
+  /// button a few times in a row reaches that. "returned 403" reads as the
+  /// plugin list being broken, which sends the reader looking for a fault that
+  /// is not there; it is a wait.
+  static String describeFailure({
+    required int status,
+    required String? remaining,
+    required DateTime? resetAt,
+  }) {
+    final limited = status == HttpStatus.forbidden || status == 429;
+    if (!limited || remaining != '0') {
+      return 'GitHub topic search returned $status';
+    }
+    final seconds = resetAt?.difference(DateTime.now()).inSeconds;
+    return seconds == null || seconds <= 0
+        ? 'GitHub is rate-limiting searches from this machine; '
+            'try again in a minute.'
+        : 'GitHub is rate-limiting searches from this machine; '
+            'try again in $seconds seconds.';
+  }
+
+  static String _describeFailure(HttpClientResponse response) {
+    final resets = int.tryParse(
+      response.headers.value('x-ratelimit-reset') ?? '',
+    );
+    return describeFailure(
+      status: response.statusCode,
+      remaining: response.headers.value('x-ratelimit-remaining'),
+      resetAt: resets == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(resets * 1000),
+    );
+  }
+
   Future<List<PluginCatalogEntry>> searchGitHubTopic({
     int perPage = 30,
   }) async {
@@ -93,7 +129,7 @@ class PluginCatalogService {
       request.headers.set(HttpHeaders.acceptHeader, 'application/vnd.github+json');
       final response = await request.close();
       if (response.statusCode != HttpStatus.ok) {
-        throw HttpException('GitHub topic search returned ${response.statusCode}');
+        throw HttpException(_describeFailure(response));
       }
       final payload = jsonDecode(await utf8.decoder.bind(response).join());
       if (payload is! Map || payload['items'] is! List) {
@@ -146,6 +182,7 @@ class PluginCatalogService {
               publishedAt: DateTime.tryParse(
                 (release['published_at'] as String?) ?? '',
               )?.toUtc(),
+              isPrerelease: release['prerelease'] == true,
             ),
           );
           break;

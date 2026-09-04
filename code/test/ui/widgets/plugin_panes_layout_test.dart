@@ -1,7 +1,14 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:marktext_plus/core/config/app_config.dart';
+import 'package:marktext_plus/core/config/config_service.dart';
+import 'package:marktext_plus/models/tab_info.dart';
 import 'package:marktext_plus/providers/plugin_provider.dart';
+import 'package:marktext_plus/providers/settings_provider.dart';
+import 'package:marktext_plus/providers/tab_provider.dart';
 import 'package:marktext_plus/services/plugin_script_runtime.dart';
 import 'package:marktext_plus/ui/widgets/plugin_panes.dart';
 
@@ -11,6 +18,16 @@ import 'package:marktext_plus/ui/widgets/plugin_panes.dart';
 /// drawn for a slot no plugin asked for — an empty pane is a strip of nothing
 /// taking space from the document.
 void main() {
+  late Directory configDir;
+
+  setUp(() {
+    configDir = Directory.systemTemp.createTempSync('panes_cfg_');
+  });
+
+  tearDown(() {
+    if (configDir.existsSync()) configDir.deleteSync(recursive: true);
+  });
+
   Future<void> pump(
     WidgetTester tester,
     ProviderContainer container,
@@ -35,11 +52,26 @@ void main() {
 
   Size area(WidgetTester tester) => tester.getSize(find.byKey(const Key('area')));
 
+  /// A container with a tab open and the given panes in it.
+  ///
+  /// The tab matters: a pane belongs to the document it was opened beside, so
+  /// with no active tab there is nothing to draw one next to.
   ProviderContainer withPanes(Map<PluginPaneSlot, String> panes) {
-    final container = ProviderContainer();
+    final container = ProviderContainer(overrides: [
+      settingsProvider.overrideWith(
+        (ref) => SettingsNotifier(
+          ConfigService(configDir: configDir.path),
+          AppConfig(),
+        ),
+      ),
+    ]);
     addTearDown(container.dispose);
+    container
+        .read(tabProvider.notifier)
+        .addTab(TabInfo(id: 'tab-a', fileName: 'note.md'));
     for (final entry in panes.entries) {
       container.read(pluginPanesProvider.notifier).show(
+            'tab-a',
             PluginPaneContent(
               pluginName: 'Demo',
               title: entry.key.name,
@@ -117,7 +149,7 @@ void main() {
     final container = withPanes({PluginPaneSlot.right: 'r'});
     await pump(tester, container);
 
-    container.read(pluginPanesProvider.notifier).close(PluginPaneSlot.right);
+    container.read(pluginPanesProvider.notifier).close('tab-a', PluginPaneSlot.right);
     await tester.pump();
 
     expect(find.byType(PluginPaneView), findsNothing);

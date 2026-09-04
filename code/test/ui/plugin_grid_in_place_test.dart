@@ -1,8 +1,15 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/core/i18n/l10n/app_localizations.dart';
+import 'package:marktext_plus/core/config/app_config.dart';
+import 'package:marktext_plus/core/config/config_service.dart';
+import 'package:marktext_plus/models/tab_info.dart';
 import 'package:marktext_plus/providers/plugin_provider.dart';
+import 'package:marktext_plus/providers/settings_provider.dart';
+import 'package:marktext_plus/providers/tab_provider.dart';
 import 'package:marktext_plus/services/plugin_script_runtime.dart';
 import 'package:marktext_plus/ui/widgets/plugin_panes.dart';
 import 'package:marktext_plus/ui/widgets/plugin_tip.dart';
@@ -14,65 +21,98 @@ import 'package:marktext_plus/ui/widgets/right_side_bar.dart';
 /// The grid's own tests build it on its own, which proves it can divide a box
 /// in half but not that it is given a box worth halving.
 void main() {
-  Widget editorArea({required Widget document}) => ProviderScope(
-    child: MaterialApp(
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      home: Scaffold(
-        body: Column(
-          children: [
-            // Stands in for the tab bar.
-            const SizedBox(height: 36, child: ColoredBox(color: Colors.grey)),
-            Expanded(
-              child: Row(
-                children: [
-                  Expanded(
-                    child: PluginPanes(
-                      document: PluginTipLayer(child: document),
-                    ),
+  late Directory configDir;
+
+  setUp(() {
+    configDir = Directory.systemTemp.createTempSync('inplace_cfg_');
+  });
+
+  tearDown(() {
+    if (configDir.existsSync()) configDir.deleteSync(recursive: true);
+  });
+
+  /// The editor area as the application builds it: a tab bar above, the grid
+  /// beside the document, a side bar for company — and a tab open, because a
+  /// pane belongs to one.
+  Future<ProviderContainer> pumpArea(
+    WidgetTester tester, {
+    required Widget document,
+  }) async {
+    final container = ProviderContainer(
+      overrides: [
+        settingsProvider.overrideWith(
+          (ref) => SettingsNotifier(
+            ConfigService(configDir: configDir.path),
+            AppConfig(),
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    container
+        .read(tabProvider.notifier)
+        .addTab(TabInfo(id: 'tab-a', fileName: 'note.md'));
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: Column(
+              children: [
+                const SizedBox(
+                  height: 36,
+                  child: ColoredBox(color: Colors.grey),
+                ),
+                Expanded(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: PluginPanes(
+                          document: PluginTipLayer(child: document),
+                        ),
+                      ),
+                      const RightSideBar(),
+                    ],
                   ),
-                  const RightSideBar(),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
-    ),
+    );
+    await tester.pump();
+    return container;
+  }
+
+  PluginPaneContent translation(String text) => PluginPaneContent(
+    pluginName: 'AI Translate',
+    title: '中文',
+    text: text,
+    slot: PluginPaneSlot.right,
   );
 
   testWidgets('a translation pane gets half the editor area, in place', (
     tester,
   ) async {
-    late WidgetRef captured;
-    await tester.pumpWidget(
-      editorArea(
-        document: Consumer(
-          builder: (context, ref, _) {
-            captured = ref;
-            // Stands in for the split view: source and preview side by side.
-            return const Row(
-              children: [
-                Expanded(child: ColoredBox(color: Colors.white)),
-                VerticalDivider(width: 1),
-                Expanded(child: ColoredBox(color: Colors.black12)),
-              ],
-            );
-          },
-        ),
+    final container = await pumpArea(
+      tester,
+      // Stands in for the split view: source and preview side by side.
+      document: const Row(
+        children: [
+          Expanded(child: ColoredBox(color: Colors.white)),
+          VerticalDivider(width: 1),
+          Expanded(child: ColoredBox(color: Colors.black12)),
+        ],
       ),
     );
 
-    captured
+    container
         .read(pluginPanesProvider.notifier)
-        .show(
-          const PluginPaneContent(
-            pluginName: 'AI Translate',
-            title: '中文',
-            text: 'the translation',
-            slot: PluginPaneSlot.right,
-          ),
-        );
+        .show('tab-a', translation('the translation'));
     await tester.pump();
 
     final area = tester.getRect(find.byType(PluginPanes));
@@ -84,42 +124,72 @@ void main() {
       reason: '窗格该占编辑区的一半，而不是一条侧边栏那么宽',
     );
     expect(pane.height, closeTo(area.height, 2), reason: '一个窗格时没有第二行，它该从上到下');
-    // And it is inside the tab's content area, not floating beside it.
     expect(pane.top, greaterThanOrEqualTo(area.top - 1));
     expect(pane.right, closeTo(area.right, 2));
   });
 
-  testWidgets('the side bar is not what a translation lands in', (
+  testWidgets('a pane belongs to its tab, and goes when the tab is left', (
     tester,
   ) async {
-    // With no plugin contributing a panel there is no rail at all, so the
-    // grid has the whole width to divide.
-    late WidgetRef captured;
-    await tester.pumpWidget(
-      editorArea(
-        document: Consumer(
-          builder: (context, ref, _) {
-            captured = ref;
-            return const ColoredBox(color: Colors.white);
-          },
-        ),
-      ),
+    // The one that matters: a translation opened in one tab stayed on screen
+    // after switching to another, beside a document it had nothing to do
+    // with. Whatever width it was drawn at, that is a window in the
+    // application rather than a pane in a tab.
+    final container = await pumpArea(
+      tester,
+      document: const ColoredBox(color: Colors.white),
     );
-    captured
-        .read(pluginPanesProvider.notifier)
-        .show(
-          const PluginPaneContent(
-            pluginName: 'AI Translate',
-            title: '中文',
-            text: 'the translation',
-            slot: PluginPaneSlot.right,
-          ),
-        );
+    container
+        .read(tabProvider.notifier)
+        .addTab(TabInfo(id: 'tab-b', fileName: 'other.md'));
+    container.read(tabProvider.notifier).setActiveTab('tab-a');
     await tester.pump();
 
-    final screen = tester.getRect(find.byType(Scaffold));
-    final pane = tester.getRect(find.byType(PluginPaneView));
-    expect(pane.width, greaterThan(screen.width * 0.4));
+    container
+        .read(pluginPanesProvider.notifier)
+        .show('tab-a', translation('translation of A'));
+    await tester.pump();
+    expect(find.text('translation of A'), findsOneWidget);
+
+    container.read(tabProvider.notifier).setActiveTab('tab-b');
+    await tester.pump();
+    expect(
+      find.text('translation of A'),
+      findsNothing,
+      reason: '切到另一个标签页，上一个标签页的译文不该还在',
+    );
+
+    container.read(tabProvider.notifier).setActiveTab('tab-a');
+    await tester.pump();
+    expect(
+      find.text('translation of A'),
+      findsOneWidget,
+      reason: '切回来它该还在——它属于这个标签页',
+    );
+  });
+
+  testWidgets('closing a tab takes its pane with it', (tester) async {
+    final container = await pumpArea(
+      tester,
+      document: const ColoredBox(color: Colors.white),
+    );
+    container
+        .read(tabProvider.notifier)
+        .addTab(TabInfo(id: 'tab-b', fileName: 'other.md'));
+    container.read(tabProvider.notifier).setActiveTab('tab-a');
+    container
+        .read(pluginPanesProvider.notifier)
+        .show('tab-a', translation('translation of A'));
+    await tester.pump();
+
+    container.read(tabProvider.notifier).removeTab('tab-a');
+    await tester.pump();
+
+    expect(
+      container.read(pluginPanesProvider)['tab-a'],
+      anyOf(isNull, isEmpty),
+      reason: '标签页关了，它的窗格也该没了',
+    );
   });
 
   testWidgets('a panel result lands in the grid, not a container of its own', (
@@ -130,28 +200,13 @@ void main() {
     // to put one result is no place at all — the reader could not tell which
     // one a plugin would use, and the strip looked like a side bar that was
     // not one.
-    late WidgetRef captured;
-    await tester.pumpWidget(
-      editorArea(
-        document: Consumer(
-          builder: (context, ref, _) {
-            captured = ref;
-            return const ColoredBox(color: Colors.white);
-          },
-        ),
-      ),
+    final container = await pumpArea(
+      tester,
+      document: const ColoredBox(color: Colors.white),
     );
-
-    captured
+    container
         .read(pluginPanesProvider.notifier)
-        .show(
-          const PluginPaneContent(
-            pluginName: 'AI Translate',
-            title: '中文',
-            text: 'a panel result',
-            slot: PluginPaneSlot.right,
-          ),
-        );
+        .show('tab-a', translation('a panel result'));
     await tester.pump();
 
     final area = tester.getRect(find.byType(PluginPanes));
