@@ -51,6 +51,17 @@ class MarkdownSyntaxHighlighter {
     // tint has to agree with the pane beside it rather than with GitHub.
     _Pattern(RegExp(r'~~(.+?)~~'), _PatternType.strikethrough,
         marker: _tilde),
+    // The preview has drawn these two for as long as the parser has read
+    // them. showcase.md puts `~~strikethrough~~, ==highlight==,
+    // ^superscript^, ~subscript~` on one line, and the editor's own sample
+    // document showed four kinds of emphasis with one of them coloured.
+    //
+    // Super- and subscript are not here on purpose: the preview raises and
+    // shrinks them, and a text field cannot change a run's size without
+    // moving the line height and the caret with it.
+    _Pattern(RegExp(r'==(.+?)=='), _PatternType.marked, marker: _equals),
+    _Pattern(RegExp(r'\+\+(.+?)\+\+'), _PatternType.underline,
+        marker: _plus),
     // Not part of a longer run: without the guards this matched `**加粗。*`
     // out of the middle of a bold run and tinted half of it.
     _Pattern(RegExp(r'(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)'),
@@ -107,6 +118,8 @@ class MarkdownSyntaxHighlighter {
   static const int _openBracket = 0x5B;
   static const int _bang = 0x21;
   static const int _lessThan = 0x3C;
+  static const int _equals = 0x3D;
+  static const int _plus = 0x2B;
   static const int _tilde = 0x7E;
   static const int _space = 0x20;
 
@@ -264,6 +277,8 @@ class MarkdownSyntaxHighlighter {
         _bang => 16,
         _lessThan => 32,
         _tilde => 64,
+        _equals => 128,
+        _plus => 256,
         _ => 0,
       };
 
@@ -306,6 +321,10 @@ class MarkdownSyntaxHighlighter {
           seen |= 32;
         case _tilde:
           seen |= 64;
+        case _equals:
+          seen |= 128;
+        case _plus:
+          seen |= 256;
       }
     }
     for (var k = 0; k < _inlinePatterns.length; k++) {
@@ -393,6 +412,16 @@ class MarkdownSyntaxHighlighter {
         );
       case _PatternType.italic:
         return TextStyle(color: colors.defaultColor, fontStyle: FontStyle.italic);
+      case _PatternType.marked:
+        return TextStyle(
+          color: colors.defaultColor,
+          backgroundColor: HighlightColors.marked,
+        );
+      case _PatternType.underline:
+        return TextStyle(
+          color: colors.defaultColor,
+          decoration: TextDecoration.underline,
+        );
       case _PatternType.comment:
         return TextStyle(color: colors.comment, fontStyle: FontStyle.italic);
     }
@@ -403,6 +432,17 @@ class MarkdownSyntaxHighlighter {
 /// and can be compared to decide whether a cached result is still good.
 @immutable
 class HighlightColors {
+  /// The ground behind `==marked==` text.
+  ///
+  /// One value, because both panes have to give it the same ground: the
+  /// preview drew it and the source pane drew nothing, so a document could
+  /// look marked in one pane and plain in the other.
+  ///
+  /// Not the same thing as the ground behind a search hit, which happens to
+  /// be this colour too. That one belongs to the find bar and changes with
+  /// it.
+  static final Color marked = Colors.yellow.withValues(alpha: 0.4);
+
   final Color heading;
   final Color bold;
   final Color code;
@@ -627,6 +667,8 @@ enum _PatternType {
   strikethrough,
   italic,
   comment,
+  marked,
+  underline,
 }
 
 class _Pattern {

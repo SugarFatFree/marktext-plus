@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:highlight/highlight_core.dart' show Node;
 
 import 'code_highlighting.dart';
+import 'syntax_highlighter.dart' show HighlightColors;
 import 'package:flutter_highlight/themes/github.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -2230,7 +2231,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         md.InlineType.underline =>
           base?.copyWith(decoration: TextDecoration.underline),
         md.InlineType.highlight => base?.copyWith(
-            backgroundColor: Colors.yellow.withValues(alpha: 0.4),
+            backgroundColor: HighlightColors.marked,
           ),
         _ => base,
       };

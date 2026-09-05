@@ -186,6 +186,40 @@ void main() {
       );
     });
 
+    test('marked text carries the same ground as the preview gives it', () {
+      // showcase.md has `~~strikethrough~~, ==highlight==, ^superscript^,
+      // ~subscript~` on one line. The first was painted and the rest were
+      // not, so the editor's own sample document showed four kinds of
+      // emphasis and coloured one.
+      expect(drawn('==标出来=='), contains(InlineType.highlight));
+      expect(
+          spansOf('==标出来==')
+              .any((s) => s.style?.backgroundColor == HighlightColors.marked),
+          isTrue);
+    });
+
+    test('underlined text is underlined here too', () {
+      expect(drawn('++压线++'), contains(InlineType.underline));
+      expect(
+          spansOf('++压线++').any(
+              (s) => s.style?.decoration == TextDecoration.underline),
+          isTrue);
+    });
+
+    test('super- and subscript are deliberately left plain', () {
+      // The preview raises and shrinks them. The source pane cannot: it is a
+      // text field, and changing a run's size moves the line height and the
+      // caret with it. Colouring them as something they are not would be
+      // worse than leaving them alone, so this is a decision, not an
+      // oversight — and it is written down here so it stays one.
+      expect(drawn('^上^'), contains(InlineType.superscript));
+      expect(drawn('~下~'), contains(InlineType.subscript));
+
+      final up = spansOf('^上^');
+      expect(up.every((s) => s.style?.fontSize == null), isTrue);
+      expect(up.every((s) => s.style?.backgroundColor == null), isTrue);
+    });
+
     test('a full stop before the closing run is not emphasis', () {
       // The same flanking rule the asterisk patterns already ask about.
       expect(paintedItalic('_倾斜。_后面'), isFalse);
