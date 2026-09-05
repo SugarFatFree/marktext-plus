@@ -381,23 +381,22 @@ class TabNotifier extends StateNotifier<TabState> {
   ///
   /// A tab with unsaved edits is left alone — rereading would throw them away
   /// — and so is one with no file behind it.
+  /// Throws when the file cannot be read, for the same reason
+  /// [overwriteOnDisk] does: false is "there was nothing to reread", and a
+  /// reader who picked an encoding and saw nothing happen is owed the reason.
   Future<bool> rereadAs(String id, FileEncoding encoding) async {
     final tab = state.tabs.where((t) => t.id == id).firstOrNull;
     if (tab == null || tab.filePath == null || tab.isModified) return false;
 
-    try {
-      final bytes = await File(tab.filePath!).readAsBytes();
-      final text = FileEncoding.decodeAs(bytes, encoding);
-      loadTabContent(
-        id,
-        FileService.normalizeLineEndings(text),
-        lineEnding: LineEnding.detect(text),
-        encoding: encoding,
-      );
-      return true;
-    } catch (_) {
-      return false;
-    }
+    final bytes = await File(tab.filePath!).readAsBytes();
+    final text = FileEncoding.decodeAs(bytes, encoding);
+    loadTabContent(
+      id,
+      FileService.normalizeLineEndings(text),
+      lineEnding: LineEnding.detect(text),
+      encoding: encoding,
+    );
+    return true;
   }
 
   void updateContent(String id, String content) {
@@ -573,21 +572,24 @@ class TabNotifier extends StateNotifier<TabState> {
   ///
   /// The reader asking for this is the whole reason [saveDocument] still
   /// exists without a check.
+  /// Throws when the write fails, rather than answering false.
+  ///
+  /// False meant two things at once — "there was no file to write to" and
+  /// "the write did not work" — and the one caller looked at neither. So a
+  /// refused write cleared the conflict banner and left the old bytes on
+  /// disk, which is the shape of losing work. The failure now reaches
+  /// whoever asked for it, the way saving from the tab bar already did.
   Future<bool> overwriteOnDisk(String id) async {
     final tab = state.tabs.where((t) => t.id == id).firstOrNull;
     if (tab?.filePath == null) return false;
-    try {
-      await FileService.saveDocument(
-        tab!.filePath!,
-        tab.content,
-        lineEnding: tab.lineEnding,
-        encoding: tab.encoding,
-      );
-      await _markSavedWithStamp(id, tab.filePath!);
-      return true;
-    } catch (_) {
-      return false;
-    }
+    await FileService.saveDocument(
+      tab!.filePath!,
+      tab.content,
+      lineEnding: tab.lineEnding,
+      encoding: tab.encoding,
+    );
+    await _markSavedWithStamp(id, tab.filePath!);
+    return true;
   }
 
   /// Throws away the tab's edits and takes what is on disk.

@@ -245,7 +245,16 @@ class AppMenuBar extends ConsumerWidget {
     final notifier = ref.read(tabProvider.notifier);
     switch (choice) {
       case 'overwrite':
-        await notifier.overwriteOnDisk(tab.id);
+        try {
+          await notifier.overwriteOnDisk(tab.id);
+        } catch (error) {
+          // The reader decided their version wins and the write refused it.
+          // Saying nothing would clear the banner over a file that still
+          // holds the other version — the conflict stays, and so does the
+          // reason it could not be resolved.
+          reportSaveFailure(error);
+          notifier.markDiskConflict(tab.id);
+        }
       case 'reload':
         await notifier.reloadFromDisk(tab.id);
       default:

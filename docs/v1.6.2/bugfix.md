@@ -19,6 +19,7 @@
 | BUG-276 | 2026-09-05 | 从网页粘贴时 `<mark>` `<u>` `<sup>` `<sub>` 的语义全部丢失 | P1 | 已修复 |
 | BUG-277 | 2026-09-05 | 配置里一个字段类型写错，全部设置静默恢复默认 | P1 | 已修复 |
 | BUG-278 | 2026-09-05 | 装了却读不进来的插件静默消失，写好的原因从没送达 | P1 | 已修复 |
+| BUG-279 | 2026-09-05 | 磁盘冲突时选「覆盖」，写失败却看起来成功了 | P0 | 已修复 |
 
 ---
 
@@ -760,3 +761,58 @@ Dart 的 `as bool?` 对**错误类型**是抛 `TypeError`，不是返回 null—
 ### 涉及文件
 
 `lib/services/plugin_manager.dart`、`lib/providers/plugin_provider.dart`、`lib/ui/widgets/plugin_panel.dart`、`lib/ui/screens/plugin_detail_view.dart`；`test/services/plugin_problems_test.dart`（新增）
+
+---
+
+## BUG-279：选了「用我的覆盖」，写失败，横幅消失
+
+### 现象
+
+文档和磁盘上的版本分叉了，编辑器给出三个选择。读者选「用我的覆盖」——**如果这次写失败**（权限、磁盘满、路径变成了目录）：
+
+- 没有任何提示
+- **冲突横幅消失了**
+- 磁盘上还是对方的版本
+
+读者得到的信号是「解决了」。这是丢工作的形状。
+
+### 根因分析
+
+```dart
+case 'overwrite':
+  await notifier.overwriteOnDisk(tab.id);   // 返回值丢掉
+```
+
+而 `overwriteOnDisk` 的 `false` **有两种含义**：
+
+| false | 含义 |
+|---|---|
+| `tab?.filePath == null` | 没有文件可写——不是失败 |
+| `catch (_) { return false; }` | 写失败了 |
+
+调用方分不开，于是两个都没看。这是记忆里那条「一个 null 两种含义」的同一个形状。
+
+**同一个应用里已经有做对的地方**：`EditorTabBar.saveTab` 用 `reportSaveFailure(e)` 说出原因，注释写着「Closing on a failed write would lose the content the save was meant to protect」。机制齐全，这两处没接上。
+
+`rereadAs`（状态栏点编码、选一个重读）同样：读失败返回 false，调用方 `await ... ;` 连返回值都不看——读者选了 GBK，标签没变，没有任何解释。
+
+### 修复方案
+
+把两种 false 拆开：**前置条件不满足仍返回 false，操作失败往外抛**，和 `saveTab` 的做法一致。
+
+调用方接住：
+
+- 覆盖失败 → `reportSaveFailure(error)` **并且 `markDiskConflict`**——横幅必须留着，它消失就等于说覆盖成功了
+- 重读失败 → `reportOpenFailure(error)`
+
+### 验证：一个 fixture 选错了
+
+第一版用 `${root.path}/nowhere/note.md` 当「写不进去的路径」，断言它抛——**它没抛，写成功了**：`saveDocument` 会自己建目录。换成一个已存在的**目录**路径才真正写不进去。
+
+两处 UI 调用藏在菜单对话框和状态栏弹窗后面，widget test 够不到，用源码守卫钉住：那个调用在 try 里、catch 里有报告、覆盖那条的 catch 里还要有 `markDiskConflict`。三次变异各杀 1 条。
+
+守卫的第一版按「两个地标之间」取区间，而 catch 在地标之后——取到的段里根本没有 catch。改成直接匹配「这个调用位于 try 内，及其后的 catch 体」。
+
+### 涉及文件
+
+`lib/providers/tab_provider.dart`、`lib/ui/widgets/app_menu_bar.dart`、`lib/ui/widgets/status_bar.dart`；`test/providers/write_failure_reaches_the_reader_test.dart`、`test/ui/widgets/failure_reaches_the_reader_guard_test.dart`（均新增）

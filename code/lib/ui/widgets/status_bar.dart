@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../app.dart';
 import '../../core/i18n/l10n/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
 import '../../providers/editor_provider.dart';
@@ -287,7 +288,14 @@ class _EncodingButton extends ConsumerWidget {
     );
     if (chosen == null || chosen == encoding) return;
 
-    await ref.read(tabProvider.notifier).rereadAs(id, chosen);
+    try {
+      await ref.read(tabProvider.notifier).rereadAs(id, chosen);
+    } catch (error) {
+      // Picking an encoding and seeing the label stay put says nothing about
+      // why. The file may have been deleted or become unreadable since it
+      // was opened, and that is worth a sentence.
+      reportOpenFailure(error);
+    }
   }
 }
 
