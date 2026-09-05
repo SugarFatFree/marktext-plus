@@ -11,8 +11,17 @@ import '../../services/markdown_parser.dart';
 class MarkdownSyntaxHighlighter {
   static final List<_Pattern> _inlinePatterns = [
     _Pattern(RegExp(r'\*\*(.+?)\*\*'), _PatternType.bold,
-        emphasisChar: '**'),
-    _Pattern(RegExp(r'`(.+?)`'), _PatternType.code),
+        emphasisChar: '**', marker: _asterisk),
+    // CommonMark gives `_` the same standing as `*`, and the parser has
+    // always read both. Only this list knew about asterisks, so a document
+    // written with underscores was left grey while the pane beside it drew
+    // every run of them emphasised.
+    //
+    // Before the single-underscore pattern, which the loop needs: at the same
+    // starting point it takes whichever it reaches first.
+    _Pattern(RegExp(r'__(.+?)__'), _PatternType.bold,
+        emphasisChar: '__', marker: _underscore),
+    _Pattern(RegExp(r'`(.+?)`'), _PatternType.code, marker: _backtick),
     // Both halves allow the same nesting the parser allows — two levels of
     // brackets in the text, one level of parentheses in the destination — so
     // the two agree on `[见 [附录 [A]]](/url)` and on `…/wiki/A_(b)`. A tint
@@ -26,23 +35,32 @@ class MarkdownSyntaxHighlighter {
       RegExp(r'!\[((?:[^\[\]]|\[(?:[^\[\]]|\[[^\[\]]*\])*\])*)\]'
           r'\(((?:[^()\s]|\([^()]*\))*)\)'),
       _PatternType.link,
+      marker: _bang,
     ),
     _Pattern(
       RegExp(r'\[((?:[^\[\]]|\[(?:[^\[\]]|\[[^\[\]]*\])*\])*)\]'
           r'\(((?:[^()\s]|\([^()]*\))*)\)'),
       _PatternType.link,
+      marker: _openBracket,
     ),
     // Before the emphasis patterns: a comment may contain anything, and
     // letting `*` inside one match first would colour half of it as italic.
-    _Pattern(RegExp(r'<!--.*?-->'), _PatternType.comment),
+    _Pattern(RegExp(r'<!--.*?-->'), _PatternType.comment, marker: _lessThan),
     // No flanking test on this one: this project's parser is deliberately
     // more forgiving than GitHub about `~~文字。~~后面` and draws it, so the
     // tint has to agree with the pane beside it rather than with GitHub.
-    _Pattern(RegExp(r'~~(.+?)~~'), _PatternType.strikethrough),
+    _Pattern(RegExp(r'~~(.+?)~~'), _PatternType.strikethrough,
+        marker: _tilde),
     // Not part of a longer run: without the guards this matched `**加粗。*`
     // out of the middle of a bold run and tinted half of it.
     _Pattern(RegExp(r'(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)'),
-        _PatternType.italic, emphasisChar: '*'),
+        _PatternType.italic, emphasisChar: '*', marker: _asterisk),
+    // What keeps `snake_case_name` grey is not this pattern — it matches
+    // `_case_` happily — but the flanking rule `accepts` asks the parser for,
+    // which refuses a run with word characters on both sides. That rule is
+    // the reason `_` can be added here at all.
+    _Pattern(RegExp(r'(?<!_)_(?!_)(.+?)(?<!_)_(?!_)'),
+        _PatternType.italic, emphasisChar: '_', marker: _underscore),
   ];
 
   /// Highlights [text] in one pass, without caching.
@@ -84,6 +102,11 @@ class MarkdownSyntaxHighlighter {
   }
 
   static const int _backtick = 0x60;
+  static const int _asterisk = 0x2A;
+  static const int _underscore = 0x5F;
+  static const int _openBracket = 0x5B;
+  static const int _bang = 0x21;
+  static const int _lessThan = 0x3C;
   static const int _tilde = 0x7E;
   static const int _space = 0x20;
 
@@ -220,13 +243,29 @@ class MarkdownSyntaxHighlighter {
 
     // A quoted line is coloured whole, which is how the themes' quote colour
     // was meant to be used — it was defined and then never painted with.
-    final withoutIndent = line.trimLeft();
-    if (withoutIndent.startsWith('>')) {
+    //
+    // The parser's answer, not `trimLeft().startsWith('>')`: a marker may sit
+    // behind up to three columns of indentation and no more, because four is
+    // where an indented block starts. The looser test painted those lines as
+    // quotes the preview does not draw.
+    if (MarkdownParser.blockquoteDepthOf(line) != null) {
       return [TextSpan(text: line, style: TextStyle(color: colors.quote))];
     }
 
     return _highlightInline(line, colors);
   }
+
+  /// The bit [marker] sets in the presence mask built for each line.
+  static int _bitFor(int marker) => switch (marker) {
+        _asterisk => 1,
+        _underscore => 2,
+        _backtick => 4,
+        _openBracket => 8,
+        _bang => 16,
+        _lessThan => 32,
+        _tilde => 64,
+        _ => 0,
+      };
 
   static List<TextSpan> _highlightInline(String text, HighlightColors colors) {
     final spans = <TextSpan>[];
@@ -242,6 +281,40 @@ class MarkdownSyntaxHighlighter {
     // fourteen seconds, and the editor was frozen for all of it.
     final upcoming = List<Match?>.filled(_inlinePatterns.length, null);
     final spent = List<bool>.filled(_inlinePatterns.length, false);
+
+    // A pattern whose opening character is nowhere on the line cannot match,
+    // and running it costs a scan of the whole line. Most lines carry none of
+    // these characters at all, so one pass over the text buys the rest.
+    //
+    // This is what pays for reading `_` and `__` as well as `*` and `**`:
+    // adding those two patterns cost 50% on a 2.5 MB document, and skipping
+    // the absent ones gave back more than that.
+    var seen = 0;
+    for (var i = 0; i < text.length; i++) {
+      switch (text.codeUnitAt(i)) {
+        case _asterisk:
+          seen |= 1;
+        case _underscore:
+          seen |= 2;
+        case _backtick:
+          seen |= 4;
+        case _openBracket:
+          seen |= 8;
+        case _bang:
+          seen |= 16;
+        case _lessThan:
+          seen |= 32;
+        case _tilde:
+          seen |= 64;
+      }
+    }
+    for (var k = 0; k < _inlinePatterns.length; k++) {
+      final bit = _bitFor(_inlinePatterns[k].marker);
+      // No bit means no cheap test for this one — run it. A pattern added
+      // without a marker, or with one this switch does not know, must still
+      // work; silently skipping it would be a hole nothing points at.
+      if (bit != 0 && seen & bit == 0) spent[k] = true;
+    }
 
     while (pos < text.length) {
       Match? earliest;
@@ -564,7 +637,16 @@ class _Pattern {
   /// applies to. Null for those it does not — a code span, a link.
   final String? emphasisChar;
 
-  const _Pattern(this.regex, this.type, {this.emphasisChar});
+  /// The first literal character this pattern's match must contain.
+  ///
+  /// Used to skip the pattern entirely on a line that has none, which is most
+  /// lines. Required rather than defaulted: a pattern added without one would
+  /// be skipped on every line, and a default cannot be told apart from a
+  /// forgotten argument.
+  final int marker;
+
+  const _Pattern(this.regex, this.type,
+      {this.emphasisChar, required this.marker});
 
   /// Whether [match] is emphasis where it stands.
   ///

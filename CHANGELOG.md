@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The README said permissions were shown before you install. They were not, in any of the twelve languages it says it in
 - **The outline listed headings the preview does not draw.** A document explaining markdown shows ``` inside a ```` block — this one's own README does — and the outline ended the block on the inner fence, so the prose underneath was read as markdown. From the first disagreement on, every outline entry scrolled to the wrong heading. The rule for what closes a code block is written out five times across the editor; two of the five had drifted, and nothing tied them together. Now they are tied together
 - The cut that lets a large document show its top while the rest is still being parsed could land inside a code block, for the same reason. It is the same rule now — and it no longer builds a regular expression for every line it reads
+- **Emphasis written with underscores is coloured as you type it.** `_this_` and `__this__` are what CommonMark says they are and what the preview has always drawn; only the source pane knew nothing but asterisks, so a document written the usual way was left grey beside a preview full of italics. `snake_case_name` stays plain, by the same flanking rule the preview uses
+- A line indented four columns and starting with `>` was coloured as a quote. Four columns is where an indented block begins, so the preview drew no quote there — the source pane was describing something that was not going to happen
+
+### Changed
+- Colouring a line now looks once at which markers it contains and skips the rules for the ones it does not, which is most of them on most lines. Reading underscores as well as asterisks cost 50% on a 2.5 MB document; this gave back more than that, so the pane is faster than before with two more rules in it
 
 ## [v1.6.1] - 2026-09-05
 

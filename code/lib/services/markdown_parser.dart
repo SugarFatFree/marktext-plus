@@ -631,6 +631,19 @@ class MarkdownParser {
   // Up to three leading spaces are allowed before a marker; four make it code.
   static final _blockquoteRe = RegExp(r'^((?:[ \t]{0,3}>)+)[ \t]?(.*)$');
 
+  /// How many `>` markers [line] carries, or null when it is not a quote.
+  ///
+  /// Public for the same reason [headingLevelOf] is: the source pane colours
+  /// quotes as they are typed and has to reach the same answer as the pane
+  /// beside it. Asking `line.trimLeft().startsWith('>')` instead painted a
+  /// line indented four columns as a quote — four columns is where an
+  /// indented block begins, so the preview drew no quote there at all.
+  static int? blockquoteDepthOf(String line) {
+    final markers = _blockquoteRe.firstMatch(line)?.group(1);
+    if (markers == null) return null;
+    return '>'.allMatches(markers).length;
+  }
+
   /// Removes exactly one `>` marker, so a deeper line keeps the rest of its
   /// markers and becomes a quote again when the content is parsed.
   static final _blockquoteStripRe = RegExp(r'^[ \t]{0,3}>[ \t]?');
