@@ -241,6 +241,12 @@ class CodeHighlighting {
   static int get cachedChars => _cachedChars;
 
   /// Empties the cache. Tests start from a known state with this.
+  /// Empties the cache.
+  ///
+  /// Only the tests call this, and they need it: the cache is static, so one
+  /// test's entries would otherwise be waiting for the next. Marked rather
+  /// than left looking like a feature nothing offers.
+  @visibleForTesting
   static void clearCache() {
     _cache.clear();
     _cachedChars = 0;

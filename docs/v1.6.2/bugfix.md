@@ -1093,3 +1093,22 @@ StartupTrace.flush();
 ### 涉及文件
 
 `lib/ui/screens/home_screen.dart`；`test/core/diagnostics/shutdown_watchdog_test.dart`（新增）
+
+---
+
+## 收尾：上一轮那次扫描的剩余两项
+
+BUG-284 是扫描「没人调用的公开静态方法」时找到的。当时列出三个真死的，修了最要紧的那个（看门狗），这里了结另外两个——**分量很小，记下来是为了那次扫描有个交代**。
+
+- **`FileUtils.getFileName`** 是 `p.basename` 的一行转发，零调用者，而项目里到处直接用 `p.basename`。删掉：留着一个没人用的别名，只会让下一个人犹豫该用哪个
+- **`CodeHighlighting.clearCache`** 不是死的——高亮缓存测试的 `setUp` 用它做测试隔离（缓存是静态的，一个测试的条目会留给下一个）。标上 `@visibleForTesting`，让「只给测试用」显式，而不是看起来像一个没有入口的功能
+
+`getExtension` 一度也进了嫌疑名单，实际有内部调用者（`isMarkdownFile` 用它）——**扫描时同类内的调用不带 `.` 前缀**，这是第二次被它绊到。
+
+### 顺带查过、干净的
+
+`pubspec.yaml` 的 **27 个 dependencies，每一个在 `lib/` 里都至少被 import 一次**。没有白白打进包里的东西。
+
+### 涉及文件
+
+`lib/utils/file_utils.dart`、`lib/ui/editor/code_highlighting.dart`

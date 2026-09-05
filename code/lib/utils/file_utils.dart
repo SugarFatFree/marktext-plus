@@ -61,8 +61,6 @@ class FileUtils {
   static final markdownExtensionsWithDot =
       List<String>.unmodifiable(markdownExtensions.map((e) => '.$e'));
 
-  static String getFileName(String path) => p.basename(path);
-
   static String getExtension(String path) => p.extension(path).toLowerCase();
 
   static bool isMarkdownFile(String path) =>
