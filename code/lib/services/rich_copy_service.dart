@@ -58,15 +58,48 @@ class RichCopyService {
     }
   }
 
+  /// The single character a widget occupies in the text around it.
+  static const _object = '\uFFFC';
+
+  /// Whether the preview draws [span] as a widget rather than as letters.
+  ///
+  /// A formula, a picture, a footnote marker, a ruby annotation and a raised
+  /// or lowered run are all widgets. A selection over one carries [_object]
+  /// and nothing else: the letters that went into it — the LaTeX, the alt
+  /// text, the digits of an exponent — are not on screen and cannot be
+  /// selected. Returning them here meant the text a selection gave back was
+  /// never found in the text built from the document, so rich copy fell
+  /// through to plain and every heading, bold run and link in the selection
+  /// went with it, because the paragraph happened to contain a formula.
+  ///
+  /// Kept here rather than in the parser, which has no business knowing how
+  /// anything is drawn. `preview_placeholder_test` holds this list to what
+  /// the renderer actually does.
+  static bool _isWidget(InlineSpan span) => switch (span.type) {
+        // A picture with nowhere to load from is drawn as `[alt]` in the
+        // error colour: letters, not a widget.
+        InlineType.image => (span.href ?? '').isNotEmpty,
+        InlineType.mathInline ||
+        InlineType.footnoteRef ||
+        InlineType.ruby ||
+        InlineType.superscript ||
+        InlineType.subscript =>
+          true,
+        _ => false,
+      };
+
   static String _spans(List<InlineSpan> spans) => spans
-      .map((span) =>
+      .map((span) => _isWidget(span)
+          ? _object
           // Emphasis holding markup keeps its source text as well as the
           // spans that text became, and the source is not what is drawn:
           // `**bold [link](/url)**` reads "bold link" on screen. Returning
           // the source here meant a selection over such a paragraph matched
           // nothing, and the copy fell back to plain text — losing exactly
           // the formatting the reader had selected.
-          span.children.isEmpty ? span.text : _spans(span.children))
+          : span.children.isEmpty
+              ? span.text
+              : _spans(span.children))
       .join();
 
   /// HTML for Markdown copied from the source editor.

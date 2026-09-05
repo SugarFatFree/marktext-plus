@@ -27,6 +27,45 @@ void main() {
     });
   });
 
+  // What the preview draws as a widget rather than as letters: a formula, a
+  // picture, a raised or lowered run. A selection over them carries the object
+  // replacement character, one per widget — the letters that went into them
+  // are not on screen and cannot be selected.
+  //
+  // `plainTextOf` returned the source instead: the LaTeX, the alt text, the
+  // digits of an exponent. So the text a selection gave back was never found
+  // in the text this builds, and rich copy quietly fell through to plain —
+  // losing every heading, every bold run and every link in the selection,
+  // for a paragraph whose only crime was containing a formula.
+  const object = '\uFFFC';
+
+  group('what the preview draws as a widget', () {
+    test('inline maths stands in the text as one placeholder', () {
+      final node = parse(r'Energy is $E = mc^2$ here.' '\n').single;
+      expect(RichCopyService.plainTextOf(node), 'Energy is $object here.');
+    });
+
+    test('a picture too', () {
+      final node = parse('See ![a cat](/cat.png) there.\n').single;
+      expect(RichCopyService.plainTextOf(node), 'See $object there.');
+    });
+
+    test('and a raised or lowered run', () {
+      final node = parse('x^2^ and H~2~O\n').single;
+      expect(RichCopyService.plainTextOf(node), 'x$object and H${object}O');
+    });
+
+    test('a paragraph holding one still copies as rich text', () {
+      final html = htmlFor(
+        r'Energy is $E = mc^2$, **really**.' '\n',
+        'Energy is $object, really.',
+      );
+      expect(html, isNotNull,
+          reason: '选区里有公式就整段退回纯文本，粗体和链接一起丢了');
+      expect(html, contains('<strong>really</strong>'));
+    });
+  });
+
   group('html for the selection', () {
     test('a whole heading comes back as a heading', () {
       expect(htmlFor('# Title\n\nbody\n', 'Title'), '<h1>Title</h1>');

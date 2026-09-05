@@ -2291,10 +2291,20 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             backgroundColor: theme.colorScheme.surfaceContainerHighest
                 .withValues(alpha: 0.6),
           );
+          // No padding spaces around the text. They were there to keep the
+          // ground off the letters, but a space is content: it was selected
+          // with the run, copied with it, and counted in every offset — and
+          // the search branch right above never added them, so opening the
+          // find bar changed the length of the paragraph.
+          //
+          // Rich copy looks for the selected text in the text it builds from
+          // the document, and two spaces that exist only on screen meant it
+          // never found a paragraph with `code` in it: the copy fell through
+          // to plain and took every heading, bold run and link with it.
           if (hasSearch) {
             children.addAll(_applySearchHighlight(span.text, s, es));
           } else {
-            children.add(TextSpan(text: ' ${span.text} ', style: s));
+            children.add(TextSpan(text: span.text, style: s));
           }
         case md.InlineType.link:
           final s = baseStyle?.copyWith(

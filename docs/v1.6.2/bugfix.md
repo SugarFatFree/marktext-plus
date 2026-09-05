@@ -12,6 +12,8 @@
 | BUG-269 | 2026-09-05 | 缩进四列的 `>` 被染成引用色，预览并不画引用 | P2 | 已修复 |
 | BUG-270 | 2026-09-05 | 用 `_` 写的强调，预览画了，源码窗格一片灰 | P1 | 已修复 |
 | BUG-271 | 2026-09-05 | `==高亮==` 与 `++下划线++` 同样只有预览认，showcase 一行里就能看到 | P2 | 已修复 |
+| BUG-272 | 2026-09-05 | 段落里有公式或图片，复制到 Word 就丢掉全部格式 | P1 | 已修复 |
+| BUG-273 | 2026-09-05 | 行内代码的两个「留白」空格是内容，搜索一开就消失 | P1 | 已修复 |
 
 ---
 
@@ -410,3 +412,92 @@ BUG-270 的同一类，第三处。解析器读 `==`、`++`、`^`、`~`，渲染
 ### 涉及文件
 
 `lib/ui/editor/syntax_highlighter.dart`、`lib/ui/editor/markdown_renderer.dart`；`test/ui/editor/highlight_agrees_with_parser_test.dart`
+
+---
+
+## BUG-272：段落里有一个公式，复制出去就只剩纯文本
+
+### 现象
+
+在预览里选中一段含行内公式（或图片、上下标、脚注引用、注音）的文字，复制，粘到 Word——**标题、粗体、链接全没了**，只有纯文字。同一段去掉公式再复制，一切正常。
+
+### 根因分析
+
+富文本复制的做法是：把选中的文字在「文档渲染后的文字」里定位，找到它覆盖了哪些块，再把那些块转成 HTML。
+
+定位靠 `rendered.indexOf(selection)`。而 `plainTextOf` 构造的「渲染后的文字」和屏幕上真正的文字**不是同一串**：
+
+预览把六种内联画成 widget——`mathInline`、`image`、`superscript`、`subscript`、`footnoteRef`、`ruby`。每个 widget 在文本里占**一个**位置，就是 U+FFFC（object replacement character），而喂给它的那些字母（LaTeX、alt 文字、指数的数字）**根本不在屏幕上，选不中**。
+
+`plainTextOf` 返回的是那些字母。于是：
+
+| | `Energy is $E = mc^2$ here.` |
+|---|---|
+| 屏幕上 / 选区里 | `Energy is ￼ here.` |
+| `plainTextOf` | `Energy is E = mc^2 here.` |
+
+`indexOf` 找不到，返回 null，复制静默退回纯文本。
+
+showcase.md 第 21 行就有一个行内公式。
+
+### 修复方案
+
+`plainTextOf` 对这六种放一个 U+FFFC。图片有例外：没有 href 的图片画成 `[alt]`，是字母不是 widget，所以按 href 分支。
+
+这份清单放在 rich copy 这边而不是解析器里——解析器不该知道任何东西是怎么画的。
+
+### 关键：清单必须被钉住
+
+「哪些内联是 widget」现在写在两个地方：渲染器自己的 switch，和这份清单。**又一份抄写。**
+
+新增 `preview_placeholder_test`：真的渲染一遍，取 `RichText` 的 `toPlainText()`，和 `plainTextOf` **逐字符**比较。渲染器改了画法而清单没跟上，它立刻红。
+
+### 验证
+
+四次变异：`_isWidget` 恒 false 杀 7 条；清单里去掉 `mathInline` 杀 3；去掉 `image` 杀 1；去掉 `superscript` 杀 2。
+
+### 涉及文件
+
+`lib/services/rich_copy_service.dart`；`test/services/rich_copy_test.dart`、`test/ui/editor/preview_placeholder_test.dart`（新增）
+
+---
+
+## BUG-273：行内代码的两个空格是内容，不是样式
+
+### 现象
+
+绑定测试（BUG-272）写完当场抓到的第二条，而且比公式常见得多。
+
+`Call \`doThing()\` when ready` 在屏幕上是 `Call  doThing()  when ready`——**代码前后各多一个空格**。
+
+### 根因分析
+
+```dart
+children.add(TextSpan(text: ' ${span.text} ', style: s));
+```
+
+加空格是为了让背景色不紧贴字母。但**空格是内容**：它跟着被选中、被复制、被算进每一个偏移。
+
+三个后果：
+
+1. 富文本复制对**含行内代码的段落**同样失败——和 BUG-272 一样的原因，而行内代码到处都是
+2. 复制出去多两个空格
+3. **紧挨着的搜索分支从来不加空格**——所以打开查找框，同一段文字的长度就变了，行内代码的留白当场消失
+
+### 修复方案
+
+不加。
+
+不是在 `plainTextOf` 里把这两个空格补上——那只修了三条里的一条，而且等于承认「文字里有一段只为了好看而存在的内容」。
+
+**搜索打开时本来就是紧贴的**，所以「紧贴」不是新样子，只是让它一直如此。Flutter 的 `TextSpan` 给不了不引入内容的内边距；能给的只有 `WidgetSpan`，而那会让代码变得选不中、搜不到，比留白重要得多。
+
+**如果你觉得紧贴太挤**，这条可以回退，但那要连带接受上面三个后果——或者改成 `WidgetSpan` 并放弃代码文字的可选中性。留给你定。
+
+### 验证
+
+恢复那两个空格 → 杀 1 条。整个测试套件里没有任何一条依赖它们。
+
+### 涉及文件
+
+`lib/ui/editor/markdown_renderer.dart`
