@@ -210,6 +210,61 @@ void main() {
     }
   }, skip: skip);
 
+  test('the README says which actions need which permission', () {
+    // The actions table tells an author what each return value does; what it
+    // did not say is which of them are refused without a permission — the
+    // one question an author has when a plugin of theirs is turned down.
+    //
+    // Checked against the editor's own guard rather than a list repeated
+    // here, so that changing what the editor demands turns this red.
+    final guard =
+        File('lib/services/plugin_command_service.dart').readAsStringSync();
+    final required = <String, String>{};
+    for (final m in RegExp(
+      r'Plugin(\w+)Action\(\)[^=]*?=>\s*\n?\s*PluginPermission\.(\w+)',
+      dotAll: true,
+    ).allMatches(guard)) {
+      required[m.group(1)!.toLowerCase()] = m.group(2)!;
+    }
+    expect(required, isNotEmpty, reason: '没能从 _guard 里读出映射，正则该更新了');
+
+    // Only the table that maps actions to permissions, not the whole file.
+    // Searching the whole README passed on anything: the permissions table
+    // further down lists all seventeen, so pointing `replace` at
+    // `workspace.write` was still "mentioned somewhere" and slipped by.
+    final readme = File('$sdk/README.md').readAsStringSync();
+    final needsTable = RegExp(r'\| Return \| Needs \|(.*?)\n\n', dotAll: true)
+        .firstMatch(readme)
+        ?.group(1);
+    expect(needsTable, isNotNull,
+        reason: 'README 里找不到「动作 → 权限」这张表');
+
+    for (final entry in required.entries) {
+      expect(needsTable, contains('`${entry.key}`'),
+          reason: '${entry.key} 需要权限，那张表里却没有它');
+    }
+    // And the identifiers, read out of the manifest source too — a table
+    // written here would only have to be kept in step itself. The first
+    // version hard-coded four pairs and checked one only when it appeared in
+    // the guard, so pointing an action at a permission outside those four
+    // walked straight past.
+    final manifestSource =
+        File('lib/services/plugin_manifest.dart').readAsStringSync();
+    final values = {
+      for (final m in RegExp(r"static const (\w+) = '([a-z]+\.[a-zA-Z]+)'")
+          .allMatches(manifestSource))
+        m.group(1)!: m.group(2)!,
+    };
+
+    for (final constant in required.values.toSet()) {
+      final permission = values[constant];
+      expect(permission, isNotNull,
+          reason: '_guard 要求 $constant，但 PluginPermission 里没有这个常量');
+      expect(needsTable, contains('`$permission`'),
+          reason: '编辑器要求 $permission，那张表得说出来');
+    }
+  }, skip: skip);
+
   test('the three examples are three plugins, not one wearing three hats', () {
     // Each carries its own id, so installing all three is possible and none
     // of them silently replaces another.

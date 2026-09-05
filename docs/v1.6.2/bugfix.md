@@ -26,6 +26,7 @@
 | BUG-283 | 2026-09-06 | `AppConstants` 18 个常量里 14 个没人读，其中一个已经和实际分家 | P2 | 已修复 |
 | BUG-284 | 2026-09-06 | 关闭看门狗从来没被撤下，正常退出会被 600ms 的 `exit(0)` 抢先 | P1 | 已修复 |
 | BUG-285 | 2026-09-06 | SDK 示例逐行标注权限，五个里标了四个——漏的正是 BUG-263 那个 | P2 | 已修复 |
+| BUG-286 | 2026-09-06 | SDK 的动作表没说哪些动作需要权限，而那是作者被拒时唯一要查的 | P2 | 已修复 |
 
 ---
 
@@ -1158,3 +1159,44 @@ default = sdk.storage.get("language") or "English", -- needs storage.local
 ### 涉及文件
 
 SDK 仓库 `packages/lua/plugin.lua`、`packages/js/plugin.js`；`test/services/sdk_examples_test.dart`
+
+---
+
+## BUG-286：动作表说了每个动作做什么，没说哪个要先申请
+
+### 现象
+
+SDK README 的「The actions」表列了 8 种返回值、各自的效果、之后会发生什么。**没有一列说「这个需要什么权限」。**
+
+而这恰恰是作者收到「did not ask for the ui.sidebar permission」时唯一要查的东西。
+
+这是 BUG-285 那条线的最后一层：示例脚本的行尾注释修了（那只覆盖示例用到的几种），**系统性说明这件事的地方仍然没有**。
+
+### 修复方案
+
+动作表后面加四行，12 种语言各一份：
+
+| 返回 | 需要 |
+|---|---|
+| `ai` | `ai.chat` |
+| `replace` | `document.write` |
+| `notify` | `ui.notifications` |
+| `pane`、`panel` | `ui.sidebar` |
+
+以及那句容易被当成疏漏的话：**`ask`、`show`、`diff` 不需要任何权限**，理由和昨晚写在 `_guard` 里的一样。
+
+### 验证：一个守卫，改了三次才真正钉住
+
+守卫的意图是「编辑器要求什么，文档就得说什么」。三版：
+
+1. **第一版**从 `_guard` 读出「动作 → 权限常量」的映射，再拿一张**手写的**常量名→字符串表去查 README。变异「`replace` 改成要 `workspace.write`」直接走过——因为 `workspaceWrite` 不在那张手写表里，那条断言被跳过了
+2. **第二版**把常量映射也从 `plugin_manifest.dart` 源码读出来。同一个变异**还是**走过——因为它在**整个 README** 里搜 `workspace.write`，而下方的权限总表列了全部 17 个，怎么改都「提到过」
+3. **第三版**只在「动作 → 权限」那张表里搜
+
+三次变异各杀 1–2 条：三种动作分别指向别的权限。
+
+**每一版都比上一版更接近真正要钉的东西**，而每一次都是变异走过去才暴露的——一个断言查得太宽，和查错地方一样通不过检验。
+
+### 涉及文件
+
+SDK 仓库 `README.md` + `docs/i18n/README_*.md`（11 份）；`test/services/sdk_examples_test.dart`
