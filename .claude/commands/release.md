@@ -32,6 +32,14 @@ export VERSION=1.1.4  # 替换为实际版本号
 6. `code/pubspec.yaml` 与 `code/lib/core/constants.dart` 的版本号都已改
 7. 本机跑过 `flutter test` 全绿、`dart analyze --fatal-infos lib test` 无问题
    （**不在本机做完整构建**，打包一律交给 CI/CD）
+8. **插件 SDK 与官方插件的文档是否要跟进**——本版有没有改变**插件作者看得见的东西**：
+   契约（动作、字段、权限）、错误怎么呈现给他们、新增了什么他们该知道的能力。
+   有的话，`marktext-plus-plugin-sdk` 的 README 与 11 份翻译要一起改。
+   注意顺序：**能力发布之后**才写进 SDK 文档，否则就是 BUG-266 那个毛病
+   （文档承诺一件还没兑现的事）。
+   v1.6.2 的待办：编辑器开始展示「装了却读不进来的插件」和原因，而 SDK 文档的
+   「Trying a plugin before you ship it」一节只讲了发布前怎么试，没讲装上之后
+   不出现该去哪看
 
 发布后再确认一次：
 

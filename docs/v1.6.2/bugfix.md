@@ -760,6 +760,14 @@ Dart 的 `as bool?` 对**错误类型**是抛 `TypeError`，不是返回 null—
 
 三次变异，各杀 1–2 条：不再收集问题；把没有 manifest 的普通目录也算成坏插件；把具体原因换成一句「broken」。
 
+### 发布之后要做的一件事
+
+**SDK 文档要补一节「装上了却不出现怎么办」。** 它的「Trying a plugin before you ship it」讲了发布前怎么试，没讲装上之后读不进来去哪看原因——而那正是这条修复给出的答案，也正是插件作者最需要知道的。
+
+**现在不加**，因为这个能力还在 dev 上等人工测试。在它发布之前往 SDK 文档里写「去插件页看错误」，就是 BUG-266 那个毛病的翻版：文档承诺一件还没兑现的事。
+
+`marktext-plus-plugin-sdk` 的 README 和 11 份翻译，等 v1.6.2 出去之后。
+
 ### 涉及文件
 
 `lib/services/plugin_manager.dart`、`lib/providers/plugin_provider.dart`、`lib/ui/widgets/plugin_panel.dart`、`lib/ui/screens/plugin_detail_view.dart`；`test/services/plugin_problems_test.dart`（新增）
