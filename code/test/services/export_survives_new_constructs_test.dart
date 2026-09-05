@@ -59,6 +59,13 @@ void main() {
 - 平铺一
  - 平铺二
   - 平铺三
+
+==高亮==、^上标^、~下标~、++下划线++、~~删除线~~，
+行内公式 \$E = mc^2\$，以及一个脚注[^n]。
+
+**加粗里有 ==高亮==、^上标^ 与 ~下标~**，==高亮里有 **加粗** 和 [链接](/url)==。
+
+[^n]: 脚注定义本身。
 ''';
 
   test('HTML carries the constructs, not just the characters', () async {
@@ -80,6 +87,16 @@ void main() {
     expect(html, contains('平铺三'), reason: '漂移缩进的列表项没有导出');
     expect('<ul>'.allMatches(html).length, lessThan(6),
         reason: '平铺的列表被导出成了层层嵌套');
+
+    // The kinds of emphasis the source pane learned to colour in v1.6.2. Each
+    // has its own arm in each export, and an arm that throws or drops the run
+    // shows up nowhere else.
+    expect(html, contains('<mark>'), reason: '==高亮== 没有导出');
+    expect(html, contains('<sup>'), reason: '^上标^ 没有导出');
+    expect(html, contains('<sub>'), reason: '~下标~ 没有导出');
+    expect(html, contains('<u>'), reason: '++下划线++ 没有导出');
+    expect(html, contains('<del>'), reason: '~~删除线~~ 没有导出');
+    expect(html, contains('脚注定义本身'), reason: '脚注定义没有导出');
   });
 
   test('PDF is written and is a PDF', () async {

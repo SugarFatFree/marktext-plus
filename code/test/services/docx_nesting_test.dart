@@ -65,6 +65,45 @@ void main() {
     expect(run, contains('<w:i/>'));
   });
 
+  // The other direction: emphasis the reader nests *into*, whose own
+  // formatting has to survive being folded onto the runs inside it.
+  //
+  // Only these two reach that path. `^x^` and `~x~` take their content
+  // verbatim — `^**2**^` keeps the asterisks as characters, in the preview as
+  // much as here — so they never carry children and never need folding. Code,
+  // inline maths and a footnote marker are the same. That is why the fallback
+  // in `_withEmphasis` drops nothing: there is nothing there to drop.
+  test('bold inside marked text keeps the ground', () async {
+    final xml = await documentXml('==标出来的 **重点** 在此==\n');
+    final run = runFor(xml, '重点');
+    expect(run, contains('<w:b/>'));
+    expect(run, contains('w:highlight'), reason: '外层的高亮被丢掉了');
+  });
+
+  test('bold inside underlined text keeps the line', () async {
+    final xml = await documentXml('++压线的 **重点** 在此++\n');
+    final run = runFor(xml, '重点');
+    expect(run, contains('<w:b/>'));
+    // Word writes it as `<w:u w:val="single"/>`, not the word itself.
+    expect(run, contains('<w:u '), reason: '外层的下划线被丢掉了');
+  });
+
+  test('every kind of emphasis reaches Word with its own property', () async {
+    // The Word arm had no assertion about its contents at all: the export
+    // test checked the magic number and the file size, which a document full
+    // of unformatted text also passes. Dropping the raise from an exponent
+    // showed up nowhere.
+    final xml = await documentXml(
+      '==高亮==、^上标^、++下划线++、~~删除线~~、`代码`，以及 ~下标~ 收尾\n',
+    );
+    expect(runFor(xml, '高亮'), contains('w:highlight'), reason: '==高亮==');
+    expect(runFor(xml, '上标'), contains('superscript'), reason: '^上标^');
+    expect(runFor(xml, '下标'), contains('subscript'), reason: '~下标~');
+    expect(runFor(xml, '下划线'), contains('<w:u '), reason: '++下划线++');
+    expect(runFor(xml, '删除线'), contains('<w:strike'), reason: '~~删除线~~');
+    expect(runFor(xml, '代码'), contains('Courier New'), reason: '`代码`');
+  });
+
   test('plain bold is unchanged', () async {
     // The guard: the flat path is what nearly every run still takes.
     final xml = await documentXml('**只是加粗**\n');

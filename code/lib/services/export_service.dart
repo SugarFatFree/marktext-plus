@@ -726,7 +726,14 @@ class ExportService {
         InlineType.underline => run.copyWith(
             decorations: [...run.decorations, DocxTextDecoration.underline],
           ),
-        InlineType.highlight => run.copyWith(shadingFill: 'fff3a3'),
+        // Word's own highlighter rather than a background fill. Two reasons:
+        // it is what `==marked==` means, and a run whose only property is
+        // `shadingFill` comes out of docx_creator with no properties at all —
+        // its `_hasFormatting` lists `themeFill`, `themeFillTint` and
+        // `themeFillShade` and omits `shadingFill`, so the whole `<w:rPr>` is
+        // skipped and the ground goes with it. Marked text survived here only
+        // because folding an emphasis onto it left something else in the run.
+        InlineType.highlight => run.copyWith(highlight: DocxHighlight.yellow),
         // A link whose text is marked up: the destination and the look of a
         // link have to reach the runs the text became, or the export has bold
         // words where the document had a link.
@@ -774,9 +781,11 @@ class ExportService {
         case InlineType.subscript:
           return DocxText(span.text, isSubscript: true);
         case InlineType.highlight:
-          // Word has no ==highlight== equivalent, but shading is what the code
-          // branch above already uses to tint a run's background.
-          return DocxText(span.text, shadingFill: 'fff3a3');
+          // Word does have an equivalent — its highlighter — and it is both
+          // the right meaning and the only one that survives: see the note in
+          // `_withEmphasis`. Shading alone was dropped on the way out, so
+          // `==marked==` arrived in Word as plain text.
+          return DocxText(span.text, highlight: DocxHighlight.yellow);
         case InlineType.footnoteRef:
           // Not a real Word footnote — a real one needs a footnotes part — but
           // superscript at least keeps the marker readable as a reference.

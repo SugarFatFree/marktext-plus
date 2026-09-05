@@ -15,6 +15,7 @@
 | BUG-272 | 2026-09-05 | 段落里有公式或图片，复制到 Word 就丢掉全部格式 | P1 | 已修复 |
 | BUG-273 | 2026-09-05 | 行内代码的两个「留白」空格是内容，搜索一开就消失 | P1 | 已修复 |
 | BUG-274 | 2026-09-05 | 从源码窗格复制时无视 HTML 开关，同一段源码两个窗格结果不同 | P2 | 已修复 |
+| BUG-275 | 2026-09-05 | `==高亮==` 导出到 Word 完全没有底色，上游库漏判 | P1 | 已修复 |
 
 ---
 
@@ -553,3 +554,66 @@ children.add(TextSpan(text: ' ${span.text} ', style: s));
 ### 涉及文件
 
 `lib/services/rich_copy_service.dart`、`lib/ui/widgets/app_menu_bar.dart`、`lib/ui/editor/source_editor.dart`；`test/services/rich_copy_test.dart`、`test/ui/widgets/menu_copy_rich_guard_test.dart`、`test/ui/editor/preview_placeholder_test.dart`
+
+---
+
+## BUG-275：`==高亮==` 到了 Word 就是普通文字
+
+### 现象
+
+`==标出来==` 导出 Word，底色完全没有。上标、下标、下划线、删除线、行内代码都正常，只有它。
+
+### 根因分析
+
+**上游 `docx_creator` 的判断漏了一项。** 一个 run 要不要写 `<w:rPr>`（属性块），由 `_hasFormatting` 决定：
+
+```dart
+bool get _hasFormatting =>
+    isBold || isItalic || decorations.isNotEmpty || ...
+    themeFill != null ||
+    themeFillTint != null ||
+    themeFillShade != null;      // ← 三个 themeFill 都在
+                                 // ← shadingFill 不在
+```
+
+于是**只设了 `shadingFill` 的 run，整个属性块都不写**，底色随之消失。写出逻辑本身是对的（`writeShading` 检查 fill 非空就写 `w:shd`），错的是它压根没被调用。
+
+这解释了为什么嵌套的情况反而正常：`==标出来的 **重点** 在此==` 里的「重点」还带着 bold，`_hasFormatting` 因为 bold 为真，属性块写了出来，底色跟着一起写了。**格式越多越正常，孤零零的高亮反而丢**。
+
+### 为什么一直没被发现
+
+Word 导出的测试只断言了两件事：文件以 `PK` 开头、字节数大于 2000。
+
+`export_survives_new_constructs_test` 的开头注释早就点破过这件事——「现有的导出测试断言文件开头的魔数，而一个没有任何有用内容的文件也能通过」——那句话是写给旧测试的，而这个文件自己的 Word 测试仍然只做了这两件事。
+
+变异验证时抓到的：把 Word 的上标属性去掉，全部测试照过。
+
+### 修复方案
+
+改用 **Word 自己的荧光笔**（`<w:highlight w:val="yellow"/>`）而不是背景填充。两个理由：
+
+1. 那才是 `==marked==` 的意思——Word 用户认得那支笔
+2. 它在 `_hasFormatting` 的列表里，能被写出来
+
+两处都改：`_docxTextFor`（独立的高亮）与 `_withEmphasis`（折进内层 run 的高亮）。
+
+**没有改上游。** 值得给 `docx_creator` 报一个 issue（`_hasFormatting` 漏了 `shadingFill`），但那是往别人仓库里提东西，等你点头。
+
+### 顺带补上的覆盖
+
+- **导出 fixture** 加进 `==高亮==`、`^上标^`、`~下标~`、`++下划线++`、`~~删除线~~`、行内公式、脚注，以及两种嵌套。HTML 侧逐个断言 `<mark>` `<sup>` `<sub>` `<u>` `<del>`。这个 fixture 的注释写着「grown rather than replaced」，而 v1.6.2 新认的那几种从没进来过
+- **Word 侧第一次有了内容断言**：六种内联各自的 XML 属性
+
+### 一条基于错误假设的测试，写完就删了
+
+原本还写了「上标里的加粗要同时保留两者」。探针一看：`^**2**^` 的内容**根本不再解析内联**，`**` 原样留在文字里——预览也是这样。所以 `_withEmphasis` 的 `_ => run` 对上下标不是缺口，它们永远不带 children。
+
+那条删掉了，理由写进注释：省得下次有人（包括我）又去修一个不存在的洞。
+
+### 验证
+
+Word 侧逐个变异，各杀 1–2 条：去掉 superscript / subscript / underline / strikethrough / highlight 的属性；`_withEmphasis` 退回 `shadingFill`。
+
+### 涉及文件
+
+`lib/services/export_service.dart`；`test/services/docx_nesting_test.dart`、`test/services/export_survives_new_constructs_test.dart`
