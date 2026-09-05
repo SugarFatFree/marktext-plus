@@ -99,6 +99,46 @@ void main() {
     });
   });
 
+  // The other half of the same dialog. Overwriting and reloading sit next to
+  // each other in one switch; only the first was wired up last time, which is
+  // what happens when a fix looks at a case and not at its siblings.
+  group('reloading from disk', () {
+    test('a read that cannot happen is thrown, not answered false', () async {
+      addTab(path: '${root.path}/gone.md');
+
+      await expectLater(
+        container.read(tabProvider.notifier).reloadFromDisk('note'),
+        throwsA(isA<Object>()),
+        reason: '点了「用磁盘上的」却什么都没变，读者要知道是文件读不了',
+      );
+    });
+
+    test('nothing to reload is still false', () async {
+      addTab(path: null);
+
+      expect(
+        await container.read(tabProvider.notifier).reloadFromDisk('note'),
+        isFalse,
+      );
+    });
+
+    test('a reload that works takes the disk version and clears the conflict',
+        () async {
+      final file = File('${root.path}/note.md')..writeAsStringSync('theirs');
+      addTab(path: file.path, modified: true);
+      container.read(tabProvider.notifier).markDiskConflict('note');
+
+      expect(
+        await container.read(tabProvider.notifier).reloadFromDisk('note'),
+        isTrue,
+      );
+      final tab = container.read(tabProvider).tabs.single;
+      expect(tab.content, 'theirs');
+      expect(tab.isModified, isFalse);
+      expect(tab.diskConflict, isFalse);
+    });
+  });
+
   group('rereading in another encoding', () {
     test('a file that cannot be read is thrown, not answered false', () async {
       addTab(path: '${root.path}/gone.md');

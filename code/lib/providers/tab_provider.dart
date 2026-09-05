@@ -593,35 +593,36 @@ class TabNotifier extends StateNotifier<TabState> {
   }
 
   /// Throws away the tab's edits and takes what is on disk.
+  ///
+  /// Throws when the file cannot be read, like [overwriteOnDisk] and
+  /// [rereadAs]. These three are the ways out of the same conflict, and a
+  /// reader who chose one and saw nothing change is owed the reason — the
+  /// banner correctly stays here, which says the conflict is unresolved and
+  /// not why it could not be.
   Future<bool> reloadFromDisk(String id) async {
     final tab = state.tabs.where((t) => t.id == id).firstOrNull;
     if (tab?.filePath == null) return false;
-    try {
-      final opened =
-          await FileService().readFileWithLineEnding(tab!.filePath!);
-      final stamp = await FileService.stampOf(tab.filePath!);
-      if (!mounted) return false;
-      loadTabContent(
-        id,
-        opened.content,
-        lineEnding: opened.lineEnding,
-        encoding: opened.encoding,
-      );
-      state = state.copyWith(
-        tabs: state.tabs
-            .map((t) => t.id == id
-                ? t.copyWith(
-                    isModified: false,
-                    diskStamp: stamp,
-                    diskConflict: false,
-                  )
-                : t)
-            .toList(),
-      );
-      return true;
-    } catch (_) {
-      return false;
-    }
+    final opened = await FileService().readFileWithLineEnding(tab!.filePath!);
+    final stamp = await FileService.stampOf(tab.filePath!);
+    if (!mounted) return false;
+    loadTabContent(
+      id,
+      opened.content,
+      lineEnding: opened.lineEnding,
+      encoding: opened.encoding,
+    );
+    state = state.copyWith(
+      tabs: state.tabs
+          .map((t) => t.id == id
+              ? t.copyWith(
+                  isModified: false,
+                  diskStamp: stamp,
+                  diskConflict: false,
+                )
+              : t)
+          .toList(),
+    );
+    return true;
   }
 
   /// Records that [id] has been written to disk.

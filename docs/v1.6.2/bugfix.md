@@ -20,6 +20,7 @@
 | BUG-277 | 2026-09-05 | 配置里一个字段类型写错，全部设置静默恢复默认 | P1 | 已修复 |
 | BUG-278 | 2026-09-05 | 装了却读不进来的插件静默消失，写好的原因从没送达 | P1 | 已修复 |
 | BUG-279 | 2026-09-05 | 磁盘冲突时选「覆盖」，写失败却看起来成功了 | P0 | 已修复 |
+| BUG-280 | 2026-09-05 | 同一个对话框的「重新加载」，BUG-279 只修了一半 | P1 | 已修复 |
 
 ---
 
@@ -816,3 +817,48 @@ case 'overwrite':
 ### 涉及文件
 
 `lib/providers/tab_provider.dart`、`lib/ui/widgets/app_menu_bar.dart`、`lib/ui/widgets/status_bar.dart`；`test/providers/write_failure_reaches_the_reader_test.dart`、`test/ui/widgets/failure_reaches_the_reader_guard_test.dart`（均新增）
+
+---
+
+## BUG-280：同一个 switch 里的兄弟分支，上一条只修了一半
+
+### 现象
+
+磁盘冲突对话框给三个选择。BUG-279 修了「用我的覆盖」，**「用磁盘上的」原封不动**：
+
+```dart
+case 'overwrite':
+  try { ... } catch (error) { reportSaveFailure(error); ... }   // 上一条修的
+case 'reload':
+  await notifier.reloadFromDisk(tab.id);                        // 没动
+```
+
+两个 case 在屏幕上挨着，我上一轮看着它们改了前一个。
+
+### 根因分析
+
+`reloadFromDisk` 和 `overwriteOnDisk` 是同一个形状：`false` 既是「没有文件可读」也是「读失败了」，调用方两个都不看。
+
+**后果比 BUG-279 轻**：读失败时状态更新在 try 块里不执行，所以冲突横幅**自己留着**——读者能看出没成功。但横幅留着只说明「冲突还在」，不说明**为什么读不了**。读者点了「用磁盘上的」，什么都没发生，横幅还在。
+
+### 修复方案
+
+和另外两个一致：前置条件仍返回 false，读失败往外抛，调用方 `reportOpenFailure(error)`。
+
+三个出口（覆盖、重新加载、换编码重读）现在是同一套规矩。
+
+### 顺带查过、没有问题的
+
+同一个视角扫了剩下返回 `Future<bool>` 的方法：
+
+- `moveToTrash` —— 调用方**检查了**返回值，trash 不可用时退回直接删除，而确认对话框已经说明过这一点 ✓
+- `_runFileOp`（侧边栏所有文件操作的统一包装）—— `PathExistsException` 有专门的、读者能照做的消息，其余带原因显示 ✓
+- `hasChangedSince` / `isEnabled` —— 查询，不是操作
+
+### 验证
+
+两次变异各杀 1 条：`reloadFromDisk` 退回静默 false；调用方不再接住。守卫测试也补了这一半。
+
+### 涉及文件
+
+`lib/providers/tab_provider.dart`、`lib/ui/widgets/app_menu_bar.dart`；`test/providers/write_failure_reaches_the_reader_test.dart`、`test/ui/widgets/failure_reaches_the_reader_guard_test.dart`

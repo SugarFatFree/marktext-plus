@@ -256,7 +256,14 @@ class AppMenuBar extends ConsumerWidget {
           notifier.markDiskConflict(tab.id);
         }
       case 'reload':
-        await notifier.reloadFromDisk(tab.id);
+        try {
+          await notifier.reloadFromDisk(tab.id);
+        } catch (error) {
+          // The banner stays by itself here, because nothing was written —
+          // but staying says the conflict is unresolved, not why the disk
+          // version could not be read.
+          reportOpenFailure(error);
+        }
       default:
         // Neither: the tab keeps the edits and stays in conflict, so the
         // banner remains and auto-save stays out of it.

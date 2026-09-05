@@ -41,6 +41,17 @@ void main() {
     );
   });
 
+  test('choosing to reload reports a read that fails', () {
+    // The sibling of the case above, in the same switch. The first version of
+    // this fix wired up one of the two and left the other exactly as it was.
+    final guarded =
+        catchAround('lib/ui/widgets/app_menu_bar.dart', 'reloadFromDisk(tab.id)');
+
+    expect(guarded, isNotNull,
+        reason: '同一个对话框的另一半，不能只修一半');
+    expect(guarded, contains('reportOpenFailure'));
+  });
+
   test('rereading in another encoding reports a read that fails', () {
     final guarded = catchAround(
       'lib/ui/widgets/status_bar.dart',
