@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../core/constants.dart';
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
@@ -13,7 +14,7 @@ import '../core/diagnostics/startup_trace.dart';
 /// on the file itself and leaves it silent from then on.
 class OpenDocumentWatcher {
   /// Creates a watcher.
-  OpenDocumentWatcher({this.debounce = const Duration(milliseconds: 300)});
+  OpenDocumentWatcher({this.debounce = const Duration(milliseconds: AppConstants.debounceDelay)});
 
   /// How long to wait after a notification before reporting it.
   ///

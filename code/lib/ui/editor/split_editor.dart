@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../core/constants.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -53,7 +54,10 @@ class _SplitEditorState extends ConsumerState<SplitEditor> {
     super.initState();
     // The divider position was written to config on every drag and never read
     // back, so the split reset to even halves on each launch.
-    _splitRatio = ref.read(settingsProvider).splitRatio.clamp(0.2, 0.8);
+    _splitRatio = ref
+        .read(settingsProvider)
+        .splitRatio
+        .clamp(AppConstants.minSplitRatio, AppConstants.maxSplitRatio);
     _content = widget.initialContent;
     _renderedContent = widget.initialContent;
   }
@@ -86,7 +90,8 @@ class _SplitEditorState extends ConsumerState<SplitEditor> {
     _content = newContent;
 
     if (_debounce?.isActive ?? false) _debounce!.cancel();
-    _debounce = Timer(const Duration(milliseconds: 300), () {
+    _debounce = Timer(
+        const Duration(milliseconds: AppConstants.debounceDelay), () {
       if (!mounted) return;
       setState(() {
         _renderedContent = newContent;
@@ -113,7 +118,8 @@ class _SplitEditorState extends ConsumerState<SplitEditor> {
       _splitRatio =
           (_splitRatio * constraints.maxWidth + details.delta.dx) /
           constraints.maxWidth;
-      _splitRatio = _splitRatio.clamp(0.2, 0.8);
+      _splitRatio = _splitRatio
+          .clamp(AppConstants.minSplitRatio, AppConstants.maxSplitRatio);
       _persistSplitRatio();
     });
   }

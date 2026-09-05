@@ -23,6 +23,7 @@
 | BUG-280 | 2026-09-05 | 同一个对话框的「重新加载」，BUG-279 只修了一半 | P1 | 已修复 |
 | BUG-281 | 2026-09-05 | 行内公式与脚注引用在源码窗格不染色，BUG-271 漏掉的两个 | P2 | 已修复 |
 | BUG-282 | 2026-09-06 | `maxRecentFiles` 常量说 20，实际是别处硬编码的 10，而且从没被读过 | P2 | 已修复 |
+| BUG-283 | 2026-09-06 | `AppConstants` 18 个常量里 14 个没人读，其中一个已经和实际分家 | P2 | 已修复 |
 
 ---
 
@@ -1004,3 +1005,46 @@ if (files.length > 10) {
 ### 涉及文件
 
 `lib/core/constants.dart`、`lib/providers/settings_provider.dart`；`test/providers/recent_files_limit_test.dart`（新增）
+
+---
+
+## BUG-283：一个事实上已经废弃的常量文件
+
+### 现象
+
+BUG-282 修完一个死常量之后，把整个 `AppConstants` 数了一遍：**18 个里 14 个从来没人读**。
+
+清点结果分三类：
+
+| 类别 | 数量 | 例子 |
+|---|---|---|
+| **说了假话** | 1 | `minWindowWidth = 800`，而窗口实际最小 480（`WindowPlacement.minimumSize`） |
+| **过时的遗留** | 1 | `configDirName = 'marktext-plus'`——V1.1.3 配置目录就从 `~/.marktext-plus/` 迁到系统应用目录了 |
+| **和别处重复** | 12 | `defaultFontSize = 16.0` 对 `AppConfig` 的默认参数；`minFontSize/maxFontSize` 对 `app_menu_bar` 里两处 `clamp(12.0, 32.0)` |
+
+**一个没人读的值，是一个没有任何东西负责让它保持为真的值。** 这就是它为什么会变成假话——`minWindowWidth` 和 `maxRecentFiles` 都不是一开始就错的。
+
+### 修复方案
+
+按「权威在哪」分开处理：
+
+- **权威在别处的，删掉**（10 个）。`AppConfig` 的默认参数就是默认值的定义，`WindowPlacement.minimumSize` 就是最小尺寸的定义，配置路径来自 `getApplicationSupportDirectory()`。在这里再抄一份，只是多一个可以改的地方，和一个不必被改的地方
+- **确实有多处读同一个值的，让它们真的去读**（8 个使用点）：应用名 2 处、字号上下限 2 处、分屏比例 2 处、防抖 300ms 4 处
+
+剩 8 个常量，每一个都至少被两处读。
+
+### 关键：把规矩变成能失败的东西
+
+文件顶部本来就该有一条规矩——「**一个值放在这里，前提是至少两处从这里读它**」。写成注释，它就只是一句描述。
+
+`constants_are_read_test` 让它成为规则：读 `constants.dart` 提取每个常量名，扫 `lib/` 下所有 `.dart`，任何一个没有 `AppConstants.<名字>` 就红，并且直接告诉你是哪几个、两条出路是什么。
+
+### 验证
+
+两次变异各杀 1 条：加一个没人读的常量；把某个使用点退回硬编码。
+
+**还有一次自己造成的：** 变异 `split_editor.dart` 之后我用 `git checkout` 还原——它把这一轮**尚未提交**的改动一起抹掉了，「还原后」当场变红。和昨天 BUG-275 那次一模一样（记忆里那条「变异测试的备份取在修复之后」说的正是这个）。重新应用了。
+
+### 涉及文件
+
+`lib/core/constants.dart`、`lib/main.dart`、`lib/app.dart`、`lib/ui/widgets/app_menu_bar.dart`、`lib/ui/editor/split_editor.dart`、`lib/ui/editor/source_editor.dart`、`lib/ui/screens/settings_screen.dart`、`lib/services/open_document_watcher.dart`；`test/core/constants_are_read_test.dart`（新增）

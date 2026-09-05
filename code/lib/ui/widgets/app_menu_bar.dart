@@ -771,7 +771,8 @@ class AppMenuBar extends ConsumerWidget {
           shortcut: _shortcut('zoomIn'),
           child: Text(l10n.viewZoomIn),
           onPressed: () {
-            final newSize = (config.fontSize + 2).clamp(12.0, 32.0);
+            final newSize = (config.fontSize + 2)
+                .clamp(AppConstants.minFontSize, AppConstants.maxFontSize);
             ref.read(settingsProvider.notifier).setFontSize(newSize);
           },
         ),
@@ -779,7 +780,8 @@ class AppMenuBar extends ConsumerWidget {
           shortcut: _shortcut('zoomOut'),
           child: Text(l10n.viewZoomOut),
           onPressed: () {
-            final newSize = (config.fontSize - 2).clamp(12.0, 32.0);
+            final newSize = (config.fontSize - 2)
+                .clamp(AppConstants.minFontSize, AppConstants.maxFontSize);
             ref.read(settingsProvider.notifier).setFontSize(newSize);
           },
         ),

@@ -1,4 +1,5 @@
 import 'utils/file_utils.dart';
+import 'core/constants.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -186,7 +187,7 @@ void main(List<String> args) async {
 
   final windowOptions = WindowOptions(
     size: placement.size,
-    title: 'MarkText Plus',
+    title: AppConstants.appName,
   );
 
   windowManager.waitUntilReadyToShow(windowOptions, () async {

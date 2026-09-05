@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'core/constants.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:window_manager/window_manager.dart';
@@ -229,7 +230,7 @@ class MarkTextPlusApp extends ConsumerWidget {
 
     return MaterialApp(
       navigatorKey: navigatorKey,
-      title: 'MarkText Plus',
+      title: AppConstants.appName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.getTheme(themeName),
       themeMode: tokens.brightness == Brightness.dark ? ThemeMode.dark : ThemeMode.light,

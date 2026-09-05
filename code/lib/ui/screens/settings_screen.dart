@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../../core/constants.dart';
 
 import 'dart:async';
 
@@ -44,7 +45,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   void _queueAiField(String field, String value) {
     _aiSaveTimer?.cancel();
-    _aiSaveTimer = Timer(const Duration(milliseconds: 300), () {
+    _aiSaveTimer = Timer(
+        const Duration(milliseconds: AppConstants.debounceDelay), () {
       if (!mounted) return;
       final notifier = ref.read(settingsProvider.notifier);
       notifier.updateConfig((config) => switch (field) {

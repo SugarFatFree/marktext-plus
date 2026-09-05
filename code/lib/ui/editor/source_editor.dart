@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../core/constants.dart';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -1260,7 +1261,8 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     }
 
     if (_debounce?.isActive ?? false) _debounce!.cancel();
-    _debounce = Timer(const Duration(milliseconds: 300), () {
+    _debounce = Timer(
+        const Duration(milliseconds: AppConstants.debounceDelay), () {
       // Still composing after the pause — a reader thinking about which
       // candidate to pick — so the half-written word is not history yet. The
       // change is still handed on, or the preview would freeze mid-word.
