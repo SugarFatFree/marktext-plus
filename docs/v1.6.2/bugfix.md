@@ -17,6 +17,7 @@
 | BUG-274 | 2026-09-05 | 从源码窗格复制时无视 HTML 开关，同一段源码两个窗格结果不同 | P2 | 已修复 |
 | BUG-275 | 2026-09-05 | `==高亮==` 导出到 Word 完全没有底色，上游库漏判 | P1 | 已修复 |
 | BUG-276 | 2026-09-05 | 从网页粘贴时 `<mark>` `<u>` `<sup>` `<sub>` 的语义全部丢失 | P1 | 已修复 |
+| BUG-277 | 2026-09-05 | 配置里一个字段类型写错，全部设置静默恢复默认 | P1 | 已修复 |
 
 ---
 
@@ -675,3 +676,39 @@ BUG-275 给 Word 补了内容断言之后，PDF 那侧同样只有 `%PDF-` 和�
 ### 涉及文件
 
 `lib/services/html_to_markdown.dart`；`test/services/html_to_markdown_test.dart`、`test/services/html_round_trip_test.dart`（新增）
+
+---
+
+## BUG-277：配置里错一个字段，全部设置一起没
+
+### 现象
+
+配置文件是 JSON，存在系统应用目录里，读者打得开也改得动。里面**任何一个** bool / 整数 / 字符串字段类型写错——比如把 `"sideBarVisible": true` 手抖写成 `"yes"`——**主题、字体、快捷键、最近文件、会话标签页全部回到默认值**，而且一声不吭。
+
+### 根因分析
+
+`AppConfig.fromJson` 读每个字段用的是 `json['x'] as bool? ?? 默认值`。
+
+Dart 的 `as bool?` 对**错误类型**是抛 `TypeError`，不是返回 null——`?? 默认值` 根本轮不到。一个字段抛，整个 `fromJson` 抛；`ConfigService` 用 try/catch 兜住，回退到一份全新的默认配置。
+
+作者**已经知道**要宽容：`fontSize`、`splitRatio` 走 `_parseDouble`，`editMode`、`aiProvider` 走各自的解析函数，坏值各自回默认。只是 37 个 bool / int / String 字段没做。
+
+**列表更隐蔽。** `(json['sessionTabs'] as List?)?.cast<String>()`——`cast` 是**惰性**的，一个混进数字的列表在 `fromJson` 这里顺利通过，等到某处遍历它时才抛，而那时已经和配置文件没有任何看得出的联系。
+
+### 修复方案
+
+补上 `_parseBool` / `_parseInt` / `_parseString` / `_parseStringList`，和已有的 `_parseDouble` 一个风格。语义与原来完全一致，只是**不再抛**：错的那个字段回到自己的默认值，别的字段留下。
+
+`_parseInt` 多接受一种：JSON 只有一个数字类型，`8000` 存下来可能读回 `8000.0`，而 `as int?` 对它同样抛。
+
+`_parseStringList` 跳过列表里不是字符串的项，而不是让它潜伏到以后。
+
+### 验证：一次不能区分假设的断言
+
+四次变异，三次立刻被杀。**「int 不再接受小数」那次没有**——我的测试用的是 `{'autoSaveDelay': 5000.0}`，而 5000 **正好是这个字段的默认值**：读对了是 5000，读错了回退也是 5000，断言两种情况都满足。
+
+换成 8000.0 才真正区分开。
+
+### 涉及文件
+
+`lib/core/config/app_config.dart`；`test/core/config/app_config_test.dart`

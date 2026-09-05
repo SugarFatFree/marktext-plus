@@ -229,68 +229,64 @@ class AppConfig {
 
   factory AppConfig.fromJson(Map<String, dynamic> json) {
     return AppConfig(
-      sideBarVisible: json['sideBarVisible'] as bool? ?? true,
-      tabBarVisible: json['tabBarVisible'] as bool? ?? true,
+      sideBarVisible: _parseBool(json['sideBarVisible'], true),
+      tabBarVisible: _parseBool(json['tabBarVisible'], true),
       editMode: _parseEditMode(json['editMode']),
       splitRatio: _parseDouble(json['splitRatio'], 0.5),
-      fontFamily: json['fontFamily'] as String? ?? 'monospace',
+      fontFamily: _parseString(json['fontFamily'], 'monospace'),
       fontSize: _parseDouble(json['fontSize'], 16.0),
       lineHeight: _parseDouble(json['lineHeight'], 1.6),
-      autoSave: json['autoSave'] as bool? ?? true,
-      autoSaveDelay: json['autoSaveDelay'] as int? ?? 5000,
+      autoSave: _parseBool(json['autoSave'], true),
+      autoSaveDelay: _parseInt(json['autoSaveDelay'], 5000),
       themeName: AppTheme.migrateName(
-        json['themeName'] as String? ?? 'redGraphite',
+        _parseString(json['themeName'], 'redGraphite'),
       ),
-      followSystemTheme: json['followSystemTheme'] as bool? ?? false,
+      followSystemTheme: _parseBool(json['followSystemTheme'], false),
       lightModeTheme: AppTheme.migrateName(
-        json['lightModeTheme'] as String? ?? 'redGraphite',
+        _parseString(json['lightModeTheme'], 'redGraphite'),
       ),
       darkModeTheme: AppTheme.migrateName(
-        json['darkModeTheme'] as String? ?? 'darkGraphite',
+        _parseString(json['darkModeTheme'], 'darkGraphite'),
       ),
-      locale: json['locale'] as String? ?? '',
-      bulletListMarker: json['bulletListMarker'] as String? ?? '-',
-      tabSize: json['tabSize'] as int? ?? 4,
-      enableHtml: json['enableHtml'] as bool? ?? false,
-      wrapCodeBlocks: json['wrapCodeBlocks'] as bool? ?? true,
-      codeBlockLineNumbers: json['codeBlockLineNumbers'] as bool? ?? true,
-      autoPairBracket: json['autoPairBracket'] as bool? ?? true,
-      autoPairQuote: json['autoPairQuote'] as bool? ?? true,
-      autoPairMarkdownSyntax: json['autoPairMarkdownSyntax'] as bool? ?? true,
+      locale: _parseString(json['locale'], ''),
+      bulletListMarker: _parseString(json['bulletListMarker'], '-'),
+      tabSize: _parseInt(json['tabSize'], 4),
+      enableHtml: _parseBool(json['enableHtml'], false),
+      wrapCodeBlocks: _parseBool(json['wrapCodeBlocks'], true),
+      codeBlockLineNumbers: _parseBool(json['codeBlockLineNumbers'], true),
+      autoPairBracket: _parseBool(json['autoPairBracket'], true),
+      autoPairQuote: _parseBool(json['autoPairQuote'], true),
+      autoPairMarkdownSyntax: _parseBool(json['autoPairMarkdownSyntax'], true),
       windowWidth: _parseDouble(json['windowWidth'], 1200),
       windowHeight: _parseDouble(json['windowHeight'], 800),
       windowX: _parseDouble(json['windowX'], 0),
       windowY: _parseDouble(json['windowY'], 0),
-      isMaximized: json['isMaximized'] as bool? ?? false,
-      recentFiles:
-          (json['recentFiles'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList() ??
-          [],
-      focusMode: json['focusMode'] as bool? ?? false,
-      typewriterMode: json['typewriterMode'] as bool? ?? false,
-      codeFontFamily: json['codeFontFamily'] as String? ?? 'Courier New',
+      isMaximized: _parseBool(json['isMaximized'], false),
+      recentFiles: _parseStringList(json['recentFiles']),
+      focusMode: _parseBool(json['focusMode'], false),
+      typewriterMode: _parseBool(json['typewriterMode'], false),
+      codeFontFamily: _parseString(json['codeFontFamily'], 'Courier New'),
       codeFontSize: _parseDouble(json['codeFontSize'], 14.0),
-      editorMaxWidth: json['editorMaxWidth'] as int? ?? 800,
-      textDirection: json['textDirection'] as String? ?? 'ltr',
-      imageStorageMode: json['imageStorageMode'] as String? ?? 'copy',
-      imageFolder: json['imageFolder'] as String? ?? 'assets/images',
+      editorMaxWidth: _parseInt(json['editorMaxWidth'], 800),
+      textDirection: _parseString(json['textDirection'], 'ltr'),
+      imageStorageMode: _parseString(json['imageStorageMode'], 'copy'),
+      imageFolder: _parseString(json['imageFolder'], 'assets/images'),
       fileOpenBehavior: _parseFileOpenBehavior(json['fileOpenBehavior']),
-      lastUpdateCheck: json['lastUpdateCheck'] as String? ?? '',
-      skipVersion: json['skipVersion'] as String? ?? '',
-      sideBarDirectory: json['sideBarDirectory'] as String? ?? '',
+      lastUpdateCheck: _parseString(json['lastUpdateCheck'], ''),
+      skipVersion: _parseString(json['skipVersion'], ''),
+      sideBarDirectory: _parseString(json['sideBarDirectory'], ''),
       sideBarOpenedFiles:
-          (json['sideBarOpenedFiles'] as List?)?.cast<String>() ?? const [],
-      sessionTabs: (json['sessionTabs'] as List?)?.cast<String>() ?? const [],
-      sessionActiveTab: json['sessionActiveTab'] as String? ?? '',
-      aiEnabled: json['aiEnabled'] as bool? ?? false,
-      aiApiKey: json['aiApiKey'] as String? ?? '',
+          _parseStringList(json['sideBarOpenedFiles']),
+      sessionTabs: _parseStringList(json['sessionTabs']),
+      sessionActiveTab: _parseString(json['sessionActiveTab'], ''),
+      aiEnabled: _parseBool(json['aiEnabled'], false),
+      aiApiKey: _parseString(json['aiApiKey'], ''),
       aiProvider: _parseAiProvider(json['aiProvider']),
-      aiEndpoint: json['aiEndpoint'] as String? ?? '',
-      mcpEnabled: json['mcpEnabled'] as bool? ?? false,
-      mcpPort: json['mcpPort'] as int? ?? 10100,
-      mcpToken: json['mcpToken'] as String? ?? '',
-      aiModel: json['aiModel'] as String? ?? '',
+      aiEndpoint: _parseString(json['aiEndpoint'], ''),
+      mcpEnabled: _parseBool(json['mcpEnabled'], false),
+      mcpPort: _parseInt(json['mcpPort'], 10100),
+      mcpToken: _parseString(json['mcpToken'], ''),
+      aiModel: _parseString(json['aiModel'], ''),
     );
   }
 
@@ -306,6 +302,38 @@ class AppConfig {
     if (value is num) return value.toDouble();
     return defaultValue;
   }
+
+  // The rest of the fields, read the same way. `as bool?` and its kind throw
+  // on the wrong type rather than answering null, and ConfigService catches
+  // that by starting from a default configuration — so one mistyped value in
+  // a file the reader can open reset every setting they had, without saying
+  // so. A wrong field now costs that field and nothing else.
+  static bool _parseBool(dynamic value, bool defaultValue) =>
+      value is bool ? value : defaultValue;
+
+  /// JSON has one number type, so a whole number saved as 5000 can come back
+  /// as 5000.0.
+  static int _parseInt(dynamic value, int defaultValue) => switch (value) {
+        int i => i,
+        num n => n.round(),
+        _ => defaultValue,
+      };
+
+  static String _parseString(dynamic value, String defaultValue) =>
+      value is String ? value : defaultValue;
+
+  /// The strings out of a saved list, skipping anything that is not one.
+  ///
+  /// `cast<String>()` is the trap here rather than a plain `as`: it is lazy,
+  /// so a list holding one number is accepted by `fromJson` and throws later,
+  /// somewhere with no connection to the file that caused it.
+  static List<String> _parseStringList(dynamic value) => switch (value) {
+        List list => [
+            for (final entry in list)
+              if (entry is String) entry,
+          ],
+        _ => const <String>[],
+      };
 
   static AiProvider _parseAiProvider(dynamic value) {
     if (value is String) {
