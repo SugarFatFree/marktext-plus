@@ -178,6 +178,38 @@ void main() {
     expect(manifest.supportedPlatforms, hasLength(6));
   }, skip: skip);
 
+  test('the examples explain every permission their script needs', () {
+    // The examples teach by annotating each call with the permission it
+    // needs. They annotated four and missed the fifth — `sdk.panel` needs
+    // `ui.sidebar` — which is the same permission the manifests had been
+    // missing until it was noticed, so the fix went into the manifests and
+    // not into the file that teaches people to write them.
+    //
+    // Read from the manifest rather than listed here: whichever permissions a
+    // script-level call needs, the script that makes those calls has to name
+    // them.
+    Set<String> annotated(String path) => RegExp(r'needs ([a-z.]+)')
+        .allMatches(File(path).readAsStringSync())
+        .map((m) => m.group(1)!)
+        .toSet();
+
+    final lua = annotated('$sdk/packages/lua/plugin.lua');
+    final js = annotated('$sdk/packages/js/plugin.js');
+
+    expect(lua, js,
+        reason: 'Lua 与 JS 是同一个插件的两种写法，注释也该说同样的话');
+    expect(lua, contains('ui.sidebar'),
+        reason: 'sdk.panel 需要它，而这正是当初 manifest 漏掉的那一个');
+    for (final permission in lua) {
+      expect(
+        jsonDecode(File('$sdk/packages/lua/manifest.json').readAsStringSync())
+            ['permissions'],
+        contains(permission),
+        reason: '注释里说需要 $permission，manifest 就得声明它',
+      );
+    }
+  }, skip: skip);
+
   test('the three examples are three plugins, not one wearing three hats', () {
     // Each carries its own id, so installing all three is possible and none
     // of them silently replaces another.

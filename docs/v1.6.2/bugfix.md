@@ -25,6 +25,7 @@
 | BUG-282 | 2026-09-06 | `maxRecentFiles` 常量说 20，实际是别处硬编码的 10，而且从没被读过 | P2 | 已修复 |
 | BUG-283 | 2026-09-06 | `AppConstants` 18 个常量里 14 个没人读，其中一个已经和实际分家 | P2 | 已修复 |
 | BUG-284 | 2026-09-06 | 关闭看门狗从来没被撤下，正常退出会被 600ms 的 `exit(0)` 抢先 | P1 | 已修复 |
+| BUG-285 | 2026-09-06 | SDK 示例逐行标注权限，五个里标了四个——漏的正是 BUG-263 那个 | P2 | 已修复 |
 
 ---
 
@@ -1112,3 +1113,48 @@ BUG-284 是扫描「没人调用的公开静态方法」时找到的。当时列
 ### 涉及文件
 
 `lib/utils/file_utils.dart`、`lib/ui/editor/code_highlighting.dart`
+
+---
+
+## BUG-285：教人写 manifest 的文件自己漏了一个
+
+### 现象
+
+SDK 的两个脚本示例（Lua / JS）用行尾注释教权限：
+
+```lua
+return sdk.notify(sdk.t("error.empty"))            -- needs ui.notifications
+default = sdk.storage.get("language") or "English", -- needs storage.local
+    and ctx.document                                -- needs document.read
+)                                                   -- needs ai.chat
+```
+
+**五个需要权限的调用，标了四个。** `sdk.panel(...)` 需要 `ui.sidebar`，什么也没说。
+
+### 根因分析
+
+而 `ui.sidebar` **正是 BUG-263 里三个示例 manifest 漏声明的那一个**。当时修好了 manifest——**没修教人写 manifest 的那个文件**。
+
+修一处症状而不修产生它的地方，下一个照着抄的人会犯同样的错。
+
+两个示例都漏（它们是同一个插件的两种写法），这次一起改——BUG-280 的教训。
+
+### 顺带写下的一件事
+
+示例里现在也说明了 **`show` 和 `ask` 为什么没有 `needs` 注释**：它们不需要权限，因为回答刚运行了命令的读者是插件的本分，而一个人人都要声明的权限对读者不传递任何信息。
+
+这是昨晚那次「开到一半掉头」想清楚的结论（记在 `_guard` 和那条测试里）。放到示例里，是因为插件作者会在那里遇到这个问题。
+
+### 验证
+
+`sdk_examples_test` 新增一条，规则从 manifest 读而不是写死清单：
+
+- 两个示例的 `needs` 集合必须相同（抓「改一个没改另一个」）
+- 必须含 `ui.sidebar`（钉住这次）
+- **注释里提到的每个权限，manifest 都得声明**（抓「注释说了 manifest 没声明」）
+
+三次变异各杀 1–3 条：Lua 漏掉、JS 漏掉、manifest 漏声明。
+
+### 涉及文件
+
+SDK 仓库 `packages/lua/plugin.lua`、`packages/js/plugin.js`；`test/services/sdk_examples_test.dart`
