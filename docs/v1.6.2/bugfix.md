@@ -14,6 +14,7 @@
 | BUG-271 | 2026-09-05 | `==高亮==` 与 `++下划线++` 同样只有预览认，showcase 一行里就能看到 | P2 | 已修复 |
 | BUG-272 | 2026-09-05 | 段落里有公式或图片，复制到 Word 就丢掉全部格式 | P1 | 已修复 |
 | BUG-273 | 2026-09-05 | 行内代码的两个「留白」空格是内容，搜索一开就消失 | P1 | 已修复 |
+| BUG-274 | 2026-09-05 | 从源码窗格复制时无视 HTML 开关，同一段源码两个窗格结果不同 | P2 | 已修复 |
 
 ---
 
@@ -501,3 +502,54 @@ children.add(TextSpan(text: ' ${span.text} ', style: s));
 ### 涉及文件
 
 `lib/ui/editor/markdown_renderer.dart`
+
+---
+
+## BUG-274：从哪个窗格复制，决定了标签是不是格式
+
+### 现象
+
+设置里的「行内 HTML」是关着的（默认）。源码里写 `a <b>tagged</b> word`：
+
+- 预览里：`<b>` 是**字面文字**
+- 从预览选中复制到 Word：字面文字 ✓
+- **从源码窗格选中复制到 Word：变成了粗体** ✗
+
+同一段源码，读者在哪个窗格里选的，决定了它是文字还是格式。而两个答案里没有一个是读者要的——他们关掉了那个开关。
+
+### 根因分析
+
+两条复制路径：
+
+| 路径 | 节点从哪来 |
+|------|-----------|
+| 预览 | 渲染器的 `_cachedNodes`——跟着 `config.enableHtml` ✓ |
+| 源码窗格 | `MarkdownParser(enableHtml: true)`——**写死** |
+
+写死那处没有注释说明理由，从提交历史看也不像是刻意的。
+
+### 修复方案
+
+`htmlForMarkdownSelection` 把 `enableHtml` 收为**必填**参数，三个调用点（编辑菜单的复制、剪切，源码窗格的 Ctrl-C）传读者的设置。必填而不是给默认值：默认值和忘记传参在代码里长得一样。
+
+### 顺带修好一条测试
+
+`menu_copy_rich_guard_test` 用**精确字符串**匹配 `RichCopyService.htmlForMarkdownSelection(selected)`。参数列表一换行它就红——而换行说明不了复制有没有坏。
+
+改成用正则取出「调用连同它的参数」，然后断言：两处都在；每一处都带 `enableHtml:`；**并且不是字面量**。
+
+最后那条是加上去的：第一版只断言「含 `enableHtml:`」，而 `enableHtml: true` 正是要防的那个 bug，它也含这个词——变异（把一处写死回 true）没被杀掉。
+
+### 一次自己造成的返工
+
+改三个调用点时对 `app_menu_bar.dart` 和 `source_editor.dart` 跑了 `dart format`，重排 700 多行、真实改动只有 3 处，还踩出一条既有的 lint 错误。这正是「只对新建文件跑 dart format」这条规矩要防的事。`git checkout` 撤回后重做。
+
+### 验证
+
+- 忽略设置恒为 true / 恒为 false → 各杀 1 条
+- 一处写死 true → 杀守卫 1 条
+- 删掉一处调用 → 杀守卫 1 条
+
+### 涉及文件
+
+`lib/services/rich_copy_service.dart`、`lib/ui/widgets/app_menu_bar.dart`、`lib/ui/editor/source_editor.dart`；`test/services/rich_copy_test.dart`、`test/ui/widgets/menu_copy_rich_guard_test.dart`、`test/ui/editor/preview_placeholder_test.dart`

@@ -1577,7 +1577,10 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
             HardwareKeyboard.instance.isMetaPressed) &&
         !selection.isCollapsed) {
       final selected = text.substring(selection.start, selection.end);
-      final html = RichCopyService.htmlForMarkdownSelection(selected);
+      final html = RichCopyService.htmlForMarkdownSelection(
+        selected,
+        enableHtml: ref.read(settingsProvider).enableHtml,
+      );
       // Deliberately not awaited: the native clipboard write must not block
       // the key event, and the plain/HTML flavours are written as one call.
       unawaited(ClipboardService.copyWithHtml(selected, html));

@@ -78,6 +78,13 @@ class RichCopyService {
   static bool _isWidget(InlineSpan span) => switch (span.type) {
         // A picture with nowhere to load from is drawn as `[alt]` in the
         // error colour: letters, not a widget.
+        //
+        // No test reaches this branch, and that is worth saying: `![alt]()`
+        // is read as a link with an empty target, not as an image, so the
+        // parser produces no image span without an address today. The
+        // renderer branches on it all the same, and this follows the
+        // renderer rather than the parser — if a reference-style image ever
+        // resolves to nothing, both will already agree.
         InlineType.image => (span.href ?? '').isNotEmpty,
         InlineType.mathInline ||
         InlineType.footnoteRef ||
@@ -108,9 +115,20 @@ class RichCopyService {
   /// parse the selection directly and preserve headings, emphasis, lists and
   /// links for word processors. The original source string remains the plain
   /// clipboard flavour for text editors.
-  static String htmlForMarkdownSelection(String markdown) => MarkdownParser(
-        enableHtml: true,
-      ).parse(markdown).map(ExportService.nodeToHtml).join('\n');
+  ///
+  /// [enableHtml] is the reader's own setting, and has to be: this asked for
+  /// inline HTML unconditionally, so with the switch off — the default —
+  /// `<b>x</b>` was literal text in the preview and arrived in Word as bold.
+  /// Which of the two the reader got depended on the pane they had selected
+  /// in, and neither of them on what they had asked for.
+  static String htmlForMarkdownSelection(
+    String markdown, {
+    required bool enableHtml,
+  }) =>
+      MarkdownParser(enableHtml: enableHtml)
+          .parse(markdown)
+          .map(ExportService.nodeToHtml)
+          .join('\n');
 
   /// HTML for [selection], as it appears inside [ast].
   ///

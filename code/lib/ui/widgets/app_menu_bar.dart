@@ -538,7 +538,10 @@ class AppMenuBar extends ConsumerWidget {
             if (!sel.isValid || sel.isCollapsed) return;
             final text = controller.text;
             final selected = text.substring(sel.start, sel.end);
-            final html = RichCopyService.htmlForMarkdownSelection(selected);
+            final html = RichCopyService.htmlForMarkdownSelection(
+              selected,
+              enableHtml: ref.read(settingsProvider).enableHtml,
+            );
             // Deliberately not awaited: cutting must update the editor
             // immediately while the native clipboard receives both flavours.
             unawaited(ClipboardService.copyWithHtml(selected, html));
@@ -556,7 +559,10 @@ class AppMenuBar extends ConsumerWidget {
             final sel = controller.selection;
             if (!sel.isValid || sel.isCollapsed) return;
             final selected = controller.text.substring(sel.start, sel.end);
-            final html = RichCopyService.htmlForMarkdownSelection(selected);
+            final html = RichCopyService.htmlForMarkdownSelection(
+              selected,
+              enableHtml: ref.read(settingsProvider).enableHtml,
+            );
             // Deliberately not awaited: the menu should return immediately
             // while the native clipboard receives both flavours.
             unawaited(ClipboardService.copyWithHtml(selected, html));

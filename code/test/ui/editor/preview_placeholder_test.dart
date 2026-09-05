@@ -39,13 +39,20 @@ void main() {
   });
 
   /// The text the preview actually puts on screen for [markdown].
-  Future<String> drawn(WidgetTester tester, String markdown) async {
+  Future<String> drawn(
+    WidgetTester tester,
+    String markdown, {
+    bool enableHtml = false,
+  }) async {
     final configService = ConfigService(configDir: configDir.path);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           settingsProvider.overrideWith(
-            (ref) => SettingsNotifier(configService, AppConfig()),
+            (ref) => SettingsNotifier(
+              configService,
+              AppConfig(enableHtml: enableHtml),
+            ),
           ),
         ],
         child: MaterialApp(
@@ -74,14 +81,19 @@ void main() {
     return longest;
   }
 
-  String expected(String markdown) =>
-      RichCopyService.plainTextOf(MarkdownParser().parse(markdown).single);
+  // The setting has to be given to both sides. It was left at the default on
+  // each, which made them agree by coincidence rather than by construction —
+  // and inline HTML is exactly where the two could have diverged.
+  String expected(String markdown, {bool enableHtml = false}) =>
+      RichCopyService.plainTextOf(
+        MarkdownParser(enableHtml: enableHtml).parse(markdown).single,
+      );
 
-  void agree(String name, String markdown) {
+  void agree(String name, String markdown, {bool enableHtml = false}) {
     testWidgets(name, (tester) async {
       expect(
-        await drawn(tester, markdown),
-        expected(markdown),
+        await drawn(tester, markdown, enableHtml: enableHtml),
+        expected(markdown, enableHtml: enableHtml),
         reason: markdown,
       );
     });
@@ -98,4 +110,18 @@ void main() {
   agree('a lowered run', 'Water is H~2~O, mostly.\n');
   agree('marked and struck text', 'Some ==marked== and ~~struck~~ words.\n');
   agree('inline code', 'Call `doThing()` when ready to proceed.\n');
+  agree('a link', 'Read [the manual](https://example.com) before starting.\n');
+  // `![alt]()` is not a picture at all: with nothing to load, the parser
+  // reads it as a link and leaves the `!` as a literal character in front.
+  agree('an image with no address', 'See ![a missing cat]() in the text.\n');
+  agree('a footnote marker', 'A claim[^1] worth checking in the text.\n');
+
+  // Ruby is a tag, so it only exists when inline HTML is on. Off, the tag is
+  // literal text; on, the preview draws it as a widget. Both, because the
+  // switch must not be able to break the copy.
+  const ruby = 'The word <ruby>漢字<rt>かんじ</rt></ruby> sits in a sentence.\n';
+  agree('a ruby annotation, inline HTML on', ruby, enableHtml: true);
+  agree('the same tag, inline HTML off', ruby);
+  agree('a bold tag, inline HTML on', 'a <b>tagged</b> word here\n',
+      enableHtml: true);
 }

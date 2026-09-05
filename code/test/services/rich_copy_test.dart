@@ -66,6 +66,37 @@ void main() {
     });
   });
 
+  group('the two ways of copying agree', () {
+    // A selection can be copied from the preview or from the source pane, and
+    // the two take different routes: the preview hands over the blocks it
+    // already parsed, while the source pane parses the text itself.
+    //
+    // The second route asked for inline HTML unconditionally. So with the
+    // HTML switch off — the default — `<b>x</b>` was literal text in the
+    // preview and arrived in Word as bold, depending on which pane the reader
+    // had happened to select in.
+    const source = 'a <b>tagged</b> word\n';
+
+    test('with the HTML switch off, a tag is text in both', () {
+      final preview = RichCopyService.htmlForSelection(
+        MarkdownParser().parse(source),
+        'a <b>tagged</b> word',
+      );
+      final fromSource =
+          RichCopyService.htmlForMarkdownSelection(source, enableHtml: false);
+
+      expect(fromSource.trim(), preview?.trim(),
+          reason: '同一段源码，从哪个窗格复制都该得到同一份 HTML');
+      expect(fromSource, isNot(contains('<strong>')));
+    });
+
+    test('with it on, a tag is formatting in both', () {
+      final fromSource =
+          RichCopyService.htmlForMarkdownSelection(source, enableHtml: true);
+      expect(fromSource, contains('<strong>tagged</strong>'));
+    });
+  });
+
   group('html for the selection', () {
     test('a whole heading comes back as a heading', () {
       expect(htmlFor('# Title\n\nbody\n', 'Title'), '<h1>Title</h1>');
@@ -139,6 +170,7 @@ void main() {
     test('keeps source newlines while giving word processors rich HTML', () {
       final html = RichCopyService.htmlForMarkdownSelection(
         '# Title\n\nA **bold** paragraph.\n\n- one\n- two\n',
+        enableHtml: false,
       );
 
       expect(html, contains('<h1>Title</h1>'));
