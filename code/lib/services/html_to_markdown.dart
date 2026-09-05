@@ -95,7 +95,7 @@ class HtmlToMarkdown {
           out.write('${'#' * level} ${_inline(inner)}\n\n');
           index = next;
         case 'span' || 'b' || 'strong' || 'i' || 'em' || 'u' || 'del' || 's' ||
-              'a' || 'font':
+              'a' || 'font' || 'mark' || 'sup' || 'sub' || 'ins' || 'code':
           // An inline tag met where a block was expected. Word processors on
           // the web wrap what they put on the clipboard in one — Google Docs
           // in a `<b>`, others in a `<span>` or a `<font>` — and skipping the
@@ -374,6 +374,30 @@ class HtmlToMarkdown {
         case 'br':
           out.write('  \n');
           index++;
+        // Four tags this editor has markdown for, and read none of them
+        // back: it exports `==x==`, `++x++`, `^x^` and `~x~` as these, so
+        // even its own HTML came back with the marking gone — never mind a
+        // page, where <sup> is how a footnote reference is written.
+        case 'mark':
+          final (inner, next) = _until(tokens, index, 'mark');
+          final text = _inline(inner);
+          out.write(_canWrap(text, '==') ? '==$text==' : text);
+          index = next;
+        case 'u' || 'ins':
+          final (inner, next) = _until(tokens, index, token.name);
+          final text = _inline(inner);
+          out.write(_canWrap(text, '++') ? '++$text++' : text);
+          index = next;
+        case 'sup':
+          final (inner, next) = _until(tokens, index, 'sup');
+          final text = _inline(inner);
+          out.write(_canWrap(text, '^', tight: true) ? '^$text^' : text);
+          index = next;
+        case 'sub':
+          final (inner, next) = _until(tokens, index, 'sub');
+          final text = _inline(inner);
+          out.write(_canWrap(text, '~', tight: true) ? '~$text~' : text);
+          index = next;
         case 'span':
           // Word processors on the web mark up with styles rather than with
           // tags: Google Docs writes `font-weight:700` where a page would
@@ -389,6 +413,18 @@ class HtmlToMarkdown {
     }
     return out.toString().trim();
   }
+
+  /// Whether [text] can be wrapped in [marker] and still read back as markup.
+  ///
+  /// `^x^` and `~x~` are defined as a run with no whitespace in it — the
+  /// parser's own rule — so a phrase cannot be written that way. Writing it
+  /// anyway would produce a document this editor reads back as literal
+  /// carets, which is worse than the plain words. Text already containing the
+  /// marker is refused for the same reason.
+  static bool _canWrap(String text, String marker, {bool tight = false}) =>
+      text.isNotEmpty &&
+      !text.contains(marker) &&
+      (!tight || !text.contains(RegExp(r'\s')));
 
   /// One declaration out of a `style` attribute.
   static String? _style(String attributes, String property) {

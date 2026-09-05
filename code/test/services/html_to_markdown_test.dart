@@ -177,6 +177,44 @@ void main() {
   });
 
   group('when there is nothing to convert', () {
+    test('marked, underlined, raised and lowered text keep their meaning', () {
+      // The editor exports `==x==`, `++x++`, `^x^` and `~x~` as <mark>, <u>,
+      // <sup> and <sub>, and read none of them back: pasting a page — or the
+      // editor's own HTML — dropped the marking and kept only the words.
+      expect(convert('<p>看 <mark>重点</mark> 这里</p>'), '看 ==重点== 这里');
+      expect(convert('<p>看 <u>压线</u> 这里</p>'), '看 ++压线++ 这里');
+      expect(convert('<p>面积 5cm<sup>2</sup></p>'), '面积 5cm^2^');
+      expect(convert('<p>水是 H<sub>2</sub>O</p>'), '水是 H~2~O');
+    });
+
+    test('a raised phrase with spaces stays plain', () {
+      // `^x^` and `~x~` take no spaces — the parser's own rule. Writing the
+      // markup anyway would produce a document the editor itself reads as
+      // literal carets, which is worse than the plain words.
+      //
+      // Spaces, not length: a Chinese phrase has none, so it is wrapped and
+      // reads back correctly. The first version of this test used one and
+      // asserted it stayed plain, which was a claim about the wrong thing.
+      expect(convert('<p>see <sup>the note above</sup> here</p>'),
+          'see the note above here');
+      expect(convert('<p>see <sub>the note below</sub> here</p>'),
+          'see the note below here');
+      expect(convert('<p>见 <sup>上条</sup> 说明</p>'), '见 ^上条^ 说明',
+          reason: '中文短语没有空格，包得起来也读得回来');
+    });
+
+    test('an inline tag met at the top level is still read as inline', () {
+      // A fragment copied out of a page need not be wrapped in a paragraph:
+      // select one word and the clipboard may hold just the tag around it.
+      // The list of inline tags the block reader recognises had none of
+      // these, so at the top level they were skipped whole.
+      expect(convert('<mark>重点</mark>'), '==重点==');
+      expect(convert('<u>压线</u>'), '++压线++');
+      expect(convert('<sup>2</sup>'), '^2^');
+      expect(convert('<sub>2</sub>'), '~2~');
+      expect(convert('<code>doThing()</code>'), '`doThing()`');
+    });
+
     test('empty or markup-only html gives null', () {
       // Null rather than empty: the caller then falls back to the plain text,
       // which is a better paste than nothing at all.
