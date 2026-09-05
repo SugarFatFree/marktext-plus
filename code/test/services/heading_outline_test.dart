@@ -38,6 +38,19 @@ void main() {
     agree('a wrapped title under ===', 'One two\nthree four\n===\n');
     agree('a comment in front matter', '---\ntitle: x\n# not a heading\n---\n\n# real\n');
     agree('a hash inside a fence', '# real\n\n```python\n# comment\n```\n');
+    // A document explaining markdown shows a fence inside a fence — this
+    // project's own does. The parser closes a block only on the same
+    // character at the same length or longer; the outline was toggling on any
+    // fence at all, so the inner one ended the block and everything under it
+    // was read as prose.
+    agree('a fence shown inside a longer fence',
+        '# real\n\n````\n```\n# not a heading\n```\n````\n\n# after\n');
+    // ``` cannot close a ~~~ block: they are different characters.
+    agree('a backtick fence inside a tilde block',
+        '# real\n\n~~~\n```\n# not a heading\n```\n~~~\n\n# after\n');
+    // Nor can a shorter run of the same character.
+    agree('a shorter run does not close it',
+        '# real\n\n`````\n```\n# not a heading\n`````\n\n# after\n');
     agree('trailing hashes', '## two ##\n');
     agree('a hash with no space', '#hashtag\n');
     agree('seven hashes', '####### too many\n');

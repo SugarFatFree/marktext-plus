@@ -504,7 +504,12 @@ class MarkdownParser {
 
     final headings = <({int line, int level, String text})>[];
     final lines = text.split('\n');
-    var inFence = false;
+    // The open fence's own run, not a flag: what closes a block depends on
+    // what opened it. Toggling on any fence at all let the ``` a document
+    // shows inside a ```` block end that block, so the prose under it was
+    // read as markdown and its `#` lines were listed as headings the preview
+    // draws nothing for.
+    var fence = '';
 
     // The outline has to see the document the way parse() does, because the
     // preview maps its Nth heading widget to the Nth entry here. Two of them
@@ -524,11 +529,15 @@ class MarkdownParser {
     }
 
     for (; i < lines.length; i++) {
-      if (_codeFenceRe.hasMatch(lines[i])) {
-        inFence = !inFence;
+      if (fence.isNotEmpty) {
+        if (_closesFence(lines[i], fence)) fence = '';
         continue;
       }
-      if (inFence) continue;
+      final opener = _codeFenceRe.firstMatch(lines[i]);
+      if (opener != null) {
+        fence = opener.group(1)!;
+        continue;
+      }
 
       // Unindented only, which is stricter than the block parser: it accepts
       // up to three spaces, as CommonMark does. This function reads the raw
@@ -963,15 +972,21 @@ class MarkdownParser {
         }
       }
 
-      final fence = RegExp(r'^\s{0,3}(`{3,}|~{3,})').firstMatch(line);
-      if (fence != null) {
-        final marker = fence.group(1)![0];
-        if (!inFence) {
-          inFence = true;
-          fenceMarker = marker;
-        } else if (marker == fenceMarker) {
+      if (inFence) {
+        // The same rule the parser closes a block by: same character, at
+        // least as long, nothing after it. Comparing only the character let
+        // the ``` inside a ```` block end it here, so the cut could land in
+        // the middle of the code this is meant never to halve.
+        if (_closesFence(line, fenceMarker)) {
           inFence = false;
+          fenceMarker = '';
         }
+        continue;
+      }
+      final opener = _codeFenceRe.firstMatch(line);
+      if (opener != null) {
+        inFence = true;
+        fenceMarker = opener.group(1)!;
         continue;
       }
 

@@ -44,27 +44,65 @@ void main() {
     }
   });
 
-  test('the cut is never inside a fenced code block', () {
-    // A fence long enough to straddle the cut, so a naive split would land in
-    // the middle of it and render half a code block.
+  /// A document whose fenced block straddles the cut.
+  ///
+  /// The block has to *contain* the first blank line the cut is allowed to
+  /// take, which means it has to start just before line 1500 and run past it.
+  /// Filling with 1490 paragraph-and-blank pairs — as this did — puts the
+  /// fence at line 2980, a thousand lines past a cut that had already been
+  /// taken among the filler: the fence was never in the prefix, so counting
+  /// its markers there counted zero of them and passed no matter what.
+  String straddling(String open, String inner, String close) {
     final source = StringBuffer();
-    for (var i = 0; i < 1490; i++) {
+    // No blank lines here: the cut may not be taken before line 1500 anyway,
+    // and a blank one inside the filler would only make the test depend on
+    // where exactly it fell.
+    for (var i = 0; i < 1495; i++) {
       source.writeln('line $i');
-      source.writeln();
     }
-    source.writeln('```dart');
+    source.writeln(open);
+    source.writeln(inner);
+    // Blank lines from here on, so the first one the cut may take is inside
+    // the block. A reader of this fixture should be able to see that a cut
+    // taken at all is a cut taken in the wrong place.
     for (var i = 0; i < 200; i++) {
       source.writeln('  var x$i = $i;');
       source.writeln();
     }
-    source.writeln('```');
+    source.writeln(inner);
+    source.writeln(close);
     source.writeln();
     source.writeln('after');
+    return source.toString();
+  }
 
-    final prefix = MarkdownParser.safePrefix(source.toString());
+  test('the cut is never inside a fenced code block', () {
+    final prefix = MarkdownParser.safePrefix(straddling('```dart', 'x', '```'));
     expect(prefix, isNotNull);
-    expect('```'.allMatches(prefix!).length.isEven, isTrue,
+    expect(RegExp(r'^```', multiLine: true).allMatches(prefix!).length.isEven,
+        isTrue,
         reason: '前缀里的代码围栏没有配对，说明切在了围栏中间');
+  });
+
+  test('a fence shown inside a longer fence does not end it', () {
+    // A document explaining markdown puts ``` inside a ```` block — this
+    // project's own README does. The cut compared only the fence character,
+    // so the inner run ended the block here while the parser kept it open,
+    // and the cut landed in the middle of the code it must never halve.
+    final prefix =
+        MarkdownParser.safePrefix(straddling('````markdown', '```', '````'));
+    expect(prefix, isNotNull);
+    expect(RegExp(r'^````', multiLine: true).allMatches(prefix!).length.isEven,
+        isTrue,
+        reason: '前缀里的外层围栏没有配对，说明切在了 ```` 块中间');
+  });
+
+  test('a tilde block is not closed by backticks', () {
+    final prefix = MarkdownParser.safePrefix(straddling('~~~', '```', '~~~'));
+    expect(prefix, isNotNull);
+    expect(RegExp(r'^~~~', multiLine: true).allMatches(prefix!).length.isEven,
+        isTrue,
+        reason: '``` 不能闭合 ~~~，它们是不同的字符');
   });
 
   test('front matter is never cut in half', () {
