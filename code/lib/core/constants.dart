@@ -24,7 +24,16 @@ class AppConstants {
 
   static const int autoSaveDelay = 5000;
   static const int debounceDelay = 300;
-  static const int maxRecentFiles = 20;
+  /// How many documents the Open Recent menu keeps.
+  ///
+  /// Ten, because ten is what it has always been: this constant said twenty
+  /// and was read by nothing — the trimming happened against a hard-coded ten
+  /// in `SettingsNotifier.addRecentFile`. Of the two numbers, the one nobody
+  /// had ever seen take effect is the one that changed.
+  ///
+  /// There is a limit at all because the list goes into the configuration
+  /// file, which is read on every launch.
+  static const int maxRecentFiles = 10;
 
   static const double defaultWindowWidth = 1200;
   static const double defaultWindowHeight = 800;

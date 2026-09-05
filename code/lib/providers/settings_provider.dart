@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/config/app_config.dart';
 import '../core/config/config_service.dart';
+import '../core/constants.dart';
 
 class SettingsNotifier extends StateNotifier<AppConfig> {
   final ConfigService _configService;
@@ -87,8 +88,8 @@ class SettingsNotifier extends StateNotifier<AppConfig> {
     final files = List<String>.from(state.recentFiles);
     files.remove(path);
     files.insert(0, path);
-    if (files.length > 10) {
-      files.removeRange(10, files.length);
+    if (files.length > AppConstants.maxRecentFiles) {
+      files.removeRange(AppConstants.maxRecentFiles, files.length);
     }
     await updateConfig((config) => config.copyWith(recentFiles: files));
   }
