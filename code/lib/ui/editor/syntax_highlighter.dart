@@ -22,6 +22,16 @@ class MarkdownSyntaxHighlighter {
     _Pattern(RegExp(r'__(.+?)__'), _PatternType.bold,
         emphasisChar: '__', marker: _underscore),
     _Pattern(RegExp(r'`(.+?)`'), _PatternType.code, marker: _backtick),
+    // Inline maths, coloured as code: in a pane showing markdown, a formula
+    // and a code span are the same kind of thing — a run that is not read as
+    // ordinary words. The preview draws it as a formula and the source pane
+    // knew nothing about it at all.
+    //
+    // The parser's own rule, so a line about money stays a line about money:
+    // `$` opens nothing when a space follows it, and closes nothing when a
+    // space precedes it.
+    _Pattern(RegExp(r'\$(?!\s)([^$\n]+?)(?<!\s)\$'), _PatternType.code,
+        marker: _dollar),
     // Both halves allow the same nesting the parser allows — two levels of
     // brackets in the text, one level of parentheses in the destination — so
     // the two agree on `[见 [附录 [A]]](/url)` and on `…/wiki/A_(b)`. A tint
@@ -43,6 +53,11 @@ class MarkdownSyntaxHighlighter {
       _PatternType.link,
       marker: _openBracket,
     ),
+    // A footnote marker, in the colour a link gets — which is the colour the
+    // preview raises it in. It cannot be confused with the link pattern above:
+    // that one needs a destination in parentheses after the brackets.
+    _Pattern(RegExp(r'\[\^([^\]]+)\]'), _PatternType.link,
+        marker: _openBracket),
     // Before the emphasis patterns: a comment may contain anything, and
     // letting `*` inside one match first would colour half of it as italic.
     _Pattern(RegExp(r'<!--.*?-->'), _PatternType.comment, marker: _lessThan),
@@ -118,6 +133,7 @@ class MarkdownSyntaxHighlighter {
   static const int _openBracket = 0x5B;
   static const int _bang = 0x21;
   static const int _lessThan = 0x3C;
+  static const int _dollar = 0x24;
   static const int _equals = 0x3D;
   static const int _plus = 0x2B;
   static const int _tilde = 0x7E;
@@ -279,6 +295,7 @@ class MarkdownSyntaxHighlighter {
         _tilde => 64,
         _equals => 128,
         _plus => 256,
+        _dollar => 512,
         _ => 0,
       };
 
@@ -325,6 +342,8 @@ class MarkdownSyntaxHighlighter {
           seen |= 128;
         case _plus:
           seen |= 256;
+        case _dollar:
+          seen |= 512;
       }
     }
     for (var k = 0; k < _inlinePatterns.length; k++) {

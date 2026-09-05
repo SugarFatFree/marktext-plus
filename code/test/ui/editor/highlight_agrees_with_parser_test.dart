@@ -206,6 +206,45 @@ void main() {
           isTrue);
     });
 
+    test('inline maths is coloured, like the source it is', () {
+      // The preview has drawn `$x$` as a formula from the start; the source
+      // pane knew nothing about it. Coloured as code here on purpose: in a
+      // pane showing markdown, a formula and a code span are the same kind of
+      // thing — a run that is not read as ordinary words.
+      expect(drawn(r'Energy is $E = mc^2$ here'),
+          contains(InlineType.mathInline));
+      expect(
+        spansOf(r'Energy is $E = mc^2$ here')
+            .any((s) => s.style?.color == colors.code),
+        isTrue,
+      );
+    });
+
+    test('a price is not a formula', () {
+      // `$` opens nothing when a space follows it and closes nothing when a
+      // space precedes it — the parser's own rule, and the reason a line
+      // about money does not turn into markup.
+      expect(drawn(r'it cost $5 and $10 in total'), isEmpty);
+      expect(
+        spansOf(r'it cost $5 and $10 in total')
+            .every((s) => s.style?.color != colors.code),
+        isTrue,
+        reason: '两个价格之间的文字不该被染成公式',
+      );
+    });
+
+    test('a footnote marker is coloured like the reference it is', () {
+      // The preview draws `[^1]` as a raised `[1]` in the primary colour,
+      // which is the colour a link gets. The source pane left it plain.
+      expect(drawn('A claim[^1] worth checking'),
+          contains(InlineType.footnoteRef));
+      expect(
+        spansOf('A claim[^1] worth checking')
+            .any((s) => s.style?.color == colors.link),
+        isTrue,
+      );
+    });
+
     test('super- and subscript are deliberately left plain', () {
       // The preview raises and shrinks them. The source pane cannot: it is a
       // text field, and changing a run's size moves the line height and the
