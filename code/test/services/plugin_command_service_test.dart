@@ -240,6 +240,11 @@ void _permissions() {
     );
   });
 
+  /// Deliberate, and the reason is in `PluginCommandService._guard`.
+  ///
+  /// Short version: answering the reader who just ran the command is what a
+  /// plugin is for, so requiring a permission for it would have every plugin
+  /// declare that permission — and one everybody holds says nothing.
   test('showing a result needs no permission at all', () {
     const script =
         'function on_command(ctx) return { diff = { original = "a", result = "b" } } end';

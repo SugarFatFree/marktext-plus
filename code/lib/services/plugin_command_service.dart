@@ -97,6 +97,22 @@ class PluginCommandService {
       PluginReplaceAction() => PluginPermission.documentWrite,
       PluginNotifyAction() => PluginPermission.uiNotifications,
       PluginPaneAction() || PluginPanelAction() => PluginPermission.uiSidebar,
+      // `show`, `ask` and `diff` are deliberately absent, and this note is
+      // here because they look exactly like an omission — they reach the
+      // reader as surely as a notification does, and I started adding them
+      // before finding the test that says otherwise, by name: "showing a
+      // result needs no permission at all".
+      //
+      // The case for leaving them: they are how a command answers the reader
+      // who just ran it. A plugin that may not answer cannot do anything, so
+      // requiring the permission would mean every plugin declares it — and a
+      // permission everybody holds tells the reader nothing. `notify` is the
+      // one that can speak without being asked a question.
+      //
+      // The case against is real too: a card sits over the document and
+      // stays until it is closed, which is more of the reader's screen than
+      // a notification takes. Whoever settles this should settle it out
+      // loud, here.
       _ => null,
     };
     if (needed == null || manifest.hasPermission(needed)) return action;
