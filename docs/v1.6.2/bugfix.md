@@ -24,6 +24,7 @@
 | BUG-281 | 2026-09-05 | 行内公式与脚注引用在源码窗格不染色，BUG-271 漏掉的两个 | P2 | 已修复 |
 | BUG-282 | 2026-09-06 | `maxRecentFiles` 常量说 20，实际是别处硬编码的 10，而且从没被读过 | P2 | 已修复 |
 | BUG-283 | 2026-09-06 | `AppConstants` 18 个常量里 14 个没人读，其中一个已经和实际分家 | P2 | 已修复 |
+| BUG-284 | 2026-09-06 | 关闭看门狗从来没被撤下，正常退出会被 600ms 的 `exit(0)` 抢先 | P1 | 已修复 |
 
 ---
 
@@ -1048,3 +1049,47 @@ BUG-282 修完一个死常量之后，把整个 `AppConstants` 数了一遍：**
 ### 涉及文件
 
 `lib/core/constants.dart`、`lib/main.dart`、`lib/app.dart`、`lib/ui/widgets/app_menu_bar.dart`、`lib/ui/editor/split_editor.dart`、`lib/ui/editor/source_editor.dart`、`lib/ui/screens/settings_screen.dart`、`lib/services/open_document_watcher.dart`；`test/core/constants_are_read_test.dart`（新增）
+
+---
+
+## BUG-284：一个装上了就没人撤的看门狗
+
+### 现象
+
+关窗口时，`onWindowClose` 会先装一个看门狗再调用 `destroy()`：
+
+```dart
+StartupTrace.armShutdownWatchdog();   // 每 100ms 记一条，600ms 后 exit(0)
+await windowManager.destroy();
+StartupTrace.mark('window destroyed');
+StartupTrace.flush();
+```
+
+装它的理由写在注释里，是对的：「Armed before `destroy()` rather than after, so that a `destroy()` which never returns is covered too」——关闭卡死时不能让人干等。
+
+**问题是它再也没被撤下。** `destroy()` 返回之后（下一行 `mark('window destroyed')` 就说明它可能返回），看门狗还在跑：
+
+- 每 100 毫秒往 trace 里写一条 `still running Nms after close began`
+- 600 毫秒时 **`exit(0)`，抢在已经在进行的正常退出前面**
+
+### 根因分析
+
+`StartupTrace.shutdownFinished()` 就是为这件事写的——注释写着「Called when shutdown completed on its own; stops the watchdog」——而**它没有任何调用者**。
+
+和 `PluginPermission.describe`（BUG-265）、`maxRecentFiles`（BUG-282）、整个常量文件（BUG-283）是同一个模式的第四例：**写好了、有明确用途、没接上**。
+
+这次是接线，不是逻辑：函数本身完全正常，单元测试一写就过。
+
+**两条关闭路径都是这样**——有未保存文件和没有的两个分支，同样的四行代码，同样都没撤。昨天记下的「改一个分支就读完它的兄弟」在这里直接派上用场，两处一起改。
+
+### 验证
+
+`shutdownFinished` 的行为好测（装上、等一会、撤下、确认不再有新行）；缺的是**接线**，而关闭路径藏在窗口事件后面，widget test 够不到，所以用源码守卫：每一处 `windowManager.destroy()` 之后的代码行里必须有 `shutdownFinished`。
+
+三次变异各杀 1 条：两条路径分别去掉；把 `shutdownFinished` 变成空壳。
+
+**守卫的第一版被自己的注释绊倒**：它取 `destroy()` 之后 300 个字符，而我给修复写的解释性注释把那行调用推到了窗口外面。改成「跳过注释行、取之后 4 行代码」——**一个源码守卫不该由注释的长度决定成败**。
+
+### 涉及文件
+
+`lib/ui/screens/home_screen.dart`；`test/core/diagnostics/shutdown_watchdog_test.dart`（新增）

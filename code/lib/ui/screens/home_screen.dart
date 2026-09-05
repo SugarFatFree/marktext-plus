@@ -148,6 +148,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
       StartupTrace.armShutdownWatchdog();
       await windowManager.destroy();
       StartupTrace.mark('window destroyed');
+      // `destroy` came back, so the close is not the hung one the watchdog is
+      // armed against. Left running it writes a line every hundred
+      // milliseconds and then calls `exit(0)`, cutting in front of the
+      // shutdown already under way.
+      StartupTrace.shutdownFinished();
       StartupTrace.flush();
       return;
     }
@@ -171,6 +176,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
     StartupTrace.armShutdownWatchdog();
     await windowManager.destroy();
     StartupTrace.mark('window destroyed');
+    // The other arm of the same handler; see the note above.
+    StartupTrace.shutdownFinished();
     StartupTrace.flush();
   }
 
