@@ -32,6 +32,7 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
   /// is exactly what it did.
   void _installedChanged() {
     ref.invalidate(installedPluginManifestsProvider);
+    ref.invalidate(installedPluginProblemsProvider);
     // And where they came from: a pre-release updated in place changes the
     // archive, not the version, so this is what tells the list it moved.
     ref.invalidate(installedPluginSourcesProvider);
@@ -422,6 +423,28 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
             );
           },
         ),
+        // Installed, and unreadable. Said here rather than nowhere: a plugin
+        // missing from the list above looks exactly like one that was never
+        // installed, and the manifest reader had a sentence ready all along.
+        ...ref.watch(installedPluginProblemsProvider).maybeWhen(
+              data: (problems) => problems.isEmpty
+                  ? const <Widget>[]
+                  : <Widget>[
+                      _sectionTitle('Installed but unreadable'),
+                      for (final problem in problems)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: SelectableText(
+                            '${problem.directory}: ${problem.problem}',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                    ],
+              orElse: () => const <Widget>[],
+            ),
         if (discovery.searching ||
             discovery.results != null ||
             discovery.error != null) ...[

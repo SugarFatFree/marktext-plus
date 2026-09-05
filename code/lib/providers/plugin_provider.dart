@@ -18,6 +18,18 @@ final installedPluginManifestsProvider = FutureProvider<List<PluginManifest>>((r
 });
 
 
+/// The plugins that are installed and could not be read, and why.
+///
+/// A second walk of the same directory, like [installedPluginSourcesProvider]:
+/// what could not be read is not a manifest and has nowhere to sit among
+/// them. Without this the refusal reached nobody — the plugin was absent from
+/// the list, and being absent looks exactly like never having been installed.
+final installedPluginProblemsProvider =
+    FutureProvider<List<PluginProblem>>((ref) async {
+  final directory = await getApplicationSupportDirectory();
+  return PluginManager(p.join(directory.path, 'plugins')).problems();
+});
+
 /// Where each installed plugin came from, by plugin id.
 ///
 /// Separate from the manifests because it is not the plugin's own claim about

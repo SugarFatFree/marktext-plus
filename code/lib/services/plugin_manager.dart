@@ -13,6 +13,10 @@ import 'plugin_process_registry.dart';
 import 'plugin_script_runtime.dart';
 
 /// Discovers and installs data/sidecar-process plugins without importing them.
+
+/// An installed plugin that could not be read, and the reason it was refused.
+typedef PluginProblem = ({String directory, String problem});
+
 class PluginManager {
   PluginManager(this.installDirectory, {String? appVersion})
       : appVersion = appVersion ?? AppConstants.appVersion;
@@ -22,10 +26,34 @@ class PluginManager {
   /// The editor's own version, which decides which plugins it will take.
   final String appVersion;
 
-  Future<List<PluginManifest>> loadInstalled() async {
+  Future<List<PluginManifest>> loadInstalled() async =>
+      (await _scan()).installed;
+
+  /// The plugins that are installed and could not be read, and why.
+  ///
+  /// Ignoring a broken plugin is right — one of them must not stop the editor
+  /// from starting, and it does not. Ignoring it *in silence* is not: the
+  /// plugin simply did not appear, and the reader had installed something
+  /// that was not there.
+  ///
+  /// The reasons were already written. A manifest is refused with a sentence
+  /// naming the key and what was expected, and every one of those sentences
+  /// went into a `catch (_)`.
+  Future<List<PluginProblem>> problems() async => (await _scan()).problems;
+
+  /// One walk of the install directory, read both ways.
+  ///
+  /// A directory with no `manifest.json` is not a plugin at all and is
+  /// neither: the install directory holds the plugins' own working files
+  /// beside them, and calling those broken would be a warning about nothing.
+  Future<({List<PluginManifest> installed, List<PluginProblem> problems})>
+      _scan() async {
     final directory = Directory(installDirectory);
-    if (!await directory.exists()) return const [];
+    if (!await directory.exists()) {
+      return (installed: const <PluginManifest>[], problems: const <PluginProblem>[]);
+    }
     final manifests = <PluginManifest>[];
+    final problems = <PluginProblem>[];
     await for (final entry in directory.list()) {
       if (entry is! Directory) continue;
       final manifestFile = File(p.join(entry.path, 'manifest.json'));
@@ -37,12 +65,24 @@ class PluginManager {
                 as Map<String, dynamic>,
           ),
         );
-      } catch (_) {
-        // A broken plugin is ignored and cannot stop the editor from starting.
+      } catch (error) {
+        problems.add((
+          directory: p.basename(entry.path),
+          problem: _describe(error),
+        ));
       }
     }
-    return manifests;
+    return (installed: manifests, problems: problems);
   }
+
+  /// What to tell the reader about [error].
+  ///
+  /// A `FormatException` prints as "FormatException: ..." — the class name is
+  /// noise to whoever is looking at a plugin that did not appear.
+  static String _describe(Object error) => switch (error) {
+        FormatException(:final message) => message,
+        _ => '$error',
+      };
 
   File get _stateFile => File(p.join(installDirectory, 'state.json'));
 

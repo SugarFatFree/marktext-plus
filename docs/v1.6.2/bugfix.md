@@ -18,6 +18,7 @@
 | BUG-275 | 2026-09-05 | `==高亮==` 导出到 Word 完全没有底色，上游库漏判 | P1 | 已修复 |
 | BUG-276 | 2026-09-05 | 从网页粘贴时 `<mark>` `<u>` `<sup>` `<sub>` 的语义全部丢失 | P1 | 已修复 |
 | BUG-277 | 2026-09-05 | 配置里一个字段类型写错，全部设置静默恢复默认 | P1 | 已修复 |
+| BUG-278 | 2026-09-05 | 装了却读不进来的插件静默消失，写好的原因从没送达 | P1 | 已修复 |
 
 ---
 
@@ -712,3 +713,50 @@ Dart 的 `as bool?` 对**错误类型**是抛 `TypeError`，不是返回 null—
 ### 涉及文件
 
 `lib/core/config/app_config.dart`；`test/core/config/app_config_test.dart`
+
+---
+
+## BUG-278：装上了却不在列表里，没人说为什么
+
+### 现象
+
+装一个 manifest 有问题的插件——键写错、runtime 拼错、`entrypoints` 里把 `windows` 打成 `windwos`——它**根本不出现在插件列表里**。没有错误，没有提示。
+
+对读者来说，「装了但看不到」和「根本没装上」长得一模一样。于是重装一遍，还是没有。
+
+### 根因分析
+
+```dart
+} catch (_) {
+  // A broken plugin is ignored and cannot stop the editor from starting.
+}
+```
+
+**忽略是对的**——一个坏插件不该让编辑器起不来，它也确实没有。**默默忽略不对**。
+
+而且原因**早就写好了**。`PluginManifest.fromJson` 拒绝一个 manifest 时给的是一句能照着改的话：
+
+> `unknown operating system in "entrypoints": windwos. Expected one of windows, macos, linux`
+
+写这句话的人显然设想过它会被谁读到。它进了 `catch (_)`，**一次也没有送达过任何人**。
+
+这和 BUG-265 是同一个形状：编辑器替读者做了判断，判断的依据读者看不到。
+
+### 修复方案
+
+`loadInstalled` 和新的 `problems()` 共用一次目录遍历（`_scan()`），各取一半——没有重复扫描的代码，也没有两份规则。
+
+插件设置页在已安装列表下方多一段「Installed but unreadable」，一行一个：目录名 + 那句本来就写好的话。
+
+两个判断值得说明：
+
+- **没有 `manifest.json` 的目录不算坏插件。** 插件的工作文件就放在它们旁边，把那些叫做「坏插件」是一句关于无事的警告
+- **`FormatException` 只取 message。** 它默认打印成 `FormatException: ...`，而类名对一个正在看「插件为什么没出现」的人是噪音
+
+### 验证
+
+三次变异，各杀 1–2 条：不再收集问题；把没有 manifest 的普通目录也算成坏插件；把具体原因换成一句「broken」。
+
+### 涉及文件
+
+`lib/services/plugin_manager.dart`、`lib/providers/plugin_provider.dart`、`lib/ui/widgets/plugin_panel.dart`、`lib/ui/screens/plugin_detail_view.dart`；`test/services/plugin_problems_test.dart`（新增）

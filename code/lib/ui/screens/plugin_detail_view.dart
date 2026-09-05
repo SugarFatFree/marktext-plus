@@ -47,6 +47,9 @@ class _PluginDetailViewState extends ConsumerState<PluginDetailView> {
       if (mounted) {
         ref.invalidate(installedPluginManifestsProvider);
         ref.invalidate(installedPluginSourcesProvider);
+        // What was just installed may not read: the list of problems is asked
+        // again for the same reason the list of plugins is.
+        ref.invalidate(installedPluginProblemsProvider);
       }
     } catch (error) {
       if (mounted) setState(() => _error = error);
