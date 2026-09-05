@@ -1200,3 +1200,34 @@ SDK README 的「The actions」表列了 8 种返回值、各自的效果、之�
 ### 涉及文件
 
 SDK 仓库 `README.md` + `docs/i18n/README_*.md`（11 份）；`test/services/sdk_examples_test.dart`
+
+---
+
+## 审官方插件：三次扫描全是误报，一条规则值得留下
+
+用今天的视角把 AI 助手插件审了一遍。**没有找到需要修的东西**，三次「发现」全是我的扫描太窄：
+
+| 我以为 | 实际 |
+|---|---|
+| 6 个设置项一个都没被读 | `setting(key, ...)` 用**变量**取，正则只认字面量 |
+| 翻译键有死的 | 都在用 |
+| 权限可能多声明 | 8 个声明、8 个用到，不多不少 |
+
+第一条差点被我当成严重缺陷——「设置页写着能改提示词，改了没用」。**先证实再下结论**，`prompts.lua` 第 120–137 行六个 `setting("writingSystem", ...)` 一字不差地对上 manifest 的六项。
+
+这是今天第三次因为间接调用误报（前两次：同类内调用不带 `.`、`.name(` 匹配不到 tear-off）。
+
+### 留下来的东西
+
+手工查一次，下次还得再写一遍正则。所以把它变成守卫 `plugin_declares_what_it_uses_test`，**规则从主应用的 `_guard` 和 `PluginPermission` 读**，两个方向都钉：
+
+- **用到了没声明** → 功能会在读者用它的那一刻被拒
+- **声明了没用到** → 多要一项，读者看到的整张清单就少一分意义
+
+SDK README 写着「Ask for what you use」。这个项目自己发布的插件是每个作者最先读到的那一个，所以那句话对它该是真的——现在是可执行的。
+
+两次变异各杀 1 条：多声明一个 `network.request`；少声明一个 `document.write`。
+
+### 涉及文件
+
+`test/services/plugin_declares_what_it_uses_test.dart`（新增）
