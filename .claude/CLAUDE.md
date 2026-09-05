@@ -236,6 +236,14 @@ flutter clean
 - **语法支持**: 部分高级 Mermaid 语法尚未实现
 - **导出**: HTML 导出把图表与高亮**内嵌**，普通文档零外链；只有含数学公式时仍从 jsdelivr 取 KaTeX（见 `html_export_offline_test`，这是仅剩的一处外链）。**PDF 与 Word 导出会把图表渲染成 PNG 嵌入**（`app_menu_bar._renderMermaidImages` 先离屏渲染，再交给 `ExportService`），单张渲染失败时跳过该图而不影响整篇
 
+### 上标与下标只能作用于一个词
+
+`^x^` 和 `~x~` 的语法定义就是「一段不含空白的文字」（`[^\s^]+`）。选中一个短语按格式菜单里的上标，会写出 `^the note above^`——**预览把它画成字面的尖括号**。
+
+**这是有意留着的**，三条替代路都更糟：静默拒绝＝按了没反应；禁用菜单项要让菜单栏 watch 选区，而菜单栏常驻、光标一直在动；给提示要写 12 种语言，为一个「看一眼就明白、再按一次就撤销」的误操作。
+
+写下来是因为它看起来像 bug。测试在 `source_editor_prefix_test`「raising a phrase writes markup this editor does not read back」，理由在 `SourceEditor.wrapMarkers` 上方。
+
 ### 配置迁移
 - **V1.1.3 变更**: 配置目录从 `~/.marktext-plus/` 迁移到系统应用目录
 - **旧配置**: 不会自动迁移，用户需手动重新配置

@@ -39,6 +39,45 @@ void main() {
       expect(SourceEditor.toggleWrap('`code`', 0, 6, '`', '`').text, 'code');
     });
 
+    test('raising a phrase writes markup this editor does not read back', () {
+      // Recorded rather than fixed. `^x^` and `~x~` are defined as a run with
+      // no whitespace in it, so a phrase cannot be raised or lowered in this
+      // dialect at all — the markers go in and the preview draws literal
+      // carets. A single token, which is what an exponent or an index
+      // actually is, works.
+      //
+      // Left alone because the alternatives are worse. Refusing silently is a
+      // menu item that does nothing when pressed. Disabling the item means
+      // the menu bar has to watch the selection, so it rebuilds on every
+      // movement of the caret — the bar is permanent and the movement is
+      // constant. Explaining it needs a message in twelve languages for a
+      // mistake nobody makes twice: what is written is visible immediately,
+      // and pressing again takes it straight back off.
+      final phrase =
+          SourceEditor.toggleWrap('see the note above here', 4, 19, '^', '^');
+      expect(phrase.text, 'see ^the note above^ here');
+      expect(
+        MarkdownParser().parseInline(phrase.text).single.type,
+        InlineType.text,
+        reason: '预览把它画成字面的尖括号，不是上标',
+      );
+
+      // And back off again, which is the escape hatch.
+      final undone = SourceEditor.toggleWrap(
+          phrase.text, phrase.start, phrase.end, '^', '^');
+      expect(undone.text, 'see the note above here');
+
+      // One token is what the syntax is for, and it reads back.
+      final token = SourceEditor.toggleWrap('area 5cm2 total', 8, 9, '^', '^');
+      expect(token.text, 'area 5cm^2^ total');
+      expect(
+        MarkdownParser()
+            .parseInline(token.text)
+            .any((s) => s.type == InlineType.superscript),
+        isTrue,
+      );
+    });
+
     test('toggles off in the middle of a line', () {
       final r = SourceEditor.toggleWrap('a **b** c', 2, 7, '**', '**');
       expect(r.text, 'a b c');

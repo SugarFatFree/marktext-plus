@@ -131,6 +131,15 @@ class SourceEditor extends ConsumerStatefulWidget {
   /// ordinary text field. Written twice they would drift — a command added
   /// here and not there would simply do nothing in the preview, silently,
   /// which is how that whole class of bug in this codebase has looked.
+  /// The pair of markers each inline action wraps a selection in.
+  ///
+  /// `^` and `~` carry a constraint the others do not: the parser defines
+  /// them as a run with no whitespace in it, so raising or lowering a phrase
+  /// writes markup this editor reads back as literal carets. That is left as
+  /// it is — see the note on it in `source_editor_prefix_test` — because
+  /// refusing silently, disabling the menu item, and explaining it in twelve
+  /// languages are each worse than a mistake the reader sees at once and
+  /// undoes by pressing again.
   static const wrapMarkers = <FormatAction, (String, String)>{
     FormatAction.bold: ('**', '**'),
     FormatAction.italic: ('*', '*'),
