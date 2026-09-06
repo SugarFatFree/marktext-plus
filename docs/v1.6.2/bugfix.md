@@ -1647,3 +1647,45 @@ BUG-288 的结论是「一张表在测试里、成员在代码里，两边要对
 ### 涉及文件
 
 `test/services/markdown_parser_test.dart`；`test/ui/editor/syntax_highlighter_test.dart`
+
+---
+
+## 审计：插件契约的三张表，一张没对账，一张没写下来，一张在另一个仓库
+
+同一天里第三次遇到「表在测试里、成员在代码里」，这次的表是**插件作者依赖的契约**——漂移的代价由外部作者承担，而他们看不见。
+
+### 一、动作表没有对账
+
+`plugin_contract_test` 里 `the actions a script may return` 手写了八种动作，而 `PluginScriptAction` 是 `sealed` 的、有九个子类。加第十个不会让任何测试变红。
+
+对账照前两次的办法装：从 `plugin_script_runtime.dart` 读出所有 `class Plugin*Action extends PluginScriptAction`，减去表里已有的。`PluginNoAction` 是唯一有意的缺席——它是「脚本什么都没返回」的产物，没有写法可写，所以在对账里被点名排除，而不是被悄悄漏掉。
+
+变异：往 `lib/` 加一个 `PluginBeepAction`，对账点名它。
+
+### 二、设置字段的类型从来没被写下来
+
+`text` / `password` / `number` / `boolean` 四种。它们和权限、runtime 一样是**插件作者敲进 manifest 的字符串**，但契约测试里只有权限、runtime、菜单条件、平台、窗格槽位，没有它们。
+
+主应用对它们的处理散在插件设置页的三个 if 里（`== 'password'` 遮蔽、`== 'number'` 数字键盘、`_isSwitch` 判 `'boolean'`，其余画成普通输入框）。契约测试现在按名字盯住前三个。
+
+顺带把一件**有意为之但没写下来的行为**记了下来：**不认识的类型原样保留，画成普通输入框**，而不是拒绝这个插件。半张设置页比一个画得朴素的字段更糟，所以这个选择是对的——但它是静默的，作者把 `boolean` 拼错只会看到一个文本框，分不清是自己写错还是编辑器不支持。要改的话得先知道作者写的是什么，所以「原样保留」这一条本身也被断言住了。谁来加第五种类型，谁来决定要不要说点什么。
+
+变异：把 `'password'` 改名，点名 password；把未知类型改写成 `'text'`，点名那条「原样留着」。
+
+### 三、schema 在另一个仓库，两边都没读过对方
+
+SDK 发布 `schema/manifest.schema.json`，插件作者的编辑器会拿它做实时校验。**里面的十七个权限、四个 runtime、四种字段类型，是主应用那三张表的第四、第五、第六份拷贝**——而两个仓库里没有任何东西同时读过它们。
+
+今天实测三张表全部一致，示例 manifest 和官方插件的 manifest 也都通过 schema 校验（用 `jsonschema` 正式验的，不是眼看）。没有缺陷，但没有东西在维持它。
+
+`test/services/sdk_schema_agrees_test.dart` 用仓库里现成的模式：向上找六层定位 SDK，找不到就 `skip`（`repo_dependent_tests_test` 会强制这一点——本地全绿 CI 全红已经发生过两次）。所以它在开发者机器上跑，在 CI 上跳过。
+
+变异：给 SDK 的 schema 加一个 `telepathy.read`，点名「schema 与编辑器对权限的说法不一致」。
+
+### 还留着的一个缺口
+
+**SDK 仓库本身没有 CI，也没有任何测试。** 三份实现（dart / js / lua）、一份 schema、README 加十一种翻译，全靠人保持一致。今天核对的结果是 js 与 lua 暴露的十一个名字完全相同，schema 与主应用也一致——但这是核对的结果，不是设施的结果。上面第三条只覆盖了「schema ↔ 主应用」这一对，而且只在开发者机器上跑。
+
+### 涉及文件
+
+`test/services/plugin_contract_test.dart`；`test/services/sdk_schema_agrees_test.dart`（新建）

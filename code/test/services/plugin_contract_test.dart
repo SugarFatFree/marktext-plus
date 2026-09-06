@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/services/plugin_manifest.dart';
 import 'package:marktext_plus/services/plugin_script_runtime.dart';
@@ -78,6 +80,26 @@ void main() {
       'pane': PluginPaneAction,
     };
 
+    // The table above is written by hand and the shapes it names live in
+    // `lib/`, so nothing made a tenth action come through here. Two other
+    // tables in this project had exactly that gap this week. `PluginNoAction`
+    // is the one deliberate absence: it is what a script returning nothing
+    // produces, so there is no shape to write.
+    final declared = RegExp(r'class (Plugin\w+Action) extends PluginScriptAction')
+        .allMatches(
+            File('lib/services/plugin_script_runtime.dart').readAsStringSync())
+        .map((m) => m.group(1)!)
+        .toSet()
+      ..remove('PluginNoAction');
+    expect(declared, isNotEmpty, reason: '没读出任何动作类，这条对账该更新了');
+    final untried = declared
+        .difference(shapes.values.map((t) => t.toString()).toSet())
+        .toList()
+      ..sort();
+    expect(untried, isEmpty,
+        reason: '这些动作没有对应的写法：$untried。'
+            '加一个动作要同时给它一行，并让 SDK 的 lua 与 js 两份都能构造它');
+
     for (final entry in shapes.entries) {
       final source = entry.key == 'diff'
           ? 'function on_command(ctx) return { diff = { original = "a", result = "b" } } end'
@@ -87,6 +109,38 @@ void main() {
       expect(action.runtimeType, entry.value,
           reason: '${entry.key} 是插件已经在用的写法');
     }
+  });
+
+  test('the types a settings field may declare', () {
+    // Written into a manifest by hand, the same as a permission or a runtime
+    // name, and spelled the same way in the JSON schema the SDK ships. Each
+    // one changes what the reader is shown on the plugin's own settings page.
+    const drawn = {
+      'boolean': 'a switch',
+      'password': 'a field that hides what is typed',
+      'number': 'a field that asks for the number keyboard',
+      'text': 'a plain field',
+    };
+    final screen =
+        File('lib/ui/screens/plugin_settings_screen.dart').readAsStringSync();
+    for (final type in drawn.keys) {
+      if (type == 'text') continue; // the default, named by nothing
+      expect(screen, contains("== '$type'"),
+          reason: '$type 是插件已经写进 manifest 的写法，页面要认得它');
+    }
+
+    // An unknown type draws the plain field rather than refusing the plugin.
+    // That is deliberate — a settings page half-drawn is worse than one field
+    // drawn plainly — but it is also silent, so a misspelling looks like the
+    // editor not supporting the type. Whoever adds a fifth type should decide
+    // whether to say something here.
+    expect(
+      PluginSettingField.fromJson(
+              {'key': 'k', 'title': 'T', 'type': 'colour'}).type,
+      'colour',
+      reason: '不认识的类型原样留着，而不是被改写成 text——'
+          '要报出来的话得知道作者写的是什么',
+    );
   });
 
   test('the slots a pane may be put in', () {
