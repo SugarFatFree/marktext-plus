@@ -20,8 +20,20 @@ export VERSION=1.1.4  # 替换为实际版本号
 
 发版前逐项确认，任何一项不满足就先补齐再继续：
 
-1. `docs/vX.Y.Z/bugfix.md` 存在，总览表格行数 == 正文小节数，覆盖本版全部修复
-2. `docs/vX.Y.Z/PRD_需求文档.md` 存在，总览表格行数 == 正文小节数，覆盖本版全部功能
+1. `docs/vX.Y.Z/bugfix.md` 存在，总览表格行数 == 带编号的正文小节数，覆盖本版全部修复
+2. `docs/vX.Y.Z/PRD_需求文档.md` 存在，总览表格行数 == 带编号的正文小节数，覆盖本版全部功能
+
+   **只数带编号的**。这两个文件里还会有别的小节——一次判断的记录、一次审计的结论、
+   查过但没改的东西——它们有价值，但不是缺陷也不是需求，不该出现在总览表里。
+   所以这一项是可以跑的，不必凭眼睛数：
+
+   ```bash
+   V=vX.Y.Z
+   [ "$(grep -c '^| BUG-' docs/$V/bugfix.md)" = "$(grep -c '^## BUG-' docs/$V/bugfix.md)" ] \
+     && echo "bugfix 对得上" || echo "bugfix 对不上：表格与小节数不同"
+   [ "$(grep -c '^| FEAT-' docs/$V/PRD_需求文档.md)" = "$(grep -c '^## FEAT-' docs/$V/PRD_需求文档.md)" ] \
+     && echo "PRD 对得上" || echo "PRD 对不上：表格与小节数不同"
+   ```
 3. `CHANGELOG.md` 的本版条目与上面两份文档对得上
 4. **`docs/vX.Y.Z/release-notes.md` 已写好**——按主题分组、能一口气读完的发行说明。
    没有这个文件时，工作流会退回去把 CHANGELOG 的整节原样贴上（v1.5.5 就是这么
