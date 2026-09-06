@@ -32,6 +32,25 @@ void main() {
   final repo = findRepo();
   final present = repo != null;
 
+  // The SDK, for the one test that compares what the plugin carries against
+  // what the SDK publishes.
+  String? findSdk() {
+    var directory = Directory.current;
+    for (var level = 0; level < 6; level++) {
+      final candidate =
+          '${directory.path}/marktext-plus-plugins/marktext-plus-plugin-sdk';
+      if (File('$candidate/packages/lua/lib/marktext-plus.lua').existsSync()) {
+        return candidate;
+      }
+      final parent = directory.parent;
+      if (parent.path == directory.path) break;
+      directory = parent;
+    }
+    return null;
+  }
+
+  final sdk = findSdk();
+
   late Directory root;
   late PluginManifest manifest;
 
@@ -640,6 +659,46 @@ void main() {
       expect(action.text, isEmpty, reason: '窗格先开，说明自己在做');
     }, skip: present ? null : '插件仓库不在这台机器上');
 
+    test('the pane is drawn the way the reader is reading', () {
+      // `as` was one of two fields nothing here asserted — deleting it from
+      // the plugin left every test green. The translation path covers it;
+      // the writing path did not.
+      //
+      // `as` decides whether the answer is legible beside the thing it is
+      // answering: Markdown source shown next to a rendered preview cannot be
+      // compared with it.
+      //
+      // `slot` is not asserted here, and the reason is worth writing down:
+      // `PluginPaneAction.slot` defaults to `right`, which is also what all
+      // three of the plugin's panes ask for. Deleting `slot = "right"` from
+      // the plugin leaves an assertion that it equals `right` perfectly
+      // green — it would be measuring the default. There is no input that
+      // tells the two apart until something here wants a different half.
+      final service = PluginCommandService(root.path);
+      addTearDown(service.dispose);
+      const views = {
+        'source': PluginPaneRender.source,
+        'preview': PluginPaneRender.preview,
+        // Anything else is the preview: a pane of raw Markdown is the
+        // surprising answer, so it is not the one an unknown view gets.
+        '': PluginPaneRender.preview,
+      };
+      for (final view in views.entries) {
+        final action = service.start(
+          manifest,
+          PluginScriptContext(
+            command: 'ai.write',
+            selection: 'the old words',
+            document: 'before the old words after',
+            answer: 'Make it shorter',
+            view: view.key,
+          ),
+        ) as PluginPaneAction;
+        expect(action.render, view.value,
+            reason: '在 "${view.key}" 视图里问的，窗格该照着画');
+      }
+    }, skip: present ? null : '插件仓库不在这台机器上');
+
     test('the result offers to replace what it was looking at', () {
       final service = PluginCommandService(root.path);
       addTearDown(service.dispose);
@@ -780,5 +839,21 @@ void main() {
       ) as PluginPaneAction;
       expect(action.canApply, isFalse);
     }, skip: present ? null : '插件仓库不在这台机器上');
+
+    test('the API module it carries is the one the SDK publishes', () {
+      // The SDK says this file ships with your plugin: you copy it and it is
+      // yours, so drift is allowed by design. This plugin is also the
+      // reference one, and its copy had fallen five options behind — `as`,
+      // `append`, `ai`, `apply` and `replaces`, every one of them added for
+      // this plugin's own features. It got away with it by building the
+      // table literally instead of calling `sdk.pane`, which is the thing
+      // the constructor exists to stop.
+      expect(
+        File('$repo/lib/marktext-plus.lua').readAsStringSync(),
+        File('$sdk/packages/lua/lib/marktext-plus.lua').readAsStringSync(),
+        reason: '插件带的 API 模块落后于 SDK——'
+            '它自己不调用，所以没人会发现，直到有人调用',
+      );
+    }, skip: present && sdk != null ? null : '插件或 SDK 仓库不在这台机器上');
   });
 }
