@@ -1,4 +1,6 @@
 import 'dart:convert';
+
+import '../../support/wait_for.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -77,12 +79,13 @@ void main() {
     final file = File('${root.path}/com.example.demo/settings.json');
     await tester.runAsync(() async {
       await tester.tap(find.byType(FilledButton));
-      for (var attempt = 0; attempt < 100; attempt++) {
-        if (file.existsSync() && file.readAsStringSync().isNotEmpty) return;
-        await Future<void>.delayed(const Duration(milliseconds: 10));
-      }
-      fail('设置没有写到磁盘');
+      // The shared poll, not a loop written here: that one gave up after a
+      // second, which is not long for a write on a busy machine.
+      await waitFor(
+          () => file.existsSync() && file.readAsStringSync().isNotEmpty);
     });
+    expect(file.existsSync() && file.readAsStringSync().isNotEmpty, isTrue,
+        reason: '设置没有写到磁盘');
     await tester.pump();
   }
 

@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import '../support/wait_for.dart';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:marktext_plus/services/plugin_manager.dart';
@@ -63,18 +65,16 @@ void main() {
     final host = await PluginManager(root.path).startPlugin(manifest);
     addTearDown(host.stop);
 
+    // Polled through the shared helper rather than a loop written here: this
+    // one gave up after two seconds, and the helper waits five — which is the
+    // difference that matters on a runner with something else on it.
     final seen = File(p.join(root.path, manifest.id, 'bin', 'probe.seen'));
-    for (var attempt = 0; attempt < 100; attempt++) {
-      if (seen.existsSync() && seen.readAsStringSync().isNotEmpty) {
-        final text = seen.readAsStringSync();
-        final token = text.split('env=').last;
-        expect(token, isNotEmpty, reason: '插件没拿到令牌');
-        expect(text.split(' env=').first, 'argv=',
-            reason: '令牌不该出现在命令行参数里');
-        return;
-      }
-      await Future<void>.delayed(const Duration(milliseconds: 20));
-    }
-    fail('插件没有被启动');
+    await waitFor(() => seen.existsSync() && seen.readAsStringSync().isNotEmpty);
+
+    final text = seen.existsSync() ? seen.readAsStringSync() : '';
+    expect(text, isNotEmpty, reason: '插件没有被启动');
+    expect(text.split('env=').last, isNotEmpty, reason: '插件没拿到令牌');
+    expect(text.split(' env=').first, 'argv=',
+        reason: '令牌不该出现在命令行参数里');
   }, skip: Platform.isWindows ? 'shell script fixture is POSIX-only' : null);
 }

@@ -1291,6 +1291,19 @@ widget test 里的 `runAsync(() => Future.delayed(...))` 是从 FakeAsync 里逃
 
 改后连跑 8 次全过；全量 2546 条通过。
 
+### 收尾：其余十个真实等待，逐个看过
+
+| 用途 | 数量 | 处理 |
+|---|---|---|
+| widget test 里的 `runAsync(() => delayed(...))` | 5 | 不动——那是从 FakeAsync 逃出来跑真实异步的必要技巧 |
+| 证明「不发生」 | 1 | 不动——只能固定等待 |
+| tearDown 里等资源释放再删临时目录 | 1 | 不动——是清理时序，不是断言 |
+| **手写的轮询循环** | 2 | **换成 `waitFor`** |
+
+最后两个不是睡等（本来就在轮询），但它们各自手写了一遍循环，而且**超时只有 1 秒和 2 秒**——`waitFor` 给 5 秒，那正是负载高的机器上差的那一截。换掉之后少了两份重复实现。
+
+变异验证：让其中一个去等一个永不出现的文件，测试红，失败信息仍是原来那句「插件没有被启动」。
+
 ### 涉及文件
 
-`test/services/file_watcher_service_test.dart`、`test/services/open_document_watcher_test.dart`
+`test/services/file_watcher_service_test.dart`、`test/services/open_document_watcher_test.dart`、`test/services/plugin_launch_token_test.dart`、`test/ui/screens/plugin_settings_screen_test.dart`
