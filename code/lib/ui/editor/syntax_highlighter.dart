@@ -56,7 +56,13 @@ class MarkdownSyntaxHighlighter {
     // A footnote marker, in the colour a link gets — which is the colour the
     // preview raises it in. It cannot be confused with the link pattern above:
     // that one needs a destination in parentheses after the brackets.
-    _Pattern(RegExp(r'\[\^([^\]]+)\]'), _PatternType.link,
+    // `[^…]` with the label forbidden from containing `[` as well as `]`.
+    // Without that exclusion the label runs to the end of the line and comes
+    // back one character at a time from every starting position: a line of
+    // `[^` repeated took 3.4 seconds here and 2.3 in the parser, which is the
+    // same shape as the bracket flood that froze the editor once before.
+    // A footnote label cannot hold an unescaped `[` anyway.
+    _Pattern(RegExp(r'\[\^([^\]\[]+)\]'), _PatternType.link,
         marker: _openBracket),
     // Before the emphasis patterns: a comment may contain anything, and
     // letting `*` inside one match first would colour half of it as italic.

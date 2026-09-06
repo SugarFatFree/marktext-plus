@@ -1857,6 +1857,13 @@ void _sourceSpanTests() {
       expectFast('open brackets', '[' * 20000);
       expectFast('brackets then one close', '${'[' * 20000}]');
       expectFast('image openers', '![' * 10000);
+      // The footnote opener was not among these and had the same shape: its
+      // label could hold `[`, so it ran to the end of the line and came back
+      // one character at a time from every start. Ten thousand of them took
+      // 2.3 seconds; five times less input took thirty times less, which is
+      // the curve rather than the constant.
+      expectFast('footnote openers', '[^' * 10000);
+      expectFast('footnote openers, more of them', '[^' * 20000);
     });
 
     test('unclosed link destinations', () {

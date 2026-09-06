@@ -391,6 +391,30 @@ void main() {
       expectFast('bold flood', '**b** ' * 5000);
     });
 
+    // The five patterns added in v1.6.2 — `==`, `++`, `_`/`__`, `$` and the
+    // footnote marker. Every marker already here got this treatment after one
+    // of them froze the editor for the better part of a minute; a new one is
+    // not exempt because it is new.
+    test('the markers added later do not hang the editor either', () {
+      expectFast('equals', '=' * 20000);
+      expectFast('marked flood', '==m== ' * 5000);
+      expectFast('unclosed mark', '==m ' * 5000);
+
+      expectFast('plus signs', '+' * 20000);
+      expectFast('underline flood', '++u++ ' * 5000);
+
+      expectFast('underscores', '_' * 20000);
+      expectFast('alternating underscores', '_a' * 10000);
+      expectFast('snake case', 'read_me_now ' * 5000);
+
+      expectFast('dollars', r'$' * 20000);
+      expectFast('maths flood', r'$x$ ' * 5000);
+      expectFast('prices', r'it cost $5 and $10 ' * 2000);
+
+      expectFast('footnote openers', '[^' * 10000);
+      expectFast('footnote flood', '[^1] ' * 5000);
+    });
+
     test('ordinary long lines stay fast', () {
       expectFast('prose', 'the quick brown fox ' * 2000);
       expectFast('csv', List.generate(8000, (i) => 'c$i').join(','));

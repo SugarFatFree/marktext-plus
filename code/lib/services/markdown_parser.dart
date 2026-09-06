@@ -2375,7 +2375,12 @@ class MarkdownParser {
       // write — and with `+` the whole thing fell back to literal text.
       r'''|\[((?:[^\[\]]|\[(?:[^\[\]]|\[[^\[\]]*\])*\])*)\]\(\s*(?:<([^>]*)>|((?:[^()\s"]|\([^()]*\))*))'''
       r'''(?:\s+(?:"([^"]*)"|'([^']*)'))?\s*\)'''  // 6 text, 7/8 href, 9/10 title
-      r'|\[\^([^\]]+)\]'           // footnote ref
+      // The label may not hold `[` either. Allowing it let the group run to
+      // the end of the line and hand it back one character at a time from
+      // every start: `[^` repeated ten thousand times took 2.3 seconds, and
+      // five times less input took thirty times less than that — the curve of
+      // the bracket flood that used to freeze the preview.
+      r'|\[\^([^\]\[]+)\]'         // footnote ref
       // A code span is delimited by a run of backticks and closed by a run of
       // the same length, which is how a document writes code that itself
       // contains a backtick. Matching a single pair mangled ``a`` into three
