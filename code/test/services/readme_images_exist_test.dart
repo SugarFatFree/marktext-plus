@@ -86,4 +86,41 @@ void main() {
         reason: '只找到 $checked 个链接，说明这条正则跟文档对不上了');
     expect(missing, isEmpty, reason: '这些链接点开是 404：$missing');
   });
+
+  test('the translations have the same shape as the English README', () {
+    // Twelve copies of one document. A section added to the English one and
+    // not to the other eleven is a reader in another language being told
+    // less, and nothing says so — the wording differs by design, so a diff
+    // is no use. The count of headings and fenced blocks is not.
+    //
+    // The plugin SDK shipped a release where all twelve were rewritten from
+    // an older copy; a release is when these files get touched together, and
+    // this project's checklist says to update the README.
+    final root = Directory.current.parent;
+    (int, int, int) shape(File file) {
+      final text = file.readAsStringSync();
+      return (
+        RegExp(r'^## ', multiLine: true).allMatches(text).length,
+        RegExp(r'^### ', multiLine: true).allMatches(text).length,
+        '```'.allMatches(text).length ~/ 2,
+      );
+    }
+
+    final english = shape(File('${root.path}/README.md'));
+    expect(english.$1, greaterThan(3),
+        reason: '英文 README 只数出 ${english.$1} 个二级标题，八成是没读对');
+
+    final off = <String>[];
+    for (final file in Directory('${root.path}/docs/i18n')
+        .listSync()
+        .whereType<File>()
+        .where((f) => f.path.endsWith('.md'))) {
+      final theirs = shape(file);
+      if (theirs != english) {
+        off.add('${file.uri.pathSegments.last}: $theirs ≠ $english');
+      }
+    }
+    expect(off, isEmpty,
+        reason: '这几份翻译和英文版的结构对不上（标题数/代码块数）：$off');
+  });
 }
