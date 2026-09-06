@@ -224,6 +224,21 @@ void main() {
       expect(convert('<p>keep <!-- this</p>'), contains('keep'));
     });
 
+    test('script and style are dropped, content and all', () {
+      expect(convert('<p>a</p><script>alert(1)</script>'), 'a');
+      expect(convert('<STYLE>p{color:red}</STYLE><p>a</p>'), 'a');
+      expect(convert('<script src="x.js">var a=1;</script><p>a</p>'), 'a');
+      // Across lines: a stylesheet pasted from a page is never on one line.
+      expect(convert('<style>\np {\n  color: red;\n}\n</style><p>a</p>'), 'a');
+      // An unclosed one keeps its content, which is what the pattern did.
+      expect(convert('<p>a</p><script>keep'), contains('a'));
+      // And an unclosed one does not hide the closed one after it. Skipping
+      // the rest of the string on the first failure would be the easy way to
+      // make the timing test below pass, and it would drop this on the floor.
+      expect(convert('<script>never<style>x</style><p>a</p>'), contains('a'));
+      expect(convert('<script>never<style>x</style><p>a</p>'), isNot(contains('x')));
+    });
+
     test('pathological html does not freeze the paste', () {
       // The clipboard is untrusted input: whatever is on it arrives here
       // whole, and the paste happens on the UI thread. `<!--.*?-->` was
@@ -246,6 +261,12 @@ void main() {
           '<p>${'<!--' * 40000}--></p>');
       expectFast('complete comments', '<p>${'<!-- x -->' * 20000}</p>');
       expectFast('tag openers', '<p>${'<div' * 20000}</p>');
+      // The same shape sat two lines below the comment strip: `.*?</\\1>`.
+      expectFast('script openers', '<p>${'<script>' * 40000}</p>');
+      expectFast('style openers', '<p>${'<style>' * 40000}</p>');
+      expectFast('script openers, one closer at the end',
+          '<p>${'<script>' * 40000}</script></p>');
+      expectFast('complete scripts', '<p>${'<script>x</script>' * 20000}</p>');
     });
 
     test('empty or markup-only html gives null', () {

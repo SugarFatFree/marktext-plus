@@ -45,10 +45,7 @@ class HtmlToMarkdown {
     var text = match?.group(1) ?? html;
     // Comments carry the clipboard's own fragment markers.
     text = _withoutComments(text);
-    text = text.replaceAll(
-        RegExp(r'<(script|style)[^>]*>.*?</\1>',
-            dotAll: true, caseSensitive: false),
-        '');
+    text = _withoutRawText(text);
     return text;
   }
 
@@ -77,6 +74,72 @@ class HtmlToMarkdown {
     if (at == 0) return text;
     out.write(text.substring(at));
     return out.toString();
+  }
+
+  static final RegExp _rawTextOpen =
+      RegExp(r'<(script|style)[^>]*>', caseSensitive: false);
+
+  /// The text with `<script>` and `<style>` elements removed, content and all.
+  ///
+  /// The same shape as [_withoutComments], two lines above it, and the same
+  /// reason — it was on screen while I fixed that one and I did not read it.
+  /// Finding the opening tag is fine: `[^>]*` cannot run past the `>` it is
+  /// looking for. It was `.*?</\1>` that was quadratic, an opener with no
+  /// closer after it scanning to the end of the string before the next one
+  /// does it again. Ten thousand `<script>` took 347ms and ten thousand
+  /// `<style>` took 955ms.
+  ///
+  /// An element whose closing tag never arrives is left in place with its
+  /// content, which is what the pattern did — and once one of the two names
+  /// is known to have no closer left in the string, the openers after it are
+  /// skipped without looking again. That is what keeps ten thousand unclosed
+  /// `<script>` from costing ten thousand scans.
+  static String _withoutRawText(String text) {
+    final out = StringBuffer();
+    final exhausted = <String>{};
+    var written = 0;
+    var scan = 0;
+    while (true) {
+      final matches = _rawTextOpen.allMatches(text, scan).iterator;
+      if (!matches.moveNext()) break;
+      final opener = matches.current;
+      final tag = opener.group(1)!.toLowerCase();
+      if (exhausted.contains(tag)) {
+        scan = opener.end;
+        continue;
+      }
+      final close = _indexOfClose(text, tag, opener.end);
+      if (close < 0) {
+        exhausted.add(tag);
+        scan = opener.end;
+        continue;
+      }
+      out.write(text.substring(written, opener.start));
+      written = close;
+      scan = close;
+    }
+    if (written == 0) return text;
+    out.write(text.substring(written));
+    return out.toString();
+  }
+
+  /// Where `</tag>` ends at or after [from], ignoring case; -1 when absent.
+  static int _indexOfClose(String text, String tag, int from) {
+    final close = '</$tag>';
+    final n = close.length;
+    for (var i = from; i + n <= text.length; i++) {
+      var same = true;
+      for (var j = 0; j < n; j++) {
+        var c = text.codeUnitAt(i + j);
+        if (c >= 0x41 && c <= 0x5A) c += 0x20;
+        if (c != close.codeUnitAt(j)) {
+          same = false;
+          break;
+        }
+      }
+      if (same) return i + n;
+    }
+    return -1;
   }
 
   /// One tag or one run of text.
