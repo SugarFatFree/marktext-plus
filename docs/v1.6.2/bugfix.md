@@ -1233,3 +1233,25 @@ SDK README 写着「Ask for what you use」。这个项目自己发布的插件�
 ### 涉及文件
 
 `test/services/plugin_declares_what_it_uses_test.dart`（新增）
+
+---
+
+## 加固：「构建成功不等于构建对了」这条教训只在一个平台上生效
+
+审 `release.yml`（473 行，之前只看过 `ci.yml`）时发现的。
+
+Windows 的构建后面跟着一步 **`Check the machine type of what was built`**：读 PE 头的 machine 字段，和 matrix 里要的架构比对，不符就让整个 job 失败。那是 BUG-235 学来的——当时 arm64 的 job 产出了 x64 的二进制，而构建本身是「成功」的。
+
+**Linux 也有 x64 / arm64 两个 job，也有一步专门为 arm64 装 Flutter，却没有这个检查。** 特殊处理的地方最需要验证，因为它正是「可能悄悄没生效」的那种步骤。
+
+补上了，读 ELF 头的 `e_machine`（偏移 0x12，x86-64 是 62，AArch64 是 183）而不是靠 `file` 的措辞——那不是承诺。
+
+**macOS 没加**：它没有架构 matrix，构建的是 runner 的原生架构，没有「要的架构」可比对。要不要出 universal binary 是产品决策，不是补一个检查能解决的。
+
+### 验证
+
+`release.yml` 只在推 tag 时跑，本轮 CI 碰不到它。所以在本机把那段 shell 原样跑了三种情形：架构对得上→通过；对不上→拒绝并说清要的是什么、建出来的是什么；文件不存在→拒绝。YAML 也解析过一遍，确认步骤落在 `Build Linux` 和 `Package tar.gz` 之间。
+
+### 涉及文件
+
+`.github/workflows/release.yml`

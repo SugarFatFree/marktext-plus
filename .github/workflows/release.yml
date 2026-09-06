@@ -279,6 +279,31 @@ jobs:
         working-directory: code
         run: flutter build linux --release
 
+      # The same check Windows makes, for the same reason: a build that
+      # succeeded is not proof it built the thing that was asked for. Windows
+      # learned this when its arm64 job produced x64 binaries; the arm64 job
+      # here also installs its own Flutter, which is exactly the kind of step
+      # that can quietly not take effect.
+      #
+      # Read out of the ELF header rather than from `file`, whose wording is
+      # not a promise: byte 0x12 is e_machine, 62 for x86-64 and 183 for
+      # AArch64.
+      - name: Check the machine type of what was built
+        run: |
+          exe="code/build/linux/${{ matrix.flutter_build_dir }}/release/bundle/marktext_plus"
+          [ -f "$exe" ] || { echo "no executable at $exe"; exit 1; }
+          machine=$(od -An -tu2 -j18 -N2 --endian=little "$exe" | tr -d ' ')
+          case "$machine" in
+            62) name=x64 ;;
+            183) name=arm64 ;;
+            *) name="e_machine=$machine" ;;
+          esac
+          echo "machine type: $name"
+          if [ "$name" != "${{ matrix.arch }}" ]; then
+            echo "asked for ${{ matrix.arch }} and built $name"
+            exit 1
+          fi
+
       - name: Package tar.gz
         run: |
           cd code/build/linux/${{ matrix.flutter_build_dir }}/release/bundle
