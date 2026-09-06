@@ -43,10 +43,17 @@ jobs:
         working-directory: code
         run: flutter pub get
 
-      # The project standard is zero errors and zero warnings.
+      # Zero errors, zero warnings, and zero infos. The last one is the
+      # reason this is not `flutter analyze`: that command lets info-level
+      # lints through, so a gate running it is more forgiving than the one
+      # every change is written against locally — and a final gate that is
+      # looser than the local one stops being a gate.
+      #
+      # `lib test` rather than the whole tree because there are no Dart files
+      # outside them; if that changes, widen this.
       - name: Analyze
         working-directory: code
-        run: flutter analyze
+        run: dart analyze --fatal-infos lib test
 
       - name: Test
         working-directory: code

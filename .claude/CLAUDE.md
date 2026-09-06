@@ -288,7 +288,8 @@ flutter clean
 - **集成测试**: 发布前必须手动测试核心功能
 
 ### 代码审查
-- **flutter analyze**: 必须通过，0 错误 0 警告
+- **`dart analyze --fatal-infos lib test`**: 必须通过——0 错误、0 警告、**0 info**。
+  用这条而不是 `flutter analyze`：后者放行 info 级 lint，CI 和本机曾因此宽严不一
 - **格式化**: 使用 `dart format` 格式化代码
 - **命名规范**: 遵循 Dart 官方命名规范
 
