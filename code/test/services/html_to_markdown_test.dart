@@ -215,6 +215,39 @@ void main() {
       expect(convert('<code>doThing()</code>'), '`doThing()`');
     });
 
+    test('comments are stripped, complete ones only', () {
+      expect(convert('<p>a<!-- note -->b</p>'), 'ab');
+      expect(convert('<p>a<!-- one --><!-- two -->b</p>'), 'ab');
+      // An unterminated opener is text, not the start of an endless comment.
+      // The regex this replaced left it in place too, and a paste that loses
+      // its second half is worse than one that keeps a stray `<!--`.
+      expect(convert('<p>keep <!-- this</p>'), contains('keep'));
+    });
+
+    test('pathological html does not freeze the paste', () {
+      // The clipboard is untrusted input: whatever is on it arrives here
+      // whole, and the paste happens on the UI thread. `<!--.*?-->` was
+      // quadratic on openers with no closer — 2000 took 44ms, 10000 took
+      // 842ms — because each one scanned to the end of the string before
+      // giving up. The ceiling matches the parser's own pathological group.
+      void expectFast(String label, String html) {
+        final watch = Stopwatch()..start();
+        HtmlToMarkdown.convert(html);
+        watch.stop();
+        expect(
+          watch.elapsedMilliseconds,
+          lessThan(2000),
+          reason: '$label took ${watch.elapsedMilliseconds}ms',
+        );
+      }
+
+      expectFast('comment openers', '<p>${'<!--' * 40000}</p>');
+      expectFast('comment openers, one closer at the end',
+          '<p>${'<!--' * 40000}--></p>');
+      expectFast('complete comments', '<p>${'<!-- x -->' * 20000}</p>');
+      expectFast('tag openers', '<p>${'<div' * 20000}</p>');
+    });
+
     test('empty or markup-only html gives null', () {
       // Null rather than empty: the caller then falls back to the plain text,
       // which is a better paste than nothing at all.

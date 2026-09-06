@@ -44,12 +44,39 @@ class HtmlToMarkdown {
             .firstMatch(html);
     var text = match?.group(1) ?? html;
     // Comments carry the clipboard's own fragment markers.
-    text = text.replaceAll(RegExp(r'<!--.*?-->', dotAll: true), '');
+    text = _withoutComments(text);
     text = text.replaceAll(
         RegExp(r'<(script|style)[^>]*>.*?</\1>',
             dotAll: true, caseSensitive: false),
         '');
     return text;
+  }
+
+  /// The text with every complete `<!-- ... -->` removed.
+  ///
+  /// Written by hand rather than as `RegExp(r'<!--.*?-->')` because the
+  /// clipboard is untrusted input and that pattern is quadratic on it: every
+  /// `<!--` with no `-->` after it scans to the end of the string before
+  /// giving up. Ten thousand of them took 842ms, forty thousand would take
+  /// thirteen seconds, and the paste would look like a freeze. Scanning
+  /// forward from each opener is linear no matter what arrives.
+  ///
+  /// An unterminated `<!--` is left in place, which is what the regex did too.
+  static String _withoutComments(String text) {
+    if (!text.contains('<!--')) return text;
+    final out = StringBuffer();
+    var at = 0;
+    while (true) {
+      final open = text.indexOf('<!--', at);
+      if (open < 0) break;
+      final close = text.indexOf('-->', open + 4);
+      if (close < 0) break;
+      out.write(text.substring(at, open));
+      at = close + 3;
+    }
+    if (at == 0) return text;
+    out.write(text.substring(at));
+    return out.toString();
   }
 
   /// One tag or one run of text.
