@@ -3,10 +3,23 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/services/file_watcher_service.dart';
 
+import '../support/wait_for.dart';
+
 /// Filesystem notifications arrive asynchronously and the service debounces
 /// them, so each check waits rather than asserting immediately.
+///
+/// Two kinds of waiting, and they are not interchangeable. Proving something
+/// *did not* happen has to sit out a fixed stretch — polling for a condition
+/// that is already true returns at once and proves nothing. Waiting for
+/// something to happen should ask, which is what [waitFor] does: it returns as
+/// soon as the event lands, and on a loaded runner it keeps asking well past
+/// the point a fixed sleep would have given up.
 Future<void> settle() =>
     Future<void>.delayed(const Duration(milliseconds: 900));
+
+/// Waits for the counter to reach [n], then lets the assertion say so.
+Future<void> untilEvents(int Function() events, int n) =>
+    waitFor(() => events() >= n);
 
 void main() {
   late Directory root;
@@ -38,7 +51,7 @@ void main() {
     expect(events, 0, reason: 'b is not watched');
 
     File('${a.path}/watched.md').writeAsStringSync('hi');
-    await settle();
+    await untilEvents(() => events, 1);
     expect(events, 1);
   });
 
@@ -54,7 +67,7 @@ void main() {
     expect(events, 0, reason: 'a was dropped from the watch set');
 
     File('${b.path}/added.md').writeAsStringSync('hi');
-    await settle();
+    await untilEvents(() => events, 1);
     expect(events, 1);
   });
 
@@ -77,7 +90,7 @@ void main() {
     service.watch([a.path]);
     await Future<void>.delayed(const Duration(milliseconds: 200));
     File('${a.path}/after.md').writeAsStringSync('hi');
-    await settle();
+    await untilEvents(() => events, 1);
     expect(events, greaterThan(0));
   });
 

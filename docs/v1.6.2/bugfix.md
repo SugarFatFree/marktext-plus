@@ -1255,3 +1255,42 @@ Windows 的构建后面跟着一步 **`Check the machine type of what was built`
 ### 涉及文件
 
 `.github/workflows/release.yml`
+
+---
+
+## 加固：一个为防 CI 偶发红写的工具，只有三个地方在用
+
+回头审自己昨天写的 `shutdown_watchdog_test`——它用真实 `Future.delayed`，那类测试最容易在慢机器上偶尔翻车。连跑十次全过，那条没问题（它等的是「不发生」，本来就该固定等待）。
+
+但顺手扫了一遍全部测试，发现 `test/support/wait_for.dart` 的存在，以及它注释里那句话：
+
+> `tab_reload_test` **在 CI 上失败过两次，本地从没失败**——所以有了这个。
+
+**用真实延迟的有 13 个文件，用 `waitFor` 的只有 3 个。** 这是「写好了没用上」的第五例，而且这次的代价是具体的：CI 偶发红。
+
+### 关键是分清两种等待
+
+它们看起来一样，其实不能互换：
+
+| 在等什么 | 该怎么等 |
+|---|---|
+| 某件事**发生**（事件到达、文件被写） | **轮询**。到了就走；慢机器上比固定睡等得更久 |
+| 某件事**不发生**（不该收到事件） | **固定等待**。轮询一个一开始就为真的条件会立刻返回，什么也没证明 |
+
+按这条把两个文件里的等待逐个分类：`file_watcher_service_test` 三处等发生（900ms 一次）改轮询、三处等不发生保留；`open_document_watcher_test` 三处改、两处保留。
+
+### 顺带变快了
+
+那六处固定睡眠总共约 4.8 秒，现在事件到了就继续。两个文件从 6 秒降到 4 秒。
+
+### 其余的裸等不动
+
+widget test 里的 `runAsync(() => Future.delayed(...))` 是从 FakeAsync 里逃出来跑真实异步的必要技巧，不是在赌时间。
+
+### 验证
+
+改后连跑 8 次全过；全量 2546 条通过。
+
+### 涉及文件
+
+`test/services/file_watcher_service_test.dart`、`test/services/open_document_watcher_test.dart`

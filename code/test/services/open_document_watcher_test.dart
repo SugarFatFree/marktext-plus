@@ -4,8 +4,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/services/open_document_watcher.dart';
 import 'package:path/path.dart' as p;
 
+import '../support/wait_for.dart';
+
 /// Filesystem notifications arrive asynchronously and the watcher debounces
 /// them, so each check waits rather than asserting immediately.
+///
+/// Waiting for something to arrive asks — [waitFor] returns the moment it
+/// does, and on a loaded runner keeps asking long after a fixed sleep would
+/// have given up. Proving nothing arrives cannot ask, so those checks sit out
+/// the full stretch below.
 Future<void> settle() =>
     Future<void>.delayed(const Duration(milliseconds: 700));
 
@@ -35,7 +42,7 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 200));
 
     watched.writeAsStringSync('two');
-    await settle();
+    await waitFor(() => reported.isNotEmpty);
 
     // By name, not by full path: a temp directory can come back resolved
     // through a symlink on some platforms.
@@ -65,7 +72,7 @@ void main() {
 
       final temp = File('${root.path}/open.md.tmp')..writeAsStringSync('two');
       temp.renameSync(watched.path);
-      await settle();
+      await waitFor(() => reported.isNotEmpty);
 
       // By name, not by full path: a temp directory can come back resolved
       // through a symlink on some platforms.
@@ -80,7 +87,7 @@ void main() {
     for (var i = 0; i < 5; i++) {
       watched.writeAsStringSync('write $i');
     }
-    await settle();
+    await waitFor(() => reported.isNotEmpty);
 
     // By name, not by full path: a temp directory can come back resolved
     // through a symlink on some platforms.
