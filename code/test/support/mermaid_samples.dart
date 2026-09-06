@@ -1,0 +1,73 @@
+import 'package:marktext_plus/ui/editor/mermaid/mermaid.dart';
+
+/// One working sample per diagram type, shared by the tests that need every
+/// type to be represented.
+///
+/// It lives here rather than beside one of them because two tests now check
+/// themselves against `DiagramType.values` — that each type can be drawn, and
+/// that each type survives a pathological line. A second copy of this table
+/// would drift, and a drifted header parses as `unknown`, which is fast and
+/// draws nothing: both tests would pass having measured a type that was never
+/// there.
+///
+/// The samples carry nodes, edges and labels rather than bare headers, so the
+/// painters have something to paint and a parse returns a diagram at all.
+const mermaidSamples = <DiagramType, String>{
+  DiagramType.flowchart:
+      'flowchart TD\n  A[开始] --> B{判断}\n  B -->|是| C[好]\n  B -->|否| D[取消]\n',
+  DiagramType.sequence:
+      'sequenceDiagram\n'
+      '  participant 甲\n  participant 乙\n'
+      '  甲->>乙: 请求\n  乙-->>甲: 回应\n',
+  DiagramType.classDiagram:
+      'classDiagram\n'
+      '  class Animal {\n    +String name\n    +eat()\n  }\n'
+      '  Animal <|-- Dog\n',
+  DiagramType.stateDiagram:
+      'stateDiagram-v2\n  [*] --> 空闲\n  空闲 --> 运行: 启动\n  运行 --> [*]\n',
+  DiagramType.erDiagram:
+      'erDiagram\n'
+      '  CUSTOMER ||--o{ ORDER : places\n'
+      '  ORDER ||--|{ LINE-ITEM : contains\n',
+  DiagramType.journey:
+      'journey\n  title 一天\n'
+      '  section 上午\n    起床: 3: 我\n    通勤: 2: 我\n',
+  DiagramType.gitGraph:
+      'gitGraph\n  commit\n  branch dev\n  commit\n  checkout main\n  merge dev\n',
+  DiagramType.mindmap: 'mindmap\n  root((核心))\n    分支一\n      叶子\n    分支二\n',
+  DiagramType.pieChart: 'pie title 占比\n  "甲" : 40\n  "乙" : 35\n  "丙" : 25\n',
+  DiagramType.ganttChart:
+      'gantt\n  title 计划\n  dateFormat YYYY-MM-DD\n'
+      '  section 一期\n  设计 :a1, 2024-01-01, 30d\n  开发 :after a1, 45d\n',
+  DiagramType.timeline:
+      'timeline\n  title 历程\n  2002 : 起步\n  2010 : 成长\n  2024 : 现在\n',
+  DiagramType.kanban: 'kanban\n  待办\n    t1[写文档]\n  进行中\n    t2[修 bug]\n',
+  DiagramType.radar:
+      'radar-beta\n'
+      '  axis 速度["速度"], 体积["体积"], 稳定["稳定"]\n'
+      '  curve 本版["本版"]{80, 60, 90}\n',
+  DiagramType.xyChart:
+      'xychart-beta\n  title "月度"\n'
+      '  x-axis [一月, 二月, 三月]\n  y-axis "数量" 0 --> 100\n'
+      '  bar [30, 60, 90]\n',
+  DiagramType.quadrantChart:
+      'quadrantChart\n  title 优先级\n'
+      '  x-axis 低 --> 高\n  y-axis 少 --> 多\n'
+      '  甲: [0.3, 0.6]\n  乙: [0.7, 0.2]\n',
+  DiagramType.requirementDiagram:
+      'requirementDiagram\n'
+      '  requirement 需求一 {\n  id: 1\n  text: 必须能画图\n'
+      '  risk: high\n  verifymethod: test\n  }\n',
+  DiagramType.sankey: 'sankey-beta\n\n甲,乙,10\n乙,丙,6\n乙,丁,4\n',
+  DiagramType.blockDiagram: 'block-beta\n  columns 3\n  甲 乙 丙\n',
+  DiagramType.c4Diagram:
+      'C4Context\n  title 语境\n'
+      '  Person(u, "用户", "使用者")\n  System(s, "系统", "本应用")\n',
+  DiagramType.packet: 'packet-beta\n  0-15: "源端口"\n  16-31: "目的端口"\n',
+  DiagramType.architecture:
+      'architecture-beta\n  group g(cloud)[云]\n'
+      '  service db(database)[数据库] in g\n'
+      '  service api(server)[接口] in g\n  db:R -- L:api\n',
+  DiagramType.treemap:
+      'treemap-beta\n  "根"\n    "甲": 30\n    "乙": 20\n    "丙": 10\n',
+};

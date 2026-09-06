@@ -77,6 +77,10 @@ class StateDiagramParser {
     if (_nodes.isEmpty) return null;
 
     return MermaidDiagramData(
+      // A state diagram is nodes, edges and nested groups — the same shape a
+      // flowchart is, and drawn by the same painter. Saying `flowchart` here
+      // is what routes it there; it is not a misdetection, and a test that
+      // reads this field to find out what was detected will be misled.
       type: DiagramType.flowchart,
       nodes: _nodes.values.toList(),
       edges: _edges,

@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+
+import '../../../support/mermaid_samples.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/class_diagram.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/diagram.dart';
 import 'package:marktext_plus/ui/editor/mermaid/models/edge.dart';
@@ -1246,6 +1248,65 @@ quadrantChart
     test('an entity diagram with a line that is not an entity', () {
       expectFast('brackets', 'erDiagram\n${'[' * 20000}');
       expectFast('mixed', 'erDiagram\n${'[a](b' * 4000}');
+    });
+
+    test('a gantt chart with a line that is not a task', () {
+      // Not a regular expression this time. Picking which colon splits a task
+      // name from its definition took `substring` of the rest of the line and
+      // split it on commas, once per colon — two copies of the tail each
+      // time.
+      //
+      // Twice the length of its neighbours, and the reason is worth keeping:
+      // at twenty thousand the old code took 1.4 seconds, which is a visible
+      // stall and *under* the two-second ceiling. Putting the old code back
+      // left every assertion in this group green. A fixed length against a
+      // fixed ceiling only catches what is already terrible; doubling the
+      // input is what makes a quadratic say so — 5.6 seconds, against 7ms now.
+      expectFast('colons', 'gantt\n${':' * 40000}');
+      expectFast('colons and letters', 'gantt\n${':a' * 40000}');
+      expectFast('colons and spaces', 'gantt\n${': ' * 40000}');
+    });
+
+    test('every diagram type has been given a line of noise', () {
+      // The three tests above name the types that were once slow. The types
+      // that were never tried are the ones a new pattern arrives in — and
+      // this group had two of twenty-two. Each type gets its own working
+      // sample with a pathological line added to the end of it, so the parse
+      // returns a diagram and the type it reports can be checked.
+      const samples = mermaidSamples;
+      final all = DiagramType.values.toSet()..remove(DiagramType.unknown);
+      expect(all.difference(samples.keys.toSet()), isEmpty,
+          reason: '新增了图型但共享样例表里没有它，它就从没被喂过病态输入');
+
+      const shapes = {
+        'spaces': ' ',
+        'quotes': '"',
+        'brackets': '[',
+        'colons': ':',
+        'dashes': '-',
+        'braces': '{',
+      };
+      for (final sample in samples.entries) {
+        for (final shape in shapes.entries) {
+          final source = '${sample.value}${shape.value * 20000}\n';
+          final watch = Stopwatch()..start();
+          final result = parser.parseWithData(source);
+          watch.stop();
+          // Without this the header could be misspelled, the source would
+          // parse as `unknown` — which returns null — and the timing below
+          // would pass having measured nothing at all. It is the null that
+          // says so, not the reported type: a state diagram is a flowchart's
+          // nodes and edges and says `flowchart`, on purpose.
+          expect(result, isNotNull,
+              reason: '${sample.key.name} 的样例没解析出来，这条测的就不是它');
+          expect(
+            watch.elapsedMilliseconds,
+            lessThan(2000),
+            reason: '${sample.key.name} / ${shape.key} '
+                'took ${watch.elapsedMilliseconds}ms',
+          );
+        }
+      }
     });
 
     test('the slice and alias patterns still read ordinary lines', () {

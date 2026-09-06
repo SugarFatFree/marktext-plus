@@ -160,26 +160,61 @@ class GanttParser {
   /// Returns -1 when the line holds no usable split.
   int _definitionColon(String line, String dateFormat) {
     var from = 0;
+    // Both cursors only ever move forward, so the whole search reads the line
+    // once. It used to take `line.substring(at + 1)` and split it on commas
+    // for every colon — two copies of the rest of the line each time, which
+    // on a line of nothing but colons is quadratic: twenty thousand of them
+    // cost 1.4 seconds and forty thousand cost 5.6, while the reader was only
+    // scrolling past the chart.
+    var comma = line.indexOf(',');
     while (true) {
       final at = line.indexOf(':', from);
       if (at == -1) return -1;
-      final rest = line.substring(at + 1).trim();
-      final firstPart = rest.split(',').first.trim();
-      if (_looksLikeDefinitionStart(firstPart, dateFormat)) return at;
+      while (comma != -1 && comma < at) {
+        comma = line.indexOf(',', comma + 1);
+      }
+      final end = comma == -1 ? line.length : comma;
+      if (_looksLikeDefinitionStart(line, at + 1, end, dateFormat)) return at;
       from = at + 1;
     }
   }
 
-  /// Whether [part] could be the first field of a task definition.
-  bool _looksLikeDefinitionStart(String part, String dateFormat) {
-    if (part.isEmpty) return false;
-    if (_statusFor(part.toLowerCase()) != null) return true;
-    if (part.toLowerCase().startsWith('after ')) return true;
-    if (_isDate(part, dateFormat)) return true;
-    // An id, or a bare duration such as `30d`: one token, no spaces and no
-    // colon of its own.
-    return !part.contains(' ') && !part.contains(':');
+  /// Whether the field between [start] and [end] could be the first field of
+  /// a task definition.
+  ///
+  /// Reads the line in place rather than being handed a copy of it. Blank
+  /// here means a space or a tab, where the caller used `String.trim()` and
+  /// its full Unicode set; mermaid separates these fields with one or the
+  /// other, and this is the heuristic that picks which colon splits the line
+  /// rather than the parse that follows it.
+  bool _looksLikeDefinitionStart(
+      String line, int start, int end, String dateFormat) {
+    while (start < end && _isBlank(line.codeUnitAt(start))) {
+      start++;
+    }
+    while (end > start && _isBlank(line.codeUnitAt(end - 1))) {
+      end--;
+    }
+    if (start >= end) return false;
+
+    // Scan to the first blank or colon. A status word, a date, and a bare id
+    // or duration such as `30d` all contain neither, so reaching the end of
+    // the field accepts all three at once — and every one of them is far
+    // shorter than the scan can run. Past that first blank or colon only
+    // `after ` still qualifies, and six characters settle it.
+    var at = start;
+    while (at < end) {
+      final c = line.codeUnitAt(at);
+      if (c == 0x3A || _isBlank(c)) break;
+      at++;
+    }
+    if (at == end) return true;
+    return line.codeUnitAt(at) == 0x20 &&
+        at - start == 5 &&
+        line.substring(start, at).toLowerCase() == 'after';
   }
+
+  static bool _isBlank(int unit) => unit == 0x20 || unit == 0x09;
 
   GanttTask? _parseTask(
     String line,
