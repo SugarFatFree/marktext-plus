@@ -24,6 +24,24 @@ void main() {
       // rather than using it, so it excludes itself by looking for the
       // assignment with a value after it.
       if (file.path.endsWith('repo_dependent_tests_test.dart')) continue;
+
+      // Anything that reads a sibling repository has to skip somewhere. This
+      // is the cheap half of the check and it is the one with reach: the
+      // strict half below only sees files written with the idiom below it,
+      // and four of the seven files that read a sibling repository are not —
+      // they keep that path in variables of their own naming. Their skips are
+      // correct today; nothing was watching them.
+      if (source.contains('marktext-plus-plugins') &&
+          !source.contains('skip:')) {
+        offenders.add('${file.path}: 读了兄弟仓库，但一个 skip 都没有');
+        continue;
+      }
+
+      // The strict half. It counts, so it needs every case in the file to
+      // need the skip — which is true of the files written this way, and not
+      // true in general: a file can hold one case that reads only `lib/`.
+      // That is why the reach comes from the check above rather than from
+      // widening this one.
       if (!source.contains('final present = repo != null;')) continue;
 
       // Every case in the file must carry a skip. Counting is enough — a file

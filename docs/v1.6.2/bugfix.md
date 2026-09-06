@@ -1829,3 +1829,47 @@ return {
 变异：给中文加一节，点名 `README_zh-CN.md`；给英文加一节，十一份全部报出；把标题正则改成 `^#### `，报「只数出 0 个二级标题」。
 
 **这一条差点没留下来。**跑完变异我用 `git checkout` 还原文件——本项目记过「变异还原只用 cp」，而我把它写成了 `git checkout … && echo "（这个文件本轮有改动，不能 checkout）"`，那句提示的措辞让输出读起来像是拒绝执行，实际它是执行成功之后打印的。本轮未提交的这一条就这么没了，重放脚本才补回来。记忆已更新。
+
+---
+
+## 审计：守卫自己的盲区，七个文件里它看得见三个
+
+不是缺陷记录——查下来七个文件的 skip 全都正确。记在这里是因为**守卫的存在会让人以为这类问题被管住了**，而它管住的不到一半。
+
+### 它防的是什么
+
+`repo_dependent_tests_test` 防「本地全绿、CI 全红」：读兄弟仓库的测试必须带 `skip`，否则在没有那个仓库的机器上不是「跳过」而是 `LateInitializationError`。它的注释写着「这已经发生过两次」。
+
+### 入口条件是一句字面量
+
+```dart
+if (!source.contains('final present = repo != null;')) continue;
+```
+
+**换个变量名就静默放行。**实际读兄弟仓库的测试文件有七个，含这句的只有三个。另外四个——`sdk_examples_test`、`sdk_definitions_test`、`plugin_declares_what_it_uses_test`、`packaged_plugin_test`——各自把路径存进了自己命名的变量，守卫从来没检查过它们。
+
+### 为什么不能直接放宽判据
+
+严格判据是「test 数 == skip 数」，它成立的前提是**文件里每个用例都需要 skip**。`sdk_definitions_test` 有四个用例，只有三个带 skip——第一个只读本仓库的 `lib/services/plugin_script_runtime.dart`，**本来就不该 skip**。直接把入口放宽会把它误报成违规。
+
+要精确判断「这一个用例读没读兄弟仓库」，得解析每个 test 的 body 找路径变量，而变量名不定。
+
+### 所以加的是一道下限，不是放宽
+
+```dart
+if (source.contains('marktext-plus-plugins') && !source.contains('skip:')) {
+  offenders.add('…读了兄弟仓库，但一个 skip 都没有');
+}
+```
+
+抓的是「整个文件都忘了 skip」这一种，对七个文件全部生效，零误报。严格那一半保持原样，只对写成那个惯用形状的文件生效——**覆盖面由前者提供，精度由后者提供**，两者的边界写进了注释，免得下一个人以为它管着所有文件。
+
+变异：把 `sdk_examples_test` 的八个 skip 全删（守卫原本看不见这个文件），点名它；删掉 `ai_translate_plugin_test` 的一个 skip，报「34 个用例，只有 33 个带 skip」。
+
+### 一件相关的事
+
+这个守卫防的主要灾难，今天下午已经被另一件事消掉了大半：CI 现在会 checkout 那两个兄弟仓库，所以「CI 上没有仓库」不再是常态。它现在防的是开发者本机缺仓库的情形，以及 checkout 本身失败的情形——后者会明确报错，不再伪装成 `LateInitializationError`。
+
+### 涉及文件
+
+`test/repo_dependent_tests_test.dart`
