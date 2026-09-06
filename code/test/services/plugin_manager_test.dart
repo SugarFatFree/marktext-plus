@@ -53,4 +53,64 @@ void main() {
     );
     expect(File('${root.path}/escape.txt').existsSync(), isFalse);
   });
+
+  // The path check above was the only question this asked of an archive. A
+  // ZIP is also free to say it unpacks to something enormous, and to be
+  // telling the truth: that is what a zip bomb is. 42.zip is 42 KB and 4.5 GB.
+  test('rejects a ZIP whose entry claims to unpack to gigabytes', () async {
+    final root = await Directory.systemTemp.createTemp('plugins_');
+    addTearDown(() => root.delete(recursive: true));
+    final archive = Archive()
+      ..addFile(ArchiveFile.string(
+        'manifest.json',
+        jsonEncode({
+          'id': 'com.example.bomb',
+          'name': 'Bomb',
+          'version': '1.0.0',
+          'entrypoint': 'bin/bomb',
+        }),
+      ))
+      // Declared size and actual content are independent, which is the whole
+      // trick — this archive is a hundred and something bytes.
+      ..addFile(ArchiveFile('bin/bomb', 300 * 1024 * 1024, [1, 2, 3]));
+    final zip = File('${root.path}/bomb.zip')
+      ..writeAsBytesSync(ZipEncoder().encode(archive));
+
+    // Refused before `content` is read, because reading it is what unpacks it
+    // into memory.
+    expect(
+      () => PluginManager('${root.path}/installed').installZip(zip),
+      throwsFormatException,
+    );
+    expect(
+      Directory('${root.path}/installed/com.example.bomb').existsSync(),
+      isFalse,
+      reason: '半个插件目录比没有更糟',
+    );
+  });
+
+  test('rejects a ZIP with more entries than a plugin could have', () async {
+    final root = await Directory.systemTemp.createTemp('plugins_');
+    addTearDown(() => root.delete(recursive: true));
+    final archive = Archive()
+      ..addFile(ArchiveFile.string(
+        'manifest.json',
+        jsonEncode({
+          'id': 'com.example.many',
+          'name': 'Many',
+          'version': '1.0.0',
+          'entrypoint': 'bin/many',
+        }),
+      ));
+    for (var i = 0; i < 10001; i++) {
+      archive.addFile(ArchiveFile.string('f$i.txt', 'x'));
+    }
+    final zip = File('${root.path}/many.zip')
+      ..writeAsBytesSync(ZipEncoder().encode(archive));
+
+    expect(
+      () => PluginManager('${root.path}/installed').installZip(zip),
+      throwsFormatException,
+    );
+  });
 }

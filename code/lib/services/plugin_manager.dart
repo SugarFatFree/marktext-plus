@@ -276,9 +276,38 @@ class PluginManager {
     await forgetSource(id);
   }
 
+  /// What an installed plugin is allowed to weigh.
+  ///
+  /// A ZIP says how large each of its entries unpacks to, and nothing makes
+  /// that number true — the whole point of a zip bomb is that a small archive
+  /// claims, and delivers, an enormous one. The path check below was already
+  /// here; these are the rest of the same question.
+  ///
+  /// The numbers are loose on purpose. A script plugin is tens of kilobytes;
+  /// the widest real case is a compiled plugin carrying an executable for
+  /// three platforms, which is tens of megabytes.
+  static const _maxArchiveBytes = 64 * 1024 * 1024;
+  static const _maxUnpackedBytes = 256 * 1024 * 1024;
+  static const _maxEntries = 10000;
+
   Future<PluginManifest> installZip(File zipFile) async {
+    // Before reading it into memory, which is where an oversized archive
+    // would do its damage.
+    final archiveBytes = await zipFile.length();
+    if (archiveBytes > _maxArchiveBytes) {
+      throw FormatException(
+        'plugin ZIP is ${archiveBytes ~/ (1024 * 1024)} MB; the limit is '
+        '${_maxArchiveBytes ~/ (1024 * 1024)} MB',
+      );
+    }
     final bytes = await zipFile.readAsBytes();
     final archive = ZipDecoder().decodeBytes(bytes);
+    if (archive.files.length > _maxEntries) {
+      throw FormatException(
+        'plugin ZIP has ${archive.files.length} entries; the limit is '
+        '$_maxEntries',
+      );
+    }
     final manifestEntry = archive.files
         .where((file) => file.isFile && file.name == 'manifest.json')
         .firstOrNull;
@@ -306,15 +335,43 @@ class PluginManager {
     final target = Directory(p.join(installDirectory, manifest.id));
     await temporary.create(recursive: true);
     try {
+      var unpacked = 0;
       for (final file in archive.files) {
         if (!file.isFile) continue;
         final relative = p.normalize(file.name);
         if (p.isAbsolute(relative) || relative == '..' || relative.startsWith('..${p.separator}')) {
           throw const FormatException('plugin ZIP contains an unsafe path');
         }
+        // Checked against what the entry claims before it is decompressed:
+        // `content` unpacks into memory, so a single entry claiming several
+        // gigabytes has to be refused before it is touched.
+        if (file.size > _maxUnpackedBytes ||
+            unpacked + file.size > _maxUnpackedBytes) {
+          throw FormatException(
+            'plugin ZIP unpacks to more than '
+            '${_maxUnpackedBytes ~/ (1024 * 1024)} MB',
+          );
+        }
+        final content = file.content as List<int>;
+        // And against what it actually produced, because the claim above is
+        // the archive's own word for it.
+        //
+        // No test covers this second check: producing an archive whose header
+        // understates its content means actually generating more than the
+        // limit, and the limit is 256 MB. Removing this line leaves the suite
+        // green — recorded here rather than left for someone to discover, and
+        // it stays because the first check trusts a number the attacker
+        // writes.
+        unpacked += content.length;
+        if (unpacked > _maxUnpackedBytes) {
+          throw FormatException(
+            'plugin ZIP unpacks to more than '
+            '${_maxUnpackedBytes ~/ (1024 * 1024)} MB',
+          );
+        }
         final output = File(p.join(temporary.path, relative));
         await output.parent.create(recursive: true);
-        await output.writeAsBytes(file.content as List<int>, flush: true);
+        await output.writeAsBytes(content, flush: true);
       }
       if (await target.exists()) await target.delete(recursive: true);
       await temporary.rename(target.path);
