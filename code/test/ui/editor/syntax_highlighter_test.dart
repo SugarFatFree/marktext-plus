@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/ui/editor/syntax_highlighter.dart';
@@ -413,6 +414,64 @@ void main() {
 
       expectFast('footnote openers', '[^' * 10000);
       expectFast('footnote flood', '[^1] ' * 5000);
+    });
+
+    test('comment and tilde markers do not hang the editor either', () {
+      // Both were missing from this set until the table below started
+      // checking itself against the source. The comment opener turned out to
+      // be the worst case in the file: without `-->` on the line it scanned
+      // to the end from every `<!--`, twelve seconds for twenty thousand of
+      // them. The tildes were already fast; they are here so they stay that
+      // way.
+      expectFast('comment openers', '<!--' * 10000);
+      expectFast('comment openers, more of them', '<!--' * 20000);
+      expectFast('comment openers then one close', '${'<!--' * 10000}-->');
+      expectFast('comment flood', '<!-- note --> ' * 5000);
+      expectFast('angle brackets', '<' * 20000);
+
+      expectFast('tildes', '~' * 20000);
+      expectFast('strike flood', '~~s~~ ' * 5000);
+      expectFast('unclosed strike', '~~s ' * 5000);
+      expectFast('subscript flood', '~s~ ' * 5000);
+    });
+
+    // The list above is a table in a test, and the thing it is a table *of*
+    // lives in lib/. Nothing joined them, which is how the footnote opener
+    // was added without anyone noticing it had never been through here — and
+    // it turned out to be quadratic.
+    //
+    // So the table checks itself against the source: every marker a pattern
+    // declares must appear in at least one of the lines fed to expectFast.
+    test('every inline marker has been thrown a pathological line', () {
+      final source =
+          File('lib/ui/editor/syntax_highlighter.dart').readAsStringSync();
+
+      final codes = {
+        for (final m
+            in RegExp(r'static const int (_\w+) = (0x[0-9A-Fa-f]+);')
+                .allMatches(source))
+          m.group(1)!: String.fromCharCode(int.parse(m.group(2)!.substring(2),
+              radix: 16)),
+      };
+      final declared = {
+        for (final m in RegExp(r'marker: (_\w+)').allMatches(source))
+          codes[m.group(1)!]!,
+      };
+      expect(declared, isNotEmpty,
+          reason: '没从源码里读出任何 marker，说明这条正则该更新了');
+
+      // Every line handed to expectFast anywhere in this file.
+      final tried = RegExp(r"expectFast\([^,]+,\s*(.+?)\);", dotAll: true)
+          .allMatches(File('test/ui/editor/syntax_highlighter_test.dart')
+              .readAsStringSync())
+          .map((m) => m.group(1)!)
+          .join('\n');
+
+      final untried = declared.where((c) => !tried.contains(c)).toList();
+      expect(untried, isEmpty,
+          reason: '这些标记还没被喂过病态输入：$untried\n'
+              '一条新规则最可能带进来的就是回溯，'
+              '而它不会自己走到这组测试里来');
     });
 
     test('ordinary long lines stay fast', () {

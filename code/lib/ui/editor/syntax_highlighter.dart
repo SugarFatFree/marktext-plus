@@ -352,7 +352,21 @@ class MarkdownSyntaxHighlighter {
           seen |= 512;
       }
     }
+    // The comment pattern needs more than its opening character. Without
+    // `-->` anywhere on the line there is nothing for it to find, and it
+    // would scan to the end of the line from every `<!--` before admitting
+    // it: a line of twenty thousand openers took twelve seconds. Asking once
+    // whether the closing sequence exists at all costs one pass.
+    //
+    // This is the only pattern whose marker is not a single character, which
+    // is why it is a special case here rather than another bit in the mask.
+    final noCommentEnd = !text.contains('-->');
+
     for (var k = 0; k < _inlinePatterns.length; k++) {
+      if (noCommentEnd && _inlinePatterns[k].type == _PatternType.comment) {
+        spent[k] = true;
+        continue;
+      }
       final bit = _bitFor(_inlinePatterns[k].marker);
       // No bit means no cheap test for this one — run it. A pattern added
       // without a marker, or with one this switch does not know, must still
