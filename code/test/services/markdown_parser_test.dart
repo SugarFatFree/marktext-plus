@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/services/markdown_parser.dart';
 
@@ -1840,7 +1842,14 @@ void _sourceSpanTests() {
     /// The bar is two seconds: loose enough not to flake on a loaded runner,
     /// and still failing by two orders of magnitude if the backtracking
     /// returns.
+    /// Every character any pathological line here was actually built from.
+    /// Recorded as the lines are fed rather than read back out of this file's
+    /// source: the arguments are Dart code, and `(i) => 'c$i'` would have
+    /// counted `=` and `$` as tried when nothing had been fed either.
+    final fed = <int>{};
+
     void expectFast(String label, String line) {
+      fed.addAll(line.codeUnits);
       final watch = Stopwatch()..start();
       final nodes = parser.parse(line);
       watch.stop();
@@ -1880,11 +1889,72 @@ void _sourceSpanTests() {
       expectFast('tildes', '~' * 20000);
     });
 
+    test('runs of the other markers that open something', () {
+      // `_nestableRe` lists every character that can start an inline
+      // structure. Six of its eleven had a line here; these are the five that
+      // did not, and the test below now says so when a twelfth arrives.
+      expectFast('angle brackets', '<' * 20000);
+      expectFast('comment openers', '<!' * 10000);
+      expectFast('tag openers', '<a' * 10000);
+      expectFast('carets', '^' * 20000);
+      expectFast('alternating carets', '^a' * 10000);
+      expectFast('colons', ':' * 20000);
+      expectFast('alternating colons', ':a' * 10000);
+      expectFast('dollars', r'$' * 20000);
+      expectFast('alternating dollars', r'$a' * 10000);
+      expectFast('equals', '=' * 20000);
+      expectFast('paired equals', '==' * 10000);
+    });
+
     test('ordinary long lines', () {
       expectFast('prose', 'the quick brown fox ' * 2000);
       expectFast('csv', List.generate(8000, (i) => 'c$i').join(','));
       expectFast('minified json',
           '{${List.generate(2000, (i) => '"k$i":$i').join(',')}}');
+    });
+
+    test('every marker that opens something has been given one', () {
+      // The same reconciliation the highlighter's group grew, and for the
+      // same reason: the list of inputs lives here while the list of markers
+      // lives in `lib/`, so nothing makes a new marker come through this
+      // door. That was fixed on the highlighter's side and not on this one,
+      // which is what half a fix looks like.
+      const parserPath = 'lib/services/markdown_parser.dart';
+
+      final table = RegExp(r"_nestableRe = RegExp\(r'\[(.+?)\]'")
+          .firstMatch(File(parserPath).readAsStringSync());
+      expect(table, isNotNull,
+          reason: '_nestableRe 换了写法，这条对账就读不到那张表了');
+
+      // The class writes a literal bracket as an escape; nothing else in it
+      // is escaped, and an escape of any other shape should stop this rather
+      // than quietly count as two separate characters.
+      final body = table!.group(1)!;
+      final declared = <String>{};
+      for (var i = 0; i < body.length; i++) {
+        if (body.codeUnitAt(i) == 0x5C) {
+          expect(i + 1, lessThan(body.length),
+              reason: '字符类以反斜杠结尾，读不下去');
+          declared.add(body[i + 1]);
+          i++;
+        } else {
+          declared.add(body[i]);
+        }
+      }
+      expect(declared.length, greaterThan(5),
+          reason: '只读出 ${declared.length} 个字符，八成是没读对那张表');
+
+      // This runs last on purpose: `fed` is filled by the tests above it,
+      // in the order they are declared. Running this one alone reports every
+      // marker as untried — which is a false red, and false red is the side
+      // to be wrong on.
+      final untried = declared
+          .where((c) => !fed.contains(c.codeUnitAt(0)))
+          .toList()
+        ..sort();
+      expect(untried, isEmpty,
+          reason: '这些开启字符还没被喂过病态输入：$untried。'
+              '往 _nestableRe 里加了成员，就要在上面几条里给它一行');
     });
 
     test('a reference link still resolves after the rewrite', () {

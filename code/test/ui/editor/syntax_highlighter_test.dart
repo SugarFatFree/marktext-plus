@@ -357,7 +357,15 @@ void main() {
     /// milliseconds; the two-second bar is loose enough not to flake on a
     /// loaded runner and still fails by two orders of magnitude if the
     /// quadratic scan or the backtracking comes back.
+    /// Every character any pathological line here was actually built from.
+    /// Recorded as the lines are fed rather than read back out of this file's
+    /// source, which is what the reconciliation below used to do — the
+    /// arguments are Dart code, and `'${'[' * 20000}]'` would have counted
+    /// `$` as tried when no maths marker had been fed at all.
+    final fed = <int>{};
+
     void expectFast(String label, String line) {
+      fed.addAll(line.codeUnits);
       final watch = Stopwatch()..start();
       final spans = spansOf(line);
       watch.stop();
@@ -442,6 +450,11 @@ void main() {
     //
     // So the table checks itself against the source: every marker a pattern
     // declares must appear in at least one of the lines fed to expectFast.
+    test('ordinary long lines stay fast', () {
+      expectFast('prose', 'the quick brown fox ' * 2000);
+      expectFast('csv', List.generate(8000, (i) => 'c$i').join(','));
+    });
+
     test('every inline marker has been thrown a pathological line', () {
       final source =
           File('lib/ui/editor/syntax_highlighter.dart').readAsStringSync();
@@ -460,23 +473,15 @@ void main() {
       expect(declared, isNotEmpty,
           reason: '没从源码里读出任何 marker，说明这条正则该更新了');
 
-      // Every line handed to expectFast anywhere in this file.
-      final tried = RegExp(r"expectFast\([^,]+,\s*(.+?)\);", dotAll: true)
-          .allMatches(File('test/ui/editor/syntax_highlighter_test.dart')
-              .readAsStringSync())
-          .map((m) => m.group(1)!)
-          .join('\n');
-
-      final untried = declared.where((c) => !tried.contains(c)).toList();
+      // This runs last on purpose: `fed` is filled by the tests above it, in
+      // the order they are declared. Running this one alone reports every
+      // marker as untried — a false red, which is the side to be wrong on.
+      final untried =
+          declared.where((c) => !fed.contains(c.codeUnitAt(0))).toList();
       expect(untried, isEmpty,
           reason: '这些标记还没被喂过病态输入：$untried\n'
               '一条新规则最可能带进来的就是回溯，'
               '而它不会自己走到这组测试里来');
-    });
-
-    test('ordinary long lines stay fast', () {
-      expectFast('prose', 'the quick brown fox ' * 2000);
-      expectFast('csv', List.generate(8000, (i) => 'c$i').join(','));
     });
 
     test('a link destination may contain a balanced pair of parentheses', () {
