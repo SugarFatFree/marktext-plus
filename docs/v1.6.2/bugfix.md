@@ -1682,10 +1682,34 @@ SDK 发布 `schema/manifest.schema.json`，插件作者的编辑器会拿它做�
 
 变异：给 SDK 的 schema 加一个 `telepathy.read`，点名「schema 与编辑器对权限的说法不一致」。
 
-### 还留着的一个缺口
+### 四、SDK 仓库原本没有 CI，也没有任何测试
 
-**SDK 仓库本身没有 CI，也没有任何测试。** 三份实现（dart / js / lua）、一份 schema、README 加十一种翻译，全靠人保持一致。今天核对的结果是 js 与 lua 暴露的十一个名字完全相同，schema 与主应用也一致——但这是核对的结果，不是设施的结果。上面第三条只覆盖了「schema ↔ 主应用」这一对，而且只在开发者机器上跑。
+三份实现（dart / js / lua）、一份 schema、README 加十一种翻译，全靠人保持一致。今天核对下来 js 与 lua 暴露的十一个名字完全相同，schema 与主应用也一致——但那是核对的结果，不是设施的结果。而上面第三条只覆盖「schema ↔ 主应用」这一对，还只在开发者机器上跑。
+
+所以给 SDK 仓库加了 `scripts/check.py` 和一条 workflow，检查三件在那个仓库内部就能验证的事：
+
+1. lua 与 js 两个模块暴露同一组名字
+2. `schema/manifest.schema.json` 本身是合法的 JSON Schema
+3. 三个示例 manifest 都满足它
+
+第一条的代价落得最远——有人把插件从一种语言移植到另一种，才会发现少了一个构造器。
+
+脚本读的是文本而不是 require 那两个模块（它们引用编辑器注入的全局，node 和 lua 都没有），所以它**读出的名字少于应有数量时也要报错**：一个不再匹配的正则返回空集合，而两个空集合彼此完全一致。
+
+变异：从 lua 删掉 `M.diff`，点名 diff；把示例 manifest 里的权限拼错，点名文件和那一行；把 `M` 改名成 `Module`，报「只读出 0 个名字」而不是静默通过。
+
+### 五、那些测试从来没有在 CI 上跑过
+
+`ai_translate_plugin_test.dart` 里有 **32 条**测试，按真实安装的方式跑官方插件——它自己的 manifest、它自己的脚本，什么都不打桩。写它们的注释里说得很清楚：「CI 有编辑器而没有插件，所以它们在插件所在的地方跑，在不在的地方说一声」。
+
+说一声的意思是 `skip`。而 CI 上**永远**没有插件。所以这 32 条从来没有在任何一个推上去的提交上跑过，上面第三条新加的 3 条也一样。它们只在我这台机器上有效。
+
+三个仓库都是公开的，所以 CI 可以直接把它们 checkout 到测试会去找的位置——向上一层的 `marktext-plus-plugins/<仓库名>`。加两步 checkout，那 35 条就真的跑起来了。
+
+本地用一个软链模拟了 CI 的目录结构（插件目录出现在仓库根下），全量重跑确认那 35 条从 skip 变成执行，且没有别的测试因为多了这个目录而失败。
+
+代价是主应用的 CI 现在依赖两个外部仓库：其中之一坏了，主应用 CI 会红。**那正是这些测试存在的理由**；其中之一不可达，checkout 会明确失败，而不是测试又一次悄悄跳过。
 
 ### 涉及文件
 
-`test/services/plugin_contract_test.dart`；`test/services/sdk_schema_agrees_test.dart`（新建）
+`test/services/plugin_contract_test.dart`；`test/services/sdk_schema_agrees_test.dart`（新建）；`.github/workflows/ci.yml`。SDK 仓库：`scripts/check.py`、`.github/workflows/ci.yml`（均新建）

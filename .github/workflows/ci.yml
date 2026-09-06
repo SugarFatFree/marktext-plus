@@ -33,6 +33,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The plugin and the SDK, put where the tests that need them look.
+      #
+      # Those tests walk upwards for `marktext-plus-plugins/<repo>` and skip
+      # when it is absent, which on CI was always — so the thirty-two that run
+      # the shipped plugin exactly as an installation would, its own manifest
+      # and its own script with nothing stubbed, had never once run on a
+      # pushed commit. Neither had the three that hold the SDK's published
+      # schema to the permissions this editor grants.
+      #
+      # Both repositories are public, so no token is involved. If either one
+      # breaks the editor, this is where it now shows up, which is the whole
+      # point of the tests; if either becomes unreachable the checkout fails
+      # loudly rather than the tests quietly skipping again.
+      - name: Check out the plugin
+        uses: actions/checkout@v4
+        with:
+          repository: marktext-plus-plugins/marktext-plus-ai-translate-plugin
+          path: marktext-plus-plugins/marktext-plus-ai-translate-plugin
+
+      - name: Check out the plugin SDK
+        uses: actions/checkout@v4
+        with:
+          repository: marktext-plus-plugins/marktext-plus-plugin-sdk
+          path: marktext-plus-plugins/marktext-plus-plugin-sdk
+
       - uses: subosito/flutter-action@v2.18.0
         with:
           channel: stable
