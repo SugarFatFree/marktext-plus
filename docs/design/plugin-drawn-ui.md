@@ -107,7 +107,44 @@ Linux 这条是真的风险：插件作者在 Mac 上写好，Linux 用户打开
 |---|---|
 | 1 | 组件树的最小集：`text` / `input` / `chips` / `button` / `row` / `column` / `spacer`，加 `on_event` 回传 |
 | 2 | 抽屉与设置页改用组件树；补 `select` / `checkbox` / `markdown` / `image` |
-| 3 | WebView：`ui.webview` 权限、懒加载、失败提示、本地代理与日志 |
+| 3 | WebView：`ui.webview` 权限 ✅、本地代理与日志 ✅、懒加载与失败提示（待 WebView 包选型） |
 | 4 | SDK 文档与三份实现（lua / js / dart）跟上，十二种语言 |
 
 阶段 1、2 不引入任何新依赖，也不改变启动路径。阶段 3 才引入 WebView 依赖，且只在插件用到时才初始化。
+
+---
+
+## 第三期的进展（2026-09-07）
+
+**权限与网络这两半已经做完，WebView 本体还没有。**这个顺序是有意的：本地代理不依赖任何 WebView 包，而它正是「宿主能监听 + 走系统代理」这条要求的落点；WebView 包一旦选型有变，这块不用重做。
+
+### 已完成
+
+| | |
+|---|---|
+| `ui.webview` 权限 | 在权限列表里，**隐含 `network.request` 并一起显示**给读者 |
+| 本地代理 `PluginProxy` | 只监听 `127.0.0.1`，转发时走系统代理，每个请求写进那个插件的日志 |
+| 图片加载 `PluginImageLoader` | 组件树的 `image` 节点走它：data URI 就地解码，相对路径限插件目录内，`http(s)` 由宿主取并记日志 |
+
+### 代理记得到什么
+
+| 形式 | 日志里有 |
+|---|---|
+| `http` | 方法、主机、状态码、字节数、耗时 |
+| `https`（CONNECT 隧道） | 主机、端口、上下行字节数、耗时——**内容看不到** |
+
+看不到内容是 CONNECT 的性质：之后全是页面自己的 TLS。要看内容得做 MITM 自签证书，那既重又是真实的安全风险。**「这个插件跟哪台服务器说了话」才是读者真正会问的问题**，而想让宿主看全的插件可以走 `network.request`，那条路本来就是宿主代发。
+
+### 写的时候撞到的两个真问题
+
+**一个 Socket 只能被监听一次。** `_serve` 用 `await for` 读完请求头，`_tunnel` 再去 `client.forEach` —— 隧道于是能建立、能回「200 Connection established」，然后一个字节都不转发。改成把 `StreamSubscription` 交接下去。测试当场抓到。
+
+**`transfer-encoding: chunked` 不能原样转发。** Dart 的 `HttpClient` 在交给我之前已经解码了分块，我把那个头照抄出去，客户端就拿未编码的数据当分块解析——`104 is expected to be a Hex digit`。逐跳的响应头（`transfer-encoding`、`content-length`、`connection`）现在都跳过，改用 `Connection: close` 标记结束。
+
+**还有一条测试测不出东西**：我本来写「从 `0.0.0.0` 连不上代理端口」来证明只监听 loopback——但在同一台机器上 `0.0.0.0` 解析到的就是回环，**这条断言两种实现都会通过**。改成让代理暴露 `address`，直接断言它是 `127.0.0.1`。
+
+### 还没做：WebView 本体
+
+要引入的包在三个桌面平台上情况不同（`webview_flutter` 官方不支持桌面；`flutter_inappwebview` 的桌面支持较新；`desktop_webview_window` 开的是独立窗口，不是嵌入）。而本机不做完整构建，CI 能验证「构建得过」，验证不了「跑起来能用」。
+
+**这一步需要在真机上验一次**，不是本地测试能覆盖的。
