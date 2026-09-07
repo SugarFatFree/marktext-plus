@@ -16,15 +16,20 @@ void main() {
   late PluginImageLoader loader;
   late PluginLogger logger;
 
+  /// A loader for a plugin that holds [allowNetwork].
+  PluginImageLoader loaderWith({required bool allowNetwork}) =>
+      PluginImageLoader(
+        pluginDirectory: '${root.path}/plugin',
+        logger: logger,
+        allowNetwork: allowNetwork,
+        maxBytes: 1024,
+      );
+
   setUp(() {
     root = Directory.systemTemp.createTempSync('plugin_images_');
     Directory('${root.path}/plugin').createSync();
     logger = PluginLogger('com.example.demo', '${root.path}/logs');
-    loader = PluginImageLoader(
-      pluginDirectory: '${root.path}/plugin',
-      logger: logger,
-      maxBytes: 1024,
-    );
+    loader = loaderWith(allowNetwork: true);
   });
 
   tearDown(() {
@@ -87,6 +92,55 @@ void main() {
     expect(log, isNot(contains('/pic.png')),
         reason: '只记到主机名：查询串可能带着插件送出去的东西，'
             '日志不该变成文档的第二份副本');
+  });
+
+  test('an http source is refused when the plugin has no network permission',
+      () async {
+    // Reached by this test rather than by the network: if the check is
+    // missing, the request goes out and the server answers, so the failure
+    // says "expected a throw" instead of quietly passing on a timeout.
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    addTearDown(() => server.close(force: true));
+    var asked = false;
+    server.listen((request) {
+      asked = true;
+      request.response
+        ..add([1, 2, 3])
+        ..close();
+    });
+
+    await expectLater(
+      loaderWith(allowNetwork: false)
+          .load('http://127.0.0.1:${server.port}/pic.png'),
+      throwsA(isA<PluginImageException>()),
+      reason: '没申请 network.request 的插件，不能靠一个 image 节点把宿主'
+          '当成它的出站通道',
+    );
+    // The point is not only the exception: an editor that throws after the
+    // request has already left has not stopped anything. A URL can carry the
+    // document in its query string.
+    expect(asked, isFalse, reason: '请求根本不该发出去');
+  });
+
+  test('a refused fetch is written to the log', () async {
+    // A reachable server, deliberately. Pointed at a host that is merely
+    // unreachable, this test passes whether the fetch was refused or simply
+    // failed to connect — and those are the two hypotheses it exists to tell
+    // apart.
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    addTearDown(() => server.close(force: true));
+    server.listen((request) => request.response.close());
+
+    await expectLater(
+      loaderWith(allowNetwork: false)
+          .load('http://127.0.0.1:${server.port}/pic.png'),
+      throwsA(isA<PluginImageException>()),
+    );
+    final log = await File(logger.path).readAsString();
+    expect(log, contains('refused'),
+        reason: '插件试图出站这件事本身，读者应该看得到——'
+            '被挡住的尝试和成功的请求一样值得记');
+    expect(log, contains('127.0.0.1'));
   });
 
   test('a failed fetch is written to the log too', () async {

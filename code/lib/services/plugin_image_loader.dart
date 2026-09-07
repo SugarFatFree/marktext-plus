@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:path/path.dart' as p;
 
 import 'plugin_logger.dart';
+import 'plugin_manifest.dart';
 
 /// Fetches the pictures a plugin's interface asks for.
 ///
@@ -22,12 +23,20 @@ class PluginImageLoader {
   PluginImageLoader({
     required this.pluginDirectory,
     required this.logger,
+    required this.allowNetwork,
     this.maxBytes = 8 * 1024 * 1024,
   });
 
   /// Where the plugin's own files are. A relative source is resolved against
   /// this and refused if it lands outside.
   final String pluginDirectory;
+
+  /// Whether this plugin holds `network.request`.
+  ///
+  /// Required rather than defaulted on purpose. Either default is wrong at a
+  /// call site that forgot to think: `true` hands the network to a plugin
+  /// that never asked, `false` takes it from one that did.
+  final bool allowNetwork;
 
   final PluginLogger logger;
 
@@ -88,6 +97,23 @@ class PluginImageLoader {
   }
 
   Future<Uint8List> _fromNetwork(Uri uri) async {
+    if (!allowNetwork) {
+      // Before the request, not after it. A URL is itself a message — the
+      // query string can carry whatever the plugin just read — so an editor
+      // that sends it and then throws has already handed over the thing the
+      // permission was protecting.
+      //
+      // Logged, because a plugin reaching for a permission it does not hold
+      // is exactly what the reader keeps this log to find out.
+      await logger.warning(
+        'image ${uri.scheme}://${uri.host} refused: '
+        'the plugin did not ask for ${PluginPermission.networkRequest}',
+      );
+      throw PluginImageException(
+        'this plugin did not ask for the '
+        '"${PluginPermission.networkRequest}" permission',
+      );
+    }
     final client = HttpClient()
       // The reader's proxy settings, the same as every other request this
       // editor makes. A plugin does not get its own way onto the network.

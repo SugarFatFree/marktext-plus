@@ -324,6 +324,13 @@ class PluginCommandActions {
                 plugin.id,
                 p.join(directory.path, 'plugin-logs'),
               ),
+              // The same permission the install dialog listed. A remote
+              // picture is an outbound request the plugin chose the address
+              // of, so it belongs to `network.request` and not to whatever
+              // let the plugin draw a tree.
+              allowNetwork: plugin.hasPermission(
+                PluginPermission.networkRequest,
+              ),
             );
             final event = onUi != null
                 ? await onUi(root, named, pictures.load)
