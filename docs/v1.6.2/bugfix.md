@@ -61,6 +61,7 @@
 | BUG-316 | 2026-09-08 | 改代码字体/字号，预览不跟着变；块缓存签名还漏着三个 | P1 | 已修复 |
 | BUG-317 | 2026-09-08 | 四种图表改了数据不重绘：`==` 不比它们的数据列表 | P1 | 已修复 |
 | BUG-318 | 2026-09-08 | `XYChartSeries` 相等而哈希不同，违反 hash 契约 | P2 | 已修复 |
+| BUG-319 | 2026-09-08 | 列表里留一个空条目，后面的全被吞进去缩进一层 | P1 | 已修复 |
 
 ---
 
@@ -3203,3 +3204,82 @@ PROBE series 相等=true  hash 相同=false
 ### 涉及文件
 
 `test/core/config/config_round_trip_test.dart`（新增）
+
+---
+
+## BUG-319：列表里留一个空条目，后面的全被吞进去
+
+### 现象
+
+```
+- foo        现在：<ul><li>foo</li><li><ul><li>bar</li></ul></li></ul>
+-            应该：<ul><li>foo</li><li></li><li>bar</li></ul>
+- bar
+```
+
+**每个空条目多嵌一层**——连续两个空条目就是三层。有序列表同样。
+
+而 `- `（标记加一个空格）**也触发**，那正是编辑器自动续列表时留下的形状：
+敲完一条按回车、还没想好写什么就往下走，就撞上了。不需要写任何奇怪的东西。
+
+### 根因
+
+`_buildListItems` 按「item 的**文本**起始列」决定嵌套：
+
+```dart
+while (openContentColumns.isNotEmpty && indent < openContentColumns.last) { pop }
+depths.add(openContentColumns.length);
+openContentColumns.add(_contentColumn(block.first));
+```
+
+`_ulRe` / `_olRe` 都要求标记后**必须有内容**，所以空条目匹配不上，
+`_contentColumn` 走 `if (match == null) return 0`。而 0 低于任何真实缩进，
+`0 < 0` 不成立，永远不出栈，下一条就成了它的孩子。
+
+**那行 `return 0` 上方的注释已经写着**：
+
+> a column of zero let the next line, whatever it was, be swallowed as content
+> belonging to the item
+
+作者为 `4. fourth`（无前导空格）修过这个坑，**没修 null 那一支**。同一个形状今天见了第四次。
+
+### 修
+
+空条目返回「文本本该开始的列」＝缩进 + 标记宽度 + 1。
+
+### 找它的过程比修它更值得记
+
+**这一轮换了个方法：把 `commonmark_spec_test` 的 155 个失败例子当成缺陷清单。**
+那个测试的注释写着「raising the number is ordinary work」。
+
+第一步先纠正了自己的测量：我写探针分组统计，报出 318 个失败，和真测试的 155 对不上——
+因为我抄了一个简化版的 `normalise`。**真测试的注释正好警告过这件事**
+（"anything measured another way is measuring another thing"）。
+改成给真测试临时插桩才拿到真数字。
+
+失败最多的是 Links（31 个）。我以为是维基百科那种带括号的链接——**一试是好的**，
+一层括号没问题，失败的是两层，真实文档里罕见；链接标题也是好的。
+**Links 这一簇基本是规范细节，不是用户可见缺陷。** 转去查列表才找到真东西。
+
+### 修的时候被编译器拦了一次
+
+我新写了个 `_emptyItemRe`——**已经有一个了**。改成给现成的那个加捕获组。
+这一轮一直在讲「不要再抄一份」，自己差点又抄一份。
+
+### 变异
+
+1. 空条目回到返回 0 → **5 条**失败，包括 `commonmark_spec_test` 的棘轮
+2. 宽度少加那个空格 → **一开始没打掉任何测试**
+
+第 2 条说明那个 `+1` 无人证明。补的测试不写死数字，而是问**一致性**：
+「空条目底下能挂什么，应该和有内容的条目一样」——用一个缩进 1 空格的子项把两者区分开。
+重做变异，失败。
+
+### 棘轮
+
+CommonMark 分数 **493 → 495**，下限已按规矩提上去。
+
+### 涉及文件
+
+`lib/services/markdown_parser.dart`；`test/services/empty_list_item_test.dart`（新增）；
+`test/services/commonmark_spec_test.dart`（下限）

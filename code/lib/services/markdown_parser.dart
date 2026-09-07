@@ -1313,7 +1313,23 @@ class MarkdownParser {
   /// carries has to be indented to.
   static int _contentColumn(String line) {
     final match = _olRe.firstMatch(line) ?? _ulRe.firstMatch(line);
-    if (match == null) return 0;
+    if (match == null) {
+      // A marker with nothing after it. `_olRe` and `_ulRe` both require
+      // content, so an item left blank falls through to here — and the zero
+      // this used to return is below every real indentation, so nothing was
+      // ever popped and the next item was read as being inside the blank one.
+      // Each blank item added a level; two in a row nested three deep.
+      //
+      // The column where the text would have started is the honest answer:
+      // the marker, plus the single space that would follow it.
+      final empty = _emptyItemRe.firstMatch(line);
+      if (empty != null) {
+        return _indentColumns(empty.group(1)!) + empty.group(2)!.length + 1;
+      }
+      // Not a list line at all. Zero is wrong here too, but it is the caller's
+      // question to answer and no caller asks it.
+      return 0;
+    }
     // The indentation plus the marker's own width. Measuring the prefix with
     // _indentColumns alone returned zero for `4. fourth`, which has no leading
     // space at all — and a column of zero let the next line, whatever it was,
@@ -1344,7 +1360,11 @@ class MarkdownParser {
   /// list, or clearing an item's text, left a marker that matched neither the
   /// item pattern nor anything else, so the list came apart into two lists
   /// with a paragraph reading `-` between them.
-  static final _emptyItemRe = RegExp(r'^ {0,3}(?:[-*+]|\d{1,9}[.)])\s*$');
+  /// Group 1 is the indentation and group 2 the marker, so the column the
+  /// text would have started at can be worked out the same way it is for an
+  /// item that has some. Capturing rather than grouping changes nothing for
+  /// the callers that only ask whether it matched.
+  static final _emptyItemRe = RegExp(r'^( {0,3})([-*+]|\d{1,9}[.)])\s*$');
 
   /// Whether [line] is a numbered item rather than a bulleted one.
   ///
