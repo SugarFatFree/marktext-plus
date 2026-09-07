@@ -4,6 +4,7 @@ library;
 import 'dart:math' as math;
 
 import 'node.dart';
+import 'list_equality.dart';
 
 /// One cell of a block diagram.
 class BlockItem {
@@ -92,20 +93,13 @@ class BlockDiagramData {
   bool operator ==(Object other) =>
       other is BlockDiagramData &&
       other.columns == columns &&
-      _sameList(other.items, items) &&
-      _sameList(other.arrows, arrows);
+      sameList(other.items, items) &&
+      sameList(other.arrows, arrows);
 
   @override
   int get hashCode =>
       Object.hash(columns, Object.hashAll(items), Object.hashAll(arrows));
 
-  static bool _sameList<T>(List<T> a, List<T> b) {
-    if (a.length != b.length) return false;
-    for (var i = 0; i < a.length; i++) {
-      if (a[i] != b[i]) return false;
-    }
-    return true;
-  }
 }
 
 /// A placed block.

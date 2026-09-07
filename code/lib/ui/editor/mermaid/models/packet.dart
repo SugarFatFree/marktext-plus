@@ -1,5 +1,6 @@
 /// Data models for packet diagrams (`packet-beta`).
 library;
+import 'list_equality.dart';
 
 /// One named run of bits.
 class PacketField {
@@ -71,15 +72,8 @@ class PacketDiagramData {
       other is PacketDiagramData &&
           other.title == title &&
           other.bitsPerRow == bitsPerRow &&
-          _sameFields(other.fields, fields);
+          sameList(other.fields, fields);
 
-  static bool _sameFields(List<PacketField> a, List<PacketField> b) {
-    if (a.length != b.length) return false;
-    for (var i = 0; i < a.length; i++) {
-      if (a[i] != b[i]) return false;
-    }
-    return true;
-  }
 
   @override
   int get hashCode => Object.hash(title, bitsPerRow, Object.hashAll(fields));

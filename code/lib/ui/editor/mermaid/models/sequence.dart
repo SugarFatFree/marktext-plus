@@ -1,5 +1,6 @@
 /// Data models specific to sequence diagrams
 library;
+import 'list_equality.dart';
 
 /// One activation bar: the stretch of a lifeline during which a participant is
 /// doing something.
@@ -79,19 +80,12 @@ class SequenceNote {
       other is SequenceNote &&
       other.placement == placement &&
       other.text == text &&
-      _sameList(other.participantIds, participantIds);
+      sameList(other.participantIds, participantIds);
 
   @override
   int get hashCode =>
       Object.hash(placement, text, Object.hashAll(participantIds));
 
-  static bool _sameList(List<String> a, List<String> b) {
-    if (a.length != b.length) return false;
-    for (var i = 0; i < a.length; i++) {
-      if (a[i] != b[i]) return false;
-    }
-    return true;
-  }
 }
 
 /// One row of a sequence diagram.
@@ -256,18 +250,11 @@ class SequenceGroup {
       other is SequenceGroup &&
       other.label == label &&
       other.color == color &&
-      _sameList(other.participantIds, participantIds);
+      sameList(other.participantIds, participantIds);
 
   @override
   int get hashCode => Object.hash(label, color, Object.hashAll(participantIds));
 
-  static bool _sameList(List<String> a, List<String> b) {
-    if (a.length != b.length) return false;
-    for (var i = 0; i < a.length; i++) {
-      if (a[i] != b[i]) return false;
-    }
-    return true;
-  }
 }
 
 /// Sequence diagram data that does not fit the generic node/edge model.
@@ -295,10 +282,10 @@ class SequenceDiagramData {
   @override
   bool operator ==(Object other) =>
       other is SequenceDiagramData &&
-      _sameList(other.steps, steps) &&
-      _sameList(other.activations, activations) &&
-      _sameList(other.blocks, blocks) &&
-      _sameList(other.groups, groups);
+      sameList(other.steps, steps) &&
+      sameList(other.activations, activations) &&
+      sameList(other.blocks, blocks) &&
+      sameList(other.groups, groups);
 
   @override
   int get hashCode => Object.hash(
@@ -308,11 +295,4 @@ class SequenceDiagramData {
     Object.hashAll(groups),
   );
 
-  static bool _sameList<T>(List<T> a, List<T> b) {
-    if (a.length != b.length) return false;
-    for (var i = 0; i < a.length; i++) {
-      if (a[i] != b[i]) return false;
-    }
-    return true;
-  }
 }

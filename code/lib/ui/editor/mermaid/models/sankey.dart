@@ -2,6 +2,7 @@
 library;
 
 import 'dart:math' as math;
+import 'list_equality.dart';
 
 /// One flow, carrying [value] units from [source] to [target].
 class SankeyLink {
@@ -53,20 +54,13 @@ class SankeyChartData {
   bool operator ==(Object other) =>
       other is SankeyChartData &&
       other.title == title &&
-      _listEquals(other.nodes, nodes) &&
-      _listEquals(other.links, links);
+      sameList(other.nodes, nodes) &&
+      sameList(other.links, links);
 
   @override
   int get hashCode =>
       Object.hash(title, Object.hashAll(nodes), Object.hashAll(links));
 
-  static bool _listEquals<T>(List<T> a, List<T> b) {
-    if (a.length != b.length) return false;
-    for (var i = 0; i < a.length; i++) {
-      if (a[i] != b[i]) return false;
-    }
-    return true;
-  }
 }
 
 /// A placed node.

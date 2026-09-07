@@ -2,6 +2,7 @@
 library;
 
 import 'dart:math' as math;
+import 'list_equality.dart';
 
 /// What a C4 element stands for.
 enum C4ElementKind {
@@ -109,18 +110,11 @@ class C4Boundary extends C4Node {
       other.alias == alias &&
       other.label == label &&
       other.type == type &&
-      _sameList(other.children, children);
+      sameList(other.children, children);
 
   @override
   int get hashCode => Object.hash(alias, label, type, Object.hashAll(children));
 
-  static bool _sameList<T>(List<T> a, List<T> b) {
-    if (a.length != b.length) return false;
-    for (var i = 0; i < a.length; i++) {
-      if (a[i] != b[i]) return false;
-    }
-    return true;
-  }
 }
 
 /// Which way a relation is drawn, when the source asked for one.
@@ -213,8 +207,8 @@ class C4DiagramData {
       other is C4DiagramData &&
       other.title == title &&
       other.shapesPerRow == shapesPerRow &&
-      C4Boundary._sameList(other.nodes, nodes) &&
-      C4Boundary._sameList(other.relations, relations);
+      sameList(other.nodes, nodes) &&
+      sameList(other.relations, relations);
 
   @override
   int get hashCode => Object.hash(
