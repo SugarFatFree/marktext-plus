@@ -5,6 +5,39 @@ void main() {
   _destinationsAreNotWords();
   final service = WordCountService();
 
+  group('counting where it will not be felt', () {
+    // 176 ms over eight megabytes, on the isolate drawing the window, 300 ms
+    // after every pause in typing. What has to hold is that moving it changes
+    // no number: the closure runs in a fresh isolate with a fresh service, and
+    // a count that came out different there would be a silent wrong answer
+    // rather than a crash.
+    final large = List.generate(
+      300,
+      (i) => '## Section $i\n\n${'word ' * 200}你好 don\'t [a](http://x/y)',
+    ).join('\n\n');
+
+    test('the answer is the same on either isolate', () async {
+      final here = service.countWords(large);
+      // Forced across, whatever its size: the threshold is not what is being
+      // tested here, the agreement is.
+      final there = await service.countWordsOffThread(large, isolateAbove: 0);
+
+      expect(there.words, here.words);
+      expect(there.characters, here.characters);
+      expect(there.paragraphs, here.paragraphs);
+    });
+
+    test('a small document is counted without one', () async {
+      // Not observable from outside, so this asserts the part that is: the
+      // answer is right either way. The threshold's reason is measured and
+      // written on the constant.
+      const small = 'Hello world.\n\nSecond paragraph.';
+      final count = await service.countWordsOffThread(small);
+      expect(count.words, service.countWords(small).words);
+      expect(count.paragraphs, 2);
+    });
+  });
+
   group('WordCountService', () {
     test('empty text counts nothing', () {
       final count = service.countWords('');
