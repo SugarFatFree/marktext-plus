@@ -58,6 +58,18 @@ class PluginCommandService {
         _runtimeFor(manifest).onResult(_seen(manifest, context), result),
       );
 
+  /// Tells the plugin the reader used something it drew.
+  PluginScriptAction resumeWithEvent(
+    PluginManifest manifest,
+    PluginScriptContext context,
+    String id,
+    Map<String, String> values,
+  ) =>
+      _guard(
+        manifest,
+        _runtimeFor(manifest).onEvent(_seen(manifest, context), id, values),
+      );
+
   /// The context as this plugin is allowed to see it.
   ///
   /// `document.read` is the permission the reader is most likely to be

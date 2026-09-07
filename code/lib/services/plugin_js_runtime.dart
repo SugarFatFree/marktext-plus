@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_js/flutter_js.dart';
 
 import 'plugin_script_runtime.dart';
+import 'plugin_ui.dart';
 
 /// Runs a plugin written in JavaScript.
 ///
@@ -115,6 +116,14 @@ globalThis.require = function (name) {
       _invoke('on_result', context, result);
 
   @override
+  PluginScriptAction onEvent(
+    PluginScriptContext context,
+    String id,
+    Map<String, String> values,
+  ) =>
+      _invoke('on_event', context, null, eventId: id, values: values);
+
+  @override
   void dispose() {
     if (_disposed) return;
     _disposed = true;
@@ -124,8 +133,10 @@ globalThis.require = function (name) {
   PluginScriptAction _invoke(
     String function,
     PluginScriptContext context,
-    String? result,
-  ) {
+    String? result, {
+    String? eventId,
+    Map<String, String> values = const {},
+  }) {
     if (_disposed) {
       throw const PluginScriptException('the plugin script was disposed');
     }
@@ -139,6 +150,7 @@ globalThis.require = function (name) {
         'view': context.view,
       }),
       if (result != null) jsonEncode(result),
+      if (eventId != null) ...[jsonEncode(eventId), jsonEncode(values)],
     ].join(', ');
 
     // A plugin that contributes a menu entry but never handles it is a mistake
@@ -180,6 +192,92 @@ globalThis.require = function (name) {
   /// Static and free of the engine so it can be tested: the QuickJS library
   /// only exists inside a built application, so everything that does not need
   /// it is kept where the test suite can reach it.
+  /// One node of a plugin's interface, from the JSON it returned.
+  ///
+  /// Same shapes and same bounds as the Lua side — a plugin author picks the
+  /// language and nothing else changes — and the same refusal: a tree past
+  /// the limits is refused whole rather than drawn in part.
+  static PluginUiNode? parseUiNode(
+    Object? raw,
+    int depth,
+    bool Function() spend,
+  ) {
+    if (depth > PluginUiLimits.maxDepth) return null;
+    if (!spend()) return null;
+    if (raw is! Map) return null;
+
+    String string(Map node, String key) {
+      final value = node[key];
+      return value is String ? value : '';
+    }
+
+    bool flag(Map node, String key) => node[key] == true;
+
+    final text = raw['text'];
+    if (text is String) {
+      return PluginUiText(text, emphasis: flag(raw, 'emphasis'));
+    }
+
+    final button = raw['button'];
+    if (button is Map) {
+      final id = string(button, 'id');
+      return id.isEmpty
+          ? null
+          : PluginUiButton(
+              id: id,
+              label: string(button, 'label'),
+              primary: flag(button, 'primary'),
+            );
+    }
+
+    final input = raw['input'];
+    if (input is Map) {
+      final id = string(input, 'id');
+      return id.isEmpty
+          ? null
+          : PluginUiInput(
+              id: id,
+              value: string(input, 'value'),
+              placeholder: string(input, 'placeholder'),
+              multiline: flag(input, 'multiline'),
+            );
+    }
+
+    final chips = raw['chips'];
+    if (chips is Map) {
+      final id = string(chips, 'id');
+      final options = chips['options'];
+      return id.isEmpty
+          ? null
+          : PluginUiChips(
+              id: id,
+              options: options is List
+                  ? [for (final o in options) if (o is String) o]
+                  : const [],
+            );
+    }
+
+    if (raw.containsKey('spacer')) return const PluginUiSpacer();
+
+    for (final container in const ['row', 'column']) {
+      final children = raw[container];
+      if (children is! List) continue;
+      final parsed = <PluginUiNode>[];
+      for (final child in children) {
+        final node = parseUiNode(child, depth + 1, spend);
+        // One bad child refuses the tree rather than being skipped: a form
+        // missing the field it was about looks like the plugin's bug.
+        if (node == null) return null;
+        parsed.add(node);
+      }
+      return container == 'row'
+          ? PluginUiRow(parsed)
+          : PluginUiColumn(parsed);
+    }
+
+    return null;
+  }
+
   static PluginScriptAction parseAction(String json) {
     final decoded = jsonDecode(json);
     if (decoded is! Map) return const PluginNoAction();
@@ -187,6 +285,20 @@ globalThis.require = function (name) {
     String? field(String key) {
       final value = decoded[key];
       return value is String ? value : null;
+    }
+
+    // Read before the string-shaped actions: `ui` is an object, so `field`
+    // sees it as absent and the plugin's tree would be dropped in silence.
+    final ui = decoded['ui'];
+    if (ui != null) {
+      var budget = PluginUiLimits.maxNodes;
+      final root = parseUiNode(ui, 0, () => budget-- > 0);
+      if (root == null) {
+        throw const PluginScriptException(
+          'the interface is too large or too deeply nested to draw',
+        );
+      }
+      return PluginUiAction(root: root, title: field('title') ?? '');
     }
 
     final ask = field('ask');

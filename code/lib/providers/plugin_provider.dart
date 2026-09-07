@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import '../models/tab_info.dart';
 import '../services/plugin_manager.dart';
 import '../services/plugin_manifest.dart';
+import '../services/plugin_ui.dart';
 import '../services/plugin_script_runtime.dart';
 import '../services/plugin_catalog_service.dart';
 import 'tab_provider.dart';
@@ -328,6 +329,8 @@ class PluginTip {
     this.answer,
     this.choices = const <String>[],
     this.suggested = '',
+    this.ui,
+    this.event,
   });
 
   final String title;
@@ -355,9 +358,20 @@ class PluginTip {
   /// answer every time; it is what they chose, so it is what the box says.
   final String suggested;
 
+  /// A tree the plugin drew, if it drew one instead of saying something.
+  final PluginUiNode? ui;
+
+  /// Where the reader's use of that tree is collected.
+  final Completer<PluginUiEvent?>? event;
+
   bool get asking => question != null;
+  bool get drawing => ui != null;
   final bool busy;
 }
+
+/// What the reader did with a tree a plugin drew: which node, and every
+/// input in that tree by id.
+typedef PluginUiEvent = ({String id, Map<String, String> values});
 
 class PluginTipNotifier extends StateNotifier<PluginTip?> {
   PluginTipNotifier() : super(null);
@@ -390,13 +404,45 @@ class PluginTipNotifier extends StateNotifier<PluginTip?> {
     return completer;
   }
 
+  /// Draws what the plugin described, and waits for the reader to use it.
+  ///
+  /// In the card, which is where a plugin's answer already appears and which
+  /// the reader can move anywhere in the window. A tree drawn here reaches
+  /// every way of starting a command — a menu, the context menu, the side bar
+  /// — without each of them needing a renderer of its own.
+  Completer<PluginUiEvent?> draw({
+    required String title,
+    required PluginUiNode root,
+  }) {
+    final completer = Completer<PluginUiEvent?>();
+    state = PluginTip(
+      title: title,
+      text: '',
+      busy: false,
+      ui: root,
+      event: completer,
+    );
+    return completer;
+  }
+
   void dismiss() {
     // A question nobody answered is a question that was declined, and the run
     // waiting on it has to be told so rather than left holding a future that
-    // never completes.
+    // never completes. The same for a form nobody submitted.
     final pending = state?.answer;
+    final drawn = state?.event;
     state = null;
     if (pending != null && !pending.isCompleted) pending.complete(null);
+    if (drawn != null && !drawn.isCompleted) drawn.complete(null);
+  }
+
+  /// The reader pressed or chose something in a tree the plugin drew.
+  void eventWith(String id, Map<String, String> values) {
+    final pending = state?.event;
+    state = null;
+    if (pending != null && !pending.isCompleted) {
+      pending.complete((id: id, values: values));
+    }
   }
 
   void answerWith(String value) {
@@ -417,6 +463,9 @@ class PluginTipNotifier extends StateNotifier<PluginTip?> {
   /// Whether a question is on screen, so a run knows the reader has not yet
   /// closed the card it is waiting on.
   bool get asking => state?.asking ?? false;
+
+  /// Whether a tree is on screen waiting to be used.
+  bool get drawing => state?.drawing ?? false;
 }
 
 final pluginTipProvider =

@@ -31,6 +31,26 @@ void main() {
     // A pane that offers to write itself into the document, and what that
     // would replace.
     'apply', 'replaces',
+    // The tree itself. Its nodes are below, and they are a different kind of
+    // key.
+    'ui',
+  };
+
+  /// The nodes a plugin's interface is built from, and their fields.
+  ///
+  /// Separate from [actionKeys] because the SDK does not construct these and
+  /// should not: a node is a table literal the plugin writes, and the editor
+  /// refuses the whole tree if it does not recognise one — so a misspelling
+  /// raises an error rather than quietly drawing nothing. A constructor would
+  /// only guarantee the function name, and the field names inside it would be
+  /// exactly as unchecked as they are now.
+  ///
+  /// The runtime still has to be allowed to read them, which is what the
+  /// first test below checks.
+  const uiNodeKeys = <String>{
+    'text', 'emphasis', 'button', 'id', 'label', 'primary',
+    'input', 'value', 'placeholder', 'multiline', 'chips', 'options',
+    'spacer', 'row', 'column',
   };
   const contextFields = <String>{
     'command', 'selection', 'document', 'answer', 'view',
@@ -55,7 +75,7 @@ void main() {
         .toSet();
 
     expect(read, isNotEmpty, reason: '解析写错了，一个键都没抽出来');
-    expect(read.difference(actionKeys), isEmpty,
+    expect(read.difference({...actionKeys, ...uiNodeKeys}), isEmpty,
         reason: '运行时读了定义文件里没有的键');
     expect(pushed.intersection(contextFields), contextFields,
         reason: '上下文字段和定义文件对不上');

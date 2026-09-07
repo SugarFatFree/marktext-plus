@@ -285,6 +285,25 @@ class PluginCommandActions {
             if (container.read(pluginTipProvider) == null) return;
             action = service.resumeWithResult(plugin, context, reply);
 
+          case PluginUiAction(:final root, :final title):
+            // Drawn in the card, and the run waits there. Same shape as a
+            // question: the plugin hands over something for the reader to
+            // use, and what they do with it is the next step.
+            final drawn = container.read(pluginTipProvider.notifier).draw(
+                  title: title.isEmpty ? plugin.name : title,
+                  root: root,
+                );
+            final event = await drawn.future;
+            // Closing the card is how the reader declines a form, the same as
+            // declining a question.
+            if (event == null) return;
+            action = service.resumeWithEvent(
+              plugin,
+              context,
+              event.id,
+              event.values,
+            );
+
           case PluginShowAction(:final text, :final title):
             if (into != null) {
               into(text, append: false);

@@ -78,6 +78,7 @@ void main() {
       'diff': PluginDiffAction,
       'replace': PluginReplaceAction,
       'pane': PluginPaneAction,
+      'ui': PluginUiAction,
     };
 
     // The table above is written by hand and the shapes it names live in
@@ -101,9 +102,15 @@ void main() {
             '加一个动作要同时给它一行，并让 SDK 的 lua 与 js 两份都能构造它');
 
     for (final entry in shapes.entries) {
-      final source = entry.key == 'diff'
-          ? 'function on_command(ctx) return { diff = { original = "a", result = "b" } } end'
-          : 'function on_command(ctx) return { ${entry.key} = "x" } end';
+      final source = switch (entry.key) {
+        'diff' =>
+          'function on_command(ctx) return { diff = { original = "a", result = "b" } } end',
+        // A tree, not a string: `ui` is the one action whose payload has a
+        // shape of its own.
+        'ui' =>
+          'function on_command(ctx) return { ui = { text = "hello" } } end',
+        _ => 'function on_command(ctx) return { ${entry.key} = "x" } end',
+      };
       final action = PluginScriptRuntime(source)
           .runCommand(const PluginScriptContext(command: 'c'));
       expect(action.runtimeType, entry.value,

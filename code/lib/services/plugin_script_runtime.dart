@@ -1,5 +1,7 @@
 import 'package:lua_dardo/lua.dart';
 
+import 'plugin_ui.dart';
+
 /// Reads one of a plugin's own files, by module name.
 ///
 /// Returns null when the plugin has no such module. The host resolves the
@@ -210,6 +212,17 @@ class PluginReplaceAction extends PluginScriptAction {
 }
 
 /// The script chose to do nothing.
+/// A tree the editor draws, and the events it sends back.
+///
+/// The container it lands in is the one the command was started from — a
+/// drawer, a card, a pane — because that is where the reader was looking.
+class PluginUiAction extends PluginScriptAction {
+  const PluginUiAction({required this.root, this.title = ''});
+
+  final PluginUiNode root;
+  final String title;
+}
+
 class PluginNoAction extends PluginScriptAction {
   const PluginNoAction();
 }
@@ -225,6 +238,18 @@ abstract class PluginRuntimeHost {
 
   /// Hands a host result back to the script's `on_result`.
   PluginScriptAction onResult(PluginScriptContext context, String result);
+
+  /// Tells the script that the reader used something it drew.
+  ///
+  /// [id] is what the node was given in the tree, and [values] holds every
+  /// input in that tree by id — a button press is only useful together with
+  /// what was typed beside it, and asking the plugin to remember what it drew
+  /// would make it keep state the editor already has.
+  PluginScriptAction onEvent(
+    PluginScriptContext context,
+    String id,
+    Map<String, String> values,
+  );
 
   /// The plugin's settings, as the script left them.
   Map<String, String> get storage;
@@ -418,13 +443,23 @@ end
       _invoke('on_result', context, result);
 
   @override
+  PluginScriptAction onEvent(
+    PluginScriptContext context,
+    String id,
+    Map<String, String> values,
+  ) =>
+      _invoke('on_event', context, null, eventId: id, values: values);
+
+  @override
   void dispose() => _disposed = true;
 
   PluginScriptAction _invoke(
     String function,
     PluginScriptContext context,
-    String? result,
-  ) {
+    String? result, {
+    String? eventId,
+    Map<String, String> values = const {},
+  }) {
     if (_disposed) {
       throw const PluginScriptException('the plugin script was disposed');
     }
@@ -440,6 +475,18 @@ end
     if (result != null) {
       _state.pushString(result);
       arguments = 2;
+    }
+    if (eventId != null) {
+      // `on_event(ctx, id, values)`. The values table is the editor's record
+      // of what the reader typed, so the plugin does not have to keep its own
+      // copy of a form it drew one step ago.
+      _state.pushString(eventId);
+      _state.newTable();
+      for (final entry in values.entries) {
+        _state.pushString(entry.value);
+        _state.setField(-2, entry.key);
+      }
+      arguments = 3;
     }
     _protectedCall(arguments, 1);
 
@@ -468,6 +515,24 @@ end
 
   PluginScriptAction _readAction() {
     if (!_state.isTable(-1)) return const PluginNoAction();
+
+    // Read before the string-shaped actions: a `ui` is a table, so `_field`
+    // would see it as absent and the plugin's tree would be dropped in
+    // silence.
+    if (_state.getField(-1, 'ui') == LuaType.luaTable) {
+      var budget = PluginUiLimits.maxNodes;
+      final root = _readUiNode(0, () => budget-- > 0);
+      _state.pop(1);
+      if (root != null) {
+        return PluginUiAction(root: root, title: _field('title') ?? '');
+      }
+      // A tree too deep or too large is refused whole rather than drawn in
+      // part: half a form is worse than none, and the plugin can be told.
+      throw const PluginScriptException(
+        'the interface is too large or too deeply nested to draw',
+      );
+    }
+    _state.pop(1);
 
     final ask = _field('ask');
     if (ask != null) {
@@ -576,6 +641,95 @@ end
       canApply: _boolean('apply'),
       replaces: _field('replaces') ?? '',
     );
+  }
+
+  /// One node of a plugin's interface, read from the table on top of the
+  /// stack. Null when the shape is not one this editor draws, or when the
+  /// tree has gone past what [PluginUiLimits] allows.
+  ///
+  /// [spend] returns false once the node budget is gone. Depth and count are
+  /// both bounded because this recurses: without them a plugin decides how
+  /// much of the editor's stack to use, and a plugin is not the one who
+  /// should decide that.
+  PluginUiNode? _readUiNode(int depth, bool Function() spend) {
+    if (depth > PluginUiLimits.maxDepth) return null;
+    if (!spend()) return null;
+    if (!_state.isTable(-1)) return null;
+
+    if (_state.getField(-1, 'text') == LuaType.luaString) {
+      final text = _state.toStr(-1) ?? '';
+      _state.pop(1);
+      return PluginUiText(text, emphasis: _boolean('emphasis'));
+    }
+    _state.pop(1);
+
+    if (_state.getField(-1, 'button') == LuaType.luaTable) {
+      final node = PluginUiButton(
+        id: _field('id') ?? '',
+        label: _field('label') ?? '',
+        primary: _boolean('primary'),
+      );
+      _state.pop(1);
+      return node.id.isEmpty ? null : node;
+    }
+    _state.pop(1);
+
+    if (_state.getField(-1, 'input') == LuaType.luaTable) {
+      final node = PluginUiInput(
+        id: _field('id') ?? '',
+        value: _field('value') ?? '',
+        placeholder: _field('placeholder') ?? '',
+        multiline: _boolean('multiline'),
+      );
+      _state.pop(1);
+      return node.id.isEmpty ? null : node;
+    }
+    _state.pop(1);
+
+    if (_state.getField(-1, 'chips') == LuaType.luaTable) {
+      final node = PluginUiChips(
+        id: _field('id') ?? '',
+        options: _stringList('options'),
+      );
+      _state.pop(1);
+      return node.id.isEmpty ? null : node;
+    }
+    _state.pop(1);
+
+    if (_state.getField(-1, 'spacer') != LuaType.luaNil) {
+      _state.pop(1);
+      return const PluginUiSpacer();
+    }
+    _state.pop(1);
+
+    for (final container in const ['row', 'column']) {
+      if (_state.getField(-1, container) != LuaType.luaTable) {
+        _state.pop(1);
+        continue;
+      }
+      final children = <PluginUiNode>[];
+      for (var index = 1;; index++) {
+        if (_state.getI(-1, index) != LuaType.luaTable) {
+          _state.pop(1);
+          break;
+        }
+        final child = _readUiNode(depth + 1, spend);
+        _state.pop(1);
+        // One bad child refuses the tree rather than being skipped: a form
+        // missing the field it was about looks like the plugin's bug.
+        if (child == null) {
+          _state.pop(1);
+          return null;
+        }
+        children.add(child);
+      }
+      _state.pop(1);
+      return container == 'row'
+          ? PluginUiRow(children)
+          : PluginUiColumn(children);
+    }
+
+    return null;
   }
 
   /// Whether `table[key]` is true. Anything else, including absent, is false.

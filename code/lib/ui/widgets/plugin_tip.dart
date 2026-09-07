@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/i18n/l10n/app_localizations.dart';
 import '../../providers/plugin_provider.dart';
+import 'plugin_ui_view.dart';
 
 /// A plugin's short answer, floating over the top-right of the document.
 ///
@@ -194,7 +195,22 @@ class _PluginTipCardState extends ConsumerState<PluginTipCard> {
               ),
               const SizedBox(height: 2),
               Flexible(
-                child: tip.asking
+                child: tip.drawing
+                    // What the plugin drew itself. The card is where a
+                    // plugin's answer already appears and the reader can move
+                    // it anywhere, so a tree drawn here works the same
+                    // whether the command came from a menu, the context menu
+                    // or the side bar — none of them needs a renderer of its
+                    // own.
+                    ? SingleChildScrollView(
+                        child: PluginUiView(
+                          root: tip.ui!,
+                          onEvent: (id, values) => ref
+                              .read(pluginTipProvider.notifier)
+                              .eventWith(id, values),
+                        ),
+                      )
+                    : tip.asking
                     ? _question(context, tip)
                     : tip.busy
                     ? Row(
