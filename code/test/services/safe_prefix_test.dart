@@ -26,6 +26,79 @@ void main() {
         reason: '短文档整篇解析更快，切开只是徒增一次解析');
   });
 
+  // A document whose lines are long: prose written without hard wrapping, a
+  // pasted log, a base64 blob. Few lines, many bytes.
+  String longLines(int lines, int perLine) => List.generate(
+        lines,
+        (i) => '## Section $i\n\n${'word ' * (perLine ~/ 5)}',
+      ).join('\n\n');
+
+  test('a document can be too large without being too many lines', () {
+    // 8.6 MB in 1199 lines took 3999 ms to parse whole, with nothing on
+    // screen for all of it. The line count said "short document" the entire
+    // time, because the count was the only thing being asked.
+    final source = longLines(300, 30000);
+    expect(source.length, greaterThan(8 * 1024 * 1024));
+    expect('\n'.allMatches(source).length + 1, lessThan(1500),
+        reason: '前提是这份文档的行数确实在阈值以下，否则这条测的是另一回事');
+
+    expect(MarkdownParser.safePrefix(source), isNotNull,
+        reason: '八兆的文档不该因为行数少就整篇挡在首帧前面');
+  });
+
+  test('the prefix is bounded in size, not only in lines', () {
+    // The middle case is the one that looks fine and is not: 4.6 MB over
+    // 1599 lines did return a prefix — of 4,506,654 characters. The cut fell
+    // at line 1500 of 1599, so "the top of the document" was almost all of
+    // it, and the first frame waited for 2141 ms of the 2141.
+    final source = longLines(400, 12000);
+    final prefix = MarkdownParser.safePrefix(source);
+
+    expect(prefix, isNotNull);
+    expect(prefix!.length, lessThan(source.length ~/ 4),
+        reason: '前缀存在的意义是先画出一小截；和整篇一样大的前缀什么也没省下');
+  });
+
+  test('an ordinary document is cut where it always was', () {
+    // The byte budget sits above 1500 lines of ordinary prose, so documents
+    // that wrap normally keep the behaviour they had. Only the long-line
+    // shapes above change.
+    final source = doc(1200);
+    final prefix = MarkdownParser.safePrefix(source);
+
+    expect(prefix, isNotNull);
+    final lines = '\n'.allMatches(prefix!).length + 1;
+    expect(lines, greaterThanOrEqualTo(1500),
+        reason: '普通文档仍旧按行数切，字节预算不该提前把它截短');
+  });
+
+  test('a huge fenced block counts toward the budget', () {
+    // The character count is taken before the loop's `continue`s, and this is
+    // why: a fence's lines cost the parser what any other line costs. Counted
+    // after them, a document that opens with a large code block would spend
+    // none of its budget crossing it and get no prefix at all.
+    //
+    // The cut cannot land inside the fence, so what this asks is that it
+    // lands soon after it closes rather than never.
+    // Few lines, many bytes — deliberately. Written with 2000 short lines
+    // instead, the fence alone crosses the 1500-line threshold and the cut
+    // happens for that reason, so the test passes either way and proves
+    // nothing about where the counting goes.
+    final code = List.generate(100, (i) => 'const line$i = "${'x' * 5000}";')
+        .join('\n');
+    final source = '```js\n$code\n```\n\n${doc(50)}';
+    expect(code.length, greaterThan(200 * 1024));
+    expect('\n'.allMatches(source).length + 1, lessThan(1500),
+        reason: '前提是行数不越线，否则这条测的是行数规则');
+
+    final prefix = MarkdownParser.safePrefix(source);
+    expect(prefix, isNotNull,
+        reason: '一份以大代码块开头的文档，也该先画出一截');
+    expect(prefix, contains('```js'));
+    expect(prefix!.length, lessThan(source.length),
+        reason: '前缀要真的比整篇短');
+  });
+
   test('the prefix keeps the whole-document line numbering', () {
     final source = doc(1200);
     final prefix = MarkdownParser.safePrefix(source);

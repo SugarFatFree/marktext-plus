@@ -961,16 +961,39 @@ class MarkdownParser {
   /// block or front matter, so the prefix never ends mid-block and never shows
   /// half a code fence. Returns the whole of [source] when it is short enough
   /// to be worth parsing in one go, or when no safe cut exists.
-  static String? safePrefix(String source, {int minimumLines = 1500}) {
+  ///
+  /// Lines *and* characters, because a line is not a unit of work. Prose
+  /// written without hard wrapping, a pasted log, a base64 blob: 8.6 MB
+  /// arrived in 1199 lines, the count said "short document", and the first
+  /// frame waited 3999 ms for a parse of the whole thing. The reverse showed
+  /// up too — 4.6 MB over 1599 lines did return a prefix, of 4,506,654
+  /// characters, because the cut fell at line 1500 of 1599.
+  ///
+  /// [minimumCharacters] sits above 1500 lines of ordinary prose, so a
+  /// document that wraps normally is cut exactly where it was before. Only
+  /// the long-line shapes change.
+  static String? safePrefix(
+    String source, {
+    int minimumLines = 1500,
+    int minimumCharacters = 200 * 1024,
+  }) {
     final lines = _sourceLines(source);
-    if (lines.length <= minimumLines) return null;
+    if (lines.length <= minimumLines && source.length <= minimumCharacters) {
+      return null;
+    }
 
     var inFence = false;
     var fenceMarker = '';
     String? frontMatterCloser;
 
+    // Counted at the top, before any of the `continue`s below: a fence's
+    // lines cost the parser just as much as a paragraph's, and skipping them
+    // here would let a document made mostly of code fences past the budget.
+    var consumed = 0;
+
     for (var i = 0; i < lines.length; i++) {
       final line = lines[i];
+      consumed += line.length + 1;
       final trimmed = line.trimRight();
 
       if (frontMatterCloser != null) {
@@ -1006,7 +1029,8 @@ class MarkdownParser {
       // A blank line outside everything is where one block ends and the next
       // has not started: the only place a prefix can stop without cutting
       // something in half.
-      if (!inFence && i >= minimumLines && trimmed.isEmpty) {
+      final enough = i >= minimumLines || consumed >= minimumCharacters;
+      if (!inFence && enough && trimmed.isEmpty) {
         return lines.sublist(0, i).join('\n');
       }
     }
