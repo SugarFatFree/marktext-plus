@@ -696,6 +696,35 @@ end
     }
     _state.pop(1);
 
+    if (_state.getField(-1, 'markdown') == LuaType.luaString) {
+      final source = _state.toStr(-1) ?? '';
+      _state.pop(1);
+      return PluginUiMarkdown(source);
+    }
+    _state.pop(1);
+
+    if (_state.getField(-1, 'select') == LuaType.luaTable) {
+      final node = PluginUiSelect(
+        id: _field('id') ?? '',
+        options: _stringList('options'),
+        value: _field('value') ?? '',
+      );
+      _state.pop(1);
+      return node.id.isEmpty ? null : node;
+    }
+    _state.pop(1);
+
+    if (_state.getField(-1, 'checkbox') == LuaType.luaTable) {
+      final node = PluginUiCheckbox(
+        id: _field('id') ?? '',
+        label: _field('label') ?? '',
+        value: _boolean('value'),
+      );
+      _state.pop(1);
+      return node.id.isEmpty ? null : node;
+    }
+    _state.pop(1);
+
     if (_state.getField(-1, 'spacer') != LuaType.luaNil) {
       _state.pop(1);
       return const PluginUiSpacer();

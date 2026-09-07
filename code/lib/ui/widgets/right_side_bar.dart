@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -5,6 +6,8 @@ import '../../providers/plugin_provider.dart';
 import '../../services/plugin_manifest.dart';
 import 'plugin_command_actions.dart';
 import 'plugin_icons.dart';
+import 'plugin_ui_view.dart';
+import '../../services/plugin_ui.dart';
 
 /// The rail of plugin panels down the right-hand side, and the drawer one of
 /// them opens.
@@ -27,6 +30,29 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
   /// draw before — and if — the plugin answers again.
   String _content = '';
 
+  /// A tree the plugin drew, and where the reader's use of it is collected.
+  ///
+  /// Drawn here rather than in the card: the reader opened this drawer, so
+  /// this is where they are looking. The card is for commands started
+  /// somewhere that has no room of its own.
+  PluginUiNode? _ui;
+  Completer<PluginUiEvent?>? _pending;
+
+  void _closeUi() {
+    final pending = _pending;
+    _ui = null;
+    _pending = null;
+    // A form nobody submitted is a form that was declined, and the run
+    // waiting on it has to be told.
+    if (pending != null && !pending.isCompleted) pending.complete(null);
+  }
+
+  @override
+  void dispose() {
+    _closeUi();
+    super.dispose();
+  }
+
   /// The table moved to `plugin_icons.dart` when it turned out to be seven
   /// entries against a plugin asking for an eighth.
   static IconData icon(String name) => PluginIcons.resolve(name);
@@ -34,12 +60,16 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
   Future<void> _toggle(PluginManifest plugin, PluginSidePanel panel) async {
     final key = '${plugin.id}/${panel.id}';
     if (_open == key) {
-      setState(() => _open = null);
+      setState(() {
+        _open = null;
+        _closeUi();
+      });
       return;
     }
     setState(() {
       _open = key;
       _content = '';
+      _closeUi();
     });
     // Filled by running the plugin's command of the same id: a panel is a
     // command with a place to put its answer, so there is no second way for a
@@ -57,7 +87,20 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
       command: panel.id,
       into: (text, {bool append = false}) {
         if (!mounted || _open != key) return;
-        setState(() => _content = append ? '$_content\n\n$text' : text);
+        setState(() {
+          _closeUi();
+          _content = append ? '$_content\n\n$text' : text;
+        });
+      },
+      onUi: (root, title) {
+        if (!mounted || _open != key) return Future.value(null);
+        final completer = Completer<PluginUiEvent?>();
+        setState(() {
+          _content = '';
+          _ui = root;
+          _pending = completer;
+        });
+        return completer.future;
       },
     );
   }
@@ -100,7 +143,21 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.all(12),
-                    child: SelectableText(_content),
+                    child: _ui != null
+                        ? PluginUiView(
+                            root: _ui!,
+                            onEvent: (id, values) {
+                              final pending = _pending;
+                              setState(() {
+                                _ui = null;
+                                _pending = null;
+                              });
+                              if (pending != null && !pending.isCompleted) {
+                                pending.complete((id: id, values: values));
+                              }
+                            },
+                          )
+                        : SelectableText(_content),
                   ),
                 ),
               ],

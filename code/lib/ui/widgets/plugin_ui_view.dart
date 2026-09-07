@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../services/plugin_ui.dart';
+import '../editor/markdown_renderer.dart';
 
 /// Draws what a plugin described, as the editor's own widgets.
 ///
@@ -123,6 +124,52 @@ class _PluginUiViewState extends State<PluginUiView> {
           child: primary
               ? FilledButton(onPressed: press, child: Text(label))
               : TextButton(onPressed: press, child: Text(label)),
+        );
+
+      case PluginUiSelect(:final id, :final options, :final value):
+        final chosen = _chosen[id] ??
+            (value.isNotEmpty && options.contains(value) ? value : null);
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: DropdownButtonFormField<String>(
+            initialValue: chosen,
+            isDense: true,
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              isDense: true,
+            ),
+            items: [
+              for (final option in options)
+                DropdownMenuItem(value: option, child: Text(option)),
+            ],
+            onChanged: (picked) {
+              if (picked == null) return;
+              setState(() => _chosen[id] = picked);
+              widget.onEvent(id, _values());
+            },
+          ),
+        );
+
+      case PluginUiCheckbox(:final id, :final label, :final value):
+        final ticked = _chosen[id] == null ? value : _chosen[id] == 'true';
+        return CheckboxListTile(
+          contentPadding: EdgeInsets.zero,
+          controlAffinity: ListTileControlAffinity.leading,
+          dense: true,
+          value: ticked,
+          title: Text(label),
+          onChanged: (picked) {
+            setState(() => _chosen[id] = (picked ?? false).toString());
+            widget.onEvent(id, _values());
+          },
+        );
+
+      // The editor's own renderer, so a plugin's answer looks like the
+      // document it is about rather than like flat text with its `##` showing.
+      case PluginUiMarkdown(:final source):
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: MarkdownRenderer(markdown: source),
         );
 
       case PluginUiRow(:final children):

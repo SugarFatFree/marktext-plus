@@ -51,6 +51,7 @@ void main() {
     'text', 'emphasis', 'button', 'id', 'label', 'primary',
     'input', 'value', 'placeholder', 'multiline', 'chips', 'options',
     'spacer', 'row', 'column',
+    'select', 'checkbox', 'markdown',
   };
   const contextFields = <String>{
     'command', 'selection', 'document', 'answer', 'view',

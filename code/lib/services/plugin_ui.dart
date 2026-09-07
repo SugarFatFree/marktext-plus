@@ -75,6 +75,49 @@ class PluginUiColumn extends PluginUiNode {
   final List<PluginUiNode> children;
 }
 
+/// A dropdown. The chosen option is sent as [id]'s value.
+///
+/// Chips for a few, a dropdown for many: the difference is room, and the
+/// plugin knows how many it has.
+class PluginUiSelect extends PluginUiNode {
+  const PluginUiSelect({
+    required this.id,
+    required this.options,
+    this.value = '',
+  });
+
+  final String id;
+  final List<String> options;
+  final String value;
+}
+
+/// A checkbox. Its value is `"true"` or `"false"` — everything a plugin is
+/// told is a string, so that a script in any of the three languages reads it
+/// the same way.
+class PluginUiCheckbox extends PluginUiNode {
+  const PluginUiCheckbox({
+    required this.id,
+    required this.label,
+    this.value = false,
+  });
+
+  final String id;
+  final String label;
+  final bool value;
+}
+
+/// Markdown, drawn by the editor's own renderer.
+///
+/// What a plugin has to say is usually a document — a rewrite, a translation,
+/// a summary — and until now it arrived as flat text with its own `##` and
+/// `**` showing. This is the same renderer the preview uses, so a plugin's
+/// answer looks like the document it is about.
+class PluginUiMarkdown extends PluginUiNode {
+  const PluginUiMarkdown(this.source);
+
+  final String source;
+}
+
 /// Blank space, for pushing what follows to the far end of a row.
 class PluginUiSpacer extends PluginUiNode {
   const PluginUiSpacer();

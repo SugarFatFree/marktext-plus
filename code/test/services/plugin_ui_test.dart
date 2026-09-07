@@ -107,6 +107,48 @@ void main() {
     });
   });
 
+  group('the nodes added for forms', () {
+    test('select, checkbox and markdown come back as nodes', () {
+      final action = lua('''{ ui = { column = {
+        { select = { id = "lang", options = { "en", "ja" }, value = "ja" } },
+        { checkbox = { id = "keep", label = "Keep formatting", value = true } },
+        { markdown = "## A heading\\n\\nand a paragraph" },
+      }}}''') as PluginUiAction;
+      final root = action.root as PluginUiColumn;
+
+      final select = root.children[0] as PluginUiSelect;
+      expect(select.options, ['en', 'ja']);
+      expect(select.value, 'ja', reason: '插件记得的选择该已经选上');
+
+      final checkbox = root.children[1] as PluginUiCheckbox;
+      expect(checkbox.label, 'Keep formatting');
+      expect(checkbox.value, isTrue);
+
+      expect((root.children[2] as PluginUiMarkdown).source,
+          contains('## A heading'));
+    });
+
+    testWidgets('a checkbox sends true or false as a string', (tester) async {
+      // Everything a plugin is told is a string, so a script in any of the
+      // three languages reads it the same way.
+      Map<String, String>? values;
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: PluginUiView(
+            root: const PluginUiColumn([
+              PluginUiCheckbox(id: 'keep', label: 'Keep formatting'),
+            ]),
+            onEvent: (_, v) => values = v,
+          ),
+        ),
+      ));
+
+      await tester.tap(find.byType(Checkbox));
+      await tester.pumpAndSettle();
+      expect(values, {'keep': 'true'});
+    });
+  });
+
   group('drawing a tree', () {
     testWidgets('what the reader typed comes back with the button they pressed',
         (tester) async {

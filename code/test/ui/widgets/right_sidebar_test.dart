@@ -171,4 +171,48 @@ end
     expect(find.textContaining('What should it say?'), findsOneWidget,
         reason: '问题该真的问出来');
   });
+
+  testWidgets('a tree the plugin drew appears in the drawer itself',
+      (tester) async {
+    // Not in the card. The reader opened this drawer, so this is where they
+    // are looking; the card is for commands started somewhere with no room of
+    // its own.
+    install('com.example.former', panels: [
+      {'id': 'form.something', 'title': 'Form', 'icon': 'edit_note'},
+    ], script: '''
+function on_command(ctx)
+  return { ui = { column = {
+    { text = "Say what to write" },
+    { input = { id = "brief" } },
+    { button = { id = "go", label = "Write" } },
+  }}}
+end
+
+function on_event(ctx, id, values)
+  return { show = "got " .. id .. ": " .. (values.brief or "") }
+end
+''');
+    await pump(tester);
+    await tester.tap(find.byIcon(Icons.edit_note));
+    for (var attempt = 0; attempt < 10; attempt++) {
+      await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 10)));
+      await tester.pump();
+    }
+
+    expect(find.text('Say what to write'), findsOneWidget);
+    expect(find.byType(TextField), findsOneWidget,
+        reason: '插件画的输入框该出现在抽屉里');
+
+    await tester.enterText(find.byType(TextField), 'make it shorter');
+    await tester.tap(find.text('Write'));
+    for (var attempt = 0; attempt < 10; attempt++) {
+      await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 10)));
+      await tester.pump();
+    }
+
+    expect(find.textContaining('got go: make it shorter'), findsOneWidget,
+        reason: '按钮该把输入的值带回插件，结果落回抽屉');
+  });
 }

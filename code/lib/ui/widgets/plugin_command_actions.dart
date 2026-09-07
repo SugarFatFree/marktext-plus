@@ -15,6 +15,7 @@ import '../../services/plugin_command_service.dart';
 import '../../services/plugin_document_edit.dart';
 import '../../services/plugin_manifest.dart';
 import '../../services/plugin_script_runtime.dart';
+import '../../services/plugin_ui.dart';
 
 /// Puts the commands installed plugins contribute into a right-click menu, and
 /// carries out what those commands ask for.
@@ -35,6 +36,17 @@ enum PluginEditorView { source, preview }
 /// itself. `append` is the plugin adding to what it already showed rather
 /// than replacing it — how it walks a document a block at a time.
 typedef PluginTextSink = void Function(String text, {bool append});
+
+/// Where a tree the plugin drew goes, when the caller draws it itself.
+///
+/// Returns what the reader did with it, or null if they closed it — the same
+/// shape as declining a question, and for the same reason: a run waiting on
+/// something nobody answered has to be told rather than left holding a future
+/// that never completes.
+typedef PluginUiSink = Future<PluginUiEvent?> Function(
+  PluginUiNode root,
+  String title,
+);
 
 class PluginCommandActions {
   const PluginCommandActions._();
@@ -145,6 +157,7 @@ class PluginCommandActions {
     required PluginManifest plugin,
     required String command,
     required PluginTextSink into,
+    PluginUiSink? onUi,
   }) async {
     final l10n = AppLocalizations.of(context);
     if (l10n == null) return;
@@ -162,6 +175,7 @@ class PluginCommandActions {
       selection: ref.read(editorProvider).selectedText,
       document: active.isEmpty ? '' : active.first.content,
       into: into,
+      onUi: onUi,
     );
   }
 
@@ -214,6 +228,7 @@ class PluginCommandActions {
     required String selection,
     required String document,
     PluginTextSink? into,
+    PluginUiSink? onUi,
   }) async {
     final directory = await getApplicationSupportDirectory();
     final service = PluginCommandService(
@@ -286,14 +301,21 @@ class PluginCommandActions {
             action = service.resumeWithResult(plugin, context, reply);
 
           case PluginUiAction(:final root, :final title):
-            // Drawn in the card, and the run waits there. Same shape as a
-            // question: the plugin hands over something for the reader to
-            // use, and what they do with it is the next step.
-            final drawn = container.read(pluginTipProvider.notifier).draw(
-                  title: title.isEmpty ? plugin.name : title,
-                  root: root,
-                );
-            final event = await drawn.future;
+            // Drawn where the command was started from, and the run waits
+            // there. Same shape as a question: the plugin hands over
+            // something for the reader to use, and what they do with it is
+            // the next step.
+            //
+            // A drawer that draws its own contents gets the tree; everything
+            // else gets the card, which is where a plugin's answer already
+            // appears and which the reader can move anywhere.
+            final named = title.isEmpty ? plugin.name : title;
+            final event = onUi != null
+                ? await onUi(root, named)
+                : await container
+                    .read(pluginTipProvider.notifier)
+                    .draw(title: named, root: root)
+                    .future;
             // Closing the card is how the reader declines a form, the same as
             // declining a question.
             if (event == null) return;

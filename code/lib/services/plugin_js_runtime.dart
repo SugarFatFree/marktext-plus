@@ -257,6 +257,36 @@ globalThis.require = function (name) {
             );
     }
 
+    final markdown = raw['markdown'];
+    if (markdown is String) return PluginUiMarkdown(markdown);
+
+    final select = raw['select'];
+    if (select is Map) {
+      final id = string(select, 'id');
+      final options = select['options'];
+      return id.isEmpty
+          ? null
+          : PluginUiSelect(
+              id: id,
+              value: string(select, 'value'),
+              options: options is List
+                  ? [for (final o in options) if (o is String) o]
+                  : const [],
+            );
+    }
+
+    final checkbox = raw['checkbox'];
+    if (checkbox is Map) {
+      final id = string(checkbox, 'id');
+      return id.isEmpty
+          ? null
+          : PluginUiCheckbox(
+              id: id,
+              label: string(checkbox, 'label'),
+              value: flag(checkbox, 'value'),
+            );
+    }
+
     if (raw.containsKey('spacer')) return const PluginUiSpacer();
 
     for (final container in const ['row', 'column']) {
