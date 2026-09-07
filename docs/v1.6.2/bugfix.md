@@ -2453,3 +2453,75 @@ around it」失败（`Actual: []`）。另一条「a document is left alone」�
 
 `lib/ui/editor/markdown_renderer.dart`；`lib/ui/widgets/plugin_ui_view.dart`；
 `test/services/plugin_ui_test.dart`
+
+---
+
+## 审计：两套解析器写了同一份语法，没有任何东西让它们保持一致
+
+不是缺陷记录——**这次审计没找到不一致**。写下来是因为它填的那个洞是真的。
+
+### 起点：问"防灾难的设施建过哪些，新成员过关了吗"
+
+`test/` 下有 60 多个对账/守卫类测试。挑那些**枚举成员**的看：新加的
+`ui.webview` 权限、11 种 UI 节点、`PluginUiAction`，有没有哪一条守卫本该管它们
+却漏了。
+
+### 发现：`sdk_definitions_test` 只查了一个方向
+
+它断言「Lua 运行时读的键 ⊆ 手写清单」。**反方向没查**，而且更要紧的是：
+清单是手写在测试里的，没有和编辑器的节点类定义对账。
+
+顺着摸下去发现更大的一件事：**编辑器有两套独立的树解析器**——
+`plugin_script_runtime._readUiNode` 走 Lua 栈，`plugin_js_runtime.parseUiNode`
+走解码后的 Map。11 种节点、每种若干字段，在两个文件里各写了一遍。
+`parseUiNode` 的注释写着「同形，作者换语言别的都不变」。
+
+而 `parseUiNode` **零直接测试覆盖**。整个测试套件里唯一碰过 JS 树的地方，
+用了 11 种节点里的 2 种。
+
+（写这段时我先搞错了一次，值得记下来：我以为整个 `plugin_js_runtime_test.dart`
+都因 QuickJS 被跳过。实际只有「the engine runs a plugin end to end」一条带
+`skip:`，其余都在跑，**JS 的动作解析覆盖得很好**。查证之前不要把猜测写进文档。）
+
+**还有一条测试的名字在骗人**：`a JS action becomes the same thing a Lua action
+does`——它从头到尾没有跑过 Lua 运行时，只是拿 JS 的结果对硬编码的期望值。
+一个承诺了比较的名字，正是这个比较一直没人做的原因。已改名为
+`a JS action parses into the action the editor performs`。
+
+### 手工对账的结果：两侧是一致的
+
+按节点类 × 具名参数逐项比对，`Lua 少的 []`、`JS 少的 []`、字段无差异。
+动作层同样比了一遍（9 种动作 × 具名参数），也无差异。字符串字段的**类型严格性**
+也一致：Lua 要求 `LuaType.luaString`，JS 要求 `is String`，`text = 42` 两边都不认。
+
+前几轮的工作是有效的。**但没有任何东西保证下一个节点类型不会只加到一侧。**
+
+### 修：让编译器来管这件事
+
+新增 `plugin_ui_two_runtimes_test.dart`。同一份界面写两遍——一份 Lua table、
+一份 JSON——各自过各自的解析器，然后比较。
+
+比较用的 `describe` 是**对 sealed 类的穷尽 switch**：加第 12 种节点，
+这个文件**编译不过**，而不是安静地放行。这比拿正则扫两份源码强得多，
+也是把它放在测试里而不是写成源码扫描的理由。
+
+第二条测试对账 fixture 本身：从 `plugin_ui.dart` 数出所有 `class PluginUi\w+
+extends PluginUiNode`，要求每一个都出现在 fixture 里。否则第一条会在
+「某个节点类型压根没被任何一侧读过」时保持绿色——那正是它要抓的漂移。
+
+顺带把 JS 侧四条拒绝行为补上（无 id 的 input、无 source 的 image、超过 12 层、
+超过 500 节点），它们此前一条都没测过。写的时候先把断言写成"返回非 Action"，
+实际行为是**抛异常**——和 Lua 侧一致，是好消息，断言改对了。
+
+### 变异
+
+1. JS 的 `image` 忽略 `height` → 「the two runtimes read the same interface into
+   the same tree」失败
+2. JS 的 `select` 忽略 `value` → 同一条失败
+3. fixture 里删掉 `markdown` 节点 → 「the fixture uses every node type there is」失败
+
+三次都由**正确的那一条**测试报出。
+
+### 涉及文件
+
+`test/services/plugin_ui_two_runtimes_test.dart`（新增）

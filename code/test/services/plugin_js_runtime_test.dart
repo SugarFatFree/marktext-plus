@@ -9,7 +9,11 @@ import 'package:marktext_plus/services/plugin_script_runtime.dart';
 /// the action a script returns is JSON, and turning that into what the editor
 /// performs is the part a plugin author's mistake would land in.
 void main() {
-  test('a JS action becomes the same thing a Lua action does', () {
+  // Named for what it does. It used to say "becomes the same thing a Lua
+  // action does", which is a comparison it never made — no Lua runtime is
+  // built here. The comparison itself now lives in
+  // `plugin_ui_two_runtimes_test`, where both parsers actually run.
+  test('a JS action parses into the action the editor performs', () {
     expect(
       PluginJsRuntime.parseAction('{"ask":"Target language","default":"English"}'),
       isA<PluginAskAction>()
