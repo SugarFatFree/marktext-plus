@@ -110,7 +110,10 @@ class _PluginDetailViewState extends ConsumerState<PluginDetailView> {
   /// to see the list it is being enforced against.
   Widget _permissions(BuildContext context) {
     final theme = Theme.of(context);
-    final asked = widget.plugin.permissions;
+    // Through `withImplied`: one permission can carry another, and the
+    // reader decides from this list. Showing only what the manifest spelled
+    // out would describe a smaller grant than the one they are agreeing to.
+    final asked = PluginPermission.withImplied(widget.plugin.permissions);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
       child: Column(
@@ -124,28 +127,40 @@ class _PluginDetailViewState extends ConsumerState<PluginDetailView> {
               style: theme.textTheme.bodySmall,
             )
           else
-            Wrap(
-              spacing: 16,
-              runSpacing: 2,
-              children: [
-                for (final permission in asked)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
+            // One to a line, and the sentence wraps inside it.
+            //
+            // This was a `Wrap` of unbreakable rows, which reads well right
+            // up until a sentence is wider than the panel: `Wrap` breaks
+            // between its children, never inside one, so the long ones ran
+            // off the edge instead of wrapping. `ui.webview` is 88 characters
+            // and overflowed by 378 pixels at 768 wide — the reader could not
+            // read the one permission they most needed to.
+            for (final permission in asked)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 2),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      // The tick sits with the first line of a sentence that
+                      // may take two.
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Icon(
                         Icons.check_circle_outline,
                         size: 14,
                         color: theme.colorScheme.outline,
                       ),
-                      const SizedBox(width: 4),
-                      Text(
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
                         PluginPermission.describe(permission),
                         style: theme.textTheme.bodySmall,
                       ),
-                    ],
-                  ),
-              ],
-            ),
+                    ),
+                  ],
+                ),
+              ),
         ],
       ),
     );

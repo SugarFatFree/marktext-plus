@@ -418,9 +418,14 @@ class PluginManifest {
   /// A permission this version does not understand grants nothing: a typo in a
   /// manifest, and a capability from a newer editor, both mean the same thing
   /// here — the plugin does not get it.
+  ///
+  /// Read through [PluginPermission.withImplied], so a permission that another
+  /// one carries counts as held. Answering from the raw list would let the
+  /// manifest describe `ui.webview` as bringing the network with it while
+  /// every check said otherwise.
   bool hasPermission(String permission) =>
       PluginPermission.all.contains(permission) &&
-      permissions.contains(permission);
+      PluginPermission.withImplied(permissions).contains(permission);
 
   /// A compiled plugin's executables, by operating system and then by
   /// architecture.

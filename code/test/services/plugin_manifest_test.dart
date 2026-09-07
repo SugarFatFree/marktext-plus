@@ -298,4 +298,50 @@ void _nativePlugins() {
       throwsFormatException,
     );
   });
+
+  _impliedPermissions();
+}
+
+/// One permission that carries another.
+///
+/// `PluginPermission.implied` is the table saying so. A table nothing reads
+/// is a comment: the manifest would describe `ui.webview` as bringing network
+/// access with it while `hasPermission` answered no.
+void _impliedPermissions() {
+  PluginManifest withPermissions(List<String> permissions) =>
+      PluginManifest.fromJson({
+        'id': 'com.example.viewer',
+        'name': 'Viewer',
+        'version': '1.0.0',
+        'runtime': 'lua',
+        'entrypoint': 'plugin.lua',
+        'permissions': permissions,
+      });
+
+  test('a web view carries network access with it', () {
+    final manifest = withPermissions([PluginPermission.uiWebview]);
+    expect(
+      manifest.hasPermission(PluginPermission.networkRequest),
+      isTrue,
+      reason: '一个 web view 想取什么就能取什么；说它只是"打开一个页面"，'
+          '是在描述一件比实际授予的更小的事',
+    );
+  });
+
+  test('an implied permission is not granted from nothing', () {
+    final manifest = withPermissions([PluginPermission.documentRead]);
+    expect(manifest.hasPermission(PluginPermission.networkRequest), isFalse);
+    expect(manifest.hasPermission(PluginPermission.uiWebview), isFalse);
+  });
+
+  test('what the reader is shown includes what was implied', () {
+    expect(
+      PluginPermission.withImplied([PluginPermission.uiWebview]),
+      containsAll([PluginPermission.uiWebview, PluginPermission.networkRequest]),
+    );
+    // The declared one keeps its place: the list the reader reads is the
+    // manifest's, with the consequences added, not a rewritten one.
+    expect(PluginPermission.withImplied([PluginPermission.uiWebview]).first,
+        PluginPermission.uiWebview);
+  });
 }

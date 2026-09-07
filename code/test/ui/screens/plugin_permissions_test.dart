@@ -12,7 +12,7 @@ import 'package:marktext_plus/ui/screens/plugin_detail_view.dart';
 /// The editor grew a real permission check — a plugin that did not ask for
 /// `document.read` stopped being handed the document — but it never told the
 /// reader what any plugin had asked for. `PluginPermission.describe` had a
-/// sentence ready for all seventeen of them and the only thing that ever
+/// sentence ready for every one of them and the only thing that ever
 /// called it was a test.
 ///
 /// That leaves the reader in the worst position: the editor is refusing things
@@ -93,6 +93,47 @@ void main() {
       find.text('Ask the AI model you configured (never sees your API key)'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('a permission another one carries is shown too', (tester) async {
+    await show(
+      tester,
+      PluginCatalogEntry.installed(manifest(const ['ui.webview'])),
+    );
+
+    expect(find.text(PluginPermission.describe('ui.webview')), findsOneWidget);
+    // The consequence, spelled out. A reader who granted "opens a web view"
+    // has granted the network, and a list that leaves that off understates
+    // what it was they agreed to — which is worse than showing no list.
+    expect(
+      find.text(PluginPermission.describe('network.request')),
+      findsOneWidget,
+      reason: 'ui.webview 带着 network.request；清单少说一条，'
+          '比不给清单更糟',
+    );
+  });
+
+  testWidgets('a long sentence wraps rather than running off the edge', (
+    tester,
+  ) async {
+    // Narrow on purpose. The panel this list lives in is resizable, and the
+    // widest sentence is the one attached to the widest permission — the
+    // reader who most needs to read it is the one who would not have been
+    // able to. An overflow throws in a widget test, so the assertion is that
+    // pumping it does not.
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await show(
+      tester,
+      PluginCatalogEntry.installed(
+        manifest(const ['ui.webview', 'document.read', 'ai.chat']),
+      ),
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(find.textContaining('Open its own web page'), findsOneWidget);
   });
 
   testWidgets('a permission this version does not understand is still shown', (

