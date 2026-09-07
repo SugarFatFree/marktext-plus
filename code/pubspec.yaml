@@ -9,25 +9,6 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
-  # A web view for plugins that draw their own page, opened only when one
-  # actually does — see docs/design/plugin-drawn-ui.md.
-  #
-  # This package rather than the alternatives, and the reason is the first
-  # line of what this editor claims to be:
-  #
-  # - `webview_cef` embeds and covers all three desktops, but ships CEF: the
-  #   installer goes from tens of megabytes to hundreds. That is the opposite
-  #   of the thing being sold.
-  # - `flutter_inappwebview` embeds and is light, but has no Linux support at
-  #   all — an author would write a page on macOS and Linux readers would find
-  #   it does not exist.
-  # - This one uses each platform's own web view (WebView2, WKWebView,
-  #   WebKitGTK), so nothing is bundled, and it behaves the same on all three.
-  #   The cost is that the page opens in a window of its own rather than
-  #   inside a pane, which for a plugin's own full page is arguably where it
-  #   belongs.
-  desktop_webview_window: ^0.3.0
   flutter_localizations:
     sdk: flutter
   intl: any
