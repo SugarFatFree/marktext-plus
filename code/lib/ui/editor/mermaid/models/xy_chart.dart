@@ -2,6 +2,7 @@
 library;
 
 import 'dart:math' as math;
+import 'list_equality.dart';
 
 /// Orientation of the XY chart
 enum XYChartOrientation {
@@ -38,11 +39,13 @@ class XYChartSeries {
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    return other is XYChartSeries && other.type == type;
+    return other is XYChartSeries &&
+        other.type == type &&
+        sameList(other.values, values);
   }
 
   @override
-  int get hashCode => Object.hash(type, values.length);
+  int get hashCode => Object.hash(type, Object.hashAll(values));
 }
 
 /// Data for a complete XY chart
@@ -145,11 +148,18 @@ class XYChartData {
     if (identical(this, other)) return true;
     return other is XYChartData &&
         other.title == title &&
-        other.orientation == orientation;
+        other.orientation == orientation &&
+        sameList(other.series, series) &&
+        sameList(other.xAxisCategories, xAxisCategories);
   }
 
   @override
-  int get hashCode => Object.hash(title, orientation);
+  int get hashCode => Object.hash(
+        title,
+        orientation,
+        Object.hashAll(series),
+        Object.hashAll(xAxisCategories),
+      );
 }
 
 /// Default color palette for XY charts

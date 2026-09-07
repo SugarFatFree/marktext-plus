@@ -1,5 +1,6 @@
 /// Data models for Kanban diagrams
 library;
+import 'list_equality.dart';
 
 /// Priority levels for Kanban tasks
 enum KanbanPriority {
@@ -77,7 +78,8 @@ class KanbanTask {
         other.description == description &&
         other.assigned == assigned &&
         other.ticket == ticket &&
-        other.priority == priority;
+        other.priority == priority &&
+        _sameMetadata(other.metadata, metadata);
   }
 
   @override
@@ -88,7 +90,19 @@ class KanbanTask {
       assigned,
       ticket,
       priority,
+      Object.hashAll(metadata.keys),
+      Object.hashAll(metadata.values),
     );
+  }
+
+  /// A map has no element-wise `==` either, and the keys are few.
+  static bool _sameMetadata(Map<String, String> a, Map<String, String> b) {
+    if (identical(a, b)) return true;
+    if (a.length != b.length) return false;
+    for (final entry in a.entries) {
+      if (b[entry.key] != entry.value) return false;
+    }
+    return true;
   }
 }
 
@@ -139,12 +153,13 @@ class KanbanColumn {
     return other is KanbanColumn &&
         other.id == id &&
         other.title == title &&
-        other.wipLimit == wipLimit;
+        other.wipLimit == wipLimit &&
+        sameList(other.tasks, tasks);
   }
 
   @override
   int get hashCode {
-    return Object.hash(id, title, wipLimit);
+    return Object.hash(id, title, wipLimit, Object.hashAll(tasks));
   }
 }
 
@@ -200,12 +215,13 @@ class KanbanChartData {
 
     return other is KanbanChartData &&
         other.title == title &&
-        other.ticketBaseUrl == ticketBaseUrl;
+        other.ticketBaseUrl == ticketBaseUrl &&
+        sameList(other.columns, columns);
   }
 
   @override
   int get hashCode {
-    return Object.hash(title, ticketBaseUrl);
+    return Object.hash(title, ticketBaseUrl, Object.hashAll(columns));
   }
 }
 

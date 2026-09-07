@@ -1,5 +1,6 @@
 /// Data models for quadrant charts
 library;
+import 'list_equality.dart';
 
 /// One plotted point.
 class QuadrantPoint {
@@ -100,11 +101,13 @@ class QuadrantChartData {
       other.quadrant1 == quadrant1 &&
       other.quadrant2 == quadrant2 &&
       other.quadrant3 == quadrant3 &&
-      other.quadrant4 == quadrant4;
+      other.quadrant4 == quadrant4 &&
+      sameList(other.points, points);
 
   @override
   int get hashCode => Object.hash(title, xAxisLeft, xAxisRight, yAxisBottom,
-      yAxisTop, quadrant1, quadrant2, quadrant3, quadrant4);
+      yAxisTop, quadrant1, quadrant2, quadrant3, quadrant4,
+      Object.hashAll(points));
 }
 
 /// Colours used when drawing a quadrant chart.

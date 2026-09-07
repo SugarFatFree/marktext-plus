@@ -59,6 +59,8 @@
 | BUG-314 | 2026-09-08 | 「重新加载图片」（F5）什么也不做，块缓存签名里没有它 | P1 | 已修复 |
 | BUG-315 | 2026-09-08 | 插件图片缓存以「代号:地址」为键，每次重载滞留一整代字节 | P2 | 已修复 |
 | BUG-316 | 2026-09-08 | 改代码字体/字号，预览不跟着变；块缓存签名还漏着三个 | P1 | 已修复 |
+| BUG-317 | 2026-09-08 | 四种图表改了数据不重绘：`==` 不比它们的数据列表 | P1 | 已修复 |
+| BUG-318 | 2026-09-08 | `XYChartSeries` 相等而哈希不同，违反 hash 契约 | P2 | 已修复 |
 
 ---
 
@@ -3056,3 +3058,104 @@ PROBE 改之后 = 14.0  （期望 24）
 `lib/ui/editor/markdown_renderer.dart`；
 `test/ui/editor/block_cache_signature_test.dart`（新增）；
 `test/ui/editor/code_font_updates_preview_test.dart`（新增）
+
+---
+
+## BUG-317：四种图表改了数据不会重绘
+
+### 顺着同一个形状问下去
+
+BUG-314 和 BUG-316 都是「手写清单漏项」。**还有哪些手写清单？**
+`==` / `hashCode` 就是最典型的一种——漏一个字段，变化就看不见。
+
+每一个 mermaid 画板的 `shouldRepaint` 都写成：
+
+```dart
+bool shouldRepaint(covariant XYChartPainter oldDelegate) =>
+    oldDelegate.xyData != xyData || ...;
+```
+
+**所以每个模型的 `==` 都必须深到能看见数据变化。** 对账下来，四个不是：
+
+| 模型 | `==` 里没有的集合 |
+|---|---|
+| `XYChartData` | `series`、`xAxisCategories` |
+| `RadarChartData` / `RadarCurve` | `axes`、`curves` / `values` |
+| `KanbanChartData` / `Column` / `Task` | `columns` / `tasks` / `metadata` |
+| `QuadrantChartData` | `points` |
+
+探针一次证实四个：
+
+```
+PROBE xychart  数据不同却相等 = true
+PROBE radar    数据不同却相等 = true
+PROBE kanban   数据不同却相等 = true
+PROBE quadrant 数据不同却相等 = true
+```
+
+**改一个 kanban 卡片的文字、改一组柱状图的数字，标题不变的话，画面不动。**
+文档说一件事，图说另一件，两边都不报错。
+
+### 顺带发现：同一个函数写了七遍
+
+修法要用列表逐元素比较（Dart 里 `List == List` 是同一性比较）。而这个函数
+**在 models 目录下已经有七份私有副本**，四个不同的名字：
+
+```
+block_diagram.dart:_sameList   sankey.dart:_listEquals   packet.dart:_sameFields
+sequence.dart:_sameList ×3     c4_diagram.dart:_sameList
+```
+
+它们目前还没分歧——**但没有任何东西阻止它们分歧**，而我正要加第五处用途。
+收敛成 `models/list_equality.dart` 里的一个 `sameList`，七份删掉。
+
+模型层只依赖 `dart:math` / `dart:ui`，不引 Flutter，所以没有用
+`package:flutter/foundation` 的 `listEquals`——那看起来是刻意的约定。
+
+### 守卫
+
+`diagram_data_equality_test` 里的最后一条：扫 models 目录下每个带 `==` 的类，
+要求它的每个 `List`/`Map`/`Set` 字段都出现在 `==` 里，例外要具名登记。
+第五个模型漂移不进来。
+
+### 变异
+
+1. `XYChartData` 的 `series` 退出 `==` → 2 条失败（xy 那条 + 守卫）
+2. `KanbanColumn` 的 `tasks` 退出 `==` → 2 条失败
+3. `sameList` 的长度检查失效 → **1 条**失败
+
+第 3 次只失败一条是**对的**：它只绕过长度检查，而元素循环仍然在跑，
+我的测试里只有一对数据长度不同（`[1,2]` vs `[1,2,3]`）。
+
+### 涉及文件
+
+`lib/ui/editor/mermaid/models/list_equality.dart`（新增）；
+`xy_chart.dart`、`radar.dart`、`kanban.dart`、`quadrant_chart.dart`；
+`sankey.dart`、`block_diagram.dart`、`packet.dart`、`sequence.dart`、`c4_diagram.dart`（去重）；
+`test/ui/editor/mermaid/diagram_data_equality_test.dart`（新增）
+
+---
+
+## BUG-318：`XYChartSeries` 相等而哈希不同
+
+```dart
+bool operator ==(Object other) => other is XYChartSeries && other.type == type;
+int get hashCode => Object.hash(type, values.length);
+```
+
+`==` 只看 `type`，`hashCode` 还用了 `values.length`。**两个「相等」的对象可以有
+不同的哈希值**，这违反 Dart 的 hash 契约——放进 `Set` 或当 `Map` 键时，
+它们会落进不同的桶，去重和查找都会给出不合逻辑的结果。
+
+```
+PROBE series 相等=true  hash 相同=false
+```
+
+随 BUG-317 一并修好（`==` 现在也比 `values`，`hashCode` 用 `Object.hashAll`）。
+单独编号是因为它是另一类错误：BUG-317 是「看不见变化」，这一条是
+**「两个自洽性之间互相矛盾」**，即使 `==` 的深度是有意为之，这里也仍然是错的。
+
+### 涉及文件
+
+`lib/ui/editor/mermaid/models/xy_chart.dart`；
+`test/ui/editor/mermaid/diagram_data_equality_test.dart`

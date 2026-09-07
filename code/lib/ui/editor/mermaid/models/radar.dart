@@ -1,5 +1,6 @@
 /// Data models for Radar charts
 library;
+import 'list_equality.dart';
 
 /// Graticule type for radar charts
 enum RadarGraticule {
@@ -81,11 +82,14 @@ class RadarCurve {
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
 
-    return other is RadarCurve && other.id == id && other.label == label;
+    return other is RadarCurve &&
+        other.id == id &&
+        other.label == label &&
+        sameList(other.values, values);
   }
 
   @override
-  int get hashCode => Object.hash(id, label);
+  int get hashCode => Object.hash(id, label, Object.hashAll(values));
 }
 
 /// Data for a complete Radar chart
@@ -191,12 +195,15 @@ class RadarChartData {
         other.max == max &&
         other.min == min &&
         other.graticule == graticule &&
-        other.ticks == ticks;
+        other.ticks == ticks &&
+        sameList(other.axes, axes) &&
+        sameList(other.curves, curves);
   }
 
   @override
   int get hashCode {
-    return Object.hash(title, showLegend, max, min, graticule, ticks);
+    return Object.hash(title, showLegend, max, min, graticule, ticks,
+        Object.hashAll(axes), Object.hashAll(curves));
   }
 }
 
