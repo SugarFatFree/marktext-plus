@@ -83,12 +83,8 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   // Build phase rebuilds this map fresh per pass to avoid stale duplicates.
   final _headingKeys = <int, GlobalKey>{};
 
-  /// Pictures already asked of [MarkdownRenderer.loadImage], by source.
-  ///
-  /// A build runs many times; without this each one starts the fetch again,
-  /// which for a plugin means a fresh line in its log every rebuild. Empty
-  /// for a document, which does not use this route.
-  final _loadedPictures = <String, Future<Uint8List>>{};
+  /// Pictures already asked of [MarkdownRenderer.loadImage].
+  final _loadedPictures = PictureCache();
   int _matchCounter = 0;
   /// One tap recognizer per link destination, kept between builds.
   ///
@@ -694,9 +690,19 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     // so a block that comes from the cache would not be counted and every
     // match after it would be numbered wrong. While a search is running,
     // nothing is cached.
+    // "Reload images" is a change to what is drawn, so it has to reach the
+    // signature below. Without it the command was inert: the blocks came back
+    // from `_blockWidgets` unchanged, `_buildImageSpan` never ran again, and
+    // the picture on screen stayed the one already fetched. The key it builds
+    // still said `image:0:` after the reload — which is how this was found.
+    final imageRevision = ref.watch(
+      editorProvider.select((s) => s.imageRevision),
+    );
+
     final searching = search.$1.isNotEmpty;
     final signature = (
       nodes,
+      imageRevision,
       config.themeName,
       config.fontSize,
       config.lineHeight,
@@ -2536,14 +2542,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         (href.startsWith('http://') || href.startsWith('https://'))) {
       imageWidget = FutureBuilder<Uint8List>(
         key: ValueKey('image:$revision:$href'),
-        // Keyed with the revision, like the widget key just above it: with
-        // only the address in the key, "reload images" would rebuild the
-        // FutureBuilder and hand it back the very bytes it was trying to
-        // discard.
-        future: _loadedPictures.putIfAbsent(
-          '$revision:$href',
-          () => loader(href),
-        ),
+        future: _loadedPictures.fetch(revision, href, loader),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return Text(
@@ -2676,5 +2675,38 @@ class PreviewEditableBlockState extends State<PreviewEditableBlock> {
         ),
       ),
     );
+  }
+}
+
+/// Pictures already fetched, for one image revision at a time.
+///
+/// A build runs many times — a caret move, a theme change — and without this
+/// each one starts the fetch again, which for a plugin also means a fresh
+/// line in its log every rebuild.
+///
+/// Emptied on a new revision rather than keyed by it. Keying by it reloads
+/// correctly and never lets go of what it replaced: each entry holds a
+/// picture, up to eight megabytes of one, so every "reload images" added a
+/// generation and kept the ones before it for as long as the widget lived.
+/// The behaviour is identical from outside, which is why [length] is here —
+/// nothing else about the two versions can be told apart by a test.
+@visibleForTesting
+class PictureCache {
+  final Map<String, Future<Uint8List>> _byHref = {};
+  int _revision = 0;
+
+  /// How many pictures are being held.
+  int get length => _byHref.length;
+
+  Future<Uint8List> fetch(
+    int revision,
+    String href,
+    Future<Uint8List> Function(String) load,
+  ) {
+    if (revision != _revision) {
+      _revision = revision;
+      _byHref.clear();
+    }
+    return _byHref.putIfAbsent(href, () => load(href));
   }
 }

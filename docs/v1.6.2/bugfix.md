@@ -56,6 +56,8 @@
 | BUG-311 | 2026-09-07 | 大文档只按行数分段，行少字节多的文档首帧等 4 秒 | P1 | 已修复 |
 | BUG-312 | 2026-09-07 | 状态栏字数在 UI 线程上整篇统计，大文档每次停下打字卡 176ms | P2 | 已修复 |
 | BUG-313 | 2026-09-07 | 大纲和字数是同一形状，注释点了名，上一轮只修了字数 | P2 | 已修复 |
+| BUG-314 | 2026-09-08 | 「重新加载图片」（F5）什么也不做，块缓存签名里没有它 | P1 | 已修复 |
+| BUG-315 | 2026-09-08 | 插件图片缓存以「代号:地址」为键，每次重载滞留一整代字节 | P2 | 已修复 |
 
 ---
 
@@ -2904,3 +2906,90 @@ final enough = i >= minimumLines || consumed >= minimumCharacters;
 ### 涉及文件
 
 `lib/providers/outline_provider.dart`；`test/providers/outline_off_thread_test.dart`（新增）
+
+---
+
+## BUG-314：「重新加载图片」什么也不做
+
+### 现象
+
+菜单里有「重新加载图片」，快捷键 F5，`editorProvider.reloadImages()` 会把
+`imageRevision` 加一。渲染器也确实在图片分支里 `ref.watch` 了它，还把它编进了
+图片控件的 key。
+
+**但按下去什么都不会发生。**
+
+探针（`Image` 控件的 key，前后对比）：
+
+```
+PROBE 之前   key = [<'image:0:http://elsewhere/a.png'>]
+PROBE F5 之后 key = [<'image:0:http://elsewhere/a.png'>]   变了吗=false
+```
+
+### 根因
+
+`build` 里有一层块级缓存：`_blockWidgets.putIfAbsent(node, draw)`，
+只在 `signature` 变化时清空。而 `signature` 是这么写的：
+
+```dart
+final signature = (nodes, config.themeName, config.fontSize, ...);
+```
+
+**没有 `imageRevision`。** 所以重载之后块从缓存里原样取出，`draw()` 不执行，
+`_buildImageSpan` 不执行，那个 `ref.watch` 和那个 key 都碰不到。
+
+这是「写好了没接上」的一个变种：**接上了，但接在一条不会被执行的路径上**。
+图片分支里的 watch 和 key 写得都对，只是外面有一层缓存把它们隔在了后面。
+
+### 修
+
+`imageRevision` 进签名。一行。
+
+### 怎么撞上的
+
+不是找 F5 找到的。修 BUG-315（下一条）时写了一条「重载之后要重新取图」的测试，
+它失败了——我先以为是自己刚改的缓存写坏了，查下去才发现是更早就存在的问题，
+而且**文档路径和插件路径一起坏**。
+
+### 涉及文件
+
+`lib/ui/editor/markdown_renderer.dart`；`test/ui/editor/plugin_picture_cache_test.dart`（新增）
+
+---
+
+## BUG-315：图片缓存每次重载滞留一整代
+
+### 现象
+
+BUG-307 给渲染器加了 `_loadedPictures`，键是 `'$revision:$href'`——把代号编进键，
+这样「重新加载图片」时键会变、会重新取。
+
+**代价是旧的那一代永远不释放。** 每条目握着一张图片的字节，上限 8MB
+（`PluginImageLoader.maxBytes`）。按十次 F5，就是十代同时留在内存里。
+
+这是我自己今天上午写的代码，而「占用低」是这个项目的立身特性之一。
+
+### 修
+
+**清空，而不是编进键**：代号变了就 `clear()`，键只用地址。行为完全相同，没有堆积。
+
+### 这个性质本来是测不出来的
+
+第一次变异（改回按代号编键）**没有打掉任何测试**——两种实现从外部看完全一样：
+都会重新取，都画出同样的东西。**差别只在事后还握着什么。**
+
+所以把缓存提成一个具名的小类 `PictureCache`，暴露一个 `length`。
+测试于是能问出那个唯一的区别：
+
+```dart
+for (var revision = 2; revision < 12; revision++) {
+  await cache.fetch(revision, 'a.png', nothing);
+}
+expect(cache.length, 1, reason: '十次重载之后仍然只握着当前这一张');
+```
+
+重做变异，这条失败。**一个只能通过"还剩多少"观察的性质，就得有一个能问出"还剩多少"的接口。**
+
+### 涉及文件
+
+`lib/ui/editor/markdown_renderer.dart`；`test/ui/editor/plugin_picture_cache_test.dart`
