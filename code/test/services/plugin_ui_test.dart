@@ -149,6 +149,24 @@ void main() {
     });
   });
 
+  test('an image node carries its source and height', () {
+    final action = lua('''{ ui = { column = {
+      { image = { source = "logo.png", height = 64 } },
+      { image = { source = "https://example.com/a.png" } },
+    }}}''') as PluginUiAction;
+    final root = action.root as PluginUiColumn;
+    final local = root.children[0] as PluginUiImage;
+    expect(local.source, 'logo.png');
+    expect(local.height, 64);
+    expect((root.children[1] as PluginUiImage).height, 0,
+        reason: '零表示「有多高画多高」');
+  });
+
+  test('an image with no source is not a node', () {
+    expect(() => lua('{ ui = { image = { height = 10 } } }'),
+        throwsA(isA<PluginScriptException>()));
+  });
+
   group('drawing a tree', () {
     testWidgets('what the reader typed comes back with the button they pressed',
         (tester) async {

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
 import '../../services/plugin_ui.dart';
@@ -15,12 +17,22 @@ import '../editor/markdown_renderer.dart';
 /// a copy of something the editor already has, and the two copies would
 /// disagree the first time a rebuild dropped one.
 class PluginUiView extends StatefulWidget {
-  const PluginUiView({required this.root, required this.onEvent, super.key});
+  const PluginUiView({
+    required this.root,
+    required this.onEvent,
+    this.loadImage,
+    super.key,
+  });
 
   final PluginUiNode root;
 
   /// The id of what was used, and every input in the tree by id.
   final void Function(String id, Map<String, String> values) onEvent;
+
+  /// Fetches the pictures the tree asks for. Null draws nothing in their
+  /// place: a caller with no plugin directory to resolve against has nowhere
+  /// to fetch them from.
+  final Future<Uint8List> Function(String source)? loadImage;
 
   @override
   State<PluginUiView> createState() => _PluginUiViewState();
@@ -29,6 +41,11 @@ class PluginUiView extends StatefulWidget {
 class _PluginUiViewState extends State<PluginUiView> {
   final Map<String, TextEditingController> _inputs = {};
   final Map<String, String> _chosen = {};
+
+  /// Started once per source, so a rebuild does not fetch the same picture
+  /// again — and a picture that failed stays failed until the tree changes
+  /// rather than retrying on every frame.
+  final Map<String, Future<Uint8List>> _pictures = {};
 
   @override
   void didUpdateWidget(PluginUiView oldWidget) {
@@ -45,6 +62,7 @@ class _PluginUiViewState extends State<PluginUiView> {
     }
     _inputs.clear();
     _chosen.clear();
+    _pictures.clear();
   }
 
   @override
@@ -170,6 +188,45 @@ class _PluginUiViewState extends State<PluginUiView> {
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: MarkdownRenderer(markdown: source),
+        );
+
+      case PluginUiImage(:final source, :final height):
+        final loader = widget.loadImage;
+        if (loader == null) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: FutureBuilder<Uint8List>(
+            future: _pictures.putIfAbsent(source, () => loader(source)),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                // Said rather than left blank: a picture that did not arrive
+                // looks like the plugin forgot to draw one.
+                return Text(
+                  '${snapshot.error}',
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(color: theme.colorScheme.error),
+                );
+              }
+              final bytes = snapshot.data;
+              if (bytes == null) {
+                return SizedBox(
+                  height: height > 0 ? height : 48,
+                  child: const Center(
+                    child: SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                );
+              }
+              return Image.memory(
+                bytes,
+                height: height > 0 ? height : null,
+                fit: BoxFit.contain,
+              );
+            },
+          ),
         );
 
       case PluginUiRow(:final children):

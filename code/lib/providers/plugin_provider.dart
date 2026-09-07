@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -331,6 +332,7 @@ class PluginTip {
     this.suggested = '',
     this.ui,
     this.event,
+    this.images,
   });
 
   final String title;
@@ -363,6 +365,9 @@ class PluginTip {
 
   /// Where the reader's use of that tree is collected.
   final Completer<PluginUiEvent?>? event;
+
+  /// Fetches the pictures that tree asks for, through the editor.
+  final Future<Uint8List> Function(String source)? images;
 
   bool get asking => question != null;
   bool get drawing => ui != null;
@@ -413,6 +418,7 @@ class PluginTipNotifier extends StateNotifier<PluginTip?> {
   Completer<PluginUiEvent?> draw({
     required String title,
     required PluginUiNode root,
+    Future<Uint8List> Function(String source)? images,
   }) {
     final completer = Completer<PluginUiEvent?>();
     state = PluginTip(
@@ -421,6 +427,7 @@ class PluginTipNotifier extends StateNotifier<PluginTip?> {
       busy: false,
       ui: root,
       event: completer,
+      images: images,
     );
     return completer;
   }

@@ -217,6 +217,16 @@ class PluginPermission {
   /// ask for: anything it can read, it can send anywhere.
   static const networkRequest = 'network.request';
 
+  /// Open a web view of its own and load its own page in it.
+  ///
+  /// Carries [networkRequest] with it, and the reader is told so: a page in a
+  /// web view fetches whatever it likes, and a permission list that said only
+  /// "opens a web view" would be describing a smaller thing than what was
+  /// granted. The traffic goes through the editor's own local proxy, so it
+  /// follows the system proxy and is written to the plugin's log — which is
+  /// how the reader can find out what a plugin has been talking to.
+  static const uiWebview = 'ui.webview';
+
   /// Every permission this version of the editor understands.
   static const all = <String>[
     documentRead,
@@ -236,7 +246,29 @@ class PluginPermission {
     workspaceRead,
     workspaceWrite,
     networkRequest,
+    uiWebview,
   ];
+
+  /// Permissions that another permission brings with it.
+  ///
+  /// A web view can fetch anything, so declaring it grants network access
+  /// whether or not the manifest says so. Listing it is not a formality: the
+  /// reader decides from this list, and a list that understates what was
+  /// granted is worse than no list.
+  static const implied = <String, List<String>>{
+    uiWebview: [networkRequest],
+  };
+
+  /// [declared] together with everything those permissions imply.
+  static List<String> withImplied(Iterable<String> declared) {
+    final out = <String>[...declared];
+    for (final permission in declared) {
+      for (final extra in implied[permission] ?? const <String>[]) {
+        if (!out.contains(extra)) out.add(extra);
+      }
+    }
+    return out;
+  }
 
   /// What to tell the reader this permission lets the plugin do.
   static String describe(String permission) => switch (permission) {
@@ -257,6 +289,8 @@ class PluginPermission {
         workspaceRead => 'Read files in the folder you opened',
         workspaceWrite => 'Write files in the folder you opened',
         networkRequest => 'Send requests to any server it chooses',
+        uiWebview => 'Open its own web page inside the editor, which can '
+            'reach any server (the editor logs where)',
         _ => 'Unrecognised permission — this version grants nothing for it',
       };
 }

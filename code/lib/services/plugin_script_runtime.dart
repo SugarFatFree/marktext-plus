@@ -725,6 +725,16 @@ end
     }
     _state.pop(1);
 
+    if (_state.getField(-1, 'image') == LuaType.luaTable) {
+      final source = _field('source') ?? '';
+      final height = _number('height');
+      _state.pop(1);
+      return source.isEmpty
+          ? null
+          : PluginUiImage(source: source, height: height);
+    }
+    _state.pop(1);
+
     if (_state.getField(-1, 'spacer') != LuaType.luaNil) {
       _state.pop(1);
       return const PluginUiSpacer();
@@ -759,6 +769,14 @@ end
     }
 
     return null;
+  }
+
+  /// The number at `table[key]`, or zero when it is absent or not a number.
+  double _number(String key) {
+    _state.getField(-1, key);
+    final value = _state.toNumberX(-1);
+    _state.pop(1);
+    return value ?? 0;
   }
 
   /// Whether `table[key]` is true. Anything else, including absent, is false.

@@ -287,6 +287,18 @@ globalThis.require = function (name) {
             );
     }
 
+    final image = raw['image'];
+    if (image is Map) {
+      final source = string(image, 'source');
+      final height = image['height'];
+      return source.isEmpty
+          ? null
+          : PluginUiImage(
+              source: source,
+              height: height is num ? height.toDouble() : 0,
+            );
+    }
+
     if (raw.containsKey('spacer')) return const PluginUiSpacer();
 
     for (final container in const ['row', 'column']) {

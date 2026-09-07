@@ -16,6 +16,8 @@ import '../../services/plugin_document_edit.dart';
 import '../../services/plugin_manifest.dart';
 import '../../services/plugin_script_runtime.dart';
 import '../../services/plugin_ui.dart';
+import '../../services/plugin_logger.dart';
+import '../../services/plugin_image_loader.dart';
 
 /// Puts the commands installed plugins contribute into a right-click menu, and
 /// carries out what those commands ask for.
@@ -46,6 +48,7 @@ typedef PluginTextSink = void Function(String text, {bool append});
 typedef PluginUiSink = Future<PluginUiEvent?> Function(
   PluginUiNode root,
   String title,
+  Future<Uint8List> Function(String source) images,
 );
 
 class PluginCommandActions {
@@ -310,11 +313,23 @@ class PluginCommandActions {
             // else gets the card, which is where a plugin's answer already
             // appears and which the reader can move anywhere.
             final named = title.isEmpty ? plugin.name : title;
+            // Pictures are fetched by the editor, not by the plugin: a
+            // relative one comes out of the plugin's own directory, and a
+            // remote one goes through the editor's client, so it follows the
+            // system proxy and is written to that plugin's log. A permission
+            // the reader cannot afterwards check up on is a promise.
+            final pictures = PluginImageLoader(
+              pluginDirectory: p.join(directory.path, 'plugins', plugin.id),
+              logger: PluginLogger(
+                plugin.id,
+                p.join(directory.path, 'plugin-logs'),
+              ),
+            );
             final event = onUi != null
-                ? await onUi(root, named)
+                ? await onUi(root, named, pictures.load)
                 : await container
                     .read(pluginTipProvider.notifier)
-                    .draw(title: named, root: root)
+                    .draw(title: named, root: root, images: pictures.load)
                     .future;
             // Closing the card is how the reader declines a form, the same as
             // declining a question.

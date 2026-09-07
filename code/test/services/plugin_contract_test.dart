@@ -34,6 +34,8 @@ void main() {
       'workspace.read',
       'workspace.write',
       'network.request',
+      // Carries network.request with it — see PluginPermission.implied.
+      'ui.webview',
     });
   });
 

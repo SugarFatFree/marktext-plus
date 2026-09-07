@@ -205,6 +205,7 @@ class _PluginTipCardState extends ConsumerState<PluginTipCard> {
                     ? SingleChildScrollView(
                         child: PluginUiView(
                           root: tip.ui!,
+                          loadImage: tip.images,
                           onEvent: (id, values) => ref
                               .read(pluginTipProvider.notifier)
                               .eventWith(id, values),

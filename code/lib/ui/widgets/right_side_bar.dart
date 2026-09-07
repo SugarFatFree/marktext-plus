@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -37,11 +38,13 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
   /// somewhere that has no room of its own.
   PluginUiNode? _ui;
   Completer<PluginUiEvent?>? _pending;
+  Future<Uint8List> Function(String source)? _images;
 
   void _closeUi() {
     final pending = _pending;
     _ui = null;
     _pending = null;
+    _images = null;
     // A form nobody submitted is a form that was declined, and the run
     // waiting on it has to be told.
     if (pending != null && !pending.isCompleted) pending.complete(null);
@@ -92,12 +95,13 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
           _content = append ? '$_content\n\n$text' : text;
         });
       },
-      onUi: (root, title) {
+      onUi: (root, title, images) {
         if (!mounted || _open != key) return Future.value(null);
         final completer = Completer<PluginUiEvent?>();
         setState(() {
           _content = '';
           _ui = root;
+          _images = images;
           _pending = completer;
         });
         return completer.future;
@@ -146,6 +150,7 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
                     child: _ui != null
                         ? PluginUiView(
                             root: _ui!,
+                            loadImage: _images,
                             onEvent: (id, values) {
                               final pending = _pending;
                               setState(() {

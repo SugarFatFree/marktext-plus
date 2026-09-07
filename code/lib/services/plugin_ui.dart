@@ -118,6 +118,28 @@ class PluginUiMarkdown extends PluginUiNode {
   final String source;
 }
 
+/// A picture.
+///
+/// [source] is one of three things, and which one it is decides how it is
+/// fetched:
+///
+/// - a `data:` URI, decoded in place;
+/// - a path relative to the plugin's own directory;
+/// - an `http(s)` URL, fetched through the editor's own client — so it
+///   follows the system proxy and is written to the plugin's log, the same as
+///   any other request a plugin makes. Needs `network.request`.
+///
+/// An absolute path is refused: a plugin's pictures are its own, and reading
+/// arbitrary files off the reader's disk is what `workspace.read` is for.
+class PluginUiImage extends PluginUiNode {
+  const PluginUiImage({required this.source, this.height = 0});
+
+  final String source;
+
+  /// Zero means "as tall as it is", bounded by the container.
+  final double height;
+}
+
 /// Blank space, for pushing what follows to the far end of a row.
 class PluginUiSpacer extends PluginUiNode {
   const PluginUiSpacer();
