@@ -31,6 +31,11 @@ import '../../services/plugin_script_runtime.dart';
 /// rendered, beside the source it could no longer be compared with.
 enum PluginEditorView { source, preview }
 
+/// Where a command's text-shaped results go when the caller draws them
+/// itself. `append` is the plugin adding to what it already showed rather
+/// than replacing it — how it walks a document a block at a time.
+typedef PluginTextSink = void Function(String text, {bool append});
+
 class PluginCommandActions {
   const PluginCommandActions._();
 
@@ -122,6 +127,44 @@ class PluginCommandActions {
     return items;
   }
 
+  /// Runs a command and puts its text somewhere the caller draws.
+  ///
+  /// The side bar's drawer draws its own contents, so a `pane` or a `show`
+  /// from a panel command belongs in the drawer rather than in the tab's
+  /// grid or a floating card. Questions and model calls are not redirected:
+  /// those already have a place — the card — and it is the same one whether
+  /// the command was started from a menu or from the rail.
+  ///
+  /// Before this the drawer ran the command one step and rendered whatever
+  /// came back as text, so a plugin that asked a question got the sentence
+  /// "a panel cannot ask a question" instead of a question. The one official
+  /// plugin asks a question first, which made the rail useless for it.
+  static Future<void> runInto(
+    WidgetRef ref, {
+    required BuildContext context,
+    required PluginManifest plugin,
+    required String command,
+    required PluginTextSink into,
+  }) async {
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) return;
+    final tabs = ref.read(tabProvider);
+    final active = tabs.tabs.where((tab) => tab.id == tabs.activeTabId);
+    await _run(
+      navigator: Navigator.of(context),
+      messenger: ScaffoldMessenger.of(context),
+      container: ProviderScope.containerOf(context, listen: false),
+      l10n: l10n,
+      locale: Localizations.localeOf(context).toString(),
+      plugin: plugin,
+      command: command,
+      view: viewFor(null, ref.read(settingsProvider).editMode),
+      selection: ref.read(editorProvider).selectedText,
+      document: active.isEmpty ? '' : active.first.content,
+      into: into,
+    );
+  }
+
   /// Runs one plugin command outside a context menu — from the menu bar, say.
   static Future<void> run(
     WidgetRef ref, {
@@ -147,60 +190,6 @@ class PluginCommandActions {
     );
   }
 
-  /// Runs a command and returns the text it wanted shown.
-  ///
-  /// For a place that draws the answer itself — a side-bar drawer — rather
-  /// than one of the editor's own windows. A command that asks a question or
-  /// calls a model is not for a panel: a panel is opened and answers, and
-  /// anything that stops to ask is reported as text instead.
-  static Future<String> textFor(
-    WidgetRef ref, {
-    required BuildContext context,
-    required PluginManifest plugin,
-    required String command,
-  }) async {
-    // Read before the await: after it the context may be gone, and the
-    // reader's language is not worth a crash.
-    final locale = Localizations.localeOf(context).toString();
-    final container = ProviderScope.containerOf(context, listen: false);
-    final directory = await getApplicationSupportDirectory();
-    final service = PluginCommandService(
-      p.join(directory.path, 'plugins'),
-      locale: locale,
-    );
-    final tabs = container.read(tabProvider);
-    final active = tabs.tabs.where((tab) => tab.id == tabs.activeTabId);
-
-    try {
-      final action = service.start(
-        plugin,
-        PluginScriptContext(
-          command: command,
-          selection: container.read(editorProvider).selectedText,
-          document: active.isEmpty ? '' : active.first.content,
-          view: viewFor(null, container.read(settingsProvider).editMode),
-        ),
-      );
-      return switch (action) {
-        PluginPaneAction(:final text) => text,
-        PluginPanelAction(:final text) => text,
-        PluginShowAction(:final text) => text,
-        PluginNotifyAction(:final message) => message,
-        PluginDiffAction(:final result) => result,
-        PluginAskAction(:final label) =>
-          '${plugin.name}: $label — a panel cannot ask a question',
-        PluginAiAction() =>
-          '${plugin.name}: a panel cannot wait for the model',
-        _ => '',
-      };
-    } catch (error) {
-      return '$error';
-    } finally {
-      await service.flush(plugin);
-      service.dispose();
-    }
-  }
-
   /// Drives one command to its end.
   ///
   /// The script is synchronous, so it hands back one action at a time and this
@@ -224,6 +213,7 @@ class PluginCommandActions {
     required String view,
     required String selection,
     required String document,
+    PluginTextSink? into,
   }) async {
     final directory = await getApplicationSupportDirectory();
     final service = PluginCommandService(
@@ -296,6 +286,10 @@ class PluginCommandActions {
             action = service.resumeWithResult(plugin, context, reply);
 
           case PluginShowAction(:final text, :final title):
+            if (into != null) {
+              into(text, append: false);
+              return;
+            }
             container.read(pluginTipProvider.notifier).show(
                   title: title.isEmpty ? plugin.name : title,
                   text: text,
@@ -309,15 +303,23 @@ class PluginCommandActions {
             ):
             final content =
                 PluginPaneContent.fromAction(action, plugin.name);
-            final panes = container.read(pluginPanesProvider.notifier);
-            // Closing the pane is how the reader stops this. Appending to a
-            // pane they closed would put it straight back, one block at a
-            // time, with no way to be rid of it.
-            if (append &&
-                !panes.forTab(tabId).containsKey(slot)) {
-              return;
+            if (into != null) {
+              // The caller draws it. A pane opened from the side bar belongs
+              // in the drawer the reader opened, not in the tab's grid — they
+              // asked for it in one place and it should arrive there.
+              into(content.text, append: append);
+            } else {
+              final panes = container.read(pluginPanesProvider.notifier);
+              // Closing the pane is how the reader stops this. Appending to a
+              // pane they closed would put it straight back, one block at a
+              // time, with no way to be rid of it.
+              if (append && !panes.forTab(tabId).containsKey(slot)) {
+                return;
+              }
+              append
+                  ? panes.append(tabId, content)
+                  : panes.show(tabId, content);
             }
-            append ? panes.append(tabId, content) : panes.show(tabId, content);
             if (nextPrompt == null) return;
             // More to do, and the reader can already see what is done — so no
             // dialog over the top of it. This is what lets a plugin work
@@ -329,6 +331,10 @@ class PluginCommandActions {
             action = service.resumeWithResult(plugin, context, reply);
 
           case PluginPanelAction(:final text, :final title):
+            if (into != null) {
+              into(text, append: false);
+              return;
+            }
             // Beside the document, which is what the grid is for. It used to
             // have a container of its own — a fixed strip pinned to the far
             // right, outside the grid and outside the side bar — so the editor

@@ -52,6 +52,21 @@ class _PluginPanesState extends ConsumerState<PluginPanes> {
   /// the plugin gets to keep making.
   bool? _splitTop;
 
+  /// Whether a lone pane sits under the document rather than beside it.
+  ///
+  /// Null until the reader flips it, so the plugin's own choice is what they
+  /// see first — and the plugin says it the same way it says everything else
+  /// about placement, by which slot it fills. `bottom` is under, anything
+  /// else is beside.
+  ///
+  /// One pane used to be beside the document always, on the reasoning that
+  /// one pane is one pane whatever it calls itself. That reasoning holds for
+  /// *which* pane, and does not hold for *which way*: a rewrite of the
+  /// paragraph you are looking at wants to be under it, where the lines are
+  /// the same width and the eye compares them by dropping down rather than
+  /// across.
+  bool? _paneBelow;
+
   /// Kept off the edges, so a pane can always be grabbed again after a drag.
   static const _least = 0.15;
   static const _most = 0.85;
@@ -191,13 +206,20 @@ class _PluginPanesState extends ConsumerState<PluginPanes> {
           );
         }
 
-        // One pane is one pane: beside the document, half each, whichever slot
-        // it claimed. There is no second row to make.
+        // One pane, either beside the document or under it. The plugin says
+        // which by the slot it filled; the reader changes it with the same
+        // button the three-cell shape has, and their choice sticks.
         if (ordered.length == 1) {
-          return columns(
-            widget.document,
-            PluginPaneView(content: ordered.first, onApply: () => _apply(ordered.first)),
+          final below = _paneBelow ?? panes.containsKey(PluginPaneSlot.bottom);
+          void flip() => setState(() => _paneBelow = !below);
+          final view = PluginPaneView(
+            content: ordered.first,
+            onFlip: flip,
+            onApply: () => _apply(ordered.first),
           );
+          return below
+              ? rows(widget.document, view)
+              : columns(widget.document, view);
         }
 
         // Three cells: one half divided and the other whole. Which half is the

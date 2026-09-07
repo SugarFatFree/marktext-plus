@@ -278,14 +278,28 @@ void main() {
       expect(find.byKey(const Key('plugin-panes-flip')), findsNothing);
     });
 
-    testWidgets('there is nothing to flip with two cells, or with four', (
-      tester,
-    ) async {
+    testWidgets('two cells flip between beside and under', (tester) async {
+      // This test used to be called "there is nothing to flip with two cells,
+      // or with four", from when one pane was always beside the document.
+      // Manual testing asked for the other direction — a rewrite belongs
+      // under the paragraph it rewrites — so there is something to flip now.
       await pump(tester, {
         PluginPaneSlot.right: content(PluginPaneSlot.right, 'beside'),
       });
-      expect(find.byKey(const Key('plugin-panes-flip')), findsNothing);
+      final flip = find.byKey(const Key('plugin-panes-flip'));
+      expect(flip, findsOneWidget);
 
+      final wide = tester.getSize(find.byKey(const Key('document')));
+      await tester.tap(flip);
+      await tester.pumpAndSettle();
+      final tall = tester.getSize(find.byKey(const Key('document')));
+
+      expect(tall.width, greaterThan(wide.width), reason: '翻转后文档占满宽度');
+      expect(tall.height, lessThan(wide.height), reason: '翻转后高度让出一半');
+    });
+
+    testWidgets('there is nothing to flip with four cells', (tester) async {
+      // Both halves are already divided, so the button would do nothing.
       await pump(tester, {
         PluginPaneSlot.right: content(PluginPaneSlot.right, 'top right'),
         PluginPaneSlot.bottom: content(PluginPaneSlot.bottom, 'bottom left'),

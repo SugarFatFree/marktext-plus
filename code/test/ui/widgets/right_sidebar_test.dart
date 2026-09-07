@@ -7,6 +7,10 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/core/i18n/l10n/app_localizations.dart';
+import 'package:marktext_plus/core/config/app_config.dart';
+import 'package:marktext_plus/core/config/config_service.dart';
+import 'package:marktext_plus/providers/settings_provider.dart';
+import 'package:marktext_plus/ui/widgets/plugin_tip.dart';
 import 'package:marktext_plus/ui/widgets/right_side_bar.dart';
 
 /// The right side bar exists only when a plugin has put something in it.
@@ -34,7 +38,8 @@ void main() {
   });
 
   void install(String id, {required List<Map<String, String>> panels,
-      List<String> permissions = const ['ui.sidebar']}) {
+      List<String> permissions = const ['ui.sidebar'],
+      String script = ''}) {
     final dir = Directory('${support.path}/plugins/$id')
       ..createSync(recursive: true);
     File('${dir.path}/manifest.json').writeAsStringSync(jsonEncode({
@@ -46,12 +51,23 @@ void main() {
       'permissions': permissions,
       'panels': panels,
     }));
-    File('${dir.path}/plugin.lua').writeAsStringSync('');
+    File('${dir.path}/plugin.lua').writeAsStringSync(script);
   }
 
   Future<void> pump(WidgetTester tester) async {
-    await tester.pumpWidget(const ProviderScope(
-      child: MaterialApp(
+    await tester.pumpWidget(ProviderScope(
+      // The drawer runs the whole command now rather than one step of it, so
+      // it reads the settings the way every other command path does — which
+      // needs a config service, which a widget test has to hand it.
+      overrides: [
+        settingsProvider.overrideWith(
+          (ref) => SettingsNotifier(
+            ConfigService(configDir: support.path),
+            AppConfig(),
+          ),
+        ),
+      ],
+      child: const MaterialApp(
         locale: Locale('en'),
         localizationsDelegates: [
           AppLocalizations.delegate,
@@ -60,7 +76,16 @@ void main() {
           GlobalCupertinoLocalizations.delegate,
         ],
         supportedLocales: AppLocalizations.supportedLocales,
-        home: Scaffold(body: Row(children: [Expanded(child: SizedBox()), RightSideBar()])),
+        // The card layer is where a question is asked, and in the running
+        // application it wraps the whole window. A drawer that asks needs it
+        // present or the question has nowhere to appear.
+        home: Scaffold(
+          body: PluginTipLayer(
+            child: Row(
+              children: [Expanded(child: SizedBox()), RightSideBar()],
+            ),
+          ),
+        ),
       ),
     ));
     for (var attempt = 0; attempt < 20; attempt++) {
@@ -114,5 +139,36 @@ void main() {
     await tester.pump();
     expect(tester.getSize(find.byType(RightSideBar)).width, railOnly,
         reason: '再点一次该收起抽屉，只留图标栏');
+  });
+
+  testWidgets('a panel that asks a question gets to ask it', (tester) async {
+    // The drawer used to run one step of the command and render whatever came
+    // back as text, so a plugin that opens with a question — which the one
+    // official plugin does, since writing needs a brief — filled the drawer
+    // with the sentence "a panel cannot ask a question" and offered nowhere
+    // to type. Manual testing put it plainly: no input box, so no way to say
+    // what to write.
+    install('com.example.asker', panels: [
+      {'id': 'ask.something', 'title': 'Ask', 'icon': 'edit_note'},
+    ], script: '''
+function on_command(ctx)
+  if ctx.answer == nil then
+    return { ask = "What should it say?" }
+  end
+  return { show = "you said " .. ctx.answer }
+end
+''');
+    await pump(tester);
+    await tester.tap(find.byIcon(Icons.edit_note));
+    for (var attempt = 0; attempt < 10; attempt++) {
+      await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 10)));
+      await tester.pump();
+    }
+
+    expect(find.textContaining('cannot ask'), findsNothing,
+        reason: '面板不该再用一句话打发掉提问');
+    expect(find.textContaining('What should it say?'), findsOneWidget,
+        reason: '问题该真的问出来');
   });
 }

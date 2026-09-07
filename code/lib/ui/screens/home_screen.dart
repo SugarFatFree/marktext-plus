@@ -772,103 +772,111 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
             : KeyEventResult.ignored;
       },
       child: Scaffold(
-        body: DropTarget(
-          onDragDone: _handleDrop,
-          child: Column(
-            children: [
-              if (!config.focusMode) const AppMenuBar(),
-              Expanded(
-                child: Row(
-                  children: [
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      curve: Curves.easeInOut,
-                      width: config.sideBarVisible && !config.focusMode
-                          ? 280
-                          : 0,
-                      clipBehavior: Clip.hardEdge,
-                      decoration: const BoxDecoration(),
-                      child: config.sideBarVisible && !config.focusMode
-                          ? const SideBar()
-                          : null,
-                    ),
-                    Expanded(
-                      child: Column(
-                        children: [
-                          AnimatedSize(
-                            duration: const Duration(milliseconds: 200),
-                            curve: Curves.easeInOut,
-                            alignment: Alignment.topCenter,
-                            child: config.tabBarVisible && !config.focusMode
-                                ? const EditorTabBar()
-                                : const SizedBox.shrink(),
-                          ),
-                          if (showFindReplace)
-                            Builder(
-                              builder: (context) {
-                                final controller = ref
-                                    .read(editorProvider.notifier)
-                                    .controller;
-                                final activeTab = ref.watch(activeTabProvider);
-                                final isSplit =
-                                    config.editMode == EditMode.split;
-                                if (isSplit &&
-                                    controller != null &&
-                                    activeTab != null) {
-                                  return FindReplaceBar(
-                                    textController: controller,
-                                    rawContent: activeTab.content,
-                                    isSplitMode: true,
-                                  );
-                                } else if (controller != null) {
-                                  return FindReplaceBar(
-                                    textController: controller,
-                                  );
-                                } else if (activeTab != null) {
-                                  return FindReplaceBar(
-                                    rawContent: activeTab.content,
-                                  );
-                                }
-                                return const SizedBox.shrink();
-                              },
+        // The card floats over the whole window rather than over the document
+        // cell it used to live in. It was put inside that cell so it could not
+        // cover a pane's own title bar, and the cost of that was a card the
+        // reader could only drag within one quarter of the tab — dragging it
+        // somewhere useful meant dragging it into a wall.
+        //
+        // Which way round those two concerns go is the reader's to decide:
+        // they are the one moving it, and they can move it back.
+        body: PluginTipLayer(
+          child: DropTarget(
+            onDragDone: _handleDrop,
+            child: Column(
+              children: [
+                if (!config.focusMode) const AppMenuBar(),
+                Expanded(
+                  child: Row(
+                    children: [
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeInOut,
+                        width: config.sideBarVisible && !config.focusMode
+                            ? 280
+                            : 0,
+                        clipBehavior: Clip.hardEdge,
+                        decoration: const BoxDecoration(),
+                        child: config.sideBarVisible && !config.focusMode
+                            ? const SideBar()
+                            : null,
+                      ),
+                      Expanded(
+                        child: Column(
+                          children: [
+                            AnimatedSize(
+                              duration: const Duration(milliseconds: 200),
+                              curve: Curves.easeInOut,
+                              alignment: Alignment.topCenter,
+                              child: config.tabBarVisible && !config.focusMode
+                                  ? const EditorTabBar()
+                                  : const SizedBox.shrink(),
                             ),
-                          Expanded(
-                            child: Row(
-                              children: [
-                                // The document, and up to three panes a plugin
-                                // filled: the split this editor already had
-                                // between source and preview, offered out.
-                                Expanded(
-                                  child: PluginPanes(
-                                    // The tip goes inside the document cell,
-                                    // not over the whole grid: it is an answer
-                                    // about this text, and covering a pane's
-                                    // own title bar with it would be covering
-                                    // something else's work.
-                                    document: PluginTipLayer(
-                                      child: _zoomable(
+                            if (showFindReplace)
+                              Builder(
+                                builder: (context) {
+                                  final controller = ref
+                                      .read(editorProvider.notifier)
+                                      .controller;
+                                  final activeTab = ref.watch(activeTabProvider);
+                                  final isSplit =
+                                      config.editMode == EditMode.split;
+                                  if (isSplit &&
+                                      controller != null &&
+                                      activeTab != null) {
+                                    return FindReplaceBar(
+                                      textController: controller,
+                                      rawContent: activeTab.content,
+                                      isSplitMode: true,
+                                    );
+                                  } else if (controller != null) {
+                                    return FindReplaceBar(
+                                      textController: controller,
+                                    );
+                                  } else if (activeTab != null) {
+                                    return FindReplaceBar(
+                                      rawContent: activeTab.content,
+                                    );
+                                  }
+                                  return const SizedBox.shrink();
+                                },
+                              ),
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  // The document, and up to three panes a plugin
+                                  // filled: the split this editor already had
+                                  // between source and preview, offered out.
+                                  Expanded(
+                                    child: PluginPanes(
+                                      // The tip goes inside the document cell,
+                                      // not over the whole grid: it is an answer
+                                      // about this text, and covering a pane's
+                                      // own title bar with it would be covering
+                                      // something else's work.
+                                      document: _zoomable(
                                         _buildEditorArea(config.editMode),
                                       ),
                                     ),
                                   ),
-                                ),
-                                // The right side bar is its own thing, like
-                                // the left one — a rail of plugin icons and a
-                                // drawer — and not part of the grid above.
-                                // Nothing at all until a plugin contributes a
-                                // panel to it.
-                                const RightSideBar(),
-                              ],
+                                  // The right side bar is its own thing, like
+                                  // the left one — a rail of plugin icons and a
+                                  // drawer — and not part of the grid above.
+                                  // Nothing at all until a plugin contributes a
+                                  // panel to it.
+                                  const RightSideBar(),
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              if (!config.focusMode) const StatusBar(),
-            ],
+                if (!config.focusMode) const StatusBar(),
+              ],
+            ),
           ),
         ),
       ),

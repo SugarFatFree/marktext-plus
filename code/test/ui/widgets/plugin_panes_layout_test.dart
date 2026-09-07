@@ -104,13 +104,28 @@ void main() {
     expect(document.height, size.height, reason: '只放右边时不该切掉文档的高度');
   });
 
-  testWidgets('one pane splits the width, whichever slot it claimed',
+  testWidgets('one pane goes under the document when it asked for bottom',
       (tester) async {
-    // The shape follows the count, not the slot name: with one pane there is
-    // no second row to make, so a `bottom` pane sits beside the document like
-    // any other. Cutting the height for it would have left an empty cell
-    // across from it — space taken from the document for nothing.
+    // This used to be "one pane splits the width, whichever slot it claimed",
+    // on the reasoning that one pane is one pane whatever it calls itself.
+    // That reasoning holds for *which* pane and not for *which way*: a
+    // rewrite of the paragraph you are reading belongs under it, where the
+    // lines are the same width and the eye compares by dropping down rather
+    // than across. Manual testing asked for the choice; the plugin makes it
+    // with the slot it fills, and the reader can flip it.
     await pump(tester, withPanes({PluginPaneSlot.bottom: 'b'}));
+
+    final document = tester.getSize(find.byKey(const Key('document')));
+    final size = area(tester);
+    expect(document.height, lessThan(size.height),
+        reason: 'bottom 要的是上下分割');
+    expect(document.width, size.width, reason: '上下分割不该同时切掉宽度');
+  });
+
+  testWidgets('one pane sits beside the document by default', (tester) async {
+    // Anything that is not `bottom` is beside, which keeps the shape a plugin
+    // gets without thinking about it.
+    await pump(tester, withPanes({PluginPaneSlot.corner: 'c'}));
 
     final document = tester.getSize(find.byKey(const Key('document')));
     final size = area(tester);

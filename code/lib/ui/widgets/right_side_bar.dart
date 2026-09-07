@@ -44,13 +44,22 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
     // Filled by running the plugin's command of the same id: a panel is a
     // command with a place to put its answer, so there is no second way for a
     // plugin to draw and no second thing for the editor to render.
-    final text = await PluginCommandActions.textFor(
+    //
+    // The whole command, not one step of it. It used to be one step, so a
+    // plugin that asks a question first — which the one official plugin does
+    // — filled the drawer with the sentence "a panel cannot ask a question"
+    // and there was nowhere to type an answer. The question is asked in the
+    // card, the same as from a menu; what comes back lands here.
+    await PluginCommandActions.runInto(
       ref,
       context: context,
       plugin: plugin,
       command: panel.id,
+      into: (text, {bool append = false}) {
+        if (!mounted || _open != key) return;
+        setState(() => _content = append ? '$_content\n\n$text' : text);
+      },
     );
-    if (mounted && _open == key) setState(() => _content = text);
   }
 
   @override
