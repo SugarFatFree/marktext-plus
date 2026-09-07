@@ -557,6 +557,111 @@ void main() {
       expect(action.nextPrompt, contains('carefully'));
     }, skip: present ? null : '插件仓库不在这台机器上');
 
+    test('a template that forgets {{instruction}} still carries the brief',
+        () async {
+      // The sibling of the {{text}} case above, and it loses the reader's own
+      // words rather than the document's: they typed a brief into the ask box
+      // one second earlier. A system prompt that says "Follow the brief" with
+      // no brief in it is worse than an untidy prompt.
+      await write({
+        'writingSystem': 'You rewrite Markdown. Follow the brief.',
+        'writingUser': 'No placeholder here:\n{{text}}',
+      });
+      final service = PluginCommandService(root.path);
+      addTearDown(service.dispose);
+      final action = service.start(
+        manifest,
+        const PluginScriptContext(
+          command: 'ai.write',
+          document: 'Hello.',
+          answer: 'make it rhyme',
+          view: 'source',
+        ),
+      ) as PluginPaneAction;
+
+      expect(action.nextPrompt, contains('make it rhyme'),
+          reason: '读者一秒钟前才输入的写作要求，不能因为模板被改过就静默丢掉');
+      expect(action.nextPrompt, contains('Hello.'));
+    }, skip: present ? null : '插件仓库不在这台机器上');
+
+    test('a template that forgets {{language}} still says which language',
+        () async {
+      await write({
+        'translationSystem': 'You translate Markdown.',
+        'translationUser': 'Document:\n{{text}}',
+      });
+      final service = PluginCommandService(root.path);
+      addTearDown(service.dispose);
+      final action = service.start(
+        manifest,
+        const PluginScriptContext(
+          command: 'translate.document',
+          document: 'Hello.',
+          answer: 'Français',
+          view: 'source',
+        ),
+      ) as PluginPaneAction;
+
+      expect(action.nextPrompt, contains('Français'),
+          reason: '读者在下拉框里选了目标语言，模板丢了变量不该让模型自己猜');
+    }, skip: present ? null : '插件仓库不在这台机器上');
+
+    test('every placeholder the templates use has somewhere to fall back to',
+        () {
+      // The net under a dropped placeholder is a list, and a list is what
+      // drifts. A fourth placeholder added to the templates without a line in
+      // `APPENDED` would be exactly as silent as the two this group just
+      // fixed — the reader edits a template, their input disappears, the
+      // model answers anyway.
+      final source = File('$repo/lib/prompts.lua').readAsStringSync();
+      // Code only: the file's own doc comment names the placeholders too, and
+      // a comment cannot break anything.
+      final code = source
+          .split('\n')
+          .where((line) => !line.trimLeft().startsWith('--'))
+          .join('\n');
+
+      final used = RegExp(r'\{\{(\w+)\}\}')
+          .allMatches(code)
+          .map((m) => m.group(1)!)
+          .toSet();
+      expect(used, isNotEmpty, reason: '一个占位符都没扫到，这条守卫已失效');
+
+      // `text` is appended last and unlabelled; the rest are listed.
+      final caught = {
+        'text',
+        ...RegExp(r'key\s*=\s*"(\w+)"')
+            .allMatches(code)
+            .map((m) => m.group(1)!),
+      };
+      expect(used.difference(caught), isEmpty,
+          reason: '这些占位符没有兜底：${used.difference(caught)}');
+    }, skip: present ? null : '插件仓库不在这台机器上');
+
+    test('the README lists the placeholders the templates actually use', () {
+      // Twelve READMEs describe these to the reader, in a table. A table that
+      // names one the code does not fill is a promise; one that leaves out a
+      // real one is a field they will never think to use.
+      final code = File('$repo/lib/prompts.lua')
+          .readAsStringSync()
+          .split('\n')
+          .where((line) => !line.trimLeft().startsWith('--'))
+          .join('\n');
+      final used = RegExp(r'\{\{(\w+)\}\}')
+          .allMatches(code)
+          .map((m) => m.group(1)!)
+          .toSet();
+
+      final readme = File('$repo/README.md').readAsStringSync();
+      final documented = RegExp(r'^\| `\{\{(\w+)\}\}` \|', multiLine: true)
+          .allMatches(readme)
+          .map((m) => m.group(1)!)
+          .toSet();
+
+      expect(documented, isNotEmpty, reason: 'README 里没扫到占位符表');
+      expect(documented, used);
+    }, skip: present ? null : '插件仓库不在这台机器上');
+
     test('with nothing written, the defaults are used', () async {
       await write({'translationSystem': '', 'translationUser': ''});
       final service = PluginCommandService(root.path);

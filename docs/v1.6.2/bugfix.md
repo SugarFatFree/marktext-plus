@@ -50,6 +50,7 @@
 | BUG-305 | 2026-09-07 | 权限清单里长句子横向溢出，最该读的那条读不到 | P1 | 已修复 |
 | BUG-306 | 2026-09-07 | 文档里的远程图片和更新检查不走系统代理，全局没有 `HttpOverrides` | P1 | 已修复 |
 | BUG-307 | 2026-09-07 | `markdown` 节点里的 `![](http://…)` 绕过权限、日志和代理 | P1 | 已修复 |
+| BUG-308 | 2026-09-07 | 提示词模板丢了 `{{instruction}}` / `{{language}}`，读者刚输入的东西静默消失 | P1 | 已修复 |
 
 ---
 
@@ -2525,3 +2526,74 @@ extends PluginUiNode`，要求每一个都出现在 fixture 里。否则第一�
 ### 涉及文件
 
 `test/services/plugin_ui_two_runtimes_test.dart`（新增）
+
+---
+
+## BUG-308：提示词模板丢了变量，读者刚输入的东西静默消失
+
+（在官方插件 `marktext-plus-ai-translate-plugin` 里。）
+
+### 现象
+
+六个提示词都是读者可改的设置——这正是 BUG-298 把它们从单行框改成多行框的理由。
+读者去改「写作·用户提示词」，写了一版不含 `{{instruction}}` 的模板。
+
+之后每一次 AI 写作：他们在提问框里输入的写作要求**原样消失**。系统提示词里还写着
+"Follow the brief"，而 brief 一个字都没送过去。翻译同理——在下拉框里选了目标语言，
+模板丢了 `{{language}}`，模型自己猜。
+
+### 根因：兜底只建给了三个占位符里的一个
+
+`build()` 里有这么一段，写得很清楚：
+
+```lua
+-- A template that forgot where the text goes still gets the text.
+if values.text ~= nil and user:find("{{text}}", 1, true) == nil
+    and system:find("{{text}}", 1, true) == nil then
+  prompt = prompt .. "\n\n" .. values.text
+end
+```
+
+**它的两个兄弟没有。** `{{instruction}}` 和 `{{language}}` 缺席时直接丢弃。
+
+这是记忆里那条「改一个分支就读完它的兄弟」的又一例：规则只应用到了当时正在看的那一支。
+
+**比报错更糟的是没有报错。** 模型收到缺变量的提示词照样会回答，所以界面上什么都不异常，
+只是那个回答在答一个没人问过的问题。
+
+### 修
+
+`APPENDED` 是一张有序表（`instruction` → "Brief"，`language` → "Target language"）。
+**有序**是因为 Lua 的 `pairs` 不保证顺序，同一条命令跑两次不该产出不同的提示词。
+
+`text` 不在表里：它最后追加、不带标签，因为它是消息的主体而不是消息的一个字段。
+
+`absent()` 同时检查系统提示词和用户提示词——读者把 `{{language}}` 从用户提示词
+挪进系统提示词，不算丢了它。这一条是从原来的 `text` 检查里继承的，变异验证时
+把它改成只看 user，打掉的是一条**既有**测试。
+
+### 变异
+
+1. 从 `APPENDED` 删掉 `language` → 「a template that forgets {{language}} still
+   says which language」失败
+2. `absent()` 只看 user 不看 system → 既有的「a translation template of their own
+   is what gets sent」失败
+3. 往模板里加一个没兜底的 `{{tone}}` → 两条新守卫同时失败
+
+第 3 次第一遍是**无效变异**：Python 字符串里的 `\n` 变成了真换行，锚点没命中，
+`assert old in s` 当场拦下。这正是那条记忆存在的理由。
+
+### 两条守卫
+
+- **每个占位符都要有兜底**：扫 `prompts.lua` 的非注释行取出所有 `{{...}}`，
+  要求每个都是 `text` 或在 `APPENDED` 里。第四个占位符加进来而忘了兜底，
+  会和这次修的两个一样安静
+- **README 的占位符表要和代码对得上**：12 份 README 用表格向读者描述这些变量。
+  表里多一个是空头承诺，少一个是读者永远想不到去用的字段
+
+两条都排除注释行——文件自己的文档注释里也写了这些占位符，而注释坏不了事。
+
+### 涉及文件
+
+插件仓库：`lib/prompts.lua`、`CHANGELOG.md`、`README.md` 与 11 份翻译；
+主应用：`test/services/ai_translate_plugin_test.dart`
