@@ -105,6 +105,33 @@ void main() {
         reason: 'boolean 字段该给开关，而不是让人手打 true');
   });
 
+  testWidgets('a prompt shows every line of itself, not just the first',
+      (tester) async {
+    // The prompts are why this page exists, and every one of them is several
+    // lines: the proofreading one is `Text:\n{{text}}`. A single-line field
+    // showed `Text:` and hid `{{text}}` — the only part worth editing — so
+    // the page looked like the plugin had forgotten to pass the document.
+    await show(
+        tester,
+        install([
+          {
+            'key': 'proofreadingUser',
+            'title': 'Proofreading user prompt',
+            'default': 'Text:\n{{text}}',
+          },
+          {'key': 'apiKey', 'title': 'API key', 'type': 'password'},
+        ]));
+
+    final fields = tester.widgetList<TextField>(find.byType(TextField)).toList();
+    final prompt = fields.firstWhere((f) => !f.obscureText);
+    final secret = fields.firstWhere((f) => f.obscureText);
+
+    expect(prompt.maxLines, isNot(1),
+        reason: '多行提示词在单行框里只剩第一行，变量看不见');
+    expect(secret.maxLines, 1,
+        reason: 'obscureText 要求单行，而且 key 本来就是一行');
+  });
+
   testWidgets('what the reader types is saved under the declared key',
       (tester) async {
     await show(

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/plugin_provider.dart';
 import '../../services/plugin_manifest.dart';
 import 'plugin_command_actions.dart';
+import 'plugin_icons.dart';
 
 /// The rail of plugin panels down the right-hand side, and the drawer one of
 /// them opens.
@@ -26,16 +27,9 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
   /// draw before — and if — the plugin answers again.
   String _content = '';
 
-  static IconData icon(String name) => switch (name) {
-        'list' => Icons.list,
-        'translate' => Icons.translate,
-        'search' => Icons.search,
-        'settings' => Icons.settings,
-        'build' => Icons.build,
-        'info' => Icons.info_outline,
-        'bookmark' => Icons.bookmark_border,
-        _ => Icons.extension,
-      };
+  /// The table moved to `plugin_icons.dart` when it turned out to be seven
+  /// entries against a plugin asking for an eighth.
+  static IconData icon(String name) => PluginIcons.resolve(name);
 
   Future<void> _toggle(PluginManifest plugin, PluginSidePanel panel) async {
     final key = '${plugin.id}/${panel.id}';

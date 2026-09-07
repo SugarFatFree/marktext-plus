@@ -78,6 +78,11 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
 
   static bool _isSwitch(PluginSettingField field) => field.type == 'boolean';
 
+  /// Fields that cannot grow: `obscureText` needs one line, and a number is
+  /// one. Everything else is prose and may be as long as it likes.
+  static bool _isSingleLine(PluginSettingField field) =>
+      field.type == 'password' || field.type == 'number';
+
   Future<void> _save() async {
     setState(() {
       _saving = true;
@@ -141,10 +146,19 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
                     obscureText: field.type == 'password',
                     keyboardType: field.type == 'number'
                         ? TextInputType.number
-                        : TextInputType.text,
+                        : TextInputType.multiline,
+                    // Grows with what is in it. A prompt is the reason this
+                    // page exists and prompts are several lines long — the
+                    // proofreading one is `Text:\n{{text}}`, so a single-line
+                    // field showed `Text:` and hid the only part worth
+                    // editing. A password stays on one line because
+                    // `obscureText` requires it, and so does a number.
+                    minLines: _isSingleLine(field) ? null : 3,
+                    maxLines: _isSingleLine(field) ? 1 : null,
                     decoration: InputDecoration(
                       border: const OutlineInputBorder(),
                       labelText: label(field),
+                      alignLabelWithHint: !_isSingleLine(field),
                     ),
                   ),
           ),

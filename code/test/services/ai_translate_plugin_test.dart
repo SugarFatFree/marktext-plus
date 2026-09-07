@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:marktext_plus/services/plugin_command_service.dart';
 import 'package:marktext_plus/services/plugin_manifest.dart';
 import 'package:marktext_plus/services/plugin_script_runtime.dart';
+import 'package:marktext_plus/ui/widgets/plugin_icons.dart';
 
 /// The plugin that ships alongside the editor, run exactly as an installation
 /// would run it: its own manifest, its own script, nothing stubbed.
@@ -838,6 +839,21 @@ void main() {
         'uno',
       ) as PluginPaneAction;
       expect(action.canApply, isFalse);
+    }, skip: present ? null : '插件仓库不在这台机器上');
+
+    test('every icon it names is one the editor can draw', () {
+      // Flutter tree-shakes icon fonts, so the editor keeps a table of the
+      // icons a plugin may name. That table had seven entries and this
+      // plugin asks for `edit_note`, so the side bar drew the generic
+      // extension square for a writing tool — the plugin had done its part.
+      for (final panel in manifest.panels) {
+        expect(PluginIcons.byName.keys, contains(panel.icon),
+            reason: '${panel.icon} 不在编辑器的图标表里，侧边栏会画成通用插件图标');
+      }
+      for (final item in manifest.toolbar) {
+        expect(PluginIcons.byName.keys, contains(item.icon),
+            reason: '${item.icon} 不在编辑器的图标表里');
+      }
     }, skip: present ? null : '插件仓库不在这台机器上');
 
     test('the API module it carries is the one the SDK publishes', () {

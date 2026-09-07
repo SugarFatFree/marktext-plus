@@ -116,6 +116,25 @@ class PluginCatalogService {
     );
   }
 
+  /// What to say when a topic search produced nothing, or null to say
+  /// nothing and show an empty list.
+  ///
+  /// A repository with no release yet is not a refusal — the SDK's own
+  /// repository carries the topic and publishes no plugin — so nothing found
+  /// and nothing refused is a true empty list. Something refused and nothing
+  /// found is the case worth speaking up about: that is rate limiting, or a
+  /// proxy, or no network, and every one of them used to read as "there are
+  /// no plugins".
+  ///
+  /// One refusal among results that did come back is not worth interrupting
+  /// for — the reader has a list, and one repository missing from it is not
+  /// something they can act on.
+  static String? refusalFor({
+    required int found,
+    required List<String> refusals,
+  }) =>
+      found == 0 && refusals.isNotEmpty ? refusals.first : null;
+
   Future<List<PluginCatalogEntry>> searchGitHubTopic({
     int perPage = 30,
   }) async {
@@ -136,6 +155,16 @@ class PluginCatalogService {
         throw const FormatException('GitHub topic response has no items');
       }
       final entries = <PluginCatalogEntry>[];
+      // Why a listing can come back empty, when it is not simply empty.
+      //
+      // Each result needs a second request for its releases, and those are
+      // unauthenticated too — sixty an hour against ten searches a minute, so
+      // the second kind runs out first. Every one of them used to fail with a
+      // bare `continue`, which turned rate limiting, a proxy refusal and a
+      // dropped connection alike into "no plugins found": the reader goes
+      // looking for a fault in the editor, and the fault is that they should
+      // wait a minute.
+      final refusals = <String>[];
       for (final item in payload['items']) {
         if (item is! Map || item['full_name'] is! String) continue;
         final fullName = item['full_name'] as String;
@@ -151,7 +180,10 @@ class PluginCatalogService {
         releaseRequest.headers
             .set(HttpHeaders.acceptHeader, 'application/vnd.github+json');
         final releaseResponse = await releaseRequest.close();
-        if (releaseResponse.statusCode != HttpStatus.ok) continue;
+        if (releaseResponse.statusCode != HttpStatus.ok) {
+          refusals.add('$fullName: ${_describeFailure(releaseResponse)}');
+          continue;
+        }
         final releases = jsonDecode(
           await utf8.decoder.bind(releaseResponse).join(),
         );
@@ -188,6 +220,8 @@ class PluginCatalogService {
           break;
         }
       }
+      final refusal = refusalFor(found: entries.length, refusals: refusals);
+      if (refusal != null) throw HttpException(refusal);
       return entries;
     } finally {
       client.close(force: true);
