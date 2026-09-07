@@ -187,7 +187,13 @@ class _PluginUiViewState extends State<PluginUiView> {
       case PluginUiMarkdown(:final source):
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
-          child: MarkdownRenderer(markdown: source),
+          // The same loader the `image` node uses. `![](http://…)` is the
+          // second spelling of "show me a picture", and it used to be the one
+          // that went around the permission, the log and the proxy.
+          child: MarkdownRenderer(
+            markdown: source,
+            loadImage: widget.loadImage,
+          ),
         );
 
       case PluginUiImage(:final source, :final height):

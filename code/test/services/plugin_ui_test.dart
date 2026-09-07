@@ -1,4 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:marktext_plus/core/config/app_config.dart';
+import 'package:marktext_plus/core/config/config_service.dart';
+import 'package:marktext_plus/providers/settings_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/services/plugin_js_runtime.dart';
 import 'package:marktext_plus/services/plugin_script_runtime.dart';
@@ -231,6 +237,75 @@ void main() {
       await tester.pump();
 
       expect(find.text('first answer'), findsNothing);
+    });
+  });
+
+  group('pictures inside a markdown node', () {
+    late Directory configDir;
+
+    setUp(() {
+      // createTempSync, not the async form: testWidgets runs inside a
+      // FakeAsync zone where a dart:io future never completes.
+      configDir = Directory.systemTemp.createTempSync('plugin_ui_pictures');
+    });
+
+    tearDown(() {
+      if (configDir.existsSync()) configDir.deleteSync(recursive: true);
+    });
+
+    /// The renderer reads settings, so it needs a real one to read.
+    Widget wrap(Widget child) => ProviderScope(
+          overrides: [
+            settingsProvider.overrideWith(
+              (ref) => SettingsNotifier(
+                ConfigService(configDir: configDir.path),
+                AppConfig(),
+              ),
+            ),
+          ],
+          child: MaterialApp(home: Scaffold(body: child)),
+        );
+
+    testWidgets('a remote one goes through the editor, not around it', (
+      tester,
+    ) async {
+      // `image` nodes were put behind `network.request` and made to log where
+      // they went. A `markdown` node is the same door with a different handle:
+      // `![](http://…)` reaches the editor's renderer, which built its own
+      // `Image.network` — no permission consulted, nothing written to the
+      // log. A plugin refused the network could still name an address, and a
+      // URL carries whatever it put in the query string.
+      final asked = <String>[];
+      await tester.pumpWidget(wrap(PluginUiView(
+        root: const PluginUiMarkdown('![a picture](http://elsewhere/p.png)'),
+        onEvent: (_, __) {},
+        loadImage: (source) async {
+          asked.add(source);
+          throw const FormatException('refused');
+        },
+      )));
+      await tester.pump();
+
+      expect(asked, ['http://elsewhere/p.png'],
+          reason: '插件 markdown 里的远程图片，要和 image 节点走同一个加载器'
+              '——那个加载器已经检查权限、记日志、走系统代理');
+    });
+
+    testWidgets('a document is left alone', (tester) async {
+      // No loader, no change: the preview of the reader's own document keeps
+      // fetching its pictures the way it always has. This is what says the
+      // parameter is opt-in rather than a new rule for everyone.
+      await tester.pumpWidget(wrap(PluginUiView(
+        root: const PluginUiMarkdown('![a picture](http://elsewhere/p.png)'),
+        onEvent: (_, __) {},
+      )));
+      await tester.pumpAndSettle();
+
+      // The renderer's own path: in a widget test every network image fails,
+      // and what it puts there instead is the alt text. Seeing it is how this
+      // says "the old route was taken", which is the thing that must not
+      // change for the reader's own documents.
+      expect(find.text('[a picture]'), findsOneWidget);
     });
   });
 }

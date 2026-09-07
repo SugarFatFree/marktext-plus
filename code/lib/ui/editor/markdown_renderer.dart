@@ -47,7 +47,22 @@ class MarkdownRenderer extends ConsumerStatefulWidget {
     required this.markdown,
     this.onSourceChanged,
     this.followsSource = false,
+    this.loadImage,
   });
+
+  /// Where remote pictures come from, when someone other than the reader's
+  /// own document is being rendered.
+  ///
+  /// Left null — which is every document — a remote picture is fetched by
+  /// `Image.network` as it always has been. A plugin drawing a `markdown`
+  /// node passes the same loader its `image` nodes go through, so the two
+  /// spellings of "show a picture" get the same answer: the permission is
+  /// checked, the host is written to the plugin's log, and the request
+  /// follows the reader's proxy.
+  ///
+  /// Without this, `![](http://…)` inside a plugin's markdown was a way
+  /// around all three.
+  final Future<Uint8List> Function(String source)? loadImage;
 
   /// Whether to follow the editing pane's scrolling. Only split view wants
   /// it: on its own the preview has nobody to follow.
@@ -67,6 +82,13 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   // Maps source line number → GlobalKey, used for TOC scroll targeting.
   // Build phase rebuilds this map fresh per pass to avoid stale duplicates.
   final _headingKeys = <int, GlobalKey>{};
+
+  /// Pictures already asked of [MarkdownRenderer.loadImage], by source.
+  ///
+  /// A build runs many times; without this each one starts the fetch again,
+  /// which for a plugin means a fresh line in its log every rebuild. Empty
+  /// for a document, which does not use this route.
+  final _loadedPictures = <String, Future<Uint8List>>{};
   int _matchCounter = 0;
   /// One tap recognizer per link destination, kept between builds.
   ///
@@ -2509,7 +2531,45 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     final askedHeight = span.height;
 
     Widget imageWidget;
-    if (href.startsWith('http://') || href.startsWith('https://')) {
+    final loader = widget.loadImage;
+    if (loader != null &&
+        (href.startsWith('http://') || href.startsWith('https://'))) {
+      imageWidget = FutureBuilder<Uint8List>(
+        key: ValueKey('image:$revision:$href'),
+        // Keyed with the revision, like the widget key just above it: with
+        // only the address in the key, "reload images" would rebuild the
+        // FutureBuilder and hand it back the very bytes it was trying to
+        // discard.
+        future: _loadedPictures.putIfAbsent(
+          '$revision:$href',
+          () => loader(href),
+        ),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Text(
+              '[${span.text}]',
+              style: TextStyle(color: theme.colorScheme.error),
+            );
+          }
+          final bytes = snapshot.data;
+          if (bytes == null) {
+            return SizedBox(width: askedWidth, height: askedHeight);
+          }
+          return Image.memory(
+            bytes,
+            width: askedWidth,
+            height: askedHeight,
+            fit: askedWidth != null && askedHeight != null
+                ? BoxFit.fill
+                : null,
+            errorBuilder: (context, error, stackTrace) => Text(
+              '[${span.text}]',
+              style: TextStyle(color: theme.colorScheme.error),
+            ),
+          );
+        },
+      );
+    } else if (href.startsWith('http://') || href.startsWith('https://')) {
       imageWidget = Image.network(
         href,
         width: askedWidth,
