@@ -405,6 +405,114 @@ void main() {
     service.dispose();
   }, skip: present ? null : '插件仓库不在这台机器上');
 
+  test('a heading travels with the text under it, not the text above it', () {
+    // The sibling of the case above, and the one the rule is actually about:
+    // "It goes with the text under it" is what the comment on `is_heading`
+    // says. A heading never triggers a flush, so it joins whatever batch is
+    // open — and when the block after it overflows, the flush happens on that
+    // block. The heading stays behind with the paragraph it had nothing to do
+    // with, and its own text starts the next request alone.
+    //
+    // The previous test has the heading last, where there is no "after" for
+    // it to be separated from. That is why this one exists.
+    final service = PluginCommandService(root.path);
+    addTearDown(service.dispose);
+    final filling = 'word ' * 320; // comfortably over the batch budget
+    const body = 'Recovery reached ninety per cent within the hour.';
+    final document = '$filling\n\n## Results\n\n$body';
+
+    final prompts = <String>[];
+    var action = service.start(
+      manifest,
+      PluginScriptContext(
+        command: 'translate.document',
+        document: document,
+        answer: 'English',
+        view: 'source',
+      ),
+    ) as PluginPaneAction;
+    for (var step = 0; step < 20; step++) {
+      final prompt = action.nextPrompt;
+      if (prompt == null) break;
+      prompts.add(prompt);
+      action = service.resumeWithResult(
+        manifest,
+        const PluginScriptContext(
+          command: 'translate.document',
+          answer: 'English',
+          view: 'source',
+        ),
+        '译文。',
+      ) as PluginPaneAction;
+    }
+
+    expect(prompts, isNotEmpty);
+    final carrying = prompts.where((p) => p.contains('## Results')).toList();
+    expect(carrying, hasLength(1), reason: '标题应该只被发送一次');
+    expect(
+      carrying.single,
+      contains(body),
+      reason: '标题要跟着它下面的正文走。留在上一批里，模型看到的是'
+          '一个和它无关的段落加一行光秃秃的标题，而正文另起一条请求',
+    );
+  }, skip: present ? null : '插件仓库不在这台机器上');
+
+  test('a document opening with a heading sends no empty request', () {
+    // The batch being closed can be nothing but headings: a document that
+    // starts with one, followed by a paragraph bigger than the budget. The
+    // overflow flushes, everything held back is a heading, and there is
+    // nothing left to send.
+    //
+    // Carrying them all forward and sending what remains would post an empty
+    // prompt — a request that costs a round trip and can only come back
+    // wrong. Reached by mutation: removing the guard broke nothing, which is
+    // how a branch nobody exercises looks.
+    final service = PluginCommandService(root.path);
+    addTearDown(service.dispose);
+    final huge = 'word ' * 400; // one block, larger than the budget on its own
+    final document = '## Overview\n\n$huge';
+
+    final prompts = <String>[];
+    var action = service.start(
+      manifest,
+      PluginScriptContext(
+        command: 'translate.document',
+        document: document,
+        answer: 'English',
+        view: 'source',
+      ),
+    ) as PluginPaneAction;
+    for (var step = 0; step < 20; step++) {
+      final prompt = action.nextPrompt;
+      if (prompt == null) break;
+      prompts.add(prompt);
+      action = service.resumeWithResult(
+        manifest,
+        const PluginScriptContext(
+          command: 'translate.document',
+          answer: 'English',
+          view: 'source',
+        ),
+        '译文。',
+      ) as PluginPaneAction;
+    }
+
+    expect(prompts, isNotEmpty);
+    for (final prompt in prompts) {
+      // The prompt always carries the template around it, so "empty" means
+      // the part that was meant to be a document is missing: the whole thing
+      // is the system and user prompts with nothing between them.
+      expect(prompt, contains('word'),
+          reason: '每一条请求都得带着要翻译的内容；空请求白跑一趟，'
+              '而且只可能换回一个错的答案');
+    }
+    expect(
+      prompts.where((p) => p.contains('## Overview')).single,
+      contains('word'),
+      reason: '标题仍旧要和它下面的正文一起走',
+    );
+  }, skip: present ? null : '插件仓库不在这台机器上');
+
   test('a fenced block is not cut in half', () {
     // The blank line inside the fence is part of the code. Splitting there
     // would hand the model half a program — which is what this is about, not

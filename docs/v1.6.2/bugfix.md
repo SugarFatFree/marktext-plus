@@ -51,6 +51,8 @@
 | BUG-306 | 2026-09-07 | 文档里的远程图片和更新检查不走系统代理，全局没有 `HttpOverrides` | P1 | 已修复 |
 | BUG-307 | 2026-09-07 | `markdown` 节点里的 `![](http://…)` 绕过权限、日志和代理 | P1 | 已修复 |
 | BUG-308 | 2026-09-07 | 提示词模板丢了 `{{instruction}}` / `{{language}}`，读者刚输入的东西静默消失 | P1 | 已修复 |
+| BUG-309 | 2026-09-07 | 标题被留在上一批，它要介绍的正文另起一条请求 | P2 | 已修复 |
+| BUG-310 | 2026-09-07 | lua_dardo 里嵌套函数中的裸 `return` 是空操作，守卫全部失效 | P0 | 已修复 |
 
 ---
 
@@ -2597,3 +2599,118 @@ end
 
 插件仓库：`lib/prompts.lua`、`CHANGELOG.md`、`README.md` 与 11 份翻译；
 主应用：`test/services/ai_translate_plugin_test.dart`
+
+---
+
+## BUG-309：标题被留在上一批，正文另起一条请求
+
+（在官方插件里。）
+
+### 现象
+
+翻译整篇文档时按块分批发送。`is_heading` 的注释写着标题「goes with the text
+**under** it」——单独一行 `## Results` 不告诉模型语域也不告诉主题。
+
+但规则只写了一半：
+
+```lua
+if size > 0 and size + length > budget and not is_heading(block) then flush() end
+```
+
+**标题永远不触发切分，所以它加入当前批次**——也就是它上面那一批。然后它下面的正文撑爆预算、
+触发切分，于是标题跟着一个和它无关的段落走了，正文自己另起一条请求。
+
+既有测试只覆盖了「标题是最后一块」的情况，那时它后面没有东西可分离。
+
+### 修
+
+`flush()` 切分时把结尾的连续标题**交给下一批**。
+
+第一版把最后一次 flush 也这么写，结果打掉了那条既有测试——**最后一次不能"带走"**，
+没有下一批了，被留下的标题就是永远不会发出的标题。分成 `flush` 和 `flush_last` 两个。
+
+### 涉及文件
+
+插件仓库 `lib/blocks.lua`；主应用 `test/services/ai_translate_plugin_test.dart`
+
+---
+
+## BUG-310：lua_dardo 里嵌套函数中的裸 `return` 是空操作
+
+**这条是这一版最重要的发现，而且不是找出来的——是撞上的。**
+
+### 怎么撞上的
+
+修 BUG-309 时加了一条守卫：整批都是标题时不切分，否则会送出一条空请求。
+写完跑测试，**空请求还在**。
+
+推演了三遍代码都得出"应该正确"的结论，于是停止猜测，直接把 `blocks.lua` 用
+`PluginScriptRuntime` 跑起来打印分批结果——`n=2 [1 len=0] [2 len=2013]`。
+守卫的 `return` 根本没有生效。
+
+### 最小复现
+
+```lua
+local out = {}
+local function f()
+  if true then return end
+  out[#out + 1] = "x"     -- 这一行照样执行
+end
+f()
+-- #out == 1
+```
+
+逐项缩小后的确切规则：
+
+| 形式 | 行为 |
+|---|---|
+| 嵌套函数里 `if ... then return end` | **被忽略**，后面的语句照常执行 |
+| 嵌套函数里 `for ... do return end` | **被忽略** |
+| 嵌套函数里 `while true do return end` | **死循环**——探针测试直接超时 |
+| 嵌套函数里 `return nil` | 正确 |
+| `on_command` 顶层 `return <值>` | 正确 |
+
+条件为真为假都一样：裸 `return` 就是一条什么都不做的语句。
+
+### 为什么之前没暴露
+
+`blocks.lua` 里本来就有三处 `if #current == 0 then return end`，全都是无效的。
+它们**碰巧**没出事：
+
+- `split` 的 flush 后面还有一道 `empty` 检查，空批次被它挡住了
+- `batch` 的 flush 只在 `size > 0` 时被调用，而 `size > 0` 蕴含 current 非空
+
+**我新加的那条守卫是第一处真正依赖提前返回的代码。**
+
+### 严重性
+
+`if not ok then return end` 是每个 Lua 程序员写守卫的方式。在这个解释器里它什么也守不住：
+校验通过了、空值情况"处理"了，而处理并没有发生。**在 `while true` 里它是死循环**，
+读者看到的是编辑器卡死——这和 BUG-294 是同一种表现，但成因完全不同，
+而且是一段看起来完全正常的代码造成的。
+
+### 修
+
+三个仓库全扫了一遍，只有 `blocks.lua` 有这个形式，四处，全部改成 `return nil`
+（合法 Lua，上游哪天修好了也照样对）。
+
+### 两条测试
+
+- **钉住解释器的行为**，而且是**断言它坏掉**：那条测试哪天失败了，就是上游修好了、
+  可以拿掉绕法的那天
+- **扫本项目所有 `.lua`**（主应用 test/、SDK、官方插件），禁止裸 `return`
+
+第二条第一版写错了：它读相邻仓库却没有 `skip:`，在没有插件仓库的 CI 上会**失败**
+而不是跳过。被既有守卫 `repo_dependent_tests_test` 当场抓住——那条守卫正是为
+「本地全绿 CI 全红」写的，这次轮到它抓我。
+
+### 文档
+
+写进了 SDK README 的「What this Lua does not do」表——它原本有四条，现在五条，
+而这一条单独配了三段说明，因为前四条是"某个写法没用"，这一条是"你写的守卫不守"。
+12 种语言全部跟上。
+
+### 涉及文件
+
+插件仓库 `lib/blocks.lua`；SDK 的 `README.md` 与 11 份翻译；
+主应用 `test/services/lua_bare_return_test.dart`（新增）
