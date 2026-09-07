@@ -58,6 +58,7 @@
 | BUG-313 | 2026-09-07 | 大纲和字数是同一形状，注释点了名，上一轮只修了字数 | P2 | 已修复 |
 | BUG-314 | 2026-09-08 | 「重新加载图片」（F5）什么也不做，块缓存签名里没有它 | P1 | 已修复 |
 | BUG-315 | 2026-09-08 | 插件图片缓存以「代号:地址」为键，每次重载滞留一整代字节 | P2 | 已修复 |
+| BUG-316 | 2026-09-08 | 改代码字体/字号，预览不跟着变；块缓存签名还漏着三个 | P1 | 已修复 |
 
 ---
 
@@ -2993,3 +2994,65 @@ expect(cache.length, 1, reason: '十次重载之后仍然只握着当前这一�
 ### 涉及文件
 
 `lib/ui/editor/markdown_renderer.dart`；`test/ui/editor/plugin_picture_cache_test.dart`
+
+---
+
+## BUG-316：改代码字体，预览不跟着变
+
+### 起点：上一条修完之后该问的问题
+
+BUG-314 的根因是块缓存的签名漏了 `imageRevision`。**一张手写的清单漏了一项，
+就必然还漏别的。** 所以直接对账：渲染器实际读了哪些配置项，签名里列了哪些。
+
+```
+签名里：themeName fontSize lineHeight wrapCodeBlocks codeBlockLineNumbers enableHtml
+读到的：codeBlockLineNumbers codeFontFamily codeFontSize editMode
+        editorMaxWidth enableHtml fontSize lineHeight themeName wrapCodeBlocks
+```
+
+差集四个，其中 `editorMaxWidth` 在外层 `ConstrainedBox` 里（不进缓存），
+剩下三个都在被缓存的块里。
+
+### 证实
+
+```
+PROBE 改之前 = 14.0
+PROBE 改之后 = 14.0  （期望 24）
+```
+
+在设置里把代码字号改成 24，预览里的代码块**还是 14**。`_codeStyle()` 用的是
+`ref.read`，连依赖都不注册；而它所在的块从缓存里原样取出，那行代码根本不执行。
+
+`editMode` 同理——`_buildTable` 在分屏和预览模式下布局不同，而那个 `ref.watch`
+同样在缓存后面。
+
+### 修
+
+三个字段进签名。
+
+### 两条测试，一条查清单一条查行为
+
+- **对账守卫**：扫渲染器里所有 `config.X` 与 `ref.read/watch(settingsProvider).X`，
+  要求每个都在签名里，除非列进 `exempt` 并写明理由（目前只有 `editorMaxWidth`）。
+  这条守卫独立地点出了同样三个名字
+- **行为测试**：真的改设置、真的看预览里画出来的字号
+
+两条都要有。**守卫查的是源码形状，清单可以是对的而机制仍然坏的**；
+行为测试查的是那件事本身，但它只覆盖一个字段。
+
+### 写探针时踩的两个坑
+
+`pumpAndSettle()` 在这个渲染器上**永远不会返回**——它靠 post-frame 回调分批填充，
+永远不静止。改成固定次数的 `pump`。
+
+`await updateConfig(...)` 在 `testWidgets` 里**永远不完成**——它 await 的是写盘，
+而 widget 测试跑在 FakeAsync 区里，`dart:io` 的 future 不会完成。
+`state` 是同步改的，所以 `unawaited` 就行。这条记忆里本来就有，我又踩了一次。
+
+两次都表现为「测试被 SIGTERM 杀掉、输出 0 字节」，看起来像环境问题而不像我的错。
+
+### 涉及文件
+
+`lib/ui/editor/markdown_renderer.dart`；
+`test/ui/editor/block_cache_signature_test.dart`（新增）；
+`test/ui/editor/code_font_updates_preview_test.dart`（新增）

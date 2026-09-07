@@ -709,6 +709,14 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       config.wrapCodeBlocks,
       config.codeBlockLineNumbers,
       config.enableHtml,
+      // Read while a code block, inline code, front matter or the block
+      // editor is drawn — all of them cached. Without these, picking a code
+      // font in settings changed nothing on screen until something else
+      // happened to invalidate the cache.
+      config.codeFontFamily,
+      config.codeFontSize,
+      // The table builder lays out differently in split view.
+      config.editMode,
       theme.brightness,
       widget.onSourceChanged == null,
       _editingNode,
