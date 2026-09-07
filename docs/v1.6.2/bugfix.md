@@ -55,6 +55,7 @@
 | BUG-310 | 2026-09-07 | lua_dardo 里嵌套函数中的裸 `return` 是空操作，守卫全部失效 | P0 | 已修复 |
 | BUG-311 | 2026-09-07 | 大文档只按行数分段，行少字节多的文档首帧等 4 秒 | P1 | 已修复 |
 | BUG-312 | 2026-09-07 | 状态栏字数在 UI 线程上整篇统计，大文档每次停下打字卡 176ms | P2 | 已修复 |
+| BUG-313 | 2026-09-07 | 大纲和字数是同一形状，注释点了名，上一轮只修了字数 | P2 | 已修复 |
 
 ---
 
@@ -2839,3 +2840,67 @@ final enough = i >= minimumLines || consumed >= minimumCharacters;
 `lib/services/word_count_service.dart`；`lib/providers/word_count_provider.dart`；
 `test/services/word_count_service_test.dart`；
 `test/providers/word_count_off_thread_test.dart`（新增）
+
+---
+
+## BUG-313：修了字数，把它注释里点名的兄弟留在了原地
+
+### 现象
+
+`outline_provider.dart` 的类注释，原文：
+
+> Debounced the way the word count already was, **since it is the same shape of
+> problem**.
+
+上一轮（BUG-312）把字数移出了 UI 线程。大纲留在原地——**同样防抖 300ms，同样同步，
+同样跑在画窗口的那个 isolate 上**。
+
+实测 4.7MB / 16 万行：**184ms**，和字数的 176ms 同一量级。
+
+这是「改一个分支就读完它的兄弟」最赤裸的一次：**兄弟的名字就写在被改那一份的注释里**，
+而我上一轮没有回头看它。
+
+### 修
+
+和 BUG-312 同形：`Isolate.run`，spawn 失败退回原地算，加一道陈旧结果不写回的判断。
+
+大纲的陈旧结果比字数更糟：**标题看起来都是对的，而每个行号都是错的**——
+而行号正是点击一条大纲要跳过去的东西。
+
+### 一处**不**照抄的地方：没有字节阈值
+
+字数的代价跟文档**重量**走，所以字节是对的代理。大纲的代价跟文档**行数**走：
+
+| 文档 | 大纲耗时 |
+|---|---|
+| 8.8MB / 900 行（长行） | 46ms |
+| 1.1MB / 16 万行（短行） | 216ms |
+
+**字节阈值在这里是"用便宜的方式问了错的问题"**——正是 BUG-311 犯过的错。
+而正确的代理（数行数）自己就要扫一遍，成本高于实测 **0.4–1.1ms** 的 spawn。
+所以这里不设阈值，理由写在类注释里。
+
+### 我测量时也差点栽在同一件事上
+
+第一次量大纲，我用的是 BUG-311 那份「行少字节多」的 8.8MB 文档，得出 **46ms**，
+和注释里写的 402ms 差了一个量级，一度以为注释过时了。
+换成正常行长的散文才看到 184ms。**同一天里，"文档的形状比大小重要"这件事教了我两次。**
+
+（注释里的 402ms 我没复现出来，最高量到 184ms。可能是机器不同或代码改过；
+这里记的是我自己量到的数。）
+
+### 变异
+
+1. 改回同步、留在 UI 线程 → 陈旧判断那条失败
+2. 去掉陈旧判断 → 同一条失败
+
+**第 1 次变异没有打掉守卫**，因为我只改了调用行，`Isolate.run` 字样还留在文件里，
+而守卫查的是**字符串存在**而不是它被用上。加严成三条断言（有 `Isolate.run`、
+没有 `state = MarkdownParser.headingOutline`、有 `await _compute(`）之后，
+同一次变异两条测试同时失败。
+
+还原后连跑五次全过。
+
+### 涉及文件
+
+`lib/providers/outline_provider.dart`；`test/providers/outline_off_thread_test.dart`（新增）
