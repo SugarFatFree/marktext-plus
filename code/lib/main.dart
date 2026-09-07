@@ -13,6 +13,7 @@ import 'package:windows_single_instance/windows_single_instance.dart';
 import 'app.dart';
 import 'core/config/config_service.dart';
 import 'core/diagnostics/startup_trace.dart';
+import 'core/net/system_proxy.dart';
 import 'providers/locale_provider.dart';
 import 'services/plugin_manager.dart';
 import 'providers/settings_provider.dart';
@@ -107,6 +108,13 @@ void _handleSecondInstance(List<dynamic> newArgs) async {
 void main(List<String> args) async {
   // Before the first mark, so the runner's own timings head the trace.
   StartupTrace.readRunnerArguments(args);
+  // Before anything can make a request. An assignment, not a step: it sets a
+  // zone value, opens no socket and reads no file, so it does not appear in
+  // the trace. What it buys is the requests we do not write ourselves —
+  // `Image.network` in the renderer and `package:http` in the update check
+  // both build their client where no call site of ours can reach it, and
+  // behind a proxy both simply failed.
+  HttpOverrides.global = SystemProxyHttpOverrides();
   WidgetsFlutterBinding.ensureInitialized();
   StartupTrace.mark('flutter binding ready');
 
