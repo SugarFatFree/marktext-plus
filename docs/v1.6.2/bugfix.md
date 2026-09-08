@@ -79,6 +79,7 @@
 | BUG-334 | 2026-09-08 | 首帧前那步「不该写盘」只写在注释里，没有守卫 | P2 | 已加守卫 |
 | BUG-335 | 2026-09-08 | 快捷键索引的三个失效点全都没人守——删掉任意一个，2730 条测试全绿 | **P1** | 已加守卫 |
 | BUG-336 | 2026-09-08 | 预览的 AST 缓存失效同样无人守；注释里记着它当年怎么坏的 | P1 | 已加守卫 |
+| BUG-337 | 2026-09-08 | 在分屏的预览里勾选复选框，会在 widget 生命周期里改 provider | **P1** | 已修复 |
 
 ---
 
@@ -4334,3 +4335,86 @@ F7/F8/F9 空着——单元测试可以完整走一遍索引。
 ### 涉及文件
 
 `test/ui/editor/html_setting_updates_preview_test.dart`（新增）
+
+---
+
+## BUG-337：一个断言，同时挡住了缺陷和守卫
+
+沿 BUG-336 的线索（注释里记着当年怎么坏的）继续查，`split_editor.dart` 有这一条：
+
+> Without this the preview pane was read-only in split mode: task-list
+> checkboxes did nothing and a block could not be edited in place,
+> unlike in preview mode.
+
+**把那个 `onSourceChanged:` 参数拿掉，2736 条测试全绿。** 又一个修好而无人看守的。
+
+### 于是要补守卫，一写就撞上第二个缺陷
+
+```
+Tried to modify a provider while the widget tree was building.
+
+#1  EditorNotifier.updateCursor        (editor_provider.dart:362)
+#2  _SourceEditorState._onSelectionChanged (source_editor.dart:1288)
+#10 HighlightingController.value=      (highlighting_controller.dart:51)
+#11 _SourceEditorState.didUpdateWidget (source_editor.dart:707)
+```
+
+完整链路，**每一步都是真实使用路径**：
+
+1. 在分屏的预览半边勾一个复选框
+2. `_onPreviewEdited` → `_externalRevision++`
+3. 源码半边的 `didUpdateWidget` 看到修订号变了，把新文本写进 controller
+4. controller 通知它的两个 listener
+5. `_onSelectionChanged` → `ref.read(editorProvider.notifier).updateCursor(...)`
+
+第 5 步发生在 `didUpdateWidget` 里，**Riverpod 明确禁止在 widget 生命周期里改
+provider**。debug 构建抛断言；release 里断言不生效，但 Riverpod 警告的
+「两个监听同一 provider 的组件收到不同状态」是真实风险。
+
+**这也解释了这个功能为什么一直没有守卫**：widget test 跑在 debug 下，
+任何针对「分屏预览编辑」的测试，一写就抛。缺陷把自己的守卫挡在门外。
+
+### 修
+
+同一个文件的 `initState` 早就有正确做法——它用 `addPostFrameCallback`
+推迟自己的第一次 provider 写入。`didUpdateWidget` 没跟上。
+
+现在赋值前摘掉两个 listener，赋完加回来，然后在帧后手动调一次：
+
+```dart
+_controller.removeListener(_onTextChanged);
+_controller.removeListener(_onSelectionChanged);
+_controller.value = TextEditingValue(...);
+_controller.addListener(_onTextChanged);
+_controller.addListener(_onSelectionChanged);
+WidgetsBinding.instance.addPostFrameCallback((_) {
+  if (!mounted) return;
+  _onTextChanged();
+  _onSelectionChanged();
+});
+```
+
+**文本不延迟**（源码窗格当帧就显示新内容），只有 provider 的通知落到帧后。
+
+### 守卫
+
+`test/ui/editor/split_preview_is_editable_test.dart`：在分屏里点复选框，
+断言两件事——
+
+1. 文档被写回（`- [x] 一`）
+2. **`canUndo` 为真**：帧后那两句如果不跑，源码窗格拿着新文本而编辑器状态
+   毫不知情，状态栏停在旧位置，而且这一勾没进历史——**Ctrl+Z 会越过它，
+   退到读者从没待过的地方**
+
+### 变异验证
+
+| 变异 | 结果 |
+|------|------|
+| 拿掉 `onSourceChanged:`（预览重回只读） | 红 |
+| 把生命周期违规改回去 | 红（抛断言） |
+| 帧后不再调那两个 handler | 红（`canUndo` 为假） |
+
+### 涉及文件
+
+`lib/ui/editor/source_editor.dart`；
+`test/ui/editor/split_preview_is_editable_test.dart`（新增）

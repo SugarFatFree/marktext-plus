@@ -704,12 +704,32 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
 
     // Keep the caret where it was, as far as the new text allows.
     final offset = _controller.selection.baseOffset;
+
+    // The listeners write to providers, and this runs inside a widget
+    // lifecycle callback, where Riverpod refuses that — "Tried to modify a
+    // provider while the widget tree was building". They are taken off for
+    // the assignment and told afterwards, the same way `initState` defers
+    // its own first write.
+    //
+    // Reachable from the preview: ticking a checkbox in a split raises the
+    // revision, which is what brings the new text through here. Every widget
+    // test of editing from the split preview threw before this, which is a
+    // large part of why there were none.
+    _controller.removeListener(_onTextChanged);
+    _controller.removeListener(_onSelectionChanged);
     _controller.value = TextEditingValue(
       text: widget.initialContent,
       selection: TextSelection.collapsed(
         offset: offset < 0 ? 0 : offset.clamp(0, widget.initialContent.length),
       ),
     );
+    _controller.addListener(_onTextChanged);
+    _controller.addListener(_onSelectionChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _onTextChanged();
+      _onSelectionChanged();
+    });
   }
 
   @override
