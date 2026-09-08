@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:ffi/ffi.dart';
 import 'package:flutter/foundation.dart';
+import '../../services/app_log.dart';
 
 /// Records how long each step of startup and shutdown takes.
 ///
@@ -274,7 +275,18 @@ class StartupTrace {
   /// trace that repeats the same line hundreds of times is harder to read than
   /// one that omits it.
   static void markOnce(String phase) {
-    if (_once.add(phase)) mark(phase);
+    if (!_once.add(phase)) return;
+    mark(phase);
+    // Milestones also go to the application log, which is the only window a
+    // remote session has: `read_logs` over MCP introduces itself as "use this
+    // to find out what just happened", and how long this took to start is one
+    // of the things that just happened. The forty `mark` calls stay out of it
+    // — the file has them, and forty lines would push a plugin's output off
+    // the end of a log that holds a few hundred.
+    AppLog.instance.info(
+      '$phase at ${_since.elapsedMilliseconds} ms',
+      source: 'startup',
+    );
   }
 
   static Timer? _shutdownWatchdog;
