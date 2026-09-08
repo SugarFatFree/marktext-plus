@@ -125,4 +125,53 @@ void main() {
     expect(count, 1);
     expect(await child.exitCode, isNot(0));
   }, timeout: const Timeout(Duration(seconds: 30)));
+
+  test('the usual start costs one existence check and no write', () async {
+    // The reaping runs before `runApp`, on every start, and almost every
+    // start has nothing to reap. `reapOrphans` says so in a comment — "this
+    // must cost one existence check, not a write" — and nothing held it to
+    // that. Dropping the early return, or writing the empty list back
+    // unconditionally, puts a disk write in front of the first frame and
+    // every other test here still passes.
+    var probed = 0;
+    var killed = 0;
+
+    final reaped = await registry.reapOrphans(
+      imageOf: (pid) async {
+        probed++;
+        return null;
+      },
+      kill: (pid) {
+        killed++;
+        return true;
+      },
+    );
+
+    expect(reaped, 0);
+    expect(probed, 0, reason: '没有记录时不该去问任何 pid');
+    expect(killed, 0);
+    expect(
+      File('${root.path}/running.json').existsSync(),
+      isFalse,
+      reason: '干净启动时不该写盘——这一步排在首帧之前',
+    );
+  });
+
+  test('a start with something to reap does write the list back', () async {
+    // The other half: the cheap path must be cheap because there is nothing
+    // to do, not because it stopped doing it.
+    await registry.record(4242, '/plugins/demo/bin/plugin');
+
+    final reaped = await registry.reapOrphans(
+      imageOf: (pid) async => '/plugins/demo/bin/plugin',
+      kill: (pid) => true,
+    );
+
+    expect(reaped, 1);
+    expect(
+      jsonDecode(File('${root.path}/running.json').readAsStringSync()),
+      isEmpty,
+      reason: '处理过的记录要清掉，否则下次启动会再杀一遍已经不在的 pid',
+    );
+  });
 }

@@ -76,6 +76,7 @@
 | BUG-331 | 2026-09-08 | SDK schema 的四个约束只有三个被对账，第四个没人看 | P2 | 已加守卫 |
 | BUG-332 | 2026-09-08 | 同一个动作在命令面板与设置里显示成两个名字（中文、俄语各一处） | P2 | 已修复 |
 | BUG-333 | 2026-09-08 | 导出守卫自称能覆盖将来新增的导出，而它的清单是手写的 | P2 | 已修复 |
+| BUG-334 | 2026-09-08 | 首帧前那步「不该写盘」只写在注释里，没有守卫 | P2 | 已加守卫 |
 
 ---
 
@@ -4179,3 +4180,45 @@ final handlers = RegExp(
 ### 涉及文件
 
 `test/ui/widgets/export_failure_test.dart`
+
+---
+
+## BUG-334：写在注释里的性能承诺
+
+`main.dart` 在 `runApp` 之前 await 这一句：
+
+```dart
+await PluginManager(p.join(configDir, 'plugins')).reapOrphanedPlugins();
+```
+
+它回收上次崩溃遗留的插件进程。`reapOrphans` 里有一段注释：
+
+> The usual case is a clean shutdown with nothing to reap, and the editor
+> starts in under a second: **this must cost one existence check, not a write.**
+
+实现是对的——没有记录就 early return。**但没有任何测试盯着它。**
+
+去掉那行 early return，或者把 `_write(const [])` 提到前面，
+**首帧之前就多了一次磁盘写，而八条已有测试全部照样绿。**
+
+这是「约定要做进设施而非文档」的又一例：注释说清了意图，
+挡不住下一个人。用户对这个编辑器的第一条要求是「秒启动」，
+而守着它的只有一句话。
+
+### 守卫
+
+`plugin_process_registry_test` 加两条，两个方向：
+
+1. **干净启动不写盘**：没有记录时，不问任何 pid、不杀任何东西、
+   registry 文件在跑完之后仍然不存在
+2. **有东西要回收时确实写回**：便宜的路径之所以便宜，必须是因为没事可做，
+   而不是因为它不做事了
+
+### 变异验证
+
+- 删掉 `if (recorded.isEmpty) return 0;` → 第 1 条红
+- 删掉 `await _write(const []);` → 第 2 条红（以及已有的「清空」那条）
+
+### 涉及文件
+
+`test/services/plugin_process_registry_test.dart`
