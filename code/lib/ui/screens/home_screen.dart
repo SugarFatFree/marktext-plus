@@ -1020,6 +1020,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
             shouldBuild: currentIndex == 1,
             builder: () => MarkdownRenderer(
               key: ValueKey('preview_inner_${activeTab.id}'),
+              // Which tab this is, so coming back to it comes back to where it
+              // was being read. The source pane has had a `tabId` all along;
+              // the split's preview deliberately gets none, because there the
+              // source pane owns the position and this one follows it.
+              tabId: activeTab.id,
               markdown: content,
               onSourceChanged: onContentChanged,
             ),

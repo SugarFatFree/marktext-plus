@@ -48,10 +48,18 @@ class MarkdownRenderer extends ConsumerStatefulWidget {
   const MarkdownRenderer({
     super.key,
     required this.markdown,
+    this.tabId,
     this.onSourceChanged,
     this.followsSource = false,
     this.loadImage,
   });
+
+  /// Which tab this is showing, so the pane can be put back where that tab
+  /// was last read.
+  ///
+  /// Null wherever the document is not a tab — a plugin rendering markdown of
+  /// its own, and the previews inside tests that do not care.
+  final String? tabId;
 
   /// Where remote pictures come from, when someone other than the reader's
   /// own document is being rendered.
@@ -131,6 +139,24 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   /// The preview's own scrolling, so it can be moved to follow the pane
   /// beside it.
   final ScrollController _previewScroll = ScrollController();
+
+  /// Where this pane was scrolled to, for [dispose] to hand on.
+  ///
+  /// Read from the controller as it moves, not at teardown: by then the
+  /// position has been detached and the controller answers nothing.
+  double _lastScrollOffset = 0;
+
+  /// Where this tab was last read, waiting for the document to be tall enough
+  /// to hold it.
+  ///
+  /// The preview fills in across frames, so just after it is built the
+  /// scrollable only extends over the first batch of blocks. Restoring then
+  /// clamps to that and lands the reader near the top of a document they were
+  /// reading the middle of, which looks exactly like the position being lost.
+  double? _pendingScrollRestore;
+
+  /// Held from `initState`, because `ref` is not usable during teardown.
+  EditorNotifier? _editorNotifier;
 
   /// The scroll view's box, for turning a heading's position on screen into a
   /// position inside the document.
@@ -272,7 +298,12 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     _editFocusNode.addListener(() {
       if (!_editFocusNode.hasFocus) _commitEdit();
     });
+    // Always, not only in a split: the pane's own position is worth keeping
+    // whether or not anything is beside it to follow.
+    _previewScroll.addListener(_recordScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _editorNotifier = ref.read(editorProvider.notifier);
+      _prepareScrollRestore();
       ref.listenManual(
         editorProvider.select((s) => s.targetScrollLine),
         (prev, next) => _scrollToTargetLine(next),
@@ -295,6 +326,43 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         _previewScroll.addListener(_reportPreviewLine);
       }
     });
+  }
+
+  void _recordScroll() {
+    if (_previewScroll.hasClients) _lastScrollOffset = _previewScroll.offset;
+  }
+
+  /// Lines up the restore for this tab, if there is one to make.
+  ///
+  /// Not in a split: there the source pane owns the position and this one
+  /// follows it, so restoring both would have them argue about where the
+  /// reader was.
+  void _prepareScrollRestore() {
+    final tabId = widget.tabId;
+    if (tabId == null || widget.followsSource) return;
+    final saved = _editorNotifier?.recallScroll(tabId, preview: true);
+    if (saved == null || saved == 0) return;
+    _pendingScrollRestore = saved;
+    _tryRestoreScroll();
+    // Nothing more is coming for a document that was drawn in one go, so the
+    // clamp above is final rather than a guess made too early.
+    if (_fillWatch == null && !_fullParseOwed) _pendingScrollRestore = null;
+  }
+
+  /// Puts the pane as close to the remembered position as the document so far
+  /// allows, and gives up holding the request once it fits.
+  void _tryRestoreScroll() {
+    final saved = _pendingScrollRestore;
+    if (saved == null || !_previewScroll.hasClients) return;
+    final position = _previewScroll.position;
+    final target = saved.clamp(
+      position.minScrollExtent,
+      position.maxScrollExtent,
+    );
+    if ((target - _previewScroll.offset).abs() >= 1) {
+      _previewScroll.jumpTo(target);
+    }
+    if (target >= saved) _pendingScrollRestore = null;
   }
 
   void _scrollToTargetLine(int? line) {
@@ -510,6 +578,11 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     }
     _hoveredLink.dispose();
     _previewScroll.removeListener(_reportPreviewLine);
+    _previewScroll.removeListener(_recordScroll);
+    final tabId = widget.tabId;
+    if (tabId != null && !widget.followsSource) {
+      _editorNotifier?.rememberScroll(tabId, _lastScrollOffset, preview: true);
+    }
     _previewScroll.dispose();
     _editController.dispose();
     _editFocusNode.dispose();
@@ -1501,6 +1574,17 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     // exactly the documents this line exists to measure, since a document
     // small enough to parse in one go never takes this path at all.
     if (_fullParseOwed) return;
+    // Every block is built — but built is not laid out, and the scrollable's
+    // extent is only as tall as the last frame measured. Giving up here left
+    // the reader half way to where they had been. One more frame, one last
+    // attempt against the finished height, and then stop waiting.
+    if (_pendingScrollRestore != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _tryRestoreScroll();
+        _pendingScrollRestore = null;
+      });
+    }
     final watch = _fillWatch;
     if (watch == null) return;
     _fillWatch = null;
@@ -1525,6 +1609,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             : _maxBatchSize;
         _renderedNodeCount = (_renderedNodeCount + step).clamp(0, totalNodes);
       });
+      _tryRestoreScroll();
       if (_renderedNodeCount >= totalNodes) _finishedFilling(totalNodes);
       // The next build schedules the batch after this one, if any is left.
     });

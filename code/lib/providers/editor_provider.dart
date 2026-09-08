@@ -72,7 +72,6 @@ enum FormatAction {
 class EditorState {
   final int cursorLine;
   final int cursorCol;
-  final double scrollOffset;
   final FormatAction? pendingFormat;
 
   /// Whether the preview currently has a block open for editing.
@@ -128,7 +127,6 @@ class EditorState {
     this.previewBlockEditing = false,
     this.cursorLine = 0,
     this.cursorCol = 0,
-    this.scrollOffset = 0.0,
     this.pendingFormat,
     this.canUndo = false,
     this.canRedo = false,
@@ -152,7 +150,6 @@ class EditorState {
     bool? previewBlockEditing,
     int? cursorLine,
     int? cursorCol,
-    double? scrollOffset,
     FormatAction? pendingFormat,
     bool clearFormat = false,
     bool? canUndo,
@@ -177,7 +174,6 @@ class EditorState {
       previewBlockEditing: previewBlockEditing ?? this.previewBlockEditing,
       cursorLine: cursorLine ?? this.cursorLine,
       cursorCol: cursorCol ?? this.cursorCol,
-      scrollOffset: scrollOffset ?? this.scrollOffset,
       pendingFormat: clearFormat ? null : (pendingFormat ?? this.pendingFormat),
       canUndo: canUndo ?? this.canUndo,
       canRedo: canRedo ?? this.canRedo,
@@ -216,6 +212,17 @@ class EditorNotifier extends StateNotifier<EditorState> {
   final Map<String, List<_Snapshot>> _undoStacks = {};
   final Map<String, List<_Snapshot>> _redoStacks = {};
   String _historyKey = '';
+
+  /// Where each pane of each tab was scrolled to, so coming back to a tab
+  /// comes back to where you were reading.
+  ///
+  /// A plain map rather than part of [EditorState], for the same reason the
+  /// undo stacks are: writing it to the state would rebuild everything
+  /// watching this provider on a tab switch, and the panes record it while
+  /// they are being taken down, which is not a moment to be notifying anyone.
+  /// Nothing reads it except the pane rebuilding itself.
+  final Map<String, double> _sourceScroll = {};
+  final Map<String, double> _previewScroll = {};
 
   /// Snapshots kept per tab.
   ///
@@ -260,7 +267,24 @@ class EditorNotifier extends StateNotifier<EditorState> {
   void forgetHistory(String tabId) {
     _undoStacks.remove(tabId);
     _redoStacks.remove(tabId);
+    _sourceScroll.remove(tabId);
+    _previewScroll.remove(tabId);
   }
+
+  /// Records where a pane of [tabId] was scrolled to.
+  ///
+  /// Called as the pane goes away, which is what a tab switch does to it.
+  void rememberScroll(String tabId, double offset, {required bool preview}) {
+    (preview ? _previewScroll : _sourceScroll)[tabId] = offset;
+  }
+
+  /// Where that pane was, or null if this tab has not been read yet.
+  ///
+  /// Null and zero are deliberately different: a tab opened for the first time
+  /// has nothing to restore, and asking for a jump to zero on every first
+  /// build is a scroll animation nobody asked for.
+  double? recallScroll(String tabId, {required bool preview}) =>
+      (preview ? _previewScroll : _sourceScroll)[tabId];
   TextEditingController? _controller;
   ScrollController? _editorScrollController;
   double _editorTextFieldWidth = 0;
@@ -360,10 +384,6 @@ class EditorNotifier extends StateNotifier<EditorState> {
 
   void updateCursor(int line, int col) {
     state = state.copyWith(cursorLine: line, cursorCol: col);
-  }
-
-  void updateScroll(double offset) {
-    state = state.copyWith(scrollOffset: offset);
   }
 
   void applyFormat(FormatAction action) {

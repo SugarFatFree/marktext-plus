@@ -12,16 +12,11 @@ class TabInfo {
   bool isModified;
   bool isLoading;
   int cursorPosition;
-  // Deprecated: use per-mode scroll offsets instead
-  @Deprecated(
-    'Use sourceScrollOffset, previewScrollOffset, or splitScrollOffset',
-  )
-  double scrollOffset;
-  // Per-mode scroll offsets
-  double sourceScrollOffset;
-  double previewScrollOffset;
-  double splitScrollOffset;
-  double splitSourceScrollOffset;
+  // Where each pane was scrolled to is not here. Five fields for it were:
+  // one deprecated in favour of four per-mode ones, and none of the five was
+  // ever written or read. It lives beside the undo stacks now, for the reason
+  // written there — recording it on a tab would rebuild everything watching
+  // the tab list, every time a tab is switched away from (FEAT-137).
   EditMode editMode;
 
   /// What this document used on disk, so saving puts the same thing back.
@@ -50,11 +45,6 @@ class TabInfo {
     this.isModified = false,
     this.isLoading = false,
     this.cursorPosition = 0,
-    this.scrollOffset = 0,
-    this.sourceScrollOffset = 0,
-    this.previewScrollOffset = 0,
-    this.splitScrollOffset = 0,
-    this.splitSourceScrollOffset = 0,
     this.editMode = EditMode.preview,
     this.lineEnding = LineEnding.lf,
     this.encoding = FileEncoding.utf8Encoding,
@@ -116,11 +106,6 @@ class TabInfo {
     bool? isModified,
     bool? isLoading,
     int? cursorPosition,
-    double? scrollOffset,
-    double? sourceScrollOffset,
-    double? previewScrollOffset,
-    double? splitScrollOffset,
-    double? splitSourceScrollOffset,
     EditMode? editMode,
     LineEnding? lineEnding,
     FileEncoding? encoding,
@@ -139,12 +124,6 @@ class TabInfo {
       isModified: isModified ?? this.isModified,
       isLoading: isLoading ?? this.isLoading,
       cursorPosition: cursorPosition ?? this.cursorPosition,
-      scrollOffset: scrollOffset ?? this.scrollOffset,
-      sourceScrollOffset: sourceScrollOffset ?? this.sourceScrollOffset,
-      previewScrollOffset: previewScrollOffset ?? this.previewScrollOffset,
-      splitScrollOffset: splitScrollOffset ?? this.splitScrollOffset,
-      splitSourceScrollOffset:
-          splitSourceScrollOffset ?? this.splitSourceScrollOffset,
       editMode: editMode ?? this.editMode,
       lineEnding: lineEnding ?? this.lineEnding,
       encoding: encoding ?? this.encoding,

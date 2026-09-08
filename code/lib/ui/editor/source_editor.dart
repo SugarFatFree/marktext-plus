@@ -771,6 +771,13 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
       // never sees it change. Honour whatever is already pending.
       _scrollToTargetLine(ref.read(editorProvider).targetScrollLine);
 
+      // Otherwise, back to wherever this tab was last read. Only otherwise:
+      // a pending line is somebody asking to be taken somewhere, and that
+      // beats where they happened to be the last time they looked.
+      if (ref.read(editorProvider).targetScrollLine == null) {
+        _restoreScroll();
+      }
+
       // And the other half of the split view's scrolling: where the preview
       // has been scrolled to.
       if (widget.reportsScrollPosition) {
@@ -782,6 +789,25 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
         );
       }
     });
+  }
+
+  /// The last scroll offset this pane was at, for [dispose] to hand on.
+  double _lastScrollOffset = 0;
+
+  /// Puts the pane back where this tab was last read.
+  ///
+  /// Clamped, because the remembered number describes a layout that may no
+  /// longer exist: the window can be resized, the font made larger, or the
+  /// document rewritten by a plugin while the tab was off screen. An offset
+  /// past the end of the document is not a position.
+  void _restoreScroll() {
+    final saved = _editorNotifier.recallScroll(widget.tabId, preview: false);
+    if (saved == null || saved == 0) return;
+    if (!_editorScrollController.hasClients) return;
+    final position = _editorScrollController.position;
+    _editorScrollController.jumpTo(
+      saved.clamp(position.minScrollExtent, position.maxScrollExtent),
+    );
   }
 
   /// Scrolls so that [line] — 1-based — is at the top of the viewport.
@@ -822,6 +848,14 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     // editor is on screen".
     _editorNotifier.clearController(_controller);
     _editorNotifier.clearEditorScrollController(_editorScrollController);
+
+    // Before the controller is disposed, and read straight off it rather than
+    // tracked on every scroll: a tab switch is one write, scrolling is none.
+    _editorNotifier.rememberScroll(
+      widget.tabId,
+      _lastScrollOffset,
+      preview: false,
+    );
 
     _controller.dispose();
     // Overlay entries outlive the widget unless they are taken down.
@@ -1348,6 +1382,12 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
   }
 
   void _onEditorScroll() {
+    // Kept here rather than read at teardown: by the time `dispose` runs the
+    // position has already been detached from the controller, so asking it
+    // then answers nothing at all. A field assignment costs nothing per
+    // scroll, and nothing else is written until the pane goes away.
+    _lastScrollOffset = _editorScrollController.offset;
+
     // The toolbar is placed in screen coordinates, so it has to be moved when
     // the text under it moves. Rebuilding the entry is enough; it recomputes
     // the position from the current scroll offset.
