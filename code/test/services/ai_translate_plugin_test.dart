@@ -165,6 +165,35 @@ void main() {
     }
   }, skip: present ? null : '插件仓库不在这台机器上');
 
+  test('every setting it offers is one the script reads', () {
+    // A settings page is a promise: change this and something changes. A
+    // field the script never reads is a box the reader types into for
+    // nothing, and nothing about the page would say so.
+    //
+    // Looked for as a bare string rather than through a call, because the
+    // reads go through a local helper — `setting("writingSystem", default)`
+    // over `storage.get(key)` — and matching the call would have found none
+    // of the six and reported all six as dead. Twice today a literal-only
+    // scan has said code was not using something it uses.
+    final declared = manifest.settings.map((f) => f.key).toSet();
+    expect(declared, isNotEmpty, reason: '这个插件是有设置的，读不到说明取法坏了');
+
+    final source = Directory(repo!)
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((f) => f.path.endsWith('.lua'))
+        .map((f) => f.readAsStringSync())
+        .join('\n');
+    expect(source, isNotEmpty);
+
+    final dead = declared.where((key) => !source.contains('"$key"')).toList();
+    expect(
+      dead,
+      isEmpty,
+      reason: '设置页里有这些字段，脚本从不读它们——读者改了不会有任何变化：$dead',
+    );
+  }, skip: present ? null : '插件仓库不在这台机器上');
+
   test('every key the script looks up is one the manifest declares', () {
     // The test below holds each language to the keys the *manifest* names. A
     // script asks for keys of its own, and an unknown key comes back as
