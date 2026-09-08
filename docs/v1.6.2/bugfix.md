@@ -107,6 +107,7 @@
 | BUG-362 | 2026-09-09 | 大文档只画完前缀，预览就收起加载指示器、画出文末落点 | P3 | 已修复 |
 | BUG-363 | 2026-09-09 | 两种图表可以画成全空，22 种类型的守卫一条都看不见 | P2 | 已加守卫 |
 | BUG-364 | 2026-09-09 | 25 个窗口动作没有一个被执行过，接空或接反都无人发现 | P2 | 已加守卫 |
+| BUG-365 | 2026-09-09 | 52 个格式动作里 25 个从未被测试执行，接错了也没人发现 | P2 | 已加守卫 |
 
 ---
 
@@ -5785,3 +5786,67 @@ WindowAction('zoomOut', (_, ref) => _zoomBy(ref, 2)),      // 缩小写成了放
 ### 涉及文件
 
 - `test/ui/window_actions_do_something_test.dart`（新增）
+
+---
+
+## BUG-365：格式动作接到哪个处理，没人验过
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-365 |
+| 日期 | 2026-09-09 |
+| 优先级 | P2 |
+| 状态 | 已加守卫（未发现现存缺陷） |
+
+### 问题
+
+BUG-364 守的是键位表的一半（`WindowActions`）。**另一半是 `FormatAction`**——
+`window_action_coverage_test` 的 `isCarriedOut` 认的就是这两者。
+按「改一个分支就读完它的兄弟」，同样的问题该问它。
+
+好消息先说：分发它们的 `switch` **没有 `default` 且穷尽 52 个成员**，
+编译器已经保证「每个都被处理」，BUG-330 的那一半在这里回不来。
+
+编译器看不见的是**它被给了哪个处理**：
+
+```dart
+case FormatAction.quoteBlock:
+  _applyLinePrefixAtCursor('* ');    // 能编译、能绑、菜单上画着，写出的是圆点
+case FormatAction.promoteHeading:
+  _shiftHeadingLevel(1);             // 提升写成了降级
+```
+
+52 个动作里 **25 个在测试里从没被点名**。委托的帮助函数（前缀、标题升降、表格编辑）
+各自有测试，**从动作到参数的那一根线没有**。
+
+### 实测
+
+| 变异 | 全套 2870 条测试 |
+|------|-----------------|
+| `quoteBlock` 的前缀写成 `* ` | **全绿** |
+| `promoteHeading` 接成 `_shiftHeadingLevel(1)` | **全绿** |
+
+### 修复方案
+
+新增 `format_actions_do_something_test`：真的把动作跑进一个 `SourceEditor`，
+比对产出的文档全文。一张「输入 / 选区 / 期望输出」的表驱动 52 条断言。
+
+**期望值全部实测得来，一个都没猜**。这很要紧——先探到的两处「巧合」正说明猜会出错：
+
+- 单数据行的表格上，`tableInsertRowBelow` 与 `tableInsertRowAbove` **产出相同**
+- 两个段落时，`moveBlockUp` 与 `moveBlockDown` **产出相同**
+
+两者当时都是对的，但用那样的输入写断言，接反了照样通过。
+改用**三行数据、光标在中间**和**三个段落、光标在中段**，两个方向才分得开。
+
+同样有两方向对账：已测集 ∪ 明示不可测集（`copyAsMarkdown`/`copyAsHtml`，
+它们写剪贴板不改文档）必须等于 `FormatAction.values`。
+
+### 验证
+
+五次接线变异，全部被抓住：引用块前缀、标题升降方向、表格插行方向、
+表格对齐方式、块移动方向。
+
+### 涉及文件
+
+- `test/ui/editor/format_actions_do_something_test.dart`（新增）
