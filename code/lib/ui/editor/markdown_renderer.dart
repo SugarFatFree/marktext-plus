@@ -32,6 +32,7 @@ import '../widgets/mermaid_renderer.dart';
 import '../widgets/plugin_command_actions.dart';
 import '../../services/file_service.dart';
 import 'bottom_room.dart';
+import '../../services/app_log.dart';
 
 class MarkdownRenderer extends ConsumerStatefulWidget {
   final String markdown;
@@ -181,6 +182,19 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
 
   int _renderedNodeCount = 0;
   bool _batchScheduled = false;
+
+  /// Times the progressive fill, so how long a document took can be asked.
+  ///
+  /// "Loads fast, handles large files" is the first thing this editor claims,
+  /// and nothing recorded whether it did. Measuring from outside does not
+  /// work: the fill runs across frames, so an observer times whichever frame
+  /// its question landed in — 30 000 characters looked slower than 111 000
+  /// that way, three seconds against a quarter of one, on the same machine
+  /// seconds apart.
+  ///
+  /// One stopwatch and one line when it finishes. A document small enough to
+  /// draw in its first batch never starts it.
+  Stopwatch? _fillWatch;
   static const _initialBatchSize = 50;
   static const _maxBatchSize = 2000;
 
@@ -681,6 +695,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       _renderedNodeCount = nodes.length > _initialBatchSize
           ? _initialBatchSize
           : nodes.length;
+      if (_renderedNodeCount < nodes.length) _fillWatch = Stopwatch()..start();
     }
     if (_renderedNodeCount < nodes.length) {
       _scheduleNextBatch(nodes.length);
@@ -1443,6 +1458,21 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     await ClipboardService.copyWithHtml(selectedText, html);
   }
 
+  /// Says how long the last document took to draw, once.
+  ///
+  /// `debug`, so it is there when someone asks the log what happened and out
+  /// of the way when they are reading a plugin's output.
+  void _finishedFilling(int totalNodes) {
+    final watch = _fillWatch;
+    if (watch == null) return;
+    _fillWatch = null;
+    watch.stop();
+    AppLog.instance.debug(
+      'preview drew $totalNodes blocks in ${watch.elapsedMilliseconds} ms',
+      source: 'preview',
+    );
+  }
+
   void _scheduleNextBatch(int totalNodes) {
     if (_batchScheduled) return;
     _batchScheduled = true;
@@ -1456,6 +1486,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             : _maxBatchSize;
         _renderedNodeCount = (_renderedNodeCount + step).clamp(0, totalNodes);
       });
+      if (_renderedNodeCount >= totalNodes) _finishedFilling(totalNodes);
       // The next build schedules the batch after this one, if any is left.
     });
   }
