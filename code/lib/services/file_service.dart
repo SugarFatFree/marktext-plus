@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import '../models/file_node.dart';
 import '../utils/file_utils.dart';
@@ -183,7 +184,7 @@ class FileService {
       } finally {
         await handle.close();
       }
-      await _renameWithRetry(temp, target);
+      await renameWithRetry(temp, target);
     } catch (_) {
       // Never leave the scratch file behind next to the reader's documents.
       try {
@@ -209,15 +210,27 @@ class FileService {
   /// a few dozen milliseconds, and the rename fails with a sharing violation
   /// that is gone by the next attempt. Without this the atomic save would be
   /// *less* reliable than the truncating write it replaces.
-  static Future<void> _renameWithRetry(File temp, String target) async {
+  ///
+  /// [rename] and [wait] exist so a test can produce the failure this is for:
+  /// a scanner's hold cannot be staged on a machine that has no scanner, and
+  /// without them the retry could be deleted with the suite still green.
+  @visibleForTesting
+  static Future<void> renameWithRetry(
+    File temp,
+    String target, {
+    Future<void> Function(File temp, String target)? rename,
+    Future<void> Function(Duration)? wait,
+  }) async {
     const delays = [Duration(milliseconds: 20), Duration(milliseconds: 60)];
+    final move = rename ?? (File f, String t) async => f.rename(t);
+    final pause = wait ?? Future<void>.delayed;
     for (var attempt = 0;; attempt++) {
       try {
-        await temp.rename(target);
+        await move(temp, target);
         return;
       } on FileSystemException {
         if (attempt >= delays.length) rethrow;
-        await Future<void>.delayed(delays[attempt]);
+        await pause(delays[attempt]);
       }
     }
   }

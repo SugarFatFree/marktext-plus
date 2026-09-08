@@ -80,6 +80,7 @@
 | BUG-335 | 2026-09-08 | 快捷键索引的三个失效点全都没人守——删掉任意一个，2730 条测试全绿 | **P1** | 已加守卫 |
 | BUG-336 | 2026-09-08 | 预览的 AST 缓存失效同样无人守；注释里记着它当年怎么坏的 | P1 | 已加守卫 |
 | BUG-337 | 2026-09-08 | 在分屏的预览里勾选复选框，会在 widget 生命周期里改 provider | **P1** | 已修复 |
+| BUG-338 | 2026-09-08 | Windows 保存重试无人守；删掉它，杀毒软件一占用就报保存失败 | P1 | 已加守卫 |
 
 ---
 
@@ -4418,3 +4419,44 @@ WidgetsBinding.instance.addPostFrameCallback((_) {
 
 `lib/ui/editor/source_editor.dart`；
 `test/ui/editor/split_preview_is_editable_test.dart`（新增）
+
+---
+
+## BUG-338：Windows 上救命的那三行，没人看着
+
+原子保存的最后一步是把临时文件改名到目标位置。`_renameWithRetry` 旁边写着：
+
+> On Windows a virus scanner routinely holds a newly written file open for a
+> few dozen milliseconds, and the rename fails with a sharing violation that
+> is gone by the next attempt. **Without this the atomic save would be *less*
+> reliable than the truncating write it replaces.**
+
+**把重试删掉，2737 条测试全绿。** `file_service_atomic_save_test` 那十条查的是
+原子性——失败不破坏原文件、不留临时文件——**没有一条查重试**。
+
+原因也很实在：**这台机器上没有杀毒软件，占用是造不出来的。**
+
+### 让它造得出来
+
+`renameWithRetry` 现在接收改名动作与等待动作（`@visibleForTesting`，
+与 `PluginCatalogService.refuseInsecureDownload` 同一个先例）。生产行为不变——
+两个参数都为 null 时就是原来的 `rename` 和 `Future.delayed`。
+
+### 守卫（4 条）
+
+1. 第二次成功 → 保存成功，且**中间真的等过**（立刻重试等于没等占用放开）
+2. 第三次成功 → 保存成功
+3. 一直被占用 → **报错，而不是无限重试**；恰好试三次
+4. **两次等待递增**（20ms、60ms）：两次等一样久，第二次多半撞在同一个占用上
+
+### 变异验证
+
+| 变异 | 结果 |
+|------|------|
+| 第一次失败就抛（删掉重试） | 4 条全红 |
+| 把上限改成 9999（占用不放就挂死） | 第 3 条红 |
+| 两次都等 20ms | 第 4 条红 |
+
+### 涉及文件
+
+`lib/services/file_service.dart`；`test/services/save_retries_a_locked_file_test.dart`（新增）
