@@ -59,7 +59,11 @@
   "exportInProgress": "正在导出…",
   "exportSucceeded": "已导出到 {file}",
   "@exportSucceeded": {
-    "placeholders": { "file": { "type": "String" } }
+    "placeholders": {
+      "file": {
+        "type": "String"
+      }
+    }
   },
   "fileOpenFailed": "打开文件失败：{message}",
   "saveConflictTitle": "文件已在磁盘上被修改",
@@ -406,6 +410,8 @@
   "settingsPlugins": "插件",
   "settingsPluginsInstalled": "已安装插件",
   "settingsPluginsDiscover": "发现社区插件",
+  "settingsPluginsUnreadable": "已安装但读不出来",
+  "settingsPluginsUninstall": "卸载",
   "settingsPluginsInstallZip": "安装 ZIP",
   "settingsPluginsEmpty": "尚未安装插件",
   "settingsPluginsUnverified": "社区 / 未验证。启用前请检查源代码。",
@@ -424,7 +430,13 @@
   "pluginInstall": "安装",
   "pluginInstalled": "已安装",
   "pluginUpdateTo": "更新到 {version}",
-  "@pluginUpdateTo": {"placeholders": {"version": {"type": "String"}}},
+  "@pluginUpdateTo": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
   "pluginFinished": "已完成",
   "pluginPrerelease": "预发布",
   "pluginFlipSplit": "改为分割另一半",
@@ -438,7 +450,13 @@
   "settingsMcpNewToken": "换一个令牌",
   "settingsMcpStopped": "未运行",
   "pluginEdited": "{plugin} 修改了文档",
-  "@pluginEdited": {"placeholders": {"plugin": {"type": "String"}}},
+  "@pluginEdited": {
+    "placeholders": {
+      "plugin": {
+        "type": "String"
+      }
+    }
+  },
   "pluginApply": "采用",
   "pluginApplied": "已写入文档"
 }

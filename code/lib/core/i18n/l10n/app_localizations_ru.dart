@@ -1060,6 +1060,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get settingsPluginsDiscover => 'Найти плагины сообщества';
 
   @override
+  String get settingsPluginsUnreadable => 'Установлен, но не читается';
+
+  @override
+  String get settingsPluginsUninstall => 'Удалить';
+
+  @override
   String get settingsPluginsInstallZip => 'Установить ZIP';
 
   @override

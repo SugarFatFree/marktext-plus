@@ -59,7 +59,11 @@
   "exportInProgress": "Exportando…",
   "exportSucceeded": "Exportado a {file}",
   "@exportSucceeded": {
-    "placeholders": { "file": { "type": "String" } }
+    "placeholders": {
+      "file": {
+        "type": "String"
+      }
+    }
   },
   "fileOpenFailed": "No se pudo abrir el archivo: {message}",
   "saveConflictTitle": "El archivo cambió en el disco",
@@ -406,6 +410,8 @@
   "settingsPlugins": "Complementos",
   "settingsPluginsInstalled": "Plugins instalados",
   "settingsPluginsDiscover": "Descubrir plugins de la comunidad",
+  "settingsPluginsUnreadable": "Instalado pero ilegible",
+  "settingsPluginsUninstall": "Desinstalar",
   "settingsPluginsInstallZip": "Instalar ZIP",
   "settingsPluginsEmpty": "No hay plugins instalados",
   "settingsPluginsUnverified": "Comunidad / No verificado. Revisa el código antes de activarlo.",
@@ -424,7 +430,13 @@
   "pluginInstall": "Instalar",
   "pluginInstalled": "Instalado",
   "pluginUpdateTo": "Actualizar a {version}",
-  "@pluginUpdateTo": {"placeholders": {"version": {"type": "String"}}},
+  "@pluginUpdateTo": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
   "pluginFinished": "Finalizado",
   "pluginPrerelease": "Versión preliminar",
   "pluginFlipSplit": "Dividir la otra mitad",
@@ -438,7 +450,13 @@
   "settingsMcpNewToken": "Token nuevo",
   "settingsMcpStopped": "detenido",
   "pluginEdited": "{plugin} cambió el documento",
-  "@pluginEdited": {"placeholders": {"plugin": {"type": "String"}}},
+  "@pluginEdited": {
+    "placeholders": {
+      "plugin": {
+        "type": "String"
+      }
+    }
+  },
   "pluginApply": "Aplicar",
   "pluginApplied": "Aplicado al documento"
 }

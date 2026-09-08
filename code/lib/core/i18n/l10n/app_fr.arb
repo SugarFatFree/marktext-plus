@@ -59,7 +59,11 @@
   "exportInProgress": "Exportation…",
   "exportSucceeded": "Exporté vers {file}",
   "@exportSucceeded": {
-    "placeholders": { "file": { "type": "String" } }
+    "placeholders": {
+      "file": {
+        "type": "String"
+      }
+    }
   },
   "fileOpenFailed": "Impossible d’ouvrir le fichier : {message}",
   "saveConflictTitle": "Fichier modifié sur le disque",
@@ -406,6 +410,8 @@
   "settingsPlugins": "Extensions",
   "settingsPluginsInstalled": "Plugins installés",
   "settingsPluginsDiscover": "Découvrir les plugins communautaires",
+  "settingsPluginsUnreadable": "Installé mais illisible",
+  "settingsPluginsUninstall": "Désinstaller",
   "settingsPluginsInstallZip": "Installer un ZIP",
   "settingsPluginsEmpty": "Aucun plugin installé",
   "settingsPluginsUnverified": "Communautaire / non vérifié. Consultez le code avant activation.",
@@ -424,7 +430,13 @@
   "pluginInstall": "Installer",
   "pluginInstalled": "Installé",
   "pluginUpdateTo": "Mettre à jour vers {version}",
-  "@pluginUpdateTo": {"placeholders": {"version": {"type": "String"}}},
+  "@pluginUpdateTo": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
   "pluginFinished": "Terminé",
   "pluginPrerelease": "Préversion",
   "pluginFlipSplit": "Diviser l’autre moitié",
@@ -438,7 +450,13 @@
   "settingsMcpNewToken": "Nouveau jeton",
   "settingsMcpStopped": "à l’arrêt",
   "pluginEdited": "{plugin} a modifié le document",
-  "@pluginEdited": {"placeholders": {"plugin": {"type": "String"}}},
+  "@pluginEdited": {
+    "placeholders": {
+      "plugin": {
+        "type": "String"
+      }
+    }
+  },
   "pluginApply": "Appliquer",
   "pluginApplied": "Appliqué au document"
 }

@@ -1046,6 +1046,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsPluginsDiscover => '发现社区插件';
 
   @override
+  String get settingsPluginsUnreadable => '已安装但读不出来';
+
+  @override
+  String get settingsPluginsUninstall => '卸载';
+
+  @override
   String get settingsPluginsInstallZip => '安装 ZIP';
 
   @override

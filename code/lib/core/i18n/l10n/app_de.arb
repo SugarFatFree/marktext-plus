@@ -59,7 +59,11 @@
   "exportInProgress": "Wird exportiert…",
   "exportSucceeded": "Nach {file} exportiert",
   "@exportSucceeded": {
-    "placeholders": { "file": { "type": "String" } }
+    "placeholders": {
+      "file": {
+        "type": "String"
+      }
+    }
   },
   "fileOpenFailed": "Die Datei konnte nicht geöffnet werden: {message}",
   "saveConflictTitle": "Datei auf der Festplatte geändert",
@@ -406,6 +410,8 @@
   "settingsPlugins": "Erweiterungen",
   "settingsPluginsInstalled": "Installierte Plugins",
   "settingsPluginsDiscover": "Community-Plugins entdecken",
+  "settingsPluginsUnreadable": "Installiert, aber nicht lesbar",
+  "settingsPluginsUninstall": "Deinstallieren",
   "settingsPluginsInstallZip": "ZIP installieren",
   "settingsPluginsEmpty": "Keine Plugins installiert",
   "settingsPluginsUnverified": "Community / Ungeprüft. Prüfen Sie den Quellcode vor der Aktivierung.",
@@ -424,7 +430,13 @@
   "pluginInstall": "Installieren",
   "pluginInstalled": "Installiert",
   "pluginUpdateTo": "Auf {version} aktualisieren",
-  "@pluginUpdateTo": {"placeholders": {"version": {"type": "String"}}},
+  "@pluginUpdateTo": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
   "pluginFinished": "Fertig",
   "pluginPrerelease": "Vorabversion",
   "pluginFlipSplit": "Die andere Hälfte teilen",
@@ -438,7 +450,13 @@
   "settingsMcpNewToken": "Neuer Token",
   "settingsMcpStopped": "läuft nicht",
   "pluginEdited": "{plugin} hat das Dokument geändert",
-  "@pluginEdited": {"placeholders": {"plugin": {"type": "String"}}},
+  "@pluginEdited": {
+    "placeholders": {
+      "plugin": {
+        "type": "String"
+      }
+    }
+  },
   "pluginApply": "Übernehmen",
   "pluginApplied": "Ins Dokument übernommen"
 }

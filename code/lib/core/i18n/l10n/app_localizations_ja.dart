@@ -1047,6 +1047,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsPluginsDiscover => 'コミュニティプラグインを探す';
 
   @override
+  String get settingsPluginsUnreadable => 'インストール済みだが読めません';
+
+  @override
+  String get settingsPluginsUninstall => 'アンインストール';
+
+  @override
   String get settingsPluginsInstallZip => 'ZIP をインストール';
 
   @override

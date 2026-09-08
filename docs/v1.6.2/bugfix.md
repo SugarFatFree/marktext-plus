@@ -65,6 +65,8 @@
 | BUG-320 | 2026-09-08 | 插件下载地址不检查 https，只有 registry 那一半强制了 | P1 | 已修复 |
 | BUG-321 | 2026-09-08 | 跑不了的编译插件照样装上，直到点它才说没有本平台的构建 | P2 | 已修复 |
 | BUG-322 | 2026-09-08 | `entrypointPath` 零调用零测试，且回退规则与实际启动相左 | P2 | 已删除 |
+| BUG-323 | 2026-09-08 | 读不出来的插件没有删除按钮，读者唯一想删的那个删不掉 | P0 | 已修复 |
+| BUG-324 | 2026-09-08 | 社区搜索失败时把 `HttpException:` 类名甩给读者 | P1 | 已修复 |
 
 ---
 
@@ -3580,3 +3582,75 @@ manifest.entrypointFor(currentPlatform) ?? manifest.entrypoint
 ### 涉及文件
 
 `test/services/html_escape_test.dart`（新增）
+
+---
+
+## BUG-323：读不出来的插件删不掉（用户实机报告）
+
+### 现象
+
+读者反复看到插件页顶着一条红字：
+
+```
+com.sugarfatfree.ai-translate: a plugin cannot ship Dart source: use a .lua
+or .js script, or compile it and ship the executable with runtime "process"
+```
+
+**他说「我把已安装的插件都删了也还是有这个错误」。**
+
+### 根因：删得掉的都不是问题所在
+
+通过应用自己的 MCP 服务连上他的 Windows 看了截图和状态：
+
+- `get_state` 返回 `"plugins": []`——能读出来的插件确实一个都没有
+- 截图里「已安装插件 / 尚未安装插件」，下面「INSTALLED BUT UNREADABLE」一条红字
+
+卸载按钮长在**上面那张列表**上，而那张列表由「manifest 解析成功」的插件构成。
+坏掉的那个没有条目、没有按钮——**读者唯一想删的那个，正是唯一删不掉的那个**。
+他执行的「把已安装插件都删了」，用的正是那个碰不到它的机制。
+
+### 修
+
+红字那一行加删除按钮。接口不用改：`uninstall(id)` 删的是
+`installDirectory/<id>`，而 `problems()` 报的 `directory` 就是那个 basename——
+坏插件没有 manifest、也就没有 id，目录名是这里唯一能拿到的东西，
+而它恰好正是需要的东西。
+
+### 这条缺陷的形状
+
+`_scan()` 的注释、BUG-278 的记录都说明「读不出来的插件要把原因说给读者」——
+那一半做到了。**说了原因，没有给出路。** 一个只能看不能动的错误提示，
+每次打开插件页都在那里。
+
+---
+
+## BUG-324：把 Dart 类名甩给读者
+
+同一张截图的下半部分：
+
+```
+HttpException: marktext-plus-plugins/marktext-plus-plugin-sdk: GitHub is
+rate-limiting searches from this machine; try again in 385 seconds.
+```
+
+冒号后面那句是**写给读者的**，冒号前面那个是写给堆栈的。面板用的是
+`discovery.failed('$error')`。
+
+而 `PluginManager._describe` 的注释早就写过这条：
+
+> A `FormatException` prints as "FormatException: …" — the class name is noise
+> to whoever is looking at a plugin that did not appear.
+
+**学过一次，只用在了一个地方。** 现在是 `PluginCatalogService.describeError`，
+一个具名函数，连 `SocketException` 也顺带说了人话（「连不上 GitHub，检查网络或代理」）。
+
+### 顺带
+
+「INSTALLED BUT UNREADABLE」和「Uninstall」是硬编码英文，而周围全是中文。
+两个键补进 12 种语言。
+
+### 涉及文件
+
+`lib/ui/widgets/plugin_panel.dart`；`lib/services/plugin_catalog_service.dart`；
+12 个 `.arb`；`test/ui/widgets/unreadable_plugin_removal_test.dart`（新增）；
+`test/services/plugin_download_rules_test.dart`

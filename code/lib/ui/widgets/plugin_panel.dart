@@ -103,7 +103,10 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
     try {
       discovery.succeeded(await PluginCatalogService().searchGitHubTopic());
     } catch (error) {
-      discovery.failed('$error');
+      // Not `'$error'`: that prints the class name first, and
+      // "HttpException:" is noise to whoever is looking at a list of plugins
+      // that did not appear.
+      discovery.failed(PluginCatalogService.describeError(error));
     }
   }
 
@@ -221,6 +224,17 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
     final manager = await _manager();
     await manager.setEnabled(plugin.id, enabled);
     if (mounted) setState(() {});
+  }
+
+  /// Removes a directory the manifest reader refused.
+  ///
+  /// `uninstall` deletes `installDirectory/<name>`, and the name a problem
+  /// carries is exactly that — so nothing new is needed here beyond letting
+  /// the reader ask.
+  Future<void> _removeUnreadable(String directory) async {
+    final manager = await _manager();
+    await manager.uninstall(directory);
+    if (mounted) _installedChanged();
   }
 
   Future<void> _uninstall(PluginManifest plugin) async {
@@ -405,7 +419,7 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
                                       label: const Text('Settings'),
                                     ),
                                   IconButton(
-                                    tooltip: 'Uninstall',
+                                    tooltip: l10n.settingsPluginsUninstall,
                                     icon: const Icon(Icons.delete_outline, size: 18),
                                     onPressed: () => _uninstall(plugin),
                                     visualDensity: VisualDensity.compact,
@@ -430,16 +444,44 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
               data: (problems) => problems.isEmpty
                   ? const <Widget>[]
                   : <Widget>[
-                      _sectionTitle('Installed but unreadable'),
+                      _sectionTitle(l10n.settingsPluginsUnreadable),
                       for (final problem in problems)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 6),
-                          child: SelectableText(
-                            '${problem.directory}: ${problem.problem}',
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.error,
-                              fontSize: 12,
-                            ),
+                          // With a way out. Naming a plugin that will not
+                          // load and offering nothing to do about it leaves
+                          // the reader with a permanent red block: the
+                          // uninstall button belongs to the list above, which
+                          // is built from manifests that parsed, so the one
+                          // plugin they actually want gone was the only one
+                          // they could not remove.
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: SelectableText(
+                                  '${problem.directory}: ${problem.problem}',
+                                  style: TextStyle(
+                                    color:
+                                        Theme.of(context).colorScheme.error,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                tooltip: l10n.settingsPluginsUninstall,
+                                icon: const Icon(Icons.delete_outline,
+                                    size: 18),
+                                // The directory is what `problems` reports
+                                // and what `uninstall` deletes — there is no
+                                // manifest to take an id from, which is the
+                                // whole reason this entry exists.
+                                onPressed: () => _removeUnreadable(
+                                  problem.directory,
+                                ),
+                                visualDensity: VisualDensity.compact,
+                              ),
+                            ],
                           ),
                         ),
                     ],

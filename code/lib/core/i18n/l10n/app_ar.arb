@@ -59,7 +59,11 @@
   "exportInProgress": "جارٍ التصدير…",
   "exportSucceeded": "تم التصدير إلى {file}",
   "@exportSucceeded": {
-    "placeholders": { "file": { "type": "String" } }
+    "placeholders": {
+      "file": {
+        "type": "String"
+      }
+    }
   },
   "fileOpenFailed": "تعذّر فتح الملف: {message}",
   "saveConflictTitle": "تغيّر الملف على القرص",
@@ -406,6 +410,8 @@
   "settingsPlugins": "الإضافات",
   "settingsPluginsInstalled": "الإضافات المثبتة",
   "settingsPluginsDiscover": "اكتشاف الإضافات المجتمعية",
+  "settingsPluginsUnreadable": "مثبَّت لكن غير مقروء",
+  "settingsPluginsUninstall": "إزالة",
   "settingsPluginsInstallZip": "تثبيت ZIP",
   "settingsPluginsEmpty": "لا توجد إضافات مثبتة",
   "settingsPluginsUnverified": "مجتمعي / غير موثّق. راجع المصدر قبل التفعيل.",
@@ -424,7 +430,13 @@
   "pluginInstall": "تثبيت",
   "pluginInstalled": "مُثبَّت",
   "pluginUpdateTo": "التحديث إلى {version}",
-  "@pluginUpdateTo": {"placeholders": {"version": {"type": "String"}}},
+  "@pluginUpdateTo": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
   "pluginFinished": "اكتمل",
   "pluginPrerelease": "إصدار أوّلي",
   "pluginFlipSplit": "اقسم النصف الآخر",
@@ -438,7 +450,13 @@
   "settingsMcpNewToken": "رمز جديد",
   "settingsMcpStopped": "متوقف",
   "pluginEdited": "غيَّر {plugin} المستند",
-  "@pluginEdited": {"placeholders": {"plugin": {"type": "String"}}},
+  "@pluginEdited": {
+    "placeholders": {
+      "plugin": {
+        "type": "String"
+      }
+    }
+  },
   "pluginApply": "تطبيق",
   "pluginApplied": "طُبِّق على المستند"
 }

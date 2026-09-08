@@ -104,6 +104,21 @@ class PluginCatalogService {
             'try again in $seconds seconds.';
   }
 
+  /// What to tell the reader about [error], without the class name.
+  ///
+  /// `'$error'` on an `HttpException` reads "HttpException: …", and the part
+  /// before the colon means nothing to somebody looking at a list of plugins
+  /// that did not appear. The same note is on `PluginManager._describe`,
+  /// which does this for the manifest reader — the lesson was learned once
+  /// and applied in one place.
+  static String describeError(Object error) => switch (error) {
+        HttpException(:final message) => message,
+        FormatException(:final message) => message,
+        SocketException() =>
+          'could not reach GitHub; check the network or a proxy',
+        _ => '$error',
+      };
+
   static String _describeFailure(HttpClientResponse response) {
     final resets = int.tryParse(
       response.headers.value('x-ratelimit-reset') ?? '',

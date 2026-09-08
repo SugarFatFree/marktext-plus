@@ -59,7 +59,11 @@
   "exportInProgress": "내보내는 중…",
   "exportSucceeded": "{file}(으)로 내보냈습니다",
   "@exportSucceeded": {
-    "placeholders": { "file": { "type": "String" } }
+    "placeholders": {
+      "file": {
+        "type": "String"
+      }
+    }
   },
   "fileOpenFailed": "파일을 열지 못했습니다: {message}",
   "saveConflictTitle": "디스크에서 파일이 변경되었습니다",
@@ -406,6 +410,8 @@
   "settingsPlugins": "플러그인",
   "settingsPluginsInstalled": "설치된 플러그인",
   "settingsPluginsDiscover": "커뮤니티 플러그인 찾기",
+  "settingsPluginsUnreadable": "설치되었으나 읽을 수 없음",
+  "settingsPluginsUninstall": "제거",
   "settingsPluginsInstallZip": "ZIP 설치",
   "settingsPluginsEmpty": "설치된 플러그인이 없습니다",
   "settingsPluginsUnverified": "커뮤니티 / 검증되지 않음. 활성화하기 전에 소스를 확인하세요.",
@@ -424,7 +430,13 @@
   "pluginInstall": "설치",
   "pluginInstalled": "설치됨",
   "pluginUpdateTo": "{version}(으)로 업데이트",
-  "@pluginUpdateTo": {"placeholders": {"version": {"type": "String"}}},
+  "@pluginUpdateTo": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
   "pluginFinished": "완료",
   "pluginPrerelease": "프리릴리스",
   "pluginFlipSplit": "다른 절반을 나누기",
@@ -438,7 +450,13 @@
   "settingsMcpNewToken": "토큰 새로 만들기",
   "settingsMcpStopped": "실행 중이 아님",
   "pluginEdited": "{plugin}이(가) 문서를 변경했습니다",
-  "@pluginEdited": {"placeholders": {"plugin": {"type": "String"}}},
+  "@pluginEdited": {
+    "placeholders": {
+      "plugin": {
+        "type": "String"
+      }
+    }
+  },
   "pluginApply": "적용",
   "pluginApplied": "문서에 반영했습니다"
 }

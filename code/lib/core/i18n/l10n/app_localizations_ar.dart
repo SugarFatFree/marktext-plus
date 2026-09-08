@@ -1057,6 +1057,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settingsPluginsDiscover => 'اكتشاف الإضافات المجتمعية';
 
   @override
+  String get settingsPluginsUnreadable => 'مثبَّت لكن غير مقروء';
+
+  @override
+  String get settingsPluginsUninstall => 'إزالة';
+
+  @override
   String get settingsPluginsInstallZip => 'تثبيت ZIP';
 
   @override

@@ -1066,6 +1066,12 @@ class AppLocalizationsIt extends AppLocalizations {
   String get settingsPluginsDiscover => 'Scopri i plugin della community';
 
   @override
+  String get settingsPluginsUnreadable => 'Installato ma illeggibile';
+
+  @override
+  String get settingsPluginsUninstall => 'Disinstalla';
+
+  @override
   String get settingsPluginsInstallZip => 'Installa ZIP';
 
   @override

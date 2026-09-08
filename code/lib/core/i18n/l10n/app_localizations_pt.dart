@@ -1065,6 +1065,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String get settingsPluginsDiscover => 'Descobrir plugins da comunidade';
 
   @override
+  String get settingsPluginsUnreadable => 'Instalado mas ilegível';
+
+  @override
+  String get settingsPluginsUninstall => 'Desinstalar';
+
+  @override
   String get settingsPluginsInstallZip => 'Instalar ZIP';
 
   @override
@@ -2234,6 +2240,12 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get settingsPluginsDiscover => 'Descobrir plugins da comunidade';
+
+  @override
+  String get settingsPluginsUnreadable => 'Instalado mas ilegível';
+
+  @override
+  String get settingsPluginsUninstall => 'Desinstalar';
 
   @override
   String get settingsPluginsInstallZip => 'Instalar ZIP';

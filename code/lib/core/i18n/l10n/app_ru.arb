@@ -59,7 +59,11 @@
   "exportInProgress": "Экспорт…",
   "exportSucceeded": "Экспортировано в {file}",
   "@exportSucceeded": {
-    "placeholders": { "file": { "type": "String" } }
+    "placeholders": {
+      "file": {
+        "type": "String"
+      }
+    }
   },
   "fileOpenFailed": "Не удалось открыть файл: {message}",
   "saveConflictTitle": "Файл изменён на диске",
@@ -406,6 +410,8 @@
   "settingsPlugins": "Плагины",
   "settingsPluginsInstalled": "Установленные плагины",
   "settingsPluginsDiscover": "Найти плагины сообщества",
+  "settingsPluginsUnreadable": "Установлен, но не читается",
+  "settingsPluginsUninstall": "Удалить",
   "settingsPluginsInstallZip": "Установить ZIP",
   "settingsPluginsEmpty": "Плагины не установлены",
   "settingsPluginsUnverified": "Сообщество / Не проверено. Изучите исходный код перед включением.",
@@ -424,7 +430,13 @@
   "pluginInstall": "Установить",
   "pluginInstalled": "Установлено",
   "pluginUpdateTo": "Обновить до {version}",
-  "@pluginUpdateTo": {"placeholders": {"version": {"type": "String"}}},
+  "@pluginUpdateTo": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
   "pluginFinished": "Готово",
   "pluginPrerelease": "Предрелиз",
   "pluginFlipSplit": "Разделить другую половину",
@@ -438,7 +450,13 @@
   "settingsMcpNewToken": "Новый токен",
   "settingsMcpStopped": "не запущен",
   "pluginEdited": "{plugin} изменил документ",
-  "@pluginEdited": {"placeholders": {"plugin": {"type": "String"}}},
+  "@pluginEdited": {
+    "placeholders": {
+      "plugin": {
+        "type": "String"
+      }
+    }
+  },
   "pluginApply": "Применить",
   "pluginApplied": "Записано в документ"
 }

@@ -59,18 +59,40 @@
   "exportInProgress": "Exporting…",
   "exportSucceeded": "Exported to {file}",
   "@exportSucceeded": {
-    "placeholders": { "file": { "type": "String" } }
+    "placeholders": {
+      "file": {
+        "type": "String"
+      }
+    }
   },
   "fileOpenFailed": "Could not open the file: {message}",
-  "@fileOpenFailed": {"placeholders": {"message": {"type": "String"}}},
-  "@exportFailed": {"placeholders": {"message": {"type": "String"}}},
+  "@fileOpenFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "@exportFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "saveConflictTitle": "File changed on disk",
   "saveConflictBody": "Something else changed “{name}” since it was opened. Saving now would write over that change.",
   "saveConflictOverwrite": "Overwrite",
   "saveConflictReload": "Discard my edits and reload",
   "saveConflictCancel": "Cancel",
   "saveConflictBanner": "Changed on disk — auto-save is paused for this file",
-  "@saveConflictBody": {"placeholders": {"name": {"type": "String"}}},
+  "@saveConflictBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "@saveFailed": {
     "placeholders": {
       "message": {
@@ -226,10 +248,18 @@
   "previewStartWriting": "Start writing…",
   "linkOpenHint": "Ctrl/Cmd + click to open",
   "@dropNotMarkdown": {
-    "placeholders": {"count": {"type": "int"}}
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "@searchTooLarge": {
-    "placeholders": {"count": {"type": "int"}}
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "searchNoResults": "No results found",
   "searchResultCount": "{count} results found",
@@ -278,7 +308,13 @@
   "keybindingsPressKeys": "Press key combination...",
   "keybindingsReset": "Reset to Default",
   "keybindingsConflict": "Already used by “{action}”. Assigning it here leaves that command with no shortcut.",
-  "@keybindingsConflict": {"placeholders": {"action": {"type": "String"}}},
+  "@keybindingsConflict": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
   "keybindingsTakeOver": "Take it over",
   "statusWords": "Words",
   "statusChars": "Chars",
@@ -327,11 +363,29 @@
   "deleteFile": "Delete File",
   "confirmDeleteFile": "Are you sure you want to delete \"{fileName}\"?",
   "confirmTrashFile": "Move “{name}” to the trash?",
-  "@confirmTrashFile": {"placeholders": {"name": {"type": "String"}}},
+  "@confirmTrashFile": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "confirmTrashFolder": "Move “{name}” and everything in it to the trash?",
-  "@confirmTrashFolder": {"placeholders": {"name": {"type": "String"}}},
+  "@confirmTrashFolder": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "confirmDeleteFolder": "Permanently delete “{name}” and everything in it? This cannot be undone.",
-  "@confirmDeleteFolder": {"placeholders": {"name": {"type": "String"}}},
+  "@confirmDeleteFolder": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "@confirmDeleteFile": {
     "placeholders": {
       "fileName": {
@@ -515,6 +569,8 @@
   "settingsPlugins": "Plugins",
   "settingsPluginsInstalled": "Installed plugins",
   "settingsPluginsDiscover": "Discover community plugins",
+  "settingsPluginsUnreadable": "Installed but unreadable",
+  "settingsPluginsUninstall": "Uninstall",
   "settingsPluginsInstallZip": "Install ZIP",
   "settingsPluginsEmpty": "No plugins installed",
   "settingsPluginsUnverified": "Community / Unverified. Review the source before enabling.",
@@ -528,14 +584,32 @@
   "pluginOriginal": "Given to the plugin",
   "pluginResult": "Plugin result",
   "pluginFailed": "{plugin} failed",
-  "@pluginFailed": {"placeholders": {"plugin": {"type": "String"}}},
+  "@pluginFailed": {
+    "placeholders": {
+      "plugin": {
+        "type": "String"
+      }
+    }
+  },
   "pluginCannotEdit": "{plugin} may not edit the document",
-  "@pluginCannotEdit": {"placeholders": {"plugin": {"type": "String"}}},
+  "@pluginCannotEdit": {
+    "placeholders": {
+      "plugin": {
+        "type": "String"
+      }
+    }
+  },
   "pluginTooManySteps": "The plugin asked too many questions",
   "pluginInstall": "Install",
   "pluginInstalled": "Installed",
   "pluginUpdateTo": "Update to {version}",
-  "@pluginUpdateTo": {"placeholders": {"version": {"type": "String"}}},
+  "@pluginUpdateTo": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
   "pluginFinished": "Finished",
   "pluginPrerelease": "Pre-release",
   "pluginFlipSplit": "Split the other half",
@@ -549,7 +623,13 @@
   "settingsMcpNewToken": "New token",
   "settingsMcpStopped": "not running",
   "pluginEdited": "{plugin} changed the document",
-  "@pluginEdited": {"placeholders": {"plugin": {"type": "String"}}},
+  "@pluginEdited": {
+    "placeholders": {
+      "plugin": {
+        "type": "String"
+      }
+    }
+  },
   "pluginApply": "Apply",
   "pluginApplied": "Applied to the document"
 }

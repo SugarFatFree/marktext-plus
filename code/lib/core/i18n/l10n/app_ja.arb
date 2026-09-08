@@ -59,7 +59,11 @@
   "exportInProgress": "エクスポート中…",
   "exportSucceeded": "{file} にエクスポートしました",
   "@exportSucceeded": {
-    "placeholders": { "file": { "type": "String" } }
+    "placeholders": {
+      "file": {
+        "type": "String"
+      }
+    }
   },
   "fileOpenFailed": "ファイルを開けませんでした：{message}",
   "saveConflictTitle": "ファイルがディスク上で変更されました",
@@ -406,6 +410,8 @@
   "settingsPlugins": "プラグイン",
   "settingsPluginsInstalled": "インストール済みプラグイン",
   "settingsPluginsDiscover": "コミュニティプラグインを探す",
+  "settingsPluginsUnreadable": "インストール済みだが読めません",
+  "settingsPluginsUninstall": "アンインストール",
   "settingsPluginsInstallZip": "ZIP をインストール",
   "settingsPluginsEmpty": "インストール済みプラグインはありません",
   "settingsPluginsUnverified": "コミュニティ / 未検証。有効化する前にソースを確認してください。",
@@ -424,7 +430,13 @@
   "pluginInstall": "インストール",
   "pluginInstalled": "インストール済み",
   "pluginUpdateTo": "{version} に更新",
-  "@pluginUpdateTo": {"placeholders": {"version": {"type": "String"}}},
+  "@pluginUpdateTo": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
   "pluginFinished": "完了",
   "pluginPrerelease": "プレリリース",
   "pluginFlipSplit": "もう半分を分割",
@@ -438,7 +450,13 @@
   "settingsMcpNewToken": "トークンを作り直す",
   "settingsMcpStopped": "停止中",
   "pluginEdited": "{plugin} がドキュメントを変更しました",
-  "@pluginEdited": {"placeholders": {"plugin": {"type": "String"}}},
+  "@pluginEdited": {
+    "placeholders": {
+      "plugin": {
+        "type": "String"
+      }
+    }
+  },
   "pluginApply": "適用",
   "pluginApplied": "ドキュメントに反映しました"
 }

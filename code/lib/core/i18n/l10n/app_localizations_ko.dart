@@ -1047,6 +1047,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsPluginsDiscover => '커뮤니티 플러그인 찾기';
 
   @override
+  String get settingsPluginsUnreadable => '설치되었으나 읽을 수 없음';
+
+  @override
+  String get settingsPluginsUninstall => '제거';
+
+  @override
   String get settingsPluginsInstallZip => 'ZIP 설치';
 
   @override

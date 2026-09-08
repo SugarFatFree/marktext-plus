@@ -54,6 +54,41 @@ void main() {
     });
   });
 
+  group('what the reader is told when discovery fails', () {
+    test('the class name is not part of the message', () {
+      // What the panel used to show: "HttpException: GitHub is rate-limiting
+      // searches from this machine; try again in 385 seconds." The sentence
+      // after the colon was written for the reader; the part before it was
+      // written for a stack trace.
+      expect(
+        PluginCatalogService.describeError(
+          const HttpException('GitHub is rate-limiting searches'),
+        ),
+        'GitHub is rate-limiting searches',
+      );
+      expect(
+        PluginCatalogService.describeError(
+          const FormatException('that release has no ZIP'),
+        ),
+        'that release has no ZIP',
+      );
+    });
+
+    test('a network failure says what to check', () {
+      final said = PluginCatalogService.describeError(
+        const SocketException('Connection refused'),
+      );
+      expect(said, isNot(contains('SocketException')));
+      expect(said, contains('proxy'),
+          reason: '连不上时最可能的原因是网络或代理，直接说出来');
+    });
+
+    test('anything else is still said, rather than swallowed', () {
+      expect(PluginCatalogService.describeError('a bare string'),
+          'a bare string');
+    });
+  });
+
   test('the download actually applies both rules', () {
     // The blind spot the two groups above cannot see. Deleting the call from
     // `install` leaves every one of them green, and the rule becomes a

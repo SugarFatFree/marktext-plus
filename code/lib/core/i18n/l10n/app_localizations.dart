@@ -2097,6 +2097,18 @@ abstract class AppLocalizations {
   /// **'Discover community plugins'**
   String get settingsPluginsDiscover;
 
+  /// No description provided for @settingsPluginsUnreadable.
+  ///
+  /// In en, this message translates to:
+  /// **'Installed but unreadable'**
+  String get settingsPluginsUnreadable;
+
+  /// No description provided for @settingsPluginsUninstall.
+  ///
+  /// In en, this message translates to:
+  /// **'Uninstall'**
+  String get settingsPluginsUninstall;
+
   /// No description provided for @settingsPluginsInstallZip.
   ///
   /// In en, this message translates to:
