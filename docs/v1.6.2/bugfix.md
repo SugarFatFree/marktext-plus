@@ -100,6 +100,7 @@
 | BUG-355 | 2026-09-08 | 插件脚本要的翻译键，没人保证 manifest 里有 | P2 | 已加守卫 |
 | BUG-356 | 2026-09-08 | 插件设置页的字段，没人保证脚本会读它 | P2 | 已加守卫 |
 | BUG-357 | 2026-09-08 | 两个插件仓库的 CHANGELOG 各长出了重复小节；SDK 的还落后四次改动 | P2 | 已修复 |
+| BUG-358 | 2026-09-08 | 编辑器用两种方式数「字符」，两处都不说自己数的是哪种 | P3 | 已修复 |
 
 ---
 
@@ -5352,3 +5353,59 @@ SDK 落后的四条（四种语言缺 panels、ask 说明改写、裸 `return` �
 
 SDK 与官方插件的 `CHANGELOG.md`；
 `test/services/repository_documents_test.dart`；`test/services/sdk_schema_agrees_test.dart`
+
+---
+
+## BUG-358：79 个字符写进去，回话说 90
+
+在读者机器上做边界内容测试时撞见的：写入一段含 emoji 与组合字符的文本，
+
+```
+Python 数出 79 个字符
+MCP 回话：wrote 90 characters
+```
+
+差在 `👨‍👩‍👧‍👦` 和 `𝔘𝔫𝔦𝔠𝔬𝔡𝔢` 这类字符——**编辑器在用两把尺子**：
+
+| 谁 | 单位 | 那段文字 |
+|----|------|---------|
+| 状态栏 | **code point**（`runes`） | 79 |
+| MCP 的 `get_state` / `set_content` | **UTF-16 unit**（`.length`） | 90 |
+
+两处都自称 `characters`。同一个文档，agent 看到 90、读者看到 79。
+
+### 两个选择都是对的，所以不能改成一样
+
+状态栏用 code point 是**有意的**，注释就在那里：
+
+> Counted in code points, so an emoji or a rare ideograph is one character
+> rather than the two UTF-16 units it occupies.
+
+**读者数的是这个。**
+
+而 MCP 不能跟着改：`get_state` 会被轮询，改成 code point 就要**在每次回答时
+遍历每一个打开的文档**——8 MB 的文件要几十毫秒，开几个就更久。
+一个诊断接口不该随文档变慢。
+
+### 所以修的是「不说清楚」
+
+`get_state` 的描述现在讲明白：它数 UTF-16 单位，状态栏数 code point，
+一个 emoji 在那边是一、在这边是二，**而且说了为什么两边不一样**——
+读者要的是他会去数的那个数，接口要的是能和它手里的字符串对上的那个数。
+
+守卫锁住这个说明（描述里必须同时出现 `UTF-16` 和 `code point`），
+否则它会像别的注释一样漂走。
+
+### 顺带：边界内容实测
+
+同一轮在真机上试了六种：12 万字符的单行、60 层嵌套列表、
+RTL 与组合字符混排、只有空白、全部未闭合（``` `<!--` `[^` `$$` `**` `|`）、
+300 个空列表项。
+
+**全部正常**，写入 58~578 ms，每次都切一遍预览也没有卡顿或报错，
+测完日志里 error 与 warning 都是空的。
+
+### 涉及文件
+
+`lib/services/mcp_tools.dart`；`lib/providers/mcp_provider.dart`；
+`test/services/mcp_action_test.dart`

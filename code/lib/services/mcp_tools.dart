@@ -187,7 +187,12 @@ class McpToolset {
       name: 'get_state',
       description:
           'What the editor has open: tabs, which is active, the view '
-          'mode, the installed plugins and the panes they filled.',
+          'mode, the installed plugins and the panes they filled. '
+          '"characters" counts UTF-16 units, which is what a length is in '
+          'most languages; the status bar counts code points instead, so an '
+          'emoji is one there and two here. The two disagree on purpose — '
+          'the reader is told what they would count, and this is told what '
+          'it can compare against a string it holds.',
       schema: {'type': 'object', 'properties': {}},
       run: _state,
     ),

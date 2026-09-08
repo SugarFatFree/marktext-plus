@@ -103,6 +103,9 @@ class McpController extends StateNotifier<McpStatus> {
             'path': tab.filePath,
             'modified': tab.isModified,
             'kind': tab.isPluginDetail ? 'plugin' : 'document',
+            // UTF-16 units, as `get_state` says. Not code points like the
+            // status bar: this is asked for on every poll and would then walk
+            // every open document to answer.
             'characters': tab.content.length,
           },
       ],

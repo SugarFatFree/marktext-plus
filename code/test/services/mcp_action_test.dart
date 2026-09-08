@@ -176,4 +176,24 @@ void main() {
       );
     });
   });
+
+  test('get_state says which kind of character it counts', () {
+    // The editor counts two ways and calls both "characters". The status bar
+    // counts code points, so an emoji is one — that is what a reader would
+    // count. `get_state` reports UTF-16 units, because it is polled and
+    // counting code points would walk every open document each time.
+    //
+    // Both are defensible and they disagree: 79 characters written over the
+    // interface came back as 90. A caller comparing the two numbers is
+    // entitled to know why, so the description says so.
+    final state =
+        const McpToolset().all.firstWhere((t) => t.name == 'get_state');
+
+    expect(state.description, contains('UTF-16'));
+    expect(
+      state.description,
+      contains('code point'),
+      reason: '只说自己数什么还不够，要说清与状态栏的差别在哪',
+    );
+  });
 }
