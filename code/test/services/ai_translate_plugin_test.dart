@@ -165,6 +165,57 @@ void main() {
     }
   }, skip: present ? null : '插件仓库不在这台机器上');
 
+  test('every key the script looks up is one the manifest declares', () {
+    // The test below holds each language to the keys the *manifest* names. A
+    // script asks for keys of its own, and an unknown key comes back as
+    // itself, so a missing declaration shows the reader `idea.shorter` where
+    // a sentence belongs. Different list, nothing comparing them.
+    //
+    // Matching `t('literal')` is not enough: the writing ideas live in a
+    // table and go through `t` by variable, which is how six of them would
+    // slip past. So anything shaped like a key is a candidate, minus the two
+    // things that share that shape and are not keys — module names inside
+    // `require`, and the command ids the manifest itself declares.
+    final declared = manifest.locales[manifest.defaultLocale]?.keys.toSet();
+    expect(declared, isNotNull, reason: '默认语言的表读不到，下面的比较就是空的');
+    expect(declared, isNotEmpty);
+
+    final commandIds = manifest.commandIds.toSet();
+    final candidates = <String>{};
+    for (final file in Directory(repo!)
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((f) => f.path.endsWith('.lua'))) {
+      final source = file.readAsStringSync();
+      final required = RegExp(r'''require\s*\(?\s*['"]([^'"]+)['"]''')
+          .allMatches(source)
+          .map((m) => m.group(1)!)
+          .toSet();
+
+      for (final match in RegExp(
+        r'''['"]([a-z][a-zA-Z0-9_]*\.[a-zA-Z][a-zA-Z0-9_.]*)['"]''',
+      ).allMatches(source)) {
+        final key = match.group(1)!;
+        if (key.endsWith('.lua') || key.endsWith('.json')) continue;
+        if (required.contains(key)) continue;
+        if (commandIds.contains(key)) continue;
+        candidates.add(key);
+      }
+    }
+
+    expect(
+      candidates.length,
+      greaterThan(5),
+      reason: '只找到 ${candidates.length} 个候选键，多半是正则坏了而不是脚本不翻译',
+    );
+    expect(
+      candidates.difference(declared!),
+      isEmpty,
+      reason: '脚本要这些键，manifest 没有——读者会看到键名本身：'
+          '${candidates.difference(declared)}',
+    );
+  }, skip: present ? null : '插件仓库不在这台机器上');
+
   test('a name that is not a key still reads as a name', () {
     // The name is its own translation key, so an editor that does not resolve
     // names shows "AI Translate" rather than the word "plugin.name".

@@ -97,6 +97,7 @@
 | BUG-352 | 2026-09-08 | MCP 报出插件的四个命令，一个都不接受；拒绝还报成功 | **P1** | 已修复 |
 | BUG-353 | 2026-09-08 | 四种语言的 SDK 文档里，右侧边栏面板这个能力完全不存在 | **P1** | 已修复 |
 | BUG-354 | 2026-09-08 | 主仓库的翻译守卫有同一个盲区（今天没出事，明天没人管） | P2 | 已加守卫 |
+| BUG-355 | 2026-09-08 | 插件脚本要的翻译键，没人保证 manifest 里有 | P2 | 已加守卫 |
 
 ---
 
@@ -5224,3 +5225,47 @@ SDK 的形状守卫数标题数与代码块数，所以四份翻译整个少了�
 ### 涉及文件
 
 `test/services/readme_images_exist_test.dart`
+
+---
+
+## BUG-355：脚本要的键，和 manifest 声明的键
+
+官方插件的多语言有一条守卫，查的是「**manifest 声明的**每个键在 12 种语言里都有」——
+name、description、菜单标题、设置标题。
+
+**脚本要的是另一份键**。`sdk.t('idea.shorter')` 拿不到就返回键名本身，
+读者会在该出现一句话的地方看到 `idea.shorter`。
+
+查了：脚本用 11 个键，manifest 声明 21 个，**今天全部对得上**。
+但两份清单之间没有任何东西。
+
+### 两次才写对
+
+**第一版只匹配 `t('字面量')`**，找到 5 个键，变异「删掉 manifest 里的 `idea.shorter`」
+**没红**——因为那 6 个写作建议存在一张表里：
+
+```lua
+M.WRITING_IDEA_KEYS = { "idea.clearer", "idea.shorter", ... }
+function M.writing_ideas(t)
+  for i, key in ipairs(M.WRITING_IDEA_KEYS) do out[i] = t(key) end
+end
+```
+
+**通过变量传给 `t()`**，字面量匹配抓不到。正是这 6 个当年出过 BUG-300
+（「AI 写作的六个建议在每种语言里都是英文」）。
+
+**第二版改成「任何长得像键的字符串都是候选」**，减去两类同形但不是键的东西：
+`require` 的模块名（`lib.prompts`）、manifest 自己声明的命令 id（`ai.write`）。
+两类都能机械识别，所以误报可控。
+
+### 验证
+
+| 变异 | 结果 |
+|------|------|
+| manifest 删掉键表里在用的 `idea.shorter` | 红，指名 `{idea.shorter}` |
+| 脚本新增一个未声明的 `idea.brandnew` | 红，指名 `{idea.brandnew}` |
+| 正则匹配不到任何东西 | 被「守卫的守卫」抓住：「只找到 0 个候选键」 |
+
+### 涉及文件
+
+`test/services/ai_translate_plugin_test.dart`
