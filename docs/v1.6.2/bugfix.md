@@ -95,6 +95,7 @@
 | BUG-350 | 2026-09-08 | SDK 文档写给插件作者的两个上限，与编辑器的常量无人对账 | P2 | 已加守卫 |
 | BUG-351 | 2026-09-08 | 我建的性能测试第一次上 CI 就自己红了 | P1 | 已修复 |
 | BUG-352 | 2026-09-08 | MCP 报出插件的四个命令，一个都不接受；拒绝还报成功 | **P1** | 已修复 |
+| BUG-353 | 2026-09-08 | 四种语言的 SDK 文档里，右侧边栏面板这个能力完全不存在 | **P1** | 已修复 |
 
 ---
 
@@ -5143,3 +5144,49 @@ handler 在 widget 层（`home_screen`），而当时的测试只到 `McpToolset
 `lib/services/plugin_manifest.dart`；`lib/providers/mcp_provider.dart`；
 `lib/ui/screens/home_screen.dart`；`test/services/plugin_manifest_test.dart`；
 `test/services/mcp_action_test.dart`
+
+---
+
+## BUG-353：四种语言的插件作者，不知道有右侧边栏
+
+用 CLAUDE.md 刚写下的第三条视角查 SDK 的图标名时，顺手数了各语言文档里
+`panels` 出现几次：
+
+| 文档 | `panels` |
+|------|---------|
+| 英文、阿拉伯、西、法、意、葡×2、俄 | 2 次 |
+| **德、日、韩、中** | **0 次** |
+
+**整个「右侧边栏面板」的能力，在四种语言的文档里不存在。**
+manifest 的字段清单里少那一行，说明它的两段话也没有。
+读这四种语言的插件作者，不知道自己可以往右侧边栏放东西。
+
+### 形状守卫为什么抓不到
+
+`sdk_schema_agrees_test` 有一条「翻译与英文同形」——它数**标题数、三级标题数、
+代码块数**。而 `panels` 那段**既无标题也无代码块**，只是两个自然段。
+十二份文件数出同样的形状，其中八份多一整个能力。
+
+### 顺带修：一句已经不成立的说明
+
+那两段里的第二段说：
+
+> a command that returns `ask` … is reported as text there rather than
+> stopping to ask, **because a drawer is not a conversation**
+
+**BUG-342 已经让抽屉能提问了**（问题、选项、填好上次答案的输入框都在抽屉里）。
+这句话是我自己的改动造成的过时——八份有这句的文档全部改写，
+四份新补的直接写新行为。
+
+### 新守卫
+
+**schema 允许的每个贡献点，12 份文档都要提到。**
+
+字段名不翻译，所以这一条可以机械地查——而它正好补上了形状守卫的盲区：
+**能力的有无，不体现在标题数上。**
+
+变异：让中文版重新失去 `panels` → 红，指名「README_zh-CN.md: 不提 `panels`」。
+
+### 涉及文件
+
+SDK：`README.md` 与 11 份翻译；主应用：`test/services/sdk_schema_agrees_test.dart`

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/services/plugin_manifest.dart';
 import 'package:marktext_plus/services/plugin_ui.dart';
+import 'package:marktext_plus/ui/widgets/plugin_icons.dart';
 
 /// The JSON schema the SDK publishes, held to what the editor actually reads.
 ///
@@ -211,6 +212,77 @@ void main() {
           '编辑器的上限是 ${PluginUiLimits.maxDepth} 层 / '
           '${PluginUiLimits.maxNodes} 个节点，SDK 文档说的是别的：\n'
           '${wrong.join('\n')}',
+    );
+  }, skip: present ? null : 'SDK 仓库不在这台机器上');
+
+  test('the schema names the icons the editor can draw', () {
+    // A panel must name an icon, and until now the schema said only that it
+    // is a non-empty string. An author had forty names to guess from and no
+    // list to guess out of; a wrong one falls back to a generic plugin square
+    // with nothing said, so the mistake looks like the editor ignoring them.
+    //
+    // With the names in the schema, an editor writing the manifest offers
+    // them and refuses the rest. That is worth having only if the two stay
+    // in step, which is what this checks.
+    expect(
+      enumAt(schema(), [
+        'properties',
+        'panels',
+        'items',
+        'properties',
+        'icon',
+      ]).toSet(),
+      PluginIcons.names.toSet(),
+      reason: 'schema 列的图标名，编辑器要画得出来',
+    );
+  }, skip: present ? null : 'SDK 仓库不在这台机器上');
+
+  test('every contribution the schema allows is described in every language',
+      () {
+    // `panels` was described in eight of the twelve. Four — German, Japanese,
+    // Korean, Chinese — did not contain the word at all, so a plugin author
+    // reading those did not know the right side bar existed.
+    //
+    // The shape guard could not see it: that section carries no heading and no
+    // fenced block of its own, so twelve files with the same counts had one
+    // capability in eight of them. Field names are not translated, which is
+    // what makes this checkable at all.
+    final fields = (schema()['properties'] as Map<String, dynamic>).keys
+        .where((name) => const {
+              'menus',
+              'commands',
+              'toolbar',
+              'panels',
+              'pages',
+              'settings',
+              'permissions',
+              'entrypoints',
+            }.contains(name))
+        .toList();
+    expect(fields, hasLength(8), reason: 'schema 的贡献点变了，这条守卫要跟着改');
+
+    final files = [
+      File('$repo/README.md'),
+      ...Directory('$repo/docs/i18n')
+          .listSync()
+          .whereType<File>()
+          .where((f) => f.path.endsWith('.md')),
+    ];
+
+    final missing = <String>[];
+    for (final file in files) {
+      final text = file.readAsStringSync();
+      for (final field in fields) {
+        if (!text.contains(field)) {
+          missing.add('${file.uri.pathSegments.last}: 不提 `$field`');
+        }
+      }
+    }
+
+    expect(
+      missing,
+      isEmpty,
+      reason: '这些语言的读者不知道有这个能力：\n${missing.join('\n')}',
     );
   }, skip: present ? null : 'SDK 仓库不在这台机器上');
 }

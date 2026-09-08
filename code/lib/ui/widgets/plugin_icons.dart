@@ -82,4 +82,13 @@ class PluginIcons {
   /// icon — a plugin naming something unknown still gets a rail entry,
   /// because a panel nobody can open is worse than a generic square.
   static IconData resolve(String name) => byName[name] ?? fallback;
+
+  /// Every name a plugin may use, for the schema that offers them.
+  ///
+  /// The SDK's manifest schema lists these so an author's editor completes
+  /// them and refuses the rest. A name that is not here draws [fallback]
+  /// silently, which reads as the editor ignoring the icon rather than as a
+  /// typo — so the list being offered and the list being drawn have to be the
+  /// same one. `sdk_schema_agrees_test` checks that.
+  static List<String> get names => byName.keys.toList()..sort();
 }
