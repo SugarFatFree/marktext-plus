@@ -205,6 +205,13 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   /// One stopwatch and one line when it finishes. A document small enough to
   /// draw in its first batch never starts it.
   Stopwatch? _fillWatch;
+
+  /// Whether blocks for the rest of the document are still on their way.
+  ///
+  /// [_awaitingFullParse] cannot answer this. It is cleared before the other
+  /// isolate is asked, so between that and the blocks coming back there is a
+  /// window where the prefix is all there is and nothing says so.
+  bool _fullParseOwed = false;
   static const _initialBatchSize = 50;
   static const _maxBatchSize = 2000;
 
@@ -686,6 +693,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       final prefix = md.MarkdownParser.safePrefix(widget.markdown);
       _cachedNodes = parser.parse(prefix ?? widget.markdown);
       _awaitingFullParse = prefix == null ? null : widget.markdown;
+      _fullParseOwed = _awaitingFullParse != null;
       if (_awaitingFullParse != null) {
         WidgetsBinding.instance.addPostFrameCallback((_) => _finishParse());
       }
@@ -1089,6 +1097,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   /// a document that is no longer there.
   void _adoptFullParse(String source, List<md.MarkdownNode> nodes) {
     if (!mounted || source != widget.markdown) return;
+    _fullParseOwed = false;
     setState(() {
       _cachedNodes = nodes;
       _cachedHeadingLines = _headingLinesOf(nodes);
@@ -1474,6 +1483,12 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   /// `debug`, so it is there when someone asks the log what happened and out
   /// of the way when they are reading a plugin's output.
   void _finishedFilling(int totalNodes) {
+    // Only the prefix is on screen so far and the rest is still being parsed;
+    // the fill goes on when it lands. Reporting here would give the prefix's
+    // block count and the prefix's elapsed time as the document's — for
+    // exactly the documents this line exists to measure, since a document
+    // small enough to parse in one go never takes this path at all.
+    if (_fullParseOwed) return;
     final watch = _fillWatch;
     if (watch == null) return;
     _fillWatch = null;

@@ -101,4 +101,59 @@ void main() {
 
     expect(costLines(), hasLength(1));
   });
+
+  testWidgets('a document parsed in two goes does not report the first go', (
+    tester,
+  ) async {
+    // Over `safePrefix`'s 1500 lines, so the document is parsed as a prefix
+    // first and the whole of it after — the shape every document this
+    // measurement exists for has. 800 paragraphs is 1599 lines; the prefix
+    // stops at the blank line after the 750th.
+    const paragraphs = 800;
+    await draw(
+      tester,
+      List.generate(paragraphs, (i) => 'Paragraph $i.').join('\n\n'),
+    );
+
+    // Whatever it says, it must not present the prefix as the document. The
+    // fill reaching the end of the prefix is not the document being drawn:
+    // the other half is still on its way, and the reader of this line has no
+    // way to tell the two apart.
+    for (final line in costLines()) {
+      expect(
+        line,
+        contains('$paragraphs blocks'),
+        reason: '这条日志自称是整篇的耗时，报前缀的块数就是在说假话',
+      );
+    }
+  });
+
+  testWidgets('and it does report, once the whole document arrives', (
+    tester,
+  ) async {
+    // The other half of the test above. Without this one, a preview that said
+    // nothing at all about large documents would pass — which is the same
+    // hole as reporting the prefix: the reader learns nothing either way.
+    //
+    // `runAsync` because the second parse runs on another isolate, and the
+    // test's clock does not drive one.
+    const paragraphs = 800;
+    await draw(
+      tester,
+      List.generate(paragraphs, (i) => 'Paragraph $i.').join('\n\n'),
+    );
+    expect(costLines(), isEmpty, reason: '整篇还没到，此时不该有话说');
+
+    await tester.runAsync(() => Future<void>.delayed(const Duration(seconds: 2)));
+    for (var i = 0; i < 20; i++) {
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+
+    expect(costLines(), hasLength(1), reason: '整篇画完了要留下一条');
+    expect(
+      costLines().single,
+      contains('$paragraphs blocks'),
+      reason: '报的要是整篇的规模',
+    );
+  });
 }
