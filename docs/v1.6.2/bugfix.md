@@ -88,6 +88,7 @@
 | BUG-343 | 2026-09-08 | MCP 的每一次拒绝，在协议层都写着「成功」 | P1 | 已修复 |
 | BUG-344 | 2026-09-08 | 每次启动都去搜一遍社区插件，两三次就把 GitHub 配额用光 | **P1** | 已修复 |
 | BUG-345 | 2026-09-08 | 插件读不出来这件事从不进日志，`read_logs` 里查不到任何线索 | P1 | 已修复 |
+| BUG-346 | 2026-09-08 | 一条断言查子串 `rate`，而「generated」也含它 | P3 | 已修复 |
 
 ---
 
@@ -4787,3 +4788,44 @@ BUG-278 修的是「原因写好了没送达读者」——送到了面板上。
 ### 涉及文件
 
 `lib/services/plugin_manager.dart`；`test/services/plugin_problems_test.dart`
+
+---
+
+## BUG-346：`contains` 在字符串上会误伤
+
+写 FEAT-134 时踩了一次：断言「内存读数不该是零」写成
+
+```dart
+expect(ResidentMemory.suffix(), isNot(contains('0 MB resident')));
+```
+
+**「150 MB resident」里就含有「0 MB resident」。** 单独跑那个文件时机器报了个
+非整十的数，绿；跑全量时正好整十，红。一个**只在被测值恰好落在某个形状上**
+才失败的断言。
+
+**顺手把同类扫了一遍**（`grep "isNot(contains(" test/`，20 处），
+找到另一处真脆弱的：
+
+```dart
+// 意思是「这条 403 不该被说成限流」
+expect(message.toLowerCase(), isNot(contains('rate')));
+```
+
+**"generated"、"separate"、"moderate" 都含 `rate`。** 消息换个说法就可能
+一边通过这条断言、一边说着完全相反的话。改成查真正会出现的词——
+`rate-limiting` 和 `try again`。
+
+变异验证：把非限流的 403 也说成限流 → 红。
+
+其余 18 处查的是完整标签、文件名、类名，误匹配不了。
+`isNot(contains('0xff'))` 是有意的前缀匹配（CSS 里不该出现任何 Dart 颜色字面量）。
+
+### 规律
+
+在**数字、路径、标识符**上下文里用 `contains` 之前，先问：
+**有没有一个合法的值，把我要排除的这个串包含进去？**
+
+### 涉及文件
+
+`test/services/plugin_search_failure_test.dart`；
+`test/core/diagnostics/resident_memory_test.dart`

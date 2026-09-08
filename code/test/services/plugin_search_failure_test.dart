@@ -39,7 +39,12 @@ void main() {
       resetAt: null,
     );
     expect(message, contains('403'));
-    expect(message.toLowerCase(), isNot(contains('rate')));
+    // "rate" alone would be a trap: "generated", "separate" and "moderate"
+    // all hold it, so a reworded message could pass this while saying exactly
+    // the wrong thing. The claim is that it does not call this rate limiting,
+    // and the words that do are these.
+    expect(message.toLowerCase(), isNot(contains('rate-limiting')));
+    expect(message.toLowerCase(), isNot(contains('try again')));
   });
 
   test('any other failure carries its status', () {
