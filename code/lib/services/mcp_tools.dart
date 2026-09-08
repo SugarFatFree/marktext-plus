@@ -156,13 +156,11 @@ class McpToolset {
           'action': {
             'type': 'string',
             'enum': [
-              'open_file',
               'new_tab',
               'close_tab',
               'activate_tab',
               'set_view_mode',
               'set_content',
-              'run_plugin_command',
               'close_pane',
             ],
           },

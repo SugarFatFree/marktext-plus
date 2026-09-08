@@ -261,7 +261,12 @@ class PluginPanesNotifier
     );
   }
 
-  void close(String tabId, PluginPaneSlot slot) {
+  /// Closes the pane in [slot], and says whether one was there.
+  ///
+  /// The answer matters to callers that report back — MCP said "closed the
+  /// right pane" when no pane had ever been opened.
+  bool close(String tabId, PluginPaneSlot slot) {
+    final had = forTab(tabId).containsKey(slot);
     final remaining = {
       for (final entry in forTab(tabId).entries)
         if (entry.key != slot) entry.key: entry.value,
@@ -271,6 +276,7 @@ class PluginPanesNotifier
         if (tab.key != tabId) tab.key: tab.value,
       if (remaining.isNotEmpty) tabId: remaining,
     };
+    return had;
   }
 
   /// Stops every pane in [tabId] saying it is still working.

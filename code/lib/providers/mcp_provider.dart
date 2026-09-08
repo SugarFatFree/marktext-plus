@@ -153,8 +153,12 @@ class McpController extends StateNotifier<McpStatus> {
       case 'activate_tab':
         final id = text('tabId');
         if (id == null) return 'no tabId given';
-        _ref.read(tabProvider.notifier).setActiveTab(id);
-        return 'tab $id is active';
+        // The answer is the provider's, not this line's optimism: an id
+        // naming no tab used to be written into the state and reported as a
+        // switch that had happened.
+        return _ref.read(tabProvider.notifier).setActiveTab(id)
+            ? 'tab $id is active'
+            : 'there is no tab $id';
 
       case 'close_tab':
         final id = text('tabId') ?? _ref.read(tabProvider).activeTabId;
@@ -177,12 +181,23 @@ class McpController extends StateNotifier<McpStatus> {
         final id = _ref.read(tabProvider).activeTabId;
         if (slot == null) return 'unknown slot "${text('slot')}"';
         if (id == null) return 'no tab is active';
-        _ref.read(pluginPanesProvider.notifier).close(id, slot);
-        return 'closed the ${slot.name} pane';
+        return _ref.read(pluginPanesProvider.notifier).close(id, slot)
+            ? 'closed the ${slot.name} pane'
+            : 'no ${slot.name} pane was open';
 
       default:
-        // open_file and run_plugin_command need the widget layer, which is
-        // where they are wired up; anything else is a name nobody implements.
+        // `open_file` and `run_plugin_command` were listed as actions and
+        // never implemented anywhere — this comment used to say they were
+        // wired up in the widget layer, and they were not. They are no longer
+        // offered, because a schema that names an action a client cannot use
+        // is worse than one that does not mention it.
+        //
+        // Both need something this layer has not got. Opening a path in
+        // *this* window is thirty lines living in the side bar, and copying
+        // them here would be a second copy of one rule; the honest first step
+        // is lifting that onto `TabNotifier`. Running a plugin command needs a
+        // `BuildContext` — panes, cards and snackbars all come out of it — so
+        // it needs the widget layer to register a handler here.
         return 'action "$action" is not available';
     }
   }

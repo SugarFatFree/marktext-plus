@@ -69,6 +69,8 @@
 | BUG-324 | 2026-09-08 | 社区搜索失败时把 `HttpException:` 类名甩给读者 | P1 | 已修复 |
 | BUG-325 | 2026-09-08 | 不是打字改的内容，预览永远不更新——插件写回、磁盘重载、MCP 全中 | P0 | 已修复 |
 | BUG-326 | 2026-09-08 | 源码窗格不认反斜杠转义，`\$5` 被画成公式 | P1 | 已修复 |
+| BUG-327 | 2026-09-08 | 激活不存在的标签会写进状态并回报成功 | P1 | 已修复 |
+| BUG-328 | 2026-09-08 | MCP 宣称支持 `open_file` 与 `run_plugin_command`，两个都没实现 | P1 | 已撤下 |
 
 ---
 
@@ -3791,3 +3793,79 @@ place to forget one」。
 
 `lib/ui/editor/syntax_highlighter.dart`；
 `test/ui/editor/highlighter_honours_escapes_test.dart`（新增）
+
+---
+
+## BUG-327：激活一个不存在的标签，编辑器说「好了」
+
+### 实机验证
+
+```
+control activate_tab "不存在的标签"  →  tab 不存在的标签 is active
+get_state                            →  "activeTabId": "不存在的标签"
+```
+
+编辑器于是处在**顶上有标签页、下面什么都没有**的状态，而且没有任何报错。
+
+### 根因
+
+```dart
+void setActiveTab(String id) {
+  state = state.copyWith(activeTabId: id);   // 不问这个 id 是不是真的
+}
+```
+
+标签栏只会递交它刚画出来的 id，所以这条一直没出事。**而 MCP 把同一个动作
+开放给了任何能发 JSON 的东西。**
+
+### 修
+
+`setActiveTab` 返回 `bool`，不存在就什么都不做。MCP 那句回话改成由 provider 的
+返回值决定——**调用方要能分辨「切过去了」和「没有这个标签」，之前这两件事说的是同一句话**。
+
+`close_pane` 同样：没有打开的窗格也回报「已关闭」，现在说「没有打开的右窗格」。
+
+---
+
+## BUG-328：MCP 宣称了两个不存在的动作
+
+`control` 的 schema 列了八个动作。其中 **`open_file` 和 `run_plugin_command`
+在整个代码库里只出现在那个枚举里**——没有任何实现。
+
+`mcp_provider.dart` 的 `default:` 分支写着：
+
+> open_file and run_plugin_command need the widget layer, where they are wired up
+
+**那里从来没有接过。** 这是本仓库第八次「写好了没接上」，而这次更糟：
+**schema 对外宣称支持，客户端调了才发现是空的。**
+
+实测：
+
+```
+control open_file           → action "open_file" is not available
+control run_plugin_command  → action "run_plugin_command" is not available
+```
+
+### 处理：撤下，不是半接
+
+从枚举里移除，并把两者各缺什么写进注释：
+
+- **`open_file`**：把一个路径开进**这个**窗口的逻辑有 30 行，长在侧边栏的
+  `_openFileInTab` 里。在 MCP 里再抄一份，正是本文档反复在消除的那个模式——
+  诚实的第一步是把它提到 `TabNotifier` 上
+- **`run_plugin_command`**：需要 `BuildContext`（窗格、卡片、提示条都从它来），
+  得由 widget 层向这里注册一个处理器
+
+**一个宣称了客户端用不了的动作的 schema，比不提它更糟。** 接上它们值得做，
+但那是一次功能改动，草率复制只会造出重复规则。
+
+### 顺带说明
+
+这也是「用 MCP 测插件功能」做不到的真正原因——不只是机器上没装插件，
+**那个动作本身不存在**。
+
+### 涉及文件
+
+`lib/providers/tab_provider.dart`；`lib/providers/plugin_provider.dart`；
+`lib/providers/mcp_provider.dart`；`lib/services/mcp_tools.dart`；
+`test/providers/tab_activation_test.dart`（新增）

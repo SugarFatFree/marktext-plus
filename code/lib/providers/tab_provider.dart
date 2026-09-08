@@ -352,9 +352,18 @@ class TabNotifier extends StateNotifier<TabState> {
     _persistOpenedFiles();
   }
 
-  void setActiveTab(String id) {
+  /// Makes [id] the active tab, if there is such a tab.
+  ///
+  /// Returns whether it happened. Writing the id unchecked was harmless while
+  /// the tab bar was the only caller — it hands over ids it just drew. The MCP
+  /// server offers the same action to anything that can send JSON, and an id
+  /// that names no tab left the editor with tabs along the top, nothing below
+  /// them, and a report saying the switch had worked.
+  bool setActiveTab(String id) {
+    if (!state.tabs.any((tab) => tab.id == id)) return false;
     state = state.copyWith(activeTabId: id);
     _persistSession();
+    return true;
   }
 
   /// Changes which line ending [id] is written with.
