@@ -87,6 +87,59 @@ void main() {
     expect(missing, isEmpty, reason: '这些链接点开是 404：$missing');
   });
 
+  test('the translations list the same capabilities', () {
+    // The shape check below counts headings and fenced blocks. A capability
+    // is a table row with a bold name, and rows carry neither — so a
+    // translation can drop one and still match. The SDK's docs did exactly
+    // that: four of its twelve had no right side bar in them at all, and
+    // twelve identical shape counts said nothing about it.
+    //
+    // Ask a different question of the same files: how many capabilities does
+    // each claim, and do the untranslatable names appear in all of them.
+    final root = Directory.current.parent;
+    int rows(File file) =>
+        RegExp(r'^\| \*\*', multiLine: true)
+            .allMatches(file.readAsStringSync())
+            .length;
+
+    final english = rows(File('${root.path}/README.md'));
+    expect(english, greaterThan(20), reason: '英文只数出 $english 行，八成是没读对');
+
+    final off = <String>[];
+    for (final file in Directory('${root.path}/docs/i18n')
+        .listSync()
+        .whereType<File>()
+        .where((f) => f.path.endsWith('.md'))) {
+      final theirs = rows(file);
+      if (theirs != english) {
+        off.add('${file.uri.pathSegments.last}: $theirs ≠ $english');
+      }
+    }
+    expect(off, isEmpty, reason: '这几份翻译比英文多或少了能力：$off');
+  });
+
+  test('names that do not translate appear in every language', () {
+    // A capability can also go missing without the row count moving, if a row
+    // was replaced rather than dropped. These names are the same in every
+    // language, so their absence is a capability that is not described.
+    final root = Directory.current.parent;
+    const names = ['Mermaid', 'KaTeX', 'GBK', 'UTF-16', '.docx', 'MCP'];
+
+    final missing = <String>[];
+    for (final file in Directory('${root.path}/docs/i18n')
+        .listSync()
+        .whereType<File>()
+        .where((f) => f.path.endsWith('.md'))) {
+      final text = file.readAsStringSync();
+      for (final name in names) {
+        if (!text.contains(name)) {
+          missing.add('${file.uri.pathSegments.last}: 不提 $name');
+        }
+      }
+    }
+    expect(missing, isEmpty, reason: missing.join('\n'));
+  });
+
   test('the translations have the same shape as the English README', () {
     // Twelve copies of one document. A section added to the English one and
     // not to the other eleven is a reader in another language being told
