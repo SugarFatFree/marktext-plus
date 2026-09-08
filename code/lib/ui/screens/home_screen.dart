@@ -33,6 +33,7 @@ import '../widgets/status_bar.dart';
 import '../widgets/find_replace_bar.dart';
 import '../widgets/action_labels.dart';
 import '../../providers/plugin_provider.dart';
+import '../../services/mcp_tools.dart';
 import '../../services/plugin_manifest.dart';
 import '../widgets/plugin_command_actions.dart';
 import '../widgets/window_actions.dart';
@@ -847,12 +848,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
           ref.read(installedPluginManifestsProvider).valueOrNull ??
           const <PluginManifest>[];
       final plugin = plugins.where((p) => p.id == pluginId).firstOrNull;
-      if (plugin == null) return 'no plugin called "$pluginId" is installed';
-      if (!plugin.commands.any((c) => c.id == command)) {
-        return '"$pluginId" has no command "$command"; it has '
-            '${plugin.commands.map((c) => c.id).join(', ')}';
+      if (plugin == null) {
+        return mcpRefused('no plugin called "$pluginId" is installed');
       }
-      if (!mounted) return 'the window is gone';
+      // The same list `get_state` reports, from the same getter. These were
+      // two expressions over two different fields, so the interface named
+      // four commands and accepted none of them.
+      final offered = plugin.commandIds;
+      if (!offered.contains(command)) {
+        return mcpRefused(
+          '"$pluginId" has no command "$command"; it has '
+          '${offered.join(', ')}',
+        );
+      }
+      if (!mounted) return mcpRefused('the window is gone');
 
       // Awaited: an agent asking for this wants to know it finished, and a
       // command that asks a question will sit here until it is answered —
@@ -863,7 +872,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
         plugin: plugin,
         command: command,
       );
-      return 'ran $command';
+      return mcpDid('ran $command');
     };
   }
 

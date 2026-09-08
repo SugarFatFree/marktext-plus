@@ -94,6 +94,7 @@
 | BUG-349 | 2026-09-08 | 「直接依赖数」在 12 份 README 里写着两个数，两个都不对 | P2 | 已修复 |
 | BUG-350 | 2026-09-08 | SDK 文档写给插件作者的两个上限，与编辑器的常量无人对账 | P2 | 已加守卫 |
 | BUG-351 | 2026-09-08 | 我建的性能测试第一次上 CI 就自己红了 | P1 | 已修复 |
+| BUG-352 | 2026-09-08 | MCP 报出插件的四个命令，一个都不接受；拒绝还报成功 | **P1** | 已修复 |
 
 ---
 
@@ -5073,3 +5074,72 @@ Actual: <5804>
 ### 涉及文件
 
 `test/services/cost_stays_linear_test.dart`
+
+---
+
+## BUG-352：报得出四个命令，一个都不接受
+
+读者装上带 FEAT-131 的版本后，第一次在真机上试 `run_plugin_command`：
+
+```
+run_plugin_command(pluginId: "com.marktextplus.ai-translate",
+                   command: "ai.nonexistent")
+→ "com.marktextplus.ai-translate" has no command "ai.nonexistent"; it has
+                                                                       ↑ 空的
+```
+
+**「it has」后面什么都没有**，而同一个接口的 `get_state` 刚刚报告这个插件有
+四个命令。
+
+### 两份清单，两个字段
+
+| 谁 | 读哪个字段 |
+|----|-----------|
+| `get_state` 报告命令 | `plugin.menus` 的 id |
+| 我写的 handler 检查命令 | `plugin.commands` |
+
+`commands` 是另一个用途的字段，对这个插件是**空的**。
+所以接口**报出四个命令，然后拒绝其中每一个**——
+而给出的理由是「它有：」后面跟着一片空白。
+
+一个照着 `get_state` 调用的 agent，会被自己刚拿到的名单拒绝。
+
+### 同时发现：拒绝仍报成功
+
+BUG-343 把每个动作的拒绝接进了 `isError`。**FEAT-131 的两条拒绝漏了**：
+
+```dart
+return mcpDid(await run(pluginId, command));   // 一律当成功
+```
+
+实测：插件不存在 → `isError: False`；命令不存在 → `isError: False`。
+这是两次改动交叉处的漏网：先写的 FEAT-131 返回字符串，
+后改的 BUG-343 换成了 `McpOutcome`，换的时候把 handler 的答案整个包成了「做到了」。
+
+### 修
+
+**不是把 handler 里的字段改对就完事**——那样还是两处各算各的。
+`PluginManifest.commandIds` 成为唯一来源，`get_state` 与 handler 都用它。
+
+拒绝改为 `mcpRefused`，与其它动作一致。
+
+### 守卫
+
+- `plugin_manifest_test`：`commandIds` 就是菜单项的 id，
+  且**明确断言 `commands` 是空的**——正是这个区别造成了缺陷
+- `mcp_action_test`：跑通的不是错误；插件不存在是错误；命令不存在是错误
+  **且名单不能为空**（`isNot(endsWith('it has '))`——空名单说明查错了字段，
+  不是这个插件真的没有命令）
+
+变异：`commandIds` 改回读 `commands` → 红。
+
+### 本机为什么测不出来
+
+handler 在 widget 层（`home_screen`），而当时的测试只到 `McpToolset`。
+**这两个缺陷都是连上真机才现形的，那时全套 2780 条全绿。**
+
+### 涉及文件
+
+`lib/services/plugin_manifest.dart`；`lib/providers/mcp_provider.dart`；
+`lib/ui/screens/home_screen.dart`；`test/services/plugin_manifest_test.dart`；
+`test/services/mcp_action_test.dart`

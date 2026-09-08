@@ -393,4 +393,42 @@ void _impliedPermissions() {
       'bin/p',
     );
   });
+
+  test('the commands a caller can run are the menu entries', () {
+    // `commandIds` exists because two places computed this list separately:
+    // the automation interface reported a plugin's commands out of `menus`
+    // and checked incoming requests against `commands`, which is a different
+    // field for a different purpose and was empty. It named four commands and
+    // refused all four — answering "it has " with nothing after it.
+    final manifest = PluginManifest.fromJson({
+      'id': 'com.example.p',
+      'name': 'P',
+      'version': '0.0.1',
+      'runtime': 'lua',
+      'entrypoint': 'main.lua',
+      'menus': [
+        {'id': 'do.one', 'title': 'One', 'location': 'editorContextMenu'},
+        {'id': 'do.two', 'title': 'Two', 'location': 'menuBar'},
+      ],
+    });
+
+    expect(manifest.commandIds, ['do.one', 'do.two']);
+    expect(
+      manifest.commands,
+      isEmpty,
+      reason: '正是这个区别造成了那个缺陷——两个字段，一个空的',
+    );
+  });
+
+  test('a plugin with no menus offers no commands, rather than throwing', () {
+    final manifest = PluginManifest.fromJson({
+      'id': 'com.example.q',
+      'name': 'Q',
+      'version': '0.0.1',
+      'runtime': 'lua',
+      'entrypoint': 'main.lua',
+    });
+
+    expect(manifest.commandIds, isEmpty);
+  });
 }

@@ -393,6 +393,16 @@ class PluginManifest {
   final List<String> capabilities;
   final List<String> permissions;
   final List<PluginCommand> commands;
+
+  /// The ids a caller can ask this plugin to run.
+  ///
+  /// From `menus`, because a command reaches the reader as a menu entry and
+  /// that is what the plugin declares. [commands] is a different list for a
+  /// different purpose, and reaching for it here refused every command there
+  /// is: the automation interface reported what a plugin could do out of one
+  /// field and checked requests against the other, so it named four commands
+  /// and accepted none of them.
+  List<String> get commandIds => [for (final menu in menus) menu.id];
   final List<PluginToolbarItem> toolbar;
   final List<PluginMenuItem> menus;
   final List<PluginSettingPage> pages;

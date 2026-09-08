@@ -112,7 +112,7 @@ class McpController extends StateNotifier<McpStatus> {
             'id': plugin.id,
             'name': plugin.name,
             'version': plugin.version,
-            'commands': [for (final menu in plugin.menus) menu.id],
+            'commands': plugin.commandIds,
           },
       ],
       'panes': {
@@ -135,7 +135,8 @@ class McpController extends StateNotifier<McpStatus> {
   /// come out of a `BuildContext`, and this layer has none. The widget that
   /// has one registers this instead, which is the same shape the toolset
   /// already uses for screenshots.
-  Future<String> Function(String pluginId, String command)? runPluginCommand;
+  Future<McpOutcome> Function(String pluginId, String command)?
+  runPluginCommand;
 
   Future<McpOutcome> _perform(
     String action,
@@ -213,7 +214,10 @@ class McpController extends StateNotifier<McpStatus> {
           // built once and stays.
           return mcpRefused('the editor is not ready to run plugin commands yet');
         }
-        return mcpDid(await run(pluginId, command));
+        // The handler's own answer, not a blanket success: it refuses a
+        // plugin that is not installed and a command that plugin has not got,
+        // and wrapping those in `mcpDid` reported both as done.
+        return run(pluginId, command);
 
       case McpAction.closePane:
         final slot = PluginPaneSlot.values

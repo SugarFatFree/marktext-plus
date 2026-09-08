@@ -118,4 +118,62 @@ void main() {
       expect(result['isError'], isTrue);
     });
   });
+
+  group('running a plugin command answers the way every other action does', () {
+    // Both of these were found by driving a real editor, with the suite green.
+    // The handler lives in the widget layer, so nothing here had exercised the
+    // path from `control` down to it.
+    Future<Map<String, dynamic>> run(
+      Future<McpOutcome> Function(String plugin, String command) handler,
+    ) async {
+      final tools = McpToolset(
+        perform: (action, arguments) =>
+            handler('${arguments['pluginId']}', '${arguments['command']}'),
+      );
+      return tools.call('control', {
+        'action': 'run_plugin_command',
+        'pluginId': 'com.example.p',
+        'command': 'do.thing',
+      });
+    }
+
+    test('a command that ran is not an error', () async {
+      final result = await run((_, command) async => mcpDid('ran $command'));
+      expect(result['isError'], isFalse);
+      expect((result['content'] as List).first['text'], 'ran do.thing');
+    });
+
+    test('a plugin that is not installed is', () async {
+      final result = await run(
+        (plugin, _) async => mcpRefused('no plugin called "$plugin" is installed'),
+      );
+      expect(
+        result['isError'],
+        isTrue,
+        reason: '插件不在也报成功，调用方会以为命令跑过了',
+      );
+    });
+
+    test('a command the plugin has not got is, and names the ones it has',
+        () async {
+      final result = await run(
+        (plugin, command) async => mcpRefused(
+          '"$plugin" has no command "$command"; it has one.real, two.real',
+        ),
+      );
+
+      expect(result['isError'], isTrue);
+      final said = (result['content'] as List).first['text'] as String;
+      expect(
+        said,
+        contains('one.real'),
+        reason: '猜错命令名的调用方，最需要的是真实的那份名单',
+      );
+      expect(
+        said,
+        isNot(endsWith('it has ')),
+        reason: '名单是空的——多半是查错了字段，而不是这个插件真的没有命令',
+      );
+    });
+  });
 }
