@@ -31,6 +31,7 @@ import '../widgets/plugin_tip.dart';
 import '../widgets/right_side_bar.dart';
 import '../widgets/status_bar.dart';
 import '../widgets/find_replace_bar.dart';
+import '../widgets/action_labels.dart';
 import '../widgets/window_actions.dart';
 import '../widgets/editor_tab_bar.dart';
 import '../editor/source_editor.dart';
@@ -411,7 +412,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
       );
     }
 
-    // File operations
+    // File operations. `newFile` has no shortcut, so it is not a
+    // [WindowAction] and is written out here.
     registry.registerAll([
       Command(
         id: 'file.new',
@@ -419,62 +421,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
         description: l10n.commandNewFileDesc,
         execute: () => AppMenuBar.newFile(ref, l10n),
       ),
-      Command(
-        id: 'file.save',
-        label: l10n.commandSave,
-        description: l10n.commandSaveDesc,
-        execute: () => AppMenuBar.saveFile(ref),
-      ),
     ]);
 
-    // View commands
+    // Everything with a shortcut, from the list the keyboard and the menus
+    // read. This used to be nine commands written out by hand — the palette
+    // was a fourth copy of the same set, and the shortest of the four, so
+    // zoom, print, export, full screen and the rest could not be found in it
+    // at all. Anything added to [WindowActions] now appears here as well.
     registry.registerAll([
-      Command(
-        id: 'view.source',
-        label: l10n.commandSourceMode,
-        description: l10n.commandSourceModeDesc,
-        execute: () =>
-            ref.read(settingsProvider.notifier).setEditMode(EditMode.source),
-      ),
-      Command(
-        id: 'view.preview',
-        label: l10n.commandPreviewMode,
-        description: l10n.commandPreviewModeDesc,
-        execute: () =>
-            ref.read(settingsProvider.notifier).setEditMode(EditMode.preview),
-      ),
-      Command(
-        id: 'view.split',
-        label: l10n.commandSplitMode,
-        description: l10n.commandSplitModeDesc,
-        execute: () =>
-            ref.read(settingsProvider.notifier).setEditMode(EditMode.split),
-      ),
-      Command(
-        id: 'view.focusMode',
-        label: l10n.commandToggleFocusMode,
-        description: l10n.commandToggleFocusModeDesc,
-        execute: () => ref.read(settingsProvider.notifier).toggleFocusMode(),
-      ),
-      Command(
-        id: 'view.typewriterMode',
-        label: l10n.commandToggleTypewriterMode,
-        description: l10n.commandToggleTypewriterModeDesc,
-        execute: () =>
-            ref.read(settingsProvider.notifier).toggleTypewriterMode(),
-      ),
-      Command(
-        id: 'view.sidebar',
-        label: l10n.commandToggleSidebar,
-        description: l10n.commandToggleSidebarDesc,
-        execute: () => ref.read(settingsProvider.notifier).toggleSideBar(),
-      ),
-      Command(
-        id: 'view.tabbar',
-        label: l10n.commandToggleTabBar,
-        description: l10n.commandToggleTabBarDesc,
-        execute: () => ref.read(settingsProvider.notifier).toggleTabBar(),
-      ),
+      for (final action in WindowActions.all)
+        // Opening the palette from inside the palette does nothing useful.
+        if (action.name != 'commandPalette')
+          Command(
+            id: 'window.${action.name}',
+            label: actionLabel(action.name, l10n),
+            description: KeybindingService().keybindings[action.name] ?? '',
+            execute: () => action.run(context, ref),
+          ),
     ]);
   }
 

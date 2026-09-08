@@ -7,6 +7,7 @@
 | FEAT-127 | 2026-09-07 | 插件可以画自己的界面（声明式组件树，第一期） | P1 | 高 | 已完成 |
 | FEAT-128 | 2026-09-07 | 插件画的界面出现在启动它的那个容器里（第二期） | P1 | 中 | 已完成 |
 | FEAT-129 | 2026-09-07 | 插件的网络经宿主、留日志、跟系统代理（代理组件已建但当前未接入，见下） | P1 | 中 | 已完成 |
+| FEAT-130 | 2026-09-08 | 命令面板收录全部带快捷键的命令，而不是手写的九条 | P1 | 中 | 已完成 |
 
 ---
 
@@ -206,3 +207,65 @@ WebView 仍会作为逃生舱做进来（第三期），但它是可选的、懒
 | CONNECT 之后不转发客户端字节 | 4 条挂 |
 | 不记日志 | 5 条挂 |
 | 把路径也记进日志 | 5 条挂——这条专门验证「只记主机名」不是说说而已 |
+
+---
+
+## FEAT-130：命令面板收录全部命令
+
+| 字段 | 内容 |
+|------|------|
+| **实现日期** | 2026-09-08 |
+| **需求描述** | Ctrl+Shift+P 打开的命令面板应当能搜到编辑器做得到的每一件事，而不是九条 |
+| **用户场景** | 想放大字号又记不住键位的人，在命令面板里搜 "zoom" 什么也搜不到，会以为编辑器没有这个功能——而菜单里明明有 |
+
+### 现状
+
+命令面板注册了两类命令：
+
+- **格式动作**：52 个，从 `FormatAction.values` 逐个列出，是全的
+- **窗口动作**：**手写九条**（新建、保存、三种视图模式、专注、打字机、侧边栏、标签栏）
+
+于是 zoom、打印、导出 PDF、全屏、设置、新窗口、退出、重新加载图片、
+查找上一个/下一个、关闭标签——**十六条命令在面板里搜不到**。
+
+这是 BUG-330 那批动作的**第四份手写清单**（前三份：快捷键表、窗口处理器的
+switch、各菜单项）。BUG-330 把前三份合成了一份，这一条把第四份也并进去。
+
+### 实现方案
+
+命令面板的窗口命令改为从 `WindowActions.all` 生成：
+
+```dart
+registry.registerAll([
+  for (final action in WindowActions.all)
+    if (action.name != 'commandPalette')   // 在面板里再开面板没有意义
+      Command(
+        id: 'window.${action.name}',
+        label: actionLabel(action.name, l10n),
+        description: KeybindingService().keybindings[action.name] ?? '',
+        execute: () => action.run(context, ref),
+      ),
+]);
+```
+
+**标签没有新增 ARB 键**：设置界面早已为全部 62 个可绑定动作准备了译名
+（12 种语言都有），那段 switch 原本是 `SettingsScreen` 的私有方法，
+现在提为 `actionLabel(action, l10n)`，设置界面与命令面板共用。
+
+**描述位显示该命令当前的快捷键**——这比再写 24 条描述文案更有用，
+而且会跟着用户重绑自动变。
+
+### 涉及文件
+
+`lib/ui/widgets/action_labels.dart`（新增，从设置界面提取）；
+`lib/ui/screens/home_screen.dart`；`lib/ui/screens/settings_screen.dart`；
+`test/ui/window_action_coverage_test.dart`；`test/services/keybinding_wiring_test.dart`
+
+### 验收标准
+
+- [x] 命令面板能搜到 zoom / print / export / full screen / quit 等原本缺席的命令
+- [x] 每条命令显示当前绑定的快捷键
+- [x] 每个窗口动作都有译名，不会显示成 `toggleSidebar` 这样的标识符（测试变异验证）
+- [x] `keybinding_wiring_test` 那条守卫从**扫描源码文本**升级为**真正调用**
+      `actionLabel`——它原本查 `settings_screen.dart` 里有没有 `'xxx' =>` 这段文字，
+      现在直接问那个函数答什么

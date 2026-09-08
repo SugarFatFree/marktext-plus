@@ -1,7 +1,9 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:marktext_plus/core/i18n/l10n/app_localizations_en.dart';
 import 'package:marktext_plus/services/keybinding_service.dart';
+import 'package:marktext_plus/ui/widgets/action_labels.dart';
 
 /// Every shortcut the app has should be one this service knows about.
 ///
@@ -14,11 +16,9 @@ import 'package:marktext_plus/services/keybinding_service.dart';
 /// shown that.
 void main() {
   late String menu;
-  late String settings;
 
   setUpAll(() {
     menu = File('lib/ui/widgets/app_menu_bar.dart').readAsStringSync();
-    settings = File('lib/ui/screens/settings_screen.dart').readAsStringSync();
   });
 
   test('no shortcut is written straight onto a menu item', () {
@@ -45,12 +45,15 @@ void main() {
     }
   });
 
-  test('the settings list names every action rather than showing its id', () {
+  test('every action has a name rather than showing its id', () {
     // The switch falls back to the raw action name, so a missing case shows
-    // "toggleTabBar" where the menu says "隐藏标签栏".
+    // "toggleTabBar" where the menu says "隐藏标签栏". This used to search the
+    // settings screen's source for the case; the map is a function of its own
+    // now, shared with the command palette, so this calls it.
+    final l10n = AppLocalizationsEn();
     for (final action in KeybindingService.defaultKeybindings.keys) {
-      expect(settings, contains("'$action' =>"),
-          reason: '$action 在设置里会显示成原始动作名');
+      expect(actionLabel(action, l10n), isNot(action),
+          reason: '$action 会显示成原始动作名');
     }
   });
 }

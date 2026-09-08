@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/services/keybinding_service.dart';
 import 'package:marktext_plus/providers/editor_provider.dart';
+import 'package:marktext_plus/core/i18n/l10n/app_localizations_en.dart';
+import 'package:marktext_plus/ui/widgets/action_labels.dart';
 import 'package:marktext_plus/ui/widgets/window_actions.dart';
 
 /// Every shortcut Settings offers to rebind must reach something.
@@ -67,5 +69,19 @@ void main() {
   test('no name appears twice', () {
     final names = WindowActions.all.map((a) => a.name).toList();
     expect(names.toSet().length, names.length);
+  });
+
+  test('every window action has a name to show a reader', () {
+    // The palette lists these by name now, so an action with no label would
+    // appear in it as its own identifier — 'toggleSidebar' rather than
+    // whatever that reads as in the reader's language.
+    final l10n = AppLocalizationsEn();
+    for (final action in WindowActions.all) {
+      expect(
+        actionLabel(action.name, l10n),
+        isNot(action.name),
+        reason: '${action.name} falls through to the identifier',
+      );
+    }
   });
 }
