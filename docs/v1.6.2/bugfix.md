@@ -90,6 +90,7 @@
 | BUG-345 | 2026-09-08 | 插件读不出来这件事从不进日志，`read_logs` 里查不到任何线索 | P1 | 已修复 |
 | BUG-346 | 2026-09-08 | 一条断言查子串 `rate`，而「generated」也含它 | P3 | 已修复 |
 | BUG-347 | 2026-09-08 | README 说性能有测试盯着，而那样的测试不存在 | P1 | 已修复 |
+| BUG-348 | 2026-09-08 | 上一条改 README 时把高亮也写进了线性承诺，而它是超线性的 | P2 | 已修复 |
 
 ---
 
@@ -4890,3 +4891,47 @@ expect(message.toLowerCase(), isNot(contains('rate')));
 ### 涉及文件
 
 `README.md`；`test/services/cost_stays_linear_test.dart`（新增，3 条）
+
+---
+
+## BUG-348：修上一句话时，自己写下了下一句不实的
+
+BUG-347 把 README 那句空头承诺换成了真的：
+
+> **Parsing, highlighting and search** are all single-pass, and a test fails if
+> four times the document costs more than six times the work
+
+**建的测试只盖了解析和搜索。** 高亮没盖——而且盖不了：
+
+`syntax_highlighter.dart` 自己的注释里就有实测表：
+
+| 大小 | 首帧 |
+|------|------|
+| 64 KB | 1.2 s |
+| 128 KB | 1.3 s |
+| **256 KB** | **8.0 s** |
+| 384 KB | 24 s |
+| 512 KB | 45 s |
+
+**两倍的规模，六倍的时间。** 高亮的代价对 span 数是超线性的，
+这不是缺陷，是它的性质——「四倍不超过六倍」那条守卫对它**本来就不成立**。
+
+所以那句话在我手上从「承诺一个不存在的测试」变成了
+「把一条真守卫套在它管不着的东西上」。**第二种更难发现**，
+因为句子里三分之二是真的。
+
+### 高亮真正的守卫是上限
+
+`highlight_threshold_test`（4 条）盯着 128 KB 这个数：在合理区间内、
+以下会上色、以上不上色**且文档仍可编辑**、缩小后颜色回来。
+
+机制不是「保持线性」，是「超过就不做」。README 现在这样说。
+
+### 教训
+
+**改一句不实的话时，逐个短语核对它提到的每样东西。**
+「parsing, highlighting and search」是三样，我建了两样的守卫就换了措辞。
+
+### 涉及文件
+
+`README.md`
