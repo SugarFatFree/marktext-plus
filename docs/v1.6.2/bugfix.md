@@ -81,6 +81,7 @@
 | BUG-336 | 2026-09-08 | 预览的 AST 缓存失效同样无人守；注释里记着它当年怎么坏的 | P1 | 已加守卫 |
 | BUG-337 | 2026-09-08 | 在分屏的预览里勾选复选框，会在 widget 生命周期里改 provider | **P1** | 已修复 |
 | BUG-338 | 2026-09-08 | Windows 保存重试无人守；删掉它，杀毒软件一占用就报保存失败 | P1 | 已加守卫 |
+| BUG-339 | 2026-09-08 | 「检查更新」在没连上网时也能说出「已是最新版本」 | P1 | 已加守卫 |
 
 ---
 
@@ -4460,3 +4461,52 @@ WidgetsBinding.instance.addPostFrameCallback((_) {
 ### 涉及文件
 
 `lib/services/file_service.dart`；`test/services/save_retries_a_locked_file_test.dart`（新增）
+
+---
+
+## BUG-339：没问到人，却说「已是最新版本」
+
+`UpdateService.checkForUpdate` 特意把「有没有问到」和「问到了什么」分开返回：
+
+```dart
+static Future<({UpdateInfo? update, bool reachable})> checkForUpdate(...)
+```
+
+注释说明了理由：
+
+> the automatic check on startup wants to stay quiet when the network is down,
+> but **a check the user asked for must not answer "you are on the latest
+> version" when it never got an answer**
+
+菜单里那段代码**读了** `result.reachable`，做得对。**但没有守卫**：
+把那句判断去掉，让它无条件说「已是最新版本」，2741 条测试全绿。
+火车上断网的读者会被告知他是最新版，而编辑器根本没问过任何人。
+
+这是 CLAUDE.md 里那条视角的又一例：**编辑器说了与事实不符的话。**
+
+### 为什么之前守不了
+
+那句话是在 `ScaffoldMessenger.showSnackBar` 里现算的，
+要测它就得起一个 widget、mock 掉网络。
+
+现在「说哪句话」是个纯函数 `AppMenuBar.updateMessage(...)`，
+只做判断不做呈现，直接就能问它。
+
+### 守卫（5 条）
+
+1. 不可达 → 说「检查失败」，中英两种语言各验一次
+2. **不可达但手里有上次查到的版本信息** → 仍然说检查失败。
+   读者问的是**这一次**的结果
+3. 可达且有新版 → 说出版本号
+4. 可达且无新版 → 说「已是最新」
+5. **守卫的守卫**：三句话必须是三个不同的字符串。
+   若其中两句相同，上面四条会全绿而读者根本分辨不出
+
+### 变异验证
+
+- 去掉 `if (!reachable) return ...` → 第 1、2 条红
+- 把 `update != null` 那句提到 `!reachable` 前面（缓存了旧版本就谎报有新版）→ 第 2 条红
+
+### 涉及文件
+
+`lib/ui/widgets/app_menu_bar.dart`；`test/ui/widgets/update_check_is_honest_test.dart`（新增）

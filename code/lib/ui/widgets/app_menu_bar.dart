@@ -1091,13 +1091,35 @@ class AppMenuBar extends ConsumerWidget {
     final context = navigatorKey.currentContext;
     if (context == null || !context.mounted) return;
 
-    final message = !result.reachable
-        ? l10n.updateCheckFailed
-        : update != null
-            ? '${l10n.updateAvailable}: ${update.version}'
-            : l10n.updateUpToDate;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          updateMessage(
+            reachable: result.reachable,
+            update: update,
+            l10n: l10n,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// What to tell a reader who asked whether there is a new version.
+  ///
+  /// Separate from showing it so that it can be checked: `checkForUpdate`
+  /// reports whether it reached GitHub apart from what it found, precisely so
+  /// that a check the reader asked for cannot answer "you are on the latest
+  /// version" when it never got an answer. Nothing held that — saying the
+  /// happy sentence unconditionally left the whole suite green.
+  @visibleForTesting
+  static String updateMessage({
+    required bool reachable,
+    required UpdateInfo? update,
+    required AppLocalizations l10n,
+  }) {
+    if (!reachable) return l10n.updateCheckFailed;
+    if (update != null) return '${l10n.updateAvailable}: ${update.version}';
+    return l10n.updateUpToDate;
   }
 
   /// Shows the reader where the startup trace went.
