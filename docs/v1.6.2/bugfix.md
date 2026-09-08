@@ -77,6 +77,7 @@
 | BUG-332 | 2026-09-08 | 同一个动作在命令面板与设置里显示成两个名字（中文、俄语各一处） | P2 | 已修复 |
 | BUG-333 | 2026-09-08 | 导出守卫自称能覆盖将来新增的导出，而它的清单是手写的 | P2 | 已修复 |
 | BUG-334 | 2026-09-08 | 首帧前那步「不该写盘」只写在注释里，没有守卫 | P2 | 已加守卫 |
+| BUG-335 | 2026-09-08 | 快捷键索引的三个失效点全都没人守——删掉任意一个，2730 条测试全绿 | **P1** | 已加守卫 |
 
 ---
 
@@ -4222,3 +4223,69 @@ await PluginManager(p.join(configDir, 'plugins')).reapOrphanedPlugins();
 ### 涉及文件
 
 `test/services/plugin_process_registry_test.dart`
+
+---
+
+## BUG-335：三行 `_index = null;`，删掉哪一行都没人吭声
+
+`actionForEvent` 从一张反向索引里查答案，这张索引**建一次、留着**——
+每次按键都要走这里，遍历 62 条绑定表是不能接受的。
+
+三个地方负责让它失效：
+
+| 位置 | 时机 |
+|------|------|
+| `setKeybinding` | 用户在设置里改了一个键 |
+| `resetToDefaults` | 用户点了「恢复默认」 |
+| `load` | 启动时从磁盘读入自定义绑定 |
+
+**把其中任何一行 `_index = null;` 注释掉，全部 2730 条测试仍然全绿。**
+三次变异，三次全绿。
+
+### 那样会怎样
+
+用户在设置里把「加粗」改成 Ctrl+Shift+B：
+
+- 菜单里那一项**会显示新键**（`activatorFor` 直接读绑定表，不走索引）
+- **按下去没反应**，而旧的 Ctrl+B 照样加粗
+
+也就是 BUG-330 那种「界面说一套、按下去另一套」，只是这次由缓存造成。
+
+### 为什么已有测试抓不到
+
+`rebinding` 那一组三条测试，问的都是**菜单会显示什么**：
+
+```dart
+test('changing a binding changes what the menu shows', () {
+  service.setKeybinding('bold', 'Ctrl+Shift+B');
+  final bold = service.activatorFor('bold', isMacOS: false)!;   // ← 不走索引
+```
+
+名字是诚实的（「what the menu shows」），**但没有任何一条问「按下去会怎样」**。
+
+### 测得了吗——功能键是那把钥匙
+
+`actionForEvent` 那一组的注释解释了它为什么只测了两条边角：
+
+> The modifiers come from HardwareKeyboard, which a unit test cannot press
+
+**功能键不需要修饰键。** F3 默认绑 findNext，F5 绑 reloadImages，
+F7/F8/F9 空着——单元测试可以完整走一遍索引。
+
+### 守卫
+
+五条，第一条先证明索引确实在被查（否则后面四条可能是在一个永远返回 null 的
+索引上通过的）：
+
+1. `actionForEvent(F3)` → `findNext`
+2. 改绑之后，新键触发新动作
+3. 改绑之后，**旧键不再触发**
+4. 恢复默认之后，默认键回来
+5. 从磁盘 load 之后，磁盘上的绑定生效
+
+三次变异，一对一：改 `setKeybinding` → 第 2、3 条红；改 `resetToDefaults` →
+第 4 条红；改 `load` → 第 5 条红。
+
+### 涉及文件
+
+`test/services/keybinding_service_test.dart`

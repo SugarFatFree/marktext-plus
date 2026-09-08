@@ -155,4 +155,90 @@ void main() {
       }
     });
   });
+
+  group('a rebound key fires, not just relabels', () {
+    // `actionForEvent` answers from a reverse index it builds once and keeps.
+    // Three places drop that index — rebinding, resetting, and loading from
+    // disk — and deleting any of the three left the whole suite green: every
+    // rebinding test asked what the *menu* would show, which comes from
+    // `activatorFor` and never touches the index. A reader who changed a
+    // shortcut in Settings would have seen the new key beside the menu entry
+    // and had the old one keep working.
+    //
+    // Function keys are what makes this testable: a unit test cannot press
+    // Ctrl, and F5 needs no modifier.
+    KeyEvent press(LogicalKeyboardKey key) => KeyDownEvent(
+      physicalKey: PhysicalKeyboardKey.f5,
+      logicalKey: key,
+      timeStamp: Duration.zero,
+    );
+
+    test('the index is consulted at all', () {
+      // Without this the three below could pass on an index that is never
+      // built and always answers null.
+      expect(
+        service.actionForEvent(press(LogicalKeyboardKey.f3), isMacOS: false),
+        'findNext',
+      );
+    });
+
+    test('a key moved to another action fires that action', () {
+      // Build the index first: that is the state a reader is in when they
+      // open Settings, and the state in which a stale index survives.
+      service.actionForEvent(press(LogicalKeyboardKey.f3), isMacOS: false);
+
+      service.setKeybinding('save', 'F7');
+
+      expect(
+        service.actionForEvent(press(LogicalKeyboardKey.f7), isMacOS: false),
+        'save',
+        reason: '改了快捷键，按下去还是没反应',
+      );
+    });
+
+    test('the key an action was moved off stops firing it', () {
+      service.actionForEvent(press(LogicalKeyboardKey.f3), isMacOS: false);
+
+      service.setKeybinding('findNext', 'F8');
+
+      expect(
+        service.actionForEvent(press(LogicalKeyboardKey.f3), isMacOS: false),
+        isNot('findNext'),
+        reason: '旧键仍然生效，两个键都能触发同一个动作',
+      );
+      expect(
+        service.actionForEvent(press(LogicalKeyboardKey.f8), isMacOS: false),
+        'findNext',
+      );
+    });
+
+    test('resetting brings the default key back', () {
+      service.setKeybinding('findNext', 'F8');
+      service.actionForEvent(press(LogicalKeyboardKey.f8), isMacOS: false);
+
+      service.resetToDefaults();
+
+      expect(
+        service.actionForEvent(press(LogicalKeyboardKey.f3), isMacOS: false),
+        'findNext',
+      );
+    });
+
+    test('bindings read from disk are the ones that fire', () async {
+      service.actionForEvent(press(LogicalKeyboardKey.f3), isMacOS: false);
+
+      final dir = Directory.systemTemp.createTempSync('keybindings_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      File('${dir.path}/keybindings.json')
+          .writeAsStringSync('{"reloadImages": "F9"}');
+      service.configDirectory = dir.path;
+      await service.load();
+
+      expect(
+        service.actionForEvent(press(LogicalKeyboardKey.f9), isMacOS: false),
+        'reloadImages',
+        reason: '磁盘上的自定义绑定没有生效，编辑器还在用上一次的索引',
+      );
+    });
+  });
 }
