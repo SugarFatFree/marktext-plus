@@ -8,6 +8,7 @@
 | FEAT-128 | 2026-09-07 | 插件画的界面出现在启动它的那个容器里（第二期） | P1 | 中 | 已完成 |
 | FEAT-129 | 2026-09-07 | 插件的网络经宿主、留日志、跟系统代理（代理组件已建但当前未接入，见下） | P1 | 中 | 已完成 |
 | FEAT-130 | 2026-09-08 | 命令面板收录全部带快捷键的命令，而不是手写的九条 | P1 | 中 | 已完成 |
+| FEAT-131 | 2026-09-08 | MCP 能运行插件命令——把撤下的动作真正接上 | P1 | 中 | 已完成 |
 
 ---
 
@@ -269,3 +270,50 @@ registry.registerAll([
 - [x] `keybinding_wiring_test` 那条守卫从**扫描源码文本**升级为**真正调用**
       `actionLabel`——它原本查 `settings_screen.dart` 里有没有 `'xxx' =>` 这段文字，
       现在直接问那个函数答什么
+
+---
+
+## FEAT-131：MCP 能运行插件命令
+
+| 字段 | 内容 |
+|------|------|
+| **实现日期** | 2026-09-08 |
+| **需求描述** | 读者要求「用 MCP 做全自动化测试，插件的内容和功能都要测到」。而 MCP 没有运行插件命令的能力 |
+| **用户场景** | 一个 agent 连上编辑器，要验证 AI 翻译插件能不能跑通，除了截图什么也做不了 |
+
+### 前情
+
+BUG-328 把 `run_plugin_command` 从 schema 里撤下了——它被宣称了几个月，
+实现从来不存在。当时写下的理由是：
+
+> 接上它值得做，但那是一次功能改动……运行一个插件命令需要 `BuildContext`
+> （窗格、卡片、提示条都从它来），得由 widget 层向这里注册一个处理器
+
+**现在读者要求了，就按那句话接上。**
+
+### 实现方案
+
+| 层 | 做什么 |
+|----|--------|
+| `McpController` | 一个可空字段 `runPluginCommand`，由别人填 |
+| `HomeScreen` | 在 build 里注册它（它有 `context` 和 `ref`）——与截图能力同一个形状 |
+| `McpAction` | 加回 `runPluginCommand('run_plugin_command')`，switch 由编译器强制覆盖 |
+
+处理器先核对：插件装没装、这个命令它有没有。**不认识就把它实际有的命令列出来**——
+一个 agent 拿错了命令名，最该拿到的是正确的那份名单。
+
+`await` 命令跑完再回话：问一个问题的命令会停在那里等回答，
+**这和读者面对的是同一种等待**。
+
+### 涉及文件
+
+`lib/providers/mcp_provider.dart`；`lib/services/mcp_tools.dart`；
+`lib/ui/screens/home_screen.dart`；`test/services/mcp_action_test.dart`
+
+### 验收标准
+
+- [x] `control` 的 schema 重新列出 `run_plugin_command`，且 `pluginId` / `command` 两个参数各有说明
+- [x] 加一个 enum 值而不实现它**编译不过**（实测 `non_exhaustive_switch_statement`）
+- [x] 三条原本断言「这个动作不存在」的测试改成断言它存在且参数齐全——
+      **决定变了，测试要说新的事实**，但守的东西不变：schema 与实现一致
+- [ ] 实机验证（下一步用 MCP 对真实插件跑一遍）

@@ -16,7 +16,8 @@ enum McpAction {
   activateTab('activate_tab'),
   setViewMode('set_view_mode'),
   setContent('set_content'),
-  closePane('close_pane');
+  closePane('close_pane'),
+  runPluginCommand('run_plugin_command');
 
   const McpAction(this.wireName);
 
@@ -173,7 +174,8 @@ class McpToolset {
       name: 'control',
       description:
           'Drive the editor: open and close tabs, switch between them, '
-          'change the view mode, write a tab\'s text, close a plugin pane.',
+          'change the view mode, write a tab\'s text, run a plugin command, '
+          'close a plugin pane.',
       schema: {
         'type': 'object',
         'required': ['action'],
@@ -200,6 +202,16 @@ class McpToolset {
           'content': {
             'type': 'string',
             'description': 'The text a tab should hold.',
+          },
+          'pluginId': {
+            'type': 'string',
+            'description': 'Which plugin, from get_state.',
+          },
+          'command': {
+            'type': 'string',
+            'description':
+                'Which of its commands, from the plugin\'s command list in '
+                'get_state.',
           },
           'slot': {
             'type': 'string',

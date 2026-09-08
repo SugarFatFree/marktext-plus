@@ -32,6 +32,9 @@ import '../widgets/right_side_bar.dart';
 import '../widgets/status_bar.dart';
 import '../widgets/find_replace_bar.dart';
 import '../widgets/action_labels.dart';
+import '../../providers/plugin_provider.dart';
+import '../../services/plugin_manifest.dart';
+import '../widgets/plugin_command_actions.dart';
 import '../widgets/window_actions.dart';
 import '../widgets/editor_tab_bar.dart';
 import '../editor/source_editor.dart';
@@ -658,6 +661,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
   Widget build(BuildContext context) {
     StartupTrace.markOnce('home screen first build');
     _followMcpSetting();
+    _offerPluginCommandsToMcp();
     final config = ref.watch(settingsProvider);
     // Only the find bar's visibility is read here. Watching the whole editor
     // state rebuilt this entire screen on every cursor move.
@@ -827,6 +831,41 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
   /// The range the zoom commands and the wheel share.
   static const _minZoom = 12.0;
   static const _maxZoom = 32.0;
+
+  /// Lets the MCP server run a plugin command, which needs a context.
+  ///
+  /// The server layer has no `BuildContext`, and a plugin command draws panes,
+  /// cards and messages that all come out of one. It was easier to leave the
+  /// action out of the schema than to pretend — and it was out of the schema
+  /// and named in it at the same time for months, which is worse than either.
+  void _offerPluginCommandsToMcp() {
+    ref.read(mcpProvider.notifier).runPluginCommand = (
+      pluginId,
+      command,
+    ) async {
+      final plugins =
+          ref.read(installedPluginManifestsProvider).valueOrNull ??
+          const <PluginManifest>[];
+      final plugin = plugins.where((p) => p.id == pluginId).firstOrNull;
+      if (plugin == null) return 'no plugin called "$pluginId" is installed';
+      if (!plugin.commands.any((c) => c.id == command)) {
+        return '"$pluginId" has no command "$command"; it has '
+            '${plugin.commands.map((c) => c.id).join(', ')}';
+      }
+      if (!mounted) return 'the window is gone';
+
+      // Awaited: an agent asking for this wants to know it finished, and a
+      // command that asks a question will sit here until it is answered —
+      // which is the same wait a reader has.
+      await PluginCommandActions.run(
+        ref,
+        context: context,
+        plugin: plugin,
+        command: command,
+      );
+      return 'ran $command';
+    };
+  }
 
   /// Starts or stops the MCP server when the setting changes.
   void _followMcpSetting() {

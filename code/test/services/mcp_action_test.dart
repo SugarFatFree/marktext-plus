@@ -33,23 +33,46 @@ void main() {
   });
 
   test('a name nothing implements resolves to nothing', () {
-    // The two that used to be advertised, and the shape of a typo.
+    // `open_file` is still not implemented and so is still not offered.
+    // `run_plugin_command` was in the same position until the widget layer
+    // registered a handler for it, which is what it needed all along.
     expect(McpAction.byWireName('open_file'), isNull);
-    expect(McpAction.byWireName('run_plugin_command'), isNull);
     expect(McpAction.byWireName('setViewMode'), isNull);
     expect(McpAction.byWireName(null), isNull);
   });
 
-  test('control no longer takes arguments only the removed actions read', () {
-    // `pluginId` and `command` existed for `run_plugin_command`. Leaving them
-    // in the schema would invite an agent to fill them in and wait.
-    expect(controlSchema().keys, isNot(contains('pluginId')));
-    expect(controlSchema().keys, isNot(contains('command')));
+  test('running a plugin command is offered again, now that it exists', () {
+    expect(McpAction.byWireName('run_plugin_command'),
+        McpAction.runPluginCommand);
+
+    final props = controlSchema();
+    expect(props.keys, contains('pluginId'));
+    expect(props.keys, contains('command'));
+    for (final key in ['pluginId', 'command']) {
+      expect(
+        (props[key] as Map<String, dynamic>)['description'],
+        isNotNull,
+        reason: '$key 只有类型没有说明，调用方猜不出该填什么',
+      );
+    }
+  });
+
+  test('control takes no argument no action reads', () {
+    // `path` outlived `open_file` because `new_tab` names a tab with it.
+    // Anything here that nothing reads invites a caller to fill it in and
+    // wait for something that will not happen.
+    const read = {'action', 'path', 'tabId', 'mode', 'content', 'slot',
+        'pluginId', 'command'};
+    expect(controlSchema().keys.toSet().difference(read), isEmpty);
   });
 
   test('control says what it does, and does not promise more', () {
-    final control = const McpToolset().all.firstWhere((t) => t.name == 'control');
-    expect(control.description, isNot(contains('plugin command')));
+    final control =
+        const McpToolset().all.firstWhere((t) => t.name == 'control');
+    // Every action the enum holds should be recognisable in that sentence,
+    // and nothing else should be.
     expect(control.description, contains('view mode'));
+    expect(control.description, contains('plugin command'));
+    expect(control.description, isNot(contains('open a file')));
   });
 }

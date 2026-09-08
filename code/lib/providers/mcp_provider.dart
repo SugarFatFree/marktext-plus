@@ -129,6 +129,14 @@ class McpController extends StateNotifier<McpStatus> {
     };
   }
 
+  /// Runs one plugin command, when the widget layer has said how.
+  ///
+  /// Not done here: a command draws panes, cards and messages, all of which
+  /// come out of a `BuildContext`, and this layer has none. The widget that
+  /// has one registers this instead, which is the same shape the toolset
+  /// already uses for screenshots.
+  Future<String> Function(String pluginId, String command)? runPluginCommand;
+
   Future<String> _perform(String action, Map<String, dynamic> arguments) async {
     String? text(String key) => arguments[key] as String?;
 
@@ -190,6 +198,19 @@ class McpController extends StateNotifier<McpStatus> {
         if (content == null) return 'no content given';
         _ref.read(tabProvider.notifier).updateContent(id, content);
         return 'wrote ${content.length} characters to $id';
+
+      case McpAction.runPluginCommand:
+        final pluginId = text('pluginId');
+        final command = text('command');
+        if (pluginId == null) return 'no pluginId given';
+        if (command == null) return 'no command given';
+        final run = runPluginCommand;
+        if (run == null) {
+          // Only before the first frame: the widget that registers this is
+          // built once and stays.
+          return 'the editor is not ready to run plugin commands yet';
+        }
+        return run(pluginId, command);
 
       case McpAction.closePane:
         final slot = PluginPaneSlot.values
