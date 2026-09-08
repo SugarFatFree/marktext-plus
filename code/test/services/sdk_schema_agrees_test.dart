@@ -285,4 +285,43 @@ void main() {
       reason: '这些语言的读者不知道有这个能力：\n${missing.join('\n')}',
     );
   }, skip: present ? null : 'SDK 仓库不在这台机器上');
+
+  test('neither plugin repository writes a changelog section twice', () {
+    // The editor's own is checked in `repository_documents_test`; these two
+    // are here because this file already knows how to skip when the sibling
+    // checkouts are absent, which they are on CI.
+    //
+    // Both had grown a second `### Fixed` inside `[Unreleased]` — entries
+    // appended under a new heading instead of into the one above — and one a
+    // second `### Added` as well. A reader looking for what was fixed finds
+    // the first list and stops.
+    final files = [
+      File('$repo/CHANGELOG.md'),
+      File('${repo!.replaceAll('plugin-sdk', 'ai-translate-plugin')}'
+          '/CHANGELOG.md'),
+    ].where((f) => f.existsSync()).toList();
+    expect(files, hasLength(2), reason: '两个插件仓库的 CHANGELOG 都要读到');
+
+    final doubled = <String>[];
+    for (final file in files) {
+      final name = file.parent.uri.pathSegments
+          .where((p) => p.isNotEmpty)
+          .last;
+      for (final section in file
+          .readAsStringSync()
+          .split(RegExp(r'^## ', multiLine: true))
+          .skip(1)) {
+        final version = section.split('\n').first.trim();
+        final seen = <String>{};
+        for (final match
+            in RegExp(r'^### (.+)$', multiLine: true).allMatches(section)) {
+          final heading = match.group(1)!.trim();
+          if (!seen.add(heading)) {
+            doubled.add('$name $version: 「$heading」出现了两次');
+          }
+        }
+      }
+    }
+    expect(doubled, isEmpty, reason: doubled.join('\n'));
+  }, skip: present ? null : 'SDK 仓库不在这台机器上');
 }

@@ -77,4 +77,32 @@ void main() {
       );
     }
   });
+
+  test('no changelog section is written twice in one release', () {
+    // Entries appended under a fresh heading rather than into the one already
+    // there: both plugin repositories had grown a second `### Fixed` inside
+    // `[Unreleased]`, and one a second `### Added`. Nothing is lost, and a
+    // reader looking for what was fixed finds half of it and stops.
+    //
+    // Per release section, not per file — the same heading under a later
+    // version is exactly right. The plugin repositories are checked by
+    // `sdk_schema_agrees_test`, which knows how to skip when they are absent.
+    final file = File('${Directory.current.parent.path}/CHANGELOG.md');
+    expect(file.existsSync(), isTrue);
+
+    final doubled = <String>[];
+    for (final section in file
+        .readAsStringSync()
+        .split(RegExp(r'^## ', multiLine: true))
+        .skip(1)) {
+      final version = section.split('\n').first.trim();
+      final seen = <String>{};
+      for (final match
+          in RegExp(r'^### (.+)$', multiLine: true).allMatches(section)) {
+        final heading = match.group(1)!.trim();
+        if (!seen.add(heading)) doubled.add('$version: 「$heading」出现了两次');
+      }
+    }
+    expect(doubled, isEmpty, reason: doubled.join('\n'));
+  });
 }

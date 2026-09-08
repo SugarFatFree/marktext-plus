@@ -99,6 +99,7 @@
 | BUG-354 | 2026-09-08 | 主仓库的翻译守卫有同一个盲区（今天没出事，明天没人管） | P2 | 已加守卫 |
 | BUG-355 | 2026-09-08 | 插件脚本要的翻译键，没人保证 manifest 里有 | P2 | 已加守卫 |
 | BUG-356 | 2026-09-08 | 插件设置页的字段，没人保证脚本会读它 | P2 | 已加守卫 |
+| BUG-357 | 2026-09-08 | 两个插件仓库的 CHANGELOG 各长出了重复小节；SDK 的还落后四次改动 | P2 | 已修复 |
 
 ---
 
@@ -5312,3 +5313,42 @@ setting("writingSystem", M.DEFAULT_WRITING_SYSTEM)
 ### 涉及文件
 
 `test/services/ai_translate_plugin_test.dart`
+
+---
+
+## BUG-357：`### Fixed` 写了两遍
+
+发版前该查的文档，这次查到两个插件仓库的 CHANGELOG：
+
+| 仓库 | 问题 |
+|------|------|
+| SDK | `[Unreleased]` 里有**两个 `### Added`**；而且**最近四次改动一条都没记** |
+| 官方插件 | `[Unreleased]` 里有**两个 `### Fixed`** |
+
+重复小节是这么来的：写新条目时另起了一个标题，而不是加进上面已有的那个。
+**内容一条没丢**，但读者找「这版修了什么」，看到第一份列表就走了——
+下面还有一份，隔着 `### Internal`。
+
+SDK 落后的四条（四种语言缺 panels、ask 说明改写、裸 `return` 警告、图标枚举）
+已补上；两边的重复小节合并。
+
+### 守卫
+
+按**发布小节**查重复标题，不是按文件——同一个 `### Fixed` 出现在下一个版本里
+完全正确。
+
+拆成两条放：主仓库的在 `repository_documents_test`，
+两个插件仓库的在 `sdk_schema_agrees_test`（那里已有「仓库不在就跳过」的机制）。
+
+**为什么要拆**：一开始写在一处，`repo_dependent_tests_test` 立刻红了——
+「读了兄弟仓库，但一个 skip 都没有」。那条守卫是对的：
+主仓库的 CHANGELOG 在 CI 上查得了，插件仓库的查不了，
+混在一个文件里就得整体跳过，等于 CI 上不查。
+
+三个变异各自指名：SDK、官方插件、主仓库各造一个重复小节，都被抓出是哪个仓库、
+哪个版本、哪个标题。
+
+### 涉及文件
+
+SDK 与官方插件的 `CHANGELOG.md`；
+`test/services/repository_documents_test.dart`；`test/services/sdk_schema_agrees_test.dart`
