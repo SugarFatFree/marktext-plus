@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/core/diagnostics/resident_memory.dart';
 
@@ -51,5 +53,32 @@ void main() {
       reason: '把「问不出来」写成「零」，比不写更糟',
     );
     expect(ResidentMemory.megabytes(), isNot(0));
+  });
+
+  test('it is asked from a few places, and none of them is a hot path', () {
+    // 10 µs a call: nothing beside the two on the startup path, and real in a
+    // `build` or a keystroke handler, where "small footprint" would be paid
+    // for by the thing it claims to describe.
+    //
+    // The count is the guard, and it is the exact count rather than a ceiling
+    // with room in it: a limit with slack lets the first new caller through in
+    // silence, which is the one that would have wanted this comment. A third
+    // caller is not necessarily wrong — it is a reason to read this first.
+    final callers = <String, int>{};
+    for (final file in Directory('lib')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((f) => f.path.endsWith('.dart'))) {
+      if (file.path.endsWith('resident_memory.dart')) continue;
+      final count = 'ResidentMemory.'.allMatches(file.readAsStringSync()).length;
+      if (count > 0) callers[file.path] = count;
+    }
+
+    expect(
+      callers.values.fold(0, (a, b) => a + b),
+      2,
+      reason: '读内存要 10 µs，放进每帧或每次按键的路径上就会被它自己拖慢：$callers',
+    );
+    expect(callers, isNotEmpty, reason: '一处都没有的话，这个类是死代码');
   });
 }

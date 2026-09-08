@@ -10,6 +10,11 @@ import 'dart:io';
 /// Read at points that already write a line, never on a timer: the question
 /// worth answering is "what did opening that document cost", and a number with
 /// nothing beside it answers nothing.
+///
+/// It is not free. `currentRss` measures at 10 µs a call on the machine this
+/// was written on — nothing against the two calls on the startup path (21 µs
+/// of a 400 ms start), and enough to matter in a `build` or a keystroke
+/// handler, which is why `resident_memory_test` counts the call sites.
 abstract final class ResidentMemory {
   /// Megabytes resident, or null where the platform will not say.
   ///
