@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -244,6 +245,36 @@ class PluginCatalogService {
     }
   }
 
+  /// Refuses an address that is not HTTPS.
+  ///
+  /// The registry's own URL is checked where it is set. This is the other
+  /// half, and it was missing: the address a plugin is downloaded from
+  /// arrives inside the registry's answer — `Uri.parse` of whatever the JSON
+  /// held — and was used as given. Two rules were asked for here, HTTPS and a
+  /// matching digest, and only one of them covered both ends.
+  ///
+  /// A name of its own because the download itself cannot be tested: it
+  /// builds a client and talks to the network. The rule can be.
+  @visibleForTesting
+  static void refuseInsecureDownload(Uri url) {
+    if (!url.isScheme('https')) {
+      throw FormatException(
+        'plugin downloads must use https; this one is "${url.scheme}"',
+      );
+    }
+  }
+
+  /// Whether [bytes] are what the catalog said they would be.
+  ///
+  /// Compared exactly, not case-insensitively. Hexadecimal digests are
+  /// case-insensitive by definition, so this is stricter than it has to be —
+  /// and that is the safe side to be wrong on. A difference in case cannot
+  /// make a tampered file match; it can only refuse a genuine one, which is
+  /// loud, reversible, and nobody's data.
+  @visibleForTesting
+  static bool digestMatches(List<int> bytes, String expected) =>
+      sha256.convert(bytes).toString() == expected;
+
   /// Downloads one catalog entry to a temporary file, verifies its digest,
   /// then delegates extraction and manifest validation to [manager].
   Future<PluginManifest> install(
@@ -262,6 +293,7 @@ class PluginCatalogService {
       );
     }
     try {
+      refuseInsecureDownload(downloadUrl);
       final request = await client.getUrl(downloadUrl);
       final response = await request.close();
       if (response.statusCode != HttpStatus.ok) {
@@ -271,8 +303,7 @@ class PluginCatalogService {
         all.addAll(chunk);
         return all;
       });
-      final digest = sha256.convert(bytes).toString();
-      if (digest != entry.sha256) {
+      if (!digestMatches(bytes, entry.sha256)) {
         throw const FormatException('plugin SHA-256 does not match catalog');
       }
       await temporary.writeAsBytes(bytes, flush: true);

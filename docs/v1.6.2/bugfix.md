@@ -62,6 +62,7 @@
 | BUG-317 | 2026-09-08 | 四种图表改了数据不重绘：`==` 不比它们的数据列表 | P1 | 已修复 |
 | BUG-318 | 2026-09-08 | `XYChartSeries` 相等而哈希不同，违反 hash 契约 | P2 | 已修复 |
 | BUG-319 | 2026-09-08 | 列表里留一个空条目，后面的全被吞进去缩进一层 | P1 | 已修复 |
+| BUG-320 | 2026-09-08 | 插件下载地址不检查 https，只有 registry 那一半强制了 | P1 | 已修复 |
 
 ---
 
@@ -3413,3 +3414,59 @@ into memory, which is where an oversized archive would do its damage」。
 ### 涉及文件
 
 `test/services/plugin_zip_bounds_test.dart`（新增）
+
+---
+
+## BUG-320：插件下载只强制了一半的 https
+
+### 现象
+
+长期要求是「插件市场的下载必须走 HTTPS 并校验 SHA-256」。registry 那一端确实检查了：
+
+```dart
+if (!registryUrl.isScheme('https')) { ... }
+```
+
+**但每个插件的下载地址没有。** 它来自 registry 应答里的 JSON：
+
+```dart
+downloadUrl: Uri.parse(browserUrl),   // asset['browser_download_url']，原样
+```
+
+正常情况下 GitHub 给的是 https。但代码并没有保证被要求的那件事——
+**两条规则，只有一条覆盖了两端**。
+
+### 顺带查出来的：三道检查全都无人守
+
+这一轮继续用变异的问法，target 是「出错＝被篡改的插件装进来」的
+`plugin_catalog_service.dart`：
+
+| 变异 | 结果 |
+|---|---|
+| SHA-256 校验去掉 | **存活**（2665 条全绿）|
+| registry 的 https 检查去掉 | 存活 |
+| HTTP 状态码检查去掉 | 存活 |
+
+原因是**结构性的**：`install()` 自己建 `HttpClient` 做真网络 I/O，没有测试够得到它。
+
+### 修：把规则从 I/O 里分出来
+
+`refuseInsecureDownload(Uri)` 和 `digestMatches(bytes, expected)` 两个具名静态函数，
+`install()` 调用它们。**传输本身仍然没有测试；它被要求执行的规则现在有了。**
+
+摘要比较保持**大小写敏感**。十六进制摘要按定义是大小写无关的，所以这比必要的更严——
+而这是该犯错的那一边：大小写不同只会拒绝一个真文件（吵闹、可逆、不丢数据），
+永远不会放过一个被篡改的。这条写进了注释，也写成了一条测试。
+
+### 变异验证暴露了单元测试的盲区
+
+三次变异：放行 http → 2 条失败；摘要恒真 → 3 条失败；**`install()` 里删掉那行调用
+→ 全过**。
+
+第三种正是本仓库出现过七次的「写好了没接上」，而**单元测试原理上看不见它**。
+补了一条接线守卫，扫 `install()` 的函数体，要求两条规则都被调用。重做变异，失败。
+
+### 涉及文件
+
+`lib/services/plugin_catalog_service.dart`；
+`test/services/plugin_download_rules_test.dart`（新增）
