@@ -22,10 +22,24 @@ import 'package:marktext_plus/services/text_search_service.dart';
 /// 2.5 — measured, a tenth of the work going quadratic passed at 2.18 — while
 /// at 4x the quadratic part grows sixteenfold against the rest's four.
 ///
-/// The limit is 6x on 4x the work, and the headroom is deliberate. A limit of
-/// 5 failed once in the first handful of runs on an idle machine, and a
-/// performance test that goes red by itself is worse than none: it teaches
-/// everyone to keep going when it does.
+/// The limit is 8x on 4x the work, and the headroom was bought three times: 5
+/// failed on an idle machine here within the first handful of runs, and 6
+/// passed here five times in a row and then failed on CI at 6.05. Five green
+/// runs on one machine say nothing about a shared runner.
+///
+/// What that headroom costs is worth being clear about. Real quadratic growth
+/// is 16x at this span, which any of these limits catches; the limit only
+/// decides how small a *partial* regression is caught, and those are hard to
+/// catch here anyway — a fifth of parsing going quadratic was the smallest
+/// this could see even at 6. So the choice is between catching slightly less
+/// and going red on its own, and a performance test that goes red on its own
+/// is worse than none: it teaches everyone to keep going when it does.
+///
+/// Search is measured twenty searches at a time. On its own a search of 160 KB
+/// takes about 320 µs here, small enough that the fixed cost of getting into
+/// the function is a visible share of it — and a share that does not grow with
+/// the document, so it flatters the smaller run and inflates the ratio. That
+/// is what went over the line on CI.
 ///
 /// What it catches, measured rather than assumed: a quadratic scan added to
 /// search takes the ratio to 9.0 and fails it. Parsing is less sensitive
@@ -69,12 +83,12 @@ void main() {
 
     MarkdownParser().parse(unit); // warm the JIT before either measurement
 
-    final one = fastest(2, () => MarkdownParser().parse(unit));
-    final many = fastest(2, () => MarkdownParser().parse(four));
+    final one = fastest(3, () => MarkdownParser().parse(unit));
+    final many = fastest(3, () => MarkdownParser().parse(four));
 
     expect(
       many,
-      lessThan(one * 6),
+      lessThan(one * 8),
       reason:
           '四倍的文档花了 ${(many / one).toStringAsFixed(1)} 倍的时间'
           '（$one µs → $many µs）——代价不再跟着输入走，多半是某处退化成了二次方',
@@ -87,12 +101,21 @@ void main() {
 
     TextSearch.matches(unit, 'item');
 
-    final one = fastest(3, () => TextSearch.matches(unit, 'item'));
-    final many = fastest(3, () => TextSearch.matches(four, 'item'));
+    // Twenty at a time: one search is short enough that the constant cost of
+    // the call is a measurable part of it, and that part does not grow with
+    // the document.
+    void search(String text) {
+      for (var i = 0; i < 20; i++) {
+        TextSearch.matches(text, 'item');
+      }
+    }
+
+    final one = fastest(3, () => search(unit));
+    final many = fastest(3, () => search(four));
 
     expect(
       many,
-      lessThan(one * 6),
+      lessThan(one * 8),
       reason:
           '搜索的代价不再跟着文档走：四倍的文档花了 '
           '${(many / one).toStringAsFixed(1)} 倍（$one µs → $many µs）',
