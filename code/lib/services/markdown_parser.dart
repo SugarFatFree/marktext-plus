@@ -494,6 +494,68 @@ class MarkdownParser {
     return match.group(2) ?? '';
   }
 
+  /// The line of the heading [href] names, or null when it names none.
+  ///
+  /// `[see below](#conclusion)` is a link into this document. The preview used
+  /// to resolve it as a relative path, find no such file, and return — so
+  /// clicking one did nothing, silently, while every other kind of link
+  /// worked.
+  ///
+  /// The name is built the way GitHub builds it, because that is the rule
+  /// anyone writing these has in mind: lower case, spaces to hyphens,
+  /// punctuation dropped. What it does *not* do is strip characters it does
+  /// not recognise — dropping everything non-Latin would leave every Chinese,
+  /// Japanese, Arabic and Russian heading unreachable.
+  ///
+  /// Duplicates go to the first. GitHub appends `-1` and `-2` to later ones;
+  /// without that, landing on the first is better than landing nowhere.
+  ///
+  /// Built on [headingOutline] rather than on a second reading of the source,
+  /// so a heading this can reach is exactly a heading the outline lists.
+  static int? lineForAnchor(String source, String href) {
+    if (!href.startsWith('#') || href.length < 2) return null;
+
+    // Percent-decoded when it can be: an editor that writes these for you
+    // encodes non-ASCII, so `#中文标题` may arrive as `#%E4%B8%AD…`. Decoding
+    // throws on anything that is not valid encoding — including a bare `%`,
+    // and including the unencoded form, which is what a person types.
+    final name = href.substring(1);
+    String decoded;
+    try {
+      decoded = Uri.decodeComponent(name);
+    } catch (_) {
+      decoded = name;
+    }
+    final wanted = anchorFor(decoded);
+    if (wanted.isEmpty) return null;
+
+    for (final heading in headingOutline(source)) {
+      if (anchorFor(heading.text) == wanted) return heading.line;
+    }
+    return null;
+  }
+
+  /// [text] as the anchor GitHub would give a heading of that text.
+  ///
+  /// Public rather than `@visibleForTesting`: that annotation lives in
+  /// `package:flutter/foundation.dart`, and this file has to stay reachable
+  /// from an isolate — the word count and the outline both parse off the
+  /// interface thread, and one Flutter import anywhere in its reach stops
+  /// them. `large_document_cost_test` walks the imports and says so.
+  static String anchorFor(String text) {
+    final buffer = StringBuffer();
+    for (final rune in text.toLowerCase().runes) {
+      final char = String.fromCharCode(rune);
+      if (char == ' ' || char == '-' || char == '_') {
+        buffer.write('-');
+      } else if (RegExp(r'[\p{L}\p{N}]', unicode: true).hasMatch(char)) {
+        buffer.write(char);
+      }
+      // Anything else — punctuation, symbols — is dropped, not replaced.
+    }
+    return buffer.toString();
+  }
+
   static List<({int line, int level, String text})> headingOutline(
       String source) {
     // A byte order mark would sit in front of the first '#' and stop it

@@ -34,6 +34,7 @@ import '../../services/file_service.dart';
 import 'bottom_room.dart';
 import '../../core/diagnostics/resident_memory.dart';
 import '../../services/app_log.dart';
+import 'link_target.dart';
 
 class MarkdownRenderer extends ConsumerStatefulWidget {
   final String markdown;
@@ -556,31 +557,32 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     }
   }
 
-  /// Schemes handed to the desktop rather than resolved as a file path.
-  ///
-  /// `mailto:` and `tel:` used to fall through to the relative-path branch,
-  /// where they became a filename that does not exist — so clicking an address
-  /// in the preview did nothing at all, silently.
-  static final _launchableScheme =
-      RegExp(r'^(https?|mailto|tel):', caseSensitive: false);
-
-  /// Schemes that run code instead of going somewhere. A document is data,
-  /// including one someone else wrote and sent over.
-  static final _refusedScheme =
-      RegExp(r'^(javascript|vbscript|data):', caseSensitive: false);
-
   Future<void> _followLink(String href) async {
-    final collapsed = href.replaceAll(RegExp(r'[\s\u0000-\u001f]'), '');
-    if (_refusedScheme.hasMatch(collapsed)) {
-      throw FormatException('refused scheme', href);
-    }
-    if (_launchableScheme.hasMatch(collapsed)) {
-      final uri = Uri.tryParse(href);
-      if (uri == null) throw FormatException('not a URI', href);
-      final launched =
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-      if (!launched) throw StateError('no handler for $href');
-      return;
+    switch (linkKindOf(href)) {
+      case LinkKind.refused:
+        throw FormatException('refused scheme', href);
+
+      case LinkKind.anchor:
+        final line = md.MarkdownParser.lineForAnchor(widget.markdown, href);
+        // A heading that is not there is left alone rather than reported: an
+        // anchor to a section not written yet is a normal state for a draft,
+        // and a message on every click would be noise in exactly the document
+        // where it is expected.
+        if (line != null) {
+          ref.read(editorProvider.notifier).scrollToLine(line);
+        }
+        return;
+
+      case LinkKind.launchable:
+        final uri = Uri.tryParse(href);
+        if (uri == null) throw FormatException('not a URI', href);
+        final launched =
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+        if (!launched) throw StateError('no handler for $href');
+        return;
+
+      case LinkKind.path:
+        break;
     }
 
     final activeTabId = ref.read(tabProvider).activeTabId;
