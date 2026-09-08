@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/config/app_config.dart';
@@ -82,7 +83,7 @@ class McpController extends StateNotifier<McpStatus> {
       screenshot: capture.png,
       recordGif: capture.gif,
       describeState: _describe,
-      perform: _perform,
+      perform: performAction,
     );
   }
 
@@ -141,7 +142,13 @@ class McpController extends StateNotifier<McpStatus> {
   Future<McpOutcome> Function(String pluginId, String command)?
   runPluginCommand;
 
-  Future<McpOutcome> _perform(
+  /// Carries out one `control` action and says, truthfully, what happened.
+  ///
+  /// Exposed because until now the only test of this layer handed the toolset
+  /// a stub, so the switch below — every action an agent can ask for — had
+  /// never been run.
+  @visibleForTesting
+  Future<McpOutcome> performAction(
     String action,
     Map<String, dynamic> arguments,
   ) async {
@@ -195,16 +202,18 @@ class McpController extends StateNotifier<McpStatus> {
       case McpAction.closeTab:
         final id = text('tabId') ?? _ref.read(tabProvider).activeTabId;
         if (id == null) return mcpRefused('no tab to close');
-        _ref.read(tabProvider.notifier).removeTab(id);
-        return mcpDid('closed tab $id');
+        return _ref.read(tabProvider.notifier).removeTab(id)
+            ? mcpDid('closed tab $id')
+            : mcpRefused('there is no tab $id');
 
       case McpAction.setContent:
         final id = text('tabId') ?? _ref.read(tabProvider).activeTabId;
         final content = text('content');
         if (id == null) return mcpRefused('no tab to write to');
         if (content == null) return mcpRefused('no content given');
-        _ref.read(tabProvider.notifier).updateContent(id, content);
-        return mcpDid('wrote ${content.length} characters to $id');
+        return _ref.read(tabProvider.notifier).updateContent(id, content)
+            ? mcpDid('wrote ${content.length} characters to $id')
+            : mcpRefused('there is no tab $id');
 
       case McpAction.runPluginCommand:
         final pluginId = text('pluginId');

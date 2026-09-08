@@ -108,6 +108,7 @@
 | BUG-363 | 2026-09-09 | 两种图表可以画成全空，22 种类型的守卫一条都看不见 | P2 | 已加守卫 |
 | BUG-364 | 2026-09-09 | 25 个窗口动作没有一个被执行过，接空或接反都无人发现 | P2 | 已加守卫 |
 | BUG-365 | 2026-09-09 | 52 个格式动作里 25 个从未被测试执行，接错了也没人发现 | P2 | 已加守卫 |
+| BUG-366 | 2026-09-09 | 自动化接口为不存在的标签回报「已关闭」「已写入」 | P2 | 已修复 |
 
 ---
 
@@ -5850,3 +5851,75 @@ case FormatAction.promoteHeading:
 ### 涉及文件
 
 - `test/ui/editor/format_actions_do_something_test.dart`（新增）
+
+---
+
+## BUG-366：关掉和写入一个不存在的标签，都回报成功
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-366 |
+| 日期 | 2026-09-09 |
+| 优先级 | P2 |
+| 状态 | 已修复 |
+
+### 现象（实机，正在运行的版本）
+
+```
+control close_tab  tabId=definitely-not-a-tab
+  → "closed tab definitely-not-a-tab"          isError: false
+
+control set_content tabId=definitely-not-a-tab
+  → "wrote 1 characters to definitely-not-a-tab"  isError: false
+```
+
+两个都没有这个标签可关、可写，两个都说自己做到了。
+
+### 根因：修了两个分支，留下两个兄弟
+
+同一个 `switch` 里的四个动作，两两不同：
+
+| 动作 | 底层方法 | 返回 | 回报 |
+|------|---------|------|------|
+| `activate_tab` | `setActiveTab` | `bool` | 真实 |
+| `close_pane` | `PluginPanes.close` | `bool` | 真实 |
+| **`close_tab`** | `removeTab` | **`void`** | **无条件成功** |
+| **`set_content`** | `updateContent` | **`void`** | **无条件成功** |
+
+前两个正是上一版修过的（发行说明写着「会为它没有切过去的标签、没有关掉的窗格
+回报成功」）。修的时候只动了那两个分支，**没有横向读一遍同一个 switch 里的兄弟**。
+
+`removeTab` 用 `where` 过滤、`updateContent` 用 `map` 映射——两者对一个不存在的
+id 都是**安静的空操作**，而调用处把「没抛异常」当成了「做成了」。
+
+### 为什么测试没发现
+
+`mcp_action_test` 覆盖的是外围：枚举、wire name、由枚举生成的 schema、
+outcome 到协议应答的映射。它给 toolset 传的 `perform` 是一个**桩**——
+真正那个 switch（一个 agent 能请求的全部动作）**从没有被任何测试执行过**。
+
+### 修复方案
+
+- `removeTab` 与 `updateContent` 改为返回 `bool`，先查这个 id 在不在
+- `_perform` 改为转述它们的答案，与 `activate_tab` / `close_pane` 一致
+- `_perform` 更名 `performAction` 并加 `@visibleForTesting`，让 switch 可被执行
+
+调用方不受影响：Dart 里忽略返回值是合法的，全套 2932 条通过。
+
+### 涉及文件
+
+- `lib/providers/tab_provider.dart`
+- `lib/providers/mcp_provider.dart`
+- `test/services/mcp_control_does_it_test.dart`（新增，10 条）
+
+### 验证
+
+新守卫把 7 个动作全部跑过一遍（含成功与被拒两路）。变异两次——
+把任一处改回无条件成功——**只有这个新文件红，其余全套全绿**。
+
+### 顺带记下：插件那边查过了，没问题
+
+同一轮里对官方插件做了两次变异：`on_command` 不再分派 `ai.write`
+（兜底会把它变成翻译）、manifest 里删掉一条菜单。前者 6 条红、后者 1 条红，
+**插件的跨仓库对账是有效的**。唯一过时的是一条测试名——
+「it contributes both commands」，而 manifest 现在声明四个。

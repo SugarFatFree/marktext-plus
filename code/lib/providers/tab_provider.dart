@@ -318,7 +318,13 @@ class TabNotifier extends StateNotifier<TabState> {
     _persistSession();
   }
 
-  void removeTab(String id) {
+  /// Closes [id], and says whether there was anything to close.
+  ///
+  /// The answer matters to the automation interface, which used to report
+  /// "closed tab X" for an id naming no tab — the same untruth its sibling
+  /// [setActiveTab] was given a `bool` to stop telling.
+  bool removeTab(String id) {
+    if (!state.tabs.any((t) => t.id == id)) return false;
     final tabs = state.tabs.where((t) => t.id != id).toList();
     String? newActiveId = state.activeTabId;
     if (state.activeTabId == id) {
@@ -326,6 +332,7 @@ class TabNotifier extends StateNotifier<TabState> {
     }
     state = state.copyWith(tabs: tabs, activeTabId: newActiveId);
     _persistSession();
+    return true;
   }
 
   /// Remove a file from the sidebar opened-files list.
@@ -408,7 +415,12 @@ class TabNotifier extends StateNotifier<TabState> {
     return true;
   }
 
-  void updateContent(String id, String content) {
+  /// Writes [content] into [id], and says whether that tab was there.
+  ///
+  /// Same reason as [removeTab]: an id naming no tab used to be reported as a
+  /// write that happened.
+  bool updateContent(String id, String content) {
+    if (!state.tabs.any((tab) => tab.id == id)) return false;
     final tabs = state.tabs.map((tab) {
       if (tab.id == id) {
         return tab.copyWith(
@@ -421,6 +433,7 @@ class TabNotifier extends StateNotifier<TabState> {
     }).toList();
     state = state.copyWith(tabs: tabs);
     _scheduleAutoSave(id);
+    return true;
   }
 
   /// Records what a tab's file looks like right now.
