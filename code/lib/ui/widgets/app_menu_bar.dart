@@ -25,13 +25,13 @@ import '../../services/export_service.dart';
 import '../../services/keybinding_service.dart';
 import '../../services/markdown_parser.dart';
 import '../../utils/platform_utils.dart';
-import '../screens/settings_screen.dart';
 import '../editor/mermaid/widgets/mermaid_diagram.dart';
 import '../editor/mermaid/models/style.dart';
 import 'editor_tab_bar.dart';
 import '../editor/mermaid/parser/mermaid_parser.dart';
 import '../../providers/sidebar_provider.dart';
 import 'command_palette.dart';
+import 'window_actions.dart';
 import '../../services/file_service.dart';
 import '../../services/clipboard_service.dart';
 import '../../services/rich_copy_service.dart';
@@ -410,7 +410,7 @@ class AppMenuBar extends ConsumerWidget {
         MenuItemButton(
           shortcut: _shortcut('newWindow'),
           child: Text(l10n.fileNewWindow),
-          onPressed: () => _newWindow(),
+          onPressed: () => newWindow(),
         ),
         const Divider(height: 1),
         MenuItemButton(
@@ -460,7 +460,7 @@ class AppMenuBar extends ConsumerWidget {
             ),
             MenuItemButton(
               shortcut: _shortcut('exportPdf'),
-              onPressed: hasDocument ? () => _exportPdf(ref) : null,
+              onPressed: hasDocument ? () => exportPdf(ref) : null,
               child: Text(l10n.fileExportPdf),
             ),
             MenuItemButton(
@@ -474,37 +474,14 @@ class AppMenuBar extends ConsumerWidget {
         // same code the PDF export uses so the paper matches the file.
         MenuItemButton(
           shortcut: _shortcut('print'),
-          onPressed: hasDocument ? () => _print(ref) : null,
+          onPressed: hasDocument ? () => printDocument(ref) : null,
           child: Text(l10n.filePrint),
         ),
         const Divider(height: 1),
         MenuItemButton(
           shortcut: _shortcut('settings'),
+          onPressed: WindowActions.openSettings,
           child: Text(l10n.fileSettings),
-          onPressed: () {
-            navigatorKey.currentState?.push(
-              PageRouteBuilder(
-                pageBuilder: (context, animation, secondaryAnimation) =>
-                    const SettingsScreen(),
-                transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                  return FadeTransition(
-                    opacity: animation,
-                    child: SlideTransition(
-                      position: Tween<Offset>(
-                        begin: const Offset(0, 0.05),
-                        end: Offset.zero,
-                      ).animate(CurvedAnimation(
-                        parent: animation,
-                        curve: Curves.easeOut,
-                      )),
-                      child: child,
-                    ),
-                  );
-                },
-                transitionDuration: const Duration(milliseconds: 300),
-              ),
-            );
-          },
         ),
         const Divider(height: 1),
         MenuItemButton(
@@ -770,27 +747,17 @@ class AppMenuBar extends ConsumerWidget {
         MenuItemButton(
           shortcut: _shortcut('zoomIn'),
           child: Text(l10n.viewZoomIn),
-          onPressed: () {
-            final newSize = (config.fontSize + 2)
-                .clamp(AppConstants.minFontSize, AppConstants.maxFontSize);
-            ref.read(settingsProvider.notifier).setFontSize(newSize);
-          },
+          onPressed: () => WindowActions.byName('zoomIn')!.run(context, ref),
         ),
         MenuItemButton(
           shortcut: _shortcut('zoomOut'),
           child: Text(l10n.viewZoomOut),
-          onPressed: () {
-            final newSize = (config.fontSize - 2)
-                .clamp(AppConstants.minFontSize, AppConstants.maxFontSize);
-            ref.read(settingsProvider.notifier).setFontSize(newSize);
-          },
+          onPressed: () => WindowActions.byName('zoomOut')!.run(context, ref),
         ),
         MenuItemButton(
           shortcut: _shortcut('resetZoom'),
           child: Text(l10n.viewResetZoom),
-          onPressed: () {
-            ref.read(settingsProvider.notifier).setFontSize(16.0);
-          },
+          onPressed: () => WindowActions.byName('resetZoom')!.run(context, ref),
         ),
       ],
       child: Text(l10n.menuView, style: const TextStyle(fontSize: 13)),
@@ -1074,7 +1041,7 @@ class AppMenuBar extends ConsumerWidget {
           child: Text(
             isFullScreen ? '${l10n.windowFullScreen} \u2713' : l10n.windowFullScreen,
           ),
-          onPressed: () => _toggleFullScreen(ref),
+          onPressed: () => toggleFullScreen(ref),
         ),
         MenuItemButton(
           child: Text(
@@ -1091,7 +1058,8 @@ class AppMenuBar extends ConsumerWidget {
 
   /// Both toggles ask the window what it is doing before flipping it, so a
   /// change made outside the menu cannot leave them inverted.
-  static Future<void> _toggleFullScreen(WidgetRef ref) async {
+  /// Flips full screen, keeping [fullScreenProvider] in step with it.
+  static Future<void> toggleFullScreen(WidgetRef ref) async {
     final next = !await windowManager.isFullScreen();
     await windowManager.setFullScreen(next);
     ref.read(fullScreenProvider.notifier).state = next;
@@ -1242,7 +1210,11 @@ class AppMenuBar extends ConsumerWidget {
     });
   }
 
-  void _exportPdf(WidgetRef ref) async {
+  /// Writes the active tab to a PDF the user picks.
+  ///
+  /// Public because the File menu and the shortcut bound to `exportPdf`
+  /// both run it; see [WindowActions].
+  static void exportPdf(WidgetRef ref) async {
     final activeTab = ref.read(activeTabProvider);
     if (activeTab == null) return;
     final path = await FilePicker.platform.saveFile(
@@ -1269,7 +1241,8 @@ class AppMenuBar extends ConsumerWidget {
   /// Through the printing plugin rather than by writing a PDF and opening it:
   /// the dialog's own page setup — printer, paper, range, copies — only
   /// reaches a document that is laid out for it.
-  void _print(WidgetRef ref) async {
+  /// Sends the active tab to the printer.
+  static void printDocument(WidgetRef ref) async {
     final activeTab = ref.read(activeTabProvider);
     if (activeTab == null) return;
     try {
@@ -1315,7 +1288,9 @@ class AppMenuBar extends ConsumerWidget {
     });
   }
 
-  Future<Map<String, Uint8List>> _renderMermaidImages(String markdown) async {
+  static Future<Map<String, Uint8List>> _renderMermaidImages(
+    String markdown,
+  ) async {
     final parser = MarkdownParser();
     final ast = parser.parse(markdown);
     final images = <String, Uint8List>{};
@@ -1340,7 +1315,7 @@ class AppMenuBar extends ConsumerWidget {
     return images;
   }
 
-  Future<Uint8List?> _renderMermaidToImage(String code) async {
+  static Future<Uint8List?> _renderMermaidToImage(String code) async {
     final key = GlobalKey();
 
     final overlay = Overlay.of(navigatorKey.currentContext!);
@@ -1397,7 +1372,8 @@ class AppMenuBar extends ConsumerWidget {
     return result;
   }
 
-  void _newWindow() async {
+  /// Starts a second editor window.
+  static void newWindow() async {
     await PlatformUtils.launchNewWindow();
   }
 

@@ -72,6 +72,7 @@
 | BUG-327 | 2026-09-08 | 激活不存在的标签会写进状态并回报成功 | P1 | 已修复 |
 | BUG-328 | 2026-09-08 | MCP 宣称支持 `open_file` 与 `run_plugin_command`，两个都没实现 | P1 | 已撤下 |
 | BUG-329 | 2026-09-08 | 撤下动作后描述与参数没跟上；两份名单靠人手同步 | P1 | 已修复 |
+| BUG-330 | 2026-09-08 | 十一个快捷键能在设置里重绑、菜单里画着，按下去毫无反应 | **P0** | 已修复 |
 
 ---
 
@@ -3927,3 +3928,85 @@ error - mcp_provider.dart:152 - The type 'McpAction' isn't exhaustively matched
 
 三个变异各自被一条测试挡住：schema 硬编码回旧列表、把 `pluginId` 加回来、
 描述改回旧措辞。第四种破坏（往 enum 加动作）由编译器挡。
+
+---
+
+## BUG-330：十一个快捷键是画上去的
+
+### 现象
+
+打开「设置 → 快捷键」，里面列着 56 个可重绑的动作。其中十一个，**改了键也没用，用默认键也没用**：
+
+| 动作 | 菜单里画的键 |
+|------|-------------|
+| `zoomIn` / `zoomOut` / `resetZoom` | Ctrl+= / Ctrl+- / Ctrl+0 |
+| `typewriterMode` | 打字机模式 |
+| `fullScreen` | F11 |
+| `print` | Ctrl+P |
+| `exportPdf` | 导出 PDF |
+| `settings` | Ctrl+, |
+| `newWindow` | Ctrl+Shift+N |
+| `quit` | Ctrl+Q |
+| `reloadImages` | 重新加载图片 |
+
+菜单项旁边端端正正写着快捷键，按下去什么都不发生。点菜单项本身是好的。
+
+### 根因：三份名单，只有一份是全的
+
+`_runShortcut` 自己的注释里就写着病因：
+
+> Flutter's MenuItemButton.shortcut only *displays* a shortcut — "shortcuts are
+> not automatically handled", per its own documentation — so every shortcut in
+> the menus was decorative.
+
+诊断是对的，**修的时候只修了一半**。当时把 find/save/open/视图模式等十四个补进了
+`_runShortcut` 的 switch，同一批菜单里的 zoom、打字机、全屏没跟上。于是有三份名单：
+
+| 名单 | 内容 | 是否完整 |
+|------|------|---------|
+| `KeybindingService.defaultKeybindings` | 56 个，设置界面照它画 | 完整 |
+| `_runShortcut` 的 switch | 14 个 | 缺 11 个 |
+| 各菜单项的 `onPressed` | 各写各的 | 与前两者无关 |
+
+**没有任何东西比较过这三份。** 这正是本文档反复出现的那条：
+一条规则抄了好几份，其中一份没跟上。
+
+### 修法
+
+一份名单，三处都读它：`lib/ui/widgets/window_actions.dart`。
+
+```dart
+class WindowAction {
+  const WindowAction(this.name, this.run);
+  final String name;
+  final void Function(BuildContext, WidgetRef) run;
+}
+```
+
+- `_runShortcut` 从 switch 变成 `WindowActions.byName(action)?.run(...)`
+- 菜单的 `onPressed` 改为调同一个条目（zoom 的 clamp 原本内联了两份，现在一份；
+  设置页的转场动画原本写在菜单项里，现在是 `WindowActions.openSettings`）
+- 编辑类动作不在这里：它们按名字匹配 `FormatAction`，由源码编辑器执行，
+  这样 Ctrl+A 在查找框里仍然属于查找框
+
+### 守卫
+
+`test/ui/window_action_coverage_test.dart` 两个方向都查：
+
+- 每个可绑定的名字，都能被 `WindowActions` / `FormatAction` / undo-redo 之一接住
+- `WindowActions` 里的每个名字，设置界面都能绑到
+
+变异验证：删掉那十一条 → 两条测试红；只删 `zoomIn` 一条 → 照样红。
+
+### 顺带
+
+`_exportPdf` / `_print` / `_newWindow` / `_toggleFullScreen` 改为公开的
+`exportPdf` / `printDocument` / `newWindow` / `toggleFullScreen`——快捷键要调它们。
+`export_failure_test` 硬编码了旧名字因此变红，这是**守卫设计正确的表现**
+（改名让它失败，而不是静默放行），改名单即可。
+
+### 涉及文件
+
+`lib/ui/widgets/window_actions.dart`（新增）；`lib/ui/widgets/app_menu_bar.dart`；
+`lib/ui/screens/home_screen.dart`；`test/ui/window_action_coverage_test.dart`（新增，4 条）；
+`test/ui/widgets/export_failure_test.dart`

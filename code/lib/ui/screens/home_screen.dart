@@ -31,7 +31,7 @@ import '../widgets/plugin_tip.dart';
 import '../widgets/right_side_bar.dart';
 import '../widgets/status_bar.dart';
 import '../widgets/find_replace_bar.dart';
-import '../widgets/command_palette.dart';
+import '../widgets/window_actions.dart';
 import '../widgets/editor_tab_bar.dart';
 import '../editor/source_editor.dart';
 import '../editor/markdown_renderer.dart';
@@ -671,8 +671,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
   ///
   /// Flutter's MenuItemButton.shortcut only *displays* a shortcut — "shortcuts
   /// are not automatically handled", per its own documentation — so every
-  /// shortcut in the menus was decorative. This handles the ones that are not
-  /// about the text: opening, saving, find and replace.
+  /// shortcut in the menus is decorative until something here presses it.
+  /// This used to be a switch naming the actions it answered, which is why
+  /// eleven of them were decorative for good: the switch, the menu bodies and
+  /// the keybinding table were three lists, and only the table was complete.
+  /// [WindowActions] is now the one list all three read.
   ///
   /// Anything that edits the document is handled inside [SourceEditor]
   /// instead, so that Ctrl+A and friends still belong to the find bar or a
@@ -682,61 +685,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
       event,
       isMacOS: PlatformUtils.isMacOS,
     );
-    if (action == null) return false;
-
-    final editor = ref.read(editorProvider.notifier);
-    switch (action) {
-      case 'find':
-      case 'replace':
-        editor.toggleFindReplace();
-        return true;
-      case 'save':
-        AppMenuBar.saveFile(ref);
-        return true;
-      case 'open':
-        AppMenuBar.openFile(ref);
-        return true;
-      case 'findNext':
-        editor.stepToFindMatch(forward: true);
-        return true;
-      case 'findPrevious':
-        editor.stepToFindMatch(forward: false);
-        return true;
-      case 'closeTab':
-        final tab = ref.read(activeTabProvider);
-        if (tab != null) EditorTabBar.closeTab(context, ref, tab);
-        return true;
-
-      // The view actions, answered here as well as by the menu because focus
-      // mode takes the menu bar out of the tree — and with it every shortcut
-      // the menu registers, including the one that leaves focus mode.
-      //
-      // Written out as key comparisons once (Ctrl+Alt+1, Ctrl+Shift+B and the
-      // rest), which held only while the table said the same thing: rebinding
-      // one in Settings left the old key working here.
-      case 'commandPalette':
-        CommandPalette.show(context);
-        return true;
-      case 'sourceMode':
-        ref.read(settingsProvider.notifier).setEditMode(EditMode.source);
-        return true;
-      case 'previewMode':
-        ref.read(settingsProvider.notifier).setEditMode(EditMode.preview);
-        return true;
-      case 'splitMode':
-        ref.read(settingsProvider.notifier).setEditMode(EditMode.split);
-        return true;
-      case 'toggleTabBar':
-        ref.read(settingsProvider.notifier).toggleTabBar();
-        return true;
-      case 'toggleSidebar':
-        ref.read(settingsProvider.notifier).toggleSideBar();
-        return true;
-      case 'focusMode':
-        ref.read(settingsProvider.notifier).toggleFocusMode();
-        return true;
-    }
-    return false;
+    final window = WindowActions.byName(action);
+    if (window == null) return false;
+    window.run(context, ref);
+    return true;
   }
 
   @override

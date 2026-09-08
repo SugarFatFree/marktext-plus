@@ -146,7 +146,14 @@ void main() {
     // `runExport`, which reports the failure and says where the file went.
     final source =
         File('lib/ui/widgets/app_menu_bar.dart').readAsStringSync();
-    for (final entry in ['_exportHtml', '_exportPdf', '_exportWord', '_print']) {
+    // `exportPdf` and `printDocument` are public because the shortcut bound
+    // to them runs them too; the other two are reached only from the menu.
+    for (final entry in [
+      '_exportHtml',
+      'exportPdf',
+      '_exportWord',
+      'printDocument',
+    ]) {
       final start = source.indexOf('void $entry(WidgetRef');
       expect(start, isNot(-1), reason: '找不到 $entry');
       final end = source.indexOf('\n  }', start);
