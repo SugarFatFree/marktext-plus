@@ -122,6 +122,30 @@ class PluginCatalogEntry {
       isPrerelease: json['prerelease'] == true,
     );
   }
+
+  /// The same shape [PluginCatalogEntry.fromJson] reads.
+  ///
+  /// For the catalogue cache. Discovery costs one search plus a request per
+  /// repository found — thirty of them against sixty unauthenticated requests
+  /// an hour — so doing it on every start runs the reader out of quota in two
+  /// or three launches, which is what "try again in 819 seconds" was.
+  ///
+  /// `permissions` is deliberately not written: a search result never has any
+  /// (they come from the package, which has not been downloaded), so a cached
+  /// empty list would be indistinguishable from a plugin that asks for
+  /// nothing.
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'version': version,
+    'downloadUrl': downloadUrl.toString(),
+    'sha256': sha256,
+    if (description.isNotEmpty) 'description': description,
+    if (repositoryUrl != null) 'repository': repositoryUrl.toString(),
+    if (releaseNotes.isNotEmpty) 'releaseNotes': releaseNotes,
+    if (publishedAt != null) 'publishedAt': publishedAt!.toIso8601String(),
+    if (isPrerelease) 'prerelease': true,
+  };
 }
 
 /// Whether a catalogue result is something the reader can install, update, or

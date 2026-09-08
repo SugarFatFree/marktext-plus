@@ -15,6 +15,26 @@ export '../models/plugin_catalog_entry.dart';
 
 /// Reads the signed/transport-secured plugin registry lazily.
 class PluginCatalogService {
+  /// [cache] is where a listing is kept between launches; null does not cache.
+  const PluginCatalogService({this.cache});
+
+  /// Where the last listing was written, so a launch need not fetch one.
+  ///
+  /// Discovery costs one search plus a request for each repository it finds —
+  /// up to thirty, against sixty unauthenticated requests an hour. Doing that
+  /// on every start runs a reader out of quota in two or three launches, and
+  /// what they see is "GitHub is rate-limiting searches from this machine;
+  /// try again in 819 seconds" where a list of plugins should be.
+  final File? cache;
+
+  /// How long a written listing is used before asking GitHub again.
+  ///
+  /// Long enough that opening the editor several times in an afternoon costs
+  /// one search; short enough that a plugin published this morning is found
+  /// today. The refresh button ignores it — that press is the reader saying
+  /// they want the current answer.
+  static const cacheFor = Duration(hours: 6);
+
   /// Uses the operating system proxy variables when present. GitHub requests
   /// are user-triggered, so a proxy failure is reported by the panel rather
   /// than delaying application startup.
@@ -151,9 +171,67 @@ class PluginCatalogService {
   }) =>
       found == 0 && refusals.isNotEmpty ? refusals.first : null;
 
+  /// Reads the cached listing, or null when there is none worth using.
+  @visibleForTesting
+  List<PluginCatalogEntry>? cached({DateTime? now}) {
+    final file = cache;
+    if (file == null || !file.existsSync()) return null;
+    try {
+      final json = jsonDecode(file.readAsStringSync());
+      if (json is! Map) return null;
+      final at = DateTime.tryParse('${json['fetchedAt']}');
+      if (at == null) return null;
+      final age = (now ?? DateTime.now()).difference(at);
+      // A clock that moved backwards leaves a listing from the future. Its
+      // age is negative, which is not "fresh for another six hours"; it is a
+      // file this cannot reason about.
+      if (age.isNegative || age > cacheFor) return null;
+      final entries = json['entries'];
+      if (entries is! List) return null;
+      return [
+        for (final entry in entries)
+          if (entry is Map<String, dynamic>) PluginCatalogEntry.fromJson(entry),
+      ];
+    } catch (_) {
+      // A half-written or outdated cache costs one search, not a broken
+      // plugin list.
+      return null;
+    }
+  }
+
+  /// The listing to use without asking GitHub, if there is one.
+  ///
+  /// Null when [refresh] is set: that is the reader pressing the button,
+  /// which is them saying they want the current answer rather than the one
+  /// this has.
+  @visibleForTesting
+  List<PluginCatalogEntry>? keptFor({required bool refresh, DateTime? now}) =>
+      refresh ? null : cached(now: now);
+
+  void _writeCache(List<PluginCatalogEntry> entries, {DateTime? now}) {
+    final file = cache;
+    if (file == null) return;
+    try {
+      file.parent.createSync(recursive: true);
+      file.writeAsStringSync(
+        jsonEncode({
+          'fetchedAt': (now ?? DateTime.now()).toIso8601String(),
+          'entries': [for (final entry in entries) entry.toJson()],
+        }),
+      );
+    } catch (_) {
+      // Not being able to write it costs a search next time, which is what
+      // used to happen every time.
+    }
+  }
+
   Future<List<PluginCatalogEntry>> searchGitHubTopic({
     int perPage = 30,
+    bool refresh = false,
+    DateTime? now,
   }) async {
+    final kept = keptFor(refresh: refresh, now: now);
+    if (kept != null) return kept;
     final client = _client();
     try {
       final searchUrl = Uri.https('api.github.com', '/search/repositories', {
@@ -238,6 +316,10 @@ class PluginCatalogService {
       }
       final refusal = refusalFor(found: entries.length, refusals: refusals);
       if (refusal != null) throw HttpException(refusal);
+      // Written only on a listing that came back whole: a run that hit the
+      // limit part way through has fewer plugins than there are, and keeping
+      // that for six hours would hide the rest of them for six hours.
+      _writeCache(entries, now: now);
       return entries;
     } finally {
       client.close(force: true);

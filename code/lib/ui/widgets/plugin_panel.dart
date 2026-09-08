@@ -43,6 +43,19 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
         (dir) => PluginManager(p.join(dir.path, 'plugins')),
       );
 
+  /// The catalogue, with somewhere to keep its last answer.
+  ///
+  /// Without a cache this searched GitHub on every launch, and each search
+  /// costs a request for every repository it finds — thirty against sixty an
+  /// hour, unauthenticated. Two or three launches used up the quota and the
+  /// panel said "try again in 819 seconds" where the plugins should be.
+  Future<PluginCatalogService> _catalogue() async {
+    final dir = await getApplicationSupportDirectory();
+    return PluginCatalogService(
+      cache: File(p.join(dir.path, 'plugin-catalog.json')),
+    );
+  }
+
   Future<void> _installZip() async {
     try {
       final picked = await FilePicker.platform.pickFiles(
@@ -96,12 +109,17 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
   void _openSettings(PluginManifest plugin) =>
       openPluginSettingsTab(ref, plugin);
 
-  Future<void> _discover() async {
+  /// Looks for community plugins.
+  ///
+  /// [refresh] is the reader pressing the button: they are asking for the
+  /// current answer, so the kept one is not used.
+  Future<void> _discover({bool refresh = false}) async {
     final discovery = ref.read(pluginDiscoveryProvider.notifier);
     discovery.started();
     setState(() => _error = null);
     try {
-      discovery.succeeded(await PluginCatalogService().searchGitHubTopic());
+      final catalogue = await _catalogue();
+      discovery.succeeded(await catalogue.searchGitHubTopic(refresh: refresh));
     } catch (error) {
       // Not `'$error'`: that prints the class name first, and
       // "HttpException:" is noise to whoever is looking at a list of plugins
@@ -315,7 +333,7 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
             IconButton(
               tooltip: l10n.settingsPluginsDiscover,
               icon: const Icon(Icons.travel_explore, size: 18),
-              onPressed: _discover,
+              onPressed: () => _discover(refresh: true),
               visualDensity: VisualDensity.compact,
             ),
             IconButton(
