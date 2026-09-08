@@ -75,4 +75,47 @@ void main() {
     expect(control.description, contains('plugin command'));
     expect(control.description, isNot(contains('open a file')));
   });
+
+  group('a refusal is a refusal in the protocol too', () {
+    // The sentence was always honest — "there is no tab x" — and `isError`
+    // said false beside it, which is the field a caller checks. Driving a
+    // running editor showed it: every refusal came back looking like success.
+    Future<Map<String, dynamic>> control(
+      McpOutcome Function(String action) answer,
+    ) async {
+      final tools = McpToolset(
+        perform: (action, arguments) async => answer(action),
+      );
+      return tools.call('control', {'action': 'close_pane'});
+    }
+
+    test('something the editor did is not an error', () async {
+      final result = await control((_) => mcpDid('closed the right pane'));
+      expect(result['isError'], isFalse);
+      expect(
+        (result['content'] as List).first['text'],
+        'closed the right pane',
+      );
+    });
+
+    test('something it would not do is', () async {
+      final result = await control((_) => mcpRefused('no right pane was open'));
+      expect(
+        result['isError'],
+        isTrue,
+        reason: '编辑器没做到，协议层却报成功——调用方看的正是这个字段',
+      );
+      expect(
+        (result['content'] as List).first['text'],
+        'no right pane was open',
+        reason: '句子照说，不因为是拒绝就变含糊',
+      );
+    });
+
+    test('an action with no handler at all is an error', () async {
+      final tools = const McpToolset();
+      final result = await tools.call('control', {'action': 'new_tab'});
+      expect(result['isError'], isTrue);
+    });
+  });
 }

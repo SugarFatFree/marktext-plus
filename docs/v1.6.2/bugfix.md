@@ -85,6 +85,7 @@
 | BUG-340 | 2026-09-08 | 翻译插件的分段规则三处无守卫：围栏吞掉全文、tab 空行、CRLF 文档 | P1 | 已加守卫 |
 | BUG-341 | 2026-09-08 | 翻译形状守卫建在主仓库，而出事的是 SDK——它的 11 份没人看 | P2 | 已加守卫 |
 | BUG-342 | 2026-09-08 | 从右侧边栏点开的插件，问题弹在浮动卡片里、答案落在抽屉里 | **P1** | 已修复 |
+| BUG-343 | 2026-09-08 | MCP 的每一次拒绝，在协议层都写着「成功」 | P1 | 已修复 |
 
 ---
 
@@ -4649,3 +4650,46 @@ that was already disposed`。
 
 `lib/ui/widgets/plugin_command_actions.dart`；`lib/ui/widgets/right_side_bar.dart`；
 `test/ui/widgets/right_sidebar_test.dart`
+
+---
+
+## BUG-343：句子说了实话，字段没有
+
+接上 `run_plugin_command`（FEAT-131）之后，对读者正在跑的那一版做了一轮实测：
+
+| 请求 | 回话 | `isError` |
+|------|------|-----------|
+| `activate_tab` 一个不存在的标签 | there is no tab 没有这个标签 | **False** |
+| `close_pane` 一个没打开的槽 | no corner pane was open | **False** |
+| `close_pane slot=middle` | unknown slot "middle" | **False** |
+| `open_file`（已撤下） | action "open_file" is not available | **False** |
+
+**今早修的谎报只修了句子。** MCP 里表示「这次调用没做到」的是 `isError`，
+**而调用方看的正是这个字段**——每一次拒绝在协议层都写着成功。
+
+一个 agent 照着 `isError` 判断，会认为它切过去了、关掉了、跑起来了。
+
+### 修
+
+`perform` 不再返回一个句子，返回 `McpOutcome`——句子加上做没做到：
+
+```dart
+typedef McpOutcome = ({String said, bool ok});
+McpOutcome mcpDid(String said) => (said: said, ok: true);
+McpOutcome mcpRefused(String said) => (said: said, ok: false);
+```
+
+`_control` 用 `ok` 决定 `isError`。**句子一个字没改**——拒绝不因为被标成拒绝
+就变含糊。
+
+### 守卫
+
+三条：做到的不是错误、没做到的是错误（且句子照说）、
+**根本没有处理器时也是错误**。
+
+变异两个方向：无条件报成功 → 第二条红；无条件报失败 → 第一条红。
+
+### 涉及文件
+
+`lib/services/mcp_tools.dart`；`lib/providers/mcp_provider.dart`；
+`test/services/mcp_action_test.dart`

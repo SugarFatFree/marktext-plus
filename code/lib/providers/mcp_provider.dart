@@ -137,7 +137,10 @@ class McpController extends StateNotifier<McpStatus> {
   /// already uses for screenshots.
   Future<String> Function(String pluginId, String command)? runPluginCommand;
 
-  Future<String> _perform(String action, Map<String, dynamic> arguments) async {
+  Future<McpOutcome> _perform(
+    String action,
+    Map<String, dynamic> arguments,
+  ) async {
     String? text(String key) => arguments[key] as String?;
 
     final wanted = McpAction.byWireName(action);
@@ -154,7 +157,7 @@ class McpController extends StateNotifier<McpStatus> {
       // removing, so the first step is lifting it onto `TabNotifier`. Running
       // a plugin command needs a `BuildContext` — panes, cards and messages
       // all come from one — so the widget layer has to register a handler.
-      return 'action "$action" is not available';
+      return mcpRefused('action "$action" is not available');
     }
 
     switch (wanted) {
@@ -162,9 +165,9 @@ class McpController extends StateNotifier<McpStatus> {
         final mode = EditMode.values
             .where((m) => m.name == text('mode'))
             .firstOrNull;
-        if (mode == null) return 'unknown mode "${text('mode')}"';
+        if (mode == null) return mcpRefused('unknown mode "${text('mode')}"');
         _ref.read(settingsProvider.notifier).setEditMode(mode);
-        return 'view mode is now ${mode.name}';
+        return mcpDid('view mode is now ${mode.name}');
 
       case McpAction.newTab:
         final tab = TabInfo(
@@ -173,55 +176,55 @@ class McpController extends StateNotifier<McpStatus> {
           content: text('content') ?? '',
         );
         _ref.read(tabProvider.notifier).addTab(tab);
-        return 'opened tab ${tab.id}';
+        return mcpDid('opened tab ${tab.id}');
 
       case McpAction.activateTab:
         final id = text('tabId');
-        if (id == null) return 'no tabId given';
+        if (id == null) return mcpRefused('no tabId given');
         // The answer is the provider's, not this line's optimism: an id
         // naming no tab used to be written into the state and reported as a
         // switch that had happened.
         return _ref.read(tabProvider.notifier).setActiveTab(id)
-            ? 'tab $id is active'
-            : 'there is no tab $id';
+            ? mcpDid('tab $id is active')
+            : mcpRefused('there is no tab $id');
 
       case McpAction.closeTab:
         final id = text('tabId') ?? _ref.read(tabProvider).activeTabId;
-        if (id == null) return 'no tab to close';
+        if (id == null) return mcpRefused('no tab to close');
         _ref.read(tabProvider.notifier).removeTab(id);
-        return 'closed tab $id';
+        return mcpDid('closed tab $id');
 
       case McpAction.setContent:
         final id = text('tabId') ?? _ref.read(tabProvider).activeTabId;
         final content = text('content');
-        if (id == null) return 'no tab to write to';
-        if (content == null) return 'no content given';
+        if (id == null) return mcpRefused('no tab to write to');
+        if (content == null) return mcpRefused('no content given');
         _ref.read(tabProvider.notifier).updateContent(id, content);
-        return 'wrote ${content.length} characters to $id';
+        return mcpDid('wrote ${content.length} characters to $id');
 
       case McpAction.runPluginCommand:
         final pluginId = text('pluginId');
         final command = text('command');
-        if (pluginId == null) return 'no pluginId given';
-        if (command == null) return 'no command given';
+        if (pluginId == null) return mcpRefused('no pluginId given');
+        if (command == null) return mcpRefused('no command given');
         final run = runPluginCommand;
         if (run == null) {
           // Only before the first frame: the widget that registers this is
           // built once and stays.
-          return 'the editor is not ready to run plugin commands yet';
+          return mcpRefused('the editor is not ready to run plugin commands yet');
         }
-        return run(pluginId, command);
+        return mcpDid(await run(pluginId, command));
 
       case McpAction.closePane:
         final slot = PluginPaneSlot.values
             .where((s) => s.name == text('slot'))
             .firstOrNull;
         final id = _ref.read(tabProvider).activeTabId;
-        if (slot == null) return 'unknown slot "${text('slot')}"';
-        if (id == null) return 'no tab is active';
+        if (slot == null) return mcpRefused('unknown slot "${text('slot')}"');
+        if (id == null) return mcpRefused('no tab is active');
         return _ref.read(pluginPanesProvider.notifier).close(id, slot)
-            ? 'closed the ${slot.name} pane'
-            : 'no ${slot.name} pane was open';
+            ? mcpDid('closed the ${slot.name} pane')
+            : mcpRefused('no ${slot.name} pane was open');
 
     }
   }

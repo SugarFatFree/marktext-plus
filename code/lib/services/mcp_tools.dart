@@ -29,6 +29,19 @@ enum McpAction {
       values.where((a) => a.wireName == wireName).firstOrNull;
 }
 
+/// What an action did, and whether it did it.
+///
+/// A refusal reads as a sentence either way — "there is no tab x" — and a
+/// caller checking `isError` needs the difference in the protocol, not only
+/// in the prose.
+typedef McpOutcome = ({String said, bool ok});
+
+/// Something the editor did, with what to say about it.
+McpOutcome mcpDid(String said) => (said: said, ok: true);
+
+/// Something the editor did not do, and why.
+McpOutcome mcpRefused(String said) => (said: said, ok: false);
+
 /// One thing an agent can ask the editor to do.
 class McpTool {
   const McpTool({
@@ -99,8 +112,16 @@ class McpToolset {
   /// What is open, as JSON: tabs, view mode, plugins.
   final Future<Map<String, dynamic>> Function()? describeState;
 
-  /// Carries out one named action with arguments, returning what it did.
-  final Future<String> Function(String action, Map<String, dynamic> arguments)?
+  /// Carries out one named action with arguments.
+  ///
+  /// [McpOutcome.ok] is false when the editor did not do what was asked — no
+  /// such tab, no pane to close, an action nothing implements. The sentence
+  /// alone was not enough: MCP reports failure in `isError`, and a caller
+  /// reading that saw success for every refusal the editor phrased politely.
+  final Future<McpOutcome> Function(
+    String action,
+    Map<String, dynamic> arguments,
+  )?
   perform;
 
   /// The longest recording allowed.
@@ -294,7 +315,8 @@ class McpToolset {
     if (action is! String || action.isEmpty) {
       return McpContent.text('no action given', isError: true);
     }
-    return McpContent.text(await act(action, arguments));
+    final outcome = await act(action, arguments);
+    return McpContent.text(outcome.said, isError: !outcome.ok);
   }
 
   static int? _asInt(Object? value) =>
