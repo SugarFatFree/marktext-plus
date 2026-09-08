@@ -212,12 +212,6 @@ class PluginManager {
   String directoryOf(PluginManifest manifest) =>
       p.join(installDirectory, manifest.id);
 
-  String entrypointPath(PluginManifest manifest) => p.join(
-        installDirectory,
-        manifest.id,
-        manifest.entrypointFor(currentPlatform) ?? manifest.entrypoint,
-      );
-
   /// Starts a compiled plugin's own executable.
   ///
   /// The editor never spawns an interpreter here. Running a source file would
@@ -326,6 +320,19 @@ class PluginManager {
       throw FormatException(
         '${manifest.name} needs MarkText Plus ${manifest.minAppVersion} '
         'or newer; this is $appVersion',
+      );
+    }
+    // And the same question about the machine, which was being left until the
+    // reader first tried to use the plugin. A compiled plugin with no build
+    // for this platform was installed, listed, and refused at the moment it
+    // was wanted — a strange time to learn it was never going to work.
+    //
+    // `supportsPlatform` already answered this and nothing asked it. Script
+    // plugins answer true, which is right: they run wherever the editor does.
+    if (!manifest.supportsPlatform(currentPlatform)) {
+      throw FormatException(
+        '${manifest.name} has no build for $currentPlatform; it ships '
+        '${manifest.supportedPlatforms.join(', ')}',
       );
     }
 

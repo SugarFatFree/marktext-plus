@@ -63,6 +63,8 @@
 | BUG-318 | 2026-09-08 | `XYChartSeries` 相等而哈希不同，违反 hash 契约 | P2 | 已修复 |
 | BUG-319 | 2026-09-08 | 列表里留一个空条目，后面的全被吞进去缩进一层 | P1 | 已修复 |
 | BUG-320 | 2026-09-08 | 插件下载地址不检查 https，只有 registry 那一半强制了 | P1 | 已修复 |
+| BUG-321 | 2026-09-08 | 跑不了的编译插件照样装上，直到点它才说没有本平台的构建 | P2 | 已修复 |
+| BUG-322 | 2026-09-08 | `entrypointPath` 零调用零测试，且回退规则与实际启动相左 | P2 | 已删除 |
 
 ---
 
@@ -3470,3 +3472,68 @@ downloadUrl: Uri.parse(browserUrl),   // asset['browser_download_url']，原样
 
 `lib/services/plugin_catalog_service.dart`；
 `test/services/plugin_download_rules_test.dart`（新增）
+
+---
+
+## BUG-321：跑不了的插件照样装上，用的时候才说
+
+### 现象
+
+一个只提供 `macos-arm64` / `windows-x64` 构建的编译插件，在 Linux 上**安装成功**、
+出现在列表里，直到读者点它才收到「has no build for linux-x64」。
+
+**装完才发现跑不起来，比装的时候就说清楚差得远。**
+
+### 这是 `minAppVersion` 那个故事的第二遍
+
+`plugin_compatibility_test` 的注释原文：
+
+> `minAppVersion` was parsed, stored and written back out, and **checked nowhere**.
+> A plugin declaring 1.7.0 installed and ran on 1.6.1 …
+
+平台就停在那个状态：`supportsPlatform` **写好了、测过了、没有任何地方问它**。
+UI 里也完全没有平台兼容性的概念。
+
+### 修
+
+安装时的检查放在 `minAppVersion` 那道旁边，直接用现成的 `supportsPlatform`——
+不是再写一份判断。脚本插件答 true，这是对的：Lua 插件编辑器能跑的地方它都能跑。
+
+### 怎么找到的
+
+上一轮的教训是「单元测试看不见没接上」。这一轮把这个问题**系统地问了一遍全库**：
+扫 `lib/` 里声明了但只出现一次（即只有定义）的公开函数，18 个嫌疑，逐个进文件确认。
+
+记忆里记着这个扫描的三个坑，这次又添了第四个：
+
+| 坑 | 例子 |
+|---|---|
+| 同类内调用不带前缀 | — |
+| tear-off 没有括号 | — |
+| 名字当变量传 | — |
+| **公开包装 + 私有实现** | `isNewer` 是 `@visibleForTesting` 的壳，真正被调的是 `_isNewer` |
+
+18 个里绝大多数是合法的（测试缝、框架回调、私有实现的壳），真问题两个。
+
+---
+
+## BUG-322：`entrypointPath` 是携带错规则的死代码
+
+零调用、零测试，而它写的是：
+
+```dart
+manifest.entrypointFor(currentPlatform) ?? manifest.entrypoint
+```
+
+对一个**没有本平台构建的编译插件**，`entrypointFor` 返回 null，它回退到通用入口——
+而 `startPlugin` 对同一情况是明确拒绝的，理由写在它上方：
+
+> A compiled plugin ships a real executable per platform, or it does not run
+> on that platform at all.
+
+**同一条规则的第三份实现，而且是唯一一份说错的。** 它没被调用，所以从没出过事；
+留着它等于留一个将来会被人当成"现成的"去用的错误答案。删掉。
+
+### 涉及文件
+
+`lib/services/plugin_manager.dart`；`test/services/plugin_platform_refusal_test.dart`（新增）
