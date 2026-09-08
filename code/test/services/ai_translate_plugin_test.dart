@@ -535,6 +535,101 @@ void main() {
     service.dispose();
   }, skip: present ? null : '插件仓库不在这台机器上');
 
+  test('what follows a fence is not swallowed by it', () {
+    // The test above checks the fence is not cut open. It cannot see the
+    // other failure: a fence that never closes takes the rest of the document
+    // with it, and "the code is all in one request" stays true while that one
+    // request is the whole file.
+    //
+    // That has happened. `lua_dardo` answers `("" ):match("^%s*$")` with nil
+    // where standard Lua matches, so the line-blank test that closed a fence
+    // said no to every blank line.
+    //
+    // The paragraph after the fence is long enough to need a request of its
+    // own, so it can only appear in the first one by having been counted as
+    // part of the fence.
+    final service = PluginCommandService(root.path);
+    final code = '```dart\nvoid main() {}\n```';
+    final after = 'y' * 4000;
+    final first =
+        service.start(
+              manifest,
+              PluginScriptContext(
+                command: 'translate.document',
+                document: 'Before.\n\n$code\n\n$after',
+                answer: 'English',
+                view: 'source',
+              ),
+            )
+            as PluginPaneAction;
+
+    expect(first.nextPrompt, contains('void main'));
+    expect(
+      first.nextPrompt,
+      isNot(contains('yyyy')),
+      reason: '围栏没有闭合，它后面的正文被当成了代码的一部分',
+    );
+    service.dispose();
+  }, skip: present ? null : '插件仓库不在这台机器上');
+
+  test('a line of nothing but a tab still separates two paragraphs', () {
+    // An editor that indents with tabs leaves lines that look empty and are
+    // not. Read as text, the two paragraphs are one, and the model is handed a
+    // run-on it has to guess the shape of.
+    //
+    // Both are long enough to need a request each, so they can only share one
+    // by having been read as a single block.
+    final service = PluginCommandService(root.path);
+    final first =
+        service.start(
+              manifest,
+              PluginScriptContext(
+                command: 'translate.document',
+                document: '${'x' * 4000}\n\t\n${'y' * 4000}',
+                answer: 'English',
+                view: 'source',
+              ),
+            )
+            as PluginPaneAction;
+
+    expect(first.nextPrompt, contains('xxxx'));
+    expect(
+      first.nextPrompt,
+      isNot(contains('yyyy')),
+      reason: '只有制表符的那一行没被当作空行，两段被并成了一段',
+    );
+    service.dispose();
+  }, skip: present ? null : '插件仓库不在这台机器上');
+
+  test('a document written on Windows still has paragraphs', () {
+    // Lines are split on "\n", so every line of a CRLF document ends with a
+    // stray "\r" and a blank line arrives as "\r" rather than "". Read as
+    // text, that document is one paragraph from top to bottom.
+    //
+    // This editor has met the same thing before: `\r\n` once stopped Markdown
+    // syntax working for exactly this reason.
+    final service = PluginCommandService(root.path);
+    final first =
+        service.start(
+              manifest,
+              PluginScriptContext(
+                command: 'translate.document',
+                document: '${'x' * 4000}\r\n\r\n${'y' * 4000}',
+                answer: 'English',
+                view: 'source',
+              ),
+            )
+            as PluginPaneAction;
+
+    expect(first.nextPrompt, contains('xxxx'));
+    expect(
+      first.nextPrompt,
+      isNot(contains('yyyy')),
+      reason: 'CRLF 文档的空行只剩一个 \\r，没被认作空行，整篇成了一段',
+    );
+    service.dispose();
+  }, skip: present ? null : '插件仓库不在这台机器上');
+
   test('a long document is still more than one request', () {
     // Batching is not "send everything": what fails costs one batch, and the
     // reader sees the beginning while the end is still arriving.
