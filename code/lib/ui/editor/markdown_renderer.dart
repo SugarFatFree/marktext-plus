@@ -32,6 +32,7 @@ import '../widgets/mermaid_renderer.dart';
 import '../widgets/plugin_command_actions.dart';
 import '../../services/file_service.dart';
 import 'bottom_room.dart';
+import '../../core/diagnostics/resident_memory.dart';
 import '../../services/app_log.dart';
 
 class MarkdownRenderer extends ConsumerStatefulWidget {
@@ -1468,7 +1469,8 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     _fillWatch = null;
     watch.stop();
     AppLog.instance.debug(
-      'preview drew $totalNodes blocks in ${watch.elapsedMilliseconds} ms',
+      'preview drew $totalNodes blocks in '
+      '${watch.elapsedMilliseconds} ms${ResidentMemory.suffix()}',
       source: 'preview',
     );
   }

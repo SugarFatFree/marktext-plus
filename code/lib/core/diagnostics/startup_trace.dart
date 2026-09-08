@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:ffi/ffi.dart';
 import 'package:flutter/foundation.dart';
 import '../../services/app_log.dart';
+import 'resident_memory.dart';
 
 /// Records how long each step of startup and shutdown takes.
 ///
@@ -284,7 +285,7 @@ class StartupTrace {
     // — the file has them, and forty lines would push a plugin's output off
     // the end of a log that holds a few hundred.
     AppLog.instance.info(
-      '$phase at ${_since.elapsedMilliseconds} ms',
+      '$phase at ${_since.elapsedMilliseconds} ms${ResidentMemory.suffix()}',
       source: 'startup',
     );
   }

@@ -28,9 +28,11 @@ void main() {
     expect(startupLines().single, contains('a milestone for the test'));
     expect(
       startupLines().single,
-      matches(RegExp(r'at \d+ ms$')),
+      matches(RegExp(r'at \d+ ms')),
       reason: '没有数字的里程碑回答不了「启动多久」',
     );
+    // And what it cost to get there, where the platform will say.
+    expect(startupLines().single, matches(RegExp(r'\d+ MB resident')));
   });
 
   test('the same milestone twice is still one line', () {
