@@ -285,7 +285,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get formatQuoteBlock => '引用块';
 
   @override
-  String get formatMathBlock => '数学公式';
+  String get formatMathBlock => '数学公式块';
 
   @override
   String get formatTable => '表格';

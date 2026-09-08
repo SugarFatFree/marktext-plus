@@ -269,7 +269,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get formatItalic => 'Курсив';
 
   @override
-  String get formatStrikethrough => 'Зачеркнутый';
+  String get formatStrikethrough => 'Зачёркнутый';
 
   @override
   String formatHeading(int level) {

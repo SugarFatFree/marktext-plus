@@ -140,7 +140,7 @@
   "formatTaskList": "任务列表",
   "formatCodeBlock": "代码块",
   "formatQuoteBlock": "引用块",
-  "formatMathBlock": "数学公式",
+  "formatMathBlock": "数学公式块",
   "formatTable": "表格",
   "formatTableSubmenu": "编辑表格",
   "formatTableInsertRowAbove": "在上方插入行",

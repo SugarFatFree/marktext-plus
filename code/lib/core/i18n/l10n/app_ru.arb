@@ -133,7 +133,7 @@
   "viewResetZoom": "Сбросить масштаб",
   "formatBold": "Жирный",
   "formatItalic": "Курсив",
-  "formatStrikethrough": "Зачеркнутый",
+  "formatStrikethrough": "Зачёркнутый",
   "formatHeading": "Заголовок {level}",
   "formatOrderedList": "Нумерованный список",
   "formatUnorderedList": "Маркированный список",
