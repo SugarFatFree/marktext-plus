@@ -75,7 +75,7 @@ Eso es todo. El editor se abrirá con un documento de ejemplo listo para editar.
 | | |
 |---------|-------------|
 | **🧩 Complementos abiertos** | Un archivo Lua o JavaScript, sin SDK y sin compilar, en un espacio aislado y limitado a los permisos que declaró. Se encuentran en [GitHub Topic: `marktext-plus-plugin`](https://github.com/topics/marktext-plus-plugin); cada uno va marcado como Comunidad/sin verificar |
-| **⚡ Arranque rápido** | Sin navegador incrustado ni framework de editor: 23 dependencias directas |
+| **⚡ Arranque rápido** | Sin navegador incrustado ni framework de editor: 26 dependencias directas |
 | **📄 Archivos grandes** | Análisis, resaltado y búsqueda en una sola pasada, con presupuestos que hacen fallar las pruebas. Por encima de 128 KB el resaltado se detiene: es el último tamaño que abre en torno a un segundo. Se sigue editando, y los colores vuelven si el archivo mengua |
 | **🧪 Probado** | 2432 pruebas para el parser, los exportadores, los providers, los motores de complementos y los widgets del editor |
 
@@ -116,7 +116,7 @@ Los tiempos de arranque provienen de un único equipo con Windows, con los tres 
 |---|---|---|---|
 | **Entorno de ejecución** | Flutter — compilado, sin navegador incrustado | Electron 42 | Electron |
 | **Arranque** (hasta ver el documento) | ~0,7 s en caliente, ~1,4 s en frío | 2–3 s | 2–3 s |
-| **Dependencias directas** | 22 | 56 (paquete desktop) | código cerrado |
+| **Dependencias directas** | 26 | 56 (paquete desktop) | código cerrado |
 | **Licencia** | MIT, gratuito | MIT, gratuito | De pago, código cerrado |
 | **Edición** | Fuente, vista previa y una vista dividida cuyas mitades se siguen; los bloques se editan en su sitio dentro de la vista previa | Vista previa en vivo (WYSIWYG), más un modo de código | Vista previa en vivo (WYSIWYG), más un modo de código |
 | **Diagramas** | 22 tipos de Mermaid, dibujados en Dart sin WebView | Mermaid, flowchart.js, Vega-Lite, PlantUML — todos mediante JavaScript | Mermaid, flowchart.js, js-sequence, PlantUML |

@@ -75,7 +75,7 @@ flutter pub get && flutter run
 | | |
 |---------|-------------|
 | **🧩 Extensões abertas** | Um ficheiro Lua ou JavaScript, sem SDK e sem compilação, numa caixa de areia e limitado às permissões que declarou. Encontram-se em [GitHub Topic: `marktext-plus-plugin`](https://github.com/topics/marktext-plus-plugin); cada uma vem marcada como Comunidade/não verificada |
-| **⚡ Arranque rápido** | Sem navegador embutido nem framework de editor: 23 dependências diretas |
+| **⚡ Arranque rápido** | Sem navegador embutido nem framework de editor: 26 dependências diretas |
 | **📄 Ficheiros grandes** | Análise, realce e pesquisa numa só passagem, com orçamentos que fazem falhar os testes. Acima de 128 KB o realce para — é o último tamanho que abre em cerca de um segundo. Continua a poder editar, e as cores voltam se o ficheiro encolher |
 | **🧪 Testado** | 2432 testes para o analisador, as exportações, os providers, os motores de extensões e os widgets do editor |
 
@@ -116,7 +116,7 @@ Os tempos de arranque vêm de uma só máquina com Windows, com os três program
 |---|---|---|---|
 | **Ambiente de execução** | Flutter — compilado, sem navegador incorporado | Electron 42 | Electron |
 | **Arranque** (até o documento aparecer) | ~0,7 s a quente, ~1,4 s a frio | 2–3 s | 2–3 s |
-| **Dependências diretas** | 22 | 56 (pacote desktop) | código fechado |
+| **Dependências diretas** | 26 | 56 (pacote desktop) | código fechado |
 | **Licença** | MIT, gratuito | MIT, gratuito | Pago, código fechado |
 | **Edição** | Código, pré-visualização e uma vista dividida cujas metades se acompanham; os blocos editam-se no lugar dentro da pré-visualização | Pré-visualização ao vivo (WYSIWYG), mais um modo de código | Pré-visualização ao vivo (WYSIWYG), mais um modo de código |
 | **Diagramas** | 22 tipos de Mermaid, desenhados em Dart sem WebView | Mermaid, flowchart.js, Vega-Lite, PlantUML — todos através de JavaScript | Mermaid, flowchart.js, js-sequence, PlantUML |

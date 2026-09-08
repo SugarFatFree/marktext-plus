@@ -75,7 +75,7 @@ Das ist alles. Der Editor startet mit einem Beispieldokument und ist sofort eins
 | | |
 |---------|-------------|
 | **🧩 Offene Plug-ins** | Eine Lua- oder JavaScript-Datei, ohne SDK und ohne Build, in einer Sandbox und auf die Rechte beschränkt, die sie selbst angemeldet hat. Zu finden über [GitHub Topic: `marktext-plus-plugin`](https://github.com/topics/marktext-plus-plugin); jedes ist als Community/ungeprüft gekennzeichnet |
-| **⚡ Schneller Start** | Kein eingebetteter Browser, kein Editor-Framework, 23 direkte Abhängigkeiten |
+| **⚡ Schneller Start** | Kein eingebetteter Browser, kein Editor-Framework, 26 direkte Abhängigkeiten |
 | **📄 Große Dateien** | Parsen, Hervorheben und Suchen laufen in einem Durchgang, mit Budgets, an denen Tests scheitern. Über 128 KB entfällt die Hervorhebung — die letzte Größe, die in etwa einer Sekunde öffnet. Bearbeiten geht weiter, und wird die Datei kleiner, kommen die Farben zurück |
 | **🧪 Getestet** | 2432 Tests für Parser, Exporte, Provider, Plug-in-Laufzeiten und Editor-Widgets |
 
@@ -116,7 +116,7 @@ Die Startzeiten stammen von einem einzigen Windows-Rechner, alle drei Programme 
 |---|---|---|---|
 | **Laufzeitumgebung** | Flutter — kompiliert, kein eingebetteter Browser | Electron 42 | Electron |
 | **Start** (bis das Dokument steht) | ~0,7 s warm, ~1,4 s kalt | 2–3 s | 2–3 s |
-| **Direkte Abhängigkeiten** | 22 | 56 (Desktop-Paket) | Closed Source |
+| **Direkte Abhängigkeiten** | 26 | 56 (Desktop-Paket) | Closed Source |
 | **Lizenz** | MIT, kostenlos | MIT, kostenlos | Kostenpflichtig, Closed Source |
 | **Bearbeiten** | Quelltext, Vorschau und eine geteilte Ansicht, deren Hälften einander folgen; Blöcke werden in der Vorschau an Ort und Stelle bearbeitet | Live-Vorschau (WYSIWYG), dazu ein Quelltextmodus | Live-Vorschau (WYSIWYG), dazu ein Quelltextmodus |
 | **Diagramme** | 22 Mermaid-Typen, in Dart gezeichnet, ohne WebView | Mermaid, flowchart.js, Vega-Lite, PlantUML — alle über JavaScript | Mermaid, flowchart.js, js-sequence, PlantUML |

@@ -80,7 +80,7 @@ flutter pub get && flutter run
 | | |
 |---------|-------------|
 | **🧩 开放插件** | 一个 Lua 或 JavaScript 文件，无需安装 SDK、无需构建，在沙箱里运行并受它自己声明的权限约束。通过 [GitHub Topic: `marktext-plus-plugin`](https://github.com/topics/marktext-plus-plugin) 发现，每一个都标注为「社区 / 未验证」 |
-| **⚡ 快速启动** | 没有内嵌浏览器和编辑器框架，只有 23 个直接依赖 |
+| **⚡ 快速启动** | 没有内嵌浏览器和编辑器框架，只有 26 个直接依赖 |
 | **📄 大文件** | 解析、语法高亮和搜索均为单遍处理，并由性能测试设置预算。超过 128 KB 关闭语法高亮——那是还能在一秒左右打开的最后一个尺寸；文档照常可编辑，缩小后颜色会回来 |
 | **🧪 测试充分** | 2432 项测试覆盖解析器、导出器、providers、插件运行时和编辑器组件 |
 
@@ -121,7 +121,7 @@ flutter pub get && flutter run
 |---|---|---|---|
 | **运行时** | Flutter —— 编译型，无内嵌浏览器 | Electron 42 | Electron |
 | **冷启动**（到文档上屏） | 热启动约 0.7 秒，冷启动约 1.4 秒 | 2~3 秒 | 2~3 秒 |
-| **直接依赖数** | 22 | 56（desktop 包） | 闭源 |
+| **直接依赖数** | 26 | 56（desktop 包） | 闭源 |
 | **许可** | MIT，免费 | MIT，免费 | 付费，闭源 |
 | **编辑方式** | 源码、预览、以及两侧互相跟随的分屏；预览里可就地编辑单个块 | 实时预览（所见即所得），另有源码模式 | 实时预览（所见即所得），另有源码模式 |
 | **图表** | 22 种 Mermaid 图，用 Dart 绘制，不用 WebView | Mermaid、flowchart.js、Vega-Lite、PlantUML —— 均经由 JavaScript | Mermaid、flowchart.js、js-sequence、PlantUML |
