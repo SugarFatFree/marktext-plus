@@ -541,6 +541,21 @@ translate.selection, translate.document`），**不能是空的**，且 `isError
 
 ---
 
+### 43. 自动化接口不再为没做的事回报成功（BUG-366）
+
+只有连 MCP 的人需要测；不用 MCP 可跳过。
+
+| 请求 | 该得到什么 |
+|------|-----------|
+| `close_tab`，tabId 填一个不存在的 | **拒绝**，说「there is no tab …」 |
+| `set_content`，tabId 填一个不存在的 | **拒绝**，同上 |
+| `close_tab`，tabId 填一个真的 | 成功，标签确实关掉 |
+| `set_content`，tabId 填一个真的 | 成功，内容确实写进去 |
+
+修复前这四条全都回报成功，其中两条什么也没做。
+
+---
+
 ## 还没定的四件事
 
 测的时候顺便看看，这几件需要你拿主意：
