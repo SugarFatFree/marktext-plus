@@ -425,6 +425,48 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
         description: l10n.commandNewFileDesc,
         execute: () => AppMenuBar.newFile(ref, l10n),
       ),
+      // The rest of the File menu. Everything there with a shortcut arrives
+      // through the loop below, which left out exactly the ones without one:
+      // "Export as HTML" and "Export as Word" could not be found in the
+      // palette while "Export as PDF" could, because that one has a key.
+      // The menu's own label, and no description — the way an entry whose
+      // description would be its key already looks when it has none.
+      Command(
+        id: 'file.openFolder',
+        label: l10n.fileOpenFolder,
+        description: '',
+        execute: () => AppMenuBar.openFolder(ref),
+      ),
+      Command(
+        id: 'file.saveAs',
+        label: l10n.fileSaveAs,
+        description: '',
+        execute: () => AppMenuBar.saveFileAs(ref),
+      ),
+      Command(
+        id: 'file.rename',
+        label: l10n.fileRename,
+        description: '',
+        execute: () => AppMenuBar.renameFile(ref),
+      ),
+      Command(
+        id: 'file.move',
+        label: l10n.fileMove,
+        description: '',
+        execute: () => AppMenuBar.moveFile(ref),
+      ),
+      Command(
+        id: 'file.exportHtml',
+        label: l10n.fileExportHtml,
+        description: '',
+        execute: () => AppMenuBar.exportHtml(ref),
+      ),
+      Command(
+        id: 'file.exportWord',
+        label: l10n.fileExportWord,
+        description: '',
+        execute: () => AppMenuBar.exportWord(ref),
+      ),
     ]);
 
     // Everything with a shortcut, from the list the keyboard and the menus

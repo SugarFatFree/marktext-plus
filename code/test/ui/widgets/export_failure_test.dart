@@ -159,7 +159,7 @@ void main() {
 
     expect(
       handlers,
-      containsAll(['_exportHtml', 'exportPdf', '_exportWord', 'printDocument']),
+      containsAll(['exportHtml', 'exportPdf', 'exportWord', 'printDocument']),
       reason: '导出入口的找法坏了——下面的检查会变成一句空话',
     );
 

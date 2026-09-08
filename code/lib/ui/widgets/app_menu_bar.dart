@@ -164,7 +164,7 @@ class AppMenuBar extends ConsumerWidget {
     }
   }
 
-  void _openFolder(WidgetRef ref) async {
+  static void openFolder(WidgetRef ref) async {
     final result = await FilePicker.platform.getDirectoryPath();
     if (result == null) return;
     ref.read(fileProvider.notifier).loadDirectory(result);
@@ -204,7 +204,7 @@ class AppMenuBar extends ConsumerWidget {
       }
       await ref.read(tabProvider.notifier).markSaved(activeTab.id);
     } else {
-      _saveFileAs(ref);
+      saveFileAs(ref);
     }
   }
 
@@ -282,7 +282,7 @@ class AppMenuBar extends ConsumerWidget {
     return context == null ? null : AppLocalizations.of(context);
   }
 
-  static void _saveFileAs(WidgetRef ref) async {
+  static void saveFileAs(WidgetRef ref) async {
     final activeTab = ref.read(activeTabProvider);
     if (activeTab == null) return;
     final path = await FilePicker.platform.saveFile(
@@ -310,7 +310,7 @@ class AppMenuBar extends ConsumerWidget {
     ref.read(settingsProvider.notifier).addRecentFile(path);
   }
 
-  void _renameFile(WidgetRef ref) async {
+  static void renameFile(WidgetRef ref) async {
     final activeTab = ref.read(activeTabProvider);
     if (activeTab == null || activeTab.filePath == null) return;
     final oldPath = activeTab.filePath!;
@@ -348,7 +348,7 @@ class AppMenuBar extends ConsumerWidget {
   /// alias for `renameFile` with no callers at all; a second name for one
   /// operation is how the two drift apart later, so it is gone rather than
   /// wired up.
-  void _moveFile(WidgetRef ref) async {
+  static void moveFile(WidgetRef ref) async {
     final activeTab = ref.read(activeTabProvider);
     if (activeTab == null || activeTab.filePath == null) return;
     final oldPath = activeTab.filePath!;
@@ -368,7 +368,7 @@ class AppMenuBar extends ConsumerWidget {
   /// so renaming a note onto a name already in use destroyed the note that
   /// had it — no prompt, no undo, nothing on screen. The sidebar's rename was
   /// fixed; this one was the copy that did not keep up.
-  Future<void> _relocate(
+  static Future<void> _relocate(
     WidgetRef ref,
     String oldPath,
     String newPath,
@@ -420,7 +420,7 @@ class AppMenuBar extends ConsumerWidget {
         ),
         MenuItemButton(
           child: Text(l10n.fileOpenFolder),
-          onPressed: () => _openFolder(ref),
+          onPressed: () => openFolder(ref),
         ),
         _buildRecentFilesMenu(context, l10n, ref),
         const Divider(height: 1),
@@ -431,14 +431,14 @@ class AppMenuBar extends ConsumerWidget {
         ),
         MenuItemButton(
           child: Text(l10n.fileSaveAs),
-          onPressed: () => _saveFileAs(ref),
+          onPressed: () => saveFileAs(ref),
         ),
         MenuItemButton(
           child: Text(l10n.fileRename),
-          onPressed: () => _renameFile(ref),
+          onPressed: () => renameFile(ref),
         ),
         MenuItemButton(
-          onPressed: hasDocument ? () => _moveFile(ref) : null,
+          onPressed: hasDocument ? () => moveFile(ref) : null,
           child: Text(l10n.fileMove),
         ),
         const Divider(height: 1),
@@ -455,7 +455,7 @@ class AppMenuBar extends ConsumerWidget {
         SubmenuButton(
           menuChildren: [
             MenuItemButton(
-              onPressed: hasDocument ? () => _exportHtml(ref) : null,
+              onPressed: hasDocument ? () => exportHtml(ref) : null,
               child: Text(l10n.fileExportHtml),
             ),
             MenuItemButton(
@@ -464,7 +464,7 @@ class AppMenuBar extends ConsumerWidget {
               child: Text(l10n.fileExportPdf),
             ),
             MenuItemButton(
-              onPressed: hasDocument ? () => _exportWord(ref) : null,
+              onPressed: hasDocument ? () => exportWord(ref) : null,
               child: Text(l10n.fileExportWord),
             ),
           ],
@@ -1199,7 +1199,7 @@ class AppMenuBar extends ConsumerWidget {
     );
   }
 
-  void _exportHtml(WidgetRef ref) async {
+  static void exportHtml(WidgetRef ref) async {
     final activeTab = ref.read(activeTabProvider);
     if (activeTab == null) return;
     final path = await FilePicker.platform.saveFile(
@@ -1288,7 +1288,7 @@ class AppMenuBar extends ConsumerWidget {
     }
   }
 
-  void _exportWord(WidgetRef ref) async {
+  static void exportWord(WidgetRef ref) async {
     final activeTab = ref.read(activeTabProvider);
     if (activeTab == null) return;
     final path = await FilePicker.platform.saveFile(
