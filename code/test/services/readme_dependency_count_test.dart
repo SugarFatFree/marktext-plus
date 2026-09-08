@@ -58,6 +58,11 @@ void main() {
       final lines = file.readAsLinesSync();
       final about = lines.where(
         (line) => RegExp(
+          // Case-insensitive: the comparison tables capitalise the phrase —
+          // "**Direkte Abhängigkeiten**", "**Dependencias directas**" — and a
+          // case-sensitive pattern read six translations as mentioning their
+          // dependency count once when each says it twice. The guard was
+          // missing exactly the rows this bug lived in.
           r'direct dependenc|直接依赖|直接依存|직접 의존|прямы|зависимост|'
           r'direkte Abhängigkeit|dependencias directas|dépendances directes|'
           r'dipendenze dirette|dependências diretas|'
@@ -65,6 +70,7 @@ void main() {
           // "credentials", and one line is about the editor holding the API
           // key. Pairing it with مباشر ("direct") separates them.
           r'اعتماد\S*\s+\S*مباشر|الاعتماديات المباشرة',
+          caseSensitive: false,
         ).hasMatch(line),
       );
 
