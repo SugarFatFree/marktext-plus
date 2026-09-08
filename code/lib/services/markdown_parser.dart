@@ -535,6 +535,31 @@ class MarkdownParser {
     return null;
   }
 
+  /// The line the note labelled [label] is defined on, or null when no note
+  /// carries that label.
+  ///
+  /// `[^1]` is drawn raised and in the link colour, and had nothing behind it:
+  /// it looked clickable and was not, while the note it names is usually at
+  /// the far end of the document.
+  ///
+  /// Labels are matched exactly rather than folded the way a heading anchor
+  /// is. A label is an identifier its author chose, so `[^Method]` and
+  /// `[^method]` are two notes; treating them as one would send a reader to
+  /// the wrong note rather than to none.
+  ///
+  /// Asks the parse rather than the source, so a definition written inside a
+  /// fence — which documentation about footnotes contains — is not one.
+  static int? lineForFootnote(String source, String label) {
+    if (label.isEmpty) return null;
+    for (final node in walk(MarkdownParser().parse(source))) {
+      if (node is FootnoteDefinitionNode && node.id == label) {
+        // Numbered from one, as `headingOutline` and `scrollToLine` are.
+        return node.sourceStart + 1;
+      }
+    }
+    return null;
+  }
+
   /// [text] as the anchor GitHub would give a heading of that text.
   ///
   /// Public rather than `@visibleForTesting`: that annotation lives in

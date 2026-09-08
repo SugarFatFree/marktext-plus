@@ -77,6 +77,14 @@ class MarkdownRenderer extends ConsumerStatefulWidget {
   @visibleForTesting
   static double bottomRoomForHeight(double height) => bottomRoom(height);
 
+  /// The key on the tappable part of the footnote marker for [label].
+  ///
+  /// The block a marker sits in has a tap handler of its own and is an
+  /// ancestor of the same text, so a test looking for "the detector around
+  /// this text" finds two and has to guess which. This names the right one.
+  static Key footnoteMarkerKey(String label) =>
+      ValueKey('footnote-marker-$label');
+
   @override
   ConsumerState<MarkdownRenderer> createState() => _MarkdownRendererState();
 }
@@ -2515,14 +2523,31 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             children.add(TextSpan(text: span.text, style: s));
           }
         case md.InlineType.footnoteRef:
+          // Clickable, because it is drawn raised and in the link colour and
+          // therefore looks it. On a plain tap rather than Ctrl-tap: a link
+          // may leave the editor, so it asks first, while this only moves
+          // within the document the reader is already in.
+          final label = span.text;
           children.add(
             WidgetSpan(
               alignment: PlaceholderAlignment.top,
-              child: Text(
-                '[${span.text}]',
-                style: baseStyle?.copyWith(
-                  color: theme.colorScheme.primary,
-                  fontSize: (baseStyle.fontSize ?? 14) * 0.75,
+              child: MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  // Keyed so a test can find this one rather than the block's
+                  // own detector, which is also an ancestor of this text.
+                  key: MarkdownRenderer.footnoteMarkerKey(label),
+                  // Opaque so the tap stops here rather than also opening the
+                  // block for editing underneath.
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => _jumpToFootnote(label),
+                  child: Text(
+                    '[$label]',
+                    style: baseStyle?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontSize: (baseStyle.fontSize ?? 14) * 0.75,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -2531,6 +2556,17 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     }
 
     return TextSpan(children: children);
+  }
+
+  /// Scrolls to the note [label] names, when the document defines one.
+  ///
+  /// A marker written before its note is how footnotes get written, so a
+  /// label with no definition does nothing and says nothing — the same
+  /// judgement as an anchor naming a heading that is not there yet.
+  void _jumpToFootnote(String label) {
+    final line = md.MarkdownParser.lineForFootnote(widget.markdown, label);
+    if (line == null) return;
+    ref.read(editorProvider.notifier).scrollToLine(line);
   }
 
   /// Turns a path written in the document into one the file system can use.
