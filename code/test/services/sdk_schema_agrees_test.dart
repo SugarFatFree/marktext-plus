@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/services/plugin_manifest.dart';
+import 'package:marktext_plus/services/plugin_ui.dart';
 
 /// The JSON schema the SDK publishes, held to what the editor actually reads.
 ///
@@ -151,6 +152,65 @@ void main() {
           .where((f) => f.path.endsWith('.md'))
           .length,
       11,
+    );
+  }, skip: present ? null : 'SDK 仓库不在这台机器上');
+
+  test('the SDK quotes the editor own limits on a plugin interface', () {
+    // A plugin author reads these numbers and builds to them. They live in
+    // `plugin_ui.dart` here and in prose in twelve files there, and nothing
+    // tied the two together — the same shape as the dependency count, which
+    // was wrong in nineteen places by the time anyone looked.
+    //
+    // Both limits are named in one sentence, so the paragraph holding one has
+    // to hold the other. By paragraph rather than by line: the English
+    // sentence wraps between them.
+    //
+    // Arabic spells its numbers out — اثنتي عشرة for twelve, خمسمئة for five
+    // hundred — which is ordinary in formal prose. Assuming digits travel
+    // untranslated made this test report that file as missing the limits
+    // entirely, when it states them as carefully as any other.
+    const arabic = (depth: 'اثنتي عشرة', nodes: 'خمسمئة');
+
+    final files = [
+      File('$repo/README.md'),
+      ...Directory('$repo/docs/i18n')
+          .listSync()
+          .whereType<File>()
+          .where((f) => f.path.endsWith('.md')),
+    ];
+    expect(files.length, 12, reason: 'SDK 的英文一份加十一份翻译');
+
+    final wrong = <String>[];
+    for (final file in files) {
+      final name = file.uri.pathSegments.last;
+      final isArabic = name.contains('ar-SA');
+      final nodes = isArabic ? arabic.nodes : '${PluginUiLimits.maxNodes}';
+      final depth = isArabic ? arabic.depth : '${PluginUiLimits.maxDepth}';
+
+      final paragraphs = file
+          .readAsStringSync()
+          .split('\n\n')
+          .where((p) => p.contains(nodes))
+          .toList();
+
+      if (paragraphs.isEmpty) {
+        wrong.add('$name: 不再提节点上限（$nodes）');
+        continue;
+      }
+      for (final paragraph in paragraphs) {
+        if (!paragraph.contains(depth)) {
+          wrong.add('$name: 说了节点上限却没说深度上限（$depth）');
+        }
+      }
+    }
+
+    expect(
+      wrong,
+      isEmpty,
+      reason:
+          '编辑器的上限是 ${PluginUiLimits.maxDepth} 层 / '
+          '${PluginUiLimits.maxNodes} 个节点，SDK 文档说的是别的：\n'
+          '${wrong.join('\n')}',
     );
   }, skip: present ? null : 'SDK 仓库不在这台机器上');
 }
