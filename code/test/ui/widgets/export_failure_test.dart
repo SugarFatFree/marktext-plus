@@ -139,25 +139,33 @@ void main() {
 
   test('every export entry point reports what it calls', () {
     // A structural check, because the behaviour cannot be reached without a
-    // file picker and a printer. It covers an export added later, which is
-    // the case that would otherwise repeat this bug.
+    // file picker and a printer. It covers an export added later — which is
+    // the case that would otherwise repeat this bug, and the reason the
+    // handlers are found rather than listed. A written list said it covered
+    // them and could not: an export added next year is not in it.
     //
     // Either the handler catches for itself, or it hands the work to
     // `runExport`, which reports the failure and says where the file went.
-    final source =
-        File('lib/ui/widgets/app_menu_bar.dart').readAsStringSync();
-    // `exportPdf` and `printDocument` are public because the shortcut bound
-    // to them runs them too; the other two are reached only from the menu.
-    for (final entry in [
-      '_exportHtml',
-      'exportPdf',
-      '_exportWord',
-      'printDocument',
-    ]) {
-      final start = source.indexOf('void $entry(WidgetRef');
-      expect(start, isNot(-1), reason: '找不到 $entry');
-      final end = source.indexOf('\n  }', start);
-      final body = source.substring(start, end);
+    final source = File(
+      'lib/ui/widgets/app_menu_bar.dart',
+    ).readAsStringSync();
+
+    // Anything named for exporting or printing that takes the ref — which is
+    // every handler behind a File-menu entry. `_exportTitle` and the like
+    // take no ref and are not entry points.
+    final handlers = RegExp(
+      r'(?:static )?void (\w*(?:[Ee]xport|[Pp]rint)\w*)\(WidgetRef',
+    ).allMatches(source).map((m) => m.group(1)!).toList();
+
+    expect(
+      handlers,
+      containsAll(['_exportHtml', 'exportPdf', '_exportWord', 'printDocument']),
+      reason: '导出入口的找法坏了——下面的检查会变成一句空话',
+    );
+
+    for (final entry in handlers) {
+      final start = source.indexOf(RegExp('void $entry\\(WidgetRef'));
+      final body = source.substring(start, source.indexOf('\n  }', start));
       expect(
         body.contains('reportExportFailure') || body.contains('runExport('),
         isTrue,

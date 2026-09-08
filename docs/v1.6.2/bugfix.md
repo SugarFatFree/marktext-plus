@@ -75,6 +75,7 @@
 | BUG-330 | 2026-09-08 | 十一个快捷键能在设置里重绑、菜单里画着，按下去毫无反应 | **P0** | 已修复 |
 | BUG-331 | 2026-09-08 | SDK schema 的四个约束只有三个被对账，第四个没人看 | P2 | 已加守卫 |
 | BUG-332 | 2026-09-08 | 同一个动作在命令面板与设置里显示成两个名字（中文、俄语各一处） | P2 | 已修复 |
+| BUG-333 | 2026-09-08 | 导出守卫自称能覆盖将来新增的导出，而它的清单是手写的 | P2 | 已修复 |
 
 ---
 
@@ -4131,3 +4132,50 @@ test/services/sdk_schema_agrees_test.dart: 6 个用例，只有 4 个带 skip
 
 `lib/core/i18n/l10n/app_zh.arb`、`app_ru.arb` 及其生成文件；
 `test/core/i18n/one_action_one_name_test.dart`（新增）
+
+---
+
+## BUG-333：守卫承诺了它做不到的事
+
+`export_failure_test` 里那条「每个导出入口都报告它调了什么」，注释写着：
+
+> It covers an export added later, which is the case that would otherwise
+> repeat this bug.
+
+**它做不到。** 它的入口点是手写的四个名字：
+
+```dart
+for (final entry in ['_exportHtml', 'exportPdf', '_exportWord', 'printDocument'])
+```
+
+明年加一个 `_exportEpub`，不在这四个里，守卫一句话都不会说。
+而那条注释会让下一个人以为已经查过了——**这比没有守卫更糟**，
+因为「有没有人对过账」这个问题会因为它的存在而被答成「有」。
+
+这是 BUG-332 那条守卫的同一个毛病（第一版也是手写 18 对），
+也是 [[a-test-name-can-be-a-decision]] 记的那半：**名字承诺了一件它没做的事**。
+
+### 修
+
+守卫自己去找入口点：
+
+```dart
+final handlers = RegExp(
+  r'(?:static )?void (\w*(?:[Ee]xport|[Pp]rint)\w*)\(WidgetRef',
+).allMatches(source).map((m) => m.group(1)!).toList();
+```
+
+判据是「名字与导出或打印有关，且接收 `ref`」——那正是 File 菜单背后每个处理器的
+形状。`_exportTitle` 这类返回字符串的 helper 不收 `ref`，不会被误纳。
+
+后面跟一句 `containsAll([...四个已知的...])`：**一个不再匹配的正则会让循环
+一次也不执行，而空循环里的每条断言都是通过的。**
+
+### 验证
+
+- **新增一个不报告失败的 `_exportEpub`** → 红。这正是旧清单会放行的那种改动
+- **把正则改成匹配不到任何东西** → 被 `containsAll` 那句抓住
+
+### 涉及文件
+
+`test/ui/widgets/export_failure_test.dart`
