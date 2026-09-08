@@ -81,4 +81,22 @@ void main() {
       reason: 'schema 允许的字段类型，插件设置页要认得',
     );
   }, skip: present ? null : 'SDK 仓库不在这台机器上');
+
+  test('the schema names the menu conditions the editor honours', () {
+    // Missed when the three above were written: `when` is a fourth enum in
+    // the same file. An unknown value falls back to `always`, so a condition
+    // the schema allows and the editor never heard of shows the command
+    // everywhere instead of refusing to install — silent, and wrong.
+    expect(
+      enumAt(schema(), [
+        'properties',
+        'menus',
+        'items',
+        'properties',
+        'when',
+      ]).toSet(),
+      PluginMenuCondition.values.map((c) => c.name).toSet(),
+      reason: 'schema 允许的 when，编辑器要认得',
+    );
+  }, skip: present ? null : 'SDK 仓库不在这台机器上');
 }

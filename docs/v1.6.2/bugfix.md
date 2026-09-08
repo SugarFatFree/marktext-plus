@@ -73,6 +73,7 @@
 | BUG-328 | 2026-09-08 | MCP 宣称支持 `open_file` 与 `run_plugin_command`，两个都没实现 | P1 | 已撤下 |
 | BUG-329 | 2026-09-08 | 撤下动作后描述与参数没跟上；两份名单靠人手同步 | P1 | 已修复 |
 | BUG-330 | 2026-09-08 | 十一个快捷键能在设置里重绑、菜单里画着，按下去毫无反应 | **P0** | 已修复 |
+| BUG-331 | 2026-09-08 | SDK schema 的四个约束只有三个被对账，第四个没人看 | P2 | 已加守卫 |
 
 ---
 
@@ -4010,3 +4011,52 @@ class WindowAction {
 `lib/ui/widgets/window_actions.dart`（新增）；`lib/ui/widgets/app_menu_bar.dart`；
 `lib/ui/screens/home_screen.dart`；`test/ui/window_action_coverage_test.dart`（新增，4 条）；
 `test/ui/widgets/export_failure_test.dart`
+
+---
+
+## BUG-331：schema 的守卫建了三条，它自己有六条约束
+
+`sdk_schema_agrees_test` 是为对账 SDK schema 与编辑器而建的——它的文档注释
+说得很清楚：作者照 schema 写 manifest，schema 和编辑器不一致，
+**被误导的正是那份本该帮他的文件**。
+
+建的时候盖了三个枚举：`permissions`、`runtime`、`settings.type`。
+同一个 schema 文件里还有：
+
+| 约束 | 当时有守卫吗 |
+|------|-------------|
+| `permissions` 枚举（18 个） | 有 |
+| `runtime` 枚举（4 个） | 有 |
+| `settings.type` 枚举（4 个） | 有 |
+| **`menus.when` 枚举（3 个）** | **没有** |
+| **`allOf`：`process` → 必须有 `entrypoints`** | **没有** |
+| **`allOf`：`lua`/`js` → 必须有 `entrypoint`** | **没有** |
+
+**三份都对齐着**——查过了，今天没有任何一处不一致。补的是守卫，不是修复。
+
+### 为什么 `when` 值得守
+
+未知的 `when` 值**回落到 `always`**。所以 schema 允许而编辑器不认的条件，
+表现是「这条命令在不该出现的地方出现了」，不是拒绝安装。静默且错误。
+
+### 两条条件约束放在别处
+
+它们检查的是编辑器拒不拒绝，只调 `PluginManifest.fromJson`，
+**不需要 SDK 仓库在场**，所以放进 `plugin_manifest_test`——
+`repo_dependent_tests_test` 那条守卫抓到了这一点：
+
+```
+test/services/sdk_schema_agrees_test.dart: 6 个用例，只有 4 个带 skip
+```
+
+它是对的。那个文件的每个用例都该在 SDK 缺席时跳过，而这两条在 CI 上也能跑，
+放进去会让「跳过」变成谎话。
+
+### 验证
+
+三个变异各被一条挡住：schema 的 `when` 多一个值、编辑器不再要求 `entrypoint`、
+编辑器不再要求 `entrypoints`。
+
+### 涉及文件
+
+`test/services/sdk_schema_agrees_test.dart`；`test/services/plugin_manifest_test.dart`

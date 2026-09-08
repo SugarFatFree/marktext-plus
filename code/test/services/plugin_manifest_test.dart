@@ -344,4 +344,53 @@ void _impliedPermissions() {
     expect(PluginPermission.withImplied([PluginPermission.uiWebview]).first,
         PluginPermission.uiWebview);
   });
+
+  /// The SDK's schema states two conditional rules — `process` requires
+  /// `entrypoints`, `lua`/`js` require `entrypoint`. They are checked here by
+  /// building manifests rather than by reading the schema, so they run on CI
+  /// too: what matters is that a manifest the schema calls invalid is one the
+  /// editor also refuses, and the other way round. `sdk_schema_agrees_test`
+  /// holds the schema's own enums to the editor.
+  Map<String, dynamic> manifest(Map<String, dynamic> extra) => {
+    'id': 'com.example.p',
+    'name': 'P',
+    'version': '0.0.1',
+    ...extra,
+  };
+
+  test('a script plugin without an entrypoint is refused, as the schema says', () {
+    expect(
+      () => PluginManifest.fromJson(manifest({'runtime': 'lua'})),
+      throwsA(isA<FormatException>()),
+      reason: 'schema 要求 lua/js 必须有 entrypoint',
+    );
+    expect(
+      () => PluginManifest.fromJson(manifest({'runtime': 'js'})),
+      throwsA(isA<FormatException>()),
+    );
+    // And the manifest the schema calls valid does build.
+    expect(
+      PluginManifest.fromJson(
+        manifest({'runtime': 'lua', 'entrypoint': 'main.lua'}),
+      ).entrypoint,
+      'main.lua',
+    );
+  });
+
+  test('a compiled plugin without entrypoints is refused, as the schema says', () {
+    expect(
+      () => PluginManifest.fromJson(manifest({'runtime': 'process'})),
+      throwsA(isA<FormatException>()),
+      reason: 'schema 要求 process 必须有 entrypoints',
+    );
+    expect(
+      PluginManifest.fromJson(
+        manifest({
+          'runtime': 'process',
+          'entrypoints': {'linux': 'bin/p'},
+        }),
+      ).entrypointFor('linux-x64'),   // os-arch, not os
+      'bin/p',
+    );
+  });
 }
