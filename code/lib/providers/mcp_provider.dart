@@ -82,12 +82,18 @@ class McpController extends StateNotifier<McpStatus> {
       log: AppLog.instance,
       screenshot: capture.png,
       recordGif: capture.gif,
-      describeState: _describe,
+      describeState: describeState,
       perform: performAction,
     );
   }
 
-  Future<Map<String, dynamic>> _describe() async {
+  /// What the editor has open, for `get_state`.
+  ///
+  /// Exposed for the same reason [performAction] is: the only test of this
+  /// layer hands the toolset a stub, so what an agent is actually told about
+  /// the editor had never been compared with the editor.
+  @visibleForTesting
+  Future<Map<String, dynamic>> describeState() async {
     final tabs = _ref.read(tabProvider);
     final config = _ref.read(settingsProvider);
     final plugins =

@@ -109,6 +109,7 @@
 | BUG-364 | 2026-09-09 | 25 个窗口动作没有一个被执行过，接空或接反都无人发现 | P2 | 已加守卫 |
 | BUG-365 | 2026-09-09 | 52 个格式动作里 25 个从未被测试执行，接错了也没人发现 | P2 | 已加守卫 |
 | BUG-366 | 2026-09-09 | 自动化接口为不存在的标签回报「已关闭」「已写入」 | P2 | 已修复 |
+| BUG-367 | 2026-09-09 | get_state 报的内容从没被任何测试核对过 | P3 | 已加守卫 |
 
 ---
 
@@ -5923,3 +5924,64 @@ outcome 到协议应答的映射。它给 toolset 传的 `perform` 是一个**�
 （兜底会把它变成翻译）、manifest 里删掉一条菜单。前者 6 条红、后者 1 条红，
 **插件的跨仓库对账是有效的**。唯一过时的是一条测试名——
 「it contributes both commands」，而 manifest 现在声明四个。
+
+---
+
+## BUG-367：agent 看到的那幅图，没人核对过
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-367 |
+| 日期 | 2026-09-09 |
+| 优先级 | P3 |
+| 状态 | 已加守卫（未发现现存缺陷） |
+
+### 问题
+
+BUG-366 的信号是「测试给这一层传了桩，真正那一层就从没被跑过」。
+把这个信号扫一遍 `lib/`，找出 19 处以函数字段作接缝的类，
+最像的一处就在**同一个文件、同一个类**里：`describeState` → `_describe`，
+也就是 `get_state`。
+
+`get_state` 是 agent 建立全部判断的那幅图，而它同样只被桩替代过。
+它也有前科：BUG-352 就是 `get_state` 报出四个插件命令、
+`run_plugin_command` 一个都不接，因为两者读的是 manifest 的**不同字段**。
+
+### 实机审计（先做的，结果是干净的）
+
+用 MCP 对着运行中的编辑器逐项核对 `get_state`：字符数、视图模式、
+活动标签、modified 标志、关掉的标签是否消失、报出的插件命令是否被接受。
+
+**没有发现新问题。** 其中两项看起来像缺陷，核对代码后确认是**旧构建的表现**，
+`dev` 上早已修好：
+
+| 实机现象 | 结论 |
+|---------|------|
+| `run_plugin_command` 答「it has 」后面空着 | BUG-352，已修（现在两边同用 `commandIds`） |
+| 拒绝时 `isError` 为 false | 已修（`isError: !outcome.ok`） |
+
+> 顺带说明：用户机器上跑的构建早于 `42bf07d`，这两处才会出现。
+
+### 修复方案
+
+把实机那份审计做成可重复的：`_describe` 更名 `describeState` 并加
+`@visibleForTesting`，新增 9 条断言覆盖 agent 依赖的每个字段。
+
+其中一条专门盯住工具说明里的承诺：**`characters` 是 UTF-16 码元，不是码点**。
+测试文档特意选了 `a𝄞中\n`（4 个码点、5 个码元），并断言两者**确实不等**——
+否则这条测试什么也没证明。
+
+### 验证
+
+三次变异，各被对应的一条抓住，**全套里没有别的测试拦得住**：
+
+| 变异 | 唯一红的 |
+|------|---------|
+| `characters` 改用码点 | 「characters are the UTF-16 units…」 |
+| 插件页一律报成 document | 「a plugin page is not reported as a document」 |
+| `commands` 改读别的字段（BUG-352 原形） | 「the commands it names are…」 |
+
+### 涉及文件
+
+- `lib/providers/mcp_provider.dart`（`_describe` → `describeState`）
+- `test/services/mcp_state_is_true_test.dart`（新增，9 条）
