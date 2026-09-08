@@ -132,8 +132,25 @@ class McpController extends StateNotifier<McpStatus> {
   Future<String> _perform(String action, Map<String, dynamic> arguments) async {
     String? text(String key) => arguments[key] as String?;
 
-    switch (action) {
-      case 'set_view_mode':
+    final wanted = McpAction.byWireName(action);
+    if (wanted == null) {
+      // `open_file` and `run_plugin_command` used to be listed here and
+      // implemented nowhere; the comment beside this fallthrough claimed the
+      // widget layer wired them up, and it did not. They are gone from the
+      // schema, and the list an agent is shown is now generated from the same
+      // enum this switch covers, so the two cannot drift apart again.
+      //
+      // Both are worth having, and neither belongs in this layer as it
+      // stands. Opening a path in *this* window is thirty lines living in the
+      // side bar; a second copy here is the defect this codebase keeps
+      // removing, so the first step is lifting it onto `TabNotifier`. Running
+      // a plugin command needs a `BuildContext` — panes, cards and messages
+      // all come from one — so the widget layer has to register a handler.
+      return 'action "$action" is not available';
+    }
+
+    switch (wanted) {
+      case McpAction.setViewMode:
         final mode = EditMode.values
             .where((m) => m.name == text('mode'))
             .firstOrNull;
@@ -141,7 +158,7 @@ class McpController extends StateNotifier<McpStatus> {
         _ref.read(settingsProvider.notifier).setEditMode(mode);
         return 'view mode is now ${mode.name}';
 
-      case 'new_tab':
+      case McpAction.newTab:
         final tab = TabInfo(
           id: 'mcp-${DateTime.now().microsecondsSinceEpoch}',
           fileName: text('path') ?? 'Untitled',
@@ -150,7 +167,7 @@ class McpController extends StateNotifier<McpStatus> {
         _ref.read(tabProvider.notifier).addTab(tab);
         return 'opened tab ${tab.id}';
 
-      case 'activate_tab':
+      case McpAction.activateTab:
         final id = text('tabId');
         if (id == null) return 'no tabId given';
         // The answer is the provider's, not this line's optimism: an id
@@ -160,13 +177,13 @@ class McpController extends StateNotifier<McpStatus> {
             ? 'tab $id is active'
             : 'there is no tab $id';
 
-      case 'close_tab':
+      case McpAction.closeTab:
         final id = text('tabId') ?? _ref.read(tabProvider).activeTabId;
         if (id == null) return 'no tab to close';
         _ref.read(tabProvider.notifier).removeTab(id);
         return 'closed tab $id';
 
-      case 'set_content':
+      case McpAction.setContent:
         final id = text('tabId') ?? _ref.read(tabProvider).activeTabId;
         final content = text('content');
         if (id == null) return 'no tab to write to';
@@ -174,7 +191,7 @@ class McpController extends StateNotifier<McpStatus> {
         _ref.read(tabProvider.notifier).updateContent(id, content);
         return 'wrote ${content.length} characters to $id';
 
-      case 'close_pane':
+      case McpAction.closePane:
         final slot = PluginPaneSlot.values
             .where((s) => s.name == text('slot'))
             .firstOrNull;
@@ -185,20 +202,6 @@ class McpController extends StateNotifier<McpStatus> {
             ? 'closed the ${slot.name} pane'
             : 'no ${slot.name} pane was open';
 
-      default:
-        // `open_file` and `run_plugin_command` were listed as actions and
-        // never implemented anywhere — this comment used to say they were
-        // wired up in the widget layer, and they were not. They are no longer
-        // offered, because a schema that names an action a client cannot use
-        // is worse than one that does not mention it.
-        //
-        // Both need something this layer has not got. Opening a path in
-        // *this* window is thirty lines living in the side bar, and copying
-        // them here would be a second copy of one rule; the honest first step
-        // is lifting that onto `TabNotifier`. Running a plugin command needs a
-        // `BuildContext` — panes, cards and snackbars all come out of it — so
-        // it needs the widget layer to register a handler here.
-        return 'action "$action" is not available';
     }
   }
 

@@ -3,6 +3,31 @@ import 'dart:convert';
 
 import 'app_log.dart';
 
+/// Everything `control` can be asked to do.
+///
+/// The schema below is generated from these names, and the editor's handler
+/// switches on this type, so the list an agent is shown and the list the
+/// editor implements cannot drift apart: adding a value here is a compile
+/// error until the handler answers it. They *had* drifted — two actions were
+/// advertised for months that no code implemented anywhere.
+enum McpAction {
+  newTab('new_tab'),
+  closeTab('close_tab'),
+  activateTab('activate_tab'),
+  setViewMode('set_view_mode'),
+  setContent('set_content'),
+  closePane('close_pane');
+
+  const McpAction(this.wireName);
+
+  /// The name an agent sends, which is snake_case where Dart is camelCase.
+  final String wireName;
+
+  /// The action [wireName] names, or null if nothing does.
+  static McpAction? byWireName(String? wireName) =>
+      values.where((a) => a.wireName == wireName).firstOrNull;
+}
+
 /// One thing an agent can ask the editor to do.
 class McpTool {
   const McpTool({
@@ -147,32 +172,35 @@ class McpToolset {
     McpTool(
       name: 'control',
       description:
-          'Drive the editor: open a file, switch tabs, change the view '
-          'mode, run a plugin command, close a pane.',
+          'Drive the editor: open and close tabs, switch between them, '
+          'change the view mode, write a tab\'s text, close a plugin pane.',
       schema: {
         'type': 'object',
         'required': ['action'],
         'properties': {
           'action': {
             'type': 'string',
-            'enum': [
-              'new_tab',
-              'close_tab',
-              'activate_tab',
-              'set_view_mode',
-              'set_content',
-              'close_pane',
-            ],
+            'enum': [for (final a in McpAction.values) a.wireName],
           },
-          'path': {'type': 'string'},
-          'tabId': {'type': 'string'},
+          'path': {
+            'type': 'string',
+            'description':
+                'What to call a new tab. This names the tab; it does not '
+                'read the file, so pass the text as "content".',
+          },
+          'tabId': {
+            'type': 'string',
+            'description': 'Which tab, from get_state. Defaults to the '
+                'active one where an action allows it.',
+          },
           'mode': {
             'type': 'string',
             'enum': ['source', 'preview', 'split'],
           },
-          'content': {'type': 'string'},
-          'pluginId': {'type': 'string'},
-          'command': {'type': 'string'},
+          'content': {
+            'type': 'string',
+            'description': 'The text a tab should hold.',
+          },
           'slot': {
             'type': 'string',
             'enum': ['right', 'bottom', 'corner'],

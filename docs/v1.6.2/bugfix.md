@@ -71,6 +71,7 @@
 | BUG-326 | 2026-09-08 | 源码窗格不认反斜杠转义，`\$5` 被画成公式 | P1 | 已修复 |
 | BUG-327 | 2026-09-08 | 激活不存在的标签会写进状态并回报成功 | P1 | 已修复 |
 | BUG-328 | 2026-09-08 | MCP 宣称支持 `open_file` 与 `run_plugin_command`，两个都没实现 | P1 | 已撤下 |
+| BUG-329 | 2026-09-08 | 撤下动作后描述与参数没跟上；两份名单靠人手同步 | P1 | 已修复 |
 
 ---
 
@@ -3869,3 +3870,60 @@ control run_plugin_command  → action "run_plugin_command" is not available
 `lib/providers/tab_provider.dart`；`lib/providers/plugin_provider.dart`；
 `lib/providers/mcp_provider.dart`；`lib/services/mcp_tools.dart`；
 `test/providers/tab_activation_test.dart`（新增）
+
+---
+
+## BUG-329：改了名单没改说明，而名单本来就不该有两份
+
+BUG-328 把 `open_file` 和 `run_plugin_command` 从枚举里删了。**同一个文件里另外三处还在宣传它们**：
+
+```dart
+description: 'Drive the editor: open a file, switch tabs, change the view '
+             'mode, run a plugin command, close a pane.',   // 还在承诺
+...
+'pluginId': {'type': 'string'},   // 只服务 run_plugin_command
+'command':  {'type': 'string'},   // 同上，现在没有任何读取者
+```
+
+**description 比 enum 更容易被信**——它是给人读的那一句。这是本文档反复在写的
+那个模式：一条规则抄了好几份，其中一份没跟上。
+
+### 修法不是把三处逐个改对
+
+逐个改对，下次还会漏。**根子在于「agent 看到的名单」和「编辑器实现的名单」
+是两份手写清单**，谁也不检查谁。
+
+现在只有一份：
+
+```dart
+enum McpAction {
+  newTab('new_tab'), closeTab('close_tab'), activateTab('activate_tab'),
+  setViewMode('set_view_mode'), setContent('set_content'), closePane('close_pane');
+}
+```
+
+schema 从 `McpAction.values` 生成，`_perform` 对同一个类型做穷尽 switch。
+加一个动作而不实现它，**代码编译不过**：
+
+```
+error - mcp_provider.dart:152 - The type 'McpAction' isn't exhaustively matched
+        by the switch cases since it doesn't match the pattern 'McpAction.openFile'
+```
+
+这条错误是实测出来的，不是设想的。
+
+### 顺带修正的两处措辞
+
+- `path` 改名了？没有——但它的说明写清了「**这只是标签名，不会去读那个文件**，
+  正文请用 `content` 传」。它叫 path 而只当名字用，是会让调用方等一场空的那种命名
+- `tabId` 说明了哪些动作允许省略（默认当前标签）
+
+### 涉及文件
+
+`lib/services/mcp_tools.dart`；`lib/providers/mcp_provider.dart`；
+`test/services/mcp_action_test.dart`（新增，5 条）
+
+### 验证
+
+三个变异各自被一条测试挡住：schema 硬编码回旧列表、把 `pluginId` 加回来、
+描述改回旧措辞。第四种破坏（往 enum 加动作）由编译器挡。
