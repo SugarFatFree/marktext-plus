@@ -83,6 +83,7 @@
 | BUG-338 | 2026-09-08 | Windows 保存重试无人守；删掉它，杀毒软件一占用就报保存失败 | P1 | 已加守卫 |
 | BUG-339 | 2026-09-08 | 「检查更新」在没连上网时也能说出「已是最新版本」 | P1 | 已加守卫 |
 | BUG-340 | 2026-09-08 | 翻译插件的分段规则三处无守卫：围栏吞掉全文、tab 空行、CRLF 文档 | P1 | 已加守卫 |
+| BUG-341 | 2026-09-08 | 翻译形状守卫建在主仓库，而出事的是 SDK——它的 11 份没人看 | P2 | 已加守卫 |
 
 ---
 
@@ -4559,3 +4560,23 @@ static Future<({UpdateInfo? update, bool reachable})> checkForUpdate(...)
 ### 涉及文件
 
 `test/services/ai_translate_plugin_test.dart`（+3 条，41 → 44）
+
+---
+
+## BUG-341：守卫建在没出事的那个仓库
+
+`readme_images_exist_test` 的「翻译与英文 README 同形」，注释里写着它的来历：
+
+> **The plugin SDK shipped a release** where all twelve were rewritten from an
+> older copy
+
+**而这条守卫只查主仓库的 12 份。** 从中文版删掉一整节，它全绿。
+教训来自 SDK，守卫建在了编辑器上，出过事的那个仓库反而没人看。
+
+补在 `sdk_schema_agrees_test` 里（它已经有找 SDK 仓库并在缺席时跳过的机制），
+外加一条「守卫的守卫」：确实数到 11 份翻译——**一个不再存在的目录会让循环空转，
+而空循环里的断言都是通过的**。
+
+### 涉及文件
+
+`test/services/sdk_schema_agrees_test.dart`

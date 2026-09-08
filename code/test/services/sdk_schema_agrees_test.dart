@@ -99,4 +99,58 @@ void main() {
       reason: 'schema 允许的 when，编辑器要认得',
     );
   }, skip: present ? null : 'SDK 仓库不在这台机器上');
+
+  /// The SDK's own translations, held to its English README.
+  ///
+  /// `readme_images_exist_test` does this for the editor's twelve. Its comment
+  /// names the SDK as the repository that shipped a release with all of them
+  /// rewritten from an older copy — and the guard was built for the editor
+  /// only, so the repository the lesson came from was the one not watched.
+  ///
+  /// Wording differs by design, so a diff says nothing. The count of headings
+  /// and fenced blocks does.
+  (int, int, int) shape(File file) {
+    final text = file.readAsStringSync();
+    return (
+      RegExp(r'^## ', multiLine: true).allMatches(text).length,
+      RegExp(r'^### ', multiLine: true).allMatches(text).length,
+      '```'.allMatches(text).length ~/ 2,
+    );
+  }
+
+  test('the SDK translations have the same shape as its English README', () {
+    final english = shape(File('$repo/README.md'));
+    expect(
+      english.$1,
+      greaterThan(3),
+      reason: 'SDK 的英文 README 只数出 ${english.$1} 个二级标题，八成是没读对',
+    );
+
+    final off = <String>[];
+    for (final file
+        in Directory('$repo/docs/i18n')
+            .listSync()
+            .whereType<File>()
+            .where((f) => f.path.endsWith('.md'))) {
+      final theirs = shape(file);
+      if (theirs != english) {
+        off.add('${file.uri.pathSegments.last}: $theirs ≠ $english');
+      }
+    }
+
+    expect(off, isEmpty, reason: '这几份 SDK 翻译和英文版结构对不上：$off');
+  }, skip: present ? null : 'SDK 仓库不在这台机器上');
+
+  test('there are eleven translations to check', () {
+    // Guards the guard: a directory that stopped being found leaves the loop
+    // above with nothing to disagree with.
+    expect(
+      Directory('$repo/docs/i18n')
+          .listSync()
+          .whereType<File>()
+          .where((f) => f.path.endsWith('.md'))
+          .length,
+      11,
+    );
+  }, skip: present ? null : 'SDK 仓库不在这台机器上');
 }
