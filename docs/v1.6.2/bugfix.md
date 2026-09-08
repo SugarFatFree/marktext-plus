@@ -84,6 +84,7 @@
 | BUG-339 | 2026-09-08 | 「检查更新」在没连上网时也能说出「已是最新版本」 | P1 | 已加守卫 |
 | BUG-340 | 2026-09-08 | 翻译插件的分段规则三处无守卫：围栏吞掉全文、tab 空行、CRLF 文档 | P1 | 已加守卫 |
 | BUG-341 | 2026-09-08 | 翻译形状守卫建在主仓库，而出事的是 SDK——它的 11 份没人看 | P2 | 已加守卫 |
+| BUG-342 | 2026-09-08 | 从右侧边栏点开的插件，问题弹在浮动卡片里、答案落在抽屉里 | **P1** | 已修复 |
 
 ---
 
@@ -4580,3 +4581,71 @@ static Future<({UpdateInfo? update, bool reachable})> checkForUpdate(...)
 ### 涉及文件
 
 `test/services/sdk_schema_agrees_test.dart`
+
+---
+
+## BUG-342：一次对话，两个地方
+
+### 读者报告
+
+> 点击右侧边栏的「AI 助手」图标，怎么是弹窗样式？应该是带对话框的右侧边栏！
+
+### 现象
+
+从右侧边栏点开一个插件面板：
+
+1. 抽屉打开了（300px，标题在上）
+2. **但插件的提问弹在浮动卡片里**，浮在文档上方
+3. 在卡片里回答之后，**结果落回抽屉**
+
+一次问答，两个容器。读者打开抽屉是因为**他要看着那里**，问题却出现在别处。
+
+### 根因：一个不对称
+
+侧边栏早就能在自己里面画插件的界面树——`runInto` 有 `onUi` 回调，
+而且那条测试的注释把理由写得很清楚：
+
+> **Not in the card.** The reader opened this drawer, so this is where they
+> are looking; the card is for commands started somewhere with no room of
+> its own.
+
+**同一条理由对提问同样成立，但提问没有对应的回调。** `PluginAskAction`
+一律走 `pluginTipProvider.ask(...)`，也就是卡片。
+
+### 修
+
+补上这个对称：`PluginAskSink`，与 `PluginUiSink` 并列。
+
+- 有 `onAsk` 就在那里问（右侧边栏提供它）
+- 没有就还是卡片——**从菜单启动的命令没有自己的地盘，卡片对它仍然是对的**
+
+抽屉里的问答与卡片里的是同样三部分：问题、插件给的选项（chips）、
+一个已经填好上次答案的输入框。Enter 直接提交——读者在回答一个问题，
+不是在写文档。取消/确认复用 `l10n.cancel` / `l10n.confirm`，
+与卡片同一对键，措辞不会分叉。
+
+### 一个时序陷阱
+
+关掉抽屉要把等待中的问题作废（读者关掉它就是拒绝），**但 `dispose` 不能这么做**：
+完成那个 completer 会唤醒命令去跑它的收尾，而收尾要读的 provider
+正随着 widget 一起消失。所以取消只发生在读者主动开关抽屉时，
+`dispose` 只清状态。
+
+这是写测试时撞出来的——`Tried to read a provider from a ProviderContainer
+that was already disposed`。
+
+### 守卫
+
+`right_sidebar_test`「a panel that asks a question gets to ask it」原本只断言
+「问题被问出来了」，没说在哪。现在加了：
+
+- 那句问题**在 `RightSideBar` 的子树里**
+- 只出现一次（卡片若也在问就是两次）
+- 输入答案后按 Enter，**插件收到了它**，结果落在同一个抽屉里
+
+变异：撤掉侧边栏的 `onAsk` → 红。
+
+### 涉及文件
+
+`lib/ui/widgets/plugin_command_actions.dart`；`lib/ui/widgets/right_side_bar.dart`；
+`test/ui/widgets/right_sidebar_test.dart`

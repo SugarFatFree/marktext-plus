@@ -170,6 +170,41 @@ end
         reason: '面板不该再用一句话打发掉提问');
     expect(find.textContaining('What should it say?'), findsOneWidget,
         reason: '问题该真的问出来');
+
+    // And asked here. It was asked in the floating card while the answer
+    // arrived in this drawer — one exchange in two places, which is what
+    // "why is it a pop-up?" was about. The card is still right for a command
+    // started from a menu, which has no room of its own.
+    expect(
+      find.descendant(
+        of: find.byType(RightSideBar),
+        matching: find.textContaining('What should it say?'),
+      ),
+      findsOneWidget,
+      reason: '从侧边栏点开的命令，问题该问在侧边栏里，不是浮动卡片',
+    );
+    // The card is not also asking: `findsOneWidget` above would have found
+    // two of that question if it were. Not written as "no TextField in the
+    // tip layer" — that layer wraps the whole body, so the drawer's own box
+    // is inside it.
+
+    // There is somewhere to type, and answering reaches the plugin.
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(RightSideBar),
+        matching: find.byType(TextField),
+      ),
+      'a haiku',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    for (var attempt = 0; attempt < 10; attempt++) {
+      await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 10)));
+      await tester.pump();
+    }
+
+    expect(find.textContaining('you said a haiku'), findsOneWidget,
+        reason: '答案该回到插件手里，结果该落在同一个抽屉');
   });
 
   testWidgets('a tree the plugin drew appears in the drawer itself',

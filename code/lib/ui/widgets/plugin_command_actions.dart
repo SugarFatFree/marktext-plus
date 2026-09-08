@@ -45,6 +45,19 @@ typedef PluginTextSink = void Function(String text, {bool append});
 /// shape as declining a question, and for the same reason: a run waiting on
 /// something nobody answered has to be told rather than left holding a future
 /// that never completes.
+/// Where a plugin's question goes when the caller has a place for it.
+///
+/// The card is the default and reaches every way of starting a command. A
+/// caller that already draws the answer somewhere — the right side bar draws
+/// it in its drawer — passes this so the question is asked there too: asking
+/// in a floating card for an answer that lands in a panel is two places for
+/// one exchange, which is what it looked like.
+typedef PluginAskSink = Future<String?> Function({
+  required String question,
+  required List<String> choices,
+  required String suggested,
+});
+
 typedef PluginUiSink = Future<PluginUiEvent?> Function(
   PluginUiNode root,
   String title,
@@ -161,6 +174,7 @@ class PluginCommandActions {
     required String command,
     required PluginTextSink into,
     PluginUiSink? onUi,
+    PluginAskSink? onAsk,
   }) async {
     final l10n = AppLocalizations.of(context);
     if (l10n == null) return;
@@ -179,6 +193,7 @@ class PluginCommandActions {
       document: active.isEmpty ? '' : active.first.content,
       into: into,
       onUi: onUi,
+      onAsk: onAsk,
     );
   }
 
@@ -232,6 +247,7 @@ class PluginCommandActions {
     required String document,
     PluginTextSink? into,
     PluginUiSink? onUi,
+    PluginAskSink? onAsk,
   }) async {
     final directory = await getApplicationSupportDirectory();
     final service = PluginCommandService(
@@ -270,19 +286,34 @@ class PluginCommandActions {
             // A plugin that answers every question with another question
             // would otherwise keep the reader in a loop it controls.
             if (++questions > 8) break;
-            // Asked in the card the answer will appear in. It used to be a
-            // modal dialog of its own — a second, larger window for one line
-            // of input, on the way to an answer shown in a card a quarter its
+            // Asked where the answer will appear. It used to be a modal
+            // dialog of its own — a second, larger window for one line of
+            // input, on the way to an answer shown in a card a quarter its
             // size, with the document unreachable behind both.
-            final asked = container.read(pluginTipProvider.notifier).ask(
-                  title: plugin.name,
-                  question: label,
-                  choices: choices,
-                  // Already filled in, not merely offered: it is what the
-                  // reader chose last time, so pressing confirm repeats it.
-                  answer: defaultValue,
-                );
-            final answer = await asked.future;
+            //
+            // `onAsk` is how a caller that has its own place for the answer
+            // takes the question too. Without it the side bar asked in a
+            // floating card and answered in its drawer: one exchange in two
+            // places, which reads as a pop-up rather than as the panel doing
+            // its work.
+            //
+            // `defaultValue` is already filled in, not merely offered: it is
+            // what the reader chose last time, so confirming repeats it.
+            final answer = onAsk != null
+                ? await onAsk(
+                    question: label,
+                    choices: choices,
+                    suggested: defaultValue,
+                  )
+                : await container
+                    .read(pluginTipProvider.notifier)
+                    .ask(
+                      title: plugin.name,
+                      question: label,
+                      choices: choices,
+                      answer: defaultValue,
+                    )
+                    .future;
             if (answer == null) return;
             context = context.withAnswer(answer);
             action = service.start(plugin, context);

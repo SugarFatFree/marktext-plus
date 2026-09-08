@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/i18n/l10n/app_localizations.dart';
 import '../../providers/plugin_provider.dart';
 import '../../services/plugin_manifest.dart';
 import 'plugin_command_actions.dart';
@@ -27,6 +28,17 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
   /// `pluginId/panelId` of the open drawer, or null when only the rail shows.
   String? _open;
 
+  /// The question the running command is waiting on, asked in this drawer.
+  ///
+  /// The card is where a plugin asks from a menu, and it is the right place
+  /// there. Started from this bar it was the wrong one: the question floated
+  /// over the document and the answer arrived in the drawer, so one exchange
+  /// happened in two places and the panel looked like a pop-up.
+  String? _question;
+  List<String> _choices = const [];
+  Completer<String?>? _answering;
+  late final TextEditingController _answer = TextEditingController();
+
   /// What the panel's command last returned, so the drawer has something to
   /// draw before — and if — the plugin answers again.
   String _content = '';
@@ -48,11 +60,37 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
     // A form nobody submitted is a form that was declined, and the run
     // waiting on it has to be told.
     if (pending != null && !pending.isCompleted) pending.complete(null);
+    _answering = null;
+    _question = null;
+    _choices = const [];
+  }
+
+  /// Hands [answer] back to the command that asked, or refuses it.
+  void _answered(String? answer) {
+    final pending = _answering;
+    setState(() {
+      _question = null;
+      _choices = const [];
+      _answering = null;
+    });
+    if (pending != null && !pending.isCompleted) pending.complete(answer);
+  }
+
+  /// Refuses the question the drawer is showing, if it is showing one.
+  ///
+  /// Closing the drawer is how the reader says no. Not called from `dispose`:
+  /// answering wakes the command up to finish, and what it does then reads
+  /// providers that are going away with the widget.
+  void _cancelQuestion() {
+    final pending = _answering;
+    _answering = null;
+    if (pending != null && !pending.isCompleted) pending.complete(null);
   }
 
   @override
   void dispose() {
     _closeUi();
+    _answer.dispose();
     super.dispose();
   }
 
@@ -63,12 +101,14 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
   Future<void> _toggle(PluginManifest plugin, PluginSidePanel panel) async {
     final key = '${plugin.id}/${panel.id}';
     if (_open == key) {
+      _cancelQuestion();
       setState(() {
         _open = null;
         _closeUi();
       });
       return;
     }
+    _cancelQuestion();
     setState(() {
       _open = key;
       _content = '';
@@ -94,6 +134,23 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
           _closeUi();
           _content = append ? '$_content\n\n$text' : text;
         });
+      },
+      onAsk: ({
+        required String question,
+        required List<String> choices,
+        required String suggested,
+      }) {
+        if (!mounted || _open != key) return Future.value(null);
+        final completer = Completer<String?>();
+        setState(() {
+          _content = '';
+          _ui = null;
+          _question = question;
+          _choices = choices;
+          _answering = completer;
+          _answer.text = suggested;
+        });
+        return completer.future;
       },
       onUi: (root, title, images) {
         if (!mounted || _open != key) return Future.value(null);
@@ -147,7 +204,14 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.all(12),
-                    child: _ui != null
+                    child: _question != null
+                        ? _AskInDrawer(
+                            question: _question!,
+                            choices: _choices,
+                            controller: _answer,
+                            onAnswered: _answered,
+                          )
+                        : _ui != null
                         ? PluginUiView(
                             root: _ui!,
                             loadImage: _images,
@@ -185,6 +249,83 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
                 ),
             ],
           ),
+        ),
+      ],
+    );
+  }
+}
+
+/// The question a command asked, in the drawer its answer will fill.
+///
+/// Deliberately the same three parts the card offers — the question, whatever
+/// answers the plugin named, and a box already holding what was chosen last
+/// time — so that starting a command here and starting it from a menu are the
+/// same exchange in two places rather than two exchanges.
+class _AskInDrawer extends StatelessWidget {
+  const _AskInDrawer({
+    required this.question,
+    required this.choices,
+    required this.controller,
+    required this.onAnswered,
+  });
+
+  final String question;
+  final List<String> choices;
+  final TextEditingController controller;
+  final void Function(String? answer) onAnswered;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(question, style: theme.textTheme.bodyMedium),
+        if (choices.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final choice in choices)
+                ActionChip(
+                  label: Text(choice),
+                  onPressed: () => onAnswered(choice),
+                ),
+            ],
+          ),
+        ],
+        const SizedBox(height: 10),
+        TextField(
+          controller: controller,
+          autofocus: true,
+          minLines: 1,
+          maxLines: 6,
+          decoration: const InputDecoration(
+            isDense: true,
+            border: OutlineInputBorder(),
+          ),
+          // Enter sends it: the reader is answering one question, not writing
+          // a document, and reaching for the button is a second gesture for
+          // something they have already finished saying.
+          onSubmitted: (value) => onAnswered(value),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            TextButton(
+              onPressed: () => onAnswered(null),
+              child: Text(l10n.cancel),
+            ),
+            const SizedBox(width: 6),
+            FilledButton(
+              onPressed: () => onAnswered(controller.text),
+              child: Text(l10n.confirm),
+            ),
+          ],
         ),
       ],
     );
