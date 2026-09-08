@@ -845,12 +845,24 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     // document there was no way to add a block at the end — you had to switch
     // to the source pane. Upstream MarkText puts the caret at the end when the
     // space below the text is clicked, and this is that.
-    if (widget.onSourceChanged != null && _renderedNodeCount >= nodes.length) {
+    //
+    // Not while the rest of the document is still being parsed: `nodes` is
+    // then the prefix, its end is not the document's end, and an invitation
+    // to write at the end drawn a sixth of the way down is pointing at the
+    // middle. (Committing there does append correctly — the line number comes
+    // from the source, not from these blocks — but the reader is being shown
+    // the wrong place.)
+    if (widget.onSourceChanged != null &&
+        _renderedNodeCount >= nodes.length &&
+        !_fullParseOwed) {
       widgets.add(_buildAppendTarget(nodes.isEmpty, tokens));
     }
 
-    // Add loading indicator if more nodes are pending
-    if (_renderedNodeCount < nodes.length) {
+    // Add loading indicator if more nodes are pending — including the blocks
+    // that are still being parsed, not just the ones parsed and not yet drawn.
+    // Taking it away at the end of the prefix said the document was drawn
+    // while most of it was still coming.
+    if (_renderedNodeCount < nodes.length || _fullParseOwed) {
       widgets.add(
         const Padding(
           padding: EdgeInsets.all(16),
