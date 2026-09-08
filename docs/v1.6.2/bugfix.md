@@ -68,6 +68,7 @@
 | BUG-323 | 2026-09-08 | 读不出来的插件没有删除按钮，读者唯一想删的那个删不掉 | P0 | 已修复 |
 | BUG-324 | 2026-09-08 | 社区搜索失败时把 `HttpException:` 类名甩给读者 | P1 | 已修复 |
 | BUG-325 | 2026-09-08 | 不是打字改的内容，预览永远不更新——插件写回、磁盘重载、MCP 全中 | P0 | 已修复 |
+| BUG-326 | 2026-09-08 | 源码窗格不认反斜杠转义，`\$5` 被画成公式 | P1 | 已修复 |
 
 ---
 
@@ -3732,3 +3733,61 @@ Widget build(_) => _ready ? widget.builder() : 骨架;
 
 `lib/ui/screens/home_screen.dart`；`lib/ui/widgets/deferred_editor_builder.dart`（新增）；
 `test/ui/widgets/deferred_editor_builder_test.dart`（新增）
+
+---
+
+## BUG-326：源码窗格不认反斜杠转义
+
+### 现象
+
+MCP 实机测试时从截图里看出来的，再用探针精确对上：
+
+| 输入 | 源码窗格画成 | 预览实际画出 |
+|---|---|---|
+| `\*不是斜体\*` | **斜体** | 字面星号 |
+| `` \`不是代码\` `` | **代码色** | 字面反引号 |
+| `价格 \$5 和 \$10` | **把「$5 和 \$」当公式** | 字面美元符号 |
+| `\_也不是斜体\_` | **斜体** | 字面下划线 |
+
+最后那条钱的例子尤其说明问题。`syntax_highlighter.dart` 的注释里写着那条美元规则
+是从解析器抄来的，为的正是：
+
+> The parser's own rule, so a line about money stays a line about money
+
+**而人们写 `\$5` 恰恰就是为了表示钱。**
+
+### 这个文件通篇都在讲「要和解析器一致」
+
+- `_` 的规则：「the parser has always read both」
+- 括号嵌套：「the same nesting the parser allows … so the two agree」
+- flanking 规则：「The judgement comes from the parser's own rule, not a second copy of it」
+
+**转义是它唯一没跟上的那条。**
+
+### 修
+
+加在 `_Pattern.accepts` 里——**那是每个模式已经都要经过的唯一一处**，flanking 规则
+就在它下面几行。注释里写了理由：「a second place to refuse a match is a second
+place to forget one」。
+
+反斜杠按**奇偶**数：`\\*` 是一个转义过的反斜杠加一个活的星号，见一个就算转义会把
+真强调误判掉。
+
+### 变异暴露了三条不能失败的断言
+
+这一个修复里，**我的断言被变异证伪了三次**：
+
+| 变异 | 第一次 | 补了什么用例之后 |
+|---|---|---|
+| 不检查开头标记 | 0 条失败 | `\*只有开头转义*`（开头死、结尾活）|
+| 反斜杠不分奇偶 | 0 条失败 | `C:\\*斜体*`（标记紧跟在双反斜杠后）|
+| 不检查结尾标记 | 0 条失败 | `*只有结尾转义\*`（开头活、结尾死）|
+
+第一版的「`\\` 不算转义」用的是 `C:\\ 然后 *斜体*`——**星号前面是空格**，
+两种实现都一样，什么也没证明。三次都是同一个毛病：
+**用例没有落在两种实现分歧的那个点上。**
+
+### 涉及文件
+
+`lib/ui/editor/syntax_highlighter.dart`；
+`test/ui/editor/highlighter_honours_escapes_test.dart`（新增）

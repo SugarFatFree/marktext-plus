@@ -737,6 +737,17 @@ class _Pattern {
   /// the pane beside it drew asterisks. The judgement comes from the parser's
   /// own rule, not a second copy of it.
   bool accepts(String text, Match match) {
+    // A marker the backslash took away is not a marker. The parser reads
+    // `\*not italic\*` as plain characters; this pane drew it in italics, and
+    // `\$5` — which is how somebody writes a price so that it is *not* a
+    // formula — was drawn as one, swallowing everything to the next dollar.
+    //
+    // Asked here because this is where every pattern already passes. The
+    // flanking rule below is the same kind of judgement, and a second place
+    // to refuse a match is a second place to forget one.
+    if (_isEscaped(text, match.start)) return false;
+    if (_isEscaped(text, match.end - 1)) return false;
+
     final char = emphasisChar;
     if (char == null) return true;
     final run = char.length == 1 ? 1 : char.length;
@@ -759,5 +770,20 @@ class _Pattern {
           after: closeAfter,
           char: char[0],
         ).canClose;
+  }
+
+  /// Whether the character at [index] is escaped by a backslash before it.
+  ///
+  /// Counted in pairs, walking back: `\\*` is an escaped backslash followed by
+  /// a live asterisk, and treating every preceding backslash as an escape
+  /// would get that one backwards.
+  static bool _isEscaped(String text, int index) {
+    var backslashes = 0;
+    var at = index - 1;
+    while (at >= 0 && text.codeUnitAt(at) == 0x5C) {
+      backslashes++;
+      at--;
+    }
+    return backslashes.isOdd;
   }
 }
