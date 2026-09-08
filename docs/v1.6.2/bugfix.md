@@ -67,6 +67,7 @@
 | BUG-322 | 2026-09-08 | `entrypointPath` 零调用零测试，且回退规则与实际启动相左 | P2 | 已删除 |
 | BUG-323 | 2026-09-08 | 读不出来的插件没有删除按钮，读者唯一想删的那个删不掉 | P0 | 已修复 |
 | BUG-324 | 2026-09-08 | 社区搜索失败时把 `HttpException:` 类名甩给读者 | P1 | 已修复 |
+| BUG-325 | 2026-09-08 | 不是打字改的内容，预览永远不更新——插件写回、磁盘重载、MCP 全中 | P0 | 已修复 |
 
 ---
 
@@ -3654,3 +3655,80 @@ rate-limiting searches from this machine; try again in 385 seconds.
 `lib/ui/widgets/plugin_panel.dart`；`lib/services/plugin_catalog_service.dart`；
 12 个 `.arb`；`test/ui/widgets/unreadable_plugin_removal_test.dart`（新增）；
 `test/services/plugin_download_rules_test.dart`
+
+---
+
+## BUG-325：预览显示的不是当前文档
+
+### 现象
+
+通过 MCP 连上实机做自动化测试时撞到的。写入一份文档：
+
+- 状态栏：**字符 673、段落 22**（内容确实进去了）
+- 预览区：**「开始写点什么...」**（空文档的占位符）
+
+切到源码视图——内容和高亮都正常。切回预览——这次画出来了。
+然后**停在预览里再写一次**：
+
+- 状态栏：**字符 40、段落 2**
+- 预览区：**还是上一份 673 字符的文档**
+
+也就是说，**同一个窗口的两个部分在互相矛盾，而且没有任何报错**。
+
+### 根因
+
+`_DeferredEditorBuilder`（home_screen 里的私有类）：
+
+```dart
+Widget? _cachedWidget;
+void _startBuild() {
+  if (_isBuilding || _cachedWidget != null) return;   // 一辈子只建一次
+  _cachedWidget = widget.builder();                    // 闭包捕获了当时的 content
+}
+Widget build(_) => _cachedWidget ?? 骨架;
+```
+
+`builder` 是一个**闭包在文档文本上**的函数，而它只被调用一次。之后父组件带着新
+content 重建、生成新闭包，`_startBuild` 却因为 `_cachedWidget != null` 直接返回。
+
+**这一格从此显示的是「这一格第一次出现时」的那份文本。**
+
+### 打字为什么没事，别的全中
+
+打字走源码窗格自己的 `TextEditingController`，不经过这里。**不是打字产生的内容变化
+全部中招**，而它们共用一个入口 `tabProvider.updateContent`：
+
+| 路径 | 谁在用 |
+|---|---|
+| 插件 `replace` | AI 写作/纠错/翻译把结果写回文档——插件的核心功能 |
+| 磁盘重载 | 文件在外部被改动后接受重新加载 |
+| MCP `set_content` | 自动化 |
+
+### 修
+
+把这个类抽成 `lib/ui/widgets/deferred_editor_builder.dart` 里的公开组件
+（私有类测不了），并且**只延迟第一次构建，不缓存结果**：
+
+```dart
+bool _ready = false;
+Widget build(_) => _ready ? widget.builder() : 骨架;
+```
+
+「切走再切回来不转圈」是原来那份缓存唯一买到的东西——一个 `bool` 同样买得到。
+真正的缓存在下面的渲染器里，它按 markdown 内容做键，**那一层才分得清有没有真的变过**。
+
+### 四条测试
+
+延迟首帧、内容改变要跟上、切回来不重新转圈、没轮到显示就不建。
+变异（改回「建一次就留着」）只打掉第二条——一一对应。
+
+### 怎么找到的
+
+**用户报告插件页报错 → 连上实机 → 顺手做全量自动化测试 → 撞见这个。**
+它比原本要查的问题严重得多，而且不是靠读代码找出来的：
+读代码时 `_DeferredEditorBuilder` 看起来是个合理的性能优化。
+
+### 涉及文件
+
+`lib/ui/screens/home_screen.dart`；`lib/ui/widgets/deferred_editor_builder.dart`（新增）；
+`test/ui/widgets/deferred_editor_builder_test.dart`（新增）

@@ -45,6 +45,7 @@ import '../../models/line_ending.dart';
 import '../../core/diagnostics/startup_trace.dart';
 import '../../utils/file_utils.dart';
 import '../../providers/mcp_provider.dart';
+import '../widgets/deferred_editor_builder.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   /// Whether a dropped file is one nothing in the window will do anything
@@ -1035,7 +1036,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
         sizing: StackFit.expand,
         children: [
           // EditMode.source (index 0)
-          _DeferredEditorBuilder(
+          DeferredEditorBuilder(
             key: ValueKey('source_${activeTab.id}'),
             shouldBuild: currentIndex == 0,
             builder: () => SourceEditor(
@@ -1051,7 +1052,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
             ),
           ),
           // EditMode.preview (index 1)
-          _DeferredEditorBuilder(
+          DeferredEditorBuilder(
             key: ValueKey('preview_${activeTab.id}'),
             shouldBuild: currentIndex == 1,
             builder: () => MarkdownRenderer(
@@ -1061,7 +1062,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
             ),
           ),
           // EditMode.split (index 2)
-          _DeferredEditorBuilder(
+          DeferredEditorBuilder(
             key: ValueKey('split_${activeTab.id}'),
             shouldBuild: currentIndex == 2,
             builder: () => SplitEditor(
@@ -1079,75 +1080,3 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
 }
 
 /// Deferred editor builder that shows a skeleton screen while building
-class _DeferredEditorBuilder extends StatefulWidget {
-  const _DeferredEditorBuilder({
-    super.key,
-    required this.shouldBuild,
-    required this.builder,
-  });
-
-  final bool shouldBuild;
-  final Widget Function() builder;
-
-  @override
-  State<_DeferredEditorBuilder> createState() => _DeferredEditorBuilderState();
-}
-
-class _DeferredEditorBuilderState extends State<_DeferredEditorBuilder> {
-  Widget? _cachedWidget;
-  bool _isBuilding = false;
-
-  @override
-  void didUpdateWidget(_DeferredEditorBuilder oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.shouldBuild && !oldWidget.shouldBuild && _cachedWidget == null) {
-      _startBuild();
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.shouldBuild) {
-      _startBuild();
-    }
-  }
-
-  void _startBuild() {
-    if (_isBuilding || _cachedWidget != null) return;
-    _isBuilding = true;
-
-    // Defer build to next frame to show skeleton first
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      setState(() {
-        _cachedWidget = widget.builder();
-        _isBuilding = false;
-      });
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_cachedWidget != null) {
-      return _cachedWidget!;
-    }
-
-    // Show skeleton screen while building
-    return Container(
-      color: Theme.of(context).colorScheme.surface,
-      child: Center(
-        child: SizedBox(
-          width: 32,
-          height: 32,
-          child: CircularProgressIndicator(
-            strokeWidth: 3,
-            valueColor: AlwaysStoppedAnimation<Color>(
-              Theme.of(context).colorScheme.primary,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
