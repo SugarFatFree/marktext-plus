@@ -31,10 +31,14 @@ void main() {
     expect(said, isNotEmpty);
     expect(said, startsWith(' ('), reason: '要能直接接在一句话后面');
     expect(said, endsWith('MB resident)'));
+    // The shape, not a value. Asserting this holds the same number as another
+    // `megabytes()` call compares two readings of something that changes
+    // between them — it passed here and failed on CI, where thousands of
+    // tests were moving the figure across a megabyte boundary in between.
     expect(
       said,
-      contains('${ResidentMemory.megabytes()}'),
-      reason: '两处该说同一个数',
+      matches(RegExp(r'^ \(\d+ MB resident\)$')),
+      reason: '这一句要能原样接在日志行后面，且带着单位',
     );
   });
 
