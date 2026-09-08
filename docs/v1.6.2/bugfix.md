@@ -78,6 +78,7 @@
 | BUG-333 | 2026-09-08 | 导出守卫自称能覆盖将来新增的导出，而它的清单是手写的 | P2 | 已修复 |
 | BUG-334 | 2026-09-08 | 首帧前那步「不该写盘」只写在注释里，没有守卫 | P2 | 已加守卫 |
 | BUG-335 | 2026-09-08 | 快捷键索引的三个失效点全都没人守——删掉任意一个，2730 条测试全绿 | **P1** | 已加守卫 |
+| BUG-336 | 2026-09-08 | 预览的 AST 缓存失效同样无人守；注释里记着它当年怎么坏的 | P1 | 已加守卫 |
 
 ---
 
@@ -4289,3 +4290,47 @@ F7/F8/F9 空着——单元测试可以完整走一遍索引。
 ### 涉及文件
 
 `test/services/keybinding_service_test.dart`
+
+---
+
+## BUG-336：修好了，注释记下了，然后没人看着它
+
+沿着 BUG-335 的查法把其余缓存过了一遍：
+
+| 缓存 | 键 | 结论 |
+|------|-----|------|
+| `code_highlighting._cache` | `语言 + \0 + 代码` | **内容寻址**，不需要失效，安全 |
+| `er_diagram_layout._cache` | 图元 id，随图重建 | 安全 |
+| `export_service._cachedFontFallbacks` | 进程级字体，不随文档变 | 安全 |
+| `markdown_renderer._cachedMarkdown` | **只有文本** | 见下 |
+
+预览把解析结果存在 `_cachedMarkdown` 上，键只有文本。
+而**行内 HTML 那个开关会改变同一段文本的读法**，所以开关变化时必须弃掉缓存。
+代码做了，旁边还留着当年的现象：
+
+> without this the preview kept the old rendering until the next keystroke
+
+**把那一行注释掉，2736 条测试仍然全绿。** 一个修好的 bug，没有守卫，
+下一次重构就会原样回来。
+
+### 守卫
+
+`test/ui/editor/html_setting_updates_preview_test.dart`：
+`press <kbd>Esc</kbd> to stop` 这段源文，关着 HTML 时画出字面的 `<kbd>`，
+开着时画成标记——**同一段文本自己说出它是按哪种读法解析的**。
+
+照 `code_font_updates_preview_test`（BUG-316 的守卫）的模式写：固定次数 `pump`
+而不是 `pumpAndSettle`（预览用 post-frame 回调分批填充，永远不会静下来），
+改设置那句不 `await`（状态是同步变的，await 的是磁盘写，
+在 widget test 的 FakeAsync 时区里永不完成）。
+
+起点先断言一次「关着的时候确实画出了 `<kbd>`」——否则后面测的是别的东西。
+
+### 变异验证
+
+- 注释掉 `_cachedMarkdown = null;` → 红（正是原缺陷）
+- 整个 `if` 块删掉（连解析器也不换）→ 红
+
+### 涉及文件
+
+`test/ui/editor/html_setting_updates_preview_test.dart`（新增）
