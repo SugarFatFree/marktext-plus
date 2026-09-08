@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:marktext_plus/services/app_log.dart';
 import 'package:marktext_plus/services/plugin_manager.dart';
 
 /// A plugin that is installed and cannot be read.
@@ -93,5 +94,33 @@ void main() {
 
   test('nothing installed at all is not a problem', () async {
     expect(await PluginManager('${root.path}/missing').problems(), isEmpty);
+  });
+
+  test('the reason reaches the log as well as the panel', () async {
+    // The panel shows it to the reader. The log is what a support question,
+    // a bug report, or an agent reading `read_logs` has to go on — and a
+    // plugin that would not load left no trace in it at all. A reader
+    // pasted this exact refusal and the log alongside it held one line, the
+    // MCP server saying it had started.
+    AppLog.instance.clear();
+    install('broken', '{"id": "com.example.broken"}');
+
+    await PluginManager(root.path).loadInstalled();
+
+    final said = AppLog.instance.recent()
+        .map((line) => line.message)
+        .where((message) => message.contains('broken'))
+        .toList();
+    expect(said, hasLength(1), reason: '读不出来的插件在日志里该留下一条');
+    expect(
+      said.single,
+      contains('entrypoint'),
+      reason: '只说"读不出来"没有用，要说是哪个键',
+    );
+    expect(
+      said.single,
+      isNot(contains('FormatException')),
+      reason: '类名对着日志找原因的人毫无意义，和面板上那句用的是同一段话',
+    );
   });
 }

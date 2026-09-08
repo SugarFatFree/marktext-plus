@@ -87,6 +87,7 @@
 | BUG-342 | 2026-09-08 | 从右侧边栏点开的插件，问题弹在浮动卡片里、答案落在抽屉里 | **P1** | 已修复 |
 | BUG-343 | 2026-09-08 | MCP 的每一次拒绝，在协议层都写着「成功」 | P1 | 已修复 |
 | BUG-344 | 2026-09-08 | 每次启动都去搜一遍社区插件，两三次就把 GitHub 配额用光 | **P1** | 已修复 |
+| BUG-345 | 2026-09-08 | 插件读不出来这件事从不进日志，`read_logs` 里查不到任何线索 | P1 | 已修复 |
 
 ---
 
@@ -4749,3 +4750,40 @@ McpOutcome mcpRefused(String said) => (said: said, ok: false);
 
 `lib/services/plugin_catalog_service.dart`；`lib/models/plugin_catalog_entry.dart`；
 `lib/ui/widgets/plugin_panel.dart`；`test/services/plugin_catalog_cache_test.dart`（新增）
+
+---
+
+## BUG-345：日志里只有一行，说 MCP 启动了
+
+诊断读者报的插件错误时，通过 MCP 读他机器上的日志，全部内容是：
+
+```
+[2026-09-08T14:19:00.807992] [INFO] MCP server listening on port 10100
+```
+
+而那台机器上**正有一个插件读不出来**，面板上红字写着原因。
+
+`read_logs` 的自我介绍是：
+
+> Recent lines from the editor log, including plugin output.
+> **Use this to find out what just happened.**
+
+**「刚发生了什么」里最该有的那件事，一个字也没有。**
+
+BUG-278 修的是「原因写好了没送达读者」——送到了面板上。
+**没送到日志里。** 面板是给读者看的；日志是提交问题的人、
+读 `read_logs` 的 agent、和事后排查的人**唯一能拿到的东西**。
+
+### 修
+
+`loadInstalled` 的 catch 里补一条 warning，`source` 用插件目录名，
+**用的是面板上那同一句话**——不是类名，是「哪个键、本该是什么」。
+
+### 守卫
+
+日志里恰好一条、且指出了具体的键、且不含 `FormatException` 这样的类名。
+变异：把那条日志去掉 → 红。
+
+### 涉及文件
+
+`lib/services/plugin_manager.dart`；`test/services/plugin_problems_test.dart`

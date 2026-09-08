@@ -11,6 +11,7 @@ import 'plugin_logger.dart';
 import 'plugin_process_host.dart';
 import 'plugin_process_registry.dart';
 import 'plugin_script_runtime.dart';
+import 'app_log.dart';
 
 /// Discovers and installs data/sidecar-process plugins without importing them.
 
@@ -66,10 +67,17 @@ class PluginManager {
           ),
         );
       } catch (error) {
-        problems.add((
-          directory: p.basename(entry.path),
-          problem: _describe(error),
-        ));
+        final directory = p.basename(entry.path);
+        final problem = _describe(error);
+        problems.add((directory: directory, problem: problem));
+        // Also to the log, which is where anyone diagnosing this looks — and
+        // where, until now, a plugin that would not load left no trace at
+        // all. The panel shows this to the reader; the log is what a support
+        // question, or an agent reading `read_logs`, has to go on.
+        AppLog.instance.warning(
+          'plugin in "$directory" could not be read: $problem',
+          source: directory,
+        );
       }
     }
     return (installed: manifests, problems: problems);
