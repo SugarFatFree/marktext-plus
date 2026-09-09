@@ -62,7 +62,7 @@ void main() {
     // Anything here that nothing reads invites a caller to fill it in and
     // wait for something that will not happen.
     const read = {'action', 'path', 'tabId', 'mode', 'content', 'slot',
-        'pluginId', 'command'};
+        'pluginId', 'command', 'panelId', 'answer'};
     expect(controlSchema().keys.toSet().difference(read), isEmpty);
   });
 

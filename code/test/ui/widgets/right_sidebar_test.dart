@@ -11,6 +11,7 @@ import 'package:marktext_plus/core/config/app_config.dart';
 import 'package:marktext_plus/core/config/config_service.dart';
 import 'package:marktext_plus/providers/settings_provider.dart';
 import 'package:marktext_plus/ui/widgets/plugin_tip.dart';
+import 'package:marktext_plus/providers/mcp_provider.dart';
 import 'package:marktext_plus/ui/widgets/right_side_bar.dart';
 
 /// The right side bar exists only when a plugin has put something in it.
@@ -52,6 +53,48 @@ void main() {
       'panels': panels,
     }));
     File('${dir.path}/plugin.lua').writeAsStringSync(script);
+  }
+
+  /// Like [pump], but hands back the container so a test can reach the
+  /// handler the rail registers for the automation interface.
+  Future<ProviderContainer> pumpWithContainer(WidgetTester tester) async {
+    final container = ProviderContainer(
+      overrides: [
+        settingsProvider.overrideWith(
+          (ref) => SettingsNotifier(
+            ConfigService(configDir: support.path),
+            AppConfig(),
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    await tester.pumpWidget(UncontrolledProviderScope(
+      container: container,
+      child: const MaterialApp(
+        locale: Locale('en'),
+        localizationsDelegates: [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: PluginTipLayer(
+            child: Row(
+              children: [Expanded(child: SizedBox()), RightSideBar()],
+            ),
+          ),
+        ),
+      ),
+    ));
+    for (var attempt = 0; attempt < 20; attempt++) {
+      await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 10)));
+      await tester.pump();
+    }
+    return container;
   }
 
   Future<void> pump(WidgetTester tester) async {
@@ -310,5 +353,94 @@ end
 
     expect(find.text('JUST READING'), findsOneWidget);
     expect(find.byKey(const Key('plugin-drawer-apply')), findsNothing);
+  });
+
+  group('driven from the automation interface', () {
+    // Why this exists: BUG-369 lived in this path for as long as the path
+    // existed, because nothing automated could reach it. `run_plugin_command`
+    // runs the menu-bar path, which hands the answer somewhere else entirely.
+
+    testWidgets('pressing a panel by name says what the drawer showed',
+        (tester) async {
+      install(
+        'com.example.demo',
+        panels: [
+          {'id': 'note', 'title': 'Note', 'icon': 'list'},
+        ],
+        script: 'function on_command(ctx)\n'
+            '  return { pane = "FROM THE PANEL", title = "Note" }\n'
+            'end\n',
+      );
+      final container = await pumpWithContainer(tester);
+
+      final outcome = await container
+          .read(mcpProvider.notifier)
+          .openPluginPanel!('com.example.demo', 'note', null);
+      await settlePlugin(tester);
+
+      expect(outcome.ok, isTrue);
+      expect(outcome.said, contains('FROM THE PANEL'));
+    });
+
+    testWidgets('a panel that asks is answered, and gets on with it',
+        (tester) async {
+      // Without an answer the command waits for a reader who is not there.
+      install(
+        'com.example.demo',
+        panels: [
+          {'id': 'write', 'title': 'Write', 'icon': 'list'},
+        ],
+        script: 'function on_command(ctx)\n'
+            '  if ctx.answer == nil then\n'
+            '    return { ask = "what?" }\n'
+            '  end\n'
+            '  return { pane = "wrote: " .. ctx.answer, title = "Write" }\n'
+            'end\n',
+      );
+      final container = await pumpWithContainer(tester);
+
+      final outcome = await container
+          .read(mcpProvider.notifier)
+          .openPluginPanel!('com.example.demo', 'write', 'a summary');
+      await settlePlugin(tester);
+
+      expect(outcome.said, contains('wrote: a summary'));
+    });
+
+    testWidgets('a panel a plugin has not got is refused, and names the ones '
+        'it has', (tester) async {
+      install(
+        'com.example.demo',
+        panels: [
+          {'id': 'note', 'title': 'Note', 'icon': 'list'},
+        ],
+      );
+      final container = await pumpWithContainer(tester);
+
+      final outcome = await container
+          .read(mcpProvider.notifier)
+          .openPluginPanel!('com.example.demo', 'nosuch', null);
+
+      expect(outcome.ok, isFalse);
+      expect(outcome.said, contains('note'));
+    });
+
+    testWidgets('a plugin without the sidebar permission is refused',
+        (tester) async {
+      install(
+        'com.example.demo',
+        panels: [
+          {'id': 'note', 'title': 'Note', 'icon': 'list'},
+        ],
+        permissions: const [],
+      );
+      final container = await pumpWithContainer(tester);
+
+      final outcome = await container
+          .read(mcpProvider.notifier)
+          .openPluginPanel!('com.example.demo', 'note', null);
+
+      expect(outcome.ok, isFalse, reason: '没有图标可按，就不该假装按下去了');
+    });
   });
 }

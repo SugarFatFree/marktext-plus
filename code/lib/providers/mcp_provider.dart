@@ -148,6 +148,14 @@ class McpController extends StateNotifier<McpStatus> {
   Future<McpOutcome> Function(String pluginId, String command)?
   runPluginCommand;
 
+  /// Presses an icon in the right-hand rail, and says what the drawer showed.
+  ///
+  /// Registered by the rail itself, for the reason [runPluginCommand] is
+  /// registered by the screen: the drawer is a widget's own state, and a
+  /// panel's answer goes into it rather than anywhere this layer can read.
+  Future<McpOutcome> Function(String pluginId, String panelId, String? answer)?
+  openPluginPanel;
+
   /// Carries out one `control` action and says, truthfully, what happened.
   ///
   /// Exposed because until now the only test of this layer handed the toolset
@@ -236,6 +244,21 @@ class McpController extends StateNotifier<McpStatus> {
         // plugin that is not installed and a command that plugin has not got,
         // and wrapping those in `mcpDid` reported both as done.
         return run(pluginId, command);
+
+      case McpAction.openPanel:
+        final pluginId = text('pluginId');
+        final panelId = text('panelId');
+        if (pluginId == null) return mcpRefused('no pluginId given');
+        if (panelId == null) return mcpRefused('no panelId given');
+        final open = openPluginPanel;
+        if (open == null) {
+          return mcpRefused('the editor is not ready to open panels yet');
+        }
+        // The rail's own answer: it refuses a plugin that is not installed, a
+        // panel that plugin has not got, and a plugin that never asked for
+        // `ui.sidebar` — which is the same refusal a reader gets by finding no
+        // icon to press.
+        return open(pluginId, panelId, text('answer'));
 
       case McpAction.closePane:
         final slot = PluginPaneSlot.values

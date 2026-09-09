@@ -17,7 +17,15 @@ enum McpAction {
   setViewMode('set_view_mode'),
   setContent('set_content'),
   closePane('close_pane'),
-  runPluginCommand('run_plugin_command');
+  runPluginCommand('run_plugin_command'),
+
+  /// Presses one of the icons in the right-hand rail.
+  ///
+  /// Not the same as running that command by name: a panel runs it with the
+  /// drawer as the place its answer goes, and that path had no way in from
+  /// here at all. A defect lived in it — an answer shown with no way to take
+  /// it — precisely because everything automated went the other way.
+  openPanel('open_panel');
 
   const McpAction(this.wireName);
 
@@ -242,6 +250,18 @@ class McpToolset {
           'slot': {
             'type': 'string',
             'enum': ['right', 'bottom', 'corner'],
+          },
+          'panelId': {
+            'type': 'string',
+            'description':
+                'Which panel of that plugin to open, from its manifest. The '
+                'rail draws one icon per panel.',
+          },
+          'answer': {
+            'type': 'string',
+            'description':
+                'What to answer if the panel asks something. Without it a '
+                'panel that asks will wait, the way it waits for a reader.',
           },
         },
       },

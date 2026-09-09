@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/i18n/l10n/app_localizations.dart';
+import '../../providers/mcp_provider.dart';
 import '../../providers/plugin_provider.dart';
+import '../../services/mcp_tools.dart';
 import '../../services/plugin_manifest.dart';
 import 'plugin_apply.dart';
 import 'plugin_command_actions.dart';
@@ -51,6 +53,10 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
   String _replaces = '';
   String _pluginName = '';
 
+  /// What to answer a panel's question while automation is driving, or null
+  /// when a reader is.
+  String? _automaticAnswer;
+
   /// A tree the plugin drew, and where the reader's use of it is collected.
   ///
   /// Drawn here rather than in the card: the reader opened this drawer, so
@@ -96,10 +102,72 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    // Registered here rather than in the screen, because the drawer is this
+    // widget's own state: a panel's answer lands in it, and nothing outside
+    // can read it or put a question's answer back.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(mcpProvider.notifier).openPluginPanel = _openForAutomation;
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _closeUi();
     _answer.dispose();
     super.dispose();
+  }
+
+  /// Presses the rail icon for [panelId] and says what the drawer showed.
+  ///
+  /// [answer] is what to reply if the panel asks something. Without it the
+  /// command waits for a reader who is not there, so an agent driving this
+  /// should give one whenever the panel is known to ask — which is exactly
+  /// what a reader does.
+  Future<McpOutcome> _openForAutomation(
+    String pluginId,
+    String panelId,
+    String? answer,
+  ) async {
+    final plugins =
+        ref.read(installedPluginManifestsProvider).valueOrNull ??
+        const <PluginManifest>[];
+    final plugin = plugins.where((p) => p.id == pluginId).firstOrNull;
+    if (plugin == null) {
+      return mcpRefused('no plugin called "$pluginId" is installed');
+    }
+    if (!plugin.hasPermission(PluginPermission.uiSidebar)) {
+      return mcpRefused(
+        '"$pluginId" did not ask for ${PluginPermission.uiSidebar}, so it '
+        'draws no icon in the rail',
+      );
+    }
+    final panel = plugin.panels.where((p) => p.id == panelId).firstOrNull;
+    if (panel == null) {
+      return mcpRefused(
+        '"$pluginId" has no panel "$panelId"; it has '
+        '${plugin.panels.map((p) => p.id).join(', ')}',
+      );
+    }
+
+    // Closed first when it is already open, so this always means "press the
+    // icon to open", not "toggle whatever it is now".
+    if (_open == '$pluginId/$panelId') await _toggle(plugin, panel);
+    _automaticAnswer = answer;
+    try {
+      await _toggle(plugin, panel);
+    } finally {
+      _automaticAnswer = null;
+    }
+    if (!mounted) return mcpRefused('the window is gone');
+    return mcpDid(
+      _content.isEmpty
+          ? 'the ${panel.id} panel is open and showing nothing'
+          : 'the ${panel.id} panel says: $_content',
+    );
   }
 
   /// The table moved to `plugin_icons.dart` when it turned out to be seven
@@ -181,6 +249,9 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
         required String suggested,
       }) {
         if (!mounted || _open != key) return Future.value(null);
+        // Being driven: answer as a reader would rather than waiting for one.
+        final automatic = _automaticAnswer;
+        if (automatic != null) return Future.value(automatic);
         final completer = Completer<String?>();
         setState(() {
           _content = '';
