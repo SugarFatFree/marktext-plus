@@ -125,6 +125,7 @@
 | BUG-380 | 2026-09-09 | macOS 的 zip 把符号链接展开，包大三倍且 bundle 结构损坏 | P2 | 已修复 |
 | BUG-381 | 2026-09-09 | README 上「22 种图表 / 8 个主题」没有任何对账 | P3 | 已加守卫 |
 | BUG-382 | 2026-09-09 | 权限守卫的兜底会放行将来新增的动作类型 | P2 | 已修复 |
+| BUG-383 | 2026-09-10 | 让渲染器与富文本复制对齐的样例清单漏了三种内联 | P2 | 已加守卫 |
 
 ---
 
@@ -6798,3 +6799,65 @@ cases since it doesn't match the pattern 'PluginEleventhAction()'.
 - `code/lib/services/plugin_command_service.dart` — 兜底改为穷尽列举
 - `code/test/services/plugin_permission_guard_test.dart` — 补两条：
   没声明权限的插件仍能画控件树；什么都不做不需要任何权限
+
+## BUG-383：为对账而写的清单，自己没被对过账
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-383 |
+| 日期 | 2026-09-10 |
+| 优先级 | P2 |
+| 状态 | 已加守卫（未发现现存分歧） |
+
+### 问题
+
+`preview_placeholder_test` 存在的理由写在它自己开头：
+
+> 哪些内联被画成控件，写在**两个地方**——渲染器的 switch 和富文本复制的清单——
+> **没有东西把它们连起来**。这份测试做这件事。
+
+它靠 13 条手写样例做这件事。而它要守的那份实现，`RichCopyService._isWidget`，
+以 `_ => false` 收尾——**新增一种被画成控件的内联，会被富文本复制当成普通文字**，
+`indexOf` 找不到选区，于是回退成纯文本，**整段的标题、加粗、链接一起丢掉**。
+这正是这个文件当初为之而写的那个 bug，而没有任何东西阻止它对下一种内联重演。
+
+**清单本身也没被对过账**：把 13 条样例逐条解析、收集每个 span 的 `InlineType`，
+只盖到 **11/14**。
+
+| 没盖到 | 为什么要紧 |
+|--------|-----------|
+| `InlineType.image`（**带地址的**） | `_isWidget` 对有地址的图片返回 `true`——**这正是控件分支本身**，这份测试从没走过它 |
+| `InlineType.italic` | 普通 span，风险低 |
+| `InlineType.underline`（`++x++`） | 普通 span，风险低 |
+
+原有的样例里只有 `![a missing cat]()`，而**没有地址的图片根本不是图片**——
+解析器把它读成空链接。所以「图片」看着有样例，实际一条都没有。
+
+### 根因
+
+同一个形状的第二次：一份清单是实现，另一份是它的检验，没人比较它们。
+与 BUG-382 的区别是这次两份都在测试侧，所以编译器帮不上忙——
+得写一条测试来查。
+
+### 修复
+
+1. 补三条样例（斜体、下划线、带地址的图片）。**三条都直接通过**，
+   说明今天没有现存分歧，补的是覆盖不是修的错。
+2. 加一条 `every kind of inline span has a sample above`：
+   把所有样例记进一个列表，解析后收集实际产生的 `InlineType`，
+   与 `InlineType.values` 求差集，非空即红。
+   加一种新内联而不写样例，这条测试立刻点名它。
+
+### 验证
+
+撤掉那三条样例，守卫精确报出：
+
+```
+Expected: empty
+  Actual: Set:[InlineType.italic, InlineType.image, InlineType.underline]
+```
+
+### 涉及文件
+
+- `code/test/ui/editor/preview_placeholder_test.dart` — 三条样例 + 覆盖守卫
+  （`InlineSpan` 与 Flutter 同名，故对解析器加了一个前缀导入）
