@@ -134,6 +134,50 @@ void main() {
     }
   }, skip: present ? null : 'SDK 仓库不在这台机器上');
 
+  /// The twelve READMEs name the same things.
+  ///
+  /// Identifiers do not translate, which makes them the one part of a
+  /// document in eleven languages a guard can compare. Two went wrong at
+  /// once and in opposite directions: the English README said there is no
+  /// `require` while five other places in the same file explained how to use
+  /// it — the sandbox list was written before the module loader and never
+  /// updated, and the translations had been. And `ctx.view`, which tells a
+  /// script whether the reader is in source, preview or split, was documented
+  /// in seven languages and missing from English, German, Japanese, Korean
+  /// and Chinese. The same four translations once lost the side panel.
+  ///
+  /// Backticked words only, and code fences dropped first: prose differs by
+  /// language and examples repeat, while what a plugin author types does not
+  /// change with the language they read.
+  test('the twelve READMEs name the same identifiers', () {
+    if (!present) return;
+
+    Set<String> named(File file) {
+      final prose = file
+          .readAsStringSync()
+          .replaceAll(RegExp(r'```[\s\S]*?```'), ' ');
+      return RegExp(r'`([A-Za-z_][A-Za-z0-9_.]*)`')
+          .allMatches(prose)
+          .map((m) => m.group(1)!)
+          .toSet();
+    }
+
+    final english = named(File('$repo/README.md'));
+    expect(english.length, greaterThan(50),
+        reason: '英文里读出的标识符太少，取法要跟着改');
+
+    for (final file in Directory('$repo/docs/i18n')
+        .listSync()
+        .whereType<File>()
+        .where((f) => f.path.endsWith('.md'))) {
+      final theirs = named(file);
+      expect(english.difference(theirs).toList()..sort(), isEmpty,
+          reason: '${file.path} 没提英文提到的这些——这份语言的作者不知道有它们');
+      expect(theirs.difference(english).toList()..sort(), isEmpty,
+          reason: '${file.path} 提了英文没提的——英文才是要补的那一份');
+    }
+  }, skip: present ? null : 'SDK 仓库不在这台机器上');
+
   test('the schema names the permissions the editor grants', () {
     expect(
       enumAt(schema(), ['properties', 'permissions', 'items']).toSet(),
