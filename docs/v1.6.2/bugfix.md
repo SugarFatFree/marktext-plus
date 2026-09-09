@@ -6800,6 +6800,26 @@ cases since it doesn't match the pattern 'PluginEleventhAction()'.
 - `code/test/services/plugin_permission_guard_test.dart` — 补两条：
   没声明权限的插件仍能画控件树；什么都不做不需要任何权限
 
+### 兄弟：同一个文件里的运行时分派
+
+按「改一个分支就读完它的兄弟」，同文件第 225 行还有一个同形的：
+
+```dart
+final runtime = switch (manifest.runtime) {
+  PluginRuntime.js => PluginJsRuntime(...),
+  _ => PluginScriptRuntime(...),   // Lua 解释器
+};
+```
+
+`PluginRuntime` 有 4 个成员。`data` 和 `process` 在第 203 行就被提前拦下，
+所以**今天行为是对的**。但加第 5 种运行时，它会静静落进 Lua 那一支——
+一个预编译可执行文件被当成 Lua 源码读——而第 203 行那个提前过滤
+同样不会有人提醒。两处要一起改，两处都不报错。
+
+改成四个成员各自列名（`data`/`process` 那支 `throw StateError`，
+它们本就到不了这里）。同样两步验证：新写法报 `non_exhaustive`，
+旧写法对同一个新成员报 `No issues found!`。
+
 ## BUG-383：为对账而写的清单，自己没被对过账
 
 | 字段 | 内容 |

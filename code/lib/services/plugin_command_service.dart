@@ -225,8 +225,14 @@ class PluginCommandService {
     final runtime = switch (manifest.runtime) {
       PluginRuntime.js => PluginJsRuntime(source,
           storage: settings, strings: strings, modules: modules),
-      _ => PluginScriptRuntime(source,
+      PluginRuntime.lua => PluginScriptRuntime(source,
           storage: settings, strings: strings, modules: modules),
+      // Both are refused above, where the reader is told why. Named anyway
+      // so that a fifth runtime is a compile error here rather than a plugin
+      // quietly handed to the Lua interpreter — which is what `_` did, and
+      // what a prebuilt executable read as Lua source would look like.
+      PluginRuntime.data || PluginRuntime.process =>
+        throw StateError('${manifest.runtime.name} has no script to run'),
     };
     _runtimes[manifest.id] = runtime;
     return runtime;
