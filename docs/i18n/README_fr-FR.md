@@ -77,7 +77,7 @@ C’est tout. L’editeur se lance avec un document d’exemple pret a etre modi
 | **🧩 Extensions ouvertes** | Un fichier Lua ou JavaScript, sans SDK ni compilation, en bac à sable et limité aux droits qu’il a déclarés. À trouver via [GitHub Topic: `marktext-plus-plugin`](https://github.com/topics/marktext-plus-plugin) ; chacune est marquée Communauté / non vérifiée |
 | **⚡ Démarrage rapide** | Pas de navigateur embarqué, pas de framework d’éditeur, 26 dépendances directes |
 | **📄 Gros fichiers** | Analyse, coloration et recherche se font en une passe, avec des budgets que des tests font échouer. Au-delà de 128 Ko la coloration s’arrête — la dernière taille qui s’ouvre en une seconde environ. L’édition reste possible, et les couleurs reviennent si le fichier rapetisse |
-| **🧪 Testé** | 2432 tests couvrant le parseur, les exports, les providers, les moteurs d’extension et les widgets de l’éditeur |
+| **🧪 Testé** | Plus de 2600 tests couvrant le parseur, les exports, les providers, les moteurs d’extension et les widgets de l’éditeur |
 
 ### Extensions
 
@@ -88,7 +88,8 @@ C’est tout. L’editeur se lance avec un document d’exemple pret a etre modi
 | **🔐 Droits** | Déclarés dans le manifeste, montrés sur la page de l’extension, et **appliqués**. VS Code et IntelliJ affichent une liste puis font confiance ; ici personne ne relit rien, c’est donc l’éditeur qui vérifie. Une extension qui interroge le modèle sans `ai.chat` se voit refuser, et vous êtes prévenu qu’elle a essayé |
 | **🪟 Volets** | L’éditeur partage déjà un onglet entre source et aperçu ; ce partage vous est offert. Jusqu’à quatre cases, des séparateurs qui se déplacent, et rien de dessiné pour une case que personne n’a remplie |
 | **✍️ Réécriture** | Une extension peut réécrire ce que vous avez sélectionné — après vous l’avoir montré. Le résultat arrive avec un bouton Appliquer, et appliquer passe par l’historique de l’éditeur : une annulation le reprend |
-| **⚙️ Réglages propres** | L’éditeur dessine la page à partir de ce que l’extension a déclaré : un interrupteur pour un interrupteur, un champ masqué pour un secret. Les extensions fournissent des données, jamais des widgets |
+| **⚙️ Réglages propres** | L’éditeur dessine la page à partir de ce que l’extension a déclaré : un interrupteur pour un interrupteur, un champ masqué pour un secret. L’extension décrit ce qu’elle veut ; les widgets sont ceux de l’éditeur |
+| **🎛️ Interface propre** | Au-delà d’une page de réglages : une commande peut répondre par un arbre de textes, de champs, de pastilles, de listes déroulantes, de cases à cocher, de Markdown, d’images et de boutons, que l’éditeur dessine avec ses propres widgets dans le volet d’où la commande est partie. Un appui renvoie tous les champs de l’arbre : l’extension n’a pas à se souvenir du formulaire qu’elle a dessiné |
 | **🌍 Langues propres** | Une extension embarque autant de langues que son auteur le souhaite, indépendamment des douze que parle l’éditeur |
 | **🔑 Jamais vos clés** | L’éditeur détient les identifiants et fait la requête. L’extension fournit l’invite et reçoit du texte |
 

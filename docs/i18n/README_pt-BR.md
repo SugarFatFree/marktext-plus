@@ -77,7 +77,7 @@ flutter pub get && flutter run
 | **🧩 Extensões abertas** | Um arquivo Lua ou JavaScript, sem SDK e sem compilação, em uma caixa de areia e limitado às permissões que declarou. Encontram-se em [GitHub Topic: `marktext-plus-plugin`](https://github.com/topics/marktext-plus-plugin); cada uma vem marcada como Comunidade/não verificada |
 | **⚡ Início rápido** | Sem navegador embutido nem framework de editor: 26 dependências diretas |
 | **📄 Arquivos grandes** | Análise, realce e busca em uma só passagem, com orçamentos que fazem os testes falharem. Acima de 128 KB o realce para — é o último tamanho que abre em cerca de um segundo. Você continua editando, e as cores voltam se o arquivo encolher |
-| **🧪 Testado** | 2432 testes para o analisador, as exportações, os providers, os motores de extensões e os widgets do editor |
+| **🧪 Testado** | Mais de 2600 testes para o analisador, as exportações, os providers, os motores de extensões e os widgets do editor |
 
 ### Extensões
 
@@ -88,7 +88,8 @@ Escritas em Lua ou JavaScript — um arquivo e um manifesto, sem compilação, e
 | **🔐 Permissões** | Declaradas no manifesto, mostradas na página da extensão e **impostas**. O VS Code e o IntelliJ mostram uma lista e depois confiam; aqui ninguém revê nada, por isso quem verifica é o editor. Uma extensão que pergunta ao modelo sem `ai.chat` recebe um não, e você fica a saber que ela tentou |
 | **🪟 Quadros** | O editor já divide uma aba entre código-fonte e pré-visualização; essa divisão é oferecida para fora. Até quatro células, separadores que se arrastam, e nada desenhado para uma célula que ninguém preencheu |
 | **✍️ Escrever de volta** | Uma extensão pode reescrever o que você selecionou — depois de lho mostrar. O resultado vem com um botão Aplicar, e aplicar passa pelo histórico do editor: um desfazer traz tudo de volta |
-| **⚙️ Definições próprias** | O editor desenha a página a partir do que a extensão declarou: um interruptor para um interruptor, um campo oculto para um segredo. As extensões dão dados, nunca componentes |
+| **⚙️ Definições próprias** | O editor desenha a página a partir do que a extensão declarou: um interruptor para um interruptor, um campo oculto para um segredo. A extensão descreve o que quer; os componentes são do editor |
+| **🎛️ Interface própria** | Não só uma página de configurações: um comando pode responder com uma árvore de textos, campos, fichas, listas, caixas, Markdown, imagens e botões, que o editor desenha com os seus próprios componentes no quadro de onde o comando partiu. Apertar um deles devolve todos os campos da árvore, então a extensão não precisa lembrar do formulário que desenhou |
 | **🌍 Idiomas próprios** | Uma extensão traz os idiomas que o seu autor quiser, independentemente dos doze que o editor fala |
 | **🔑 Nunca as suas chaves** | O editor guarda as credenciais e faz o pedido. A extensão dá a instrução e recebe texto |
 

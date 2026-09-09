@@ -77,7 +77,7 @@ Das ist alles. Der Editor startet mit einem Beispieldokument und ist sofort eins
 | **🧩 Offene Plug-ins** | Eine Lua- oder JavaScript-Datei, ohne SDK und ohne Build, in einer Sandbox und auf die Rechte beschränkt, die sie selbst angemeldet hat. Zu finden über [GitHub Topic: `marktext-plus-plugin`](https://github.com/topics/marktext-plus-plugin); jedes ist als Community/ungeprüft gekennzeichnet |
 | **⚡ Schneller Start** | Kein eingebetteter Browser, kein Editor-Framework, 26 direkte Abhängigkeiten |
 | **📄 Große Dateien** | Parsen, Hervorheben und Suchen laufen in einem Durchgang, mit Budgets, an denen Tests scheitern. Über 128 KB entfällt die Hervorhebung — die letzte Größe, die in etwa einer Sekunde öffnet. Bearbeiten geht weiter, und wird die Datei kleiner, kommen die Farben zurück |
-| **🧪 Getestet** | 2432 Tests für Parser, Exporte, Provider, Plug-in-Laufzeiten und Editor-Widgets |
+| **🧪 Getestet** | Über 2600 Tests für Parser, Exporte, Provider, Plug-in-Laufzeiten und Editor-Widgets |
 
 ### Plug-ins
 
@@ -88,7 +88,8 @@ In Lua oder JavaScript geschrieben — eine Datei und ein Manifest, kein Build, 
 | **🔐 Rechte** | Im Manifest angemeldet, auf der Seite des Plug-ins gezeigt und **durchgesetzt**. VS Code und IntelliJ zeigen eine Liste und vertrauen dann; hier prüft niemand etwas, also prüft der Editor. Ein Plug-in, das ohne `ai.chat` das Modell fragt, bekommt ein Nein, und Sie erfahren, dass es gefragt hat |
 | **🪟 Bereiche** | Der Editor teilt einen Tab ohnehin zwischen Quelltext und Vorschau; diese Teilung wird angeboten. Bis zu vier Zellen, ziehbare Trenner, und für eine Zelle, die niemand gefüllt hat, wird nichts gezeichnet |
 | **✍️ Zurückschreiben** | Ein Plug-in darf umschreiben, was Sie ausgewählt haben — nachdem es Ihnen gezeigt hat, was. Das Ergebnis kommt mit einer Übernehmen-Schaltfläche, und das Übernehmen läuft über die Editorhistorie, ein Rückgängig holt es zurück |
-| **⚙️ Eigene Einstellungen** | Der Editor zeichnet die Seite aus dem, was das Plug-in angemeldet hat: einen Schalter für einen Schalter, ein verdecktes Feld für ein Geheimnis. Plug-ins liefern Daten, niemals Widgets |
+| **⚙️ Eigene Einstellungen** | Der Editor zeichnet die Seite aus dem, was das Plug-in angemeldet hat: einen Schalter für einen Schalter, ein verdecktes Feld für ein Geheimnis. Ein Plug-in beschreibt, was es will; die Widgets gehören dem Editor |
+| **🎛️ Eigene Oberfläche** | Nicht nur eine Einstellungsseite: ein Befehl kann mit einem Baum aus Text, Eingabefeldern, Chips, Auswahllisten, Kontrollkästchen, Markdown, Bildern und Schaltflächen antworten, den der Editor mit seinen eigenen Widgets in dem Bereich zeichnet, aus dem der Befehl kam. Ein Druck gibt alle Felder des Baums zurück, das Plug-in muss sich das gezeichnete Formular nicht merken |
 | **🌍 Eigene Sprachen** | Ein Plug-in bringt so viele Sprachen mit, wie sein Autor will — unabhängig von den zwölf, die der Editor spricht |
 | **🔑 Nie Ihre Schlüssel** | Der Editor hält die Zugangsdaten und stellt die Anfrage. Ein Plug-in liefert den Prompt und bekommt Text zurück |
 

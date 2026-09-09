@@ -32,6 +32,80 @@ void main() {
     expect(readmes(), hasLength(12));
   });
 
+  /// The test count, as a floor rather than a figure that rots.
+  ///
+  /// It had rotted into three different answers at once: the English README
+  /// said 2777, all eleven translations said 2432, and the suite reported
+  /// 3005. A number that changes with every commit and lives in twelve files
+  /// cannot be kept exact by hand, and nobody tried after the first drift.
+  ///
+  /// So it is a floor now, and a floor is checkable: adding tests never makes
+  /// it false, and only taking a large number away does. What is counted here
+  /// is `test(` and `testWidgets(` calls in the source, which is fewer than
+  /// the suite reports — a call inside a `for` becomes several tests — so the
+  /// floor this proves is a floor of the real figure too.
+  test('every README states a test count the suite can back up', () {
+    var declared = 0;
+    for (final file in Directory('test')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((f) => f.path.endsWith('_test.dart'))) {
+      declared += RegExp(r'(?<![\w.])(test|testWidgets)\s*\(')
+          .allMatches(file.readAsStringSync())
+          .length;
+    }
+    expect(declared, greaterThan(1000), reason: '读出的测试太少，取法要跟着改');
+
+    for (final readme in readmes()) {
+      // Written without a thousands separator in every language on purpose:
+      // 2.600, 2 600 and 2,600 are all correct somewhere, and a guard that
+      // has to know which is a guard that reports a missing number where
+      // there is one.
+      final claimed = RegExp(r'\b2600\b').allMatches(readme.readAsStringSync());
+      expect(claimed, hasLength(1),
+          reason: '${readme.path} 里没有那个下限数字，或者出现了不止一次');
+    }
+    expect(2600, lessThanOrEqualTo(declared),
+        reason: 'README 说的下限已经高于实际写下的测试数了');
+  });
+
+  /// Twelve translations describe the same set of capabilities.
+  ///
+  /// A capability the editor grew and the front page never mentioned is a
+  /// capability nobody uses: `sdk.ui` — a plugin answering with a tree of
+  /// controls the editor draws — was documented in the SDK in twelve
+  /// languages and absent from every README, which still said a plugin
+  /// "supplies data, never widgets". Four translations once lost the side
+  /// panel the same way, and the shape guard on the SDK could not see it
+  /// because that section has neither a heading nor a fenced block.
+  ///
+  /// Emoji are what the rows are keyed by here: they open every row, they are
+  /// the same character in every language, and a row dropped in translation
+  /// takes its emoji with it.
+  test('the feature tables list the same rows in every language', () {
+    final rows = <String, Set<String>>{};
+    for (final readme in readmes()) {
+      rows[readme.path] = readme
+          .readAsLinesSync()
+          .where((line) => line.startsWith('| **'))
+          .map((line) => RegExp(
+                r'[\u{1F300}-\u{1FAFF}\u{2190}-\u{2BFF}\u{2600}-\u{27BF}]',
+                unicode: true,
+              ).firstMatch(line)?.group(0))
+          .whereType<String>()
+          .toSet();
+    }
+
+    final english = rows['${repo.path}/README.md'];
+    expect(english, isNotNull, reason: '找不到英文 README，取法要跟着改');
+    expect(english!.length, greaterThan(15), reason: '读出的行太少，取法要跟着改');
+
+    rows.forEach((path, theirs) {
+      expect(english.difference(theirs).toList()..sort(), isEmpty,
+          reason: '$path 少了英文版有的能力行——读这份语言的人不知道有这个能力');
+    });
+  });
+
   test('every README counts the diagram types the parser has', () {
     final types = DiagramType.values.where((t) => t != DiagramType.unknown);
     expect(types.length, greaterThan(10), reason: '图型枚举读错了');

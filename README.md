@@ -87,7 +87,7 @@ That's it! The editor will launch with a sample document ready to edit.
 | **🧩 Open plugins** | One Lua or JavaScript file, no SDK to install and nothing to build, sandboxed and held to the permissions it declared. Found through [GitHub Topic: `marktext-plus-plugin`](https://github.com/topics/marktext-plus-plugin), every one labelled Community/Unverified |
 | **⚡ Fast start** | No embedded browser, no editor framework, 26 direct dependencies |
 | **📄 Large files** | Parsing and search are single-pass, and a test fails if four times the document costs more than six times the work — so a change that turns either of them quadratic is caught rather than shipped. Highlighting is superlinear in the number of spans, which no single pass fixes, so it stops above 128 KB — the last size that still opens in about a second — and a test holds that limit where it is. The document stays fully editable without colour, and the colours come back when it shrinks |
-| **🧪 Tested** | 2777 tests covering the parser, the exporters, the providers, the plugin runtimes and the editor widgets |
+| **🧪 Tested** | Over 2600 tests covering the parser, the exporters, the providers, the plugin runtimes and the editor widgets |
 
 ### Plugins
 
@@ -100,7 +100,8 @@ it needs to be, with `require` reaching only inside its own directory.
 | **🔐 Permissions** | Declared in the manifest, shown on the plugin's page, and **enforced**. VS Code and IntelliJ show a list and then trust the extension; nothing here is reviewed by anybody, so the editor checks. A plugin asking the model without `ai.chat` is told no, and you are told it asked |
 | **🪟 Panes** | The editor already divides a tab between source and preview, and that division is offered out: up to four cells, the dividers drag, and nothing is drawn for a cell nobody filled |
 | **✍️ Writing back** | A plugin can rewrite what you selected — having shown you first. The result appears with an Apply button, and applying goes through the editor's history, so undo takes it back |
-| **⚙️ Own settings** | The editor draws the settings page from what the plugin declared: a switch for a switch, a hidden box for a secret. Plugins supply data, never widgets |
+| **⚙️ Own settings** | The editor draws the settings page from what the plugin declared: a switch for a switch, a hidden box for a secret. A plugin describes what it wants; the widgets are the editor's |
+| **🎛️ Own interface** | Beyond a settings page: a command can answer with a tree of text, inputs, chips, dropdowns, checkboxes, Markdown, pictures and buttons, drawn as the editor's own widgets in the pane the command came from. Pressing one hands back every field in the tree, so the plugin need not remember the form it drew |
 | **🌍 Own languages** | A plugin ships translations for whichever languages its author wants, independent of the twelve the editor speaks |
 | **🔑 Never your keys** | The editor holds the credentials and makes the request. A plugin supplies the prompt and gets text back |
 

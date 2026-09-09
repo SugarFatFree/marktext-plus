@@ -77,7 +77,7 @@ Tutto qui. L’editor si avvierà con un documento di esempio pronto per la modi
 | **🧩 Estensioni aperte** | Un file Lua o JavaScript, senza SDK e senza build, in una sandbox e limitato ai permessi che ha dichiarato. Si trovano su [GitHub Topic: `marktext-plus-plugin`](https://github.com/topics/marktext-plus-plugin); ognuna è marcata Community/non verificata |
 | **⚡ Avvio rapido** | Nessun browser incorporato, nessun framework di editor, 26 dipendenze dirette |
 | **📄 File grandi** | Analisi, evidenziazione e ricerca in una sola passata, con budget che i test fanno fallire. Oltre 128 KB l’evidenziazione si ferma — l’ultima dimensione che si apre in circa un secondo. Si continua a modificare, e i colori tornano se il file si riduce |
-| **🧪 Testato** | 2432 test per parser, esportatori, provider, runtime delle estensioni e widget dell’editor |
+| **🧪 Testato** | Oltre 2600 test per parser, esportatori, provider, runtime delle estensioni e widget dell’editor |
 
 ### Estensioni
 
@@ -88,7 +88,8 @@ Scritte in Lua o JavaScript — un file e un manifesto, nessuna build, e lo stes
 | **🔐 Permessi** | Dichiarati nel manifesto, mostrati nella pagina dell’estensione e **applicati**. VS Code e IntelliJ mostrano un elenco e poi si fidano; qui non revisiona nessuno, quindi controlla l’editor. Un’estensione che interroga il modello senza `ai.chat` riceve un no, e a te viene detto che ci ha provato |
 | **🪟 Riquadri** | L’editor divide già una scheda fra sorgente e anteprima; quella divisione ti viene offerta. Fino a quattro celle, divisori che si trascinano, e nulla disegnato per una cella che nessuno ha riempito |
 | **✍️ Riscrittura** | Un’estensione può riscrivere ciò che hai selezionato — dopo avertelo mostrato. Il risultato arriva con un pulsante Applica, e applicare passa per la cronologia dell’editor: un annulla lo riporta indietro |
-| **⚙️ Impostazioni proprie** | L’editor disegna la pagina da ciò che l’estensione ha dichiarato: un interruttore per un interruttore, un campo nascosto per un segreto. Le estensioni forniscono dati, mai widget |
+| **⚙️ Impostazioni proprie** | L’editor disegna la pagina da ciò che l’estensione ha dichiarato: un interruttore per un interruttore, un campo nascosto per un segreto. L’estensione descrive che cosa vuole; i widget sono dell’editor |
+| **🎛️ Interfaccia propria** | Non solo una pagina di impostazioni: un comando può rispondere con un albero di testi, campi, chip, menu a tendina, caselle, Markdown, immagini e pulsanti, che l’editor disegna con i propri widget nel riquadro da cui il comando è partito. Premendone uno tornano indietro tutti i campi dell’albero, così l’estensione non deve ricordare il modulo che ha disegnato |
 | **🌍 Lingue proprie** | Un’estensione porta con sé tutte le lingue che il suo autore vuole, indipendentemente dalle dodici che parla l’editor |
 | **🔑 Mai le tue chiavi** | L’editor tiene le credenziali e fa la richiesta. L’estensione fornisce il prompt e riceve testo |
 
