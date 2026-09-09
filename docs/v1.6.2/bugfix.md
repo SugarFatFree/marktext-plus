@@ -121,6 +121,7 @@
 | BUG-376 | 2026-09-09 | 分屏里在预览中向上滚，源码窗格跳到底部 | P1 | 已修复 |
 | BUG-377 | 2026-09-09 | 面板等你回答时却在转圈，像是模型正在工作 | P2 | 已修复 |
 | BUG-378 | 2026-09-09 | 分屏同步只测了三个方向中的三个，另一向向上滚没测 | P3 | 已加守卫 |
+| BUG-379 | 2026-09-09 | 日志里的启动耗时只是其中一段，读起来像是全部 | P3 | 已修复 |
 
 ---
 
@@ -6570,3 +6571,58 @@ BUG-376 修的是「预览→源码」向上滚时把源码抛到底部。分屏
 ### 涉及文件
 
 - `test/ui/editor/split_scroll_follows_test.dart`
+
+---
+
+## BUG-379：日志报的启动时间只是其中一段
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-379 |
+| 日期 | 2026-09-09 |
+| 优先级 | P3 |
+| 状态 | 已修复 |
+
+### 怎么发现的
+
+要求 1 的头一条是「秒启动」，而**冷启动从没在实机上量过**。
+去读运行中编辑器的日志，找到了两行：
+
+```
+[startup] app root built (theme and locale resolved) at 105 ms (83 MB resident)
+[startup] home screen first build at 109 ms (83 MB resident)
+```
+
+数字很好看。但这个秒表是在 `main` 里起的——**读者等的还有 Dart 起来之前那一段**：
+外壳启动进程、Windows 映射可执行文件与各个 DLL、引擎起来。
+
+### 这件事早就被想到了，只是没说给远程会话听
+
+`StartupTrace` 专门去量那一段（Windows 上用 `GetProcessTimes`），
+它自己的注释写得很清楚：
+
+> That gap is the whole question when a launch feels slow, so it is measured
+> rather than left to be inferred from someone's impression.
+
+但那段只进了**轨迹文件**，而文件在读者的机器上。写进应用日志的那条注释同样清楚：
+
+> the application log … is the only window a remote session has
+
+**两处都对，合起来却漏了**：唯一能远程读到的那扇窗，报的是不完整的数字，
+而且读起来像是全部。
+
+### 修复方案
+
+里程碑那行带上这一段：
+
+```
+home screen first build at 109 ms (+340 ms before Dart) (83 MB resident)
+```
+
+量不到时明说「before Dart not measured here」，而不是省略——
+省略会让人以为没有这一段。
+
+### 验证
+
+`startup_reaches_the_log_test` 新增一条：里程碑必须带上那一段，或明说量不到。
+变异（去掉那一段）立刻红。

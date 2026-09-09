@@ -51,4 +51,28 @@ void main() {
       reason: '四十条细节会把插件的输出挤出日志',
     );
   });
+
+  test('the milestone says what came before Dart, or that it could not', () {
+    // The number on the line is the stopwatch inside `main`, and the person
+    // waited through everything before that too: the shell starting the
+    // process, the executable and its libraries being mapped, the engine
+    // coming up. The class measures that gap on purpose — the comment beside
+    // it says the gap "is the whole question when a launch feels slow" — and
+    // puts it in the trace file, which is on the reader's machine.
+    //
+    // The log is the only window a remote session has, and read from there
+    // "home screen first build at 109 ms" reads as the whole start. It is a
+    // part of it.
+    StartupTrace.markOnce('a milestone that should carry the gap');
+    final line = startupLines().single;
+
+    expect(
+      line,
+      anyOf(
+        matches(RegExp(r'\+\d+ ms before Dart')),
+        contains('before Dart not measured'),
+      ),
+      reason: '这条是远程会话唯一能读到的启动数字，它得说清自己只是其中一段：$line',
+    );
+  });
 }

@@ -285,9 +285,25 @@ class StartupTrace {
     // — the file has them, and forty lines would push a plugin's output off
     // the end of a log that holds a few hundred.
     AppLog.instance.info(
-      '$phase at ${_since.elapsedMilliseconds} ms${ResidentMemory.suffix()}',
+      '$phase at ${_since.elapsedMilliseconds} ms$_priorToDart'
+      '${ResidentMemory.suffix()}',
       source: 'startup',
     );
+  }
+
+  /// What the person waited through before the stopwatch above could start.
+  ///
+  /// The number on a milestone is measured from inside `main`, and everything
+  /// before it — the shell starting the process, the executable and its
+  /// libraries being mapped, the engine coming up — is not in it. The trace
+  /// file carries that gap, with a comment saying it is the whole question
+  /// when a launch feels slow; that file is on the reader's machine, and the
+  /// application log is the only window a remote session has. Read from there,
+  /// "first build at 109 ms" looked like the whole start rather than a part.
+  static String get _priorToDart {
+    final before = _beforeDart;
+    if (before == null) return ' (before Dart not measured here)';
+    return ' (+$before ms before Dart)';
   }
 
   static Timer? _shutdownWatchdog;
