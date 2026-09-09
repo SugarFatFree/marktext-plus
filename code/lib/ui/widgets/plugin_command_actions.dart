@@ -48,6 +48,7 @@ typedef PluginTextSink = void Function(
   bool append,
   bool canApply,
   String replaces,
+  PluginPaneRender render,
 });
 
 /// Where a tree the plugin drew goes, when the caller draws it itself.
@@ -417,6 +418,7 @@ class PluginCommandActions {
                 append: append,
                 canApply: content.canApply,
                 replaces: content.replaces,
+                render: content.render,
               );
             } else {
               final panes = container.read(pluginPanesProvider.notifier);

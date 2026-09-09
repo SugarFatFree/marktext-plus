@@ -443,4 +443,54 @@ end
       expect(outcome.ok, isFalse, reason: '没有图标可按，就不该假装按下去了');
     });
   });
+
+  group('the drawer draws what the plugin asked for', () {
+    // Siblings of BUG-369, found by asking what else a pane carries that the
+    // drawer was throwing away. A pane knows three more things about its
+    // answer than the drawer did: whether it is a rewrite (fixed there), how
+    // it should be drawn, and whether more is still coming.
+
+    testWidgets('an answer meant to be read is rendered, not shown as source',
+        (tester) async {
+      install(
+        'com.example.demo',
+        panels: [
+          {'id': 'note', 'title': 'Note', 'icon': 'list'},
+        ],
+        script: 'function on_command(ctx)\n'
+            '  return { pane = "# Heading", title = "Note", as = "preview" }\n'
+            'end\n',
+      );
+      await pump(tester);
+
+      await tester.tap(find.byIcon(Icons.list));
+      await settlePlugin(tester);
+
+      // Rendered: the hash is gone and the words are a heading.
+      expect(find.text('# Heading'), findsNothing,
+          reason: '插件要求按预览画，抽屉却把 Markdown 原样显示了');
+      expect(find.text('Heading'), findsWidgets);
+    });
+
+    testWidgets('an answer meant to be read as source keeps its markup',
+        (tester) async {
+      // The other half: rendering everything would hide the markup from a
+      // reader comparing it against their own source.
+      install(
+        'com.example.demo',
+        panels: [
+          {'id': 'note', 'title': 'Note', 'icon': 'list'},
+        ],
+        script: 'function on_command(ctx)\n'
+            '  return { pane = "# Heading", title = "Note" }\n'
+            'end\n',
+      );
+      await pump(tester);
+
+      await tester.tap(find.byIcon(Icons.list));
+      await settlePlugin(tester);
+
+      expect(find.text('# Heading'), findsOneWidget);
+    });
+  });
 }

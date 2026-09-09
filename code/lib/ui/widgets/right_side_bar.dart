@@ -8,6 +8,8 @@ import '../../providers/mcp_provider.dart';
 import '../../providers/plugin_provider.dart';
 import '../../services/mcp_tools.dart';
 import '../../services/plugin_manifest.dart';
+import '../../services/plugin_script_runtime.dart';
+import '../editor/markdown_renderer.dart';
 import 'plugin_apply.dart';
 import 'plugin_command_actions.dart';
 import 'plugin_icons.dart';
@@ -52,6 +54,20 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
   bool _canApply = false;
   String _replaces = '';
   String _pluginName = '';
+
+  /// How the plugin asked for its answer to be drawn. The pane grid has read
+  /// this from the start — a translation is rendered beside a preview and left
+  /// as source beside source — while the drawer showed every answer as plain
+  /// text, so a rewrite arrived with its `##` and `**` on show.
+  PluginPaneRender _render = PluginPaneRender.text;
+
+  /// Whether the command that fills this drawer is still running.
+  ///
+  /// Taken from the run itself rather than from the pane's `busy`, which the
+  /// drawer never sees: the answer is what `runInto` is awaiting, so it is
+  /// still coming until that returns. Without it the reader answered the
+  /// question and watched an empty drawer for as long as the model took.
+  bool _running = false;
 
   /// What to answer a panel's question while automation is driving, or null
   /// when a reader is.
@@ -212,6 +228,7 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
       _content = '';
       _canApply = false;
       _replaces = '';
+      _render = PluginPaneRender.text;
       _closeUi();
     });
     // Filled by running the plugin's command of the same id: a panel is a
@@ -223,58 +240,68 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
     // — filled the drawer with the sentence "a panel cannot ask a question"
     // and there was nowhere to type an answer. The question is asked in the
     // card, the same as from a menu; what comes back lands here.
-    await PluginCommandActions.runInto(
-      ref,
-      context: context,
-      plugin: plugin,
-      command: panel.id,
-      into: (
-        text, {
-        bool append = false,
-        bool canApply = false,
-        String replaces = '',
-      }) {
-        if (!mounted || _open != key) return;
-        setState(() {
-          _closeUi();
-          _content = append ? '$_content\n\n$text' : text;
-          _canApply = canApply;
-          _replaces = replaces;
-          _pluginName = plugin.name;
-        });
-      },
-      onAsk: ({
-        required String question,
-        required List<String> choices,
-        required String suggested,
-      }) {
-        if (!mounted || _open != key) return Future.value(null);
-        // Being driven: answer as a reader would rather than waiting for one.
-        final automatic = _automaticAnswer;
-        if (automatic != null) return Future.value(automatic);
-        final completer = Completer<String?>();
-        setState(() {
-          _content = '';
-          _ui = null;
-          _question = question;
-          _choices = choices;
-          _answering = completer;
-          _answer.text = suggested;
-        });
-        return completer.future;
-      },
-      onUi: (root, title, images) {
-        if (!mounted || _open != key) return Future.value(null);
-        final completer = Completer<PluginUiEvent?>();
-        setState(() {
-          _content = '';
-          _ui = root;
-          _images = images;
-          _pending = completer;
-        });
-        return completer.future;
-      },
-    );
+    setState(() => _running = true);
+    try {
+        await PluginCommandActions.runInto(
+        ref,
+        context: context,
+        plugin: plugin,
+        command: panel.id,
+        into: (
+          text, {
+          bool append = false,
+          bool canApply = false,
+          String replaces = '',
+          PluginPaneRender render = PluginPaneRender.text,
+        }) {
+          if (!mounted || _open != key) return;
+          setState(() {
+            _closeUi();
+            _content = append ? '$_content\n\n$text' : text;
+            _canApply = canApply;
+            _replaces = replaces;
+            _render = render;
+            _pluginName = plugin.name;
+          });
+        },
+        onAsk: ({
+          required String question,
+          required List<String> choices,
+          required String suggested,
+        }) {
+          if (!mounted || _open != key) return Future.value(null);
+          // Being driven: answer as a reader would rather than waiting for one.
+          final automatic = _automaticAnswer;
+          if (automatic != null) return Future.value(automatic);
+          final completer = Completer<String?>();
+          setState(() {
+            _content = '';
+            _ui = null;
+            _question = question;
+            _choices = choices;
+            _answering = completer;
+            _answer.text = suggested;
+          });
+          return completer.future;
+        },
+        onUi: (root, title, images) {
+          if (!mounted || _open != key) return Future.value(null);
+          final completer = Completer<PluginUiEvent?>();
+          setState(() {
+            _content = '';
+            _ui = root;
+            _images = images;
+            _pending = completer;
+          });
+          return completer.future;
+        },
+      );
+    } finally {
+      // However it ended — finished, refused or threw — nothing more is
+      // coming, and a drawer left spinning would be the editor saying
+      // something untrue about itself.
+      if (mounted) setState(() => _running = false);
+    }
   }
 
   @override
@@ -340,11 +367,46 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
                         : Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              SelectableText(_content),
+                              // Nothing to read yet and still running: say so.
+                              // An empty drawer after answering a question
+                              // looks exactly like one that failed.
+                              if (_running && _content.isEmpty)
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 24),
+                                  child: Center(
+                                    child: SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              // Drawn the way the plugin asked for, which is
+                              // what the pane grid has always done: a rewrite
+                              // meant to be read as a document is rendered,
+                              // not shown with its markup on display.
+                              if (_content.isNotEmpty)
+                                _render == PluginPaneRender.preview
+                                    ? MarkdownRenderer(markdown: _content)
+                                    : SelectableText(_content),
+                              // More still coming, with some of it already
+                              // readable.
+                              if (_running && _content.isNotEmpty) ...[
+                                const SizedBox(height: 12),
+                                const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                              ],
                               // The same offer the pane grid makes for the
                               // same answer. Without it the rail could show a
                               // rewrite and give no way to take it.
-                              if (_canApply) ...[
+                              if (_canApply && !_running) ...[
                                 const SizedBox(height: 12),
                                 FilledButton.icon(
                                   key: const Key('plugin-drawer-apply'),
