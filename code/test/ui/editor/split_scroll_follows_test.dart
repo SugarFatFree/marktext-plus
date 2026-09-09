@@ -199,4 +199,37 @@ void main() {
       reason: '预览回到顶部，源码该跟着回来，而不是留在下面',
     );
   });
+
+  testWidgets('scrolling the source back up brings the preview back up',
+      (tester) async {
+    // The mirror of the test above. That direction had a defect where the
+    // error grew with the offset, so scrolling back threw the other pane to
+    // the bottom; this one is said to work in different coordinates and was
+    // never checked going up.
+    await show(tester);
+    final source = scrollableIn(tester, SourceEditor);
+    final preview = scrollableIn(tester, MarkdownRenderer);
+
+    source.position.jumpTo(source.position.maxScrollExtent * 0.8);
+    await tester.pumpAndSettle();
+    final deep = preview.position.pixels;
+    expect(deep, greaterThan(100), reason: '先得真的滚下去，否则下面没有意义');
+
+    for (final fraction in [0.6, 0.4, 0.2, 0.0]) {
+      source.position.jumpTo(source.position.maxScrollExtent * fraction);
+      await tester.pumpAndSettle();
+      expect(
+        preview.position.pixels,
+        lessThanOrEqualTo(deep + 1),
+        reason: '源码往回滚，预览却没有跟着往回——'
+            '停在 ${preview.position.pixels}，之前是 $deep',
+      );
+    }
+
+    expect(
+      preview.position.pixels,
+      lessThan(deep),
+      reason: '源码回到顶部，预览该跟着回来',
+    );
+  });
 }
