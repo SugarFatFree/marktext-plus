@@ -110,6 +110,7 @@
 | BUG-365 | 2026-09-09 | 52 个格式动作里 25 个从未被测试执行，接错了也没人发现 | P2 | 已加守卫 |
 | BUG-366 | 2026-09-09 | 自动化接口为不存在的标签回报「已关闭」「已写入」 | P2 | 已修复 |
 | BUG-367 | 2026-09-09 | get_state 报的内容从没被任何测试核对过 | P3 | 已加守卫 |
+| BUG-368 | 2026-09-09 | 「关于」对话框显示 v1.0.1，而应用是 1.6.1 | P2 | 已修复 |
 
 ---
 
@@ -5985,3 +5986,72 @@ BUG-366 的信号是「测试给这一层传了桩，真正那一层就从没被
 
 - `lib/providers/mcp_provider.dart`（`_describe` → `describeState`）
 - `test/services/mcp_state_is_true_test.dart`（新增，9 条）
+
+---
+
+## BUG-368：「关于」显示的是五个版本前的号码
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-368 |
+| 日期 | 2026-09-09 |
+| 优先级 | P2 |
+| 状态 | 已修复 |
+
+### 现象
+
+帮助 → 关于，显示 **v1.0.1**。应用是 **1.6.1**。
+
+这是**唯一一个**读者主动打开来确认「我装的是哪一版」的地方。
+
+### 根因
+
+```dart
+applicationVersion: 'v1.0.1',     // 写死
+```
+
+全代码库唯一一处写死的版本号。`pubspec.yaml` 与 `AppConstants.appVersion`
+一直保持同步，只是**没人读它**。
+
+### 守卫为什么没拦住：它自己的注释就是那句假话
+
+`app_version_test` 的开头写着：
+
+> It is written twice — `version:` in pubspec.yaml, which names the build, and
+> `AppConstants.appVersion`, **which About shows** and the update check
+> compares against.
+
+「which About shows」——**从来不成立**。守卫比对了版本**应该**待的两个地方，
+却假定显示它的那个界面读的是其中之一，从没核对过。
+
+更能说明问题的是它记的历史：当年 issue #1 就是「About 报出的版本对不上任何发行版」，
+有人把常量改对当作修好了——而 About 压根没读那个常量。
+
+这是本库第三条排查视角的又一例：**一份清单对外宣称，另一份是实现，没人比较它们**。
+
+### 修复方案
+
+1. `applicationVersion: 'v${AppConstants.appVersion}'`
+2. 把对话框抽成具名的 `AppMenuBar.showAbout()`，让测试能真的打开它
+
+### 两条守卫，各管一段
+
+| 守卫 | 抓什么 |
+|------|--------|
+| `app_version_test`「nothing else writes a version out by hand」 | `lib/` 里任何写死的三段版本号（排除常量文件与生成的本地化） |
+| `about_says_this_version_test` | **真的打开对话框**，断言它显示 `v${appVersion}` |
+
+变异验证两者分工：
+
+| 变异 | 源码扫描 | 打开对话框 |
+|------|---------|-----------|
+| 版本又写死 | 红 | 红 |
+| **不写死，但根本不传版本** | **绿** | **红** |
+
+第二种正是扫描看不见的那类——所以两条都要。
+
+### 涉及文件
+
+- `lib/ui/widgets/app_menu_bar.dart`
+- `test/core/app_version_test.dart`
+- `test/ui/widgets/about_says_this_version_test.dart`（新增）

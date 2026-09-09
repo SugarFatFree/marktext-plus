@@ -1129,6 +1129,23 @@ class AppMenuBar extends ConsumerWidget {
   /// hand means knowing both that `%APPDATA%` is not expanded by PowerShell
   /// and what the version resource calls the company. Someone who has been
   /// asked for a log should not have to work that out.
+  /// The About box, which says which version this is.
+  ///
+  /// A named method rather than a closure inside the menu, so a test can open
+  /// it. The version here was the literal 'v1.0.1' through five releases, and
+  /// the guard comparing pubspec against the constant could not see it,
+  /// because nothing checked that this dialog reads either of them.
+  static void showAbout() {
+    final context = navigatorKey.currentContext;
+    if (context == null) return;
+    showAboutDialog(
+      context: context,
+      applicationName: 'MarkText Plus',
+      applicationVersion: 'v${AppConstants.appVersion}',
+      applicationLegalese: 'MIT License\nBased on MarkText by Luo Ran',
+    );
+  }
+
   static Future<void> _openDiagnosticLog() async {
     final context = navigatorKey.currentContext;
     final path = StartupTrace.logPath;
@@ -1159,15 +1176,8 @@ class AppMenuBar extends ConsumerWidget {
           child: Text(l10n.helpOpenDiagnosticLog),
         ),
         MenuItemButton(
+          onPressed: showAbout,
           child: Text(l10n.helpAbout),
-          onPressed: () {
-            showAboutDialog(
-              context: navigatorKey.currentContext!,
-              applicationName: 'MarkText Plus',
-              applicationVersion: 'v1.0.1',
-              applicationLegalese: 'MIT License\nBased on MarkText by Luo Ran',
-            );
-          },
         ),
         const Divider(height: 1),
         MenuItemButton(

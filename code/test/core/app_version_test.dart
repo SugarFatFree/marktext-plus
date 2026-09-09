@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -28,5 +29,37 @@ void main() {
     // suffix like `1.5.1-beta` would parse as nothing and compare as zero.
     expect(RegExp(r'^[0-9]+\.[0-9]+\.[0-9]+$').hasMatch(AppConstants.appVersion),
         isTrue, reason: AppConstants.appVersion);
+  });
+
+  test('nothing else in the app writes a version out by hand', () {
+    // The comment at the top of this file says `appVersion` is "what About
+    // shows". It was not: About passed `applicationVersion: 'v1.0.1'`, a
+    // literal, and had done through five minor releases. The guard compared
+    // the two places the version is *meant* to live and never asked whether
+    // the screen that shows it reads either of them.
+    final offenders = <String>[];
+    final version = RegExp(r"'v?[0-9]+\.[0-9]+\.[0-9]+'");
+    for (final entity in Directory('lib').listSync(recursive: true)) {
+      if (entity is! File || !entity.path.endsWith('.dart')) continue;
+      // The constant itself, and the generated localisations, which carry
+      // version numbers inside translated sentences.
+      if (entity.path.endsWith('core/constants.dart')) continue;
+      if (entity.path.contains('i18n/l10n')) continue;
+      final source = entity.readAsStringSync();
+      for (final line in const LineSplitter().convert(source)) {
+        if (line.trimLeft().startsWith('//')) continue;
+        if (line.contains('minAppVersion') || line.contains('example')) continue;
+        if (version.hasMatch(line)) {
+          offenders.add('${entity.path}: ${line.trim()}');
+        }
+      }
+    }
+
+    expect(
+      offenders,
+      isEmpty,
+      reason: '写死的版本号会在发版时被漏掉，而它就在用户看得到的地方：\n'
+          '${offenders.join('\n')}',
+    );
   });
 }
