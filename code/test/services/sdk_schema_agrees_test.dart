@@ -88,6 +88,52 @@ void main() {
     );
   }, skip: present ? null : 'SDK 仓库不在这台机器上');
 
+  /// Which way a lone pane is divided, in all twelve languages.
+  ///
+  /// The rule changed on 2026-09-07: a single pane used to sit beside the
+  /// document whatever slot it claimed, and now `bottom` puts it underneath.
+  /// `plugin_panes_layout_test` holds the editor to that. Nothing held the
+  /// SDK, so all twelve READMEs went on stating the abandoned rule —
+  /// "one pane is one pane whichever slot it claimed" — while the official
+  /// plugins were already relying on the new one. A third-party author
+  /// filling only `bottom` was told they would get a pane beside the
+  /// document and got one below it.
+  ///
+  /// Counted rather than read, because the sentence is in eleven languages
+  /// and the guard cannot be. `bottom` is an identifier and does not
+  /// translate: the paragraph names it once as a slot, and a second time
+  /// saying which way that slot goes. One mention means the direction
+  /// sentence is missing.
+  test('every language says which way a lone bottom pane goes', () {
+    if (!present) return;
+
+    for (final file in [
+      File('$repo/README.md'),
+      ...Directory('$repo/docs/i18n')
+          .listSync()
+          .whereType<File>()
+          .where((f) => f.path.endsWith('.md')),
+    ]) {
+      final named = file
+          .readAsStringSync()
+          .split('\n\n')
+          .where((p) =>
+              p.contains('`right`') &&
+              p.contains('`bottom`') &&
+              p.contains('`corner`'))
+          .toList();
+
+      expect(named.length, greaterThanOrEqualTo(2),
+          reason: '${file.path} 找不到讲槽位名的那两段，取法要跟着改');
+      expect(
+        '`bottom`'.allMatches(named[1]).length,
+        greaterThanOrEqualTo(2),
+        reason: '${file.path} 只把 bottom 当名字列了一次，'
+            '没说填它会把窗格放到文档下面',
+      );
+    }
+  }, skip: present ? null : 'SDK 仓库不在这台机器上');
+
   test('the schema names the permissions the editor grants', () {
     expect(
       enumAt(schema(), ['properties', 'permissions', 'items']).toSet(),

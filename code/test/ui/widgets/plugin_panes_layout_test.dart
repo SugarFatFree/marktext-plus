@@ -113,6 +113,12 @@ void main() {
     // lines are the same width and the eye compares by dropping down rather
     // than across. Manual testing asked for the choice; the plugin makes it
     // with the slot it fills, and the reader can flip it.
+    //
+    // The rule is also written down in the SDK's README, in twelve
+    // languages, where plugin authors read it — and it went on stating the
+    // old one after this changed, so an author filling only `bottom` was
+    // told they would get a pane beside the document. Whoever changes this
+    // again changes those too; `sdk_schema_agrees_test` now counts.
     await pump(tester, withPanes({PluginPaneSlot.bottom: 'b'}));
 
     final document = tester.getSize(find.byKey(const Key('document')));
