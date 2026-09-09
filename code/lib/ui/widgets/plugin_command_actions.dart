@@ -501,7 +501,12 @@ class PluginCommandActions {
               return;
             }
             // Through the history first, so one press of undo takes it back.
-            container.read(editorProvider.notifier).pushHistory(edit.before);
+            // Named, because a `replace` can arrive while the reader is in
+            // preview mode, where nothing has said which tab the history
+            // belongs to.
+            container
+                .read(editorProvider.notifier)
+                .pushHistory(edit.before, tabId: tabId);
             container.read(tabProvider.notifier).updateContent(
                   tabId,
                   edit.after,

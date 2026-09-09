@@ -400,8 +400,18 @@ class EditorNotifier extends StateNotifier<EditorState> {
     state = state.copyWith(clearFormat: true);
   }
 
-  void pushHistory(String content) {
-    final stack = _undoStack;
+  /// Records [content] as a state undo can come back to.
+  ///
+  /// [tabId] says whose history this belongs to. It matters because only the
+  /// source editor ever names the current tab, and in preview mode there is no
+  /// source editor: a plugin writing into the document from there pushed its
+  /// entry onto whichever tab was named last — a different document, or none —
+  /// so the change it made could not be taken back, and undo in *that* tab
+  /// would have written this document's text into it.
+  void pushHistory(String content, {String? tabId}) {
+    final stack = tabId == null
+        ? _undoStack
+        : _undoStacks.putIfAbsent(tabId, () => []);
     if (stack.isNotEmpty && stack.last.text == content) return;
 
     stack.add((text: content, caret: _caret));
@@ -409,8 +419,12 @@ class EditorNotifier extends StateNotifier<EditorState> {
       // Oldest first: the recent past is what undo is for.
       stack.removeRange(0, stack.length - _maxHistory);
     }
-    _redoStack.clear();
-    _updateUndoRedoState();
+    if (tabId == null || tabId == _historyKey) {
+      _redoStack.clear();
+      _updateUndoRedoState();
+    } else {
+      _redoStacks.putIfAbsent(tabId, () => []).clear();
+    }
   }
 
   void undo() {

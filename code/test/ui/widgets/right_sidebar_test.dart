@@ -11,6 +11,9 @@ import 'package:marktext_plus/core/config/app_config.dart';
 import 'package:marktext_plus/core/config/config_service.dart';
 import 'package:marktext_plus/providers/settings_provider.dart';
 import 'package:marktext_plus/ui/widgets/plugin_tip.dart';
+import 'package:marktext_plus/models/tab_info.dart';
+import 'package:marktext_plus/providers/tab_provider.dart';
+import 'package:marktext_plus/providers/editor_provider.dart';
 import 'package:marktext_plus/providers/mcp_provider.dart';
 import 'package:marktext_plus/ui/widgets/right_side_bar.dart';
 
@@ -63,7 +66,10 @@ void main() {
         settingsProvider.overrideWith(
           (ref) => SettingsNotifier(
             ConfigService(configDir: support.path),
-            AppConfig(),
+            // Off, or writing to a tab arms a five-second timer that outlives
+            // the test — which fails as "a Timer is still pending" and says
+            // nothing about the drawer.
+            AppConfig(autoSave: false),
           ),
         ),
       ],
@@ -622,6 +628,99 @@ end
       find.byKey(const Key('plugin-drawer-follow')),
       findsNothing,
       reason: '这个命令不问问题，追加的要求没有地方可去，就不该摆出输入框',
+    );
+  });
+
+  testWidgets('pressing that button puts the rewrite in the document',
+      (tester) async {
+    // The tests above check the button is drawn. Whether it does anything was
+    // never checked — and BUG-369 was exactly a button-shaped gap, so "it is
+    // there" is not the assertion that matters.
+    install(
+      'com.example.demo',
+      panels: [
+        {'id': 'rewrite', 'title': 'Rewrite', 'icon': 'list'},
+      ],
+      permissions: const ['ui.sidebar', 'document.read', 'document.write'],
+      script: 'function on_command(ctx)\n'
+          '  return { pane = "NEW", title = "Rewrite",\n'
+          '           apply = true, replaces = "OLD" }\n'
+          'end\n',
+    );
+    final container = await pumpWithContainer(tester);
+    container.read(tabProvider.notifier).addTab(
+      TabInfo(id: 'doc', fileName: 'a.md', content: 'before OLD after'),
+    );
+    container.read(tabProvider.notifier).setActiveTab('doc');
+    await tester.pump();
+
+    await tester.tap(find.byIcon(Icons.list));
+    await settlePlugin(tester);
+    await tester.tap(find.byKey(const Key('plugin-drawer-apply')));
+    await tester.pumpAndSettle();
+
+    expect(
+      container.read(tabProvider).tabs.single.content,
+      'before NEW after',
+      reason: '按了「采用」，文档没有变',
+    );
+    expect(
+      find.byKey(const Key('plugin-drawer-apply')),
+      findsNothing,
+      reason: '采用之后抽屉该收起来，否则会被采用第二次',
+    );
+  });
+
+  testWidgets('the undo entry lands on the tab that was changed', (tester) async {
+    // Only the source editor ever says which tab the undo history belongs to,
+    // and in preview mode — which is where this drawer is used — there is no
+    // source editor. So the entry went onto whichever tab was named last: a
+    // different document, or none. The change could then not be taken back,
+    // and undo in *that* tab would have written this document's text into it.
+    install(
+      'com.example.demo',
+      panels: [
+        {'id': 'rewrite', 'title': 'Rewrite', 'icon': 'list'},
+      ],
+      permissions: const ['ui.sidebar', 'document.read', 'document.write'],
+      script: 'function on_command(ctx)\n'
+          '  return { pane = "NEW", title = "Rewrite",\n'
+          '           apply = true, replaces = "OLD" }\n'
+          'end\n',
+    );
+    final container = await pumpWithContainer(tester);
+    container.read(tabProvider.notifier).addTab(
+      TabInfo(id: 'doc', fileName: 'a.md', content: 'before OLD after'),
+    );
+    container.read(tabProvider.notifier).setActiveTab('doc');
+
+    final editor = container.read(editorProvider.notifier);
+    // An earlier state of this document, as a source editor would have left
+    // behind. Deliberately not the text the rewrite replaces: pushing the same
+    // text twice is skipped, and the check below would then see nothing.
+    editor.setHistoryTab('doc');
+    editor.pushHistory('an earlier draft');
+    // And then the reader was last in a source editor on some other tab.
+    editor.setHistoryTab('other');
+    await tester.pump();
+
+    await tester.tap(find.byIcon(Icons.list));
+    await settlePlugin(tester);
+    await tester.tap(find.byKey(const Key('plugin-drawer-apply')));
+    await tester.pumpAndSettle();
+
+    editor.setHistoryTab('doc');
+    expect(
+      container.read(editorProvider).canUndo,
+      isTrue,
+      reason: '插件改了这个标签，撤销记录却记到了别的标签上',
+    );
+
+    editor.setHistoryTab('other');
+    expect(
+      container.read(editorProvider).canUndo,
+      isFalse,
+      reason: '别的标签不该多出一条它自己没有做过的改动',
     );
   });
 }
