@@ -109,23 +109,36 @@ class PluginCommandService {
       PluginReplaceAction() => PluginPermission.documentWrite,
       PluginNotifyAction() => PluginPermission.uiNotifications,
       PluginPaneAction() || PluginPanelAction() => PluginPermission.uiSidebar,
-      // `show`, `ask` and `diff` are deliberately absent, and this note is
-      // here because they look exactly like an omission — they reach the
-      // reader as surely as a notification does, and I started adding them
-      // before finding the test that says otherwise, by name: "showing a
-      // result needs no permission at all".
+      // The five that need nothing, named rather than swallowed by `_`.
       //
-      // The case for leaving them: they are how a command answers the reader
-      // who just ran it. A plugin that may not answer cannot do anything, so
-      // requiring the permission would mean every plugin declares it — and a
-      // permission everybody holds tells the reader nothing. `notify` is the
-      // one that can speak without being asked a question.
+      // Written out because the wildcard defended one direction only. The
+      // note above says a new *caller* cannot forget to ask — and that was
+      // true — but a new *action* could: an eleventh kind added to the
+      // sealed family fell into `_`, needed no permission, and the compiler
+      // had nothing to say about it. Listed like this, adding one is a
+      // compile error until somebody decides which of the two lists it
+      // joins. The wildcard also quietly held `ui` and `no action`, which
+      // the paragraph below never mentioned.
+      //
+      // Why these five need nothing: they are how a command answers the
+      // reader who just ran it. A plugin that may not answer cannot do
+      // anything, so requiring a permission would mean every plugin declares
+      // it — and a permission everybody holds tells the reader nothing.
+      // `notify` is the one that can speak without being asked a question.
+      // `ui` draws into the container the command came from, which is the
+      // same act as showing a result; the container it would need permission
+      // for — a pane — asks for it on its own line above.
       //
       // The case against is real too: a card sits over the document and
       // stays until it is closed, which is more of the reader's screen than
       // a notification takes. Whoever settles this should settle it out
       // loud, here.
-      _ => null,
+      PluginAskAction() ||
+      PluginShowAction() ||
+      PluginDiffAction() ||
+      PluginUiAction() ||
+      PluginNoAction() =>
+        null,
     };
     if (needed == null || manifest.hasPermission(needed)) return action;
     // Reported to the reader rather than dropped: a plugin that does nothing

@@ -124,6 +124,7 @@
 | BUG-379 | 2026-09-09 | 日志里的启动耗时只是其中一段，读起来像是全部 | P3 | 已修复 |
 | BUG-380 | 2026-09-09 | macOS 的 zip 把符号链接展开，包大三倍且 bundle 结构损坏 | P2 | 已修复 |
 | BUG-381 | 2026-09-09 | README 上「22 种图表 / 8 个主题」没有任何对账 | P3 | 已加守卫 |
+| BUG-382 | 2026-09-09 | 权限守卫的兜底会放行将来新增的动作类型 | P2 | 已修复 |
 
 ---
 
@@ -6737,3 +6738,63 @@ README 首页上有两个可数的承诺：**「22 diagram types」**和**「8 t
    数字和列举是两个承诺，只有一个是数字
 
 变异验证：日文版数字没跟上 → 第 2 条红；英文版数字仍是 22 但列举少一个 → 第 4 条红。
+
+## BUG-382：防「新调用者忘记问」的守卫，防不住新动作
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-382 |
+| 日期 | 2026-09-09 |
+| 优先级 | P2 |
+| 状态 | 已修复 |
+
+### 问题
+
+v1.6.2 把 17 项权限收敛到一处强制，`PluginCommandService._guard`，
+它自己的注释写着这么做的理由：
+
+> Enforced here rather than where the action is carried out, so every caller
+> gets the same answer and **a new caller cannot forget to ask**.
+
+这句话只对了一半。它防住了新的**调用者**，没防住新的**动作**——
+那个 switch 以 `_ => null` 收尾，`PluginScriptAction` 这个 sealed 族
+将来加第 11 个成员，会静静落进兜底、**什么权限都不需要**，
+而编译器一声不吭。
+
+兜底里还躺着两个从没被那段推理提到过的成员：`PluginUiAction`（往读者的容器里
+画一棵控件树）和 `PluginNoAction`。注释只交代了 `show`、`ask`、`diff` 三个。
+
+### 根因
+
+`_ => null` 是通配，Dart 对含通配的 switch 不做穷尽性检查。
+守卫的形状与它要防的方向不一致：它在**动作 → 权限**这个映射上开了个默认出口，
+而这个映射恰恰是「有没有人替新东西做过决定」的唯一记录。
+
+### 修复
+
+把兜底换成五个成员各自列名（`Ask` / `Show` / `Diff` / `Ui` / `NoAction`），
+**行为一字未变**，但族里加第 11 个成员就编译不过：
+
+```
+error - The type 'PluginScriptAction' isn't exhaustively matched by the switch
+cases since it doesn't match the pattern 'PluginEleventhAction()'.
+- non_exhaustive_switch_expression
+```
+
+同时把 `ui` 为什么不需要权限写进注释：它画的树落在**命令发起的那个容器**里，
+而唯一值得要权限的容器——文档旁边的窗格——在上一行自己申请 `ui.sidebar`。
+
+### 验证：两种假设要能区分
+
+| 做法 | 编译器 |
+|------|--------|
+| 新写法 + 第 11 个成员 | **error，non_exhaustive_switch_expression** |
+| 旧写法（`_ => null`）+ 同一个成员 | **No issues found!**（放行） |
+
+只做第一步会把「新写法拦住了」和「因为别的原因报错」混为一谈。
+
+### 涉及文件
+
+- `code/lib/services/plugin_command_service.dart` — 兜底改为穷尽列举
+- `code/test/services/plugin_permission_guard_test.dart` — 补两条：
+  没声明权限的插件仍能画控件树；什么都不做不需要任何权限

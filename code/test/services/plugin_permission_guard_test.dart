@@ -91,6 +91,37 @@ void main() {
     });
   });
 
+  /// The other half of the guard: what needs no permission, and why.
+  ///
+  /// Five of the ten actions ask for nothing — `show`, `ask`, `diff`, `ui`
+  /// and doing nothing at all. They are how a command answers the reader who
+  /// ran it, and a permission every plugin must declare tells that reader
+  /// nothing. `notify` is the one that can speak unasked, which is why it is
+  /// on the other list.
+  ///
+  /// `ui` is here on purpose and is the one worth writing down: it draws a
+  /// tree of controls rather than a line of text, which looks like more than
+  /// showing a result. It lands in the container the command came from — and
+  /// the container that would be worth a permission, a pane beside the
+  /// document, asks for `ui.sidebar` on its own account.
+  group('what needs no permission, and is meant not to', () {
+    test('a plugin that declared nothing can still draw a tree of controls',
+        () {
+      final action = run(install(
+        'drawer',
+        '{ ui = { text = "hello" }, title = "Demo" }',
+        const [],
+      ));
+
+      expect(action, isA<PluginUiAction>(),
+          reason: '答复读者刚运行的命令不该要权限；要求它等于人人都声明');
+    });
+
+    test('doing nothing needs nothing', () {
+      expect(run(install('quiet', 'nil', const [])), isA<PluginNoAction>());
+    });
+  });
+
   group('what a plugin that asked can do', () {
     test('a declared notification is raised', () {
       final action = run(
