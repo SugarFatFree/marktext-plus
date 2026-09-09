@@ -232,11 +232,16 @@ flutter clean
 ## 已知问题和限制
 
 ### Windows 平台
-- **Windows on ARM**: 暂时做不了。GitHub 的 ARM runner 可用，引擎产物
-  （`windows-arm64`）存在，flutter 工具也认 `TargetPlatform.windows_arm64` 并会给
-  CMake 传 `-A ARM64`——但 `build_windows.dart` 只按宿主 ABI 选目标、没有开关，
-  且 Flutter **不发布 arm64 的 Windows SDK**（`flutter_windows_arm64_*.zip` 为 404，
-  releases 清单 732 条全是 x64）。等上游发包，理由记在 `.github/workflows/release.yml` 里
+- **Windows on ARM**: **已经能出包了**（v1.6.1 起随发行版一起发）。
+  这里曾长期写着「做不了」，理由是 Flutter 不发布 arm64 的 Windows SDK
+  ——releases 清单 732 条全是 x64，这一点至今仍然成立。
+  **它掩盖的是**：arm64 的 Dart SDK 与引擎二进制从 3.44.0 起就在存储桶里，
+  只是发行 zip 不打包它们，而 `engine-dart-sdk.stamp` 钉死了里面那个 x64 的。
+  删掉这个 stamp、在 arm64 PowerShell 里重跑更新器就会取到 arm64 的，
+  `flutter build windows` 随即按宿主出 arm64。
+  做法与踩过的坑写在 `.github/workflows/release.yml`，包括一条**必须保留**的校验：
+  编译成功不等于编译出了要的东西——arm64 宿主配 x64 Dart SDK 会**悄悄产出 x64**，
+  所以 CI 直接读 PE 头的 machine 字段（`0xAA64` / `0x8664`）来对账
 - **单实例模式**: 依赖 `windows_single_instance` 包，仅 Windows 支持
 - **文件关联**: 需要通过 MSIX 安装包才能正确关联 `.md` 文件
 - **换行符**: 已修复 `\r\n` 导致 Markdown 语法失效的问题

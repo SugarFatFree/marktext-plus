@@ -128,4 +128,48 @@ void main() {
           reason: '$asset 用架构名命名了一个通用二进制');
     }
   });
+
+  test('the macOS zip keeps the bundle a bundle', () {
+    // A `.app` is full of symlinks — `Versions/Current`, and the framework
+    // binary and Resources beside it — and `zip -r` without `-y` follows them
+    // and stores what they point at. Every framework binary then goes in
+    // twice, which is why the published zip is 76 MB beside a 25 MB dmg of the
+    // same application, and why what comes out of it is a bundle with real
+    // files where its symlinks should be.
+    //
+    // `ditto -c -k --keepParent` is what Apple's own tooling uses and keeps
+    // both. `zip -ry` would keep the links too; ditto also keeps the metadata.
+    final workflow = File('../.github/workflows/release.yml').readAsStringSync();
+    expect(workflow, isNotEmpty, reason: '读不到 release.yml，这条检查会变成空话');
+
+    // The command block around the archive's own name. Not "the line naming
+    // it": the command wraps, so the name and the command that makes it are on
+    // different lines. Not "the step called Package zip" either — every
+    // platform has one of those.
+    final at = workflow.indexOf('macos-universal.zip');
+    expect(at, isNot(-1), reason: 'release.yml 里找不到 macOS 的 zip，取法要跟着改');
+    final from = workflow.lastIndexOf('- name:', at);
+    final to = workflow.indexOf('- name:', at);
+    final body = workflow.substring(
+      from == -1 ? 0 : from,
+      to == -1 ? workflow.length : to,
+    );
+
+    // Commands only. The comment above the command names both tools to explain
+    // the choice, so a check that reads the whole block passes on the strength
+    // of the comment even after the command underneath it changes back — which
+    // is what the first version of this did.
+    final commands = body
+        .split('\n')
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty && !line.startsWith('#'))
+        .join('\n');
+
+    expect(
+      commands,
+      anyOf(contains('ditto'), matches(RegExp(r'zip\s+-\w*y'))),
+      reason: '这样打出来的 zip 会把符号链接展开成重复文件，'
+          '包大三倍，解开还是个结构坏掉的 bundle',
+    );
+  });
 }

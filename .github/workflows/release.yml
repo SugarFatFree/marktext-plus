@@ -203,7 +203,14 @@ jobs:
       - name: Package zip
         run: |
           cd code/build/macos/Build/Products/Release
-          zip -r "${{ github.workspace }}/marktext-plus-${{ github.ref_name }}-macos-universal.zip" "MarkText Plus.app"
+          # `ditto`, not `zip -r`: a .app is full of symlinks — Versions/Current,
+          # and the binary and Resources beside it — and plain `zip -r` follows
+          # them and stores what they point at. Every framework binary went in
+          # twice, which is why this was 76 MB beside a 25 MB dmg of the same
+          # application, and what came out of it had real files where the
+          # bundle's symlinks belong.
+          ditto -c -k --sequesterRsrc --keepParent "MarkText Plus.app" \
+            "${{ github.workspace }}/marktext-plus-${{ github.ref_name }}-macos-universal.zip"
 
       - name: Install create-dmg
         run: brew install create-dmg
