@@ -49,6 +49,45 @@ void main() {
     return ((here as Map<String, dynamic>)['enum'] as List).cast<String>();
   }
 
+  /// The fields themselves, not only the values inside them.
+  ///
+  /// The eleven checks below hold the *contents* of the schema to the editor
+  /// — which permissions, which runtimes, which icons. Nothing held the list
+  /// of fields, and the schema says `additionalProperties: false`, so the two
+  /// ways of getting this wrong land on the author from opposite directions:
+  /// a field the editor reads and the schema omits is reported to them as an
+  /// invalid manifest for using a real feature; a field the schema allows and
+  /// the editor ignores is one they write and nothing happens.
+  ///
+  /// The editor's side is read out of `PluginManifest.fromJson`'s own
+  /// arguments, so it cannot drift from a list typed here.
+  test('the schema names the fields the editor reads, and only those', () {
+    final source =
+        File('lib/services/plugin_manifest.dart').readAsStringSync();
+    final start = source.indexOf('factory PluginManifest.fromJson');
+    expect(start, isNot(-1), reason: '找不到 fromJson，取法要跟着改');
+    final constructed = RegExp(r'^\s+([a-zA-Z]+):', multiLine: true)
+        .allMatches(source.substring(start, source.indexOf('\n  }', start)))
+        .map((m) => m.group(1)!)
+        .toSet();
+    expect(constructed.length, greaterThan(10),
+        reason: '读出的字段太少，取法要跟着改');
+
+    final declared = (schema()['properties'] as Map<String, dynamic>).keys.toSet();
+
+    expect(
+      declared.difference(constructed).toList()..sort(),
+      isEmpty,
+      reason: 'schema 允许的字段编辑器不读——作者写了不会有任何反应',
+    );
+    expect(
+      constructed.difference(declared).toList()..sort(),
+      isEmpty,
+      reason: '编辑器读的字段 schema 没声明——additionalProperties 为 false，'
+          '作者用真实功能反而被判无效',
+    );
+  }, skip: present ? null : 'SDK 仓库不在这台机器上');
+
   test('the schema names the permissions the editor grants', () {
     expect(
       enumAt(schema(), ['properties', 'permissions', 'items']).toSet(),
