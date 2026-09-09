@@ -77,6 +77,14 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
   /// readable while a later one is being written.
   final List<({String asked, String answer})> _turns = [];
 
+  /// Whether this panel's command asks what to do.
+  ///
+  /// A follow-up reaches the plugin as the answer to that question, so a
+  /// command that never asks has nowhere to read one. Offering the box anyway
+  /// would take the reader's words and drop them, which is the editor saying
+  /// it can do something it cannot.
+  bool _panelAsks = false;
+
   /// What the reader last asked for, so the answer can be filed under it.
   String _asked = '';
 
@@ -293,6 +301,7 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
       _canApply = false;
       _replaces = '';
       _render = PluginPaneRender.text;
+      _panelAsks = false;
       _turns.clear();
       _follow.clear();
       _closeUi();
@@ -351,6 +360,7 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
           required String suggested,
         }) {
           if (!mounted || _open != key) return Future.value(null);
+          _panelAsks = true;
           // Being driven, or following up: answer as a reader would rather
           // than waiting for one.
           final automatic = _automaticAnswer;
@@ -517,7 +527,7 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
                               // with its first answer: not liking it meant
                               // closing the drawer and describing the whole
                               // thing again.
-                              if (_turns.isNotEmpty) ...[
+                              if (_turns.isNotEmpty && _panelAsks) ...[
                                 const SizedBox(height: 12),
                                 Row(
                                   crossAxisAlignment:

@@ -596,4 +596,32 @@ end
       expect(find.byKey(const Key('plugin-drawer-apply')), findsOneWidget);
     });
   });
+
+  testWidgets('a panel that never asks does not offer a box that goes nowhere',
+      (tester) async {
+    // The follow-up reaches the plugin as the answer to the question it asks.
+    // A command that asks nothing — proofreading, in the official plugin —
+    // never reads one, so a box saying "ask for a change" would take the
+    // reader's words and drop them.
+    install(
+      'com.example.demo',
+      panels: [
+        {'id': 'check', 'title': 'Check', 'icon': 'list'},
+      ],
+      script: 'function on_command(ctx)\n'
+          '  return { pane = "CHECKED", title = "Check" }\n'
+          'end\n',
+    );
+    await pump(tester);
+
+    await tester.tap(find.byIcon(Icons.list));
+    await settlePlugin(tester);
+
+    expect(find.text('CHECKED'), findsOneWidget);
+    expect(
+      find.byKey(const Key('plugin-drawer-follow')),
+      findsNothing,
+      reason: '这个命令不问问题，追加的要求没有地方可去，就不该摆出输入框',
+    );
+  });
 }
