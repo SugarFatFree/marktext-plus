@@ -166,4 +166,37 @@ void main() {
     expect(preview.position.pixels, greaterThan(0),
         reason: '源码回到了中间，预览还停在顶部——两半错开了');
   });
+
+  testWidgets('scrolling the preview back up brings the source back up',
+      (tester) async {
+    // Reported from a running build: scrolling or dragging in the source half
+    // is fine, but scrolling *up* in the preview often threw the source to the
+    // very bottom. Down then up, watching where the source lands.
+    await show(tester);
+    final source = scrollableIn(tester, SourceEditor);
+    final preview = scrollableIn(tester, MarkdownRenderer);
+
+    preview.position.jumpTo(preview.position.maxScrollExtent * 0.8);
+    await tester.pumpAndSettle();
+    final deep = source.position.pixels;
+    expect(deep, greaterThan(100), reason: '先得真的滚下去，否则下面没有意义');
+
+    // Back up, a few steps, the way a wheel arrives.
+    for (final fraction in [0.6, 0.4, 0.2, 0.0]) {
+      preview.position.jumpTo(preview.position.maxScrollExtent * fraction);
+      await tester.pumpAndSettle();
+      expect(
+        source.position.pixels,
+        lessThanOrEqualTo(deep + 1),
+        reason: '预览往回滚，源码却没有跟着往回——'
+            '停在 ${source.position.pixels}，之前是 $deep',
+      );
+    }
+
+    expect(
+      source.position.pixels,
+      lessThan(deep),
+      reason: '预览回到顶部，源码该跟着回来，而不是留在下面',
+    );
+  });
 }

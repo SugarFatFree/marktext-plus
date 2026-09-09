@@ -1414,10 +1414,19 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     final rect =
         editable.getLocalRectForCaret(TextPosition(offset: starts[index]));
     final lineTop = editable.localToGlobal(Offset(0, rect.top)).dy;
-    final paneTop = box.localToGlobal(Offset.zero).dy;
 
+    // The viewport's top, not the field's. The field scrolls with the content,
+    // so its own top is the current offset negated — and adding that to the
+    // offset counted the scrolling twice. From the top of the document the two
+    // agree and this looked right; anywhere else the error grew with the
+    // offset, so scrolling the preview back up threw the source to the bottom.
     final position = _editorScrollController.position;
-    final target = (_editorScrollController.offset + (lineTop - paneTop))
+    final viewport =
+        position.context.storageContext.findRenderObject() as RenderBox?;
+    if (viewport == null || !viewport.hasSize) return;
+    final viewportTop = viewport.localToGlobal(Offset.zero).dy;
+
+    final target = (_editorScrollController.offset + (lineTop - viewportTop))
         .clamp(position.minScrollExtent, position.maxScrollExtent);
     if ((target - _editorScrollController.offset).abs() < 1) return;
     _movedByPreview = DateTime.now();
