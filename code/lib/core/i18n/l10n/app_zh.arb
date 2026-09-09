@@ -470,5 +470,6 @@
   },
   "pluginApply": "采用",
   "pluginApplied": "已写入文档",
-  "pluginFollowUpHint": "继续提要求…"
+  "pluginFollowUpHint": "继续提要求…",
+  "pluginSend": "发送"
 }

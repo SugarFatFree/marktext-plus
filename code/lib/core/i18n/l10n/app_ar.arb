@@ -470,5 +470,6 @@
   },
   "pluginApply": "تطبيق",
   "pluginApplied": "طُبِّق على المستند",
-  "pluginFollowUpHint": "اطلب تعديلاً…"
+  "pluginFollowUpHint": "اطلب تعديلاً…",
+  "pluginSend": "إرسال"
 }

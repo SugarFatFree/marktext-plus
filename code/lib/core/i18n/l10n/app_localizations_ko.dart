@@ -1196,4 +1196,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get pluginFollowUpHint => '수정 요청…';
+
+  @override
+  String get pluginSend => '보내기';
 }

@@ -1221,4 +1221,7 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get pluginFollowUpHint => 'Chiedi una modifica…';
+
+  @override
+  String get pluginSend => 'Invia';
 }

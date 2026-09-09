@@ -1218,6 +1218,9 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get pluginFollowUpHint => 'Peça uma alteração…';
+
+  @override
+  String get pluginSend => 'Enviar';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -2432,4 +2435,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get pluginFollowUpHint => 'Peça uma alteração…';
+
+  @override
+  String get pluginSend => 'Enviar';
 }

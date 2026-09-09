@@ -538,6 +538,7 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
                   ),
                 ),
               IconButton(
+                tooltip: l10n.close,
                 icon: const Icon(Icons.close, size: 16),
                 onPressed: _close,
                 padding: EdgeInsets.zero,

@@ -130,6 +130,8 @@
 | BUG-385 | 2026-09-10 | SDK schema 的字段清单本身没人与编辑器对账 | P3 | 已加守卫 |
 | BUG-386 | 2026-09-10 | 整个插件界面对所有语言的读者都说英语 | P1 | 已修复 |
 | BUG-387 | 2026-09-10 | 右起阅读时代码块的行号被甩到代码另一边 | P1 | 已修复 |
+| BUG-388 | 2026-09-10 | 四个只有图标的按钮读屏软件念不出名字 | P2 | 已修复 |
+| BUG-389 | 2026-09-10 | 一个死掉的组件在文档注释里描述已废弃的架构 | P2 | 已修复 |
 
 ---
 
@@ -7154,3 +7156,111 @@ Expected: a value less than <40.0>
   `plugin_settings_screen.dart`、`settings_screen.dart`
 - `code/test/ui/editor/rtl_keeps_code_readable_test.dart`（新增）
 - `code/test/ui/layout_follows_the_reading_direction_test.dart`（新增）
+
+## BUG-388：只有图标的按钮，读屏软件只会念「按钮」
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-388 |
+| 日期 | 2026-09-10 |
+| 优先级 | P2 |
+| 状态 | 已修复 |
+
+### 问题
+
+Flutter 会把 `IconButton` 的 `tooltip` **同时**当作它的无障碍名字：
+悬停时显示的词，也就是读屏软件念出的词。没有它，按钮被念作「按钮」，
+而对其他人也只是一个字形上的猜测。
+
+全库 36 个 `IconButton` 里 **28 个带 tooltip**——纪律是存在的，4 个没跟上：
+
+| 位置 | 按钮 |
+|------|------|
+| `find_replace_bar` | 查找栏的关闭 × |
+| `right_side_bar` | 插件抽屉的发送 |
+| `side_bar` | 文件搜索 |
+| `editor_tab_bar` | 标签页的关闭 ×（它是 `GestureDetector`，需要外包 `Tooltip`） |
+
+### 修复
+
+三处复用现成键（`close`、`sidebarSearch`、`fileCloseTab`），
+新增 `pluginSend` × 12 种语言。
+
+> 插进 ARB 时踩了一次：11 份文件里 `pluginFollowUpHint` 是**最后一项、没有尾逗号**
+> （只有英文那份后面跟着 `@` 说明块），插在它后面直接破坏了 JSON。
+> `flutter gen-l10n` 报的是 `FormatException`。修完逐份 `json.loads` 验过，
+> 12 份都是 378 键。
+
+### 守卫
+
+`icon_buttons_have_names_test`：括号配平地取出每个 `IconButton` 自己的实参表
+（免得把嵌套按钮的 tooltip 算到外层头上），没有 `tooltip:` 就红。
+
+### 验证
+
+拿掉侧栏搜索的 tooltip → 红：`Actual: ['lib/ui/widgets/side_bar.dart:787']`。
+
+### 涉及文件
+
+- `code/lib/ui/widgets/find_replace_bar.dart`、`right_side_bar.dart`、
+  `side_bar.dart`、`editor_tab_bar.dart`
+- `code/lib/core/i18n/l10n/app_*.arb`（12 份）+ 生成物
+- `code/test/ui/icon_buttons_have_names_test.dart`（新增）
+
+## BUG-389：死代码在文档注释里描述已经废弃的架构
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-389 |
+| 日期 | 2026-09-10 |
+| 优先级 | P2 |
+| 状态 | 已修复 |
+
+### 问题
+
+`DiagramWidget` 定义了、**全库无人使用**，而它的文档注释这样写：
+
+> Mermaid diagrams are rendered in exported HTML **via CDN script**.
+> In the editor preview, we show **the source code with a visual indicator**.
+
+**两句现在都不成立**——编辑器早已用纯 Dart 渲染 22 种图表，
+HTML 导出也改成了内嵌（只有含数学公式时才取 KaTeX）。
+所以它不只是浪费，**打开它的人会学到两件关于本项目架构的假事**。
+
+同一把尺子量出来一共 5 个：
+
+| 类型 | 行数 | 是什么 |
+|------|------|--------|
+| `DiagramWidget` | 76（整个文件） | 上面那个 |
+| `ParseToken` + `TokenType` | 55 | 一整套词法记号词汇表——**而这个解析器是按行处理的，从来没有词法器** |
+| `MermaidThemes` | 30 | 一张没人读的主题表 |
+| `ClassRelationType` | 26 | 枚举 |
+| `ErCardinality` | 14 | 枚举 |
+
+### 判据：三次才取对
+
+| 规则 | 结果 |
+|------|------|
+| 「定义文件之外无人提及」 | 25 个，**多数是在自己文件内被用**（如 `FileNotifier`），全是误报 |
+| 「只有声明行提到自己」 | 2 个，**漏掉了 `DiagramWidget`**（它的构造器在同文件里提到了自己） |
+| **「排除类型自身的定义范围后无人提及」** | **5 个，零误报** |
+
+第三条之所以对：`PreviewEditableBlockState` 被 `createState()` 提到，
+而那句在**另一个类**的范围里，所以它正确存活。
+
+### 守卫
+
+`nothing_is_written_and_left_unused_test`，用第三条判据。
+本库「写好了却没接上」已知第五、六例，值得一条守卫。
+
+### 验证
+
+把 `ErCardinality` 放回去 → 红：
+`Actual: ['lib/ui/editor/mermaid/models/er_diagram.dart:2  ErCardinality']`。
+
+### 涉及文件
+
+- 删除 `code/lib/ui/widgets/diagram_widget.dart`
+- `code/lib/ui/editor/mermaid/parser/mermaid_parser.dart`、
+  `models/class_diagram.dart`、`models/er_diagram.dart`、`models/style.dart`
+- `code/test/nothing_is_written_and_left_unused_test.dart`（新增）

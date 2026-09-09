@@ -1222,4 +1222,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get pluginFollowUpHint => 'Demander une modification…';
+
+  @override
+  String get pluginSend => 'Envoyer';
 }

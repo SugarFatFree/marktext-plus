@@ -129,32 +129,6 @@ class ClassBox {
 /// Kind of relationship between two classes.
 ///
 /// Mermaid spells these as `<|--`, `*--`, `o--`, `-->`, `--`, `..>`, `..|>`
-/// and `..`.
-enum ClassRelationType {
-  /// `<|--` — B is a subclass of A.
-  inheritance,
-
-  /// `*--` — A is composed of B.
-  composition,
-
-  /// `o--` — A aggregates B.
-  aggregation,
-
-  /// `-->` — directed association.
-  association,
-
-  /// `--` — plain link, no arrow head.
-  link,
-
-  /// `..>` — dashed dependency.
-  dependency,
-
-  /// `..|>` — dashed realization of an interface.
-  realization,
-
-  /// `..` — dashed link, no arrow head.
-  dashedLink,
-}
 
 /// Everything a class-diagram painter needs beyond the generic node/edge graph.
 class ClassDiagramData {

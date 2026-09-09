@@ -693,6 +693,7 @@ class _SayBox extends StatelessWidget {
               ),
               IconButton(
                 key: const Key('plugin-drawer-send'),
+                tooltip: l10n?.pluginSend,
                 icon: const Icon(Icons.send, size: 18),
                 onPressed: busy ? null : onSend,
               ),

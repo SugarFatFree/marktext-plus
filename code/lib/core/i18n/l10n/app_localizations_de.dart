@@ -1216,4 +1216,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get pluginFollowUpHint => 'Änderung wünschen …';
+
+  @override
+  String get pluginSend => 'Senden';
 }

@@ -470,5 +470,6 @@
   },
   "pluginApply": "Применить",
   "pluginApplied": "Записано в документ",
-  "pluginFollowUpHint": "Попросить изменить…"
+  "pluginFollowUpHint": "Попросить изменить…",
+  "pluginSend": "Отправить"
 }

@@ -2378,6 +2378,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Ask for a change…'**
   String get pluginFollowUpHint;
+
+  /// No description provided for @pluginSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get pluginSend;
 }
 
 class _AppLocalizationsDelegate

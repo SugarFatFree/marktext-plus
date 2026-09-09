@@ -1,21 +1,3 @@
-/// Cardinality at one end of an entity-relationship line.
-///
-/// Mermaid writes these as a two-character token per side — `|o`, `||`, `}o`,
-/// `}|` on the left and their mirrors `o|`, `||`, `o{`, `|{` on the right.
-enum ErCardinality {
-  /// `|o` / `o|` — zero or one.
-  zeroOrOne,
-
-  /// `||` — exactly one.
-  exactlyOne,
-
-  /// `}o` / `o{` — zero or more.
-  zeroOrMore,
-
-  /// `}|` / `|{` — one or more.
-  oneOrMore,
-}
-
 /// One attribute row inside an entity box.
 class ErAttribute {
   /// Creates an attribute.

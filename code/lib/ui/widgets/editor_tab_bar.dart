@@ -391,6 +391,7 @@ class _TabItemState extends ConsumerState<_TabItem> with SingleTickerProviderSta
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return FadeTransition(
       opacity: _fadeAnimation,
       child: SizeTransition(
@@ -460,23 +461,26 @@ class _TabItemState extends ConsumerState<_TabItem> with SingleTickerProviderSta
                 MouseRegion(
                   onEnter: (_) => setState(() => _isCloseHovered = true),
                   onExit: (_) => setState(() => _isCloseHovered = false),
-                  child: GestureDetector(
-                    onTap: _handleClose,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 100),
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        color: _isCloseHovered
-                            ? widget.tokens.colorAccent.withValues(alpha: 0.1)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                      child: Icon(
-                        Icons.close,
-                        size: 14,
-                        color: _isCloseHovered
-                            ? widget.tokens.colorAccent
-                            : widget.tokens.colorTextMuted,
+                  child: Tooltip(
+                    message: l10n.fileCloseTab,
+                    child: GestureDetector(
+                      onTap: _handleClose,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 100),
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          color: _isCloseHovered
+                              ? widget.tokens.colorAccent.withValues(alpha: 0.1)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                        child: Icon(
+                          Icons.close,
+                          size: 14,
+                          color: _isCloseHovered
+                              ? widget.tokens.colorAccent
+                              : widget.tokens.colorTextMuted,
+                        ),
                       ),
                     ),
                   ),

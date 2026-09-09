@@ -1213,4 +1213,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get pluginFollowUpHint => 'Попросить изменить…';
+
+  @override
+  String get pluginSend => 'Отправить';
 }

@@ -470,5 +470,6 @@
   },
   "pluginApply": "Appliquer",
   "pluginApplied": "Appliqué au document",
-  "pluginFollowUpHint": "Demander une modification…"
+  "pluginFollowUpHint": "Demander une modification…",
+  "pluginSend": "Envoyer"
 }

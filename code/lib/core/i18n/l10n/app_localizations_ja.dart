@@ -1196,4 +1196,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get pluginFollowUpHint => '修正を指示…';
+
+  @override
+  String get pluginSend => '送信';
 }

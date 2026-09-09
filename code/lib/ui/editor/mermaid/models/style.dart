@@ -201,33 +201,3 @@ enum MermaidThemeMode {
   neutral,
 }
 
-/// Predefined themes for Mermaid diagrams
-class MermaidThemes {
-  MermaidThemes._();
-
-  /// Default light theme
-  static const MermaidStyle light = MermaidStyle();
-
-  /// Dark theme
-  static final MermaidStyle dark = MermaidStyle.dark();
-
-  /// Forest (green) theme
-  static final MermaidStyle forest = MermaidStyle.forest();
-
-  /// Neutral (gray) theme
-  static final MermaidStyle neutral = MermaidStyle.neutral();
-
-  /// Gets a theme by mode
-  static MermaidStyle getTheme(MermaidThemeMode mode) {
-    switch (mode) {
-      case MermaidThemeMode.light:
-        return light;
-      case MermaidThemeMode.dark:
-        return dark;
-      case MermaidThemeMode.forest:
-        return forest;
-      case MermaidThemeMode.neutral:
-        return neutral;
-    }
-  }
-}

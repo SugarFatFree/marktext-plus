@@ -470,5 +470,6 @@
   },
   "pluginApply": "Übernehmen",
   "pluginApplied": "Ins Dokument übernommen",
-  "pluginFollowUpHint": "Änderung wünschen …"
+  "pluginFollowUpHint": "Änderung wünschen …",
+  "pluginSend": "Senden"
 }

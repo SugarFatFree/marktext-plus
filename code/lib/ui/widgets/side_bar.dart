@@ -785,6 +785,7 @@ class _SideBarState extends ConsumerState<SideBar> {
                       ),
                     )
                   : IconButton(
+                      tooltip: l10n.sidebarSearch,
                       icon: const Icon(Icons.search, size: 18),
                       onPressed: _performSearch,
                     ),

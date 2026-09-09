@@ -644,6 +644,7 @@
   "pluginApply": "Apply",
   "pluginApplied": "Applied to the document",
   "pluginFollowUpHint": "Ask for a change…",
+  "pluginSend": "Send",
   "@pluginFollowUpHint": {
     "description": "Placeholder in the box where a reader asks a plugin panel to rework its last answer."
   }

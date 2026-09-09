@@ -1209,4 +1209,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get pluginFollowUpHint => 'اطلب تعديلاً…';
+
+  @override
+  String get pluginSend => 'إرسال';
 }

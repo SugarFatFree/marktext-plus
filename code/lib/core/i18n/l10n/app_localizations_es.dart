@@ -1219,4 +1219,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get pluginFollowUpHint => 'Pide un cambio…';
+
+  @override
+  String get pluginSend => 'Enviar';
 }

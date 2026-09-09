@@ -470,5 +470,6 @@
   },
   "pluginApply": "適用",
   "pluginApplied": "ドキュメントに反映しました",
-  "pluginFollowUpHint": "修正を指示…"
+  "pluginFollowUpHint": "修正を指示…",
+  "pluginSend": "送信"
 }
