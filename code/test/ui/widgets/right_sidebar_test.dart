@@ -250,4 +250,65 @@ end
     expect(find.textContaining('got go: make it shorter'), findsOneWidget,
         reason: '按钮该把输入的值带回插件，结果落回抽屉');
   });
+
+  /// Pumps until the plugin's script has run and its answer has arrived.
+  Future<void> settlePlugin(WidgetTester tester) async {
+    for (var attempt = 0; attempt < 20; attempt++) {
+      await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 10)));
+      await tester.pump();
+    }
+  }
+
+  testWidgets('a rewrite offered in the drawer can be taken', (tester) async {
+    // The defect this covers: the sink the rail passes carried the words and
+    // dropped everything the plugin had said about them, so a command that
+    // offers a rewrite — which is what the official plugin's writing and
+    // proofreading do — showed its answer in the drawer with no way to put it
+    // into the document. The same command from the menu offered a button.
+    install(
+      'com.example.demo',
+      panels: [
+        {'id': 'rewrite', 'title': 'Rewrite', 'icon': 'list'},
+      ],
+      permissions: const ['ui.sidebar', 'document.read', 'document.write'],
+      script: 'function on_command(ctx)\n'
+          '  return { pane = "REWRITTEN", title = "Rewrite",\n'
+          '           apply = true, replaces = "old" }\n'
+          'end\n',
+    );
+    await pump(tester);
+
+    await tester.tap(find.byIcon(Icons.list));
+    await settlePlugin(tester);
+
+    expect(find.text('REWRITTEN'), findsOneWidget, reason: '抽屉里没有结果');
+    expect(
+      find.byKey(const Key('plugin-drawer-apply')),
+      findsOneWidget,
+      reason: '插件说了这段可以采用，抽屉里却没有采用的办法',
+    );
+  });
+
+  testWidgets('an answer that is not a rewrite offers nothing to take',
+      (tester) async {
+    // The other half: a panel that only shows something must not grow a
+    // button that would replace the document with it.
+    install(
+      'com.example.demo',
+      panels: [
+        {'id': 'note', 'title': 'Note', 'icon': 'list'},
+      ],
+      script: 'function on_command(ctx)\n'
+          '  return { pane = "JUST READING", title = "Note" }\n'
+          'end\n',
+    );
+    await pump(tester);
+
+    await tester.tap(find.byIcon(Icons.list));
+    await settlePlugin(tester);
+
+    expect(find.text('JUST READING'), findsOneWidget);
+    expect(find.byKey(const Key('plugin-drawer-apply')), findsNothing);
+  });
 }

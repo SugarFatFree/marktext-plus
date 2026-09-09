@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/i18n/l10n/app_localizations.dart';
 import '../../providers/plugin_provider.dart';
 import '../../services/plugin_manifest.dart';
+import 'plugin_apply.dart';
 import 'plugin_command_actions.dart';
 import 'plugin_icons.dart';
 import 'plugin_ui_view.dart';
@@ -42,6 +43,13 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
   /// What the panel's command last returned, so the drawer has something to
   /// draw before — and if — the plugin answers again.
   String _content = '';
+
+  /// What the plugin said about [_content]: that it is a rewrite the reader
+  /// may accept, and which text it replaces. Dropped on the floor until now,
+  /// so the rail showed an answer it gave no way to take.
+  bool _canApply = false;
+  String _replaces = '';
+  String _pluginName = '';
 
   /// A tree the plugin drew, and where the reader's use of it is collected.
   ///
@@ -98,6 +106,28 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
   /// entries against a plugin asking for an eighth.
   static IconData icon(String name) => PluginIcons.resolve(name);
 
+  /// Puts what the drawer is showing into the document.
+  ///
+  /// Closes the drawer on success, the way accepting a pane closes the pane:
+  /// the answer has been taken, and leaving it up invites taking it twice.
+  void _applyContent() {
+    final applied = PluginApply.into(
+      ref,
+      context,
+      pluginName: _pluginName,
+      replaces: _replaces,
+      text: _content,
+    );
+    if (applied && mounted) {
+      setState(() {
+        _open = null;
+        _content = '';
+        _canApply = false;
+        _replaces = '';
+      });
+    }
+  }
+
   Future<void> _toggle(PluginManifest plugin, PluginSidePanel panel) async {
     final key = '${plugin.id}/${panel.id}';
     if (_open == key) {
@@ -112,6 +142,8 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
     setState(() {
       _open = key;
       _content = '';
+      _canApply = false;
+      _replaces = '';
       _closeUi();
     });
     // Filled by running the plugin's command of the same id: a panel is a
@@ -128,11 +160,19 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
       context: context,
       plugin: plugin,
       command: panel.id,
-      into: (text, {bool append = false}) {
+      into: (
+        text, {
+        bool append = false,
+        bool canApply = false,
+        String replaces = '',
+      }) {
         if (!mounted || _open != key) return;
         setState(() {
           _closeUi();
           _content = append ? '$_content\n\n$text' : text;
+          _canApply = canApply;
+          _replaces = replaces;
+          _pluginName = plugin.name;
         });
       },
       onAsk: ({
@@ -226,7 +266,27 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
                               }
                             },
                           )
-                        : SelectableText(_content),
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SelectableText(_content),
+                              // The same offer the pane grid makes for the
+                              // same answer. Without it the rail could show a
+                              // rewrite and give no way to take it.
+                              if (_canApply) ...[
+                                const SizedBox(height: 12),
+                                FilledButton.icon(
+                                  key: const Key('plugin-drawer-apply'),
+                                  icon: const Icon(Icons.check, size: 18),
+                                  label: Text(
+                                    AppLocalizations.of(context)?.pluginApply ??
+                                        '',
+                                  ),
+                                  onPressed: _applyContent,
+                                ),
+                              ],
+                            ],
+                          ),
                   ),
                 ),
               ],

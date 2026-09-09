@@ -37,7 +37,18 @@ enum PluginEditorView { source, preview }
 /// Where a command's text-shaped results go when the caller draws them
 /// itself. `append` is the plugin adding to what it already showed rather
 /// than replacing it — how it walks a document a block at a time.
-typedef PluginTextSink = void Function(String text, {bool append});
+/// Where a plugin's answer goes when the caller draws it itself.
+///
+/// It carried the words alone, so a caller drawing the answer somewhere of its
+/// own — the right-hand rail — lost what the plugin had said *about* them: that
+/// this is a rewrite the reader may accept, and which text it replaces. The
+/// rail showed the result with no way to take it.
+typedef PluginTextSink = void Function(
+  String text, {
+  bool append,
+  bool canApply,
+  String replaces,
+});
 
 /// Where a tree the plugin drew goes, when the caller draws it itself.
 ///
@@ -401,7 +412,12 @@ class PluginCommandActions {
               // The caller draws it. A pane opened from the side bar belongs
               // in the drawer the reader opened, not in the tab's grid — they
               // asked for it in one place and it should arrive there.
-              into(content.text, append: append);
+              into(
+                content.text,
+                append: append,
+                canApply: content.canApply,
+                replaces: content.replaces,
+              );
             } else {
               final panes = container.read(pluginPanesProvider.notifier);
               // Closing the pane is how the reader stops this. Appending to a

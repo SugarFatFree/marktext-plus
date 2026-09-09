@@ -9,8 +9,7 @@ import '../../providers/settings_provider.dart';
 import '../../providers/tab_provider.dart';
 import '../editor/markdown_renderer.dart';
 import '../../services/plugin_script_runtime.dart';
-import '../../providers/editor_provider.dart';
-import '../../services/plugin_document_edit.dart';
+import 'plugin_apply.dart';
 
 /// The document, and up to three panes a plugin filled.
 ///
@@ -76,44 +75,14 @@ class _PluginPanesState extends ConsumerState<PluginPanes> {
   /// The permission is checked here rather than trusted from the plugin: the
   /// flag says the plugin offered, and the permission says whether the editor
   /// agreed.
-  void _apply(PluginPaneContent content) {
-    final tabs = ref.read(tabProvider);
-    final tabId = tabs.activeTabId;
-    final tab = tabs.tabs.where((t) => t.id == tabId).firstOrNull;
-    final l10n = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-    if (tab == null || tabId == null) return;
-
-    final plugin = ref
-        .read(installedPluginManifestsProvider)
-        .valueOrNull
-        ?.where((p) => p.name == content.pluginName)
-        .firstOrNull;
-    final edit = plugin == null
-        ? null
-        : PluginDocumentEdit.of(
-            plugin,
-            document: tab.content,
-            selection: content.replaces,
-            replacement: content.text,
-          );
-    if (edit == null) {
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(l10n?.pluginCannotEdit(content.pluginName) ?? ''),
-        ),
-      );
-      return;
-    }
-
-    // Through the history first, so one press of undo takes it back.
-    ref.read(editorProvider.notifier).pushHistory(edit.before);
-    ref.read(tabProvider.notifier).updateContent(tabId, edit.after);
-    ref.read(pluginPanesProvider.notifier).close(tabId, content.slot);
-    messenger.showSnackBar(
-      SnackBar(content: Text(l10n?.pluginApplied ?? '')),
-    );
-  }
+  void _apply(PluginPaneContent content) => PluginApply.into(
+    ref,
+    context,
+    pluginName: content.pluginName,
+    replaces: content.replaces,
+    text: content.text,
+    closing: content.slot,
+  );
 
   @override
   Widget build(BuildContext context) {
