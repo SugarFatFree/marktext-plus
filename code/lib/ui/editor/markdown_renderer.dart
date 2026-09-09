@@ -323,6 +323,16 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
             if (next != null) _syncToSourceLine(next);
           },
         );
+        // Where it is already looking, not only where it moves to next. The
+        // listener above fires on a change, and the pane beside this one is
+        // built first: it puts itself back where the tab was last read during
+        // its own post-frame callback, which runs before this one, so its
+        // report lands before anything is listening for it. Coming back to a
+        // split tab then showed the middle of the document beside the top of
+        // it — the same reason `targetScrollLine` is honoured above rather
+        // than only watched.
+        final already = ref.read(editorProvider).syncSourceLine;
+        if (already != null) _syncToSourceLine(already);
         _previewScroll.addListener(_reportPreviewLine);
       }
     });
