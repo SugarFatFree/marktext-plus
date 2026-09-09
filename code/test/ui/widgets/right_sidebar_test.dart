@@ -744,4 +744,36 @@ end
       reason: '别的标签不该多出一条它自己没有做过的改动',
     );
   });
+
+  testWidgets('a question waiting for you does not spin as if it were working',
+      (tester) async {
+    // `_running` means the command has not returned — and a command holding a
+    // question open has not returned either. Two places read it as "busy" and
+    // greyed the box the answer goes in; this is the third, and it puts a
+    // spinner under the question, so the drawer says it is working while it
+    // is in fact waiting for the reader.
+    install(
+      'com.example.demo',
+      panels: [
+        {'id': 'write', 'title': 'Write', 'icon': 'list'},
+      ],
+      script: 'function on_command(ctx)\n'
+          '  if ctx.answer == nil then\n'
+          '    return { ask = "what?" }\n'
+          '  end\n'
+          '  return { pane = "done", title = "Write" }\n'
+          'end\n',
+    );
+    await pump(tester);
+
+    await tester.tap(find.byIcon(Icons.list));
+    await settlePlugin(tester);
+
+    expect(find.textContaining('what?'), findsOneWidget, reason: '问题该在');
+    expect(
+      find.byType(CircularProgressIndicator),
+      findsNothing,
+      reason: '它在等你回答，不是在算，不该转圈',
+    );
+  });
 }

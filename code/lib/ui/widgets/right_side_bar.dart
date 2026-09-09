@@ -68,6 +68,15 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
   /// question and watched an empty drawer for as long as the model took.
   bool _running = false;
 
+  /// Whether the plugin is working, as opposed to waiting for the reader.
+  ///
+  /// [_running] only says the command has not returned, and a command holding
+  /// a question open has not returned either. Read as "busy" it greyed the box
+  /// the answer goes into, refused the answer outright, and spun a progress
+  /// circle under the question — three ways of saying "working" while the
+  /// editor was in fact waiting to be told what to do.
+  bool get _working => _running && _answering == null;
+
   /// The exchange so far: what was asked for, and what came back.
   ///
   /// A panel used to be one shot — ask, answer, done — so a reader who did not
@@ -248,7 +257,7 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
       _answered(said);
       return;
     }
-    if (_running) return;
+    if (_working) return;
     _sendFollowUp();
   }
 
@@ -266,7 +275,7 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
   /// first time, so no plugin has to know that this is a second round.
   Future<void> _followUp(PluginManifest plugin, PluginSidePanel panel) async {
     final asked = _say.text.trim();
-    if (asked.isEmpty || _running || _content.isEmpty) return;
+    if (asked.isEmpty || _working || _content.isEmpty) return;
     final about = _content;
     setState(() {
       _asked = asked;
@@ -504,7 +513,7 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
                               ],
                               // Nothing to read yet and still running: say so.
                               // An empty drawer looks exactly like a failure.
-                              if (_running && _content.isEmpty)
+                              if (_working && _content.isEmpty)
                                 const Padding(
                                   padding: EdgeInsets.symmetric(vertical: 24),
                                   child: Center(
@@ -518,7 +527,7 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
                                   ),
                                 ),
                               // More still coming, some already readable.
-                              if (_running && _content.isNotEmpty) ...[
+                              if (_working && _content.isNotEmpty) ...[
                                 const SizedBox(height: 12),
                                 const SizedBox(
                                   width: 16,
@@ -531,7 +540,7 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
                               // The same offer the pane grid makes for the same
                               // answer. Without it the rail could show a
                               // rewrite and give no way to take it.
-                              if (_canApply && !_running) ...[
+                              if (_canApply && !_working) ...[
                                 const SizedBox(height: 12),
                                 FilledButton.icon(
                                   key: const Key('plugin-drawer-apply'),
@@ -558,7 +567,7 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
                     // Waiting *for the reader* is not being busy: the command is still
                                       // running while it holds the question open, and greying the box
                                       // then would leave nowhere to answer it.
-                                      busy: _running && _answering == null,
+                                      busy: _working,
                     onSend: _send,
                   ),
               ],
