@@ -156,4 +156,25 @@ void main() {
       reason: '报的要是整篇的规模',
     );
   });
+
+  testWidgets('a document just past the first batch says what it cost too', (
+    tester,
+  ) async {
+    // Measured on a running editor, two documents of about a hundred blocks
+    // left no line in the log while one of three hundred did. Either the
+    // reading was an artefact of when the log was polled, or there is a band
+    // of sizes that never reports — which would be a hole in the one
+    // measurement the "handles large files" claim rests on.
+    //
+    // 101 blocks: twice the first batch of 50, so the fill runs and the
+    // stopwatch is started.
+    await draw(tester, List.generate(101, (i) => 'Paragraph $i.').join('\n\n'));
+
+    expect(
+      costLines(),
+      hasLength(1),
+      reason: '刚过首批大小的文档也该留下一条耗时记录',
+    );
+    expect(costLines().single, contains('101 blocks'));
+  });
 }
