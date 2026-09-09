@@ -467,6 +467,77 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
         description: '',
         execute: () => AppMenuBar.exportWord(ref),
       ),
+      // And the rest of the menu bar, for the same reason: a command with no
+      // key never reached the loop below. Search across files, the table of
+      // contents, minimise, and the whole Help menu — including "Open
+      // diagnostic log", which is what somebody hunts for when they have a
+      // problem to report.
+      Command(
+        id: 'edit.findInFiles',
+        label: l10n.editFindInFiles,
+        description: '',
+        execute: () => AppMenuBar.findInFiles(ref),
+      ),
+      Command(
+        id: 'view.toc',
+        label: l10n.sidebarToc,
+        description: '',
+        execute: () => AppMenuBar.showTableOfContents(ref),
+      ),
+      Command(
+        id: 'window.minimize',
+        label: l10n.windowMinimize,
+        description: '',
+        execute: () => AppMenuBar.minimizeWindow(),
+      ),
+      Command(
+        id: 'file.clearRecentFiles',
+        label: l10n.fileClearRecentFiles,
+        description: '',
+        execute: () => AppMenuBar.clearRecentFiles(ref),
+      ),
+      Command(
+        id: 'help.diagnosticLog',
+        label: l10n.helpOpenDiagnosticLog,
+        description: '',
+        execute: () => AppMenuBar.openDiagnosticLog(),
+      ),
+      Command(
+        id: 'help.about',
+        label: l10n.helpAbout,
+        description: '',
+        execute: () => AppMenuBar.showAbout(),
+      ),
+      Command(
+        id: 'help.checkUpdates',
+        label: l10n.helpCheckUpdates,
+        description: '',
+        execute: () => AppMenuBar.checkForUpdatesNow(ref, l10n),
+      ),
+      Command(
+        id: 'help.changelog',
+        label: l10n.helpChangelog,
+        description: '',
+        execute: () => AppMenuBar.openChangelog(),
+      ),
+      Command(
+        id: 'help.reportBug',
+        label: l10n.helpReportBug,
+        description: '',
+        execute: () => AppMenuBar.reportBug(),
+      ),
+      Command(
+        id: 'help.requestFeature',
+        label: l10n.helpRequestFeature,
+        description: '',
+        execute: () => AppMenuBar.requestFeature(),
+      ),
+      Command(
+        id: 'help.repository',
+        label: l10n.helpGitHub,
+        description: '',
+        execute: () => AppMenuBar.openRepository(),
+      ),
     ]);
 
     // Everything with a shortcut, from the list the keyboard and the menus

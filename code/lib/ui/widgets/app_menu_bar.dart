@@ -645,13 +645,7 @@ class AppMenuBar extends ConsumerWidget {
         // twelve languages, and nothing referred to it.
         MenuItemButton(
           child: Text(l10n.editFindInFiles),
-          onPressed: () {
-            final settings = ref.read(settingsProvider.notifier);
-            if (!ref.read(settingsProvider).sideBarVisible) {
-              settings.toggleSideBar();
-            }
-            ref.read(sideBarTabProvider.notifier).state = SideBarTab.search;
-          },
+          onPressed: () => findInFiles(ref),
         ),
       ],
       child: Text(l10n.menuEdit, style: const TextStyle(fontSize: 13)),
@@ -715,13 +709,7 @@ class AppMenuBar extends ConsumerWidget {
         ),
         MenuItemButton(
           child: Text(l10n.sidebarToc),
-          onPressed: () {
-            final settings = ref.read(settingsProvider.notifier);
-            if (!ref.read(settingsProvider).sideBarVisible) {
-              settings.toggleSideBar();
-            }
-            ref.read(sideBarTabProvider.notifier).state = SideBarTab.toc;
-          },
+          onPressed: () => showTableOfContents(ref),
         ),
         MenuItemButton(
           shortcut: _shortcut('commandPalette'),
@@ -1033,8 +1021,8 @@ class AppMenuBar extends ConsumerWidget {
         MenuItemButton(
           // Was SystemNavigator.pop, which asks the app to leave the current
           // route — on desktop that is a way to quit, not to minimise.
+          onPressed: minimizeWindow,
           child: Text(l10n.windowMinimize),
-          onPressed: () => windowManager.minimize(),
         ),
         MenuItemButton(
           shortcut: _shortcut('fullScreen'),
@@ -1076,7 +1064,7 @@ class AppMenuBar extends ConsumerWidget {
   /// A check that reports nothing looks like a menu item that does nothing,
   /// so all three outcomes — newer version, up to date, could not reach the
   /// server — are shown.
-  static Future<void> _checkForUpdatesNow(
+  static Future<void> checkForUpdatesNow(
     WidgetRef ref,
     AppLocalizations l10n,
   ) async {
@@ -1129,6 +1117,50 @@ class AppMenuBar extends ConsumerWidget {
   /// hand means knowing both that `%APPDATA%` is not expanded by PowerShell
   /// and what the version resource calls the company. Someone who has been
   /// asked for a log should not have to work that out.
+  /// The pages the Help menu links to.
+  ///
+  /// One named method each rather than a closure carrying a URL, so the
+  /// command palette can offer them: everything it lists has to be something
+  /// that can be called by name.
+  static void openChangelog() =>
+      _launchUrl('https://github.com/SugarFatFree/marktext-plus/releases');
+
+  static void reportBug() =>
+      _launchUrl('https://github.com/SugarFatFree/marktext-plus/issues');
+
+  static void requestFeature() =>
+      _launchUrl('https://github.com/SugarFatFree/marktext-plus/issues');
+
+  static void openRepository() =>
+      _launchUrl('https://github.com/SugarFatFree/marktext-plus');
+
+  /// Sends the window to the taskbar.
+  static void minimizeWindow() => windowManager.minimize();
+
+  /// Forgets the list of recently opened files.
+  static void clearRecentFiles(WidgetRef ref) => ref
+      .read(settingsProvider.notifier)
+      .updateConfig((c) => c.copyWith(recentFiles: const []));
+
+  /// Shows [tab] in the side bar, opening the bar if it is closed.
+  ///
+  /// Search and the table of contents both did this inline, in two copies of
+  /// the same four lines.
+  static void _showSideBarTab(WidgetRef ref, SideBarTab tab) {
+    if (!ref.read(settingsProvider).sideBarVisible) {
+      ref.read(settingsProvider.notifier).toggleSideBar();
+    }
+    ref.read(sideBarTabProvider.notifier).state = tab;
+  }
+
+  /// Opens the side bar on search across the folder.
+  static void findInFiles(WidgetRef ref) =>
+      _showSideBarTab(ref, SideBarTab.search);
+
+  /// Opens the side bar on this document's headings.
+  static void showTableOfContents(WidgetRef ref) =>
+      _showSideBarTab(ref, SideBarTab.toc);
+
   /// The About box, which says which version this is.
   ///
   /// A named method rather than a closure inside the menu, so a test can open
@@ -1146,7 +1178,7 @@ class AppMenuBar extends ConsumerWidget {
     );
   }
 
-  static Future<void> _openDiagnosticLog() async {
+  static Future<void> openDiagnosticLog() async {
     final context = navigatorKey.currentContext;
     final path = StartupTrace.logPath;
     if (path == null) {
@@ -1172,7 +1204,7 @@ class AppMenuBar extends ConsumerWidget {
     return SubmenuButton(
       menuChildren: [
         MenuItemButton(
-          onPressed: _openDiagnosticLog,
+          onPressed: openDiagnosticLog,
           child: Text(l10n.helpOpenDiagnosticLog),
         ),
         MenuItemButton(
@@ -1184,25 +1216,25 @@ class AppMenuBar extends ConsumerWidget {
           // Was a link to the releases page: an item called "Check for
           // Updates" that checks nothing. The app already knows how to ask.
           child: Text(l10n.helpCheckUpdates),
-          onPressed: () => _checkForUpdatesNow(ref, l10n),
+          onPressed: () => checkForUpdatesNow(ref, l10n),
         ),
         MenuItemButton(
+          onPressed: openChangelog,
           child: Text(l10n.helpChangelog),
-          onPressed: () => _launchUrl('https://github.com/SugarFatFree/marktext-plus/releases'),
         ),
         const Divider(height: 1),
         MenuItemButton(
+          onPressed: reportBug,
           child: Text(l10n.helpReportBug),
-          onPressed: () => _launchUrl('https://github.com/SugarFatFree/marktext-plus/issues'),
         ),
         MenuItemButton(
+          onPressed: requestFeature,
           child: Text(l10n.helpRequestFeature),
-          onPressed: () => _launchUrl('https://github.com/SugarFatFree/marktext-plus/issues'),
         ),
         const Divider(height: 1),
         MenuItemButton(
+          onPressed: openRepository,
           child: Text(l10n.helpGitHub),
-          onPressed: () => _launchUrl('https://github.com/SugarFatFree/marktext-plus'),
         ),
       ],
       child: Text(l10n.menuHelp, style: const TextStyle(fontSize: 13)),
@@ -1409,7 +1441,7 @@ class AppMenuBar extends ConsumerWidget {
     await PlatformUtils.launchNewWindow();
   }
 
-  void _launchUrl(String url) async {
+  static void _launchUrl(String url) async {
     // `Uri.parse` throws on a malformed address and `launchUrl` throws when
     // the desktop has no handler registered — a machine with no browser set
     // answers that way. The preview's own link opening was given this
@@ -1460,9 +1492,7 @@ class AppMenuBar extends ConsumerWidget {
               // The list only ever grew; there was no way to empty it.
               MenuItemButton(
                 child: Text(l10n.fileClearRecentFiles),
-                onPressed: () => ref
-                    .read(settingsProvider.notifier)
-                    .updateConfig((c) => c.copyWith(recentFiles: const [])),
+                onPressed: () => clearRecentFiles(ref),
               ),
             ],
       child: Text(l10n.fileRecentFiles),
