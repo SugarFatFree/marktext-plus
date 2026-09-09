@@ -234,7 +234,9 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
       'https://github.com/marktext-plus-plugins/marktext-plus-plugin-sdk',
     );
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication) && mounted) {
-      setState(() => _error = StateError('Could not open plugin SDK'));
+      setState(() => _error = StateError(
+          AppLocalizations.of(context)!.pluginSdkOpenFailed,
+        ));
     }
   }
 
@@ -337,7 +339,7 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
               visualDensity: VisualDensity.compact,
             ),
             IconButton(
-              tooltip: 'Develop a plugin',
+              tooltip: l10n.pluginDevelop,
               icon: const Icon(Icons.code, size: 18),
               onPressed: _openSdk,
               visualDensity: VisualDensity.compact,
@@ -434,7 +436,7 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
                                     TextButton.icon(
                                       onPressed: () => _openSettings(plugin),
                                       icon: const Icon(Icons.settings, size: 16),
-                                      label: const Text('Settings'),
+                                      label: Text(l10n.sidebarSettings),
                                     ),
                                   IconButton(
                                     tooltip: l10n.settingsPluginsUninstall,
@@ -517,7 +519,7 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
           else if (discovery.searching)
             const LinearProgressIndicator()
           else if (discovery.results!.isEmpty)
-            _note('No installable releases found for this topic.')
+            _note(l10n.pluginNoReleases)
           else
             Column(
                 children: discovery.results!

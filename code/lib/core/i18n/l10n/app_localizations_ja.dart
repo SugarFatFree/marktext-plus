@@ -1047,6 +1047,39 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsPluginsDiscover => 'コミュニティプラグインを探す';
 
   @override
+  String get pluginPermissions => '権限';
+
+  @override
+  String get pluginAsksForNothing => 'このプラグインは何も要求していません。';
+
+  @override
+  String get pluginNoRepository => 'このプラグインは配布元を示していません。';
+
+  @override
+  String get pluginNoReleaseNotes => 'このリリースには説明がありません。';
+
+  @override
+  String get pluginOpenRepository => 'リポジトリを開く';
+
+  @override
+  String get pluginSaveSettings => '設定を保存';
+
+  @override
+  String get pluginSdkOpenFailed => 'プラグイン SDK を開けませんでした';
+
+  @override
+  String get pluginDevelop => 'プラグインを開発する';
+
+  @override
+  String get pluginNoReleases => 'このトピックにインストールできるリリースは見つかりませんでした。';
+
+  @override
+  String get settingsAiTestFailed => 'AI 設定のテストに失敗しました';
+
+  @override
+  String get settingsCopyError => 'エラーをコピー';
+
+  @override
   String get settingsPluginsUnreadable => 'インストール済みだが読めません';
 
   @override

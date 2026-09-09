@@ -1046,6 +1046,39 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsPluginsDiscover => '发现社区插件';
 
   @override
+  String get pluginPermissions => '权限';
+
+  @override
+  String get pluginAsksForNothing => '这个插件没有申请任何权限。';
+
+  @override
+  String get pluginNoRepository => '这个插件没有说明它来自哪里。';
+
+  @override
+  String get pluginNoReleaseNotes => '这个版本没有附带更新说明。';
+
+  @override
+  String get pluginOpenRepository => '打开仓库';
+
+  @override
+  String get pluginSaveSettings => '保存设置';
+
+  @override
+  String get pluginSdkOpenFailed => '无法打开插件 SDK 页面';
+
+  @override
+  String get pluginDevelop => '开发插件';
+
+  @override
+  String get pluginNoReleases => '这个话题下没有找到可安装的发行版。';
+
+  @override
+  String get settingsAiTestFailed => 'AI 配置测试失败';
+
+  @override
+  String get settingsCopyError => '复制错误信息';
+
+  @override
   String get settingsPluginsUnreadable => '已安装但读不出来';
 
   @override

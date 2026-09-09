@@ -1060,6 +1060,40 @@ class AppLocalizationsRu extends AppLocalizations {
   String get settingsPluginsDiscover => 'Найти плагины сообщества';
 
   @override
+  String get pluginPermissions => 'Разрешения';
+
+  @override
+  String get pluginAsksForNothing => 'Этот плагин ничего не запрашивает.';
+
+  @override
+  String get pluginNoRepository => 'Этот плагин не указал, откуда он.';
+
+  @override
+  String get pluginNoReleaseNotes => 'У этого выпуска нет описания.';
+
+  @override
+  String get pluginOpenRepository => 'Открыть репозиторий';
+
+  @override
+  String get pluginSaveSettings => 'Сохранить настройки';
+
+  @override
+  String get pluginSdkOpenFailed => 'Не удалось открыть SDK плагинов';
+
+  @override
+  String get pluginDevelop => 'Создать плагин';
+
+  @override
+  String get pluginNoReleases =>
+      'Для этой темы не найдено устанавливаемых выпусков.';
+
+  @override
+  String get settingsAiTestFailed => 'Не удалось проверить настройки ИИ';
+
+  @override
+  String get settingsCopyError => 'Скопировать ошибку';
+
+  @override
   String get settingsPluginsUnreadable => 'Установлен, но не читается';
 
   @override

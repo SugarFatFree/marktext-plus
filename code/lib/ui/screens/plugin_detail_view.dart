@@ -110,6 +110,7 @@ class _PluginDetailViewState extends ConsumerState<PluginDetailView> {
   /// to see the list it is being enforced against.
   Widget _permissions(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     // Through `withImplied`: one permission can carry another, and the
     // reader decides from this list. Showing only what the manifest spelled
     // out would describe a smaller grant than the one they are agreeing to.
@@ -119,11 +120,11 @@ class _PluginDetailViewState extends ConsumerState<PluginDetailView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Permissions', style: theme.textTheme.labelLarge),
+          Text(l10n.pluginPermissions, style: theme.textTheme.labelLarge),
           const SizedBox(height: 4),
           if (asked.isEmpty)
             Text(
-              'This plugin asks for nothing.',
+              l10n.pluginAsksForNothing,
               style: theme.textTheme.bodySmall,
             )
           else
@@ -168,6 +169,7 @@ class _PluginDetailViewState extends ConsumerState<PluginDetailView> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -256,7 +258,7 @@ class _PluginDetailViewState extends ConsumerState<PluginDetailView> {
                       if (widget.plugin.repositoryUrl == null)
                         Center(
                           child: Text(
-                            'This plugin did not say where it came from.',
+                            l10n.pluginNoRepository,
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
                         )
@@ -281,7 +283,7 @@ class _PluginDetailViewState extends ConsumerState<PluginDetailView> {
                       widget.plugin.releaseNotes.isEmpty
                           ? Center(
                               child: Text(
-                                'This release came with no notes.',
+                                l10n.pluginNoReleaseNotes,
                                 style: Theme.of(context).textTheme.bodySmall,
                               ),
                             )
@@ -305,7 +307,7 @@ class _PluginDetailViewState extends ConsumerState<PluginDetailView> {
                 mode: LaunchMode.externalApplication,
               ),
               icon: const Icon(Icons.open_in_new),
-              label: const Text('Open repository'),
+              label: Text(l10n.pluginOpenRepository),
             ),
           ),
         ),

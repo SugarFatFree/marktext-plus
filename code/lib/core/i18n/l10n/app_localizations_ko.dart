@@ -1047,6 +1047,39 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsPluginsDiscover => '커뮤니티 플러그인 찾기';
 
   @override
+  String get pluginPermissions => '권한';
+
+  @override
+  String get pluginAsksForNothing => '이 플러그인은 아무것도 요청하지 않습니다.';
+
+  @override
+  String get pluginNoRepository => '이 플러그인은 출처를 밝히지 않았습니다.';
+
+  @override
+  String get pluginNoReleaseNotes => '이 릴리스에는 설명이 없습니다.';
+
+  @override
+  String get pluginOpenRepository => '저장소 열기';
+
+  @override
+  String get pluginSaveSettings => '설정 저장';
+
+  @override
+  String get pluginSdkOpenFailed => '플러그인 SDK를 열 수 없습니다';
+
+  @override
+  String get pluginDevelop => '플러그인 개발';
+
+  @override
+  String get pluginNoReleases => '이 토픽에서 설치할 수 있는 릴리스를 찾지 못했습니다.';
+
+  @override
+  String get settingsAiTestFailed => 'AI 설정 테스트에 실패했습니다';
+
+  @override
+  String get settingsCopyError => '오류 복사';
+
+  @override
   String get settingsPluginsUnreadable => '설치되었으나 읽을 수 없음';
 
   @override

@@ -128,6 +128,7 @@
 | BUG-383 | 2026-09-10 | 让渲染器与富文本复制对齐的样例清单漏了三种内联 | P2 | 已加守卫 |
 | BUG-384 | 2026-09-10 | 新增块类型会被导出器的默认分支静默丢掉 | P2 | 已加守卫 |
 | BUG-385 | 2026-09-10 | SDK schema 的字段清单本身没人与编辑器对账 | P3 | 已加守卫 |
+| BUG-386 | 2026-09-10 | 整个插件界面对所有语言的读者都说英语 | P1 | 已修复 |
 
 ---
 
@@ -6991,3 +6992,82 @@ schema 的 19 个顶层属性，与 `PluginManifest.fromJson` 的 19 个构造�
 ### 涉及文件
 
 - `code/test/services/sdk_schema_agrees_test.dart` — 第 12 条
+
+## BUG-386：说了十二种语言，插件界面只说英语
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-386 |
+| 日期 | 2026-09-10 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+
+### 问题
+
+README 用 12 种语言承诺本地化，而**插件界面的 13 处文字对所有读者都是英文**，
+不管他选了哪种语言。
+
+| 文件 | 写死的英文 |
+|------|-----------|
+| `plugin_detail_view.dart` | Permissions / This plugin asks for nothing. / This plugin did not say where it came from. / This release came with no notes. / Open repository |
+| `plugin_panel.dart` | Could not open plugin SDK / Develop a plugin / Settings / No installable releases found for this topic. |
+| `plugin_settings_screen.dart` | Save settings |
+| `settings_screen.dart` | AI configuration test failed / Copy error / Close |
+
+**最尖锐的是 AI 测试那一对**：
+
+```dart
+SnackBar(content: Text(l10n.settingsAiTestSuccess)),   // 成功：读者的语言
+} catch (error) {
+  title: const Text('AI configuration test failed'),   // 失败：英文
+```
+
+成功时说你的语言，**失败时说英语**——而失败恰恰是最需要看懂的时候。
+
+### 根因
+
+`l10n_coverage_test` 把 12 份 ARB 互相钉住，12 份全都一致地通过了——
+因为**一个从没变成键的字符串，在 12 份里同样地缺席**。
+这条守卫看的是「12 份彼此一致」这个维度，看不见「界面上还有没有没进来的字」。
+（同「守卫的维度决定了它的盲区」。）
+
+集中在插件界面不是偶然：那是最新加的一片，i18n 的纪律在别处早已成形。
+
+### 修复
+
+新增 11 个键 × 12 种语言（术语按各语言既有译法取齐：阿拉伯语用 `الإضافات`、
+俄语用 `плагин`，与 `settingsPluginsDiscover` 一致），复用 2 个现成键
+（`close`、`sidebarSettings`）。ARB 从 366 键增至 377 键。
+
+> pt_BR 没有独立的生成文件，它是 `app_localizations_pt.dart` 里的
+> `AppLocalizationsPtBr` 子类。核实过两套译文都在
+> （`Guardar as definições` / `Salvar as configurações`）。
+
+### 守卫
+
+`reader_facing_text_is_translated_test`：扫 `lib/ui` 下的字符串字面量，
+凡是读起来像写给人看的（首字母大写且多词，或属于按钮短标签）就要红，
+除非**显式列进 `allowed` 并写明理由**。
+
+今天的 14 条例外全部是真的非缺陷：HTTP 头名、字体名、操作系统报的按键名、
+无 context 时的文件对话框兜底（旁边那支用的是 l10n）、断言文本、
+以及 8 个内置主题的名字（主题是被命名不是被描述的）。
+
+Mermaid 目录排除在外并写明理由：图里的词是图语言自己的，各家工具写法相同。
+
+### 验证
+
+| 变异 | 结果 |
+|------|------|
+| 把 `Open repository` 写回去 | 红：`Actual: ['...plugin_detail_view.dart:310  "Open repository"']` |
+| 加一条指向不存在字符串的例外 | 红：`Comic Sans MS 已经不在 lib/ui 里了，这条例外可以删掉` |
+
+第二条是「守卫的守卫」——一条失效的例外看起来像深思熟虑的决定，
+实际只是残留，而且会继续把以这几个词开头的任何东西一起静音。
+
+### 涉及文件
+
+- `code/lib/core/i18n/l10n/app_*.arb`（12 份）+ 生成物
+- `code/lib/ui/screens/plugin_detail_view.dart`、`plugin_settings_screen.dart`、
+  `settings_screen.dart`、`code/lib/ui/widgets/plugin_panel.dart`
+- `code/test/ui/reader_facing_text_is_translated_test.dart`（新增）

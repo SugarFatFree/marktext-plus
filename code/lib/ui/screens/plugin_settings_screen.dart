@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/i18n/l10n/app_localizations.dart';
 import '../../services/plugin_command_service.dart';
 import '../../services/plugin_manifest.dart';
 import '../../providers/plugin_provider.dart';
@@ -108,6 +109,7 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final strings = widget.plugin.stringsFor(
       Localizations.localeOf(context).toString(),
     );
@@ -175,7 +177,7 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.save),
-            label: const Text('Save settings'),
+            label: Text(l10n.pluginSaveSettings),
           ),
         ),
       ],

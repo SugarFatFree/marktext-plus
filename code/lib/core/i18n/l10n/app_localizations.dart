@@ -2097,6 +2097,72 @@ abstract class AppLocalizations {
   /// **'Discover community plugins'**
   String get settingsPluginsDiscover;
 
+  /// No description provided for @pluginPermissions.
+  ///
+  /// In en, this message translates to:
+  /// **'Permissions'**
+  String get pluginPermissions;
+
+  /// No description provided for @pluginAsksForNothing.
+  ///
+  /// In en, this message translates to:
+  /// **'This plugin asks for nothing.'**
+  String get pluginAsksForNothing;
+
+  /// No description provided for @pluginNoRepository.
+  ///
+  /// In en, this message translates to:
+  /// **'This plugin did not say where it came from.'**
+  String get pluginNoRepository;
+
+  /// No description provided for @pluginNoReleaseNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'This release came with no notes.'**
+  String get pluginNoReleaseNotes;
+
+  /// No description provided for @pluginOpenRepository.
+  ///
+  /// In en, this message translates to:
+  /// **'Open repository'**
+  String get pluginOpenRepository;
+
+  /// No description provided for @pluginSaveSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Save settings'**
+  String get pluginSaveSettings;
+
+  /// No description provided for @pluginSdkOpenFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open plugin SDK'**
+  String get pluginSdkOpenFailed;
+
+  /// No description provided for @pluginDevelop.
+  ///
+  /// In en, this message translates to:
+  /// **'Develop a plugin'**
+  String get pluginDevelop;
+
+  /// No description provided for @pluginNoReleases.
+  ///
+  /// In en, this message translates to:
+  /// **'No installable releases found for this topic.'**
+  String get pluginNoReleases;
+
+  /// No description provided for @settingsAiTestFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'AI configuration test failed'**
+  String get settingsAiTestFailed;
+
+  /// No description provided for @settingsCopyError.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy error'**
+  String get settingsCopyError;
+
   /// No description provided for @settingsPluginsUnreadable.
   ///
   /// In en, this message translates to:

@@ -1065,6 +1065,40 @@ class AppLocalizationsPt extends AppLocalizations {
   String get settingsPluginsDiscover => 'Descobrir plugins da comunidade';
 
   @override
+  String get pluginPermissions => 'Permissões';
+
+  @override
+  String get pluginAsksForNothing => 'Este plugin não pede nada.';
+
+  @override
+  String get pluginNoRepository => 'Este plugin não indica a sua origem.';
+
+  @override
+  String get pluginNoReleaseNotes => 'Esta versão não traz notas.';
+
+  @override
+  String get pluginOpenRepository => 'Abrir o repositório';
+
+  @override
+  String get pluginSaveSettings => 'Guardar as definições';
+
+  @override
+  String get pluginSdkOpenFailed => 'Não foi possível abrir o SDK de plugins';
+
+  @override
+  String get pluginDevelop => 'Desenvolver um plugin';
+
+  @override
+  String get pluginNoReleases =>
+      'Não foram encontradas versões instaláveis para este tópico.';
+
+  @override
+  String get settingsAiTestFailed => 'Falha ao testar a configuração de IA';
+
+  @override
+  String get settingsCopyError => 'Copiar o erro';
+
+  @override
   String get settingsPluginsUnreadable => 'Instalado mas ilegível';
 
   @override
@@ -2243,6 +2277,40 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get settingsPluginsDiscover => 'Descobrir plugins da comunidade';
+
+  @override
+  String get pluginPermissions => 'Permissões';
+
+  @override
+  String get pluginAsksForNothing => 'Este plugin não pede nada.';
+
+  @override
+  String get pluginNoRepository => 'Este plugin não informa sua origem.';
+
+  @override
+  String get pluginNoReleaseNotes => 'Esta versão não traz notas.';
+
+  @override
+  String get pluginOpenRepository => 'Abrir o repositório';
+
+  @override
+  String get pluginSaveSettings => 'Salvar as configurações';
+
+  @override
+  String get pluginSdkOpenFailed => 'Não foi possível abrir o SDK de plugins';
+
+  @override
+  String get pluginDevelop => 'Desenvolver um plugin';
+
+  @override
+  String get pluginNoReleases =>
+      'Nenhuma versão instalável encontrada para este tópico.';
+
+  @override
+  String get settingsAiTestFailed => 'Falha ao testar a configuração de IA';
+
+  @override
+  String get settingsCopyError => 'Copiar o erro';
 
   @override
   String get settingsPluginsUnreadable => 'Instalado mas ilegível';

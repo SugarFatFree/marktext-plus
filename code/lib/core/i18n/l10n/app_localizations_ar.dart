@@ -1057,6 +1057,40 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settingsPluginsDiscover => 'اكتشاف الإضافات المجتمعية';
 
   @override
+  String get pluginPermissions => 'الأذونات';
+
+  @override
+  String get pluginAsksForNothing => 'لا تطلب هذه الإضافة أي شيء.';
+
+  @override
+  String get pluginNoRepository => 'لم تذكر هذه الإضافة مصدرها.';
+
+  @override
+  String get pluginNoReleaseNotes => 'لا توجد ملاحظات لهذا الإصدار.';
+
+  @override
+  String get pluginOpenRepository => 'فتح المستودع';
+
+  @override
+  String get pluginSaveSettings => 'حفظ الإعدادات';
+
+  @override
+  String get pluginSdkOpenFailed => 'تعذّر فتح حزمة تطوير الإضافات';
+
+  @override
+  String get pluginDevelop => 'تطوير إضافة';
+
+  @override
+  String get pluginNoReleases =>
+      'لم يُعثر على إصدارات قابلة للتثبيت لهذا الموضوع.';
+
+  @override
+  String get settingsAiTestFailed => 'فشل اختبار إعدادات الذكاء الاصطناعي';
+
+  @override
+  String get settingsCopyError => 'نسخ الخطأ';
+
+  @override
   String get settingsPluginsUnreadable => 'مثبَّت لكن غير مقروء';
 
   @override

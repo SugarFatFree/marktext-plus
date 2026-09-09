@@ -601,7 +601,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       await showDialog<void>(
         context: context,
         builder: (dialogContext) => AlertDialog(
-          title: const Text('AI configuration test failed'),
+          title: Text(l10n.settingsAiTestFailed),
           content: SingleChildScrollView(
             child: SelectableText('$error'),
           ),
@@ -612,11 +612,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 if (dialogContext.mounted) Navigator.of(dialogContext).pop();
               },
               icon: const Icon(Icons.copy),
-              label: const Text('Copy error'),
+              label: Text(l10n.settingsCopyError),
             ),
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Close'),
+              child: Text(l10n.close),
             ),
           ],
         ),

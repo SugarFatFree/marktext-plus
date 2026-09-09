@@ -1057,6 +1057,41 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsPluginsDiscover => 'Discover community plugins';
 
   @override
+  String get pluginPermissions => 'Permissions';
+
+  @override
+  String get pluginAsksForNothing => 'This plugin asks for nothing.';
+
+  @override
+  String get pluginNoRepository =>
+      'This plugin did not say where it came from.';
+
+  @override
+  String get pluginNoReleaseNotes => 'This release came with no notes.';
+
+  @override
+  String get pluginOpenRepository => 'Open repository';
+
+  @override
+  String get pluginSaveSettings => 'Save settings';
+
+  @override
+  String get pluginSdkOpenFailed => 'Could not open plugin SDK';
+
+  @override
+  String get pluginDevelop => 'Develop a plugin';
+
+  @override
+  String get pluginNoReleases =>
+      'No installable releases found for this topic.';
+
+  @override
+  String get settingsAiTestFailed => 'AI configuration test failed';
+
+  @override
+  String get settingsCopyError => 'Copy error';
+
+  @override
   String get settingsPluginsUnreadable => 'Installed but unreadable';
 
   @override
