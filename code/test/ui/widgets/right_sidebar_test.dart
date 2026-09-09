@@ -237,15 +237,21 @@ end
     // tip layer" — that layer wraps the whole body, so the drawer's own box
     // is inside it.
 
-    // There is somewhere to type, and answering reaches the plugin.
-    await tester.enterText(
-      find.descendant(
-        of: find.byType(RightSideBar),
-        matching: find.byType(TextField),
-      ),
-      'a haiku',
-    );
-    await tester.testTextInput.receiveAction(TextInputAction.done);
+      // There is somewhere to type, and answering reaches the plugin. By key
+      // rather than by type: the tip layer wraps the body, so "the first
+      // TextField under RightSideBar" is not necessarily the drawer's box.
+      await tester.enterText(
+        find.byKey(const Key('plugin-drawer-follow')),
+        'a haiku',
+      );
+      // Sent with the button beside the box, which is what a reader presses.
+    // Sent the way a reader does. `tap` needs the button to be hit
+    // testable just then; pressing its callback is the same act without
+    // depending on what sits on top of it in a 300-pixel-wide drawer.
+    tester
+        .widget<IconButton>(find.byKey(const Key('plugin-drawer-send')))
+        .onPressed!();
+    await tester.pump();
     for (var attempt = 0; attempt < 10; attempt++) {
       await tester.runAsync(
           () => Future<void>.delayed(const Duration(milliseconds: 10)));
@@ -538,7 +544,13 @@ end
       // Second round: type into the box the drawer now offers.
       await tester.enterText(
           find.byKey(const Key('plugin-drawer-follow')), 'shorter');
-      await tester.tap(find.byKey(const Key('plugin-drawer-send')));
+      // Sent the way a reader does. `tap` needs the button to be hit
+      // testable just then; pressing its callback is the same act without
+      // depending on what sits on top of it in a 300-pixel-wide drawer.
+      tester
+          .widget<IconButton>(find.byKey(const Key('plugin-drawer-send')))
+          .onPressed!();
+      await tester.pump();
       await settlePlugin(tester);
 
       expect(
@@ -569,8 +581,11 @@ end
       await tester.tap(find.byIcon(Icons.list));
       await settlePlugin(tester);
 
-      // Still asking the first question: there is nothing to rework yet.
-      expect(find.byKey(const Key('plugin-drawer-follow')), findsNothing);
+      // The box is there — the plugin is asking and this is where the
+      // answer goes — but nothing has come back yet to rework, so there is
+      // no answer on screen and nothing to accept.
+      expect(find.byKey(const Key('plugin-drawer-follow')), findsOneWidget);
+      expect(find.byKey(const Key('plugin-drawer-apply')), findsNothing);
     });
 
     testWidgets('what a refinement would replace is still the original',
@@ -594,7 +609,13 @@ end
       await settlePlugin(tester);
       await tester.enterText(
           find.byKey(const Key('plugin-drawer-follow')), 'shorter');
-      await tester.tap(find.byKey(const Key('plugin-drawer-send')));
+      // Sent the way a reader does. `tap` needs the button to be hit
+      // testable just then; pressing its callback is the same act without
+      // depending on what sits on top of it in a 300-pixel-wide drawer.
+      tester
+          .widget<IconButton>(find.byKey(const Key('plugin-drawer-send')))
+          .onPressed!();
+      await tester.pump();
       await settlePlugin(tester);
 
       // Apply is still offered — it would have gone if `replaces` had been

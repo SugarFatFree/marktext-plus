@@ -42,7 +42,6 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
   String? _question;
   List<String> _choices = const [];
   Completer<String?>? _answering;
-  late final TextEditingController _answer = TextEditingController();
 
   /// What the panel's command last returned, so the drawer has something to
   /// draw before — and if — the plugin answers again.
@@ -94,7 +93,9 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
   PluginSidePanel? _openPanel;
 
   /// The box a follow-up is typed into.
-  final TextEditingController _follow = TextEditingController();
+  /// One box for the whole exchange — the plugin's question is answered
+  /// here, and so is every request after it.
+  final TextEditingController _say = TextEditingController();
 
   /// What to answer a panel's question while automation is driving, or null
   /// when a reader is.
@@ -124,6 +125,7 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
 
   /// Hands [answer] back to the command that asked, or refuses it.
   void _answered(String? answer) {
+    _say.clear();
     if (answer != null) _asked = answer;
     final pending = _answering;
     setState(() {
@@ -161,8 +163,7 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
   @override
   void dispose() {
     _closeUi();
-    _answer.dispose();
-    _follow.dispose();
+    _say.dispose();
     super.dispose();
   }
 
@@ -232,8 +233,27 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
     }
   }
 
+  /// Sends what is in the box: an answer if the plugin is asking, otherwise a
+  /// request to rework what it last said.
+  ///
+  /// One action for one box. Two — a question form and a follow-up field —
+  /// meant the same exchange was typed into in two places.
+  void _send() {
+    final said = _say.text.trim();
+    if (said.isEmpty) return;
+    // Answering comes first, and is allowed while the command is running —
+    // because a command waiting for its question to be answered *is* running,
+    // and refusing to send then leaves the question with no way to answer it.
+    if (_answering != null) {
+      _answered(said);
+      return;
+    }
+    if (_running) return;
+    _sendFollowUp();
+  }
+
   /// Sends whatever is in the follow-up box, if there is a panel to send to.
-  void _sendFollowUp([String? _]) {
+  void _sendFollowUp() {
     final plugin = _openPlugin;
     final panel = _openPanel;
     if (plugin != null && panel != null) _followUp(plugin, panel);
@@ -245,12 +265,12 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
   /// reader's words as the instruction — the same two things it was given the
   /// first time, so no plugin has to know that this is a second round.
   Future<void> _followUp(PluginManifest plugin, PluginSidePanel panel) async {
-    final asked = _follow.text.trim();
+    final asked = _say.text.trim();
     if (asked.isEmpty || _running || _content.isEmpty) return;
     final about = _content;
     setState(() {
       _asked = asked;
-      _follow.clear();
+      _say.clear();
     });
     _automaticAnswer = asked;
     try {
@@ -303,7 +323,7 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
       _render = PluginPaneRender.text;
       _panelAsks = false;
       _turns.clear();
-      _follow.clear();
+      _say.clear();
       _closeUi();
     });
     await _run(plugin, panel, key);
@@ -372,7 +392,7 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
             _question = question;
             _choices = choices;
             _answering = completer;
-            _answer.text = suggested;
+            _say.text = suggested;
           });
           return completer.future;
         },
@@ -434,14 +454,7 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.all(12),
-                    child: _question != null
-                        ? _AskInDrawer(
-                            question: _question!,
-                            choices: _choices,
-                            controller: _answer,
-                            onAnswered: _answered,
-                          )
-                        : _ui != null
+                    child: _ui != null
                         ? PluginUiView(
                             root: _ui!,
                             loadImage: _images,
@@ -459,9 +472,38 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
                         : Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              // The exchange, oldest first: what was asked for
+                              // and what came back. Earlier drafts stay
+                              // readable so the reader can see what their last
+                              // instruction changed — which is the point of
+                              // being able to give another one.
+                              for (final turn in _turns) ...[
+                                if (turn.asked.isNotEmpty) _Said(turn.asked),
+                                // Drawn the way the plugin asked for, which is
+                                // what the pane grid has always done: a rewrite
+                                // meant to be read as a document is rendered,
+                                // not shown with its markup on display.
+                                _render == PluginPaneRender.preview
+                                    ? MarkdownRenderer(markdown: turn.answer)
+                                    : SelectableText(turn.answer),
+                                if (turn != _turns.last)
+                                  const Divider(height: 24),
+                              ],
+                              // The plugin's question is a message in the
+                              // conversation rather than a form that replaces
+                              // it. It used to take over the drawer with a
+                              // text field of its own, so a single exchange
+                              // was typed into in two different places.
+                              if (_question != null) ...[
+                                if (_turns.isNotEmpty)
+                                  const Divider(height: 24),
+                                Text(
+                                  _question!,
+                                  style: theme.textTheme.bodyMedium,
+                                ),
+                              ],
                               // Nothing to read yet and still running: say so.
-                              // An empty drawer after answering a question
-                              // looks exactly like one that failed.
+                              // An empty drawer looks exactly like a failure.
                               if (_running && _content.isEmpty)
                                 const Padding(
                                   padding: EdgeInsets.symmetric(vertical: 24),
@@ -475,40 +517,7 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
                                     ),
                                   ),
                                 ),
-                              // The exchange, oldest first. Earlier drafts
-                              // stay readable so the reader can see what their
-                              // last instruction changed — which is the point
-                              // of being able to give another one.
-                              //
-                              // Each answer is drawn the way the plugin asked
-                              // for, which is what the pane grid has always
-                              // done: a rewrite meant to be read as a document
-                              // is rendered, not shown with its markup on
-                              // display.
-                              for (final turn in _turns) ...[
-                                if (turn.asked.isNotEmpty)
-                                  Padding(
-                                    padding: const EdgeInsets.only(bottom: 6),
-                                    child: Text(
-                                      turn.asked,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .labelMedium
-                                          ?.copyWith(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .primary,
-                                          ),
-                                    ),
-                                  ),
-                                _render == PluginPaneRender.preview
-                                    ? MarkdownRenderer(markdown: turn.answer)
-                                    : SelectableText(turn.answer),
-                                if (turn != _turns.last)
-                                  const Divider(height: 24),
-                              ],
-                              // More still coming, with some of it already
-                              // readable.
+                              // More still coming, some already readable.
                               if (_running && _content.isNotEmpty) ...[
                                 const SizedBox(height: 12),
                                 const SizedBox(
@@ -519,47 +528,9 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
                                   ),
                                 ),
                               ],
-                              // The same offer the pane grid makes for the
-                              // same answer. Without it the rail could show a
+                              // The same offer the pane grid makes for the same
+                              // answer. Without it the rail could show a
                               // rewrite and give no way to take it.
-                              // Somewhere to say "and shorter", once there is
-                              // something to say it about. A panel used to end
-                              // with its first answer: not liking it meant
-                              // closing the drawer and describing the whole
-                              // thing again.
-                              if (_turns.isNotEmpty && _panelAsks) ...[
-                                const SizedBox(height: 12),
-                                Row(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.center,
-                                  children: [
-                                    Expanded(
-                                      child: TextField(
-                                        key: const Key('plugin-drawer-follow'),
-                                        controller: _follow,
-                                        enabled: !_running,
-                                        minLines: 1,
-                                        maxLines: 4,
-                                        decoration: InputDecoration(
-                                          isDense: true,
-                                          border: const OutlineInputBorder(),
-                                          hintText: AppLocalizations.of(
-                                            context,
-                                          )?.pluginFollowUpHint,
-                                        ),
-                                        onSubmitted: _sendFollowUp,
-                                      ),
-                                    ),
-                                    IconButton(
-                                      key: const Key('plugin-drawer-send'),
-                                      icon: const Icon(Icons.send, size: 18),
-                                      onPressed: _running
-                                          ? null
-                                          : _sendFollowUp,
-                                    ),
-                                  ],
-                                ),
-                              ],
                               if (_canApply && !_running) ...[
                                 const SizedBox(height: 12),
                                 FilledButton.icon(
@@ -576,6 +547,20 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
                           ),
                   ),
                 ),
+                // One box for the whole exchange, kept at the bottom the way a
+                // conversation is typed into. The plugin's first question is
+                // answered here too: it used to open a form of its own, so the
+                // reader typed in one place to start and another to carry on.
+                if (_question != null || (_turns.isNotEmpty && _panelAsks))
+                  _SayBox(
+                    controller: _say,
+                    choices: _question == null ? const [] : _choices,
+                    // Waiting *for the reader* is not being busy: the command is still
+                                      // running while it holds the question open, and greying the box
+                                      // then would leave nowhere to answer it.
+                                      busy: _running && _answering == null,
+                    onSend: _send,
+                  ),
               ],
             ),
           ),
@@ -608,73 +593,105 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
 /// answers the plugin named, and a box already holding what was chosen last
 /// time — so that starting a command here and starting it from a menu are the
 /// same exchange in two places rather than two exchanges.
-class _AskInDrawer extends StatelessWidget {
-  const _AskInDrawer({
-    required this.question,
-    required this.choices,
-    required this.controller,
-    required this.onAnswered,
-  });
+/// One thing the reader asked for, above the answer it produced.
+class _Said extends StatelessWidget {
+  const _Said(this.text);
 
-  final String question;
-  final List<String> choices;
-  final TextEditingController controller;
-  final void Function(String? answer) onAnswered;
+  final String text;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Text(
+        text,
+        style: theme.textTheme.labelMedium?.copyWith(
+          color: theme.colorScheme.primary,
+        ),
+      ),
+    );
+  }
+}
 
+/// The box the whole exchange is typed into, at the bottom of the drawer.
+///
+/// [choices] are the answers the plugin suggested for the question it is
+/// asking; pressing one sends it, which is what the question form used to
+/// offer and what a reader still wants when the plugin has named the usual
+/// replies.
+class _SayBox extends StatelessWidget {
+  const _SayBox({
+    required this.controller,
+    required this.choices,
+    required this.busy,
+    required this.onSend,
+  });
+
+  final TextEditingController controller;
+  final List<String> choices;
+  final bool busy;
+  final VoidCallback onSend;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(question, style: theme.textTheme.bodyMedium),
-        if (choices.isNotEmpty) ...[
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
+        const Divider(height: 1),
+        if (choices.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+            child: Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final choice in choices)
+                  ActionChip(
+                    label: Text(choice),
+                    onPressed: busy
+                        ? null
+                        : () {
+                            controller.text = choice;
+                            onSend();
+                          },
+                  ),
+              ],
+            ),
+          ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 8, 10),
+          child: Row(
             children: [
-              for (final choice in choices)
-                ActionChip(
-                  label: Text(choice),
-                  onPressed: () => onAnswered(choice),
+              Expanded(
+                child: TextField(
+                  key: const Key('plugin-drawer-follow'),
+                  controller: controller,
+                  enabled: !busy,
+                  minLines: 1,
+                  maxLines: 4,
+                  textInputAction: TextInputAction.send,
+                  decoration: InputDecoration(
+                    isDense: true,
+                    border: const OutlineInputBorder(),
+                    hintText: l10n?.pluginFollowUpHint,
+                  ),
+                  onSubmitted: (_) => onSend(),
+                  style: theme.textTheme.bodyMedium,
                 ),
+              ),
+              IconButton(
+                key: const Key('plugin-drawer-send'),
+                icon: const Icon(Icons.send, size: 18),
+                onPressed: busy ? null : onSend,
+              ),
             ],
           ),
-        ],
-        const SizedBox(height: 10),
-        TextField(
-          controller: controller,
-          autofocus: true,
-          minLines: 1,
-          maxLines: 6,
-          decoration: const InputDecoration(
-            isDense: true,
-            border: OutlineInputBorder(),
-          ),
-          // Enter sends it: the reader is answering one question, not writing
-          // a document, and reaching for the button is a second gesture for
-          // something they have already finished saying.
-          onSubmitted: (value) => onAnswered(value),
-        ),
-        const SizedBox(height: 10),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            TextButton(
-              onPressed: () => onAnswered(null),
-              child: Text(l10n.cancel),
-            ),
-            const SizedBox(width: 6),
-            FilledButton(
-              onPressed: () => onAnswered(controller.text),
-              child: Text(l10n.confirm),
-            ),
-          ],
         ),
       ],
     );
   }
 }
+
