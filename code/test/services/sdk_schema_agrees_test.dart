@@ -324,4 +324,62 @@ void main() {
     }
     expect(doubled, isEmpty, reason: doubled.join('\n'));
   }, skip: present ? null : 'SDK 仓库不在这台机器上');
+
+  test('every language says what a panel is asked on a second round', () {
+    // A command run from a panel can be run again with the reader asking for
+    // the answer to be changed, and the editor says so by handing the script
+    // its own last answer as `ctx.selection`. A plugin that reads the
+    // selection as "the part to work on" needs nothing; one that ignores it
+    // rewrites the whole document every round. Nobody can act on that without
+    // being told, and being told in English only is the shape of BUG-353.
+    //
+    // The shape guard next door counts headings, so it already insists every
+    // translation carries the section. What it cannot see is whether the
+    // section says this — which is what the two field names are for, since
+    // field names are not translated.
+    //
+    // Looked for *inside that section*: both appear eight and twelve times
+    // across the file, so asking whether the file contains them proves
+    // nothing at all.
+    final files = [
+      File('$repo/README.md'),
+      ...Directory('$repo/docs/i18n')
+          .listSync()
+          .whereType<File>()
+          .where((f) => f.path.endsWith('.md')),
+    ];
+    expect(files, hasLength(12), reason: '读到 ${files.length} 份 README，取法坏了');
+
+    /// The fifth `###` section, which is this one in every language.
+    String section(String text) {
+      final heads = RegExp(r'^### ', multiLine: true).allMatches(text).toList();
+      if (heads.length < 6) return '';
+      return text.substring(heads[4].start, heads[5].start);
+    }
+
+    // Guards the guard: if a `###` is added earlier the index moves, and this
+    // would go on checking some other section and passing for the wrong
+    // reason. The English heading is the anchor.
+    expect(
+      section(File('$repo/README.md').readAsStringSync()),
+      contains('asked again'),
+      reason: '第五个三级标题不再是「面板会被再问一次」，这条守卫的取法要跟着改',
+    );
+
+    final missing = <String>[];
+    for (final file in files) {
+      final body = section(file.readAsStringSync());
+      for (final field in ['ctx.selection', 'ctx.answer']) {
+        if (!body.contains(field)) {
+          missing.add('${file.uri.pathSegments.last}: $field');
+        }
+      }
+    }
+
+    expect(
+      missing,
+      isEmpty,
+      reason: '这几份 SDK 文档没有说明追加一轮时脚本会收到什么：$missing',
+    );
+  }, skip: present ? null : 'SDK 仓库不在这台机器上');
 }
