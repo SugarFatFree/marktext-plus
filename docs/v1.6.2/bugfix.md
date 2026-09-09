@@ -126,6 +126,7 @@
 | BUG-381 | 2026-09-09 | README 上「22 种图表 / 8 个主题」没有任何对账 | P3 | 已加守卫 |
 | BUG-382 | 2026-09-09 | 权限守卫的兜底会放行将来新增的动作类型 | P2 | 已修复 |
 | BUG-383 | 2026-09-10 | 让渲染器与富文本复制对齐的样例清单漏了三种内联 | P2 | 已加守卫 |
+| BUG-384 | 2026-09-10 | 新增块类型会被导出器的默认分支静默丢掉 | P2 | 已加守卫 |
 
 ---
 
@@ -6881,3 +6882,64 @@ Expected: empty
 
 - `code/test/ui/editor/preview_placeholder_test.dart` — 三条样例 + 覆盖守卫
   （`InlineSpan` 与 Flutter 同名，故对解析器加了一个前缀导入）
+
+## BUG-384：导出器的默认分支，会让读者的文件少一段
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-384 |
+| 日期 | 2026-09-10 |
+| 优先级 | P2 |
+| 状态 | 已加守卫（未发现现存缺陷） |
+
+### 问题
+
+BUG-382/383 处理的是内联那一半，这是块那一半。
+
+`ExportService.nodeToHtml` 对 `MarkdownNode` 做 switch，以默认分支收尾。
+和前两处不同的是，**这个兜底去不掉**：`MarkdownNode` 不是 sealed，也不该是
+（插件和将来的构造都要能扩展它），而 switch 必须对拿到的任何东西返回一个字符串。
+
+后果是**加第 12 种块类型，它会编译、会解析、会在预览里画出来，
+然后在导出的路上被静静丢掉**——读者的 PDF 里少了一段，
+而任何地方都不会说少了哪一段。
+
+### 实测：11 种今天都对
+
+| 块类型 | 导出为 |
+|--------|--------|
+| Heading | `<h1>…</h1>` |
+| Paragraph | `<p>…</p>` |
+| CodeBlock | `<pre><code class="hljs language-dart">…` |
+| List | `<ul><li>…` |
+| Blockquote | `<blockquote><p>…` |
+| HorizontalRule | `<hr>` |
+| Table | `<table><thead>…` |
+| MathBlock | `<div class="math-block">\[…\]</div>` |
+| FrontMatter | `<pre class="front-matter" data-lang="yaml">…` |
+| FootnoteDefinition | `<div class="footnote" id="fn-1">…` |
+| HtmlBlock | 原样 |
+
+> 中途虚惊一场：`grep -c "HorizontalRuleNode" export_service.dart` 得到 **0**，
+> 看着像水平线导出丢失。实测它导出 `<hr>`——**导出器没有点它的名**。
+> 今天第三次「扫描的结果不是证据」。
+
+### 守卫
+
+`every_block_survives_export_test`：**块类型清单从解析器源码里读出来**
+（`class \w+Node extends MarkdownNode`），逐个要求有样例、且导出非空。
+编译器帮不上的这一半，只能这么守。
+
+### 验证
+
+| 变异 | 结果 |
+|------|------|
+| 解析器加第 12 种块类型（能编译的） | 红：`Actual: ['CalloutNode']` |
+| 让 `<hr>` 导出成 `''` | 红：`HorizontalRuleNode 导出成空——读者的文件里会少一段` |
+
+> 第一次的变异是个空类，**编译不过**——那是加载失败不是行为失败，不算数，
+> 补齐 `type` 与 `rawContent` 重做的。
+
+### 涉及文件
+
+- `code/test/services/every_block_survives_export_test.dart`（新增）
