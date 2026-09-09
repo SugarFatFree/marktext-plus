@@ -65,18 +65,65 @@ end
   });
 
   test('JS reads the same field names as Lua', () {
-    // QuickJS only exists inside a built application, so the engine cannot be
-    // started here. What can be checked is the thing that actually goes
+    // QuickJS only exists inside a built application, so the engine cannot
+    // be started here. What can be checked is the thing that actually goes
     // wrong: the two runtimes reading different names, so a plugin works in
     // one language and not the other.
+    //
+    // This replaces a list of four names written out by hand — `apply`,
+    // `replaces`, `append`, `ai` — under the same title. Four names do not
+    // grow when a fifth key is added to both runtimes, which is the drift
+    // the title promises to catch.
+    //
+    // Compared with Lua rather than with the definitions, because that is the
+    // promise the SDK makes — "the same shape in JavaScript" — and it is what
+    // a plugin author moving between the two expects to find.
+    final lua =
+        File('lib/services/plugin_script_runtime.dart').readAsStringSync();
     final js = File('lib/services/plugin_js_runtime.dart').readAsStringSync();
-    final lua = File(
-      'lib/services/plugin_script_runtime.dart',
-    ).readAsStringSync();
-    for (final field in ["'apply'", "'replaces'", "'append'", "'ai'"]) {
-      expect(js, contains(field), reason: 'JS 运行时没读 $field');
-      expect(lua, contains(field), reason: 'Lua 运行时没读 $field');
-    }
+
+    Set<String> keysIn(String source, List<String> patterns) => {
+      for (final pattern in patterns)
+        for (final match in RegExp(pattern).allMatches(source))
+          match.group(1)!,
+    };
+
+    final fromLua = keysIn(lua, [
+      r"_field\('(\w+)'\)",
+      r"_stringList\('(\w+)'\)",
+      r"_boolean\('(\w+)'\)",
+      r"_number\('(\w+)'\)",
+      r"getField\(-1,\s*'(\w+)'\)",
+    ]);
+    // Read through helpers that take the key as an argument, and one through
+    // `containsKey`, so the patterns have to match those too. Written by hand
+    // first, this comparison reported nine missing keys and then one, all of
+    // them the scan's own blind spots rather than anything the runtime had
+    // failed to read. A pattern that misses a spelling reads as a defect.
+    final fromJs = keysIn(js, [
+      r"\bfield\('(\w+)'\)",
+      r"\bstring\(\w+, '(\w+)'\)",
+      r"\bflag\(\w+, '(\w+)'\)",
+      r"\w+\['(\w+)'\]",
+      r"containsKey\('(\w+)'\)",
+    ]);
+
+    expect(fromLua, isNotEmpty, reason: 'Lua 那边一个键都没抽出来，取法坏了');
+    expect(fromJs, isNotEmpty, reason: 'JS 那边一个键都没抽出来，取法坏了');
+
+    // The one-letter keys the JavaScript bridge answers with are its own
+    // protocol, not something a plugin writes.
+    const bridge = {'s', 'd'};
+    expect(
+      fromLua.difference(fromJs).difference(bridge),
+      isEmpty,
+      reason: 'Lua 认这些键而 JavaScript 不认，同一个插件换种语言写就少了这些',
+    );
+    expect(
+      fromJs.difference(fromLua).difference(bridge),
+      isEmpty,
+      reason: 'JavaScript 认这些键而 Lua 不认',
+    );
   });
 
   test('a pane that says nothing offers nothing', () {
