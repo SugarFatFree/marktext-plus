@@ -1172,4 +1172,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get pluginApplied => 'طُبِّق على المستند';
+
+  @override
+  String get pluginFollowUpHint => 'اطلب تعديلاً…';
 }

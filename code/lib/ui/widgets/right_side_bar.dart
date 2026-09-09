@@ -69,6 +69,25 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
   /// question and watched an empty drawer for as long as the model took.
   bool _running = false;
 
+  /// The exchange so far: what was asked for, and what came back.
+  ///
+  /// A panel used to be one shot — ask, answer, done — so a reader who did not
+  /// like the result had to close the drawer and start again, describing the
+  /// whole thing a second time. Kept as a list so the earlier drafts stay
+  /// readable while a later one is being written.
+  final List<({String asked, String answer})> _turns = [];
+
+  /// What the reader last asked for, so the answer can be filed under it.
+  String _asked = '';
+
+  /// Which panel the drawer is showing, so a follow-up can run the same
+  /// command again without going back through the rail.
+  PluginManifest? _openPlugin;
+  PluginSidePanel? _openPanel;
+
+  /// The box a follow-up is typed into.
+  final TextEditingController _follow = TextEditingController();
+
   /// What to answer a panel's question while automation is driving, or null
   /// when a reader is.
   String? _automaticAnswer;
@@ -97,6 +116,7 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
 
   /// Hands [answer] back to the command that asked, or refuses it.
   void _answered(String? answer) {
+    if (answer != null) _asked = answer;
     final pending = _answering;
     setState(() {
       _question = null;
@@ -134,6 +154,7 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
   void dispose() {
     _closeUi();
     _answer.dispose();
+    _follow.dispose();
     super.dispose();
   }
 
@@ -190,6 +211,47 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
   /// entries against a plugin asking for an eighth.
   static IconData icon(String name) => PluginIcons.resolve(name);
 
+  /// Files the answer now in [_content] under what was asked for.
+  ///
+  /// Called from inside the sink's `setState`, so it only arranges the list.
+  void _recordTurn() {
+    if (_content.isEmpty) return;
+    if (_turns.isNotEmpty && _turns.last.asked == _asked) {
+      // The same turn growing: a plugin sends its answer in pieces.
+      _turns[_turns.length - 1] = (asked: _asked, answer: _content);
+    } else {
+      _turns.add((asked: _asked, answer: _content));
+    }
+  }
+
+  /// Sends whatever is in the follow-up box, if there is a panel to send to.
+  void _sendFollowUp([String? _]) {
+    final plugin = _openPlugin;
+    final panel = _openPanel;
+    if (plugin != null && panel != null) _followUp(plugin, panel);
+  }
+
+  /// Asks for the last answer to be reworked.
+  ///
+  /// The plugin is given its own answer as the part to work on, and the
+  /// reader's words as the instruction — the same two things it was given the
+  /// first time, so no plugin has to know that this is a second round.
+  Future<void> _followUp(PluginManifest plugin, PluginSidePanel panel) async {
+    final asked = _follow.text.trim();
+    if (asked.isEmpty || _running || _content.isEmpty) return;
+    final about = _content;
+    setState(() {
+      _asked = asked;
+      _follow.clear();
+    });
+    _automaticAnswer = asked;
+    try {
+      await _run(plugin, panel, '${plugin.id}/${panel.id}', about: about);
+    } finally {
+      _automaticAnswer = null;
+    }
+  }
+
   /// Puts what the drawer is showing into the document.
   ///
   /// Closes the drawer on success, the way accepting a pane closes the pane:
@@ -225,28 +287,43 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
     _cancelQuestion();
     setState(() {
       _open = key;
+      _openPlugin = plugin;
+      _openPanel = panel;
       _content = '';
       _canApply = false;
       _replaces = '';
       _render = PluginPaneRender.text;
+      _turns.clear();
+      _follow.clear();
       _closeUi();
     });
-    // Filled by running the plugin's command of the same id: a panel is a
-    // command with a place to put its answer, so there is no second way for a
-    // plugin to draw and no second thing for the editor to render.
-    //
-    // The whole command, not one step of it. It used to be one step, so a
-    // plugin that asks a question first — which the one official plugin does
-    // — filled the drawer with the sentence "a panel cannot ask a question"
-    // and there was nowhere to type an answer. The question is asked in the
-    // card, the same as from a menu; what comes back lands here.
+    await _run(plugin, panel, key);
+  }
+
+  /// Runs [panel]'s command and puts what comes back in the drawer.
+  ///
+  /// The whole command, not one step of it. It used to be one step, so a
+  /// plugin that asks a question first — which the one official plugin does —
+  /// filled the drawer with the sentence "a panel cannot ask a question" and
+  /// there was nowhere to type an answer.
+  ///
+  /// [about] is what a follow-up is about: the answer the reader was not happy
+  /// with. The plugin reads it as the part to work on, which is how "and make
+  /// it shorter" is said in the language it already speaks.
+  Future<void> _run(
+    PluginManifest plugin,
+    PluginSidePanel panel,
+    String key, {
+    String? about,
+  }) async {
     setState(() => _running = true);
     try {
-        await PluginCommandActions.runInto(
+      await PluginCommandActions.runInto(
         ref,
         context: context,
         plugin: plugin,
         command: panel.id,
+        about: about,
         into: (
           text, {
           bool append = false,
@@ -259,9 +336,13 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
             _closeUi();
             _content = append ? '$_content\n\n$text' : text;
             _canApply = canApply;
-            _replaces = replaces;
+            // The first answer's, kept through every refinement: a shorter
+            // rewrite still replaces the paragraph the first one was going to
+            // replace, not the draft it was made from.
+            if (_replaces.isEmpty) _replaces = replaces;
             _render = render;
             _pluginName = plugin.name;
+            _recordTurn();
           });
         },
         onAsk: ({
@@ -270,7 +351,8 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
           required String suggested,
         }) {
           if (!mounted || _open != key) return Future.value(null);
-          // Being driven: answer as a reader would rather than waiting for one.
+          // Being driven, or following up: answer as a reader would rather
+          // than waiting for one.
           final automatic = _automaticAnswer;
           if (automatic != null) return Future.value(automatic);
           final completer = Completer<String?>();
@@ -383,14 +465,38 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
                                     ),
                                   ),
                                 ),
-                              // Drawn the way the plugin asked for, which is
-                              // what the pane grid has always done: a rewrite
-                              // meant to be read as a document is rendered,
-                              // not shown with its markup on display.
-                              if (_content.isNotEmpty)
+                              // The exchange, oldest first. Earlier drafts
+                              // stay readable so the reader can see what their
+                              // last instruction changed — which is the point
+                              // of being able to give another one.
+                              //
+                              // Each answer is drawn the way the plugin asked
+                              // for, which is what the pane grid has always
+                              // done: a rewrite meant to be read as a document
+                              // is rendered, not shown with its markup on
+                              // display.
+                              for (final turn in _turns) ...[
+                                if (turn.asked.isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 6),
+                                    child: Text(
+                                      turn.asked,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelMedium
+                                          ?.copyWith(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .primary,
+                                          ),
+                                    ),
+                                  ),
                                 _render == PluginPaneRender.preview
-                                    ? MarkdownRenderer(markdown: _content)
-                                    : SelectableText(_content),
+                                    ? MarkdownRenderer(markdown: turn.answer)
+                                    : SelectableText(turn.answer),
+                                if (turn != _turns.last)
+                                  const Divider(height: 24),
+                              ],
                               // More still coming, with some of it already
                               // readable.
                               if (_running && _content.isNotEmpty) ...[
@@ -406,6 +512,44 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
                               // The same offer the pane grid makes for the
                               // same answer. Without it the rail could show a
                               // rewrite and give no way to take it.
+                              // Somewhere to say "and shorter", once there is
+                              // something to say it about. A panel used to end
+                              // with its first answer: not liking it meant
+                              // closing the drawer and describing the whole
+                              // thing again.
+                              if (_turns.isNotEmpty) ...[
+                                const SizedBox(height: 12),
+                                Row(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.center,
+                                  children: [
+                                    Expanded(
+                                      child: TextField(
+                                        key: const Key('plugin-drawer-follow'),
+                                        controller: _follow,
+                                        enabled: !_running,
+                                        minLines: 1,
+                                        maxLines: 4,
+                                        decoration: InputDecoration(
+                                          isDense: true,
+                                          border: const OutlineInputBorder(),
+                                          hintText: AppLocalizations.of(
+                                            context,
+                                          )?.pluginFollowUpHint,
+                                        ),
+                                        onSubmitted: _sendFollowUp,
+                                      ),
+                                    ),
+                                    IconButton(
+                                      key: const Key('plugin-drawer-send'),
+                                      icon: const Icon(Icons.send, size: 18),
+                                      onPressed: _running
+                                          ? null
+                                          : _sendFollowUp,
+                                    ),
+                                  ],
+                                ),
+                              ],
                               if (_canApply && !_running) ...[
                                 const SizedBox(height: 12),
                                 FilledButton.icon(

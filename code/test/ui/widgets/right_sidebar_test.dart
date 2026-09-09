@@ -493,4 +493,107 @@ end
       expect(find.text('# Heading'), findsOneWidget);
     });
   });
+
+  group('the drawer is a conversation, not one shot', () {
+    // A panel used to end with its first answer. Not liking it meant closing
+    // the drawer and describing the whole thing again from the beginning.
+
+    /// Answers whatever it is asked, and says what it was working on, so a
+    /// test can see which text the second round was given.
+    const echo = 'function on_command(ctx)\n'
+        '  if ctx.answer == nil then\n'
+        '    return { ask = "what?" }\n'
+        '  end\n'
+        '  local about = ctx.selection\n'
+        '  if about == nil or about == "" then about = "DOC" end\n'
+        '  return { pane = ctx.answer .. " of " .. about, title = "W",\n'
+        '           apply = true, replaces = about }\n'
+        'end\n';
+
+    testWidgets('a follow-up reworks the answer, not the document again',
+        (tester) async {
+      install(
+        'com.example.demo',
+        panels: [
+          {'id': 'write', 'title': 'Write', 'icon': 'list'},
+        ],
+        permissions: const ['ui.sidebar', 'document.read', 'document.write'],
+        script: echo,
+      );
+      final container = await pumpWithContainer(tester);
+
+      // First round, through the automation entry so the question is answered.
+      await container
+          .read(mcpProvider.notifier)
+          .openPluginPanel!('com.example.demo', 'write', 'long');
+      await settlePlugin(tester);
+      expect(find.text('long of DOC'), findsOneWidget);
+
+      // Second round: type into the box the drawer now offers.
+      await tester.enterText(
+          find.byKey(const Key('plugin-drawer-follow')), 'shorter');
+      await tester.tap(find.byKey(const Key('plugin-drawer-send')));
+      await settlePlugin(tester);
+
+      expect(
+        find.text('shorter of long of DOC'),
+        findsOneWidget,
+        reason: '追加的要求应当作用在上一次的结果上',
+      );
+      expect(
+        find.text('long of DOC'),
+        findsOneWidget,
+        reason: '前一稿该留着，否则看不出这次改了什么',
+      );
+    });
+
+    testWidgets('nothing to follow up on before there is an answer',
+        (tester) async {
+      install(
+        'com.example.demo',
+        panels: [
+          {'id': 'write', 'title': 'Write', 'icon': 'list'},
+        ],
+        script: 'function on_command(ctx)\n'
+            '  return { ask = "what?" }\n'
+            'end\n',
+      );
+      await pump(tester);
+
+      await tester.tap(find.byIcon(Icons.list));
+      await settlePlugin(tester);
+
+      // Still asking the first question: there is nothing to rework yet.
+      expect(find.byKey(const Key('plugin-drawer-follow')), findsNothing);
+    });
+
+    testWidgets('what a refinement would replace is still the original',
+        (tester) async {
+      // The first answer replaces the paragraph it was made from. A shorter
+      // second draft replaces the same paragraph — not the draft it came from,
+      // which is not in the document at all.
+      install(
+        'com.example.demo',
+        panels: [
+          {'id': 'write', 'title': 'Write', 'icon': 'list'},
+        ],
+        permissions: const ['ui.sidebar', 'document.read', 'document.write'],
+        script: echo,
+      );
+      final container = await pumpWithContainer(tester);
+
+      await container
+          .read(mcpProvider.notifier)
+          .openPluginPanel!('com.example.demo', 'write', 'long');
+      await settlePlugin(tester);
+      await tester.enterText(
+          find.byKey(const Key('plugin-drawer-follow')), 'shorter');
+      await tester.tap(find.byKey(const Key('plugin-drawer-send')));
+      await settlePlugin(tester);
+
+      // Apply is still offered — it would have gone if `replaces` had been
+      // overwritten with text that is nowhere in the document.
+      expect(find.byKey(const Key('plugin-drawer-apply')), findsOneWidget);
+    });
+  });
 }

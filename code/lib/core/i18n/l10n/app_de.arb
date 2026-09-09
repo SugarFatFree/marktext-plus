@@ -458,5 +458,6 @@
     }
   },
   "pluginApply": "Übernehmen",
-  "pluginApplied": "Ins Dokument übernommen"
+  "pluginApplied": "Ins Dokument übernommen",
+  "pluginFollowUpHint": "Änderung wünschen …"
 }

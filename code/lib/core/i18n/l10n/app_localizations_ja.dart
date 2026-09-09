@@ -1160,4 +1160,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get pluginApplied => 'ドキュメントに反映しました';
+
+  @override
+  String get pluginFollowUpHint => '修正を指示…';
 }

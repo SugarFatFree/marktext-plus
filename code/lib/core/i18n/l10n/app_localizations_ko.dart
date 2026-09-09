@@ -1160,4 +1160,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get pluginApplied => '문서에 반영했습니다';
+
+  @override
+  String get pluginFollowUpHint => '수정 요청…';
 }

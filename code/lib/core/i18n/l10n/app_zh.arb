@@ -458,5 +458,6 @@
     }
   },
   "pluginApply": "采用",
-  "pluginApplied": "已写入文档"
+  "pluginApplied": "已写入文档",
+  "pluginFollowUpHint": "继续提要求…"
 }

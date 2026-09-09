@@ -458,5 +458,6 @@
     }
   },
   "pluginApply": "적용",
-  "pluginApplied": "문서에 반영했습니다"
+  "pluginApplied": "문서에 반영했습니다",
+  "pluginFollowUpHint": "수정 요청…"
 }

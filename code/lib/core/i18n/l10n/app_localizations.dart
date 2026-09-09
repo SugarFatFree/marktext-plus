@@ -2306,6 +2306,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Applied to the document'**
   String get pluginApplied;
+
+  /// Placeholder in the box where a reader asks a plugin panel to rework its last answer.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask for a change…'**
+  String get pluginFollowUpHint;
 }
 
 class _AppLocalizationsDelegate

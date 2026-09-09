@@ -187,6 +187,7 @@ class PluginCommandActions {
     required PluginTextSink into,
     PluginUiSink? onUi,
     PluginAskSink? onAsk,
+    String? about,
   }) async {
     final l10n = AppLocalizations.of(context);
     if (l10n == null) return;
@@ -201,7 +202,11 @@ class PluginCommandActions {
       plugin: plugin,
       command: command,
       view: viewFor(null, ref.read(settingsProvider).editMode),
-      selection: ref.read(editorProvider).selectedText,
+      // [about] is what a follow-up is about: the answer the reader was
+      // not happy with. A plugin reads the selection as "the part to work
+      // on", so handing back its own last answer is how "and make it
+      // shorter" is said in the language the plugin already speaks.
+      selection: about ?? ref.read(editorProvider).selectedText,
       document: active.isEmpty ? '' : active.first.content,
       into: into,
       onUi: onUi,

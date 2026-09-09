@@ -458,5 +458,6 @@
     }
   },
   "pluginApply": "適用",
-  "pluginApplied": "ドキュメントに反映しました"
+  "pluginApplied": "ドキュメントに反映しました",
+  "pluginFollowUpHint": "修正を指示…"
 }

@@ -1176,4 +1176,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get pluginApplied => 'Записано в документ';
+
+  @override
+  String get pluginFollowUpHint => 'Попросить изменить…';
 }

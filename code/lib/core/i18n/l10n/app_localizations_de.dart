@@ -1177,4 +1177,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get pluginApplied => 'Ins Dokument übernommen';
+
+  @override
+  String get pluginFollowUpHint => 'Änderung wünschen …';
 }

@@ -1172,4 +1172,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pluginApplied => 'Applied to the document';
+
+  @override
+  String get pluginFollowUpHint => 'Ask for a change…';
 }

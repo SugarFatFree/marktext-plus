@@ -1159,4 +1159,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get pluginApplied => '已写入文档';
+
+  @override
+  String get pluginFollowUpHint => '继续提要求…';
 }
