@@ -1365,7 +1365,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         constraints: BoxConstraints(
           minHeight: documentIsEmpty && !widget.followsSource ? 160 : 96,
         ),
-        alignment: Alignment.topLeft,
+        alignment: AlignmentDirectional.topStart,
         padding: const EdgeInsets.only(top: 12),
         child: documentIsEmpty && l10n != null && !widget.followsSource
             ? Text(
@@ -1801,15 +1801,23 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       }
     }
 
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: tokens.colorSurface,
-        borderRadius: BorderRadius.circular(8),
+    // Left to right whatever the window is doing. Arabic turns every `Row`
+    // around, and this one holds the line numbers beside the code: measured
+    // under a right-to-left window, the numbers landed at x=740 and the code
+    // at x=40 — the gutter across the block from what it numbers. Code is not
+    // prose and does not change direction with the reader's language.
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: tokens.colorSurface,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: body,
       ),
-      child: body,
     );
   }
 

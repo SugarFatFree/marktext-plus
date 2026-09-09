@@ -252,7 +252,7 @@ class _SideBarState extends ConsumerState<SideBar> {
           // Show externally opened files below the directory tree
           if (externalFiles.isNotEmpty) ...[
             Padding(
-              padding: const EdgeInsets.only(left: 8, top: 12, bottom: 4),
+              padding: const EdgeInsetsDirectional.only(start: 8, top: 12, bottom: 4),
               child: Text(
                 l10n.sidebarFiles,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -313,7 +313,7 @@ class _SideBarState extends ConsumerState<SideBar> {
         onTap: () => _openFileInTab(file.filePath),
         hoverColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
         child: Padding(
-          padding: const EdgeInsets.only(left: 8, right: 4),
+          padding: const EdgeInsetsDirectional.only(start: 8, end: 4),
           child: SizedBox(
             height: 28,
             child: Row(
@@ -385,7 +385,7 @@ class _SideBarState extends ConsumerState<SideBar> {
               }
             },
             child: Padding(
-              padding: EdgeInsets.only(left: depth * 16.0 + 8, right: 4),
+              padding: EdgeInsetsDirectional.only(start: depth * 16.0 + 8, end: 4),
               child: SizedBox(
                 height: 28,
                 child: Row(
@@ -797,7 +797,7 @@ class _SideBarState extends ConsumerState<SideBar> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
             child: Align(
-              alignment: Alignment.centerLeft,
+              alignment: AlignmentDirectional.centerStart,
               child: Text(
                 // The list is capped; saying "500 results" when there are
                 // more would be a quiet lie about what was searched.
@@ -816,7 +816,7 @@ class _SideBarState extends ConsumerState<SideBar> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
             child: Align(
-              alignment: Alignment.centerLeft,
+              alignment: AlignmentDirectional.centerStart,
               child: Text(
                 l10n.searchTooLarge(_skippedTooLarge),
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(

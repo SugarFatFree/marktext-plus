@@ -129,6 +129,7 @@
 | BUG-384 | 2026-09-10 | 新增块类型会被导出器的默认分支静默丢掉 | P2 | 已加守卫 |
 | BUG-385 | 2026-09-10 | SDK schema 的字段清单本身没人与编辑器对账 | P3 | 已加守卫 |
 | BUG-386 | 2026-09-10 | 整个插件界面对所有语言的读者都说英语 | P1 | 已修复 |
+| BUG-387 | 2026-09-10 | 右起阅读时代码块的行号被甩到代码另一边 | P1 | 已修复 |
 
 ---
 
@@ -7071,3 +7072,85 @@ Mermaid 目录排除在外并写明理由：图里的词是图语言自己的，
 - `code/lib/ui/screens/plugin_detail_view.dart`、`plugin_settings_screen.dart`、
   `settings_screen.dart`、`code/lib/ui/widgets/plugin_panel.dart`
 - `code/test/ui/reader_facing_text_is_translated_test.dart`（新增）
+
+## BUG-387：窗口调头了，十三处布局没跟着调
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-387 |
+| 日期 | 2026-09-10 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+
+### 问题
+
+`app.dart` 确实为阿拉伯语（以及在设置里主动选 `rtl` 的任何语言）套了
+`Directionality(rtl)`——**RTL 是实现了的**。Flutter 会把
+`EdgeInsetsDirectional` 和 `AlignmentDirectional` 翻过来，而把
+`EdgeInsets.only(left:)` 和 `Alignment.centerLeft` **原地留下**。
+
+代码库里有 13 处是后者。而 **`test/` 下一处 `TextDirection.rtl` 都没有**，
+所以没有任何东西会说。
+
+### 实测（不是推理）
+
+先写了一条会失败的测试：在右起窗口里渲染一个带行号的代码块，量行号和代码的横坐标。
+
+```
+Expected: a value less than <40.0>
+  Actual: <740.0>
+右起时行号跑到了代码右边——代码不是散文，不随语言掉头
+```
+
+**行号在 x=740，代码在 x=40**——装订线被甩到了它所标注的内容的另一头。
+左起那一条断言通过，说明量的是对的东西。
+
+### 十三处
+
+| 位置 | 原来 | 后果 |
+|------|------|------|
+| `markdown_renderer` 代码块 | 没有任何 `Directionality` | 整个块翻转，行号与代码互换 |
+| `side_bar` 树缩进 | `EdgeInsets.only(left: depth * 16)` | **文件树朝着名字的反方向缩进** |
+| `side_bar` ×3 | `only(left:)` / `centerLeft` | 分区标题、行内距、行对齐都贴错边 |
+| `editor_tab_bar` ×3 | `only(right: N)` | 标签间距镜像错误 |
+| `plugin_detail_view` / `plugin_settings_screen` | `Alignment.centerRight` | 动作按钮落在这一行所有别的按钮的对面 |
+| `settings_screen` ×2 | `Alignment.centerLeft` | 设置项与控件贴错边 |
+| `markdown_renderer` 空预览 | `Alignment.topLeft` | 「开始写作」提示贴错边 |
+
+### 修复
+
+代码块整体包一层 `Directionality(ltr)`——**代码不是散文，不随读者的语言掉头**；
+其余 12 处改用 `EdgeInsetsDirectional` / `AlignmentDirectional`。左起时行为一字不变。
+
+**刻意保留 4 处**，各有理由：
+
+- 表格列对齐的 `TextAlign.left/right`（3 处）——GFM 的 `:---` / `---:`
+  写的就是「左」和「右」这两个边本身，各家渲染器都按字面处理
+- 行号的 `textAlign: TextAlign.right`——它现在位于那层 LTR 容器内，
+  所以这个「右」在任何语言里都是同一边，让数字紧贴代码
+
+### 守卫（两条，缺一不可）
+
+| 测试 | 守什么 |
+|------|--------|
+| `rtl_keeps_code_readable_test` | **把窗口调头，量东西落在哪** |
+| `layout_follows_the_reading_direction_test` | 源码里不许出现贴死一边的写法，除非写进 allowed 并说明理由 |
+
+只有源码扫描是不够的——它只能证明「没写错构造器」，证明不了「画出来是对的」。
+这正是「扫描与打开，要两条」。
+
+### 验证
+
+| 变异 | 结果 |
+|------|------|
+| 树缩进改回 `EdgeInsets.only(left:)` | 源码守卫红，点名该行 |
+| 代码块的 `ltr` 改成 `rtl` | 渲染守卫红：`Actual: <740.0>` |
+| 例外清单里留一条失效的 | 守卫的守卫红：「这条例外可以删掉」 |
+
+### 涉及文件
+
+- `code/lib/ui/editor/markdown_renderer.dart`、`side_bar.dart`、
+  `editor_tab_bar.dart`、`plugin_detail_view.dart`、
+  `plugin_settings_screen.dart`、`settings_screen.dart`
+- `code/test/ui/editor/rtl_keeps_code_readable_test.dart`（新增）
+- `code/test/ui/layout_follows_the_reading_direction_test.dart`（新增）

@@ -167,7 +167,7 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
         if (widget.plugin.settings.isEmpty)
           Text('${widget.plugin.name} has no settings.'),
         Align(
-          alignment: Alignment.centerRight,
+          alignment: AlignmentDirectional.centerEnd,
           child: FilledButton.icon(
             onPressed: _saving || widget.plugin.settings.isEmpty ? null : _save,
             icon: _saving

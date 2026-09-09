@@ -300,7 +300,7 @@ class _PluginDetailViewState extends ConsumerState<PluginDetailView> {
         Padding(
           padding: const EdgeInsets.all(12),
           child: Align(
-            alignment: Alignment.centerRight,
+            alignment: AlignmentDirectional.centerEnd,
             child: TextButton.icon(
               onPressed: () => launchUrl(
                 widget.plugin.repositoryUrl!,

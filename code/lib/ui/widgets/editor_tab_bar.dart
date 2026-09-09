@@ -408,7 +408,7 @@ class _TabItemState extends ConsumerState<_TabItem> with SingleTickerProviderSta
           duration: const Duration(milliseconds: 150),
           curve: Curves.easeOut,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          margin: const EdgeInsets.only(right: 2),
+          margin: const EdgeInsetsDirectional.only(end: 2),
           decoration: BoxDecoration(
             color: widget.isActive
                 ? widget.tokens.colorBg
@@ -427,7 +427,7 @@ class _TabItemState extends ConsumerState<_TabItem> with SingleTickerProviderSta
               // that will not open.
               if (widget.tab.isPluginDetail)
                 Padding(
-                  padding: const EdgeInsets.only(right: 6),
+                  padding: const EdgeInsetsDirectional.only(end: 6),
                   child: Icon(
                     Icons.extension,
                     size: 13,
@@ -440,7 +440,7 @@ class _TabItemState extends ConsumerState<_TabItem> with SingleTickerProviderSta
                 Container(
                   width: 6,
                   height: 6,
-                  margin: const EdgeInsets.only(right: 6),
+                  margin: const EdgeInsetsDirectional.only(end: 6),
                   decoration: BoxDecoration(
                     color: widget.tokens.colorAccent,
                     shape: BoxShape.circle,

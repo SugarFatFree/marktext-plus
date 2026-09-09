@@ -524,7 +524,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
         const SizedBox(height: 8),
         Align(
-          alignment: Alignment.centerLeft,
+          alignment: AlignmentDirectional.centerStart,
           child: OutlinedButton.icon(
             onPressed: _testingAi ? null : () => _testAiConfiguration(l10n),
             icon: _testingAi
@@ -1248,7 +1248,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               children: [
                 label0,
                 const SizedBox(height: 8),
-                Align(alignment: Alignment.centerLeft, child: control),
+                Align(alignment: AlignmentDirectional.centerStart, child: control),
               ],
             );
           }
