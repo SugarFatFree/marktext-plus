@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:marktext_plus/core/i18n/l10n/app_localizations.dart';
 import 'package:marktext_plus/core/theme/app_theme.dart';
 import 'package:marktext_plus/ui/editor/mermaid/mermaid.dart';
 
@@ -143,6 +144,110 @@ void main() {
       }
     }
     expect(wrong, isEmpty, reason: '这几份 README 没有说出主题数：$wrong');
+  });
+
+  test('every README counts the interface languages the app ships', () {
+    // The third countable claim on the front page, and the one nothing was
+    // comparing: adding a thirteenth language leaves twelve files saying
+    // twelve, and the first person to notice is someone who counted.
+    final locales = AppLocalizations.supportedLocales;
+    expect(locales.length, greaterThan(5), reason: 'locale 表读错了');
+
+    final wrong = <String>[];
+    for (final file in readmes()) {
+      final name = file.uri.pathSegments.last;
+      final text = file.readAsStringSync();
+
+      // The globe is the same character in every translation while the word
+      // for "languages" is not, so the emoji is what the count is found by —
+      // the trick this file already uses for the feature rows.
+      final globe = text.indexOf('🌍');
+      if (globe < 0) {
+        wrong.add('$name: 找不到 🌍 那一行');
+      } else {
+        final near = text.substring(
+            globe, globe + 24 > text.length ? text.length : globe + 24);
+        final said = RegExp(r'\d+').firstMatch(near)?.group(0);
+        if (said != '${locales.length}') {
+          wrong.add('$name: 🌍 那行写的是 $said');
+        }
+      }
+
+      // And again in the comparison table, which says it a second time and
+      // could go stale on its own. The row is found by the number beside it —
+      // MarkText's ten, which is not ours to change and is not translated.
+      for (final row in RegExp(r'\|\s*(\d+)\s*\|\s*10\s*\|').allMatches(text)) {
+        if (row.group(1) != '${locales.length}') {
+          wrong.add('$name: 对比表里写的是 ${row.group(1)}');
+        }
+      }
+    }
+    expect(
+      wrong,
+      isEmpty,
+      reason: '应用支持 ${locales.length} 种界面语言，这几份 README 没跟上：\n'
+          '${wrong.join('\n')}',
+    );
+  });
+
+  test('every README shows every theme, on the right side of the table', () {
+    // The count was checked and the names were not, so renaming a theme, or
+    // moving one between the light and dark columns, changed nothing here —
+    // and a reader picking from the "Light Themes" column would have got a
+    // dark one. The pictures are the anchor: their filenames are the theme
+    // ids in kebab-case and are not translated, while the headings are.
+    String kebab(String id) => id
+        .replaceAllMapped(RegExp(r'([a-z0-9])([A-Z])'),
+            (m) => '${m[1]}-${m[2]}')
+        .toLowerCase();
+
+    final light = AppTheme.lightThemeNames.map(kebab).toList();
+    final dark = AppTheme.darkThemeNames.map(kebab).toList();
+    expect(light.length + dark.length, AppTheme.themeNames.length);
+
+    final wrong = <String>[];
+    for (final file in readmes()) {
+      final name = file.uri.pathSegments.last;
+      final text = file.readAsStringSync();
+
+      // The table, not the whole file: the front-page screenshot is a theme
+      // picture too and stands outside it.
+      final table = RegExp(r'<table>[\s\S]*?</table>')
+          .allMatches(text)
+          .map((m) => m.group(0)!)
+          .where((t) => t.contains('picture/theme/'))
+          .toList();
+      if (table.length != 1) {
+        wrong.add('$name: 找到 ${table.length} 张主题表，取法要跟着改');
+        continue;
+      }
+
+      final shown = RegExp(r'picture/theme/([a-z0-9-]+)\.png')
+          .allMatches(table.single)
+          .map((m) => m.group(1)!)
+          .toList();
+
+      final missing = [...light, ...dark].where((t) => !shown.contains(t));
+      if (missing.isNotEmpty) {
+        wrong.add('$name: 表里没有这些主题的图 $missing');
+      }
+      final extra = shown.where((t) => !light.contains(t) && !dark.contains(t));
+      if (extra.isNotEmpty) {
+        wrong.add('$name: 表里有编辑器没有的主题 ${extra.toList()}');
+      }
+
+      // Two cells to a row, light first — which is what the two headings say.
+      for (var i = 0; i < shown.length; i++) {
+        final expected = i.isEven ? light : dark;
+        final other = i.isEven ? dark : light;
+        if (other.contains(shown[i]) && !expected.contains(shown[i])) {
+          wrong.add('$name: ${shown[i]} 画在了'
+              '${i.isEven ? "浅色" : "深色"}那一列，而它是'
+              '${i.isEven ? "深色" : "浅色"}主题');
+        }
+      }
+    }
+    expect(wrong, isEmpty, reason: '主题表与编辑器对不上：\n${wrong.join('\n')}');
   });
 
   test('the English README names every diagram type it counts', () {
