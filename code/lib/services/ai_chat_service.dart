@@ -187,11 +187,22 @@ class AiChatService {
   static Future<String> Function(String prompt, void Function(String soFar) emit)?
       answerFor;
 
+  /// [reply] bounds the wait for the provider's response headers, and [idle]
+  /// inside [readStream] bounds the wait between two lines after that.
+  ///
+  /// Generous on purpose, and much more so than the idle bound. Asked without
+  /// streaming, a provider commonly computes the whole answer before it sends
+  /// any headers at all — so this is not the wait for a connection, it is the
+  /// wait for the model to finish thinking about a document that may be long.
+  /// Cutting that at a minute or two would fail translations that work today.
+  /// It is here so that a server which accepts the connection and then says
+  /// nothing ends in an error rather than in a spinner nobody can stop, and
+  /// ten minutes is short enough for that and long enough for the rest.
   static Future<String> complete({
     required AppConfig config,
     required String prompt,
     void Function(String soFar)? onChunk,
-    Duration reply = const Duration(seconds: 120),
+    Duration reply = const Duration(minutes: 10),
   }) async {
     final stub = answerFor;
     if (stub != null) {
