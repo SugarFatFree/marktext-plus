@@ -151,6 +151,7 @@
 | BUG-406 | 2026-09-10 | webview 去了哪，在 Windows 上一条都没记进日志 | P1 | 已修复 |
 | BUG-407 | 2026-09-10 | BUG-405 的守卫只查「有没有」，六处请求仍然没有上限 | P1 | 已修复 |
 | BUG-408 | 2026-09-10 | 跑不了命令的插件照样在右侧栏画图标，点了报错 | P2 | 已修复 |
+| BUG-409 | 2026-09-10 | 十八个权限里十个没有执行点，右键菜单和设置页不查权限 | P1 | 已修复 |
 
 ---
 
@@ -8404,3 +8405,90 @@ runtime 说编辑器跑得动按下去会启动的东西。
 
 `plugin_contract_test` 冻的是**名字**；这条问的是下一个问题：
 名字读进来之后，编辑器到底做不做事。
+
+---
+
+## BUG-409：十八个权限里十个没有执行点
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-409 |
+| 日期 | 2026-09-10 |
+| 优先级 | P1 |
+| 状态 | 已修复（两处；其余分类记录并加守卫） |
+
+### 现象
+
+安装插件时，读者会看到一份权限清单并据此决定装不装。把这 18 条逐个拿去
+`lib/` 里查「谁在使用它」，剔掉 `plugin_permission_text.dart`
+（那只是把标识符变成人话的显示名表）之后：
+
+**十条除了显示名表之外，全库再无第二处。**
+
+一个症状底下藏着两件不同的事，答案也不同：
+
+**甲、能力存在，但没设卡**（读者批准的清单上没有这条，插件照做不误）
+
+| 权限 | 情况 |
+|------|------|
+| `ui.contextMenu` | **菜单栏从写下那天起就查 `ui.menuBar`，右键菜单一条都不查** |
+| `ui.settings` | 只要声明了 `settings` 就画设置按钮，不问权限 |
+| `storage.local` | 每个脚本无条件拿到 `storage.get/set`，而 SDK 写着「需要 `storage.local`」 |
+
+**乙、能力压根不存在**（权限授予的是没人能做的事）
+
+| 权限 | 情况 |
+|------|------|
+| `ui.toolbar` | 清单里的 `toolbar` 字段 lib 里没有任何地方画（见 BUG-408 的顺带查明） |
+| `ui.commandPalette` | 命令面板读 `CommandRegistry`，没有任何地方把插件命令注册进去 |
+| `ui.statusBar` | 清单里根本没有状态栏这一类贡献 |
+| `clipboard.read/write` | 两个脚本运行时里**一个字都没有** |
+| `workspace.read/write` | 同上 |
+
+### 根因
+
+甲类是「一条规则抄了两份，只有一份跟上」的又一例：
+`plugin_menu_bar_entries` 里写着 `if (plugin.hasPermission(uiMenuBar))`，
+而 `plugin_command_actions` 的同一段只过滤位置和 runtime。
+
+乙类是 BUG-408 那个发现的另一面：**界面贡献没实现，为它准备的权限却先发布了。**
+
+共同点是没有任何东西把「发布出去的权限清单」和「代码里的把门处」对起来。
+`plugin_contract_test` 冻的是权限的**名字**，不问有没有人查。
+
+### 修复方案
+
+**改了两处**（都干净、无难懂的失败）：
+
+1. 右键菜单的过滤抽成纯函数 `pluginContextMenuContributions`——照
+   `pluginMenuBarEntries` 的样子，因为「只能靠搭一个菜单才能验的规则，
+   就是没人验的规则」。位置到权限的映射用 `switch`，**未知位置一律拒绝**：
+   将来加第二个菜单而忘了在这里写一行，它收不到贡献，而不是不要权限就能进。
+2. 设置页按钮加上 `hasPermission(ui.settings)`。
+
+**没改 `storage.local`**：拒绝的形状要先定。在脚本里抛错容易变成一句难懂的
+报错、打断本来能用的插件，而它管的只是插件自己目录里的设置文件——三者里
+风险最高、收益最低。留给下一轮或人工决定。
+
+**乙类不是「加把门」能修的**，那要先有能力。
+
+### 涉及文件
+
+- `code/lib/ui/widgets/plugin_command_actions.dart`
+- `code/lib/ui/widgets/plugin_panel.dart`
+- `code/test/ui/widgets/plugin_context_menu_permission_test.dart`（新增 3 条）
+- `code/test/services/every_permission_is_enforced_test.dart`（新增守卫）
+
+### 验证
+
+守卫两个方向都验过：
+
+| 变异 | 结果 |
+|------|------|
+| 右键菜单退回不查权限 | 「`ui.contextMenu` 只剩显示名了——把门的那处没了」 |
+| 随便给 `storage.local` 设一道卡 | 「现在有人查了——把它挪到 enforced 那张表」，并回述当初不做的理由 |
+
+第二个方向是这条守卫的关键：它让「哪天有人补上其中一道门」必须回到这张表，
+而那张表正是安装对话框那份清单离「有意义」还差多少的记录。
+
+官方插件已申请 `ui.contextMenu` 与 `ui.settings`，不受影响。

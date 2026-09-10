@@ -432,7 +432,13 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
-                                  if (plugin.settings.isNotEmpty)
+                                  // Both: it has something to configure,
+                                  // and the reader allowed it a settings page
+                                  // — which is what `ui.settings` says, and
+                                  // what nothing here used to ask.
+                                  if (plugin.settings.isNotEmpty &&
+                                      plugin.hasPermission(
+                                          PluginPermission.uiSettings))
                                     TextButton.icon(
                                       onPressed: () => _openSettings(plugin),
                                       icon: const Icon(Icons.settings, size: 16),

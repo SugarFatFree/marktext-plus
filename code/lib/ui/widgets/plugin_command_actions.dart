@@ -77,6 +77,43 @@ typedef PluginUiSink = Future<PluginUiEvent?> Function(
   Future<Uint8List> Function(String source) images,
 );
 
+/// What the installed plugins may put in the menu at [location].
+///
+/// Pulled out of the widget for the same reason [pluginMenuBarEntries] was:
+/// this is a rule about permissions, and a rule that can only be exercised by
+/// building a menu is a rule nobody exercises. The menu bar asked for its
+/// permission from the day it was written; this did not, so a plugin that
+/// never declared `ui.contextMenu` still appeared in the right-click menu —
+/// on a list of permissions the reader had approved without it.
+List<(PluginManifest, PluginMenuItem)> pluginContextMenuContributions(
+  List<PluginManifest> plugins, {
+  required String location,
+  required bool hasSelection,
+}) =>
+    [
+      for (final plugin in plugins)
+        // Three things have to hold, and they are different questions: the
+        // reader allowed it here, the editor can run what pressing it starts,
+        // and the entry belongs in this menu with this much selected.
+        if (plugin.hasPermission(_permissionFor(location)) &&
+            plugin.runtime.runsCommands)
+          for (final menu in plugin.menus)
+            if (menu.location == location &&
+                menu.appliesTo(hasSelection: hasSelection))
+              (plugin, menu),
+    ];
+
+/// The permission a contribution to [location] needs.
+///
+/// The editor has one right-click menu today. An unknown location is refused
+/// rather than allowed: a menu added later without a line here would otherwise
+/// need no permission at all, which is the failure this whole function exists
+/// to stop.
+String _permissionFor(String location) => switch (location) {
+      'editor.contextMenu' => PluginPermission.uiContextMenu,
+      _ => '\u0000 no permission grants this',
+    };
+
 class PluginCommandActions {
   const PluginCommandActions._();
 
@@ -111,16 +148,12 @@ class PluginCommandActions {
     // read off the context: with no plugin contributing here there is nothing
     // to draw, and a pane that has no localisations — which is every editor
     // widget test — must not be made to fail looking them up.
-    final contributions = [
-      for (final plugin
-          in ref.read(installedPluginManifestsProvider).valueOrNull ??
-              const <PluginManifest>[])
-        if (plugin.runtime.runsCommands)
-          for (final menu in plugin.menus)
-            if (menu.location == location &&
-                menu.appliesTo(hasSelection: hasSelection))
-              (plugin, menu),
-    ];
+    final contributions = pluginContextMenuContributions(
+      ref.read(installedPluginManifestsProvider).valueOrNull ??
+          const <PluginManifest>[],
+      location: location,
+      hasSelection: hasSelection,
+    );
     if (contributions.isEmpty) return const [];
 
     final l10n = AppLocalizations.of(context);
