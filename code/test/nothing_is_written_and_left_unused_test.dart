@@ -68,7 +68,11 @@ void main() {
         if (keyword == 'extension') {
           for (var j = i + 1; j < lines.length && lines[j].trimRight() != '}'; j++) {
             final m = member.firstMatch(lines[j]);
-            if (m != null) names.add('.${m.group(1)!}(');
+            // Without the parenthesis: a getter is used as `.runsCommands`,
+            // and requiring `(` would report every extension of getters as
+            // dead. The leading dot is still required, so a local variable of
+            // the same name elsewhere does not count as a use.
+            if (m != null) names.add('.${m.group(1)!}');
           }
         } else {
           names.add(name);

@@ -466,7 +466,10 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
         const <PluginManifest>[];
     final contributions = [
       for (final plugin in plugins)
-        if (plugin.hasPermission(PluginPermission.uiSidebar))
+        // Both halves: the permission says it may draw here, and the runtime
+        // says the editor can run what pressing the icon would start.
+        if (plugin.hasPermission(PluginPermission.uiSidebar) &&
+            plugin.runtime.runsCommands)
           for (final panel in plugin.panels) (plugin, panel),
     ];
     if (contributions.isEmpty) return const SizedBox.shrink();

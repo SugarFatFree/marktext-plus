@@ -150,6 +150,7 @@
 | BUG-405 | 2026-09-10 | 另外三处请求同样没有时间上限：测试连接、插件市场、插件取图 | P1 | 已修复 |
 | BUG-406 | 2026-09-10 | webview 去了哪，在 Windows 上一条都没记进日志 | P1 | 已修复 |
 | BUG-407 | 2026-09-10 | BUG-405 的守卫只查「有没有」，六处请求仍然没有上限 | P1 | 已修复 |
+| BUG-408 | 2026-09-10 | 跑不了命令的插件照样在右侧栏画图标，点了报错 | P2 | 已修复 |
 
 ---
 
@@ -8326,3 +8327,80 @@ lib/services/plugin_catalog_service.dart  发出 5 个请求，只限住 4 个
 ```
 
 旧守卫对同一个变异是全绿的。
+
+---
+
+## BUG-408：跑不了命令的插件照样在右侧栏画图标，点了报错
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-408 |
+| 日期 | 2026-09-10 |
+| 优先级 | P2 |
+| 状态 | 已修复 |
+
+### 现象
+
+一个 `runtime: "process"`（编译型）或 `runtime: "data"`（无代码）的插件，
+只要申请了 `ui.sidebar` 并声明了 `panels`，右侧图标栏就会给它画一个图标。
+**按下去得到的是一句错误**：「这个插件没有脚本可跑」。
+
+### 根因
+
+同一条规则抄了两份，只有一份跟上：
+
+| 位置 | 判据 |
+|------|------|
+| 上下文菜单（`plugin_command_actions:118`） | `runtime == lua \|\| runtime == js` |
+| 右侧图标栏（`right_side_bar:469`） | **只看 `ui.sidebar` 权限，不看 runtime** |
+
+菜单那边早就决定了「跑不了就不摆出来」，图标栏没被告知。
+
+### 修复方案
+
+把这条规则收敛成一处：`PluginRuntimeCommands.runsCommands`（`plugin_manifest.dart`），
+两个地方都来问它。图标栏改成**两半都要**：权限说它可以画在这里，
+runtime 说编辑器跑得动按下去会启动的东西。
+
+### 涉及文件
+
+- `code/lib/services/plugin_manifest.dart`
+- `code/lib/ui/widgets/plugin_command_actions.dart`
+- `code/lib/ui/widgets/right_side_bar.dart`
+- `code/test/ui/widgets/right_sidebar_test.dart`（新增 2 条）
+
+### 验证
+
+把图标栏改回「只看权限」，「跑不了它的命令，就不该给它一个按了报错的图标」立刻红。
+
+---
+
+## 顺带查明：插件清单里有三处「声明了，编辑器不认」
+
+修 BUG-408 时横向把**五种界面贡献**都查了一遍，结果比预期的差：
+
+| 清单字段 | 编辑器 | 状况 |
+|---------|-------|------|
+| `commands` | `plugin_menu_bar_entries` / `slash_menu` | 接上了 |
+| `menus` | `plugin_command_actions` | 接上了 |
+| `panels` | `right_side_bar` | 接上了（本次修的是过滤） |
+| **`toolbar`** | —— | **lib 里没有任何地方画它**；`PluginToolbarItem` 有解析、有测试、有 `ui.toolbar` 权限 |
+| **`pages`** | —— | **lib 与 test 里零引用**；`PluginSettingPage` 完全是死的 |
+
+外加运行方式一项：
+
+| 运行方式 | 状况 |
+|---------|------|
+| **`runtime: "process"`** | **编辑器从不启动**。`PluginProcessHost`（含启动令牌、超时、进程注册表）、`startPlugin`、逐平台 `entrypoints` 校验**全部写好且有测试**，但 `startPlugin` 在生产代码里没有任何调用者，`plugin_command_service` 直接拒绝这个 runtime。而 SDK 的 README 用**现在时**描述它（「编辑器启动一个程序，通过 stdio 讲 JSON-RPC」），schema 也把它列为正式取值 |
+
+**这不是这一轮该顺手接上的**：进程插件要改三个同步接口为异步、要新的生命周期，
+而且是安全敏感能力（启动任意可执行文件）。在三个待发版等人工测试的当口
+无审查地接上它，会把测试面显著扩大。
+
+**已做的是让它不能再悄悄漂移**：`test/services/what_a_plugin_declares_is_used_test.dart`
+把「声明了什么」与「编辑器在哪里用它」两张表对起来，
+并把这三处未实现明确写进代码里——哪天有人接上其中一个，测试会红，
+并指着他去改 SDK 的措辞。
+
+`plugin_contract_test` 冻的是**名字**；这条问的是下一个问题：
+名字读进来之后，编辑器到底做不做事。

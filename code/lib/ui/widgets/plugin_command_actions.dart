@@ -115,8 +115,7 @@ class PluginCommandActions {
       for (final plugin
           in ref.read(installedPluginManifestsProvider).valueOrNull ??
               const <PluginManifest>[])
-        if (plugin.runtime == PluginRuntime.lua ||
-            plugin.runtime == PluginRuntime.js)
+        if (plugin.runtime.runsCommands)
           for (final menu in plugin.menus)
             if (menu.location == location &&
                 menu.appliesTo(hasSelection: hasSelection))

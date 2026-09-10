@@ -318,6 +318,24 @@ enum PluginRuntime {
   process,
 }
 
+/// Whether the editor can run a command written for this runtime.
+///
+/// One rule, asked in both of the places that offer a plugin's commands to
+/// the reader — the context menus and the rail of side panels. It used to be
+/// spelled out at the menus and not at the rail, so a plugin the editor
+/// cannot run still got an icon there, and pressing it produced an error
+/// about there being no script. An offer that cannot be taken up is worse
+/// than no offer.
+///
+/// `data` has no code by definition. `process` is a prebuilt executable, and
+/// the editor does not launch one yet — `PluginProcessHost` and the launch
+/// token are written and tested, but nothing dispatches a command to them, so
+/// this is the one place that says so rather than four.
+extension PluginRuntimeCommands on PluginRuntime {
+  bool get runsCommands =>
+      this == PluginRuntime.lua || this == PluginRuntime.js;
+}
+
 /// One field on a plugin's own settings page.
 class PluginSettingField {
   const PluginSettingField({

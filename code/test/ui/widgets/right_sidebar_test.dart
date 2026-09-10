@@ -45,6 +45,7 @@ void main() {
 
   void install(String id, {required List<Map<String, String>> panels,
       List<String> permissions = const ['ui.sidebar'],
+      String runtime = 'lua',
       String script = ''}) {
     final dir = Directory('${support.path}/plugins/$id')
       ..createSync(recursive: true);
@@ -52,8 +53,13 @@ void main() {
       'id': id,
       'name': 'Demo',
       'version': '1.0.0',
-      'runtime': 'lua',
-      'entrypoint': 'plugin.lua',
+      'runtime': runtime,
+      // A compiled plugin names an executable per system instead of a script,
+      // and is refused at parse time if it names neither.
+      if (runtime == 'process')
+        'entrypoints': {'linux': 'demo', 'macos': 'demo', 'windows': 'demo.exe'}
+      else if (runtime != 'data')
+        'entrypoint': 'plugin.lua',
       'permissions': permissions,
       'panels': panels,
     }));
@@ -170,6 +176,34 @@ void main() {
 
     expect(tester.getSize(find.byType(RightSideBar)).width, 0,
         reason: '没申请 ui.sidebar 就不该出现在侧栏');
+  });
+
+  testWidgets('a plugin the editor cannot run gets no icon', (tester) async {
+    // A compiled plugin: the manifest is valid, the permission is held, and
+    // the editor does not launch one — PluginProcessHost is written and
+    // tested, but nothing dispatches a command to it. The rail used to ask
+    // only about the permission, so the icon appeared and pressing it
+    // answered "this plugin has no script to run". An offer that cannot be
+    // taken up is worse than no offer, and the menus had already decided
+    // that; the rail had not been told.
+    install('com.example.compiled',
+        panels: [{'id': 'outline', 'title': 'Outline', 'icon': 'list'}],
+        runtime: 'process');
+    await pump(tester);
+
+    expect(tester.getSize(find.byType(RightSideBar)).width, 0,
+        reason: '跑不了它的命令，就不该给它一个按了报错的图标');
+    expect(find.byIcon(Icons.list), findsNothing);
+  });
+
+  testWidgets('a plugin with no code at all gets no icon', (tester) async {
+    // `data` is themes and snippets — there is nothing to run by definition.
+    install('com.example.theme',
+        panels: [{'id': 'outline', 'title': 'Outline', 'icon': 'list'}],
+        runtime: 'data');
+    await pump(tester);
+
+    expect(tester.getSize(find.byType(RightSideBar)).width, 0);
   });
 
   testWidgets('pressing the icon opens the drawer, pressing again closes it',
