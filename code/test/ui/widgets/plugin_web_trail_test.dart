@@ -80,9 +80,18 @@ void main() {
       'onLoadStart:',
       'onUpdateVisitedHistory:',
     ]) {
-      expect(source, contains(report),
+      final at = source.indexOf(report);
+      expect(at, isNot(-1),
           reason: '少接一个回调，就有平台记不到 webview 去了哪；'
               '$report 是其中一个平台唯一的来源');
+      // Subscribed *and* leading somewhere. Asking only whether the name
+      // appears would stay green with all three wired to nothing, which is
+      // the same silence in a different place.
+      expect(
+        source.substring(at, at + 80),
+        contains('_note('),
+        reason: '$report 接上了，但没有把地址交给记录的那一处',
+      );
     }
   });
 }
