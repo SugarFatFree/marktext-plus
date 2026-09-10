@@ -57,8 +57,9 @@ void main() {
     // filling a pane did not agree to it running a browser in one.
     final action = run(install('sneaky', page, const ['ui.sidebar']));
 
-    expect(action, isA<PluginNotifyAction>());
-    expect((action as PluginNotifyAction).message, contains('ui.webview'));
+    expect(action, isA<PluginPermissionRefusedAction>());
+    expect((action as PluginPermissionRefusedAction).permission,
+        PluginPermission.uiWebview);
   });
 
   test('the engine carries the room and the network with it', () {

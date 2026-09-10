@@ -491,5 +491,6 @@
   "permWorkspaceWrite": "Scrivere file nella cartella che hai aperto",
   "permNetworkRequest": "Inviare richieste a qualsiasi server scelga",
   "permUiWebview": "Aprire una propria pagina web nell'editor, che può raggiungere qualsiasi server (l'editor registra quale)",
-  "permUnknown": "Permesso non riconosciuto — questa versione non concede nulla per esso"
+  "permUnknown": "Permesso non riconosciuto — questa versione non concede nulla per esso",
+  "pluginPermissionRefused": "{plugin} non ha chiesto l'autorizzazione «{permission}» — significa: {meaning}"
 }

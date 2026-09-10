@@ -220,8 +220,9 @@ void _permissions() {
       install(script, const []),
       const PluginScriptContext(command: 'x'),
     );
-    expect(denied, isA<PluginNotifyAction>());
-    expect((denied as PluginNotifyAction).message, contains(PluginPermission.aiChat));
+    expect(denied, isA<PluginPermissionRefusedAction>());
+    expect((denied as PluginPermissionRefusedAction).permission,
+        PluginPermission.aiChat);
   });
 
   test('editing the document needs document.write', () {
@@ -236,7 +237,7 @@ void _permissions() {
     expect(
       service.start(install(script, const []),
           const PluginScriptContext(command: 'x')),
-      isA<PluginNotifyAction>(),
+      isA<PluginPermissionRefusedAction>(),
     );
   });
 

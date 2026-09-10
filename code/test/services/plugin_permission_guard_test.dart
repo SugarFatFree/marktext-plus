@@ -49,10 +49,10 @@ void main() {
       // `ui.notifications` exists, is listed at install time, and was never
       // checked: any plugin could raise a notification.
       final action = run(install('quiet', '{ notify = "hello" }', const []));
-      expect(action, isA<PluginNotifyAction>());
+      expect(action, isA<PluginPermissionRefusedAction>());
       expect(
-        (action as PluginNotifyAction).message,
-        contains('ui.notifications'),
+        (action as PluginPermissionRefusedAction).permission,
+        PluginPermission.uiNotifications,
         reason: '没声明 ui.notifications 却弹了通知，而且没人告诉读者',
       );
     });
@@ -162,17 +162,17 @@ void main() {
       final action = run(install('paner', '{ pane = "x" }', const []));
 
       expect(
-        (action as PluginNotifyAction).message,
-        contains(PluginPermission.describe(PluginPermission.uiSidebar)),
-        reason: '拒绝理由要说人话，标识符只对插件作者有意义',
+        (action as PluginPermissionRefusedAction).permission,
+          PluginPermission.uiSidebar,
+          reason: '拒绝要说清缺的是哪一项，界面才查得出它是什么意思',
       );
     });
 
-    test('the identifier is still there for whoever writes the manifest', () {
+    test('and says whose plugin it was', () {
       final action = run(install('paner', '{ pane = "x" }', const []));
 
-      expect((action as PluginNotifyAction).message,
-          contains(PluginPermission.uiSidebar));
+      expect((action as PluginPermissionRefusedAction).pluginName, 'Demo');
+
     });
   });
 }

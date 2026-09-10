@@ -1260,4 +1260,13 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get permUnknown => '这个版本不认识的权限——它什么也拿不到';
+
+  @override
+  String pluginPermissionRefused(
+    String plugin,
+    String permission,
+    String meaning,
+  ) {
+    return '$plugin 没有申请「$permission」这项权限——它的意思是：$meaning';
+  }
 }

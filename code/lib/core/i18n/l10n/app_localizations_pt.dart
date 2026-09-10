@@ -1288,6 +1288,15 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get permUnknown =>
       'Permissão desconhecida — esta versão não concede nada por ela';
+
+  @override
+  String pluginPermissionRefused(
+    String plugin,
+    String permission,
+    String meaning,
+  ) {
+    return '$plugin não pediu a permissão «$permission» — significa: $meaning';
+  }
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -2572,4 +2581,13 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get permUnknown =>
       'Permissão desconhecida — esta versão não concede nada por ela';
+
+  @override
+  String pluginPermissionRefused(
+    String plugin,
+    String permission,
+    String meaning,
+  ) {
+    return '$plugin não pediu a permissão «$permission» — significa: $meaning';
+  }
 }

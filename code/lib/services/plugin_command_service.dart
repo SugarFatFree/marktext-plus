@@ -142,19 +142,23 @@ class PluginCommandService {
       PluginShowAction() ||
       PluginDiffAction() ||
       PluginUiAction() ||
-      PluginNoAction() =>
+      PluginNoAction() ||
+      // The editor's own answer to a plugin that asked for too much. A plugin
+      // cannot return one, so there is nothing here to permit.
+      PluginPermissionRefusedAction() =>
         null,
     };
     if (needed == null || manifest.hasPermission(needed)) return action;
     // Reported to the reader rather than dropped: a plugin that does nothing
     // and says nothing is one they will file a bug about.
     //
-    // In both languages this has to be read in: the sentence, for the reader
-    // deciding whether they mind, and the identifier, for whoever has to put
-    // it in the manifest.
-    return PluginNotifyAction(
-      '${manifest.name} did not ask for the "$needed" permission '
-      '— ${PluginPermission.describe(needed)}',
+    // The name and the identifier, and not a sentence. Both have to be read in:
+    // what happened, for the reader deciding whether they mind, and the
+    // identifier, for whoever has to put it in the manifest. The sentence is
+    // written where the translations are.
+    return PluginPermissionRefusedAction(
+      pluginName: manifest.name,
+      permission: needed,
     );
   }
 

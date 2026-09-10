@@ -16,6 +16,7 @@ import 'package:marktext_plus/providers/tab_provider.dart';
 import 'package:marktext_plus/providers/editor_provider.dart';
 import 'package:marktext_plus/providers/mcp_provider.dart';
 import 'package:marktext_plus/ui/widgets/right_side_bar.dart';
+import 'package:marktext_plus/services/ai_chat_service.dart';
 
 /// The right side bar exists only when a plugin has put something in it.
 ///
@@ -621,6 +622,143 @@ end
       // Apply is still offered — it would have gone if `replaces` had been
       // overwritten with text that is nowhere in the document.
       expect(find.byKey(const Key('plugin-drawer-apply')), findsOneWidget);
+    });
+
+    testWidgets('a pane that offers nothing does not decide what gets replaced',
+        (tester) async {
+      // The official plugin answers twice: an empty pane carrying the prompt,
+      // and then the pane with the answer in it. Only the second offers to
+      // apply, and only the second knows what it is replacing. Taking the first
+      // one's word for it — it says nothing, which reads as "the whole
+      // document" — meant a rewrite of one paragraph would have overwritten the
+      // file.
+      install(
+        'com.example.demo',
+        panels: [
+          {'id': 'write', 'title': 'Write', 'icon': 'list'},
+        ],
+        permissions: const ['ui.sidebar', 'document.read', 'document.write'],
+        script: 'function on_command(ctx)\n'
+            '  return { pane = "", title = "W" }\n'
+            'end\n'
+            'function on_event(ctx, id, values)\n'
+            '  return { pane = "NEW", title = "W",\n'
+            '           apply = true, replaces = "OLD" }\n'
+            'end\n',
+      );
+      final container = await pumpWithContainer(tester);
+      container.read(tabProvider.notifier).addTab(
+        TabInfo(id: 'doc', fileName: 'a.md', content: 'before OLD after'),
+      );
+      container.read(tabProvider.notifier).setActiveTab('doc');
+      await tester.pump();
+
+      await tester.tap(find.byIcon(Icons.list));
+      await settlePlugin(tester);
+
+      // The empty pane arrived and offered nothing, so nothing was decided.
+      expect(find.byKey(const Key('plugin-drawer-apply')), findsNothing);
+    });
+
+    testWidgets('the offer that arrives after an empty pane still replaces '
+        'the right thing', (tester) async {
+      // The shape the official plugin actually uses, and the one a reader hit:
+      // an empty pane carrying the prompt, then the model's answer as a second
+      // pane that says what it replaces. Only the second offers to apply, and
+      // only the second knows the target — reading the first pane's silence as
+      // "the whole document" would write the answer over the entire file.
+      AiChatService.answerFor = (prompt) async => 'NEW';
+      addTearDown(() => AiChatService.answerFor = null);
+
+      install(
+        'com.example.demo',
+        panels: [
+          {'id': 'write', 'title': 'Write', 'icon': 'list'},
+        ],
+        permissions: const [
+          'ui.sidebar',
+          'document.read',
+          'document.write',
+          'ai.chat',
+        ],
+        script: 'function on_command(ctx)\n'
+            '  if ctx.answer == nil then\n'
+            '    return { ask = "what?" }\n'
+            '  end\n'
+            '  return { pane = "", title = "W", ai = "write it" }\n'
+            'end\n'
+            'function on_result(ctx, reply)\n'
+            '  return { pane = reply, title = "W",\n'
+            '           apply = true, replaces = "OLD" }\n'
+            'end\n',
+      );
+      final container = await pumpWithContainer(tester);
+      container.read(tabProvider.notifier).addTab(
+        TabInfo(id: 'doc', fileName: 'a.md', content: 'before OLD after'),
+      );
+      container.read(tabProvider.notifier).setActiveTab('doc');
+      await tester.pump();
+
+      await container
+          .read(mcpProvider.notifier)
+          .openPluginPanel!('com.example.demo', 'write', 'go');
+      await settlePlugin(tester);
+
+      tester
+          .widget<FilledButton>(find.byKey(const Key('plugin-drawer-apply')))
+          .onPressed!();
+      await tester.pumpAndSettle();
+
+      expect(
+        container.read(tabProvider).tabs.single.content,
+        'before NEW after',
+        reason: '要替换的是插件点名的那一段，不是整篇文档——'
+            '空的占位窗格什么都没说，不该由它定',
+      );
+    });
+
+    testWidgets('an answer lands in a tab that was empty', (tester) async {
+      // Reported: a new tab, AI writing, Apply — and the blank page stayed
+      // blank. Nothing selected and nothing in the document, so what the plugin
+      // offers to replace is the whole of it, and the whole of it is "".
+      install(
+        'com.example.demo',
+        panels: [
+          {'id': 'write', 'title': 'Write', 'icon': 'list'},
+        ],
+        permissions: const ['ui.sidebar', 'document.read', 'document.write'],
+        script: 'function on_command(ctx)\n'
+            '  if ctx.answer == nil then\n'
+            '    return { ask = "what?" }\n'
+            '  end\n'
+            '  local about = ctx.selection\n'
+            '  if about == nil then about = "" end\n'
+            '  return { pane = "a written paragraph", title = "W",\n'
+            '           apply = true, replaces = about }\n'
+            'end\n',
+      );
+      final container = await pumpWithContainer(tester);
+      container.read(tabProvider.notifier).addTab(
+        TabInfo(id: 'blank', fileName: 'Untitled', content: ''),
+      );
+      container.read(tabProvider.notifier).setActiveTab('blank');
+      await tester.pump();
+
+      await container
+          .read(mcpProvider.notifier)
+          .openPluginPanel!('com.example.demo', 'write', 'a haiku');
+      await settlePlugin(tester);
+
+      tester
+          .widget<FilledButton>(find.byKey(const Key('plugin-drawer-apply')))
+          .onPressed!();
+      await tester.pumpAndSettle();
+
+      expect(
+        container.read(tabProvider).tabs.single.content,
+        'a written paragraph',
+        reason: '空白标签页按「采用」，内容没有写进去——读者报的正是这一条',
+      );
     });
 
     testWidgets('asking the same thing twice keeps both rounds', (tester) async {

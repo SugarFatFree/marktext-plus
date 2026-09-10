@@ -18,6 +18,7 @@ import '../../services/plugin_script_runtime.dart';
 import '../../services/plugin_ui.dart';
 import '../../services/plugin_logger.dart';
 import '../../services/plugin_image_loader.dart';
+import 'plugin_permission_text.dart';
 
 /// Puts the commands installed plugins contribute into a right-click menu, and
 /// carries out what those commands ask for.
@@ -483,6 +484,27 @@ class PluginCommandActions {
 
           case PluginNotifyAction(:final message):
             messenger.showSnackBar(SnackBar(content: Text(message)));
+            return;
+
+          // The editor's own words, so they are written here where the
+          // translations are. The service says which plugin and which
+          // permission; the sentence and what the permission means are looked
+          // up in the reader's language.
+          case PluginPermissionRefusedAction(
+              :final pluginName,
+              :final permission,
+            ):
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text(
+                  l10n.pluginPermissionRefused(
+                    pluginName,
+                    permission,
+                    describePermission(permission, l10n),
+                  ),
+                ),
+              ),
+            );
             return;
 
           case PluginReplaceAction(:final text):

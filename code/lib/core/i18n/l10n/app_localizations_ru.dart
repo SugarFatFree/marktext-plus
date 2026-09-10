@@ -1282,4 +1282,13 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get permUnknown =>
       'Неизвестное разрешение — эта версия ничего по нему не даёт';
+
+  @override
+  String pluginPermissionRefused(
+    String plugin,
+    String permission,
+    String meaning,
+  ) {
+    return '$plugin не запрашивал разрешение «$permission» — оно значит: $meaning';
+  }
 }

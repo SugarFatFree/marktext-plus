@@ -87,6 +87,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   had been asked for it — so two rounds that asked the same thing became one,
   and saying "shorter" again because the first try was not short enough threw
   away the draft before it.
+- **Rewriting a selection could overwrite the whole document.** The plugin
+  answers twice — an empty pane carrying the prompt, then the answer with what
+  it replaces — and the editor took the first one's silence for "the whole
+  document", so the second one's target was ignored. Introduced by the fix
+  above and found before it shipped.
+- **A plugin refused a permission said so in English**, whichever language you
+  had chosen. The refusal now carries the plugin and the permission, and the
+  sentence is written where the translations are.
 - **Accepting a refined answer wrote nothing.** With nothing selected, a
   plugin's first answer offers to replace the whole document, which it says by
   naming an empty selection — and the drawer kept "the first answer's target"

@@ -93,7 +93,8 @@ void main() {
             File('lib/services/plugin_script_runtime.dart').readAsStringSync())
         .map((m) => m.group(1)!)
         .toSet()
-      ..remove('PluginNoAction');
+      ..remove('PluginNoAction')
+      ..remove('PluginPermissionRefusedAction');
     expect(declared, isNotEmpty, reason: '没读出任何动作类，这条对账该更新了');
     final untried = declared
         .difference(shapes.values.map((t) => t.toString()).toSet())

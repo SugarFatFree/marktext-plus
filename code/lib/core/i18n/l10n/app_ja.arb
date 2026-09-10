@@ -491,5 +491,6 @@
   "permWorkspaceWrite": "開いたフォルダ内のファイルに書き込む",
   "permNetworkRequest": "自ら選んだ任意のサーバーへ要求を送る",
   "permUiWebview": "エディタ内で自分の Web ページを開く。そのページは任意のサーバーに到達できます（どこへ行ったかはエディタが記録します）",
-  "permUnknown": "このバージョンが知らない権限——何も与えられません"
+  "permUnknown": "このバージョンが知らない権限——何も与えられません",
+  "pluginPermissionRefused": "{plugin} は「{permission}」の権限を申請していません——その意味は: {meaning}"
 }

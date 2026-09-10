@@ -211,6 +211,29 @@ class PluginDiffAction extends PluginScriptAction {
 }
 
 /// Say something to the reader and stop.
+/// A permission the plugin never asked for, and which one.
+///
+/// Not a [PluginNotifyAction] carrying a finished sentence: that sentence was
+/// composed here, in the service layer, which reaches nothing in the
+/// translations — so the reader was told in English that a plugin had been
+/// refused, whichever of the twelve languages they had chosen. The identifier
+/// travels instead and the interface writes the sentence, the same division as
+/// the permission list on the plugin's own page.
+class PluginPermissionRefusedAction extends PluginScriptAction {
+  const PluginPermissionRefusedAction({
+    required this.pluginName,
+    required this.permission,
+  });
+
+  /// Whose plugin it was, because a reader with several installed needs to know
+  /// which one just did nothing.
+  final String pluginName;
+
+  /// The identifier from the manifest, so whoever has to add it there can read
+  /// it, and the interface can look up what it means.
+  final String permission;
+}
+
 class PluginNotifyAction extends PluginScriptAction {
   const PluginNotifyAction(this.message);
 

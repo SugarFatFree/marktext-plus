@@ -1276,4 +1276,13 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get permUnknown => 'إذن غير معروف — هذه النسخة لا تمنح شيئًا مقابله';
+
+  @override
+  String pluginPermissionRefused(
+    String plugin,
+    String permission,
+    String meaning,
+  ) {
+    return 'لم يطلب $plugin إذن «$permission» — ومعناه: $meaning';
+  }
 }

@@ -1262,4 +1262,13 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get permUnknown => '이 버전이 모르는 권한 — 아무것도 주지 않습니다';
+
+  @override
+  String pluginPermissionRefused(
+    String plugin,
+    String permission,
+    String meaning,
+  ) {
+    return '$plugin은(는) 「$permission」 권한을 신청하지 않았습니다 — 그 뜻은: $meaning';
+  }
 }

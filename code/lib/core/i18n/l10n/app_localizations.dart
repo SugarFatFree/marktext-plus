@@ -2504,6 +2504,16 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unrecognised permission — this version grants nothing for it'**
   String get permUnknown;
+
+  /// No description provided for @pluginPermissionRefused.
+  ///
+  /// In en, this message translates to:
+  /// **'{plugin} did not ask for the \"{permission}\" permission — {meaning}'**
+  String pluginPermissionRefused(
+    String plugin,
+    String permission,
+    String meaning,
+  );
 }
 
 class _AppLocalizationsDelegate

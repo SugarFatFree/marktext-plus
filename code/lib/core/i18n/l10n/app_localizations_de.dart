@@ -1285,4 +1285,13 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get permUnknown =>
       'Unbekannte Berechtigung — diese Version gewährt dafür nichts';
+
+  @override
+  String pluginPermissionRefused(
+    String plugin,
+    String permission,
+    String meaning,
+  ) {
+    return '$plugin hat die Berechtigung „$permission\" nicht angefordert — sie bedeutet: $meaning';
+  }
 }

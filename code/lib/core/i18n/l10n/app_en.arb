@@ -665,6 +665,20 @@
   "permNetworkRequest": "Send requests to any server it chooses",
   "permUiWebview": "Open its own web page inside the editor, which can reach any server (the editor logs where)",
   "permUnknown": "Unrecognised permission — this version grants nothing for it",
+  "pluginPermissionRefused": "{plugin} did not ask for the \"{permission}\" permission — {meaning}",
+  "@pluginPermissionRefused": {
+    "placeholders": {
+      "plugin": {
+        "type": "String"
+      },
+      "permission": {
+        "type": "String"
+      },
+      "meaning": {
+        "type": "String"
+      }
+    }
+  },
   "@pluginNoWebEngine": {
     "placeholders": {
       "plugin": {

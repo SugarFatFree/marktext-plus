@@ -3,6 +3,7 @@ import 'dart:io';
 
 import '../core/config/app_config.dart';
 import 'ai_connection_service.dart';
+import 'package:flutter/foundation.dart';
 
 /// One turn with the model the reader configured in Settings.
 ///
@@ -60,10 +61,23 @@ class AiChatService {
   }
 
   /// Sends [prompt] to the configured provider and returns what it replied.
+  /// Answers instead of the model, when something has been put here.
+  ///
+  /// The `ai` continuation — a plugin returning a prompt, the host asking the
+  /// model, the answer coming back as a second pane — is where several reported
+  /// bugs lived, and none of it could be tested: this reached the network
+  /// through a static, so a test had nothing to stand in for the model and the
+  /// whole path went unexercised. Tests set this and clear it again.
+  @visibleForTesting
+  static Future<String> Function(String prompt)? answerFor;
+
   static Future<String> complete({
     required AppConfig config,
     required String prompt,
   }) async {
+    final stub = answerFor;
+    if (stub != null) return stub(prompt);
+
     if (!config.aiEnabled) {
       throw const FormatException('Enable AI in Settings first');
     }

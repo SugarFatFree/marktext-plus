@@ -400,11 +400,19 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
             _closeUi();
             _content = append ? '$_content\n\n$text' : text;
             _canApply = canApply;
-            // The first answer's, kept through every refinement: a shorter
+            // The first answer that *offers* to apply decides what it
+            // replaces, and every refinement after it keeps that: a shorter
             // rewrite still replaces the paragraph the first one was going to
-            // replace, not the draft it was made from. `??=`, not "if it is
-            // empty" — the first answer may well be the whole document.
-            _replaces ??= replaces;
+            // replace, not the draft it was made from.
+            //
+            // Both halves of that condition were learned the hard way. "If what
+            // I hold is empty" adopted a refinement's target, because empty is
+            // also what "the whole document" looks like. `??=` alone adopted the
+            // *first* answer of all — and the official plugin's first answer is
+            // an empty pane carrying the prompt, which offers nothing and knows
+            // nothing about what it replaces, so a rewrite of one selected
+            // paragraph would have overwritten the whole document.
+            if (canApply) _replaces ??= replaces;
             _render = render;
             _pluginName = plugin.name;
             _recordTurn();
