@@ -97,6 +97,28 @@ in the next, and carried guards that did not guard: `lua_dardo` treats a bare
 `return` inside a nested function as doing nothing, which turns `while true do
 return end` into an infinite loop and one way a plugin freezes the editor.
 
+### Twelve languages, and one of them read right to left
+
+The editor is translated into twelve languages and said so on its front
+page, while the whole plugin surface answered in English whatever you had
+chosen: the permissions heading and the sentences under it, the buttons that
+open a repository and save a plugin's settings, the message when a search
+finds nothing. Sharpest of all, the dialog reporting a failed AI
+configuration test was English while the line reporting a successful one was
+not — your own language when it worked, and English at the moment you most
+needed to read it.
+
+Arabic turns the window around, and thirteen layouts stayed where they were.
+A code block put its line numbers across the block from the code they
+numbered. The file tree indented away from the names it was nesting. Buttons
+sat at the far side of their row from every other button. Code blocks are now
+held left to right on purpose — code is not prose — and everything else
+follows the direction you read in.
+
+Four buttons drawn as an icon alone now say what they are, on hover and to a
+screen reader: the close on the find bar, the × on a tab, the search in the
+sidebar, and the send in the plugin drawer.
+
 ### Small honesty fixes
 
 "Check for updates" could tell you that you were on the latest version without
@@ -185,6 +207,22 @@ Flutter 只负责画出菜单项的快捷键，不负责执行它；
 标题被留在上一批请求里，而它要介绍的正文在下一批；
 还有几个不起作用的守卫——`lua_dardo` 把嵌套函数里的裸 `return` 当作空操作，
 于是 `while true do return end` 成了死循环，这正是插件冻住编辑器的一种方式。
+
+### 十二种语言，其中一种从右往左读
+
+编辑器翻译成 12 种语言，首页也这样写着，而**整个插件界面对所有读者都说英语**，
+不管你选了哪种：权限标题和它下面的句子、打开仓库和保存插件设置的按钮、
+搜索没有结果时的那句话。最刺眼的是——**AI 配置测试失败的对话框是英文，
+而成功提示是你的语言**：好的时候说你的话，坏的时候说英语，
+而坏的时候恰恰是最需要看懂的时候。
+
+阿拉伯语会把窗口整个调头，而有十三处布局没跟着调。带行号的代码块，
+**行号被甩到了它所标注内容的另一头**；文件树朝着名字的反方向缩进；
+按钮落在这一行所有别的按钮的对面。现在代码块**有意**保持从左往右——
+代码不是散文——其余一切跟着你阅读的方向走。
+
+四个只有图标的按钮现在有名字了，悬停能看到，读屏软件也念得出：
+查找栏的关闭、标签页的关闭、侧栏搜索、插件抽屉的发送。
 
 ### 几处「说实话」的修正
 

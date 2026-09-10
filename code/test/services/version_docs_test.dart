@@ -53,6 +53,32 @@ void main() {
     );
   });
 
+  /// The other two documents a release is checked against.
+  ///
+  /// `release.md` lists nine things to check before releasing. Two of them are
+  /// the tables above; two more are files that have to exist and be written —
+  /// the release notes a reader gets, and the manual test somebody actually
+  /// walks through, which is the whole of "未经人工测试不得发版".
+  ///
+  /// What this catches is a missing or empty file. What it does not catch is
+  /// the failure that actually happened: `manual-test.md` was present and
+  /// substantial and stopped at BUG-371, while `bugfix.md` had run on to
+  /// BUG-393 — so the plan covered none of the interface changes from the day
+  /// before, which are exactly the ones only a person can check. Comparing
+  /// what the two cover is a reading, not a count, and it is still a reading.
+  test('the release notes and the manual test are written', () {
+    final dir = current();
+    if (dir == null) return;
+
+    for (final name in ['release-notes.md', 'manual-test.md']) {
+      final file = File('${dir.path}/$name');
+      expect(file.existsSync(), isTrue,
+          reason: '${dir.path} 缺 $name —— 发布前检查的第 4 / 第 9 项');
+      expect(file.readAsStringSync().trim().length, greaterThan(500),
+          reason: '$name 几乎是空的，等于没写');
+    }
+  });
+
   for (final (file, prefix) in [
     ('bugfix.md', 'BUG'),
     ('PRD_需求文档.md', 'FEAT'),
