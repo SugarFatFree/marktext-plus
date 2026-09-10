@@ -225,7 +225,9 @@ class McpController extends StateNotifier<McpStatus> {
         final content = text('content');
         if (id == null) return mcpRefused('no tab to write to');
         if (content == null) return mcpRefused('no content given');
-        return _ref.read(tabProvider.notifier).updateContent(id, content)
+        return _ref
+                .read(tabProvider.notifier)
+                .updateContent(id, content, external: true)
             ? mcpDid('wrote ${content.length} characters to $id')
             : mcpRefused('there is no tab $id');
 

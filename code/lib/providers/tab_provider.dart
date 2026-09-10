@@ -419,7 +419,21 @@ class TabNotifier extends StateNotifier<TabState> {
   ///
   /// Same reason as [removeTab]: an id naming no tab used to be reported as a
   /// write that happened.
-  bool updateContent(String id, String content) {
+  /// Puts [content] in the tab, and says whether the tab was there to put it
+  /// in.
+  ///
+  /// [external] for a write that did not come from someone typing: a plugin's
+  /// rewrite being accepted, an edit arriving over the automation interface, an
+  /// undo with no source editor to restore into. Those have to raise the
+  /// revision, because the source editor holds the text in a controller of its
+  /// own and only looks at the tab again when that number changes — so without
+  /// it the reader watched a blank page stay blank after accepting an answer,
+  /// and the next keystroke would have written the blank back over it.
+  ///
+  /// Not for typing. The editor's own listener calls this on every keystroke,
+  /// and raising the revision there would have it re-reading its own text back
+  /// from the tab as the reader writes.
+  bool updateContent(String id, String content, {bool external = false}) {
     if (!state.tabs.any((tab) => tab.id == id)) return false;
     final tabs = state.tabs.map((tab) {
       if (tab.id == id) {
@@ -427,6 +441,8 @@ class TabNotifier extends StateNotifier<TabState> {
           content: content,
           isModified: true,
           isLoading: false,
+          externalRevision:
+              external ? tab.externalRevision + 1 : tab.externalRevision,
         );
       }
       return tab;

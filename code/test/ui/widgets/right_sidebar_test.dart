@@ -717,6 +717,64 @@ end
       );
     });
 
+    testWidgets('an answer lands in a tab that was empty, the way the real '
+        'plugin answers', (tester) async {
+      // Reported: a new tab, AI writing, Apply — and the blank page stayed
+      // blank. Written in the shape the official plugin actually uses, which
+      // the first attempt at this could not: an empty pane carrying the prompt,
+      // then the model's answer, and `replaces` empty throughout because there
+      // is neither a selection nor a document to point at.
+      AiChatService.answerFor = (prompt) async => 'a written paragraph';
+      addTearDown(() => AiChatService.answerFor = null);
+
+      install(
+        'com.example.demo',
+        panels: [
+          {'id': 'write', 'title': 'Write', 'icon': 'list'},
+        ],
+        permissions: const [
+          'ui.sidebar',
+          'document.read',
+          'document.write',
+          'ai.chat',
+        ],
+        script: 'function on_command(ctx)\n'
+            '  if ctx.answer == nil then\n'
+            '    return { ask = "what?" }\n'
+            '  end\n'
+            '  local about = ctx.selection\n'
+            '  if about == nil then about = "" end\n'
+            '  return { pane = "", title = "W", ai = "write it" }\n'
+            'end\n'
+            'function on_result(ctx, reply)\n'
+            '  return { pane = reply, title = "W",\n'
+            '           apply = true, replaces = "" }\n'
+            'end\n',
+      );
+      final container = await pumpWithContainer(tester);
+      // Exactly what the "+" in the tab bar makes: no path, no name, no text.
+      container.read(tabProvider.notifier).addTab(TabInfo(id: 'blank'));
+      await tester.pump();
+
+      await container
+          .read(mcpProvider.notifier)
+          .openPluginPanel!('com.example.demo', 'write', 'a haiku');
+      await settlePlugin(tester);
+
+      expect(find.byKey(const Key('plugin-drawer-apply')), findsOneWidget,
+          reason: '答案回来了就该给出「采用」');
+      tester
+          .widget<FilledButton>(find.byKey(const Key('plugin-drawer-apply')))
+          .onPressed!();
+      await tester.pumpAndSettle();
+
+      expect(
+        container.read(tabProvider).tabs.single.content,
+        'a written paragraph',
+        reason: '空白标签页按「采用」，内容没有写进去——读者报的正是这一条',
+      );
+    });
+
     testWidgets('an answer lands in a tab that was empty', (tester) async {
       // Reported: a new tab, AI writing, Apply — and the blank page stayed
       // blank. Nothing selected and nothing in the document, so what the plugin

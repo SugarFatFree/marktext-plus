@@ -1186,7 +1186,7 @@ class AppMenuBar extends ConsumerWidget {
     // With a source editor the controller already holds it and its own listener
     // writes the tab; writing here as well would be the same string twice.
     if (text == null || id == null || editor.hasSourceEditor) return;
-    ref.read(tabProvider.notifier).updateContent(id, text);
+    ref.read(tabProvider.notifier).updateContent(id, text, external: true);
   }
 
   static void showAbout() {

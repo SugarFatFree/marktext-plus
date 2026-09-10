@@ -59,7 +59,7 @@ abstract final class PluginApply {
     // Named, not left to whatever the source editor said last: this runs from
     // preview mode too, where there is no source editor to have said anything.
     ref.read(editorProvider.notifier).pushHistory(edit.before, tabId: tabId);
-    ref.read(tabProvider.notifier).updateContent(tabId, edit.after);
+    ref.read(tabProvider.notifier).updateContent(tabId, edit.after, external: true);
     if (closing != null) {
       ref.read(pluginPanesProvider.notifier).close(tabId, closing);
     }

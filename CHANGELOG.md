@@ -87,6 +87,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   had been asked for it — so two rounds that asked the same thing became one,
   and saying "shorter" again because the first try was not short enough threw
   away the draft before it.
+- **Accepting an answer left the source pane showing what was there before.**
+  The editor holds the document in a field of its own and looks at the tab
+  again only when told the text came from somewhere else — and accepting a
+  rewrite did not tell it. In a split, the answer went into the tab and the
+  page stayed as it was; the next keystroke would then have written the old
+  text back over it. Reported by a reader, on a blank page that stayed blank.
 - **Rewriting a selection could overwrite the whole document.** The plugin
   answers twice — an empty pane carrying the prompt, then the answer with what
   it replaces — and the editor took the first one's silence for "the whole

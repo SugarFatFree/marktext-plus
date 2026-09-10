@@ -532,6 +532,7 @@ class PluginCommandActions {
             container.read(tabProvider.notifier).updateContent(
                   tabId,
                   edit.after,
+                  external: true,
                 );
             messenger.showSnackBar(
               SnackBar(content: Text(l10n.pluginEdited(plugin.name))),

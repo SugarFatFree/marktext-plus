@@ -145,6 +145,7 @@
 | BUG-400 | 2026-09-10 | 决定装不装插件的那份权限清单，18 条全是英文 | P1 | 已修复 |
 | BUG-401 | 2026-09-10 | 拒绝插件时那句通知仍是英文（BUG-400 的另一半） | P2 | 已修复 |
 | BUG-402 | 2026-09-10 | 空的占位窗格把「替换整篇」定死，选中的那段被忽略 | P0 | 已修复 |
+| BUG-403 | 2026-09-10 | 采用后源码窗格仍是空白，下一次敲键会把空白写回去 | P0 | 已修复 |
 
 ---
 
@@ -7961,3 +7962,69 @@ return sdk.pane("", { ai = prompts.writing(text, ctx.answer), ... })
 - `code/lib/core/i18n/l10n/app_*.arb`（12 份）
 - 测试：`right_sidebar_test`（3 条新）、`plugin_permission_guard_test`、
   `plugin_command_service_test`、`plugin_web_pane_test`、`plugin_contract_test`
+
+## BUG-403：采用写进了标签，源码窗格却没看它一眼
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-403 |
+| 日期 | 2026-09-10 |
+| 优先级 | **P0**（读者报告，且会丢数据） |
+| 状态 | 已修复 |
+
+### 读者报的
+
+> 我新开一个标签页，点击右侧边栏的 AI 写作图标，要求写一些内容，
+> 生成后点击采用，**实际内容没有写回我的空白标签页**。
+
+### 找法：三次复现都通过，第四次才对
+
+前三次复现（空白标签 + 采用、真实两窗格形状、真实形状 + 空白标签）
+**全部通过**。所以问题不在采用这条路——它确实写进去了。
+
+关键线索是读者的**视图模式**：`get_state` 显示他在**分屏**。
+分屏里有源码编辑器，而它自己持有一个 `TextEditingController`：
+
+```dart
+void didUpdateWidget(SourceEditor oldWidget) {
+  if (widget.externalRevision == oldWidget.externalRevision) return;   // ← 提前返回
+```
+
+**源码编辑器只在 `externalRevision` 变化时才回头看标签。**
+而 `updateContent` 从不推这个数——只有「从磁盘加载」那条路推。
+
+于是：采用把答案写进了标签，**源码窗格仍显示空白**。
+更糟的是它的控制器还持着空串，**下一次敲键会把空白写回标签**，答案就没了。
+
+预览模式下看不出来（那里没有源码编辑器，预览直接读标签），
+所以这个缺陷只在分屏和源码模式下出现——而读者正在分屏。
+
+### 修复
+
+`updateContent(id, content, {bool external = false})`。
+四处**外部写入**传 `external: true`：采用、撤销/重做（无源码编辑器时）、
+自动化接口的 `set_content`、窗格里的替换。
+
+**打字那一处不传**——编辑器自己的监听器每敲一键都调它，
+推这个数会让编辑器在读者打字时反复读回自己的文本。
+
+### 验证
+
+| 变异 | 结果 |
+|------|------|
+| 让 `external` 不再推那个数 | 红：`Actual: <0>`，「外部写入不推这个数，源码编辑器就一直显示旧内容」 |
+
+三条测试：外部写入要推、打字不许推、写不存在的标签什么也不改。
+
+### 这次找到它的原因
+
+前三次复现都只查「标签内容对不对」，而读者说的是**他看到的**。
+**「数据写对了」和「读者看见了」是两件事**——本项目第二条排查视角
+（编辑器说了与事实不符的话）的另一个面：这次是编辑器**没说**它已经知道的事。
+
+### 涉及文件
+
+- `code/lib/providers/tab_provider.dart` — `external` 参数
+- `code/lib/ui/widgets/plugin_apply.dart`、`app_menu_bar.dart`、
+  `lib/providers/mcp_provider.dart`、`lib/ui/widgets/plugin_command_actions.dart`
+- `code/test/providers/external_writes_reach_the_editor_test.dart`（新增）

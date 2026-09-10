@@ -23,6 +23,7 @@ class AiChatService {
     required AiProvider provider,
     required String model,
     required String prompt,
+    bool stream = false,
   }) {
     return {
       'model': model,
@@ -30,7 +31,52 @@ class AiChatService {
       'messages': [
         {'role': 'user', 'content': prompt},
       ],
+      if (stream) 'stream': true,
     };
+  }
+
+  /// The piece of text in one line of a streamed response, or null.
+  ///
+  /// A model sends its answer a few characters at a time, as `data:` lines.
+  /// Everything else on the wire — the `[DONE]` marker, the events that carry
+  /// no text, blank lines between records — is not an error and not an answer,
+  /// so it comes back null and the caller keeps reading.
+  ///
+  /// Kept apart from the socket because this is the part that is easy to get
+  /// wrong and the only part worth testing: the two providers put the text in
+  /// different places, and neither puts it where the finished-answer parser
+  /// above looks.
+  static String? deltaFrom(AiProvider provider, String line) {
+    if (!line.startsWith('data:')) return null;
+    final payload = line.substring(5).trim();
+    if (payload.isEmpty || payload == '[DONE]') return null;
+
+    final Object? json;
+    try {
+      json = jsonDecode(payload);
+    } on FormatException {
+      // A record split across reads, or something this provider sends that is
+      // not JSON. Dropping it loses a few characters; throwing would lose the
+      // answer.
+      return null;
+    }
+    if (json is! Map) return null;
+
+    if (provider == AiProvider.anthropic) {
+      // `content_block_delta` carries `delta.text`; the rest carry none.
+      final delta = json['delta'];
+      final text = delta is Map ? delta['text'] : null;
+      return text is String && text.isNotEmpty ? text : null;
+    }
+
+    final choices = json['choices'];
+    if (choices is! List) return null;
+    for (final choice in choices) {
+      final delta = choice is Map ? choice['delta'] : null;
+      final text = delta is Map ? delta['content'] : null;
+      if (text is String && text.isNotEmpty) return text;
+    }
+    return null;
   }
 
   /// The translated text, wherever the provider puts it.
@@ -74,9 +120,16 @@ class AiChatService {
   static Future<String> complete({
     required AppConfig config,
     required String prompt,
+    void Function(String soFar)? onChunk,
   }) async {
     final stub = answerFor;
-    if (stub != null) return stub(prompt);
+    if (stub != null) {
+      final answer = await stub(prompt);
+      // A stub answers at once, and a caller drawing progress should see the
+      // same shape it sees from a model: something, then the whole of it.
+      onChunk?.call(answer);
+      return answer;
+    }
 
     if (!config.aiEnabled) {
       throw const FormatException('Enable AI in Settings first');
@@ -110,13 +163,36 @@ class AiChatService {
       } else {
         request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $key');
       }
+      // Streamed only when somebody is watching. A caller with nowhere to put
+      // the pieces gains nothing from them and would pay for the parsing.
+      final streaming = onChunk != null;
+      if (streaming) request.headers.set(HttpHeaders.acceptHeader, 'text/event-stream');
       request.write(jsonEncode(buildRequestBody(
         provider: config.aiProvider,
         model: config.aiModel.trim(),
         prompt: prompt,
+        stream: streaming,
       )));
 
       final response = await request.close();
+      if (streaming && response.statusCode >= 200 && response.statusCode < 300) {
+        final answer = StringBuffer();
+        await for (final line in utf8.decoder
+            .bind(response)
+            .transform(const LineSplitter())) {
+          final piece = deltaFrom(config.aiProvider, line);
+          if (piece == null) continue;
+          answer.write(piece);
+          onChunk(answer.toString());
+        }
+        final text = answer.toString().trim();
+        if (text.isEmpty) {
+          throw const FormatException(
+            'The AI provider returned no translated text',
+          );
+        }
+        return text;
+      }
       final body = await utf8.decoder.bind(response).join();
       if (response.statusCode < 200 || response.statusCode >= 300) {
         // The provider's own message says far more than the status code:
