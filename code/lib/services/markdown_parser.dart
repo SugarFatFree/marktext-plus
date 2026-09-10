@@ -1563,7 +1563,37 @@ class MarkdownParser {
     final firstOrdered = _olRe.hasMatch(lines[start]);
     final firstMarker = _markerOf(lines[start]);
 
+    // Whether the scan is inside a fenced block belonging to the current item,
+    // and which run opened it. Without this the first branch below asked only
+    // "does this line start a list item", which a line *inside* a code fence
+    // can very well look like — and a document explaining list syntax inside a
+    // fence, inside a step, is an ordinary thing to write. The fence came out
+    // as two empty code blocks with its content promoted to real items; on a
+    // task list the preview then drew a tickable box for a line of code and
+    // ticking it rewrote the code block.
+    //
+    // Only for an indented opener, which is the one that belongs to an item.
+    // A fence at the left margin is the block parser's business and is left
+    // exactly as it was.
+    var fence = '';
+
     while (i < lines.length) {
+      if (fence.isNotEmpty) {
+        if (_closesFence(lines[i], fence)) fence = '';
+        blocks.last.add(lines[i]);
+        i++;
+        continue;
+      }
+      if (blocks.isNotEmpty && _indentColumns(lines[i]) > 0) {
+        final opener = _codeFenceRe.firstMatch(lines[i]);
+        if (opener != null) {
+          fence = opener.group(1)!;
+          blocks.last.add(lines[i]);
+          i++;
+          continue;
+        }
+      }
+
       if (_startsListItem(lines[i]) ||
           (blocks.isNotEmpty &&
               !_hrRe.hasMatch(lines[i]) &&

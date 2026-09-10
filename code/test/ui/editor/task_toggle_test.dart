@@ -74,6 +74,26 @@ void main() {
     return writes;
   }
 
+  testWidgets('a task-looking line inside a fence gets no box', (tester) async {
+    // The preview drew one, and it counted: ticking what looked like the
+    // second task wrote `[x]` into the code block and left the real task
+    // alone. A step explaining task-list syntax in a fenced block is an
+    // ordinary thing to write.
+    const doc = '- [ ] 一\n'
+        '  ```\n'
+        '  - [ ] 假的\n'
+        '  ```\n'
+        '- [ ] 二\n';
+
+    tester.view.physicalSize = const Size(1000, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    final writes = await tapCheckbox(tester, doc, 1);
+
+    expect(writes, ['- [ ] 一\n  ```\n  - [ ] 假的\n  ```\n- [x] 二\n'],
+        reason: '第二个框就是第二项，代码块一个字都不该动');
+  });
+
   testWidgets('ticking a plain task writes the box back', (tester) async {
     final writes = await tapCheckbox(tester, '- [ ] 一\n- [ ] 二\n', 0);
     expect(writes, ['- [x] 一\n- [ ] 二\n']);

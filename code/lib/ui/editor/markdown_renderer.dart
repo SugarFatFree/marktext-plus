@@ -8,7 +8,8 @@ import 'package:flutter/services.dart';
 import 'package:highlight/highlight_core.dart' show Node;
 
 import 'code_highlighting.dart';
-import 'syntax_highlighter.dart' show HighlightColors;
+import 'syntax_highlighter.dart'
+    show HighlightColors, MarkdownSyntaxHighlighter;
 import 'package:flutter_highlight/themes/github.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -1059,7 +1060,18 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     // where it silently did nothing.
     var lineIndex = -1;
     var seen = -1;
+    // Which lines are inside a fenced block. A step that explains task-list
+    // syntax in a code fence carries lines that answer yes to the question
+    // below, and counting them shifted every box after it: ticking the second
+    // task wrote `[x]` into the code block and left the task alone. The
+    // parser stopped promoting those lines to items; this is the other half,
+    // which counts lines rather than items.
+    //
+    // The highlighter's walk rather than a sixth copy of the fence rule —
+    // `fence_rule_agreement_test` is what holds it to the parser's.
+    final inFence = MarkdownSyntaxHighlighter.fenceStates(lines);
     for (var i = 0; i < lines.length; i++) {
+      if (inFence[i]) continue;
       // A list inside a quote arrives with its `>` markers still on, because
       // that is what has to be written back. Testing the line as it stands
       // found no list items at all, so `lineIndex` stayed at -1 and ticking a
