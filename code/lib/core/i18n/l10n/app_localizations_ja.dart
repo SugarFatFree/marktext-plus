@@ -1204,4 +1204,62 @@ class AppLocalizationsJa extends AppLocalizations {
   String pluginNoWebEngine(String plugin) {
     return '$plugin は自分のページを描きますが、このシステムにはエディタが使える Web エンジンがありません';
   }
+
+  @override
+  String get permDocumentRead => '開いている文書と選択範囲を読む';
+
+  @override
+  String get permDocumentWrite => '開いている文書を変更する';
+
+  @override
+  String get permUiContextMenu => '右クリックメニューに項目を追加する';
+
+  @override
+  String get permUiMenuBar => 'メニューバーに項目を追加する';
+
+  @override
+  String get permUiToolbar => 'ツールバーにボタンを追加する';
+
+  @override
+  String get permUiSidebar => 'サイドバーにパネルを追加する';
+
+  @override
+  String get permUiStatusBar => 'ステータスバーに項目を追加する';
+
+  @override
+  String get permUiSettings => '設定ページを追加する';
+
+  @override
+  String get permUiCommandPalette => 'コマンドパレットにコマンドを追加する';
+
+  @override
+  String get permUiNotifications => 'あなたにメッセージを表示する';
+
+  @override
+  String get permAiChat => 'あなたが設定した AI モデルに尋ねる（API キーは決して見ません）';
+
+  @override
+  String get permStorageLocal => '自分の設定を保存する';
+
+  @override
+  String get permClipboardRead => 'クリップボードを読む';
+
+  @override
+  String get permClipboardWrite => 'クリップボードに書き込む';
+
+  @override
+  String get permWorkspaceRead => '開いたフォルダ内のファイルを読む';
+
+  @override
+  String get permWorkspaceWrite => '開いたフォルダ内のファイルに書き込む';
+
+  @override
+  String get permNetworkRequest => '自ら選んだ任意のサーバーへ要求を送る';
+
+  @override
+  String get permUiWebview =>
+      'エディタ内で自分の Web ページを開く。そのページは任意のサーバーに到達できます（どこへ行ったかはエディタが記録します）';
+
+  @override
+  String get permUnknown => 'このバージョンが知らない権限——何も与えられません';
 }

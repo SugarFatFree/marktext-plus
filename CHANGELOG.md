@@ -127,6 +127,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Twelve languages, and one of them reads right to left
 
+- **The permission list answered in English too** — the eighteen sentences you
+  read to decide whether to install something from a stranger's repository. They
+  were written into the service layer, where nothing reaches the translations,
+  and the fix a day earlier for the rest of the plugin pages could not see them:
+  its guard reads the interface code and these were one directory over.
 - **The plugin pages answered in English whatever language you had chosen** —
   thirteen strings: the permissions heading and the sentences under it, the
   buttons that open a repository and save a plugin's settings, the tooltip on

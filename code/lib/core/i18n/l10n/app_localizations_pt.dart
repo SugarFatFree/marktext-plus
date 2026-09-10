@@ -1226,6 +1226,68 @@ class AppLocalizationsPt extends AppLocalizations {
   String pluginNoWebEngine(String plugin) {
     return '$plugin desenha a sua própria página, e neste sistema não há um motor web que o editor possa usar';
   }
+
+  @override
+  String get permDocumentRead => 'Ler o documento aberto e a sua seleção';
+
+  @override
+  String get permDocumentWrite => 'Alterar o documento aberto';
+
+  @override
+  String get permUiContextMenu => 'Acrescentar entradas ao menu de contexto';
+
+  @override
+  String get permUiMenuBar => 'Acrescentar entradas à barra de menus';
+
+  @override
+  String get permUiToolbar => 'Acrescentar botões à barra de ferramentas';
+
+  @override
+  String get permUiSidebar => 'Acrescentar um painel à barra lateral';
+
+  @override
+  String get permUiStatusBar => 'Acrescentar um item à barra de estado';
+
+  @override
+  String get permUiSettings => 'Acrescentar uma página de definições';
+
+  @override
+  String get permUiCommandPalette =>
+      'Acrescentar comandos à paleta de comandos';
+
+  @override
+  String get permUiNotifications => 'Mostrar-lhe mensagens';
+
+  @override
+  String get permAiChat =>
+      'Interrogar o modelo de IA que configurou (nunca vê a sua chave de API)';
+
+  @override
+  String get permStorageLocal => 'Guardar as suas próprias definições';
+
+  @override
+  String get permClipboardRead => 'Ler a sua área de transferência';
+
+  @override
+  String get permClipboardWrite => 'Escrever na sua área de transferência';
+
+  @override
+  String get permWorkspaceRead => 'Ler ficheiros na pasta que abriu';
+
+  @override
+  String get permWorkspaceWrite => 'Escrever ficheiros na pasta que abriu';
+
+  @override
+  String get permNetworkRequest =>
+      'Enviar pedidos a qualquer servidor que escolha';
+
+  @override
+  String get permUiWebview =>
+      'Abrir a sua própria página web dentro do editor, que pode alcançar qualquer servidor (o editor registra qual)';
+
+  @override
+  String get permUnknown =>
+      'Permissão desconhecida — esta versão não concede nada por ela';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -2448,4 +2510,66 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String pluginNoWebEngine(String plugin) {
     return '$plugin desenha sua própria página, e neste sistema não há um motor web que o editor possa usar';
   }
+
+  @override
+  String get permDocumentRead => 'Ler o documento aberto e sua seleção';
+
+  @override
+  String get permDocumentWrite => 'Alterar o documento aberto';
+
+  @override
+  String get permUiContextMenu => 'Acrescentar entradas ao menu de contexto';
+
+  @override
+  String get permUiMenuBar => 'Acrescentar entradas à barra de menus';
+
+  @override
+  String get permUiToolbar => 'Acrescentar botões à barra de ferramentas';
+
+  @override
+  String get permUiSidebar => 'Acrescentar um painel à barra lateral';
+
+  @override
+  String get permUiStatusBar => 'Acrescentar um item à barra de estado';
+
+  @override
+  String get permUiSettings => 'Acrescentar uma página de definições';
+
+  @override
+  String get permUiCommandPalette =>
+      'Acrescentar comandos à paleta de comandos';
+
+  @override
+  String get permUiNotifications => 'Mostrar-lhe mensagens';
+
+  @override
+  String get permAiChat =>
+      'Interrogar o modelo de IA que configurou (nunca vê a sua chave de API)';
+
+  @override
+  String get permStorageLocal => 'Guardar as suas próprias definições';
+
+  @override
+  String get permClipboardRead => 'Ler a sua área de transferência';
+
+  @override
+  String get permClipboardWrite => 'Escrever na sua área de transferência';
+
+  @override
+  String get permWorkspaceRead => 'Ler arquivos na pasta que abriu';
+
+  @override
+  String get permWorkspaceWrite => 'Escrever arquivos na pasta que abriu';
+
+  @override
+  String get permNetworkRequest =>
+      'Enviar pedidos a qualquer servidor que escolha';
+
+  @override
+  String get permUiWebview =>
+      'Abrir a sua própria página web dentro do editor, que pode alcançar qualquer servidor (o editor registra qual)';
+
+  @override
+  String get permUnknown =>
+      'Permissão desconhecida — esta versão não concede nada por ela';
 }

@@ -9,6 +9,7 @@ import '../../providers/plugin_provider.dart';
 import '../../services/plugin_catalog_service.dart';
 import '../../services/plugin_manager.dart';
 import '../../services/plugin_manifest.dart';
+import '../widgets/plugin_permission_text.dart';
 import '../editor/markdown_renderer.dart';
 
 class PluginDetailView extends ConsumerStatefulWidget {
@@ -155,7 +156,7 @@ class _PluginDetailViewState extends ConsumerState<PluginDetailView> {
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
-                        PluginPermission.describe(permission),
+                        describePermission(permission, l10n),
                         style: theme.textTheme.bodySmall,
                       ),
                     ),

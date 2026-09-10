@@ -1224,4 +1224,65 @@ class AppLocalizationsDe extends AppLocalizations {
   String pluginNoWebEngine(String plugin) {
     return '$plugin zeichnet eine eigene Seite, und auf diesem System gibt es keine Web-Engine, die der Editor nutzen kann';
   }
+
+  @override
+  String get permDocumentRead => 'Das offene Dokument und Ihre Auswahl lesen';
+
+  @override
+  String get permDocumentWrite => 'Das offene Dokument ändern';
+
+  @override
+  String get permUiContextMenu => 'Einträge im Kontextmenü hinzufügen';
+
+  @override
+  String get permUiMenuBar => 'Einträge in der Menüleiste hinzufügen';
+
+  @override
+  String get permUiToolbar => 'Schaltflächen in der Werkzeugleiste hinzufügen';
+
+  @override
+  String get permUiSidebar => 'Einen Bereich in der Seitenleiste hinzufügen';
+
+  @override
+  String get permUiStatusBar => 'Einen Eintrag in der Statusleiste hinzufügen';
+
+  @override
+  String get permUiSettings => 'Eine Einstellungsseite hinzufügen';
+
+  @override
+  String get permUiCommandPalette => 'Befehle in der Befehlspalette hinzufügen';
+
+  @override
+  String get permUiNotifications => 'Ihnen Meldungen zeigen';
+
+  @override
+  String get permAiChat =>
+      'Das von Ihnen eingerichtete KI-Modell fragen (sieht Ihren API-Schlüssel nie)';
+
+  @override
+  String get permStorageLocal => 'Eigene Einstellungen behalten';
+
+  @override
+  String get permClipboardRead => 'Ihre Zwischenablage lesen';
+
+  @override
+  String get permClipboardWrite => 'In Ihre Zwischenablage schreiben';
+
+  @override
+  String get permWorkspaceRead => 'Dateien im geöffneten Ordner lesen';
+
+  @override
+  String get permWorkspaceWrite => 'Dateien im geöffneten Ordner schreiben';
+
+  @override
+  String get permNetworkRequest =>
+      'Anfragen an jeden Server senden, den es wählt';
+
+  @override
+  String get permUiWebview =>
+      'Eine eigene Webseite im Editor öffnen, die jeden Server erreichen kann (der Editor protokolliert, welchen)';
+
+  @override
+  String get permUnknown =>
+      'Unbekannte Berechtigung — diese Version gewährt dafür nichts';
 }

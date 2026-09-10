@@ -2390,6 +2390,120 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{plugin} draws its own page, and this system has no web engine the editor can use'**
   String pluginNoWebEngine(String plugin);
+
+  /// No description provided for @permDocumentRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Read the open document and your selection'**
+  String get permDocumentRead;
+
+  /// No description provided for @permDocumentWrite.
+  ///
+  /// In en, this message translates to:
+  /// **'Change the open document'**
+  String get permDocumentWrite;
+
+  /// No description provided for @permUiContextMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Add entries to the right-click menu'**
+  String get permUiContextMenu;
+
+  /// No description provided for @permUiMenuBar.
+  ///
+  /// In en, this message translates to:
+  /// **'Add entries to the menu bar'**
+  String get permUiMenuBar;
+
+  /// No description provided for @permUiToolbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Add buttons to the toolbar'**
+  String get permUiToolbar;
+
+  /// No description provided for @permUiSidebar.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a panel to the side bar'**
+  String get permUiSidebar;
+
+  /// No description provided for @permUiStatusBar.
+  ///
+  /// In en, this message translates to:
+  /// **'Add an item to the status bar'**
+  String get permUiStatusBar;
+
+  /// No description provided for @permUiSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a settings page'**
+  String get permUiSettings;
+
+  /// No description provided for @permUiCommandPalette.
+  ///
+  /// In en, this message translates to:
+  /// **'Add commands to the command palette'**
+  String get permUiCommandPalette;
+
+  /// No description provided for @permUiNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Show you messages'**
+  String get permUiNotifications;
+
+  /// No description provided for @permAiChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask the AI model you configured (never sees your API key)'**
+  String get permAiChat;
+
+  /// No description provided for @permStorageLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep its own settings'**
+  String get permStorageLocal;
+
+  /// No description provided for @permClipboardRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Read your clipboard'**
+  String get permClipboardRead;
+
+  /// No description provided for @permClipboardWrite.
+  ///
+  /// In en, this message translates to:
+  /// **'Write to your clipboard'**
+  String get permClipboardWrite;
+
+  /// No description provided for @permWorkspaceRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Read files in the folder you opened'**
+  String get permWorkspaceRead;
+
+  /// No description provided for @permWorkspaceWrite.
+  ///
+  /// In en, this message translates to:
+  /// **'Write files in the folder you opened'**
+  String get permWorkspaceWrite;
+
+  /// No description provided for @permNetworkRequest.
+  ///
+  /// In en, this message translates to:
+  /// **'Send requests to any server it chooses'**
+  String get permNetworkRequest;
+
+  /// No description provided for @permUiWebview.
+  ///
+  /// In en, this message translates to:
+  /// **'Open its own web page inside the editor, which can reach any server (the editor logs where)'**
+  String get permUiWebview;
+
+  /// No description provided for @permUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unrecognised permission — this version grants nothing for it'**
+  String get permUnknown;
 }
 
 class _AppLocalizationsDelegate

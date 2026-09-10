@@ -1221,4 +1221,65 @@ class AppLocalizationsRu extends AppLocalizations {
   String pluginNoWebEngine(String plugin) {
     return '$plugin рисует собственную страницу, а на этой системе нет веб-движка, доступного редактору';
   }
+
+  @override
+  String get permDocumentRead => 'Читать открытый документ и ваше выделение';
+
+  @override
+  String get permDocumentWrite => 'Изменять открытый документ';
+
+  @override
+  String get permUiContextMenu => 'Добавлять пункты в контекстное меню';
+
+  @override
+  String get permUiMenuBar => 'Добавлять пункты в строку меню';
+
+  @override
+  String get permUiToolbar => 'Добавлять кнопки на панель инструментов';
+
+  @override
+  String get permUiSidebar => 'Добавлять панель в боковую панель';
+
+  @override
+  String get permUiStatusBar => 'Добавлять элемент в строку состояния';
+
+  @override
+  String get permUiSettings => 'Добавлять страницу настроек';
+
+  @override
+  String get permUiCommandPalette => 'Добавлять команды в палитру команд';
+
+  @override
+  String get permUiNotifications => 'Показывать вам сообщения';
+
+  @override
+  String get permAiChat =>
+      'Обращаться к настроенной вами модели ИИ (никогда не видит ваш ключ API)';
+
+  @override
+  String get permStorageLocal => 'Хранить свои настройки';
+
+  @override
+  String get permClipboardRead => 'Читать ваш буфер обмена';
+
+  @override
+  String get permClipboardWrite => 'Записывать в ваш буфер обмена';
+
+  @override
+  String get permWorkspaceRead => 'Читать файлы в открытой папке';
+
+  @override
+  String get permWorkspaceWrite => 'Записывать файлы в открытую папку';
+
+  @override
+  String get permNetworkRequest =>
+      'Отправлять запросы на любой сервер по своему выбору';
+
+  @override
+  String get permUiWebview =>
+      'Открывать свою веб-страницу внутри редактора; такая страница может обратиться к любому серверу (редактор записывает, к какому)';
+
+  @override
+  String get permUnknown =>
+      'Неизвестное разрешение — эта версия ничего по нему не даёт';
 }

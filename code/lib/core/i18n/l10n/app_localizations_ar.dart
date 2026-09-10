@@ -1217,4 +1217,63 @@ class AppLocalizationsAr extends AppLocalizations {
   String pluginNoWebEngine(String plugin) {
     return 'يرسم $plugin صفحته الخاصة، ولا يوجد على هذا النظام محرّك ويب يستطيع المحرِّر استخدامه';
   }
+
+  @override
+  String get permDocumentRead => 'قراءة المستند المفتوح وما حدَّدته';
+
+  @override
+  String get permDocumentWrite => 'تغيير المستند المفتوح';
+
+  @override
+  String get permUiContextMenu => 'إضافة عناصر إلى قائمة النقر الأيمن';
+
+  @override
+  String get permUiMenuBar => 'إضافة عناصر إلى شريط القوائم';
+
+  @override
+  String get permUiToolbar => 'إضافة أزرار إلى شريط الأدوات';
+
+  @override
+  String get permUiSidebar => 'إضافة لوحة إلى الشريط الجانبي';
+
+  @override
+  String get permUiStatusBar => 'إضافة عنصر إلى شريط الحالة';
+
+  @override
+  String get permUiSettings => 'إضافة صفحة إعدادات';
+
+  @override
+  String get permUiCommandPalette => 'إضافة أوامر إلى لوحة الأوامر';
+
+  @override
+  String get permUiNotifications => 'عرض رسائل لك';
+
+  @override
+  String get permAiChat =>
+      'سؤال نموذج الذكاء الاصطناعي الذي أعددتَه (ولا يرى مفتاحك أبدًا)';
+
+  @override
+  String get permStorageLocal => 'الاحتفاظ بإعداداته الخاصة';
+
+  @override
+  String get permClipboardRead => 'قراءة حافظتك';
+
+  @override
+  String get permClipboardWrite => 'الكتابة في حافظتك';
+
+  @override
+  String get permWorkspaceRead => 'قراءة الملفات في المجلد الذي فتحتَه';
+
+  @override
+  String get permWorkspaceWrite => 'الكتابة في ملفات المجلد الذي فتحتَه';
+
+  @override
+  String get permNetworkRequest => 'إرسال طلبات إلى أي خادم يختاره';
+
+  @override
+  String get permUiWebview =>
+      'فتح صفحة ويب خاصة به داخل المحرِّر، وهي تستطيع الوصول إلى أي خادم (والمحرِّر يسجّل إلى أيّها)';
+
+  @override
+  String get permUnknown => 'إذن غير معروف — هذه النسخة لا تمنح شيئًا مقابله';
 }

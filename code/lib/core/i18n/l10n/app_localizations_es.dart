@@ -1227,4 +1227,66 @@ class AppLocalizationsEs extends AppLocalizations {
   String pluginNoWebEngine(String plugin) {
     return '$plugin dibuja su propia página, y en este sistema no hay un motor web que el editor pueda usar';
   }
+
+  @override
+  String get permDocumentRead => 'Leer el documento abierto y tu selección';
+
+  @override
+  String get permDocumentWrite => 'Cambiar el documento abierto';
+
+  @override
+  String get permUiContextMenu => 'Añadir entradas al menú contextual';
+
+  @override
+  String get permUiMenuBar => 'Añadir entradas a la barra de menús';
+
+  @override
+  String get permUiToolbar => 'Añadir botones a la barra de herramientas';
+
+  @override
+  String get permUiSidebar => 'Añadir un panel a la barra lateral';
+
+  @override
+  String get permUiStatusBar => 'Añadir un elemento a la barra de estado';
+
+  @override
+  String get permUiSettings => 'Añadir una página de ajustes';
+
+  @override
+  String get permUiCommandPalette => 'Añadir comandos a la paleta de comandos';
+
+  @override
+  String get permUiNotifications => 'Mostrarte mensajes';
+
+  @override
+  String get permAiChat =>
+      'Consultar el modelo de IA que configuraste (nunca ve tu clave de API)';
+
+  @override
+  String get permStorageLocal => 'Guardar sus propios ajustes';
+
+  @override
+  String get permClipboardRead => 'Leer tu portapapeles';
+
+  @override
+  String get permClipboardWrite => 'Escribir en tu portapapeles';
+
+  @override
+  String get permWorkspaceRead => 'Leer archivos de la carpeta que abriste';
+
+  @override
+  String get permWorkspaceWrite =>
+      'Escribir archivos en la carpeta que abriste';
+
+  @override
+  String get permNetworkRequest =>
+      'Enviar peticiones a cualquier servidor que elija';
+
+  @override
+  String get permUiWebview =>
+      'Abrir su propia página web dentro del editor, que puede llegar a cualquier servidor (el editor anota a cuál)';
+
+  @override
+  String get permUnknown =>
+      'Permiso desconocido — esta versión no concede nada por él';
 }

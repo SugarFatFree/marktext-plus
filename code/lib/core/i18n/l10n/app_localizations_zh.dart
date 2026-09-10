@@ -1203,4 +1203,61 @@ class AppLocalizationsZh extends AppLocalizations {
   String pluginNoWebEngine(String plugin) {
     return '$plugin 要画它自己的网页，而这台机器上没有编辑器能用的网页引擎';
   }
+
+  @override
+  String get permDocumentRead => '读取打开的文档和你选中的文字';
+
+  @override
+  String get permDocumentWrite => '修改打开的文档';
+
+  @override
+  String get permUiContextMenu => '在右键菜单里加条目';
+
+  @override
+  String get permUiMenuBar => '在菜单栏里加条目';
+
+  @override
+  String get permUiToolbar => '在工具栏里加按钮';
+
+  @override
+  String get permUiSidebar => '在侧边栏里加一个面板';
+
+  @override
+  String get permUiStatusBar => '在状态栏里加一项';
+
+  @override
+  String get permUiSettings => '加一个设置页';
+
+  @override
+  String get permUiCommandPalette => '在命令面板里加命令';
+
+  @override
+  String get permUiNotifications => '向你显示消息';
+
+  @override
+  String get permAiChat => '调用你配置的 AI 模型（永远看不到你的 API 密钥）';
+
+  @override
+  String get permStorageLocal => '保存它自己的设置';
+
+  @override
+  String get permClipboardRead => '读取你的剪贴板';
+
+  @override
+  String get permClipboardWrite => '写入你的剪贴板';
+
+  @override
+  String get permWorkspaceRead => '读取你打开的文件夹里的文件';
+
+  @override
+  String get permWorkspaceWrite => '写入你打开的文件夹里的文件';
+
+  @override
+  String get permNetworkRequest => '向它自己选择的任何服务器发请求';
+
+  @override
+  String get permUiWebview => '在编辑器里打开它自己的网页，那个网页能访问任何服务器（编辑器会记录它去了哪里）';
+
+  @override
+  String get permUnknown => '这个版本不认识的权限——它什么也拿不到';
 }

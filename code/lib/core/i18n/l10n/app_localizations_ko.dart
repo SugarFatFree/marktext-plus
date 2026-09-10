@@ -1204,4 +1204,62 @@ class AppLocalizationsKo extends AppLocalizations {
   String pluginNoWebEngine(String plugin) {
     return '$plugin은(는) 자기 페이지를 그리는데, 이 시스템에는 에디터가 쓸 수 있는 웹 엔진이 없습니다';
   }
+
+  @override
+  String get permDocumentRead => '열린 문서와 선택한 부분을 읽습니다';
+
+  @override
+  String get permDocumentWrite => '열린 문서를 바꿉니다';
+
+  @override
+  String get permUiContextMenu => '오른쪽 클릭 메뉴에 항목을 넣습니다';
+
+  @override
+  String get permUiMenuBar => '메뉴 바에 항목을 넣습니다';
+
+  @override
+  String get permUiToolbar => '툴바에 버튼을 넣습니다';
+
+  @override
+  String get permUiSidebar => '사이드바에 패널을 넣습니다';
+
+  @override
+  String get permUiStatusBar => '상태 바에 항목을 넣습니다';
+
+  @override
+  String get permUiSettings => '설정 페이지를 넣습니다';
+
+  @override
+  String get permUiCommandPalette => '명령 팔레트에 명령을 넣습니다';
+
+  @override
+  String get permUiNotifications => '당신에게 메시지를 보여줍니다';
+
+  @override
+  String get permAiChat => '당신이 설정한 AI 모델에 묻습니다 (API 키는 결코 보지 않습니다)';
+
+  @override
+  String get permStorageLocal => '자기 설정을 보관합니다';
+
+  @override
+  String get permClipboardRead => '클립보드를 읽습니다';
+
+  @override
+  String get permClipboardWrite => '클립보드에 씁니다';
+
+  @override
+  String get permWorkspaceRead => '열어 둔 폴더의 파일을 읽습니다';
+
+  @override
+  String get permWorkspaceWrite => '열어 둔 폴더의 파일에 씁니다';
+
+  @override
+  String get permNetworkRequest => '스스로 고른 아무 서버에나 요청을 보냅니다';
+
+  @override
+  String get permUiWebview =>
+      '에디터 안에서 자기 웹 페이지를 엽니다. 그 페이지는 어떤 서버에도 닿을 수 있습니다 (어디로 갔는지는 에디터가 기록합니다)';
+
+  @override
+  String get permUnknown => '이 버전이 모르는 권한 — 아무것도 주지 않습니다';
 }

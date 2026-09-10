@@ -142,6 +142,7 @@
 | BUG-397 | 2026-09-10 | 采用之后抽屉整个关掉，对话历史一起没了 | P1 | 已修复 |
 | BUG-398 | 2026-09-10 | 预览模式下撤销是静默空操作，插件的改写收不回来 | P0 | 已修复 |
 | BUG-399 | 2026-09-10 | 同一个要求提两次，历史里后一条盖掉前一条 | P2 | 已修复 |
+| BUG-400 | 2026-09-10 | 决定装不装插件的那份权限清单，18 条全是英文 | P1 | 已修复 |
 
 ---
 
@@ -7809,3 +7810,73 @@ if (_turns.isNotEmpty && _turns.last.asked == _asked) {
 
 - `code/lib/ui/widgets/right_side_bar.dart`
 - `code/test/ui/widgets/right_sidebar_test.dart`
+
+## BUG-400：最该看懂的那 18 句话，是英文
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-400 |
+| 日期 | 2026-09-10 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+
+### 问题
+
+插件详情页上的权限清单——**读者据以决定要不要装一个陌生人写的插件**的那一段——
+18 条描述全是写死在 `PluginPermission.describe` 里的英文，
+不管读者选了 12 种语言里的哪一种。
+
+```dart
+documentRead => 'Read the open document and your selection',
+uiWebview => 'Open its own web page inside the editor, which can '
+             'reach any server (the editor logs where)',
+```
+
+### 为什么 BUG-386 漏了它
+
+BUG-386 修的是插件界面的 13 处英文，同时加了守卫
+`reader_facing_text_is_translated_test`——**而它只扫 `lib/ui`**，
+这 18 条在 `lib/services` 里。
+
+一天之后做 webview 时路过这个文件才看见。**守卫的范围就是它的盲区**，
+这一条和「守卫的维度决定了它的盲区」是同一件事的另一面。
+
+### 修复：照既有模式，不破坏分层
+
+服务层从不 import l10n（有意的分层）。所以照本仓库已有的
+`actionLabel(action, l10n)` 那个模式：**标识符和英文留在服务层，
+译文查表放到 UI 侧**——新增 `lib/ui/widgets/plugin_permission_text.dart`。
+
+19 个 ARB 键（18 项权限 + 1 条「不认识的权限」）× 12 种语言，
+ARB 从 379 键增至 398 键。
+
+### 守卫
+
+`permission_text_covers_test` 三条：
+
+1. `PluginPermission.all` 里每一项都有描述，**且不落到「不认识的权限」**
+   ——落进去的话读者会以为它什么也不做
+2. 12 种语言里，`document.read` 和 `ui.webview` 的译文都不等于英文
+   ——**没翻译的语言会退回英文，比对就能发现**
+3. 编辑器不认识的权限要明说，而不是显示一个标识符让读者猜
+
+### 验证
+
+| 变异 | 结果 |
+|------|------|
+| 拿掉 `clipboardRead` 的映射 | 红：`clipboard.read 落到了「不认识的权限」` |
+| 把意大利文的 `permDocumentRead` 改回英文 | 红：`it 的「读取文档」还是英文` |
+
+### 涉及文件
+
+- `code/lib/core/i18n/l10n/app_*.arb`（12 份）+ 生成物
+- `code/lib/ui/widgets/plugin_permission_text.dart`（新增）
+- `code/lib/ui/screens/plugin_detail_view.dart`
+- `code/test/ui/permission_text_covers_test.dart`（新增）
+
+### 还没做的一半
+
+`plugin_command_service` 拒绝插件时那句通知
+（「某插件没有申请 X 权限——X 是……」）**仍然是英文**：它在服务层组装，
+拿不到 l10n。要修得把消息改成只带标识符、由 UI 组句，
+那是另一次改动。记在这里，不是忘了。

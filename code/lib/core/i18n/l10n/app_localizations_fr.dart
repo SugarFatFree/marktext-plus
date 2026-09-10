@@ -1230,4 +1230,66 @@ class AppLocalizationsFr extends AppLocalizations {
   String pluginNoWebEngine(String plugin) {
     return '$plugin dessine sa propre page, et ce système n\'a pas de moteur web que l\'éditeur puisse utiliser';
   }
+
+  @override
+  String get permDocumentRead => 'Lire le document ouvert et votre sélection';
+
+  @override
+  String get permDocumentWrite => 'Modifier le document ouvert';
+
+  @override
+  String get permUiContextMenu => 'Ajouter des entrées au menu contextuel';
+
+  @override
+  String get permUiMenuBar => 'Ajouter des entrées à la barre de menus';
+
+  @override
+  String get permUiToolbar => 'Ajouter des boutons à la barre d’outils';
+
+  @override
+  String get permUiSidebar => 'Ajouter un volet à la barre latérale';
+
+  @override
+  String get permUiStatusBar => 'Ajouter un élément à la barre d’état';
+
+  @override
+  String get permUiSettings => 'Ajouter une page de réglages';
+
+  @override
+  String get permUiCommandPalette =>
+      'Ajouter des commandes à la palette de commandes';
+
+  @override
+  String get permUiNotifications => 'Vous montrer des messages';
+
+  @override
+  String get permAiChat =>
+      'Interroger le modèle IA que vous avez configuré (ne voit jamais votre clé API)';
+
+  @override
+  String get permStorageLocal => 'Conserver ses propres réglages';
+
+  @override
+  String get permClipboardRead => 'Lire votre presse-papiers';
+
+  @override
+  String get permClipboardWrite => 'Écrire dans votre presse-papiers';
+
+  @override
+  String get permWorkspaceRead => 'Lire les fichiers du dossier ouvert';
+
+  @override
+  String get permWorkspaceWrite => 'Écrire des fichiers dans le dossier ouvert';
+
+  @override
+  String get permNetworkRequest =>
+      'Envoyer des requêtes à tout serveur de son choix';
+
+  @override
+  String get permUiWebview =>
+      'Ouvrir sa propre page web dans l’éditeur, laquelle peut atteindre n’importe quel serveur (l’éditeur note lequel)';
+
+  @override
+  String get permUnknown =>
+      'Permission inconnue — cette version n’accorde rien pour elle';
 }

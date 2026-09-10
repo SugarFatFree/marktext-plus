@@ -1229,4 +1229,69 @@ class AppLocalizationsIt extends AppLocalizations {
   String pluginNoWebEngine(String plugin) {
     return '$plugin disegna una pagina propria, e su questo sistema non c\'è un motore web che l\'editor possa usare';
   }
+
+  @override
+  String get permDocumentRead =>
+      'Leggere il documento aperto e la tua selezione';
+
+  @override
+  String get permDocumentWrite => 'Modificare il documento aperto';
+
+  @override
+  String get permUiContextMenu => 'Aggiungere voci al menu contestuale';
+
+  @override
+  String get permUiMenuBar => 'Aggiungere voci alla barra dei menu';
+
+  @override
+  String get permUiToolbar => 'Aggiungere pulsanti alla barra degli strumenti';
+
+  @override
+  String get permUiSidebar => 'Aggiungere un riquadro alla barra laterale';
+
+  @override
+  String get permUiStatusBar => 'Aggiungere un elemento alla barra di stato';
+
+  @override
+  String get permUiSettings => 'Aggiungere una pagina di impostazioni';
+
+  @override
+  String get permUiCommandPalette =>
+      'Aggiungere comandi alla palette dei comandi';
+
+  @override
+  String get permUiNotifications => 'Mostrarti messaggi';
+
+  @override
+  String get permAiChat =>
+      'Interrogare il modello IA che hai configurato (non vede mai la tua chiave API)';
+
+  @override
+  String get permStorageLocal => 'Conservare le proprie impostazioni';
+
+  @override
+  String get permClipboardRead => 'Leggere i tuoi appunti';
+
+  @override
+  String get permClipboardWrite => 'Scrivere nei tuoi appunti';
+
+  @override
+  String get permWorkspaceRead =>
+      'Leggere i file nella cartella che hai aperto';
+
+  @override
+  String get permWorkspaceWrite =>
+      'Scrivere file nella cartella che hai aperto';
+
+  @override
+  String get permNetworkRequest =>
+      'Inviare richieste a qualsiasi server scelga';
+
+  @override
+  String get permUiWebview =>
+      'Aprire una propria pagina web nell\'editor, che può raggiungere qualsiasi server (l\'editor registra quale)';
+
+  @override
+  String get permUnknown =>
+      'Permesso non riconosciuto — questa versione non concede nulla per esso';
 }

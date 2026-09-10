@@ -1218,4 +1218,64 @@ class AppLocalizationsEn extends AppLocalizations {
   String pluginNoWebEngine(String plugin) {
     return '$plugin draws its own page, and this system has no web engine the editor can use';
   }
+
+  @override
+  String get permDocumentRead => 'Read the open document and your selection';
+
+  @override
+  String get permDocumentWrite => 'Change the open document';
+
+  @override
+  String get permUiContextMenu => 'Add entries to the right-click menu';
+
+  @override
+  String get permUiMenuBar => 'Add entries to the menu bar';
+
+  @override
+  String get permUiToolbar => 'Add buttons to the toolbar';
+
+  @override
+  String get permUiSidebar => 'Add a panel to the side bar';
+
+  @override
+  String get permUiStatusBar => 'Add an item to the status bar';
+
+  @override
+  String get permUiSettings => 'Add a settings page';
+
+  @override
+  String get permUiCommandPalette => 'Add commands to the command palette';
+
+  @override
+  String get permUiNotifications => 'Show you messages';
+
+  @override
+  String get permAiChat =>
+      'Ask the AI model you configured (never sees your API key)';
+
+  @override
+  String get permStorageLocal => 'Keep its own settings';
+
+  @override
+  String get permClipboardRead => 'Read your clipboard';
+
+  @override
+  String get permClipboardWrite => 'Write to your clipboard';
+
+  @override
+  String get permWorkspaceRead => 'Read files in the folder you opened';
+
+  @override
+  String get permWorkspaceWrite => 'Write files in the folder you opened';
+
+  @override
+  String get permNetworkRequest => 'Send requests to any server it chooses';
+
+  @override
+  String get permUiWebview =>
+      'Open its own web page inside the editor, which can reach any server (the editor logs where)';
+
+  @override
+  String get permUnknown =>
+      'Unrecognised permission — this version grants nothing for it';
 }
