@@ -17,6 +17,12 @@ import 'package:marktext_plus/services/plugin_manifest.dart';
 /// checked none — or the capability does not exist at all, and the permission
 /// grants what nobody can do.
 void main() {
+  // Resolved once, here: the sibling repositories sit beside this checkout on
+  // the machine this was written on and nowhere on CI, and a test that reads
+  // one without a `skip` fails there with LateInitializationError after
+  // passing locally. `repo_dependent_tests_test` holds every such test to it.
+  final sdk = _findSdk();
+
   /// The permission, and the file that refuses a plugin without it.
   const enforced = <String, String>{
     'document.read': 'plugin_command_service.dart',
@@ -32,7 +38,13 @@ void main() {
   };
 
   /// The permission, and why nothing stands at that door yet.
-  const unenforced = <String, String>{
+  ///
+  /// Split in two because the two need different answers, and because the
+  /// SDK's README has to say the difference out loud: one of these can be
+  /// used and simply is not checked, and the other seven grant something the
+  /// editor has not built. An author reading "add a toolbar button" and
+  /// getting no button has lost an evening.
+  const noCapability = <String, String>{
     'ui.toolbar': '清单里的 toolbar 字段 lib 里没有任何地方画'
         '（见 what_a_plugin_declares_is_used_test）——权限授予的是一个不存在的能力',
     'ui.statusBar': '清单里根本没有状态栏这一类贡献，插件无从往那里放东西',
@@ -42,11 +54,17 @@ void main() {
     'clipboard.write': '同上',
     'workspace.read': '两个脚本运行时里都没有工作区能力',
     'workspace.write': '同上',
+  };
+
+  /// The capability is there and reachable; nothing checks the permission.
+  const ungated = <String, String>{
     'storage.local': '能力存在而没设卡：每个脚本都无条件拿到 storage.get/set，'
         '而 SDK 写着「需要 storage.local」。**没有连夜强制**是因为拒绝的方式'
         '（在脚本里抛错）容易变成一句难懂的报错、打断本来能用的插件，'
         '而它管的只是插件自己目录里的设置文件。要做的话先定拒绝的形状',
   };
+
+  const unenforced = <String, String>{...noCapability, ...ungated};
 
   /// The table that turns a permission into words for the install dialog.
   /// Naming one there is not enforcing it — that is the whole point.
@@ -114,7 +132,64 @@ void main() {
               '原本记的是：$why');
     });
   });
+  test('the SDK says which permissions have nothing behind them', () {
+    // The other end of the same fact. The SDK's README is what an author
+    // reads before writing anything, and its permissions table promised a
+    // toolbar button, a status-bar item, a palette command, the clipboard and
+    // the workspace — five rows for seven permissions the editor has never
+    // built anything for. Declaring one and finding nothing happens is the
+    // most expensive kind of documentation error there is.
+    //
+    // Marked with a dagger there, and the dagger is what this checks: it is
+    // the same character in all twelve languages, while the sentence under
+    // the table is not. Implementing one of these means taking its dagger
+    // out, and this is what says so.
+    final readmes = [
+      File('$sdk/README.md'),
+      ...Directory('$sdk/docs/i18n')
+          .listSync()
+          .whereType<File>()
+          .where((f) => f.path.endsWith('.md')),
+    ];
+    expect(readmes, hasLength(12), reason: '读到的 README 份数不对，取法要跟着改');
+
+    // A row for `clipboard.read` covers `clipboard.write` too, and the same
+    // for workspace: the table pairs them.
+    final expected = noCapability.keys
+        .where((p) => !p.endsWith('.write') || !noCapability.containsKey(
+            p.replaceAll('.write', '.read')))
+        .toSet();
+
+    for (final file in readmes) {
+      final marked = <String>{};
+      for (final line in file.readAsLinesSync()) {
+        final m = RegExp(r'^\| `([\w.]+)`').firstMatch(line);
+        if (m == null) continue;
+        if (line.contains('†')) marked.add(m.group(1)!);
+      }
+      expect(marked, expected,
+          reason: '${file.uri.pathSegments.last} 的权限表标记与编辑器对不上。'
+              '打了 † 的应当正是「编辑器还没有做出这个能力」的那些');
+    }
+  }, skip: sdk != null ? null : 'SDK 仓库不在这台机器上');
 }
+
+/// The SDK checkout, when it is beside the editor's. Null on a machine that
+/// has only this repository — the same walk the other SDK tests use.
+Directory? _findSdkDirectory() {
+  var directory = Directory.current;
+  for (var level = 0; level < 6; level++) {
+    final candidate =
+        '${directory.path}/marktext-plus-plugins/marktext-plus-plugin-sdk';
+    if (File('$candidate/README.md').existsSync()) return Directory(candidate);
+    final parent = directory.parent;
+    if (parent.path == directory.path) break;
+    directory = parent;
+  }
+  return null;
+}
+
+String? _findSdk() => _findSdkDirectory()?.path;
 
 /// `document.read` → `documentRead`, the way the constants are named.
 String? _constantFor(String permission) {
