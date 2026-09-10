@@ -28,6 +28,14 @@ import '../../services/app_log.dart';
 /// loads rather than from routing the traffic somewhere: no second hop, and no
 /// certificate of the editor's standing between a plugin and the servers it
 /// was allowed to reach.
+///
+/// A local proxy was written for this first, and is not here — do not write it
+/// again. It was the one mechanism all three desktops speak, chosen because the
+/// APIs for intercepting a page's requests differ on every one; but no desktop
+/// implementation of `flutter_inappwebview` offers a `ProxyController`, so
+/// nothing could be pointed at it. The callback below is on all three, and the
+/// half the proxy also bought — the reader's own proxy settings — the operating
+/// system's engine already honours.
 class PluginWebPane extends StatefulWidget {
   const PluginWebPane({
     super.key,
