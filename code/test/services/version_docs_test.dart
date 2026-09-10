@@ -79,6 +79,47 @@ void main() {
     }
   });
 
+  /// The manual test has been thought about as far as the fixes go.
+  ///
+  /// It was written, substantial, and stopped at BUG-371 while `bugfix.md`
+  /// had run on to BUG-393 — so it covered none of the previous day's
+  /// interface work, which is the part only a person can check. The file was
+  /// too large and too finished-looking for its own emptiness to show, and a
+  /// count of its size would not have found it: it was already several times
+  /// longer than a size guard would have asked for.
+  ///
+  /// So the plan states how far it has been thought about, and this compares
+  /// that with how far the fixes go. Not every fix needs a step — most of the
+  /// last few were guards and documents — but somebody has to have decided
+  /// that, and moving the marker is where they decide it.
+  test('the manual test says how far it has been thought through', () {
+    final dir = current();
+    if (dir == null) return;
+
+    int? highest(String text) {
+      final numbers = RegExp(r'BUG-(\d+)')
+          .allMatches(text)
+          .map((m) => int.parse(m.group(1)!));
+      return numbers.isEmpty ? null : numbers.reduce((a, b) => a > b ? a : b);
+    }
+
+    final fixed = highest(File('${dir.path}/bugfix.md').readAsStringSync());
+    expect(fixed, isNotNull, reason: 'bugfix.md 里读不出编号，取法要跟着改');
+
+    final plan = File('${dir.path}/manual-test.md').readAsStringSync();
+    final claimed = RegExp(r'<!--\s*人工测试已考虑到 BUG-(\d+)\s*-->')
+        .firstMatch(plan);
+    expect(claimed, isNotNull,
+        reason: '${dir.path}/manual-test.md 没有「已考虑到 BUG-N」的标记');
+
+    expect(
+      int.parse(claimed!.group(1)!),
+      fixed,
+      reason: '人工测试计划考虑到的编号和 bugfix.md 的最新一条对不上——'
+          '要么给新修复加一条步骤，要么想清楚它不需要，再把标记抬上去',
+    );
+  });
+
   for (final (file, prefix) in [
     ('bugfix.md', 'BUG'),
     ('PRD_需求文档.md', 'FEAT'),

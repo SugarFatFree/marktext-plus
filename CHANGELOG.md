@@ -64,6 +64,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - One action had two names in Chinese and in Russian: the command palette called a maths block 数学公式 and Settings called it 数学公式块, and Russian spelled strikethrough with and without its ё. The same actions are named twice across the translation files, once for the menus and once for the shortcut list, and nothing tied the two together
 - The editor's automation interface reported success for things it had not done. Activating a tab that does not exist wrote that name into the state and answered "tab is active", leaving tabs along the top with nothing beneath them; closing a pane that was not open answered "closed". It also advertised two actions — opening a file and running a plugin command — that were not implemented anywhere; they are no longer offered
 
+- **The right-hand rail showed a plugin's answer with no way to take it.** The
+  drawer read one field of what a plugin sends — the words — and not the three
+  beside them, so a rewrite arrived with no Apply button, Markdown was shown as
+  raw source instead of rendered the way you were reading, and a plugin waiting
+  on the model looked like one that had failed. It is a conversation now: the
+  answer can be argued with, and what you asked for stays above it.
+- **A panel that asks nothing offered a box to type in.** Whatever was typed
+  had nowhere to go, since the command was not waiting for an answer. And a
+  panel that *was* waiting for one spun as though the model were working.
+- **Scrolling the preview half sent the source half to the bottom.** Only three
+  of the four directions had ever been tested; scrolling up in the preview was
+  the one that had not. The line the source pane follows is measured against
+  the viewport now rather than the whole field.
+- **Coming back to a split tab left the two halves out of step** — the source
+  where you left it, the preview at the top.
+- **Accepting a plugin's rewrite in preview mode put the undo on another tab.**
+- **The macOS archive was three times the size and its bundle was broken.**
+  `zip -r` expands the symbolic links inside a framework instead of storing
+  them; `ditto` keeps them.
+- **The startup line in the log reported one leg as the whole journey.**
+
+### Twelve languages, and one of them reads right to left
+
+- **The plugin pages answered in English whatever language you had chosen** —
+  thirteen strings: the permissions heading and the sentences under it, the
+  buttons that open a repository and save a plugin's settings, the tooltip on
+  the SDK button, the message when a search finds nothing. Sharpest was the
+  dialog reporting a failed AI configuration test, which was English while the
+  line reporting success was not: your own language when it worked, English at
+  the moment you most needed to read it.
+- **Arabic turns the window around and thirteen layouts stayed put.** A code
+  block put its line numbers across the block from the code they numbered; the
+  file tree indented away from the names it was nesting; buttons sat at the far
+  side of their row from every other button. Code blocks are deliberately held
+  left to right — code is not prose — and the rest now follows the direction
+  you read in.
+- **Four buttons drawn as an icon alone had no name**, on hover or to a screen
+  reader: the close on the find bar, the × on a tab, the search in the sidebar,
+  the send in the plugin drawer.
+
 ### Fixed — the official translation plugin
 - **A prompt template that lost its placeholders lost what you had just typed.** `{{instruction}}` and `{{language}}` disappearing meant your instruction disappeared with them, silently
 - A heading was sent to the model in one request and the text it introduces in the next, so the model translating "## Results" had nothing to tell it the register or the subject
