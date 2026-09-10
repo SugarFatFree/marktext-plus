@@ -64,6 +64,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - One action had two names in Chinese and in Russian: the command palette called a maths block 数学公式 and Settings called it 数学公式块, and Russian spelled strikethrough with and without its ё. The same actions are named twice across the translation files, once for the menus and once for the shortcut list, and nothing tied the two together
 - The editor's automation interface reported success for things it had not done. Activating a tab that does not exist wrote that name into the state and answered "tab is active", leaving tabs along the top with nothing beneath them; closing a pane that was not open answered "closed". It also advertised two actions — opening a file and running a plugin command — that were not implemented anywhere; they are no longer offered
 
+- **Asking for the same thing twice kept only the second answer.** Which
+  pieces of a streamed reply belong to one round was decided by comparing what
+  had been asked for it — so two rounds that asked the same thing became one,
+  and saying "shorter" again because the first try was not short enough threw
+  away the draft before it.
 - **Accepting a refined answer wrote nothing.** With nothing selected, a
   plugin's first answer offers to replace the whole document, which it says by
   naming an empty selection — and the drawer kept "the first answer's target"

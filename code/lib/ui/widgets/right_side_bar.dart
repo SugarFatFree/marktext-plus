@@ -105,6 +105,16 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
   /// What the reader last asked for, so the answer can be filed under it.
   String _asked = '';
 
+  /// Whether the round now running has already been filed in [_turns].
+  ///
+  /// A plugin sends one answer in pieces, and every piece should grow the
+  /// same entry. Which pieces belong together used to be decided by comparing
+  /// what was asked for — so two rounds that asked the same thing became one,
+  /// and asking "shorter" a second time because the first was not short
+  /// enough threw away the draft before it. A round is a round; what it asked
+  /// for is not its name.
+  bool _turnRecorded = false;
+
   /// Which panel the drawer is showing, so a follow-up can run the same
   /// command again without going back through the rail.
   PluginManifest? _openPlugin;
@@ -146,6 +156,7 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
     _say.clear();
     if (answer != null) _asked = answer;
     final pending = _answering;
+    _turnRecorded = false;
     setState(() {
       _question = null;
       _choices = const [];
@@ -243,11 +254,12 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
   /// Called from inside the sink's `setState`, so it only arranges the list.
   void _recordTurn() {
     if (_content.isEmpty) return;
-    if (_turns.isNotEmpty && _turns.last.asked == _asked) {
+    if (_turnRecorded && _turns.isNotEmpty) {
       // The same turn growing: a plugin sends its answer in pieces.
       _turns[_turns.length - 1] = (asked: _asked, answer: _content);
     } else {
       _turns.add((asked: _asked, answer: _content));
+      _turnRecorded = true;
     }
   }
 
@@ -288,6 +300,7 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
     final about = _content;
     setState(() {
       _asked = asked;
+      _turnRecorded = false;
       _say.clear();
     });
     _automaticAnswer = asked;
@@ -344,6 +357,7 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
       _render = PluginPaneRender.text;
       _panelAsks = false;
       _turns.clear();
+      _turnRecorded = false;
       _say.clear();
       _closeUi();
     });

@@ -623,6 +623,44 @@ end
       expect(find.byKey(const Key('plugin-drawer-apply')), findsOneWidget);
     });
 
+    testWidgets('asking the same thing twice keeps both rounds', (tester) async {
+      // A round is identified by what was asked for it, and two rounds can ask
+      // for the same thing — "shorter", and then "shorter" again because the
+      // first try was not short enough. The second answer replaced the first
+      // in the list instead of following it, so the exchange lost a round and
+      // the draft that came with it.
+      install(
+        'com.example.demo',
+        panels: [
+          {'id': 'write', 'title': 'Write', 'icon': 'list'},
+        ],
+        permissions: const ['ui.sidebar', 'document.read'],
+        script: echo,
+      );
+      final container = await pumpWithContainer(tester);
+
+      await container
+          .read(mcpProvider.notifier)
+          .openPluginPanel!('com.example.demo', 'write', 'first');
+      await settlePlugin(tester);
+
+      for (var i = 0; i < 2; i++) {
+        await tester.enterText(
+            find.byKey(const Key('plugin-drawer-follow')), 'shorter');
+        tester
+            .widget<IconButton>(find.byKey(const Key('plugin-drawer-send')))
+            .onPressed!();
+        await tester.pump();
+        await settlePlugin(tester);
+      }
+
+      expect(
+        find.text('shorter'),
+        findsNWidgets(2),
+        reason: '同一个要求提了两次，历史里该有两条，而不是后一条盖掉前一条',
+      );
+    });
+
     testWidgets('and pressing it after a refinement writes the document',
         (tester) async {
       // The test above checks the button is still drawn. Drawn is not working,
