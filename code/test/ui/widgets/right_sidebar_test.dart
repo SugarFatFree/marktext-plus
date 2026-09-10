@@ -622,6 +622,68 @@ end
       // overwritten with text that is nowhere in the document.
       expect(find.byKey(const Key('plugin-drawer-apply')), findsOneWidget);
     });
+
+    testWidgets('and pressing it after a refinement writes the document',
+        (tester) async {
+      // The test above checks the button is still drawn. Drawn is not working,
+      // and with nothing selected it was not working: the plugin's first answer
+      // says `replaces = ""`, meaning the whole document, and the editor kept
+      // "the first one" by asking whether what it held was empty. Empty was
+      // doing two jobs — "not recorded yet" and "the whole document" — so the
+      // refinement's `replaces`, which is the draft it was made from and is
+      // nowhere in the document, became the target. Apply then found nothing to
+      // replace and did nothing at all.
+      install(
+        'com.example.demo',
+        panels: [
+          {'id': 'write', 'title': 'Write', 'icon': 'list'},
+        ],
+        permissions: const ['ui.sidebar', 'document.read', 'document.write'],
+        // Shaped like the official plugin, and `echo` is not: with nothing
+        // selected this says `replaces = ""`, meaning the whole document, where
+        // `echo` invents a word that is nowhere in it and so fails on the first
+        // round for a different reason.
+        script: 'function on_command(ctx)\n'
+            '  if ctx.answer == nil then\n'
+            '    return { ask = "what?" }\n'
+            '  end\n'
+            '  local about = ctx.selection\n'
+            '  if about == nil then about = "" end\n'
+            '  return { pane = ctx.answer .. " draft", title = "W",\n'
+            '           apply = true, replaces = about }\n'
+            'end\n',
+      );
+      final container = await pumpWithContainer(tester);
+      container.read(tabProvider.notifier).addTab(
+        TabInfo(id: 'doc', fileName: 'a.md', content: 'the whole document'),
+      );
+      container.read(tabProvider.notifier).setActiveTab('doc');
+      await tester.pump();
+
+      // Nothing selected, so the first answer is about the whole document.
+      await container
+          .read(mcpProvider.notifier)
+          .openPluginPanel!('com.example.demo', 'write', 'long');
+      await settlePlugin(tester);
+      await tester.enterText(
+          find.byKey(const Key('plugin-drawer-follow')), 'shorter');
+      tester
+          .widget<IconButton>(find.byKey(const Key('plugin-drawer-send')))
+          .onPressed!();
+      await tester.pump();
+      await settlePlugin(tester);
+
+      tester
+          .widget<FilledButton>(find.byKey(const Key('plugin-drawer-apply')))
+          .onPressed!();
+      await tester.pumpAndSettle();
+
+      expect(
+        container.read(tabProvider).tabs.single.content,
+        'shorter draft',
+        reason: '追加一轮后按「采用」，文档没有变——这正是读者报的那一条',
+      );
+    });
   });
 
   testWidgets('a panel that never asks does not offer a box that goes nowhere',
@@ -688,7 +750,58 @@ end
     expect(
       find.byKey(const Key('plugin-drawer-apply')),
       findsNothing,
-      reason: '采用之后抽屉该收起来，否则会被采用第二次',
+      reason: '采用之后不该还留着按钮，否则同一段会被写第二次',
+    );
+    expect(
+      find.text('NEW'),
+      findsOneWidget,
+      reason: '抽屉要留着：读者刚接受的东西和之前问过的话都在里面',
+    );
+  });
+
+  testWidgets('the box to type in stays while the answer is arriving',
+      (tester) async {
+    // A reader answered the panel's question and the whole rail turned into a
+    // spinner: the place they had just typed into was gone until the model
+    // finished. The box belongs there, greyed — it cannot be sent yet, and it
+    // is still where the next thing gets typed.
+    install(
+      'com.example.demo',
+      panels: [
+        {'id': 'write', 'title': 'Write', 'icon': 'list'},
+      ],
+      permissions: const ['ui.sidebar', 'ai.chat'],
+      script: 'function on_command(ctx)\n'
+          '  if ctx.answer == nil then\n'
+          '    return { ask = "What shall I write?" }\n'
+          '  end\n'
+          '  return { ai = ctx.answer }\n'
+          'end\n',
+    );
+    final container = await pumpWithContainer(tester);
+    container.read(tabProvider.notifier).addTab(
+      TabInfo(id: 'doc', fileName: 'a.md', content: 'a document'),
+    );
+    container.read(tabProvider.notifier).setActiveTab('doc');
+    await tester.pump();
+
+    await tester.tap(find.byIcon(Icons.list));
+    await settlePlugin(tester);
+    // Answer the question. The model is not wired up here, so the run stays
+    // where the reader leaves it: waiting, which is the state under test.
+    await tester.enterText(
+      find.byKey(const Key('plugin-drawer-follow')),
+      'a haiku',
+    );
+    await tester.tap(find.byKey(const Key('plugin-drawer-send')));
+    await tester.pump();
+
+    final box = find.byKey(const Key('plugin-drawer-follow'));
+    expect(box, findsOneWidget, reason: '等结果时输入框不该整个消失');
+    expect(
+      tester.widget<TextField>(box).enabled,
+      isFalse,
+      reason: '还不能发送，所以要灰掉——但要看得见',
     );
   });
 

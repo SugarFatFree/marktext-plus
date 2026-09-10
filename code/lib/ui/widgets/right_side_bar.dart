@@ -51,7 +51,16 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
   /// may accept, and which text it replaces. Dropped on the floor until now,
   /// so the rail showed an answer it gave no way to take.
   bool _canApply = false;
-  String _replaces = '';
+  /// What the first answer offered to replace, or null before there is one.
+  ///
+  /// Null and empty are different things here, and confusing them was a bug the
+  /// reader hit. Empty means *the whole document* — what a plugin says when
+  /// nothing was selected. Held as `''` and adopted "if it is empty", the first
+  /// answer's "whole document" read as "nothing recorded yet", so a
+  /// refinement's own `replaces` — the draft it was made from, which is nowhere
+  /// in the document — took its place, and Apply found nothing to replace and
+  /// did nothing at all.
+  String? _replaces;
   String _pluginName = '';
 
   /// How the plugin asked for its answer to be drawn. The pane grid has read
@@ -298,15 +307,18 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
       ref,
       context,
       pluginName: _pluginName,
-      replaces: _replaces,
+      replaces: _replaces ?? '',
       text: _content,
     );
     if (applied && mounted) {
+      // The drawer stays. Closing it took the exchange away with it — what the
+      // reader had asked for, and every round before it — at the exact moment
+      // they might want to ask for something else, or read back what they
+      // accepted. Only the offer goes: the text is in the document now, so a
+      // second Apply would write it twice.
       setState(() {
-        _open = null;
-        _content = '';
         _canApply = false;
-        _replaces = '';
+        _replaces = null;
       });
     }
   }
@@ -328,7 +340,7 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
       _openPanel = panel;
       _content = '';
       _canApply = false;
-      _replaces = '';
+      _replaces = null;
       _render = PluginPaneRender.text;
       _panelAsks = false;
       _turns.clear();
@@ -376,8 +388,9 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
             _canApply = canApply;
             // The first answer's, kept through every refinement: a shorter
             // rewrite still replaces the paragraph the first one was going to
-            // replace, not the draft it was made from.
-            if (_replaces.isEmpty) _replaces = replaces;
+            // replace, not the draft it was made from. `??=`, not "if it is
+            // empty" — the first answer may well be the whole document.
+            _replaces ??= replaces;
             _render = render;
             _pluginName = plugin.name;
             _recordTurn();
@@ -560,7 +573,18 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
                 // conversation is typed into. The plugin's first question is
                 // answered here too: it used to open a form of its own, so the
                 // reader typed in one place to start and another to carry on.
-                if (_question != null || (_turns.isNotEmpty && _panelAsks))
+                // Also while the answer is still arriving, on a panel that
+                // asks things. The box used to appear only for an open question
+                // or after a first exchange, so the whole rail became a spinner
+                // the moment the reader answered: the place they had just typed
+                // into vanished and came back when the model finished. It stays
+                // now, greyed — a box that cannot be sent yet still says where
+                // to type next.
+                //
+                // `_panelAsks` and not `_working` alone: a plugin that drew its
+                // own tree of controls has its own field, and a second one
+                // below it, greyed, would be furniture.
+                if (_question != null || (_panelAsks && (_working || _turns.isNotEmpty)))
                   _SayBox(
                     controller: _say,
                     choices: _question == null ? const [] : _choices,

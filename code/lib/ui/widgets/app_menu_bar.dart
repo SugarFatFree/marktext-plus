@@ -509,14 +509,14 @@ class AppMenuBar extends ConsumerWidget {
       menuChildren: [
         MenuItemButton(
           onPressed: editorState.canUndo
-              ? () => ref.read(editorProvider.notifier).undo()
+              ? () => stepHistory(ref, back: true)
               : null,
           shortcut: _shortcut('undo'),
           child: Text(l10n.editUndo),
         ),
         MenuItemButton(
           onPressed: editorState.canRedo
-              ? () => ref.read(editorProvider.notifier).redo()
+              ? () => stepHistory(ref, back: false)
               : null,
           shortcut: _shortcut('redo'),
           child: Text(l10n.editRedo),
@@ -1167,6 +1167,28 @@ class AppMenuBar extends ConsumerWidget {
   /// it. The version here was the literal 'v1.0.1' through five releases, and
   /// the guard comparing pubspec against the constant could not see it,
   /// because nothing checked that this dialog reads either of them.
+  /// Undo or redo, and put the result where the document actually lives.
+  ///
+  /// In preview mode there is no source editor to restore into, so the notifier
+  /// answers with the text rather than writing it — and this writes it to the
+  /// tab. Without that, accepting a plugin's rewrite from the right-hand rail
+  /// could not be undone: the history was right and the key did nothing at all.
+  ///
+  /// The tab's own text is handed in because it is the newest one and the
+  /// notifier cannot read it while nothing is holding it.
+  static void stepHistory(WidgetRef ref, {required bool back}) {
+    final tabs = ref.read(tabProvider);
+    final id = tabs.activeTabId;
+    final tab = tabs.tabs.where((t) => t.id == id).firstOrNull;
+    final editor = ref.read(editorProvider.notifier);
+
+    final text = back ? editor.undo(current: tab?.content) : editor.redo();
+    // With a source editor the controller already holds it and its own listener
+    // writes the tab; writing here as well would be the same string twice.
+    if (text == null || id == null || editor.hasSourceEditor) return;
+    ref.read(tabProvider.notifier).updateContent(id, text);
+  }
+
   static void showAbout() {
     final context = navigatorKey.currentContext;
     if (context == null) return;

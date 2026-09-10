@@ -64,6 +64,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - One action had two names in Chinese and in Russian: the command palette called a maths block 数学公式 and Settings called it 数学公式块, and Russian spelled strikethrough with and without its ё. The same actions are named twice across the translation files, once for the menus and once for the shortcut list, and nothing tied the two together
 - The editor's automation interface reported success for things it had not done. Activating a tab that does not exist wrote that name into the state and answered "tab is active", leaving tabs along the top with nothing beneath them; closing a pane that was not open answered "closed". It also advertised two actions — opening a file and running a plugin command — that were not implemented anywhere; they are no longer offered
 
+- **Accepting a refined answer wrote nothing.** With nothing selected, a
+  plugin's first answer offers to replace the whole document, which it says by
+  naming an empty selection — and the drawer kept "the first answer's target"
+  by asking whether what it held was empty. So the refinement's own target, the
+  draft it was made from and nowhere in the document, took its place, and Apply
+  found nothing to replace. Reported by a reader.
+- **Undo could not take back a plugin's rewrite.** Accepting one from the rail
+  puts the old document on the history and the new one in the tab, which is
+  right; undo then looked for a text field to restore into, found none, because
+  the rail is used in preview mode where there is no source editor, and
+  returned. Silently. It writes to the tab now when nothing is holding the text.
+- **The rail became a single spinner while the answer was on its way**, taking
+  away the box the reader had just typed into until the model finished. It
+  stays, greyed.
+- **Accepting an answer closed the drawer and took the exchange with it** —
+  what had been asked, and every round before it — at the moment the reader
+  might want to ask for one more thing. Only the offer goes now.
 - **The right-hand rail showed a plugin's answer with no way to take it.** The
   drawer read one field of what a plugin sends — the words — and not the three
   beside them, so a rewrite arrived with no Apply button, Markdown was shown as

@@ -427,11 +427,30 @@ class EditorNotifier extends StateNotifier<EditorState> {
     }
   }
 
-  void undo() {
-    final controller = _controller;
-    if (controller == null || _undoStack.isEmpty) return;
+  /// Steps back one snapshot and answers with the text the document should
+  /// hold, or null when there was nowhere to go.
+  ///
+  /// With a source editor on screen this also puts the text in the field and
+  /// the caller may ignore the answer. Without one it cannot: the right-hand
+  /// rail offers a plugin's rewrite in preview mode, where nothing is holding
+  /// the text, and this used to look for a controller, find none and return —
+  /// so a rewrite the reader accepted could not be taken back, and the key did
+  /// nothing at all. The caller writes the answer to the tab, which is where
+  /// the document lives when nothing is being typed into.
+  /// Whether a source editor is on screen holding the document's text.
+  ///
+  /// Undo restores into that field when there is one. In preview mode there is
+  /// not, and the caller has to write the result to the tab instead.
+  bool get hasSourceEditor => _controller != null;
 
-    final current = controller.text;
+  String? undo({String? current}) {
+    if (_undoStack.isEmpty) return null;
+
+    // The newest text has to come from somewhere. A source editor holds it; in
+    // preview mode the tab does, and only the caller can read that — so it
+    // says. Without either, the stack's own top is the best guess, which makes
+    // undo a no-op rather than a step to the wrong place.
+    final now = current ?? _controller?.text ?? _undoStack.last.text;
     // Snapshots are taken on a 300 ms debounce, so the edit the reader just
     // made is usually not on the stack yet. Undo assumed it was, and the two
     // ways that went wrong were both silent:
@@ -444,8 +463,8 @@ class EditorNotifier extends StateNotifier<EditorState> {
     //
     // Added straight to the stack rather than through pushHistory, which
     // clears the redo stack — the one thing undo must not do.
-    if (_undoStack.last.text != current) {
-      _undoStack.add((text: current, caret: _caret));
+    if (_undoStack.last.text != now) {
+      _undoStack.add((text: now, caret: _caret));
       if (_undoStack.length > _maxHistory) {
         _undoStack.removeRange(0, _undoStack.length - _maxHistory);
       }
@@ -454,23 +473,26 @@ class EditorNotifier extends StateNotifier<EditorState> {
     // Only the current state is left; there is nowhere to go back to.
     if (_undoStack.length < 2) {
       _updateUndoRedoState();
-      return;
+      return null;
     }
 
     _redoStack.add(_undoStack.removeLast());
     _restore(_undoStack.last);
 
     _updateUndoRedoState();
+    return _undoStack.last.text;
   }
 
-  void redo() {
-    if (_redoStack.isEmpty || _controller == null) return;
+  /// Steps forward again, answering the same way [undo] does.
+  String? redo() {
+    if (_redoStack.isEmpty) return null;
 
     final next = _redoStack.removeLast();
     _undoStack.add(next);
     _restore(next);
 
     _updateUndoRedoState();
+    return next.text;
   }
 
   void _updateUndoRedoState() {
