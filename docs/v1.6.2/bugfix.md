@@ -148,6 +148,7 @@
 | BUG-403 | 2026-09-10 | 采用后源码窗格仍是空白，下一次敲键会把空白写回去 | P0 | 已修复 |
 | BUG-404 | 2026-09-10 | 流式回答只等 socket 关闭，provider 不关连接就永远转圈 | P0 | 已修复 |
 | BUG-405 | 2026-09-10 | 另外三处请求同样没有时间上限：测试连接、插件市场、插件取图 | P1 | 已修复 |
+| BUG-406 | 2026-09-10 | webview 去了哪，在 Windows 上一条都没记进日志 | P1 | 已修复 |
 
 ---
 
@@ -8180,3 +8181,75 @@ await for (final line in utf8.decoder.bind(response).transform(const LineSplitte
 `testConnection` 与 `PluginImageLoader.load` 都必须在上限内抛错。
 插件市场那条没走 socket——它要求 HTTPS，为了测试放宽会削弱
 「市场下载不可被中途篡改」这条守卫，不值得；它靠上面那条对账守卫按住。
+
+---
+
+## BUG-406：webview 去了哪，在 Windows 上一条都没记进日志
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-406 |
+| 日期 | 2026-09-10 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+
+### 现象
+
+`ui.webview` 是唯一把浏览器交给插件的权限。它之所以可以接受，靠的是
+**读者事后能查出这个页面去过哪里**——`plugin_web_pane.dart` 的注释里写着
+「页面去了哪会写进日志，这是权限的承诺」。
+
+实际上在 **Windows 上这条日志永远是空的**。
+
+### 根因
+
+只订阅了 `onLoadResource` 一个回调。查 `flutter_inappwebview` 的实现：
+
+| 平台 | 原生侧是否派发 `onLoadResource` |
+|------|-------------------------------|
+| Android / iOS / macOS | 是（平台接口的 `@SupportedPlatforms` 也只列这三个） |
+| Linux | 是（`webview_channel_delegate.cc:1235`，靠注入 JS 钩住） |
+| **Windows** | **否——事件名在整个 windows 原生目录里零处** |
+
+Dart 侧照收 `onLoadResource` 这个参数不代表事件会来。**参数收下 ≠ 事件送到**，
+这一层没有任何编译期或运行期的提示，所以在最主要的那个平台上，
+一个安全承诺静默地什么都不做。
+
+这是本库反复出现的那个形状（对外宣称的清单 vs 实现的清单，没人对账），
+这次的两份清单一份在注释里，一份在第三方包的 C++ 里。
+
+### 修复方案
+
+改成订阅三个回调，因为**没有任何一个是到处都送的**：
+
+| 回调 | 覆盖 | 送达平台 |
+|------|------|---------|
+| `onLoadResource` | 每个图片/脚本/fetch | 除 Windows 外 |
+| `onLoadStart` | 页面**去**哪 | Windows、Linux 都送 |
+| `onUpdateVisitedHistory` | 不重载的跳转（pushState） | Windows、Linux 都送 |
+
+最要紧的是中间那条：插件把文档塞进查询串再改 `location`，正是这份日志
+存在的理由，而它在 Windows 上原本完全看不见。子资源仍只在
+`onLoadResource` 到达的平台可见——那是引擎的限制，不是选择，写进注释
+免得下一个人再去翻 C++ 才知道。
+
+顺带两件：
+
+1. **同一个主机每个窗格只记一次**。一页五十张图原本会写五十行，
+   把日志刷成流水账，而它要回答的问题是「去过哪」，不是「去了几次」。
+2. 记录逻辑抽成 `PluginWebTrail`，与 widget 分开——`flutter test` 下
+   没有 web 引擎，走 widget 只会测到「本机没有引擎」那句话。
+
+### 涉及文件
+
+- `code/lib/ui/widgets/plugin_web_pane.dart`
+- `code/test/ui/widgets/plugin_web_trail_test.dart`（新增 5 条）
+
+### 验证
+
+| 变异 | 结果 |
+|------|------|
+| 去掉 `onLoadStart:`（退回出问题的那版） | 守卫红，且说明这个回调是某平台唯一的来源 |
+| 记全地址而不只记主机 | 「查询串可以夹带整篇文档」那条红 |
+
+其中第二条守的是另一半：这行要落到磁盘上，不能变成文档的第二份副本。

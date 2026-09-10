@@ -23,11 +23,26 @@ import '../../services/app_log.dart';
 /// is what keeps the download and the memory where they were, and it is why
 /// the reader's own proxy settings apply without the editor arranging it.
 ///
-/// Where the page goes is written to the plugin's log, which is what the
-/// permission promises. It comes from the engine reporting each resource it
-/// loads rather than from routing the traffic somewhere: no second hop, and no
-/// certificate of the editor's standing between a plugin and the servers it
-/// was allowed to reach.
+/// Where the page goes is written to the log, which is what the permission
+/// promises. It comes from the engine reporting where it went rather than from
+/// routing the traffic somewhere: no second hop, and no certificate of the
+/// editor's standing between a plugin and the servers it was allowed to reach.
+///
+/// It takes three reports to keep that promise, because no one of them is
+/// dispatched everywhere. `onLoadResource` — every image, script and fetch —
+/// is the fullest, and is the one Windows never sends: its native side has no
+/// such event at all, so a build that listened only for that logged nothing on
+/// the platform most readers are on. `onLoadStart` and `onUpdateVisitedHistory`
+/// are sent by Windows and Linux both, and between them they cover where the
+/// page *goes* — a plugin writing the document into a query string and setting
+/// `location` is the thing the log is there to catch. Sub-resources are still
+/// only seen where `onLoadResource` arrives; that is the engine's limit, not a
+/// decision, and it is written down here so the next reader of this file does
+/// not have to find it out from the C++.
+///
+/// Each host is written once per pane. The question the log answers is where a
+/// plugin went, and a page with fifty images would otherwise answer it fifty
+/// times and bury everything else.
 ///
 /// A local proxy was written for this first, and is not here — do not write it
 /// again. It was the one mechanism all three desktops speak, chosen because the
@@ -63,6 +78,13 @@ class PluginWebPane extends StatefulWidget {
 }
 
 class _PluginWebPaneState extends State<PluginWebPane> {
+  final _trail = PluginWebTrail();
+
+  void _note(Uri? url) {
+    final line = _trail.note(widget.pluginName, url);
+    if (line != null) AppLog.instance.info(line);
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!PluginWebPane.supported) {
@@ -88,15 +110,34 @@ class _PluginWebPaneState extends State<PluginWebPane> {
         // Nothing the reader picks up should follow them out of the editor.
         incognito: true,
       ),
-      onLoadResource: (controller, resource) {
-        final url = resource.url;
-        if (url == null) return;
-        // The host, not the whole address: a query string can carry the
-        // document, and this goes to a file on disk.
-        AppLog.instance.info(
-          'webview ${widget.pluginName} → ${url.scheme}://${url.host}',
-        );
-      },
+      onLoadResource: (controller, resource) => _note(resource.url),
+      onLoadStart: (controller, url) => _note(url),
+      onUpdateVisitedHistory: (controller, url, isReload) => _note(url),
     );
+  }
+}
+
+/// The hosts one pane's page has reached, and what to write about the next.
+///
+/// Apart from the widget because this is the part worth testing and the engine
+/// is not: under `flutter test` no web engine exists, so a test that went
+/// through the pane would be testing the message about there being no engine.
+class PluginWebTrail {
+  final _seen = <String>{};
+
+  /// The line to write for [url], or null when there is nothing new to say.
+  ///
+  /// The host, never the whole address: a query string can carry the document
+  /// itself, and this ends up in a file on disk. `about:` and `data:` are the
+  /// page's own inline content — it has not gone anywhere — and are not worth
+  /// a line, while `file:` is, even though it has no host, because a page
+  /// reaching for the disk is exactly what a reader would want to know.
+  String? note(String pluginName, Uri? url) {
+    if (url == null) return null;
+    final scheme = url.scheme.toLowerCase();
+    if (scheme.isEmpty || scheme == 'about' || scheme == 'data') return null;
+    final where = '$scheme://${url.host}';
+    if (!_seen.add(where)) return null;
+    return 'webview $pluginName → $where';
   }
 }
