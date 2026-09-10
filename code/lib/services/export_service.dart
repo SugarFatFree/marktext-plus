@@ -345,7 +345,7 @@ class ExportService {
           final widgets = <pw.Widget>[];
           for (final node in ast) {
             widgets.addAll(
-              _nodeToPdfWidgets(
+              nodeToPdfWidgets(
                 node,
                 primaryFont: primaryFont,
                 fontFallbacks: fontFallbacks,
@@ -1517,7 +1517,13 @@ class ExportService {
     }).toList();
   }
 
-  static List<pw.Widget> _nodeToPdfWidgets(
+  /// Visible so a test can ask what one block turns into.
+  ///
+  /// The HTML arm is public and `every_block_survives_export_test` walks it
+  /// kind by kind; this one was private, so the PDF tests could only say a
+  /// PDF had been written — which a PDF with nothing in it also satisfies.
+  @visibleForTesting
+  static List<pw.Widget> nodeToPdfWidgets(
     MarkdownNode node, {
     pw.Font? primaryFont,
     List<pw.Font> fontFallbacks = const [],
@@ -1734,7 +1740,7 @@ class ExportService {
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
                     for (final child in item.children)
-                      ..._nodeToPdfWidgets(
+                      ...nodeToPdfWidgets(
                         child,
                         primaryFont: primaryFont,
                         fontFallbacks: fontFallbacks,
@@ -1783,7 +1789,7 @@ class ExportService {
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
                 for (final child in quote.children)
-                  ..._nodeToPdfWidgets(
+                  ...nodeToPdfWidgets(
                     child,
                     primaryFont: primaryFont,
                     fontFallbacks: fontFallbacks,
