@@ -248,7 +248,7 @@ class PluginCatalogService {
       });
       final request = await client.getUrl(searchUrl);
       request.headers.set(HttpHeaders.acceptHeader, 'application/vnd.github+json');
-      final response = await request.close();
+      final response = await request.close().answeredWithin(within, 'GitHub');
       if (response.statusCode != HttpStatus.ok) {
         throw HttpException(_describeFailure(response));
       }
@@ -281,7 +281,8 @@ class PluginCatalogService {
         final releaseRequest = await client.getUrl(releaseUrl);
         releaseRequest.headers
             .set(HttpHeaders.acceptHeader, 'application/vnd.github+json');
-        final releaseResponse = await releaseRequest.close();
+        final releaseResponse =
+            await releaseRequest.close().answeredWithin(within, 'GitHub');
         if (releaseResponse.statusCode != HttpStatus.ok) {
           refusals.add('$fullName: ${_describeFailure(releaseResponse)}');
           continue;
@@ -340,7 +341,9 @@ class PluginCatalogService {
     final raw = Uri.https('raw.githubusercontent.com', '/${segments[0]}/${segments[1]}/HEAD/README.md');
     final client = _client();
     try {
-      final response = await (await client.getUrl(raw)).close();
+      final response = await (await client.getUrl(raw))
+          .close()
+          .answeredWithin(within, "the plugin's README");
       if (response.statusCode != HttpStatus.ok) {
         throw HttpException('README returned HTTP ${response.statusCode}');
       }
@@ -400,7 +403,8 @@ class PluginCatalogService {
     try {
       refuseInsecureDownload(downloadUrl);
       final request = await client.getUrl(downloadUrl);
-      final response = await request.close();
+      final response =
+          await request.close().answeredWithin(within, 'the plugin download');
       if (response.statusCode != HttpStatus.ok) {
         throw HttpException('plugin download returned ${response.statusCode}');
       }

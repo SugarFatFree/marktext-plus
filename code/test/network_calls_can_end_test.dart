@@ -19,29 +19,42 @@ import 'package:flutter_test/flutter_test.dart';
 /// — the proxy override names the type without opening anything.
 final _opensAConnection = RegExp(r'(?<![A-Za-z])HttpClient\s*\(');
 
+/// Asking a server for something: one of these is one wait to be bounded.
+final _sendsARequest = RegExp(r'\.(?:get|post|put|delete|head|patch|open)Url\s*\(');
+
+/// Bounding one. `.timeout(` counts because `update_service` used it before
+/// there was anywhere shared to put this, and it does the same job.
+final _boundsTheWait = RegExp(r'\.(?:answeredWithin|timeout)\s*\(');
+
 void main() {
-  test('a file that opens a connection also bounds the wait', () {
+  test('every request opened is a request bounded', () {
+    // Counted, not merely looked for. The first version of this guard asked
+    // whether the file contained `answeredWithin` anywhere at all, and it was
+    // green while six requests in two of these files had no bound: one call
+    // site was enough to satisfy it and the rest rode along. A list that
+    // checks off "present" cannot see the difference between one and seven.
     final offenders = <String>[];
     for (final file in Directory('lib')
         .listSync(recursive: true)
         .whereType<File>()
         .where((f) => f.path.endsWith('.dart'))) {
-      // Comments talk about `HttpClient()` without calling it — the proxy
-      // installer explains what it is — so read the code only.
       final code = file
           .readAsLinesSync()
           .where((line) => !line.trimLeft().startsWith('//'))
           .join('\n');
       if (!_opensAConnection.hasMatch(code)) continue;
-      final bounded =
-          code.contains('answeredWithin(') || code.contains('.timeout(');
-      if (!bounded) offenders.add(file.path);
+
+      final asked = _sendsARequest.allMatches(code).length;
+      final bounded = _boundsTheWait.allMatches(code).length;
+      if (bounded < asked) {
+        offenders.add('${file.path}  发出 $asked 个请求，只限住 $bounded 个');
+      }
     }
 
     expect(
       offenders,
       isEmpty,
-      reason: '这些文件会发起请求，却没有给「对方一直不回话」设上限：\n'
+      reason: '这些文件发起的请求多过设了上限的：\n'
           '${offenders.join('\n')}\n'
           '用 `answeredWithin(within, "对方是谁")`（core/net/answered_within.dart）。',
     );

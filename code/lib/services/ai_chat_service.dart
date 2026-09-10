@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import '../core/config/app_config.dart';
+import '../core/net/answered_within.dart';
 import 'ai_connection_service.dart';
 import 'package:flutter/foundation.dart';
 
@@ -190,6 +191,7 @@ class AiChatService {
     required AppConfig config,
     required String prompt,
     void Function(String soFar)? onChunk,
+    Duration reply = const Duration(seconds: 120),
   }) async {
     final stub = answerFor;
     if (stub != null) {
@@ -239,7 +241,8 @@ class AiChatService {
         stream: streaming,
       )));
 
-      final response = await request.close();
+      final response =
+          await request.close().answeredWithin(reply, 'the AI provider');
       if (streaming && response.statusCode >= 200 && response.statusCode < 300) {
         // Awaited, not returned: the `finally` below closes the socket, and it
         // runs at the return statement — not when the returned future finishes.

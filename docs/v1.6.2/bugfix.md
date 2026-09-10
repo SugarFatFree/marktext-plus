@@ -149,6 +149,7 @@
 | BUG-404 | 2026-09-10 | 流式回答只等 socket 关闭，provider 不关连接就永远转圈 | P0 | 已修复 |
 | BUG-405 | 2026-09-10 | 另外三处请求同样没有时间上限：测试连接、插件市场、插件取图 | P1 | 已修复 |
 | BUG-406 | 2026-09-10 | webview 去了哪，在 Windows 上一条都没记进日志 | P1 | 已修复 |
+| BUG-407 | 2026-09-10 | BUG-405 的守卫只查「有没有」，六处请求仍然没有上限 | P1 | 已修复 |
 
 ---
 
@@ -8253,3 +8254,68 @@ Dart 侧照收 `onLoadResource` 这个参数不代表事件会来。**参数收�
 | 记全地址而不只记主机 | 「查询串可以夹带整篇文档」那条红 |
 
 其中第二条守的是另一半：这行要落到磁盘上，不能变成文档的第二份副本。
+
+---
+
+## BUG-407：BUG-405 的守卫只查「有没有」，六处请求仍然没有上限
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-407 |
+| 日期 | 2026-09-10 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+
+### 现象
+
+BUG-405 刚加的守卫全绿，而**六处请求实际上一个上限都没有**：
+
+| 位置 | 是什么请求 |
+|------|-----------|
+| `ai_chat_service:242` | **AI 对话本身**——等对方回响应头 |
+| `plugin_catalog_service:251` | GitHub 搜索插件仓库 |
+| `plugin_catalog_service:284` | 查某个仓库的发行版 |
+| `plugin_catalog_service:343` | 取插件 README |
+| `plugin_catalog_service:403` | **下载插件 ZIP** |
+
+（`ai_chat_service` 的流式读有上限，但那是**读流**；在读到流之前，
+`await request.close()` 要先等响应头，那一步没有上限。对方接了连接却
+不发响应头，压根走不到 `readStream`。）
+
+### 根因
+
+守卫问的是「这个**文件**里出现过 `answeredWithin` 或 `.timeout(` 吗」。
+`plugin_catalog_service` 里有一处出现了，于是另外四处搭了顺风车；
+`ai_chat_service` 里 `readStream` 的 `.timeout(` 也让它整个文件过关。
+
+这正是本库记过的那个形状：**清单对账守的是「点名到齐」，不是「各司其职」**。
+BUG-405 修完加的守卫，对同一个缺陷**深一层**（在文件里但那一处没限）完全看不见。
+
+写守卫的时候没有对它问那句该问的话：**什么样的损坏会让它保持全绿？**
+
+### 修复方案
+
+1. 六处全部接上 `answeredWithin`，主语各自写清楚
+   （"GitHub"、"the plugin download"、"the plugin's README"…）。
+   `AiChatService.complete` 增加 `reply` 参数（默认 120 秒），
+   与流式的 `idle` 分开——一个是等第一个字节，一个是等下一行。
+2. 守卫改成**计数契约**：每个文件里
+   `.getUrl(` / `.postUrl(` 等发出请求的次数，
+   不得多于 `.answeredWithin(` / `.timeout(` 的次数。
+   一处骗不过五处。
+
+### 涉及文件
+
+- `code/lib/services/ai_chat_service.dart`
+- `code/lib/services/plugin_catalog_service.dart`
+- `code/test/network_calls_can_end_test.dart`
+
+### 验证
+
+拿掉其中一处上限，守卫报：
+
+```
+lib/services/plugin_catalog_service.dart  发出 5 个请求，只限住 4 个
+```
+
+旧守卫对同一个变异是全绿的。
