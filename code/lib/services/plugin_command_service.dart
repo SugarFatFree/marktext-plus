@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 
 import '../core/constants.dart';
+import 'app_log.dart';
 import 'plugin_js_runtime.dart';
 import 'plugin_manifest.dart';
 import 'plugin_script_runtime.dart';
@@ -19,6 +20,7 @@ class PluginCommandService {
     this.installDirectory, {
     this.locale = 'en',
     String? appVersion,
+    this.settingsWarnBytes = 4 * 1024 * 1024,
   }) : appVersion = appVersion ?? AppConstants.appVersion;
 
   final String installDirectory;
@@ -181,13 +183,41 @@ class PluginCommandService {
     _runtimes.remove(manifest.id)?.dispose();
   }
 
+  /// Past this, a settings file is not settings any more.
+  ///
+  /// Not a limit — refusing the write would break a plugin that legitimately
+  /// holds a large document between two steps of its own work, which is what
+  /// the translation plugin does while it works through one a batch at a time.
+  /// It is a line above which somebody should be able to find out, because
+  /// nothing else would say: this file is read synchronously every time a
+  /// command runs, so megabytes of it are a stall on every use of the plugin,
+  /// and it sits on the reader's disk for as long as the plugin is installed.
+  ///
+  /// Four megabytes: far above anything that is actually settings, and reached
+  /// only by a plugin keeping a document in here. A parameter so a test can
+  /// cross it without building four megabytes of string to do it.
+  final int settingsWarnBytes;
+
   /// Writes the plugin's settings back, if it changed any.
   Future<void> flush(PluginManifest manifest) async {
     final runtime = _runtimes[manifest.id];
     if (runtime == null || !runtime.storageChanged) return;
     final file = _settingsFile(manifest);
     await file.parent.create(recursive: true);
-    await file.writeAsString(jsonEncode(runtime.storage), flush: true);
+    final encoded = jsonEncode(runtime.storage);
+    await file.writeAsString(encoded, flush: true);
+    if (encoded.length > settingsWarnBytes) {
+      final biggest = runtime.storage.entries.isEmpty
+          ? '—'
+          : (runtime.storage.entries.toList()
+                ..sort((a, b) => b.value.length.compareTo(a.value.length)))
+              .first
+              .key;
+      AppLog.instance.warning(
+        'plugin ${manifest.id} wrote ${encoded.length ~/ 1024} KB of settings; '
+        'the largest key is "$biggest"',
+      );
+    }
   }
 
   /// Drops the loaded scripts. Called when the reader disables or uninstalls.

@@ -372,6 +372,59 @@ void main() {
     service.dispose();
   }, skip: present ? null : '插件仓库不在这台机器上');
 
+  test('the copy of the document is let go of when the last batch is out',
+      () async {
+    // Storage is a file in the plugin's own directory, and what the plugin
+    // keeps there between batches is the document itself, split up. Measured:
+    // translating 210 KB left 209 636 bytes of it in settings.json — and
+    // nothing read it again, nothing cleared it, and nothing said it was
+    // there. It stayed for as long as the plugin stayed installed.
+    final document = List.generate(
+      60,
+      (i) => 'Paragraph $i, long enough that the batches are not all one.'
+          ' It carries a marker: needle$i.',
+    ).join('\n\n');
+
+    final service = PluginCommandService(root.path);
+    var action = service.start(
+      manifest,
+      PluginScriptContext(
+        command: 'translate.document',
+        document: document,
+        answer: 'English',
+      ),
+    ) as PluginPaneAction;
+    expect(action.nextPrompt, isNotNull);
+
+    // Held while there is more to send: clearing it early would lose the rest
+    // of the document, which is the other way to get this wrong.
+    await service.flush(manifest);
+    final settings =
+        File('${root.path}/${manifest.id}/settings.json');
+    expect(settings.readAsStringSync(), contains('needle59'),
+        reason: '还没译完就把剩下的丢了，后面几批无处可取');
+
+    for (var step = 0; step < 60 && action.nextPrompt != null; step++) {
+      action = service.resumeWithResult(
+        manifest,
+        const PluginScriptContext(
+          command: 'translate.document',
+          answer: 'English',
+        ),
+        '译文。',
+      ) as PluginPaneAction;
+    }
+    expect(action.nextPrompt, isNull, reason: '走到最后一批了');
+
+    await service.flush(manifest);
+    final after = settings.readAsStringSync();
+    expect(after, isNot(contains('needle')),
+        reason: '译完了还把整篇文档留在插件目录里');
+    expect(after.length, lessThan(4096),
+        reason: '译完之后设置文件应当只剩设置');
+    service.dispose();
+  }, skip: present ? null : '插件仓库不在这台机器上');
+
   test('a document read as a preview comes back rendered', () {
     final service = PluginCommandService(root.path);
     service.start(
