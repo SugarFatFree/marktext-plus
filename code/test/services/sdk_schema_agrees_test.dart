@@ -320,6 +320,46 @@ void main() {
     );
   }, skip: present ? null : 'SDK 仓库不在这台机器上');
 
+  test('the SDK names the interface nodes the editor draws', () {
+    // The limits above are numbers in prose; this is the list beside them. A
+    // plugin builds a tree out of these names and the editor refuses the whole
+    // tree over one it does not know, so a name documented here and not drawn
+    // there costs an author the whole interface rather than one node.
+    //
+    // Four of them — select, checkbox, markdown, image — were added to the
+    // editor and to this table while the one-line list inside the SDK's own
+    // API module stayed at seven. That half is checked in the SDK's
+    // `scripts/check.py`; this is the half that reaches across repositories.
+    final drawn = RegExp(r'class PluginUi(\w+) extends PluginUiNode')
+        .allMatches(File('lib/services/plugin_ui.dart').readAsStringSync())
+        .map((m) => m.group(1)!)
+        .map((name) => name[0].toLowerCase() + name.substring(1))
+        .toSet();
+    expect(drawn.length, greaterThan(5), reason: '节点类读得太少，取法要跟着改');
+
+    final readme = File('$repo/README.md').readAsStringSync();
+    final table = RegExp(r'^\| `text` \|.*?(?=\n\n)', multiLine: true, dotAll: true)
+        .firstMatch(readme);
+    expect(table, isNotNull, reason: 'README 里找不到界面节点那张表');
+
+    final documented = <String>{};
+    for (final row in table!.group(0)!.split('\n')) {
+      final cells = row.split('|');
+      if (cells.length < 2) continue;
+      for (final m in RegExp(r'`(\w+)`').allMatches(cells[1])) {
+        documented.add(m.group(1)!);
+      }
+    }
+
+    expect(
+      documented,
+      drawn,
+      reason: '编辑器画的节点与 SDK 文档说的对不上——'
+          '文档里多出来的那个，插件一用整棵树就被拒；'
+          '文档里少掉的那个，没人知道它存在',
+    );
+  }, skip: present ? null : 'SDK 仓库不在这台机器上');
+
   test('the SDK quotes the editor own limits on a plugin interface', () {
     // A plugin author reads these numbers and builds to them. They live in
     // `plugin_ui.dart` here and in prose in twelve files there, and nothing

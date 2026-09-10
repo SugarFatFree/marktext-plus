@@ -155,6 +155,7 @@
 | BUG-410 | 2026-09-10 | 翻译整篇文档后，整篇文档留在插件的 settings.json 里 | P1 | 已修复 |
 | BUG-411 | 2026-09-10 | 文档里写了 `{{instruction}}`，会被换成你刚输入的指令 | P1 | 已修复 |
 | BUG-412 | 2026-09-11 | SDK 权限表里五行承诺了编辑器从未做过的能力 | P2 | 已修复 |
+| BUG-413 | 2026-09-11 | SDK 的 API 模块只列了 7 种界面节点，实际有 11 种 | P2 | 已修复 |
 
 ---
 
@@ -8712,3 +8713,65 @@ SDK 的 README 权限表写着
 立刻红：**CI 上没有兄弟仓库，`return` 会让它静默变成「通过」**，
 而约定是用 `skip:`，那样报的是「跳过」。已改。
 这条守卫的注释写着「这种事已经发生过两次」，今天是第三次，被它自己接住了。
+
+---
+
+## BUG-413：SDK 的 API 模块只列了 7 种界面节点，实际有 11 种
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-413 |
+| 日期 | 2026-09-11 |
+| 优先级 | P2 |
+| 状态 | 已修复 |
+
+### 现象
+
+同一件事有三份说法，两两不同：
+
+| 说法 | 数量 | 内容 |
+|------|------|------|
+| SDK 的 `lib/marktext-plus.{lua,js}` 注释 | **7** | text, input, chips, button, row, column, spacer |
+| SDK 的 README 节点表 | 11 | 上面七个 + select, checkbox, markdown, image |
+| 编辑器 `plugin_ui.dart` 的 `PluginUi*` 类 | 11 | 与 README 一致 |
+
+`select`、`checkbox`、`markdown`、`image` 是后加的，README 跟上了，
+**两个 API 模块的注释没有**。
+
+**为什么这条比看起来严重**：那一行注释正是作者在编辑器悬浮提示里读到的东西，
+而「一棵树里能放什么」这个问题就是在那里问的。更要命的是——
+**编辑器遇到不认识的节点会拒绝整棵树**，所以「不知道某种节点存在」的代价
+不是少一个节点，是整个界面。
+
+### 根因
+
+与 BUG-412 同一个家族，也与上一小时 `nothing()` 注释错位同源：
+**能力加进编辑器、写进 README，而 SDK 模块里那句话没人回头看**。
+三份说法之间没有任何对账。
+
+### 修复方案
+
+两处注释补齐到 11 种，并各加一句「README 描述了每一种要什么」。
+同时补上**两条**对账，因为这三份说法要两两相连：
+
+| 守卫 | 位置 | 比什么 |
+|------|------|--------|
+| `check_ui_nodes_agree` | SDK 的 `scripts/check.py` | 两个 API 模块的注释 ↔ README 的节点表 |
+| `the SDK names the interface nodes the editor draws` | 主仓库 `sdk_schema_agrees_test` | README 的节点表 ↔ 编辑器的 `PluginUi*` 类 |
+
+第一条在 SDK 自己的 CI 上跑，第二条跨仓库（主仓库 CI 会检出 SDK）。
+加第十二种节点时，三处必须一起改。
+
+### 涉及文件
+
+- SDK：两个 `lib/marktext-plus.*`、`scripts/check.py`、CHANGELOG
+- 官方插件：同步它自带的 SDK 副本
+- `code/test/services/sdk_schema_agrees_test.dart`
+
+### 验证
+
+| 变异 | 结果 |
+|------|------|
+| 注释退回 7 种 | SDK 自检报「少了 select, checkbox, markdown, image」 |
+| README 表里多一个编辑器不画的节点 | 主仓库那条红 |
+| 编辑器新增一个节点类而文档没跟上 | 同上，反方向也红 |
