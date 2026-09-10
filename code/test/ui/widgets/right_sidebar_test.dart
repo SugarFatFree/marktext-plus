@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -667,7 +668,7 @@ end
       // pane that says what it replaces. Only the second offers to apply, and
       // only the second knows the target — reading the first pane's silence as
       // "the whole document" would write the answer over the entire file.
-      AiChatService.answerFor = (prompt) async => 'NEW';
+      AiChatService.answerFor = (prompt, emit) async => 'NEW';
       addTearDown(() => AiChatService.answerFor = null);
 
       install(
@@ -717,6 +718,60 @@ end
       );
     });
 
+    testWidgets('the answer appears as it arrives, not all at the end',
+        (tester) async {
+      // A model takes seconds, and the pane opened for its answer is empty for
+      // all of them — which reads as a command that did nothing. The pieces are
+      // drawn as they come.
+      //
+      // The plugin is not told about them: `on_result` is still called once,
+      // with the whole answer, so nothing an author already wrote changes.
+      final held = Completer<void>();
+      AiChatService.answerFor = (prompt, emit) async {
+        emit('one');
+        await held.future;
+        return 'one two three';
+      };
+      addTearDown(() => AiChatService.answerFor = null);
+
+      install(
+        'com.example.demo',
+        panels: [
+          {'id': 'write', 'title': 'Write', 'icon': 'list'},
+        ],
+        permissions: const ['ui.sidebar', 'document.read', 'ai.chat'],
+        script: 'function on_command(ctx)\n'
+            '  if ctx.answer == nil then\n'
+            '    return { ask = "what?" }\n'
+            '  end\n'
+            '  return { pane = "", title = "W", ai = "write it" }\n'
+            'end\n'
+            'function on_result(ctx, reply)\n'
+            '  return { pane = reply .. "|once", title = "W" }\n'
+            'end\n',
+      );
+      final container = await pumpWithContainer(tester);
+      container.read(tabProvider.notifier).addTab(TabInfo(id: 'doc'));
+      await tester.pump();
+
+      // Started and left running: the model is still answering, which is the
+      // state under test.
+      unawaited(container
+          .read(mcpProvider.notifier)
+          .openPluginPanel!('com.example.demo', 'write', 'go'));
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('one'), findsOneWidget,
+          reason: '第一个片段到了就该画出来，而不是干等模型说完');
+
+      held.complete();
+      await settlePlugin(tester);
+
+      expect(find.text('one two three|once'), findsOneWidget,
+          reason: '插件仍然只被调用一次，拿到的是完整答案');
+    });
+
     testWidgets('an answer lands in a tab that was empty, the way the real '
         'plugin answers', (tester) async {
       // Reported: a new tab, AI writing, Apply — and the blank page stayed
@@ -724,7 +779,7 @@ end
       // the first attempt at this could not: an empty pane carrying the prompt,
       // then the model's answer, and `replaces` empty throughout because there
       // is neither a selection nor a document to point at.
-      AiChatService.answerFor = (prompt) async => 'a written paragraph';
+      AiChatService.answerFor = (prompt, emit) async => 'a written paragraph';
       addTearDown(() => AiChatService.answerFor = null);
 
       install(

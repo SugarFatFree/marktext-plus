@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The model's answer appears as it is written.** A pane opened for an answer
+  used to sit empty for the seconds a model takes, which reads as a command
+  that did nothing. The words arrive as they come now. Plugins are not told
+  about the pieces — each still gets the finished answer once — so this works
+  with the plugin you already have.
+
 - **A plugin can draw its own interface in HTML.** `ui.webview` was declared,
   shown to you on the plugin's own page, documented in the SDK in twelve
   languages, and had nothing behind it: no way for a plugin to open a page at

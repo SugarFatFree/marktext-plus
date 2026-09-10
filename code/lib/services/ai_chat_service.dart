@@ -114,8 +114,13 @@ class AiChatService {
   /// bugs lived, and none of it could be tested: this reached the network
   /// through a static, so a test had nothing to stand in for the model and the
   /// whole path went unexercised. Tests set this and clear it again.
+  ///
+  /// It is handed the same `emit` the model's own pieces go through, so a test
+  /// can answer a bit at a time and check that the pieces are drawn — which is
+  /// the half of streaming that a reader actually sees.
   @visibleForTesting
-  static Future<String> Function(String prompt)? answerFor;
+  static Future<String> Function(String prompt, void Function(String soFar) emit)?
+      answerFor;
 
   static Future<String> complete({
     required AppConfig config,
@@ -124,11 +129,7 @@ class AiChatService {
   }) async {
     final stub = answerFor;
     if (stub != null) {
-      final answer = await stub(prompt);
-      // A stub answers at once, and a caller drawing progress should see the
-      // same shape it sees from a model: something, then the whole of it.
-      onChunk?.call(answer);
-      return answer;
+      return stub(prompt, (soFar) => onChunk?.call(soFar));
     }
 
     if (!config.aiEnabled) {

@@ -442,9 +442,28 @@ class PluginCommandActions {
             // More to do, and the reader can already see what is done — so no
             // dialog over the top of it. This is what lets a plugin work
             // through a document a block at a time.
+            //
+            // Drawn as it arrives. A model takes seconds and the pane that
+            // was just opened is empty for all of them, which reads as a
+            // command that did nothing. The plugin is not told about the
+            // pieces: it gets the finished answer once, the way it always
+            // has, so nothing an author wrote has to change for a reader
+            // to watch the words appear.
             final reply = await AiChatService.complete(
               config: container.read(settingsProvider),
               prompt: nextPrompt,
+              onChunk: (soFar) {
+                if (into != null) {
+                  into(soFar, canApply: false, render: content.render);
+                  return;
+                }
+                final panes = container.read(pluginPanesProvider.notifier);
+                // Only into the pane this run opened. A reader who closed it
+                // has said they are not watching, and putting it back a piece
+                // at a time would make the close button a suggestion.
+                if (!panes.forTab(tabId).containsKey(slot)) return;
+                panes.show(tabId, content.withText(soFar));
+              },
             );
             action = service.resumeWithResult(plugin, context, reply);
 
