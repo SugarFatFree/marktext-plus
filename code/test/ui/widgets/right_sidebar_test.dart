@@ -772,6 +772,55 @@ end
           reason: '插件仍然只被调用一次，拿到的是完整答案');
     });
 
+    testWidgets('a plugin working through a document is asked again for each '
+        'batch', (tester) async {
+      // The loop that translates a long document: a pane, a prompt, an answer,
+      // and another prompt with what is left. The plugin side of this is
+      // covered closely; the host side — take the answer, add it to what is
+      // already there, ask the next question — had never been run by anything,
+      // because the model could not be stood in for until now.
+      final asked = <String>[];
+      AiChatService.answerFor = (prompt, emit) async {
+        asked.add(prompt);
+        return 'done ${asked.length}';
+      };
+      addTearDown(() => AiChatService.answerFor = null);
+
+      install(
+        'com.example.demo',
+        panels: [
+          {'id': 'work', 'title': 'Work', 'icon': 'list'},
+        ],
+        permissions: const ['ui.sidebar', 'document.read', 'ai.chat'],
+        // Two batches: the first answer comes back and the plugin asks for the
+        // second, appending rather than replacing.
+        script: 'function on_command(ctx)\n'
+            '  storage.set("at", "1")\n'
+            '  return { pane = "", title = "W", ai = "batch 1" }\n'
+            'end\n'
+            'function on_result(ctx, reply)\n'
+            '  local at = tonumber(storage.get("at") or "1")\n'
+            '  storage.set("at", tostring(at + 1))\n'
+            '  if at == 1 then\n'
+            '    return { pane = reply, title = "W", ai = "batch 2" }\n'
+            '  end\n'
+            '  return { pane = reply, title = "W", append = true }\n'
+            'end\n',
+      );
+      final container = await pumpWithContainer(tester);
+      container.read(tabProvider.notifier).addTab(TabInfo(id: 'doc'));
+      await tester.pump();
+
+      await tester.tap(find.byIcon(Icons.list));
+      await settlePlugin(tester);
+
+      expect(asked, ['batch 1', 'batch 2'],
+          reason: '第二批没有被问，长文档就只翻译了开头');
+      expect(find.textContaining('done 1'), findsOneWidget);
+      expect(find.textContaining('done 2'), findsOneWidget,
+          reason: '第二批的答案要接在第一批后面，而不是把它顶掉');
+    });
+
     testWidgets('an answer lands in a tab that was empty, the way the real '
         'plugin answers', (tester) async {
       // Reported: a new tab, AI writing, Apply — and the blank page stayed
