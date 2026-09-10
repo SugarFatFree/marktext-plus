@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 
+import '../core/net/answered_within.dart';
 import '../models/plugin_catalog_entry.dart';
 import 'plugin_manager.dart';
 import 'plugin_manifest.dart';
@@ -16,7 +17,13 @@ export '../models/plugin_catalog_entry.dart';
 /// Reads the signed/transport-secured plugin registry lazily.
 class PluginCatalogService {
   /// [cache] is where a listing is kept between launches; null does not cache.
-  const PluginCatalogService({this.cache});
+  const PluginCatalogService({
+    this.cache,
+    this.within = const Duration(seconds: 30),
+  });
+
+  /// How long to wait for the registry to say anything at all.
+  final Duration within;
 
   /// Where the last listing was written, so a launch need not fetch one.
   ///
@@ -78,7 +85,8 @@ class PluginCatalogService {
     final client = _client();
     try {
       final request = await client.getUrl(registryUrl);
-      final response = await request.close();
+      final response =
+          await request.close().answeredWithin(within, 'the plugin registry');
       if (response.statusCode != HttpStatus.ok) {
         throw HttpException('registry returned ${response.statusCode}');
       }

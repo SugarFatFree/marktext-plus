@@ -147,6 +147,7 @@
 | BUG-402 | 2026-09-10 | 空的占位窗格把「替换整篇」定死，选中的那段被忽略 | P0 | 已修复 |
 | BUG-403 | 2026-09-10 | 采用后源码窗格仍是空白，下一次敲键会把空白写回去 | P0 | 已修复 |
 | BUG-404 | 2026-09-10 | 流式回答只等 socket 关闭，provider 不关连接就永远转圈 | P0 | 已修复 |
+| BUG-405 | 2026-09-10 | 另外三处请求同样没有时间上限：测试连接、插件市场、插件取图 | P1 | 已修复 |
 
 ---
 
@@ -8101,3 +8102,81 @@ await for (final line in utf8.decoder.bind(response).transform(const LineSplitte
 |------|-----------|
 | 拿掉 `if (isDone(...)) break;` | 「end marker ends it」「message_stop」超时 |
 | 拿掉 `lines.timeout(idle, ...)` | 「goes quiet」「says nothing at all」超时 |
+
+---
+
+## BUG-405：另外三处请求同样没有时间上限
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-405 |
+| 日期 | 2026-09-10 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+
+### 现象
+
+修完 BUG-404 后按「改一个分支就读完它的兄弟」横向查，发现同样形状的还有三处：
+
+| 位置 | 卡住时读者看到什么 |
+|------|------------------|
+| `AiConnectionService.testConnection` | 设置里「测试连接」按钮一直转，不成功也不失败 |
+| `PluginCatalogService.fetch` | 插件市场列表一直加载 |
+| `PluginImageLoader._fromNetwork` | 插件里的图一直不出来 |
+
+三处都只有**大小**上限没有**时间**上限。大小上限拦不住这种故障：
+对方一个字节都不发时，`bytes.length > maxBytes` 永远不成立。
+
+而 `update_service` 早就写着 `.timeout(Duration(seconds: 10))`——
+纪律在那个文件里成形过，后写的这三处没在场，也没有任何东西去对账。
+
+后两处的网络路径**从来没有测试跑过**，所以这个缺口谁也看不见。
+
+### 根因
+
+「对方会回话」是一个假设，不是协议保证。连接被接受之后不回话，
+在 socket 层看是完全正常的：没有错误、没有状态码、没有关闭。
+
+### 修复方案
+
+1. `lib/core/net/answered_within.dart`：一个 `Future` 扩展，
+   `answeredWithin(within, what)`，超时抛出**带主语**的句子
+   （"the AI provider did not answer within 30s"）——读者看到的是这句，
+   光说 timeout 不说明是谁超时。
+2. 三处call site 全部接上，默认 30 秒。
+3. `test/network_calls_can_end_test.dart`：**对账守卫**——
+   lib 下每个构造 `HttpClient(` 的文件都必须同时含 `answeredWithin(` 或 `.timeout(`。
+   下一个忘记的人在这里红，而不是在读者面前转圈。
+
+### 涉及文件
+
+- `code/lib/core/net/answered_within.dart`（新增）
+- `code/lib/services/ai_connection_service.dart`
+- `code/lib/services/plugin_catalog_service.dart`
+- `code/lib/services/plugin_image_loader.dart`
+- `code/test/services/a_server_that_never_answers_test.dart`（新增，本地起「接了不回话」的服务器）
+- `code/test/network_calls_can_end_test.dart`（新增守卫）
+- `code/test/nothing_is_written_and_left_unused_test.dart`（见下）
+
+### 顺带修好的：死代码守卫看不懂扩展
+
+`AnsweredWithin` 是 lib 里第一个 `extension`。死代码守卫判「类型名是否在别处出现」，
+而**扩展从来不以类型名被使用**——写的是 `answeredWithin(...)`。于是它把一个
+被三处调用的扩展报成死代码。
+
+改成：遇到 `extension` 时改查它**声明的成员名**是否在别处以 `.成员(` 出现。
+用一个没人调用的临时扩展验证过，仍会红。
+
+`allowed` 白名单保持为空。
+
+### 验证
+
+| 变异 | 结果 |
+|------|------|
+| 拿掉 `testConnection` 的 `answeredWithin` | 守卫红，且指名 `lib/services/ai_connection_service.dart` |
+| 放一个没人用的 `extension` 进 lib | 死代码守卫红，指名该扩展 |
+
+另有两条走真实 socket 的测试：本地服务器接受连接后永不回话，
+`testConnection` 与 `PluginImageLoader.load` 都必须在上限内抛错。
+插件市场那条没走 socket——它要求 HTTPS，为了测试放宽会削弱
+「市场下载不可被中途篡改」这条守卫，不值得；它靠上面那条对账守卫按住。

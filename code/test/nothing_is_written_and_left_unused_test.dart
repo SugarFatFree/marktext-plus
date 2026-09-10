@@ -21,8 +21,11 @@ import 'package:flutter_test/flutter_test.dart';
 /// names it — while a class only its own constructor mentions does not.
 void main() {
   final declaration = RegExp(
-    r'^(?:abstract |sealed |final |base |interface )*(?:class|enum|mixin|extension) ([A-Z]\w+)',
+    r'^(?:abstract |sealed |final |base |interface )*(class|enum|mixin|extension) ([A-Z]\w+)',
   );
+
+  /// A member declared directly inside a type: two spaces in, then a call.
+  final member = RegExp(r'^  (?:[\w<>?,\[\] ]+ )?(\w+)\s*[(=]');
 
   /// Defined and unused on purpose, and why.
   const allowed = <String, String>{};
@@ -49,7 +52,8 @@ void main() {
         final match = declaration.firstMatch(lines[i]);
         if (match == null) continue;
         declared++;
-        final name = match.group(1)!;
+        final keyword = match.group(1)!;
+        final name = match.group(2)!;
 
         // The definition runs to the next line that closes at column zero.
         var end = i;
@@ -57,7 +61,22 @@ void main() {
           end++;
         }
 
-        final named = RegExp(r'\b' + name + r'\b');
+        // An extension is never named where it is used — `answeredWithin(...)`
+        // says nothing about `AnsweredWithin`. What has to be reachable is
+        // what it declares, so for those look for the members instead.
+        final names = <String>[];
+        if (keyword == 'extension') {
+          for (var j = i + 1; j < lines.length && lines[j].trimRight() != '}'; j++) {
+            final m = member.firstMatch(lines[j]);
+            if (m != null) names.add('.${m.group(1)!}(');
+          }
+        } else {
+          names.add(name);
+        }
+        final named = RegExp(
+          names.map((n) => n.startsWith('.') ? RegExp.escape(n) : '\\b$n\\b')
+              .join('|'),
+        );
         var used = false;
         for (final entry in sources.entries) {
           for (var j = 0; j < entry.value.length; j++) {

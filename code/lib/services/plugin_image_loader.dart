@@ -1,3 +1,4 @@
+import '../core/net/answered_within.dart';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -25,7 +26,12 @@ class PluginImageLoader {
     required this.logger,
     required this.allowNetwork,
     this.maxBytes = 8 * 1024 * 1024,
+    this.within = const Duration(seconds: 30),
   });
+
+  /// How long to wait for the picture's server to say anything. A size limit
+  /// does not bound this: a server that sends nothing stays under it forever.
+  final Duration within;
 
   /// Where the plugin's own files are. A relative source is resolved against
   /// this and refused if it lands outside.
@@ -123,7 +129,9 @@ class PluginImageLoader {
       );
     final started = DateTime.now();
     try {
-      final response = await (await client.getUrl(uri)).close();
+      final response = await (await client.getUrl(uri))
+          .close()
+          .answeredWithin(within, 'the picture\'s server');
       final bytes = <int>[];
       await for (final chunk in response) {
         bytes.addAll(chunk);

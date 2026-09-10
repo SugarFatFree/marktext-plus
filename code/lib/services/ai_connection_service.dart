@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import '../core/config/app_config.dart';
+import '../core/net/answered_within.dart';
 
 class AiConnectionService {
   const AiConnectionService._();
@@ -23,7 +24,13 @@ class AiConnectionService {
     return base.replace(path: '$path$suffix');
   }
 
-  static Future<void> testConnection(AppConfig config) async {
+  /// [within] bounds the wait for a reply. A provider that accepts the
+  /// connection and then says nothing would otherwise leave the button in
+  /// Settings spinning with nothing to report.
+  static Future<void> testConnection(
+    AppConfig config, {
+    Duration within = const Duration(seconds: 30),
+  }) async {
     if (!config.aiEnabled) {
       throw const FormatException('Enable AI plugins before testing the connection');
     }
@@ -55,7 +62,9 @@ class AiConnectionService {
           'messages': [{'role': 'user', 'content': 'Reply with OK.'}],
         }));
       }
-      final response = await request.close();
+      final response = await request
+          .close()
+          .answeredWithin(within, 'the AI provider');
       if (response.statusCode < 200 || response.statusCode >= 300) {
         throw HttpException('AI provider returned HTTP ${response.statusCode}');
       }
