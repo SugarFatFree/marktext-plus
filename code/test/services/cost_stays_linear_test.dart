@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/services/markdown_parser.dart';
 import 'package:marktext_plus/services/text_search_service.dart';
+import '../support/cost_limits.dart';
 
 /// Doubling the document must not more than double the work.
 ///
@@ -88,7 +89,7 @@ void main() {
 
     expect(
       many,
-      lessThan(one * 8),
+      lessThan(one * costGrowthLimit),
       reason:
           '四倍的文档花了 ${(many / one).toStringAsFixed(1)} 倍的时间'
           '（$one µs → $many µs）——代价不再跟着输入走，多半是某处退化成了二次方',
@@ -115,7 +116,7 @@ void main() {
 
     expect(
       many,
-      lessThan(one * 8),
+      lessThan(one * costGrowthLimit),
       reason:
           '搜索的代价不再跟着文档走：四倍的文档花了 '
           '${(many / one).toStringAsFixed(1)} 倍（$one µs → $many µs）',

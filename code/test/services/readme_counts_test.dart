@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import '../support/cost_limits.dart';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/core/i18n/l10n/app_localizations.dart';
 import 'package:marktext_plus/core/theme/app_theme.dart';
@@ -144,6 +146,39 @@ void main() {
       }
     }
     expect(wrong, isEmpty, reason: '这几份 README 没有说出主题数：$wrong');
+  });
+
+  test('the front page quotes the cost budget the suite enforces', () {
+    // The English row said the test fails above six times the work. It fails
+    // above eight: the limit was raised after a CI run came in at 6.05, and
+    // the sentence a reader judges the project by stayed where it was. A
+    // promise about performance stricter than the test enforcing it is the
+    // kind of thing a contributor finds out by trusting it.
+    //
+    // English only, deliberately: the eleven translations describe the budget
+    // without quoting numbers, and a sentence that says less cannot say
+    // something false. If one of them ever states the figures, it joins this.
+    const words = {
+      2: 'two', 3: 'three', 4: 'four', 5: 'five', 6: 'six',
+      7: 'seven', 8: 'eight', 9: 'nine', 10: 'ten', 12: 'twelve',
+    };
+    final span = words[costSpan];
+    final limit = words[costGrowthLimit];
+    expect(span, isNotNull,
+        reason: 'costSpan 变成了 $costSpan，这张词表要跟着加');
+    expect(limit, isNotNull,
+        reason: 'costGrowthLimit 变成了 $costGrowthLimit，这张词表要跟着加');
+
+    final row = File('../README.md')
+        .readAsLinesSync()
+        .firstWhere((line) => line.contains('Large files'),
+            orElse: () => '');
+    expect(row, isNotEmpty, reason: 'README 里找不到大文件那一行');
+
+    expect(row, contains('$span times the document'),
+        reason: '测试用的是 $costSpan 倍文档，README 说的是别的');
+    expect(row, contains('$limit times the work'),
+        reason: '测试的上限是 $costGrowthLimit 倍，README 说的是别的');
   });
 
   test('every README counts the interface languages the app ships', () {

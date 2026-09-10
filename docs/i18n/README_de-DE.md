@@ -76,7 +76,7 @@ Das ist alles. Der Editor startet mit einem Beispieldokument und ist sofort eins
 |---------|-------------|
 | **🧩 Offene Plug-ins** | Eine Lua- oder JavaScript-Datei, ohne SDK und ohne Build, in einer Sandbox und auf die Rechte beschränkt, die sie selbst angemeldet hat. Zu finden über [GitHub Topic: `marktext-plus-plugin`](https://github.com/topics/marktext-plus-plugin); jedes ist als Community/ungeprüft gekennzeichnet |
 | **⚡ Schneller Start** | Kein eingebetteter Browser, kein Editor-Framework, 27 direkte Abhängigkeiten |
-| **📄 Große Dateien** | Parsen, Hervorheben und Suchen laufen in einem Durchgang, mit Budgets, an denen Tests scheitern. Über 128 KB entfällt die Hervorhebung — die letzte Größe, die in etwa einer Sekunde öffnet. Bearbeiten geht weiter, und wird die Datei kleiner, kommen die Farben zurück |
+| **📄 Große Dateien** | Parsen und Suchen laufen in einem Durchgang, mit Budgets, an denen Tests scheitern. Über 128 KB entfällt die Hervorhebung — die letzte Größe, die in etwa einer Sekunde öffnet. Bearbeiten geht weiter, und wird die Datei kleiner, kommen die Farben zurück |
 | **🧪 Getestet** | Über 2600 Tests für Parser, Exporte, Provider, Plug-in-Laufzeiten und Editor-Widgets |
 
 ### Plug-ins

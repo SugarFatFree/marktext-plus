@@ -76,7 +76,7 @@ C’est tout. L’editeur se lance avec un document d’exemple pret a etre modi
 |---------|-------------|
 | **🧩 Extensions ouvertes** | Un fichier Lua ou JavaScript, sans SDK ni compilation, en bac à sable et limité aux droits qu’il a déclarés. À trouver via [GitHub Topic: `marktext-plus-plugin`](https://github.com/topics/marktext-plus-plugin) ; chacune est marquée Communauté / non vérifiée |
 | **⚡ Démarrage rapide** | Pas de navigateur embarqué, pas de framework d’éditeur, 27 dépendances directes |
-| **📄 Gros fichiers** | Analyse, coloration et recherche se font en une passe, avec des budgets que des tests font échouer. Au-delà de 128 Ko la coloration s’arrête — la dernière taille qui s’ouvre en une seconde environ. L’édition reste possible, et les couleurs reviennent si le fichier rapetisse |
+| **📄 Gros fichiers** | Analyse et recherche se font en une passe, avec des budgets que des tests font échouer. Au-delà de 128 Ko la coloration s’arrête — la dernière taille qui s’ouvre en une seconde environ. L’édition reste possible, et les couleurs reviennent si le fichier rapetisse |
 | **🧪 Testé** | Plus de 2600 tests couvrant le parseur, les exports, les providers, les moteurs d’extension et les widgets de l’éditeur |
 
 ### Extensions

@@ -76,7 +76,7 @@ Tutto qui. L’editor si avvierà con un documento di esempio pronto per la modi
 |---------|-------------|
 | **🧩 Estensioni aperte** | Un file Lua o JavaScript, senza SDK e senza build, in una sandbox e limitato ai permessi che ha dichiarato. Si trovano su [GitHub Topic: `marktext-plus-plugin`](https://github.com/topics/marktext-plus-plugin); ognuna è marcata Community/non verificata |
 | **⚡ Avvio rapido** | Nessun browser incorporato, nessun framework di editor, 27 dipendenze dirette |
-| **📄 File grandi** | Analisi, evidenziazione e ricerca in una sola passata, con budget che i test fanno fallire. Oltre 128 KB l’evidenziazione si ferma — l’ultima dimensione che si apre in circa un secondo. Si continua a modificare, e i colori tornano se il file si riduce |
+| **📄 File grandi** | Analisi e ricerca in una sola passata, con budget che i test fanno fallire. Oltre 128 KB l’evidenziazione si ferma — l’ultima dimensione che si apre in circa un secondo. Si continua a modificare, e i colori tornano se il file si riduce |
 | **🧪 Testato** | Oltre 2600 test per parser, esportatori, provider, runtime delle estensioni e widget dell’editor |
 
 ### Estensioni

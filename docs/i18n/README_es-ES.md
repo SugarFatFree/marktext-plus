@@ -76,7 +76,7 @@ Eso es todo. El editor se abrirá con un documento de ejemplo listo para editar.
 |---------|-------------|
 | **🧩 Complementos abiertos** | Un archivo Lua o JavaScript, sin SDK y sin compilar, en un espacio aislado y limitado a los permisos que declaró. Se encuentran en [GitHub Topic: `marktext-plus-plugin`](https://github.com/topics/marktext-plus-plugin); cada uno va marcado como Comunidad/sin verificar |
 | **⚡ Arranque rápido** | Sin navegador incrustado ni framework de editor: 27 dependencias directas |
-| **📄 Archivos grandes** | Análisis, resaltado y búsqueda en una sola pasada, con presupuestos que hacen fallar las pruebas. Por encima de 128 KB el resaltado se detiene: es el último tamaño que abre en torno a un segundo. Se sigue editando, y los colores vuelven si el archivo mengua |
+| **📄 Archivos grandes** | Análisis y búsqueda en una sola pasada, con presupuestos que hacen fallar las pruebas. Por encima de 128 KB el resaltado se detiene: es el último tamaño que abre en torno a un segundo. Se sigue editando, y los colores vuelven si el archivo mengua |
 | **🧪 Probado** | Más de 2600 pruebas para el parser, los exportadores, los providers, los motores de complementos y los widgets del editor |
 
 ### Complementos

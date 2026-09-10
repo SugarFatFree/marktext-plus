@@ -76,7 +76,7 @@ flutter pub get && flutter run
 |---------|-------------|
 | **🧩 Extensões abertas** | Um arquivo Lua ou JavaScript, sem SDK e sem compilação, em uma caixa de areia e limitado às permissões que declarou. Encontram-se em [GitHub Topic: `marktext-plus-plugin`](https://github.com/topics/marktext-plus-plugin); cada uma vem marcada como Comunidade/não verificada |
 | **⚡ Início rápido** | Sem navegador embutido nem framework de editor: 27 dependências diretas |
-| **📄 Arquivos grandes** | Análise, realce e busca em uma só passagem, com orçamentos que fazem os testes falharem. Acima de 128 KB o realce para — é o último tamanho que abre em cerca de um segundo. Você continua editando, e as cores voltam se o arquivo encolher |
+| **📄 Arquivos grandes** | Análise e busca em uma só passagem, com orçamentos que fazem os testes falharem. Acima de 128 KB o realce para — é o último tamanho que abre em cerca de um segundo. Você continua editando, e as cores voltam se o arquivo encolher |
 | **🧪 Testado** | Mais de 2600 testes para o analisador, as exportações, os providers, os motores de extensões e os widgets do editor |
 
 ### Extensões
