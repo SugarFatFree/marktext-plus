@@ -288,26 +288,31 @@ class PluginManager {
   /// The numbers are loose on purpose. A script plugin is tens of kilobytes;
   /// the widest real case is a compiled plugin carrying an executable for
   /// three platforms, which is tens of megabytes.
-  static const _maxArchiveBytes = 64 * 1024 * 1024;
-  static const _maxUnpackedBytes = 256 * 1024 * 1024;
-  static const _maxEntries = 10000;
+  /// Public because the SDK's README states all three, in twelve languages,
+  /// and an author sizes a plugin by them. `sdk_schema_agrees_test` holds
+  /// those twelve files to these — the same arrangement `PluginUiLimits`
+  /// already had for the interface limits, which is where the idea came from
+  /// and which is why it is odd that these did not.
+  static const maxArchiveBytes = 64 * 1024 * 1024;
+  static const maxUnpackedBytes = 256 * 1024 * 1024;
+  static const maxEntries = 10000;
 
   Future<PluginManifest> installZip(File zipFile) async {
     // Before reading it into memory, which is where an oversized archive
     // would do its damage.
     final archiveBytes = await zipFile.length();
-    if (archiveBytes > _maxArchiveBytes) {
+    if (archiveBytes > maxArchiveBytes) {
       throw FormatException(
         'plugin ZIP is ${archiveBytes ~/ (1024 * 1024)} MB; the limit is '
-        '${_maxArchiveBytes ~/ (1024 * 1024)} MB',
+        '${maxArchiveBytes ~/ (1024 * 1024)} MB',
       );
     }
     final bytes = await zipFile.readAsBytes();
     final archive = ZipDecoder().decodeBytes(bytes);
-    if (archive.files.length > _maxEntries) {
+    if (archive.files.length > maxEntries) {
       throw FormatException(
         'plugin ZIP has ${archive.files.length} entries; the limit is '
-        '$_maxEntries',
+        '$maxEntries',
       );
     }
     final manifestEntry = archive.files
@@ -360,11 +365,11 @@ class PluginManager {
         // Checked against what the entry claims before it is decompressed:
         // `content` unpacks into memory, so a single entry claiming several
         // gigabytes has to be refused before it is touched.
-        if (file.size > _maxUnpackedBytes ||
-            unpacked + file.size > _maxUnpackedBytes) {
+        if (file.size > maxUnpackedBytes ||
+            unpacked + file.size > maxUnpackedBytes) {
           throw FormatException(
             'plugin ZIP unpacks to more than '
-            '${_maxUnpackedBytes ~/ (1024 * 1024)} MB',
+            '${maxUnpackedBytes ~/ (1024 * 1024)} MB',
           );
         }
         final content = file.content as List<int>;
@@ -378,10 +383,10 @@ class PluginManager {
         // it stays because the first check trusts a number the attacker
         // writes.
         unpacked += content.length;
-        if (unpacked > _maxUnpackedBytes) {
+        if (unpacked > maxUnpackedBytes) {
           throw FormatException(
             'plugin ZIP unpacks to more than '
-            '${_maxUnpackedBytes ~/ (1024 * 1024)} MB',
+            '${maxUnpackedBytes ~/ (1024 * 1024)} MB',
           );
         }
         final output = File(p.join(temporary.path, relative));

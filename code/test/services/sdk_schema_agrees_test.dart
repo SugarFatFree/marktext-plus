@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:marktext_plus/services/plugin_manager.dart';
 import 'package:marktext_plus/services/plugin_manifest.dart';
 import 'package:marktext_plus/services/plugin_ui.dart';
 import 'package:marktext_plus/ui/widgets/plugin_icons.dart';
@@ -317,6 +318,62 @@ void main() {
           .where((f) => f.path.endsWith('.md'))
           .length,
       11,
+    );
+  }, skip: present ? null : 'SDK 仓库不在这台机器上');
+
+  test('the SDK quotes the editor own limits on a plugin archive', () {
+    // The sibling of the interface-limits test below, and it did not exist:
+    // that one holds twelve files to `PluginUiLimits`, while three numbers an
+    // author sizes a plugin by — how big the ZIP may be, how many entries, how
+    // much it may unpack to — were private constants nothing compared with
+    // anything. A plugin built to a number that has since moved is refused at
+    // install time with a message quoting the real one, which is a confusing
+    // way to learn the README was out of date.
+    //
+    // All three are stated in one bullet, so the paragraph holding one holds
+    // the others. Digits in every language here, Arabic included — unlike the
+    // interface limits, which it spells out in prose.
+    final entries = '${PluginManager.maxEntries}';
+    final archive = '${PluginManager.maxArchiveBytes ~/ (1024 * 1024)}';
+    final unpacked = '${PluginManager.maxUnpackedBytes ~/ (1024 * 1024)}';
+
+    final files = [
+      File('$repo/README.md'),
+      ...Directory('$repo/docs/i18n')
+          .listSync()
+          .whereType<File>()
+          .where((f) => f.path.endsWith('.md')),
+    ];
+    expect(files.length, 12, reason: 'SDK 的英文一份加十一份翻译');
+
+    final wrong = <String>[];
+    for (final file in files) {
+      final name = file.uri.pathSegments.last;
+      final paragraphs = file
+          .readAsStringSync()
+          .split('\n\n')
+          .where((p) => p.contains(entries))
+          .toList();
+
+      if (paragraphs.isEmpty) {
+        wrong.add('$name: 不再提条目上限（$entries）');
+        continue;
+      }
+      for (final paragraph in paragraphs) {
+        if (!paragraph.contains(archive)) {
+          wrong.add('$name: 说了条目上限却没说压缩包上限（$archive MB）');
+        }
+        if (!paragraph.contains(unpacked)) {
+          wrong.add('$name: 说了条目上限却没说解压上限（$unpacked MB）');
+        }
+      }
+    }
+
+    expect(
+      wrong,
+      isEmpty,
+      reason: '编辑器安装时的上限是 $archive MB / $entries 个条目 / '
+          '解压后 $unpacked MB，SDK 文档说的是别的：\n${wrong.join('\n')}',
     );
   }, skip: present ? null : 'SDK 仓库不在这台机器上');
 
