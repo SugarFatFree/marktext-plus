@@ -1198,4 +1198,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get pluginSend => '发送';
+
+  @override
+  String pluginNoWebEngine(String plugin) {
+    return '$plugin 要画它自己的网页，而这台机器上没有编辑器能用的网页引擎';
+  }
 }

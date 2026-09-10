@@ -1199,4 +1199,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get pluginSend => '送信';
+
+  @override
+  String pluginNoWebEngine(String plugin) {
+    return '$plugin は自分のページを描きますが、このシステムにはエディタが使える Web エンジンがありません';
+  }
 }

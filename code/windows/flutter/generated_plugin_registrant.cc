@@ -7,6 +7,7 @@
 #include "generated_plugin_registrant.h"
 
 #include <desktop_drop/desktop_drop_plugin.h>
+#include <flutter_inappwebview_windows/flutter_inappwebview_windows_plugin_c_api.h>
 #include <flutter_js/flutter_js_plugin.h>
 #include <pasteboard/pasteboard_plugin.h>
 #include <printing/printing_plugin.h>
@@ -18,6 +19,8 @@
 void RegisterPlugins(flutter::PluginRegistry* registry) {
   DesktopDropPluginRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("DesktopDropPlugin"));
+  FlutterInappwebviewWindowsPluginCApiRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("FlutterInappwebviewWindowsPluginCApi"));
   FlutterJsPluginRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("FlutterJsPlugin"));
   PasteboardPluginRegisterWithRegistrar(

@@ -1221,6 +1221,11 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get pluginSend => 'Enviar';
+
+  @override
+  String pluginNoWebEngine(String plugin) {
+    return '$plugin desenha a sua própria página, e neste sistema não há um motor web que o editor possa usar';
+  }
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -2438,4 +2443,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get pluginSend => 'Enviar';
+
+  @override
+  String pluginNoWebEngine(String plugin) {
+    return '$plugin desenha sua própria página, e neste sistema não há um motor web que o editor possa usar';
+  }
 }

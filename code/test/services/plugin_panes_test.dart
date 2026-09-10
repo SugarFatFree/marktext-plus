@@ -125,8 +125,11 @@ void _rendering() {
   });
 
   test('the ways a pane can be drawn', () {
+    // `web` is the plugin's own HTML, and unlike the other three it costs a
+    // browser context — so it is the one that needs `ui.webview` as well as
+    // the room. `plugin_web_pane_test` holds that.
     expect(PluginPaneRender.values.map((r) => r.name).toSet(),
-        {'text', 'source', 'preview'});
+        {'text', 'source', 'preview', 'web'});
   });
 
   test('a way of drawing the editor does not know is refused', () {

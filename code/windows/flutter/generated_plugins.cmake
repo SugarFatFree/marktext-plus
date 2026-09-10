@@ -4,6 +4,7 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   desktop_drop
+  flutter_inappwebview_windows
   flutter_js
   pasteboard
   printing

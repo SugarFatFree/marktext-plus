@@ -1212,4 +1212,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get pluginSend => 'إرسال';
+
+  @override
+  String pluginNoWebEngine(String plugin) {
+    return 'يرسم $plugin صفحته الخاصة، ولا يوجد على هذا النظام محرّك ويب يستطيع المحرِّر استخدامه';
+  }
 }

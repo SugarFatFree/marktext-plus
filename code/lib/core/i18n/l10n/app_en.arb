@@ -645,6 +645,14 @@
   "pluginApplied": "Applied to the document",
   "pluginFollowUpHint": "Ask for a change…",
   "pluginSend": "Send",
+  "pluginNoWebEngine": "{plugin} draws its own page, and this system has no web engine the editor can use",
+  "@pluginNoWebEngine": {
+    "placeholders": {
+      "plugin": {
+        "type": "String"
+      }
+    }
+  },
   "@pluginFollowUpHint": {
     "description": "Placeholder in the box where a reader asks a plugin panel to rework its last answer."
   }

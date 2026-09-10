@@ -43,6 +43,14 @@ dependencies:
   crypto: ^3.0.6
   lua_dardo: ^0.0.5
   flutter_js: ^0.8.7
+  flutter_inappwebview: ^6.1.5
+# Pinned below the pre-release, which the package that needs it does not
+# compile against: `flutter_inappwebview` 6.1.5 fails to build against
+# `flutter_inappwebview_platform_interface` 1.4.0-beta.3 — missing overrides,
+# changed signatures. An override rather than a dependency, so the number of
+# direct dependencies on the front page still means what it says.
+dependency_overrides:
+  flutter_inappwebview_platform_interface: '>=1.3.0 <1.4.0'
 
 dev_dependencies:
   flutter_test:

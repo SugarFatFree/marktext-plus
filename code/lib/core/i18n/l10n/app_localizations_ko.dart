@@ -1199,4 +1199,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get pluginSend => '보내기';
+
+  @override
+  String pluginNoWebEngine(String plugin) {
+    return '$plugin은(는) 자기 페이지를 그리는데, 이 시스템에는 에디터가 쓸 수 있는 웹 엔진이 없습니다';
+  }
 }

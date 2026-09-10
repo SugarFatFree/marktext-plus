@@ -2384,6 +2384,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Send'**
   String get pluginSend;
+
+  /// No description provided for @pluginNoWebEngine.
+  ///
+  /// In en, this message translates to:
+  /// **'{plugin} draws its own page, and this system has no web engine the editor can use'**
+  String pluginNoWebEngine(String plugin);
 }
 
 class _AppLocalizationsDelegate

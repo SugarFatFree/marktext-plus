@@ -20,6 +20,7 @@
 | FEAT-140 | 2026-09-09 | 自动化接口能按下右侧栏的图标 | P1 | 中 | 已完成 |
 | FEAT-141 | 2026-09-09 | 右侧栏改成对话形式，可以追加要求让结果变好 | P1 | 中 | 已完成 |
 | FEAT-142 | 2026-09-09 | 右侧栏真正变成聊天：提问也在同一个输入框里回答 | P1 | 中 | 已完成 |
+| FEAT-143 | 2026-09-10 | 插件可以用 HTML 画自己的界面（`ui.webview` 终于有实现了） | P1 | 困难 | 已完成 |
 
 ---
 
@@ -1036,3 +1037,100 @@ FEAT-141 已经能追加要求了，但形态仍是「**表单 → 结果 → �
 2. 建议以标签形式排在输入框上方，点一下即发送
 3. 回答后结果出现在问题下方，输入框仍在，可以继续说
 4. 生成中输入框和「采用」不可用；**但等你回答时输入框可用**
+
+## FEAT-143：插件可以用 HTML 画自己的界面
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | FEAT-143 |
+| 实现日期 | 2026-09-10 |
+| 优先级 | P1 |
+| 难易度 | 困难 |
+| 状态 | 已完成（待人工测试） |
+
+### 需求描述
+
+`ui.webview` 这个权限**早就声明了**：编辑器里有它的常量、有蕴含 `network.request`
+的规则、有给读者看的描述「打开它自己的网页」，SDK 用 12 种语言列在权限表里，
+还有一份 290 行、专门为它写的 `PluginProxy`（注释开头就是「为插件自己渲染的东西
+提供出网通路」）。
+
+**唯独没有任何插件能真的打开一个网页。**
+
+### 用户场景
+
+插件作者想做一个编辑器没有设计过的界面——一张图、一个复杂表单、一段动画。
+现有的 `ui` 节点树能画文字、输入框、标签、下拉框、复选框、Markdown、图片和按钮，
+再复杂就没有了。
+
+### 实现方案
+
+**契约**：不新增动作，而是给窗格加第四种渲染方式：
+
+```lua
+return { pane = "<h1>hello</h1>", title = "我的界面", slot = "right", as = "web" }
+```
+
+这样**整套窗格管线直接复用**——四宫格、右侧抽屉、槽位、标题、追加，全都已经按
+`render` 分支。加一个枚举值，两个运行时（Lua 与 JS）自动认得它，
+因为它们都是从 `PluginPaneRender.values` 里按名字找。
+
+**引擎用系统的**，不打包浏览器：Windows 走 WebView2、macOS 走 WKWebView。
+这是「轻量级、占用低」与这个功能唯一能共存的方式。**按需创建**：
+不打开这类插件就不产生任何浏览器上下文，启动路径一行都不多走。
+
+**权限**：`render == web` 的窗格另外要 `ui.webview`；同时让 `ui.webview`
+蕴含 `ui.sidebar`——一个网页是以窗格的形式出现的，只申请引擎而不申请窗格，
+等于拿到了读者没同意过的那块地方。
+
+**日志**：权限承诺「编辑器记录它访问了哪里」。原以为要靠 `PluginProxy`，
+**实测桌面三端都没有实现 `ProxyController`**（只有 Android 有），挂不上去。
+改用引擎自己的 `onLoadResource` 回调（三端都有），把每个资源的
+`scheme://host` 写进应用日志——少一跳，也不需要中间人证书。
+
+**回退**：没有可用引擎时（如未装 WPE WebKit 的 Linux、以及所有测试环境），
+显示一句点名该插件的话，而不是空白窗格——空白看起来像是插件坏了。
+这句话有 12 种语言。
+
+### 过程中的两个硬发现
+
+**一、Linux 那份测试版会让主包编译不过。**
+你选的是「系统引擎 + Linux 测试版」。`flutter_inappwebview_linux 0.1.0-beta.1`
+会把 `flutter_inappwebview_platform_interface` 拉到 `1.4.0-beta.3`，
+而**主包 6.1.5 与这个 beta 接口编译不过**（缺实现、签名不匹配）。
+
+`flutter test` 直接报了出来，不需要完整构建。所以现在是：
+**Windows 与 macOS 可用，Linux 走回退**。要 Linux 也能用，得等上游把
+beta 接口与主包对齐——这一条我留在这里，不是忘了。
+
+**二、依赖数守卫的边界假设被我自己撞破了。**
+为了把接口钉在稳定版，我加了 `dependency_overrides:`，它落在
+`dependencies:` 和 `dev_dependencies:` 之间——而
+`readme_dependency_count_test` 的取法正是「从前者到后者」，
+于是**覆盖项被算成了直接依赖**。
+
+改 README 的数字治不了这个：守卫本身的边界写死了某一个小节名。
+改成停在**下一个顶层小节**（不管它叫什么）之后才对上：直接依赖 26 → 27。
+
+### 涉及文件
+
+- `code/pubspec.yaml` — `flutter_inappwebview`，以及钉住接口的 `dependency_overrides`
+- `code/lib/services/plugin_script_runtime.dart` — `PluginPaneRender.web`
+- `code/lib/services/plugin_command_service.dart` — web 窗格的权限门
+- `code/lib/services/plugin_manifest.dart` — `ui.webview` 蕴含 `ui.sidebar`
+- `code/lib/ui/widgets/plugin_web_pane.dart`（新增）
+- `code/lib/ui/widgets/plugin_panes.dart` — 接上第四种渲染
+- `code/lib/core/i18n/l10n/app_*.arb`（12 份）— 无引擎时的提示
+- SDK 仓库：`README.md` + 11 份翻译 — 动作表、权限表、一节说明
+- 测试：`plugin_web_pane_test`、`plugin_web_pane_widget_test`、
+  `sdk_schema_agrees_test` 第 15 条、`readme_dependency_count_test` 边界修正
+
+### 验收标准
+
+1. 声明 `ui.webview` 的插件返回 `as = "web"` 的窗格 → 页面画出来 ✓（测试）
+2. 只有 `ui.sidebar` 的插件这么做 → 被拒绝，且告诉读者缺 `ui.webview` ✓（测试）
+3. 插件页面上，`ui.webview` 会连带列出 `ui.sidebar` 与 `network.request` ✓（测试）
+4. 普通窗格仍然只需要 `ui.sidebar` ✓（测试）
+5. 没有引擎时显示一句点名插件的话，且跟随读者语言 ✓（测试）
+6. **页面访问过的主机写进日志** —— 待人工测试（需要真引擎）
+7. **不开插件页面时启动时间与内存不变** —— 待人工测试（看启动日志那三行）

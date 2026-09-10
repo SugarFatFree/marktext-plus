@@ -8,6 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - v1.6.2
 
 ### Added
+
+- **A plugin can draw its own interface in HTML.** `ui.webview` was declared,
+  shown to you on the plugin's own page, documented in the SDK in twelve
+  languages, and had nothing behind it: no way for a plugin to open a page at
+  all. A pane can now hold one — `as = "web"` — drawn by the engine your
+  operating system already has rather than a browser packaged with the editor,
+  so the download and the memory stay where they were and your own proxy
+  settings apply. Nothing is created until a plugin asks: if you never open such
+  a plugin you never pay for an engine.
+
+  Where the page goes is written to the plugin log, host by host, which is what
+  the permission promises. Declaring it carries the side bar and network access
+  with it, and you are shown all three, because a page arrives as a pane and can
+  fetch what it likes.
+
+  Windows and macOS have an engine the editor can use. A Linux machine without
+  one is told so, by name, instead of being given an empty pane.
+
 - **Tapping a footnote marker goes to its note.** `[^1]` is drawn raised and in the link colour, so it looks clickable; it was a piece of text with nothing behind it, while the note it names is usually at the far end of the document. Labels are matched exactly rather than folded the way a heading anchor is — `[^Method]` and `[^method]` are two notes an author chose to write, and folding them would send you to the wrong one, which is worse than sending you nowhere
 - **A link to a heading in the same document goes there.** `[see below](#conclusion)` is ordinary Markdown and did nothing at all — the preview resolved it as a filename, found no such file, and dropped it without a word, while links to the web, to mail and to other files all worked. Names are matched the way GitHub matches them, except that characters it does not recognise are kept rather than stripped, so a Chinese, Japanese, Arabic or Russian heading is reachable too. An anchor naming a section you have not written yet does nothing quietly, which is the normal state of a draft
 - **The editor now says what it cost.** Starting in under a second, loading fast and holding little are the three things this editor claims, and none of them was measured anywhere. The startup milestones carry their times, the preview says how many blocks it drew and how long that took, and both lines carry what the process was holding when they were written. Trying to measure this from outside does not work — the preview fills in across frames, so an observer times whichever frame its question landed in, which made 30 000 characters look ten times slower than 111 000 on the same machine seconds apart

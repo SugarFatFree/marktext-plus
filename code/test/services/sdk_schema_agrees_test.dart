@@ -178,6 +178,41 @@ void main() {
     }
   }, skip: present ? null : 'SDK 仓库不在这台机器上');
 
+  /// Every way a plugin can answer is described in every language.
+  ///
+  /// The identifier check below compares backticked words, and the shape guard
+  /// counts headings and fenced blocks. A capability added as a table row and a
+  /// paragraph has neither a heading nor a fence, and if it introduces no new
+  /// identifier it changes neither set — which is how `sdk.ui` reached seven
+  /// languages and not five, and how `as = "web"` could have shipped in English
+  /// alone with every guard still green.
+  ///
+  /// So this counts the literals a plugin actually types. They are code, not
+  /// prose: `as = "web"` is the same eight characters in Arabic.
+  test('every language documents every way to answer', () {
+    if (!present) return;
+
+    const typed = [
+      'as = "web"',
+      'apply = true',
+      'slot = "right"',
+    ];
+
+    for (final file in [
+      File('$repo/README.md'),
+      ...Directory('$repo/docs/i18n')
+          .listSync()
+          .whereType<File>()
+          .where((f) => f.path.endsWith('.md')),
+    ]) {
+      final text = file.readAsStringSync();
+      for (final literal in typed) {
+        expect(text, contains(literal),
+            reason: '${file.path} 没提 `$literal`——读这份语言的作者不知道能这么写');
+      }
+    }
+  }, skip: present ? null : 'SDK 仓库不在这台机器上');
+
   test('the schema names the permissions the editor grants', () {
     expect(
       enumAt(schema(), ['properties', 'permissions', 'items']).toSet(),

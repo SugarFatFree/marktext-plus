@@ -1216,4 +1216,9 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get pluginSend => 'Отправить';
+
+  @override
+  String pluginNoWebEngine(String plugin) {
+    return '$plugin рисует собственную страницу, а на этой системе нет веб-движка, доступного редактору';
+  }
 }

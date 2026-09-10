@@ -18,9 +18,17 @@ void main() {
   int declared() {
     final pubspec = File('${root.path}/code/pubspec.yaml').readAsStringSync();
     final start = pubspec.indexOf('\ndependencies:');
-    final end = pubspec.indexOf('\ndev_dependencies:');
     expect(start, isNot(-1));
-    expect(end, greaterThan(start), reason: 'pubspec 的两段依赖找不到了');
+    // The next top-level key, whichever it is. Ending at `dev_dependencies:`
+    // by name held only while nothing came between them — and then
+    // `dependency_overrides:` did, and every package pinned there counted as
+    // one this project chose, which is the opposite of what an override is.
+    final next = RegExp(r'^[a-z_]+:', multiLine: true)
+        .allMatches(pubspec)
+        .map((m) => m.start)
+        .firstWhere((at) => at > start + 1, orElse: () => pubspec.length);
+    final end = next;
+    expect(end, greaterThan(start), reason: 'pubspec 的依赖段找不到了');
 
     // `flutter:` is the SDK itself rather than a package chosen for this
     // project, so it is not one of the things the claim is about.

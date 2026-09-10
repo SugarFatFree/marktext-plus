@@ -256,7 +256,10 @@ class PluginPermission {
   /// reader decides from this list, and a list that understates what was
   /// granted is worse than no list.
   static const implied = <String, List<String>>{
-    uiWebview: [networkRequest],
+    // And the room to draw it in: a web page arrives as a pane, so declaring
+    // the engine without the pane would let a plugin take space beside the
+    // document that it never asked the reader for.
+    uiWebview: [networkRequest, uiSidebar],
   };
 
   /// [declared] together with everything those permissions imply.

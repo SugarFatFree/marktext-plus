@@ -1213,4 +1213,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pluginSend => 'Send';
+
+  @override
+  String pluginNoWebEngine(String plugin) {
+    return '$plugin draws its own page, and this system has no web engine the editor can use';
+  }
 }

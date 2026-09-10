@@ -108,6 +108,11 @@ class PluginCommandService {
       PluginAiAction() => PluginPermission.aiChat,
       PluginReplaceAction() => PluginPermission.documentWrite,
       PluginNotifyAction() => PluginPermission.uiNotifications,
+      // A pane that is a web page needs both: the room beside the document,
+      // and the engine to draw its own interface in. Two permissions for one
+      // action is unusual, and right — the reader agreed to a plugin filling a
+      // pane, not to it running a browser in one.
+      PluginPaneAction(render: PluginPaneRender.web) => PluginPermission.uiWebview,
       PluginPaneAction() || PluginPanelAction() => PluginPermission.uiSidebar,
       // The five that need nothing, named rather than swallowed by `_`.
       //

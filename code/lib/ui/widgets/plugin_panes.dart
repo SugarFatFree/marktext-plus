@@ -10,6 +10,7 @@ import '../../providers/tab_provider.dart';
 import '../editor/markdown_renderer.dart';
 import '../../services/plugin_script_runtime.dart';
 import 'plugin_apply.dart';
+import 'plugin_web_pane.dart';
 
 /// The document, and up to three panes a plugin filled.
 ///
@@ -333,6 +334,14 @@ class PluginPaneView extends ConsumerWidget {
         return SingleChildScrollView(
           padding: const EdgeInsets.all(12),
           child: SelectableText(content.text),
+        );
+      case PluginPaneRender.web:
+        // No padding and no scroll view: the page brings its own, and putting
+        // the editor's around it would give a plugin two scrollbars and a
+        // margin it did not ask for.
+        return PluginWebPane(
+          html: content.text,
+          pluginName: content.pluginName,
         );
     }
   }

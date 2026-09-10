@@ -1222,4 +1222,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get pluginSend => 'Enviar';
+
+  @override
+  String pluginNoWebEngine(String plugin) {
+    return '$plugin dibuja su propia página, y en este sistema no hay un motor web que el editor pueda usar';
+  }
 }

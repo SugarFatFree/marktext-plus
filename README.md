@@ -27,7 +27,7 @@ MarkText Plus is a **modern Markdown editor** reimagined from the original [Mark
 - ❌ Poor cross-platform experience → ✅ **Native performance** on Windows, macOS, Linux
 - ❌ Complex setup → ✅ **3 commands to get started**
 
-Staying light is a standing constraint, not a launch slogan: 26 direct dependencies,
+Staying light is a standing constraint, not a launch slogan: 27 direct dependencies,
 no embedded browser, no editor framework. The parser, the renderer, the syntax
 highlighter and the diagram engine are all written here.
 
@@ -85,7 +85,7 @@ That's it! The editor will launch with a sample document ready to edit.
 | | |
 |---------|-------------|
 | **🧩 Open plugins** | One Lua or JavaScript file, no SDK to install and nothing to build, sandboxed and held to the permissions it declared. Found through [GitHub Topic: `marktext-plus-plugin`](https://github.com/topics/marktext-plus-plugin), every one labelled Community/Unverified |
-| **⚡ Fast start** | No embedded browser, no editor framework, 26 direct dependencies |
+| **⚡ Fast start** | No embedded browser, no editor framework, 27 direct dependencies |
 | **📄 Large files** | Parsing and search are single-pass, and a test fails if four times the document costs more than six times the work — so a change that turns either of them quadratic is caught rather than shipped. Highlighting is superlinear in the number of spans, which no single pass fixes, so it stops above 128 KB — the last size that still opens in about a second — and a test holds that limit where it is. The document stays fully editable without colour, and the colours come back when it shrinks |
 | **🧪 Tested** | Over 2600 tests covering the parser, the exporters, the providers, the plugin runtimes and the editor widgets |
 
@@ -139,7 +139,7 @@ Flutter engine booting, and 0.15 s is everything the editor itself does.
 |---|---|---|---|
 | **Runtime** | Flutter — compiled, no embedded browser | Electron 42 | Electron |
 | **Cold start** (to the document on screen) | ~0.7 s warm, ~1.4 s cold | 2–3 s | 2–3 s |
-| **Direct dependencies** | 26 | 56 (desktop package) | closed source |
+| **Direct dependencies** | 27 | 56 (desktop package) | closed source |
 | **Licence** | MIT, free | MIT, free | Paid, closed source |
 | **Editing** | Source, preview, and a split view whose halves follow each other; blocks are edited in place in the preview | Live preview (WYSIWYG), plus a source mode | Live preview (WYSIWYG), plus a source mode |
 | **Diagrams** | 22 Mermaid types, drawn in Dart with no WebView | Mermaid, flowchart.js, Vega-Lite, PlantUML — all through JavaScript | Mermaid, flowchart.js, js-sequence, PlantUML |

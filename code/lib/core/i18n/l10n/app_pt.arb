@@ -471,5 +471,6 @@
   "pluginApply": "Aplicar",
   "pluginApplied": "Aplicado ao documento",
   "pluginFollowUpHint": "Peça uma alteração…",
-  "pluginSend": "Enviar"
+  "pluginSend": "Enviar",
+  "pluginNoWebEngine": "{plugin} desenha a sua própria página, e neste sistema não há um motor web que o editor possa usar"
 }

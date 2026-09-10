@@ -131,6 +131,19 @@ enum PluginPaneRender {
 
   /// Rendered, the way the preview draws the document.
   preview,
+
+  /// The text is an HTML page, drawn by the platform's own web engine.
+  ///
+  /// The one way a plugin gets an interface the editor did not design. It costs
+  /// a browser context, which is why it is behind `ui.webview` and why nothing
+  /// is created until a plugin actually asks: the editor starts no engine, and
+  /// a reader who never opens such a plugin never pays for one.
+  ///
+  /// What the page fetches goes through the editor's own proxy, so it follows
+  /// the reader's system proxy settings and every host it reaches is written to
+  /// the plugin log — which is what `ui.webview` promises when it says the
+  /// editor logs where.
+  web,
 }
 
 /// Show text in one of the panes beside the document.

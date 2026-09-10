@@ -471,5 +471,6 @@
   "pluginApply": "Применить",
   "pluginApplied": "Записано в документ",
   "pluginFollowUpHint": "Попросить изменить…",
-  "pluginSend": "Отправить"
+  "pluginSend": "Отправить",
+  "pluginNoWebEngine": "{plugin} рисует собственную страницу, а на этой системе нет веб-движка, доступного редактору"
 }
