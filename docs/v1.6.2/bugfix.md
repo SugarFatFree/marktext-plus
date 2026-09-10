@@ -146,6 +146,7 @@
 | BUG-401 | 2026-09-10 | 拒绝插件时那句通知仍是英文（BUG-400 的另一半） | P2 | 已修复 |
 | BUG-402 | 2026-09-10 | 空的占位窗格把「替换整篇」定死，选中的那段被忽略 | P0 | 已修复 |
 | BUG-403 | 2026-09-10 | 采用后源码窗格仍是空白，下一次敲键会把空白写回去 | P0 | 已修复 |
+| BUG-404 | 2026-09-10 | 流式回答只等 socket 关闭，provider 不关连接就永远转圈 | P0 | 已修复 |
 
 ---
 
@@ -8028,3 +8029,75 @@ void didUpdateWidget(SourceEditor oldWidget) {
 - `code/lib/ui/widgets/plugin_apply.dart`、`app_menu_bar.dart`、
   `lib/providers/mcp_provider.dart`、`lib/ui/widgets/plugin_command_actions.dart`
 - `code/test/providers/external_writes_reach_the_editor_test.dart`（新增）
+
+---
+
+## BUG-404：流式回答只等 socket 关闭，provider 不关连接就永远转圈
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-404 |
+| 日期 | 2026-09-10 |
+| 优先级 | P0 |
+| 状态 | 已修复 |
+
+### 现象
+
+FEAT-144 的流式输出上线后（客户端 `feat: the model's answer appears as it is written`），
+经 MCP 实测：在一篇三字的短文档上让 AI 写作生成八百字，**十五分钟后仍在转圈**，
+一个字都没出现，日志里没有任何一条错误，读者也没有办法取消。
+
+同一份代码在流式上线前工作正常，所以受影响的是**所有走窗格的 AI 功能**
+（写作、纠错、翻译），因为它们共用 `plugin_command_actions` 里那条带 `onChunk` 的路。
+
+### 根因
+
+`AiChatService.complete` 的 SSE 分支只有一个出口——**流结束**：
+
+```dart
+await for (final line in utf8.decoder.bind(response).transform(const LineSplitter())) {
+  final piece = deltaFrom(config.aiProvider, line);
+  if (piece == null) continue;   // [DONE] 也走这里
+  ...
+}
+```
+
+`deltaFrom` 把 `data: [DONE]` 当作「不是文本，也不是错误」返回 null，于是循环
+`continue` 下去，继续等这条 socket 关闭。**provider 说完了却不关连接**（长连接
+复用、或网关侧保持），这个 `await for` 就永远不会结束。
+
+两个都不成立的假设各占一半责任：
+
+1. **「provider 发完就会关连接」**——协议上说完的方式是发终止事件，不是断开。
+2. **「不会有等不到的情况」**——整条路上没有任何超时，静默挂起是它唯一的失败形态。
+
+### 修复方案
+
+把「流怎样才算结束」从 socket 手里拿回来，两个出口都读：
+
+- `AiChatService.isDone(provider, line)`：识别 `data: [DONE]`（OpenAI 兼容）与
+  `event: message_stop` / `{"type":"message_stop"}`（Anthropic），读到就停。
+- `AiChatService.readStream(...)` 从 socket 中拆出来，带 `idle` 参数（默认 120 秒）：
+  **两行之间**的静默上限，不是整个回答的上限——长文档可以想很久，但已经开始
+  吐字的流不会中间停几分钟。静默到期时把流关掉：已经吐了字就把吐出来的交回去
+  （读者一直看着它写，停在哪里是看得见的），一个字都没说则抛错，
+  **错误里带读到的行数**——「没有文本」和「线上一个字节都没有」是两种故障，
+  而这时已经问不到线上了。
+
+`complete` 里改成 `return await readStream(...)`：`finally` 里的 `client.close`
+是在 return 语句处执行的，不是在返回的 future 完成时——直接 `return` 会在还没读完
+时就把 socket 关掉。
+
+### 涉及文件
+
+- `code/lib/services/ai_chat_service.dart`
+- `code/test/services/ai_stream_ends_test.dart`（新增 4 条）
+
+### 验证
+
+两条守卫逐个变异，各自杀掉正好两条测试：
+
+| 变异 | 失败的测试 |
+|------|-----------|
+| 拿掉 `if (isDone(...)) break;` | 「end marker ends it」「message_stop」超时 |
+| 拿掉 `lines.timeout(idle, ...)` | 「goes quiet」「says nothing at all」超时 |

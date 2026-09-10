@@ -79,6 +79,70 @@ class AiChatService {
     return null;
   }
 
+  /// Whether [line] is the provider announcing that it has finished.
+  ///
+  /// Reading until the socket closes is not enough. A provider that holds the
+  /// connection open after its last event leaves the editor loading forever —
+  /// no error to show, nothing in the log, and no way for the reader to stop
+  /// it. That shipped once and was measured at fifteen minutes before anyone
+  /// gave up. The end of an answer is announced on the wire; this reads the
+  /// announcement instead of waiting for the wire to go away.
+  static bool isDone(AiProvider provider, String line) {
+    final text = line.trim();
+    if (text == 'data: [DONE]' || text == 'data:[DONE]') return true;
+    if (provider != AiProvider.anthropic) return false;
+    if (text == 'event: message_stop' || text == 'event:message_stop') {
+      return true;
+    }
+    if (!text.startsWith('data:')) return false;
+    final Object? json;
+    try {
+      json = jsonDecode(text.substring(5).trim());
+    } on FormatException {
+      return false;
+    }
+    return json is Map && json['type'] == 'message_stop';
+  }
+
+  /// Collects a streamed answer, handing each larger piece to [onChunk].
+  ///
+  /// Kept apart from the socket so that both ways this can fail to end are
+  /// testable without a network: the provider says it is done, or the provider
+  /// goes quiet. [idle] is the wait between two lines, not the wait for the
+  /// whole answer — a long document can take a while to think about, but a
+  /// stream that has started does not then pause for minutes.
+  ///
+  /// Going quiet mid-answer gives back what did arrive: the reader watched it
+  /// being written and can see where it stops. Going quiet having said nothing
+  /// is an error, and it carries the line count, because "no text" and "no
+  /// bytes at all" are different faults and the wire is not there to ask.
+  @visibleForTesting
+  static Future<String> readStream(
+    AiProvider provider,
+    Stream<String> lines,
+    void Function(String soFar) onChunk, {
+    Duration idle = const Duration(seconds: 120),
+  }) async {
+    final answer = StringBuffer();
+    var read = 0;
+    final bounded = lines.timeout(idle, onTimeout: (sink) => sink.close());
+    await for (final line in bounded) {
+      read++;
+      if (isDone(provider, line)) break;
+      final piece = deltaFrom(provider, line);
+      if (piece == null) continue;
+      answer.write(piece);
+      onChunk(answer.toString());
+    }
+    final text = answer.toString().trim();
+    if (text.isEmpty) {
+      throw FormatException(
+        'The AI provider streamed $read lines and no text',
+      );
+    }
+    return text;
+  }
+
   /// The translated text, wherever the provider puts it.
   static String parseResponse(AiProvider provider, Map<String, dynamic> json) {
     if (provider == AiProvider.anthropic) {
@@ -177,22 +241,13 @@ class AiChatService {
 
       final response = await request.close();
       if (streaming && response.statusCode >= 200 && response.statusCode < 300) {
-        final answer = StringBuffer();
-        await for (final line in utf8.decoder
-            .bind(response)
-            .transform(const LineSplitter())) {
-          final piece = deltaFrom(config.aiProvider, line);
-          if (piece == null) continue;
-          answer.write(piece);
-          onChunk(answer.toString());
-        }
-        final text = answer.toString().trim();
-        if (text.isEmpty) {
-          throw const FormatException(
-            'The AI provider returned no translated text',
-          );
-        }
-        return text;
+        // Awaited, not returned: the `finally` below closes the socket, and it
+        // runs at the return statement — not when the returned future finishes.
+        return await readStream(
+          config.aiProvider,
+          utf8.decoder.bind(response).transform(const LineSplitter()),
+          onChunk,
+        );
       }
       final body = await utf8.decoder.bind(response).join();
       if (response.statusCode < 200 || response.statusCode >= 300) {
