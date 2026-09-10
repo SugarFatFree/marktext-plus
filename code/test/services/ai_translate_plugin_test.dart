@@ -425,6 +425,69 @@ void main() {
     service.dispose();
   }, skip: present ? null : '插件仓库不在这台机器上');
 
+  test('a document that itself contains a placeholder is not rewritten', () {
+    // Measured before it was fixed: a document reading `A: {{instruction}}`
+    // reached the model as `A: MAKE-IT-SHORT`. The prompt was filled one key
+    // at a time, so each replacement was scanned again by the next — and the
+    // reader's own braces were replaced along with the template's. The rewrite
+    // came back with the corruption in it and Apply wrote that into the
+    // document. Anyone writing about Jinja, Handlebars, Vue, or this plugin's
+    // own prompts writes `{{...}}` all day.
+    const document = 'A: {{instruction}} B: {{text}} C: {{language}}';
+    final service = PluginCommandService(root.path);
+
+    final write = service.start(
+      manifest,
+      const PluginScriptContext(
+        command: 'ai.write',
+        document: document,
+        answer: 'MAKE-IT-SHORT',
+      ),
+    ) as PluginPaneAction;
+    expect(write.nextPrompt, contains(document),
+        reason: '读者文档里的花括号是他自己的，不是模板的');
+    expect(write.nextPrompt, contains('Brief: MAKE-IT-SHORT'),
+        reason: '模板自己的占位符还是要填');
+
+    final translate = service.start(
+      manifest,
+      const PluginScriptContext(
+        command: 'translate.selection',
+        selection: document,
+        answer: 'French',
+      ),
+    ) as PluginAiAction;
+    expect(translate.prompt, contains(document));
+    expect(translate.prompt, contains('into French'),
+        reason: '模板里的 {{language}} 照填');
+
+    service.dispose();
+  }, skip: present ? null : '插件仓库不在这台机器上');
+
+  test('a placeholder the plugin has no value for is left alone', () {
+    // The prompts are the reader's to edit and the braces may be theirs — a
+    // note to themselves, or a snippet they are keeping. Filling it with
+    // nothing would delete it silently.
+    File('${root.path}/${manifest.id}/settings.json').writeAsStringSync(
+      jsonEncode({
+        'proofreadingUser': 'Mine: {{whatever}}\nText:\n{{text}}',
+      }),
+    );
+    final service = PluginCommandService(root.path);
+
+    final action = service.start(
+      manifest,
+      const PluginScriptContext(
+        command: 'ai.proofread',
+        document: 'hello',
+      ),
+    ) as PluginPaneAction;
+
+    expect(action.nextPrompt, contains('Mine: {{whatever}}'));
+    expect(action.nextPrompt, contains('hello'));
+    service.dispose();
+  }, skip: present ? null : '插件仓库不在这台机器上');
+
   test('a document read as a preview comes back rendered', () {
     final service = PluginCommandService(root.path);
     service.start(
