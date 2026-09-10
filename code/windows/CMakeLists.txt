@@ -17,6 +17,17 @@ if(DEFINED ENV{MARKTEXT_IMPELLER_DEFAULT})
     MARKTEXT_IMPELLER_DEFAULT=$ENV{MARKTEXT_IMPELLER_DEFAULT})
 endif()
 
+# `flutter_inappwebview_windows` includes <experimental/coroutine>, which the
+# MSVC that ships with Visual Studio 18 refuses outright rather than warning
+# about: "error STL1011 ... deprecated by Microsoft and will be REMOVED SOON".
+# The header names this macro as the way to accept it for now.
+#
+# Placed before the plugins are added so it reaches their targets, and here
+# rather than in the package, which is not ours to edit. When the package moves
+# to the C++20 <coroutine> header this can go — and when MSVC removes the old
+# one, this stops working and the package will have to have moved.
+add_compile_definitions(_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS)
+
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
 # versions of CMake.
 cmake_policy(VERSION 3.14...3.25)
