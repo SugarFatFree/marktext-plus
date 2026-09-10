@@ -923,6 +923,16 @@ class AppMenuBar extends ConsumerWidget {
               child: Text(l10n.formatCodeBlock),
               onPressed: () => fmt(FormatAction.codeBlock),
             ),
+            // Beside the code block it is a kind of, and the only one of
+            // these the reader cannot get to by typing two characters: a
+            // fence, the word, and a first line that decides the diagram's
+            // kind. It reached the `/` menu when it was added and stopped
+            // there, which left the feature this editor is built around as
+            // the one block missing from the menu everything else is in.
+            MenuItemButton(
+              child: Text(l10n.formatMermaidBlock),
+              onPressed: () => fmt(FormatAction.mermaidBlock),
+            ),
             MenuItemButton(
               shortcut: _shortcut('mathBlock'),
               child: Text(l10n.formatMathBlock),
