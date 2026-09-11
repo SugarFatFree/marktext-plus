@@ -1052,8 +1052,29 @@ class MarkdownParser {
       _opensFence(lines[i]) != null ||
       _blockquoteRe.hasMatch(lines[i]) ||
       _ulRe.hasMatch(lines[i]) ||
-      _olRe.hasMatch(lines[i]) ||
+      _orderedInterrupts(lines[i]) ||
       _startsTable(lines, i);
+
+  /// Whether an ordered list beginning on [line] may end an open paragraph.
+  ///
+  /// Only one numbered 1. CommonMark has this rule because prose wraps: a
+  /// line that begins "14. The number of doors is 6." is the rest of a
+  /// sentence far more often than it is the fourteenth item of a list nobody
+  /// started, and reading it as a list takes the paragraph apart in front of
+  /// the reader — the first half left as a paragraph, the second half
+  /// numbered from fourteen.
+  ///
+  /// Only about interrupting. A numbered list that begins a block still
+  /// starts at whatever number it likes; `10) foo` on its own is a list from
+  /// ten, and that is where [_olRe] is asked directly.
+  ///
+  /// Bullets need no such rule here: `_ulRe` requires content, so an empty
+  /// marker cannot interrupt anything either.
+  static bool _orderedInterrupts(String line) {
+    if (!_olRe.hasMatch(line)) return false;
+    final digits = RegExp(r'^\s*(\d{1,9})[.)]').firstMatch(line)?.group(1);
+    return digits != null && int.parse(digits) == 1;
+  }
 
   /// A setext underline: `===` for level 1, `---` for level 2.
   static final _setextRe = RegExp(r'^\s{0,3}(=+|-+)\s*$');

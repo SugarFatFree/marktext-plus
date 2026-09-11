@@ -13,6 +13,7 @@
 | BUG-426 | 2026-09-11 | 折叠高亮的规则被前一行抽掉了匹配依据，CommonMark 得分被低估 | P2 | 已修复 |
 | BUG-427 | 2026-09-11 | 缩进四列的围栏，预览当代码块、源码区当普通文字 | P1 | 已修复 |
 | BUG-428 | 2026-09-11 | 一行 `` ``` aa ``` `` 开启代码块，吞掉文档后面全部内容 | P1 | 已修复 |
+| BUG-429 | 2026-09-11 | 换行后以「数字.」开头的句子被变成有序列表 | P1 | 已修复 |
 
 ---
 
@@ -419,6 +420,62 @@ CommonMark 站在高亮器这边：缩进四列是**缩进代码块**，那三�
 - `code/lib/ui/editor/syntax_highlighter.dart`
 - `code/test/services/fence_rule_agreement_test.dart`（三条新用例）
 - `code/test/services/commonmark_spec_test.dart`（下限 499 → 501）
+
+---
+
+## BUG-429：换行后正好以「数字.」开头的句子，被变成有序列表
+
+**现象**
+
+```
+The number of windows in my house is
+14.  The number of doors is 6.
+```
+
+这是**一个句子**，只是在「14」前面换了行。编辑器把它拆成了：一个段落，
+加一个 `<ol start="14">`——**段落在读者眼前被撕成两半，后半句成了从十四开始的列表项**。
+
+散文是会换行的，所以这不是构造出来的例子。
+
+**根因分析**
+
+`_startsAnotherBlock`（「段落在哪里结束」的唯一决策点）里写着
+`_olRe.hasMatch(lines[i])`——**任何数字加点，都能打断一个开着的段落**。
+
+CommonMark 的规则是：**有序列表只有编号为 1 时才能打断段落**。理由正是上面那个：
+以「1.」开头的行，几乎一定是有人在开一个列表；以「14.」开头的行，几乎一定是
+一句话正好断在那里。GitHub 和 Typora 也都这么渲染，所以这同时也是读者在别处
+见过同一份文档之后的预期。
+
+项目符号不需要这条规则：`_ulRe` 要求标记后有内容，所以空标记本来也打断不了。
+
+**修复方案**
+
+新增 `_orderedInterrupts(line)`：`_olRe` 命中**且**编号为 1。只用在
+`_startsAnotherBlock` 这一处。
+
+**只管打断，且只管打断**：以数字开头的列表如果本身就是一个块的开头，
+仍然想从几开始就从几开始——`10) foo` 独立成块仍是从十开始的列表，那里直接问的是
+`_olRe`。
+
+**顺带的收益**：CommonMark 得分 501 → 502。
+
+**验证**（三个变异，全部被抓住）
+
+| 变异 | 失败行数 |
+|------|---------|
+| 改回「任何数字都能打断」 | 6 |
+| 连 `1.` 也不许打断（过度收紧） | 5 |
+| 把规则里的 1 写成 0 | 5 |
+
+指名的测试在 `a_wrapped_sentence_is_not_a_list_test`，五条：换行的句子不被拆、
+`1.` 仍能打断、项目符号仍能打断、独立成块的 `10)` 仍从十开始、空行之后任何数字都行。
+
+**涉及文件**
+
+- `code/lib/services/markdown_parser.dart`
+- `code/test/services/a_wrapped_sentence_is_not_a_list_test.dart`（新增）
+- `code/test/services/commonmark_spec_test.dart`（下限 501 → 502）
 
 ---
 
