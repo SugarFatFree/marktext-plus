@@ -383,6 +383,31 @@ class SelfUpdateService {
     throw const FormatException('that artifact holds no installer');
   }
 
+  /// What to tell the installer, so that it replaces *this* copy.
+  ///
+  /// `/DIR` is the one that matters and it was missing. Without it the
+  /// installer writes to its own default — `%LocalAppData%\Programs` for a
+  /// per-user install — which is very often not where the running copy
+  /// lives: this project's own reader keeps theirs on D:. The install then
+  /// succeeds, `/RESTARTAPPLICATIONS` brings back the copy it closed, which
+  /// is the old one at the old path, and the update reports success while
+  /// nothing has changed. A second, newer, unused copy sits elsewhere on the
+  /// disk, and the editor cannot even run both: the single-instance name is
+  /// a fixed string, so starting the new one just raises the old window.
+  ///
+  /// Pointing it at the directory this executable is in makes the update an
+  /// update rather than a second installation, wherever the reader put it.
+  @visibleForTesting
+  static List<String> installerArguments(String directory) => [
+        '/VERYSILENT',
+        '/SUPPRESSMSGBOXES',
+        '/NORESTART',
+        // Ends this process, through the Restart Manager, and brings it back.
+        '/CLOSEAPPLICATIONS',
+        '/RESTARTAPPLICATIONS',
+        '/DIR=$directory',
+      ];
+
   /// Runs [installer] and lets it replace this editor.
   ///
   /// The installer does the replacing, not this code. A running program cannot
@@ -405,17 +430,13 @@ class SelfUpdateService {
       'running ${p.basename(installer.path)} to replace this build',
       source: 'update',
     );
+    final here = p.dirname(Platform.resolvedExecutable);
     await Process.start(
       installer.path,
-      const [
-        '/VERYSILENT',
-        '/SUPPRESSMSGBOXES',
-        '/NORESTART',
-        '/CLOSEAPPLICATIONS',
-        '/RESTARTAPPLICATIONS',
-      ],
+      installerArguments(here),
       mode: ProcessStartMode.detached,
     );
-    return 'the installer is running; this editor will close and come back';
+    return 'the installer is running against $here; '
+        'this editor will close and come back';
   }
 }

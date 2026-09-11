@@ -145,6 +145,23 @@ CI 用 `${{ github.sha }}` 给 artifact 命名，那是**完整 40 位**的哈�
 测试是离线的：本地起一个服务器，发完响应头和 16 个字节之后既不再发也不关连接
 （`a_server_that_never_answers_test`）。去掉空闲上限，这条测试会挂到超时。
 
+**必须告诉安装器装到哪里（否则更新会「成功」而什么都没变）**
+
+第一版没有传 `/DIR`，安装器就用自己的默认目录——按用户安装是
+`%LocalAppData%\Programs`。而运行中的那份**常常不在那里**：本项目的使用者就把它
+装在 D 盘。于是会发生这样一串事，每一步都「正常」：
+
+1. 安装器把新版装进 `%LocalAppData%\Programs`，成功。
+2. `/CLOSEAPPLICATIONS` 关掉的是**正在运行的那份**（D 盘的旧版）。
+3. `/RESTARTAPPLICATIONS` 把它原样启动回来。
+4. `update_app` 报告成功，**回来的还是旧版本**，磁盘上多了一份没人用的新版。
+
+更糟的是两份还不能同时跑：单实例名是写死的 `"marktext_plus_instance"`，
+点新的那份只会把旧窗口调到前面，看起来像「新版打不开」。
+
+修法：`apply` 传 `/DIR=<当前可执行文件所在目录>`（`Platform.resolvedExecutable`
+的目录）。这样无论读者把它放在哪，更新都是**就地替换正在运行的那一份**。
+
 **已知边界**
 
 - 只有 Windows 能真的装上。Linux 的 deb/rpm 要 root，macOS 要换 .app——都还没写。

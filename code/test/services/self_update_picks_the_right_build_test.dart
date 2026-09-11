@@ -150,6 +150,31 @@ void main() {
     });
   });
 
+  group('telling the installer which copy to replace', () {
+    test('it is pointed at a directory, not left to its own default', () {
+      final args = SelfUpdateService.installerArguments(r'D:\apps\MarkText Plus');
+      expect(args, contains(r'/DIR=D:\apps\MarkText Plus'));
+    });
+
+    test('a path with spaces stays one argument', () {
+      // Passed as a list, so the quoting is the platform's to do. What must
+      // not happen is this code splitting it or wrapping it itself.
+      final args = SelfUpdateService.installerArguments(r'C:\Program Files\X');
+      expect(args.where((a) => a.startsWith('/DIR=')).length, 1);
+      expect(args, contains(r'/DIR=C:\Program Files\X'));
+    });
+
+    test('it closes this editor and brings it back', () {
+      final args = SelfUpdateService.installerArguments('x');
+      expect(args, contains('/CLOSEAPPLICATIONS'));
+      expect(args, contains('/RESTARTAPPLICATIONS'));
+      // Silent, and without a message box waiting for a click that no one is
+      // there to give: this runs while the reader is away, which is the point.
+      expect(args, contains('/VERYSILENT'));
+      expect(args, contains('/SUPPRESSMSGBOXES'));
+    });
+  });
+
   group('nothing runs without a checksum', () {
     test('a digest GitHub published is read', () {
       expect(SelfUpdateService.digestOf('sha256:${'A' * 64}'), 'a' * 64);
