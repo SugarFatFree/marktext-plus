@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../core/diagnostics/resident_memory.dart';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
@@ -99,9 +100,23 @@ class McpController extends StateNotifier<McpStatus> {
     final plugins =
         _ref.read(installedPluginManifestsProvider).valueOrNull ?? const [];
     final panes = _ref.read(pluginPanesProvider);
+    // How much the process is holding, when the platform will say.
+    //
+    // This editor's first promise is that it stays light, and until now the
+    // only way to read that number was a log line the preview writes — and
+    // only on the batched path, so a document small enough to parse in one go
+    // never produced one. Which meant the figure could be had while a heavy
+    // document was open and not afterwards: exactly the wrong way round for
+    // the question anyone actually asks, which is whether it came back down.
+    //
+    // Omitted rather than zeroed where the platform does not answer: "0 MB"
+    // reads as a measurement, and the absence of a measurement is not one.
+    final resident = ResidentMemory.megabytes();
+
     return {
       'viewMode': config.editMode.name,
       'activeTabId': tabs.activeTabId,
+      if (resident != null) 'residentMB': resident,
       'tabs': [
         for (final tab in tabs.tabs)
           {

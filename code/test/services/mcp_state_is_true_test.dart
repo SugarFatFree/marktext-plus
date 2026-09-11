@@ -57,6 +57,29 @@ void main() {
     expect(state['viewMode'], 'source');
   });
 
+  test('it says how much the process is holding', () async {
+    // The editor's first promise is that it stays light, and the only way to
+    // read that number was a log line the preview writes on its batched path
+    // — so it could be had while a heavy document was open and not once it
+    // was closed, which is the wrong way round for the question anyone asks.
+    //
+    // Measured on a real client before this existed: a 148 KB document took
+    // resident from 207 MB to 580 MB, and there was no way to ask whether it
+    // came back.
+    final state = await stateOf(boot());
+
+    // The platform may decline to say, and then nothing is said rather than
+    // zero — "0 MB" reads as a measurement. Both shapes are correct; what is
+    // not correct is a figure that could not be true.
+    if (state.containsKey('residentMB')) {
+      expect(state['residentMB'], isA<int>());
+      expect(state['residentMB'], greaterThan(0),
+          reason: '报出来的必须是一个测量值，不能是占位的 0');
+      expect(state['residentMB'], lessThan(100000),
+          reason: '十万兆是读错了单位，不是一台机器');
+    }
+  });
+
   test('the view mode reported is the one in force', () async {
     for (final mode in EditMode.values) {
       final state = await stateOf(boot(mode: mode));

@@ -66,8 +66,17 @@ void main() {
     //
     // The count is the guard, and it is the exact count rather than a ceiling
     // with room in it: a limit with slack lets the first new caller through in
-    // silence, which is the one that would have wanted this comment. A third
+    // silence, which is the one that would have wanted this comment. A fourth
     // caller is not necessarily wrong — it is a reason to read this first.
+    //
+    // The third arrived on 2026-09-11 and was read for: `describeState`, which
+    // answers `get_state`. Not a hot path — an agent asks for it, a reader
+    // never does — and it is the one place the figure was missing. The log
+    // line the preview writes only appears on the batched path, so the number
+    // could be had while a heavy document was open and not after it closed,
+    // which is the wrong way round for the only question worth asking of it.
+    // Measured on a real client: a 148 KB document took resident from 207 MB
+    // to 580 MB, and there was no way to ask whether it came back down.
     final callers = <String, int>{};
     for (final file in Directory('lib')
         .listSync(recursive: true)
@@ -80,7 +89,7 @@ void main() {
 
     expect(
       callers.values.fold(0, (a, b) => a + b),
-      2,
+      3,
       reason: '读内存要 10 µs，放进每帧或每次按键的路径上就会被它自己拖慢：$callers',
     );
     expect(callers, isNotEmpty, reason: '一处都没有的话，这个类是死代码');
