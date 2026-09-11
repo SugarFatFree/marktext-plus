@@ -8,6 +8,7 @@
 | BUG-421 | 2026-09-11 | 发给 GitHub 的 user-agent 写死 1.6.0，守卫照着旧形状写所以看不见 | P2 | 已修复 |
 | BUG-422 | 2026-09-11 | 「关于框」的那段教训挂在了撤销/重做上 | P3 | 已修复 |
 | BUG-423 | 2026-09-11 | 「每个请求都要能结束」的守卫，看不见 package:http，也就看不见它自己引用的那个好例子 | P1 | 已修复 |
+| BUG-424 | 2026-09-11 | 「每个图标按钮都要说出自己做什么」的守卫，认不得 Material 3 的三个命名构造 | P2 | 已修复 |
 
 ---
 
@@ -154,6 +155,56 @@ BUG-421 是守卫照着 `'v1.0.1'` 的形状写正则，BUG-423 是守卫照着 
 和 `getUrl(` 的形状写门槛与计数。**写守卫的时候，手边只有一个坏掉的实例，
 于是照着它写**；规则要靠另外问一句才写得出来——「换一种写法犯同样的错，
 它还拦得住吗」。这一句现在值得对每一条扫源码的守卫都问一遍（`test/` 下有 22 条）。
+
+已经问过、**确认防护完整**的（记下来免得重查）：
+
+| 守卫 | 用什么变异问的 | 结果 |
+|------|--------------|------|
+| `every_permission_is_enforced_test` | 把 `document.read` 的门改成恒为真（字样留着） | 行为测试 `plugin_permission_guard_test` 抓住 |
+| 同上 | 把「AI 动作需要 `ai.chat`」改成需要 `ui.notifications` | 三条测试同时红，含一条行为测试 |
+| `sdk_schema_agrees_test` | —— | 解析 `fromJson` 自身构造体、两个方向都比，且带「读出字段少于 10 个就是取法变了」的防瞎检查 |
+| SDK `check_sdk_parity` | —— | 明确防了「正则不匹配返回空集，两个空集完美一致」 |
+
+---
+
+## BUG-424：图标按钮守卫认不得 `IconButton.filled(`
+
+**现象**
+
+`icon_buttons_have_names_test` 保证每个只有图标、没有文字的按钮都带 `tooltip`
+——否则读屏软件念不出它，鼠标悬停也没有提示。
+
+往 `find_replace_bar.dart` 里塞一个**没有 tooltip** 的 `IconButton.filled(`，
+测试全绿。
+
+**根因分析**
+
+同 BUG-421 / BUG-423，第三次：
+
+```dart
+RegExp(r'(?<![\w.])IconButton\(')
+```
+
+Material 3 里显眼一点的图标按钮写作 `IconButton.filled(`，还有
+`.filledTonal(` 和 `.outlined(`。它们的 `IconButton` 后面跟的是点不是括号，
+正则一个都不匹配。**守卫是照着它被写下来那天库里已有的按钮形状写的。**
+
+今天库里还没有人用这三个构造函数，所以这是个**潜在**缺口而不是现存缺陷——
+但下一个按 Material 3 惯例写的人不会收到任何提醒。
+
+**修复方案**
+
+`IconButton(?:\.(?:filled|filledTonal|outlined))?\(`。括号仍留在匹配末尾，
+后面靠括号配对切出参数列表的那段代码不用动。
+
+**验证**
+
+放宽前注入变异 → 全绿；放宽后同样的变异 →
+`Actual: ['lib/ui/widgets/find_replace_bar.dart:502']`。还原后工作区只剩测试文件被改。
+
+**涉及文件**
+
+- `code/test/ui/icon_buttons_have_names_test.dart`
 
 ---
 

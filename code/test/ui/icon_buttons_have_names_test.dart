@@ -29,7 +29,14 @@ void main() {
         .whereType<File>()
         .where((f) => f.path.endsWith('.dart'))) {
       final source = file.readAsStringSync();
-      for (final match in RegExp(r'(?<![\w.])IconButton\(').allMatches(source)) {
+      // The three named constructors as well as the plain one. Material 3
+      // spells a prominent icon button `IconButton.filled(`, and the pattern
+      // that looked for `IconButton(` read straight past it: one added
+      // without a tooltip kept this test green. The guard was written around
+      // the shape of the buttons that existed the day it was written.
+      for (final match
+          in RegExp(r'(?<![\w.])IconButton(?:\.(?:filled|filledTonal|outlined))?\(')
+              .allMatches(source)) {
         // The call's own argument list, found by balancing brackets: a
         // tooltip belongs to this button and not to one nested inside it.
         var depth = 1;
