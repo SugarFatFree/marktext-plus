@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'dart:ffi';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/services/plugin_js_runtime.dart';
 import 'package:marktext_plus/services/plugin_script_runtime.dart';
@@ -9,6 +10,8 @@ import 'package:marktext_plus/services/plugin_script_runtime.dart';
 /// the action a script returns is JSON, and turning that into what the editor
 /// performs is the part a plugin author's mistake would land in.
 void main() {
+  // The engine needs the services binding, which a plain test has not set up.
+  TestWidgetsFlutterBinding.ensureInitialized();
   // Named for what it does. It used to say "becomes the same thing a Lua
   // action does", which is a comparison it never made — no Lua runtime is
   // built here. The comparison itself now lives in
@@ -57,8 +60,8 @@ void main() {
   });
 
   test('the engine runs a plugin end to end', () {
-    // Only inside a built application: `flutter test` has no QuickJS library,
-    // and a test that cannot load it proves nothing about the plugin.
+    // The one test that actually starts the engine. Everything else in this
+    // file is about parsing what the engine would have said.
     final runtime = PluginJsRuntime(r'''
 function on_command(ctx) { return { notify: "ran " + ctx.command }; }
 ''');
@@ -120,11 +123,36 @@ function on_command(ctx) { return { notify: "ran " + ctx.command }; }
   });
 }
 
-/// Whether the QuickJS native library is present, which it is only in a build.
+/// Whether the QuickJS engine can be reached from here.
+///
+/// It used to be an environment variable nothing set, so the one test that
+/// runs a JavaScript plugin end to end had never run — and the note beside it
+/// said `flutter test` has no QuickJS library. That was an assumption, not a
+/// measurement. The library is prebuilt and ships inside the `flutter_js`
+/// package; on Linux the binding looks its symbols up with
+/// `DynamicLibrary.process()`, so they only have to be *in* the process, and
+/// opening the file puts them there.
+///
+/// Windows resolves a differently-named DLL through the plugin registration,
+/// which a test has no application to do, so this stays false there and the
+/// test skips as it did.
 final bool _quickJsAvailable = () {
-  try {
-    return Platform.environment.containsKey('MARKTEXT_QUICKJS_AVAILABLE');
-  } catch (_) {
-    return false;
+  if (!Platform.isLinux) return false;
+  final cache = Platform.environment['PUB_CACHE'] ??
+      '${Platform.environment['HOME'] ?? ''}/.pub-cache';
+  final hosted = Directory('$cache/hosted/pub.dev');
+  if (!hosted.existsSync()) return false;
+  for (final package in hosted.listSync().whereType<Directory>()) {
+    if (!package.path.contains('/flutter_js-')) continue;
+    final library =
+        File('${package.path}/linux/shared/libquickjs_c_bridge_plugin.so');
+    if (!library.existsSync()) continue;
+    try {
+      DynamicLibrary.open(library.path);
+      return true;
+    } catch (_) {
+      // A library that will not load is the same as one that is not there.
+    }
   }
+  return false;
 }();

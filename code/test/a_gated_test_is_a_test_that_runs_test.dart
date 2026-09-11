@@ -39,6 +39,16 @@ void main() {
           .readAsLinesSync()
           .where((line) => !line.trimLeft().startsWith('//'))
           .join('\n');
+      // A read with a fallback is not a gate. `plugin_js_runtime_test` looks
+      // up `PUB_CACHE` and `HOME` to find a file, each with a `??` behind it,
+      // and requires nothing of anybody — while `packaged_plugin_test` reads
+      // `PLUGIN_ZIP` bare and skips without it. The rule is "no test is
+      // skipped for want of a variable nobody sets", and a default is the
+      // test saying it is not waiting.
+      final withoutFallbacks = source.replaceAll(
+          RegExp(r"Platform\.environment(\['\w+'\]|\.containsKey\('\w+'\))"
+              r'\s*\?\?'),
+          '');
       // Both spellings. This looked only for the subscript form, and
       // `plugin_js_runtime_test` asks `containsKey` — so the one test that
       // runs the JavaScript engine end to end was gated on a variable nothing
@@ -47,7 +57,7 @@ void main() {
         RegExp(r"Platform\.environment\['(\w+)'\]"),
         RegExp(r"Platform\.environment\.containsKey\('(\w+)'\)"),
       ]) {
-        for (final m in pattern.allMatches(source)) {
+        for (final m in pattern.allMatches(withoutFallbacks)) {
           gates.putIfAbsent(m.group(1)!, () => []).add(file.path);
         }
       }
@@ -58,31 +68,12 @@ void main() {
     expect(gates, isNotEmpty,
         reason: '一个环境变量开关都没找到，取法八成该更新了');
 
-    /// A gate CI cannot open, and what it would take.
-    ///
-    /// One entry, and it is a decision rather than an oversight — which is the
-    /// distinction this whole test is about. `flutter test` runs Dart with no
-    /// application around it, so the QuickJS library the JavaScript runtime
-    /// needs is not loaded and cannot be: setting the variable would turn a
-    /// skip into a failure, which is worse.
-    ///
-    /// What would open it is an `integration_test` running inside a built
-    /// application — CI already builds one on Linux and on Windows — and that
-    /// is a harness this project does not have yet. Until then the JavaScript
-    /// engine is exercised end to end by nobody, which is written down in
-    /// `docs/v1.6.3/bugfix.md` rather than left to be discovered.
-    const cannotOpen = <String, String>{
-      'MARKTEXT_QUICKJS_AVAILABLE':
-          'needs a built application; `flutter test` has no QuickJS library',
-    };
-
     final unopened = [
       for (final gate in gates.entries)
         // `NAME=` for `echo "NAME=…" >> $GITHUB_ENV` and for `NAME=… cmd`;
         // `NAME:` for an `env:` block. Both are a value arriving; the bare
         // name is somebody talking about it.
-        if (!cannotOpen.containsKey(gate.key) &&
-            !RegExp('\\b${gate.key}\\s*[=:]').hasMatch(workflow))
+        if (!RegExp('\\b${gate.key}\\s*[=:]').hasMatch(workflow))
           '${gate.key}（${gate.value.join(', ')}）',
     ];
 
