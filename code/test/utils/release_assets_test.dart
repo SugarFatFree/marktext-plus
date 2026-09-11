@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:marktext_plus/services/self_update_service.dart';
 
 /// What the release workflow promises to publish.
 ///
@@ -112,6 +113,43 @@ void main() {
     final promised = assetsIn(publishBlock()).join(' ');
     for (final platform in ['windows', 'macos', 'linux']) {
       expect(promised, contains(platform), reason: '$platform 没有产物');
+    }
+  });
+
+  test('the name update_app looks for is a name the release publishes', () {
+    // Two lists that nothing compared: the assets this workflow uploads, and
+    // the suffixes `SelfUpdateService.chooseReleaseAsset` searches for when
+    // the editor is replacing itself. Rename one here — `-setup.exe` to
+    // `-installer.exe`, say — and the update stops finding anything, with a
+    // sentence blaming the release for having nothing for this platform.
+    // Neither side would have changed in a way its own tests could see.
+    final published = assetsIn(flat)
+        .map((tail) => 'marktext-plus-v9.9.9-$tail')
+        .toList();
+    expect(published.length, greaterThan(6),
+        reason: '从 release.yml 读不出几个产物名，取法要跟着改');
+
+    final assets = [
+      for (final name in published)
+        {'name': name, 'browser_download_url': 'https://example.invalid/$name',
+          'digest': 'sha256:${'a' * 64}', 'size': 1},
+    ];
+
+    // Every machine this editor can be running on while it updates itself.
+    for (final (os, arch) in const [
+      ('windows', 'x64'),
+      ('windows', 'arm64'),
+      ('linux', 'x64'),
+      ('linux', 'arm64'),
+      ('macos', 'x64'),
+      ('macos', 'arm64'),
+    ]) {
+      final chosen =
+          SelfUpdateService.chooseReleaseAsset(assets, os: os, arch: arch);
+      expect(chosen, isNotNull,
+          reason: '$os $arch 在发布的产物里找不到对应的包：$published');
+      expect(chosen!['name'], contains(os == 'macos' ? 'macos' : '$os-$arch'),
+          reason: '$os $arch 选中的是 ${chosen['name']}');
     }
   });
 

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/providers/mcp_provider.dart';
 import 'package:marktext_plus/services/self_update_service.dart';
@@ -95,6 +97,55 @@ void main() {
       expect(
         SelfUpdateService.artifactFor('abc1234', platform: 'windows-x64'),
         'windows-x64-setup-abc1234',
+      );
+    });
+  });
+
+  group('the commit a CI build is named after', () {
+    test('the whole hash is recognised as one', () {
+      expect(SelfUpdateService.isFullSha('a66c89d4a1a01bee6550f098b8dd09b418ca838c'),
+          isTrue);
+      expect(SelfUpdateService.isFullSha('A66C89D4A1A01BEE6550F098B8DD09B418CA838C'),
+          isTrue, reason: '大小写不该改变它是不是一个 sha');
+    });
+
+    test('everything a person actually has is not one', () {
+      // Every way a commit reaches a human hand gives the short form: `git
+      // log --oneline`, a pull request page, a CI run summary. Looking one of
+      // those up as though it were the artifact's name finds nothing, and the
+      // answer that came back blamed CI for never building the commit.
+      for (final short in [
+        'a66c89d',
+        'a66c89d4',
+        'dev',
+        'main',
+        'v1.6.2',
+        '',
+        'a66c89d4a1a01bee6550f098b8dd09b418ca838cX',
+        'g66c89d4a1a01bee6550f098b8dd09b418ca838c',
+      ]) {
+        expect(SelfUpdateService.isFullSha(short), isFalse, reason: short);
+      }
+    });
+
+    test('the artifact name is the one CI writes in the workflow', () {
+      // Two lists: the name `actions/upload-artifact` is given in ci.yml, and
+      // the name this service asks the API for. They are written six months
+      // and two repositories apart from each other, and nothing compared them
+      // until the lookup came back empty.
+      final ci = File('../.github/workflows/ci.yml').readAsStringSync();
+      final names = RegExp(r'name:\s*(windows-x64[\w-]*)-\$\{\{\s*github\.sha\s*\}\}')
+          .allMatches(ci)
+          .map((m) => m.group(1)!)
+          .toSet();
+      expect(names, contains('windows-x64-setup'),
+          reason: 'ci.yml 里找不到按 sha 命名的 Windows 安装包 artifact，'
+              '取法或命名变了：$names');
+
+      const sha = 'a66c89d4a1a01bee6550f098b8dd09b418ca838c';
+      expect(
+        SelfUpdateService.artifactFor(sha, platform: 'windows-x64'),
+        'windows-x64-setup-$sha',
       );
     });
   });

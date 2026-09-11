@@ -294,9 +294,10 @@ class McpToolset {
           'ref': {
             'type': 'string',
             'description':
-                'Which one: a release tag — for example v1.6.2 — or the '
-                'commit sha '
-                'CI built. Empty with source "release" means the newest.',
+                'Which one: a release tag — for example v1.6.2 — or, for '
+                'source "ci", anything that names a commit: the short sha, '
+                'the whole one, or a branch such as dev for whatever its tip '
+                'built. Empty with source "release" means the newest.',
           },
           'token': {
             'type': 'string',

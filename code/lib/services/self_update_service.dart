@@ -135,6 +135,41 @@ class SelfUpdateService {
   static String archName(String abi) =>
       abi.contains('arm64') || abi.contains('aarch64') ? 'arm64' : 'x64';
 
+  /// Whether [ref] is already the full commit hash CI names its builds after.
+  ///
+  /// Forty hexadecimal characters. Anything else — a short sha, a branch, a
+  /// tag — names a commit without being the string the artifact is called,
+  /// and has to be asked about before it can be looked up.
+  @visibleForTesting
+  static bool isFullSha(String ref) =>
+      RegExp(r'^[0-9a-f]{40}$').hasMatch(ref.trim().toLowerCase());
+
+  /// The commit [ref] points at, as the forty characters CI used.
+  ///
+  /// This request exists because of a mismatch that would have shown up the
+  /// first time anyone used this and never before: CI names its artifacts
+  /// after `github.sha`, which is the whole hash, and every way a person
+  /// comes by a commit — `git log --oneline`, a pull request page, a CI run
+  /// summary — gives them the short one. Looking up
+  /// `windows-x64-setup-a66c89d` finds nothing, and the sentence that came
+  /// back said the commit had never been built.
+  ///
+  /// Resolving it through the API rather than refusing also means a branch
+  /// works: `ref: dev` installs whatever the tip of dev built.
+  Future<String> _fullSha(String ref, String? token) async {
+    if (isFullSha(ref)) return ref.trim().toLowerCase();
+    final commit = await _json(
+      Uri.https('api.github.com', '/repos/$owner/$repo/commits/$ref'),
+      token,
+      'the commit lookup',
+    );
+    final sha = commit is Map ? commit['sha'] : null;
+    if (sha is! String || !isFullSha(sha)) {
+      throw FormatException('"$ref" does not name a commit in this repository');
+    }
+    return sha;
+  }
+
   HttpClient _client() {
     final client = HttpClient();
     client.findProxy = (uri) => HttpClient.findProxyFromEnvironment(
@@ -224,7 +259,8 @@ class SelfUpdateService {
         if (onOs != 'windows') {
           throw FormatException('CI keeps no installable package for $onOs');
         }
-        final name = artifactFor(ref, platform: '$onOs-$arch');
+        final sha = await _fullSha(ref, token);
+        final name = artifactFor(sha, platform: '$onOs-$arch');
         final listing = await _json(
           Uri.https('api.github.com', '/repos/$owner/$repo/actions/artifacts',
               {'name': name, 'per_page': '1'}),
@@ -234,7 +270,8 @@ class SelfUpdateService {
         final artifacts = listing is Map ? listing['artifacts'] : null;
         if (artifacts is! List || artifacts.isEmpty) {
           throw FormatException('CI has no artifact called "$name" — '
-              'either that commit was not built, or its artifacts have expired');
+              'either that commit was not built, or its artifacts have '
+              'expired${sha == ref.trim() ? '' : ' ("$ref" is $sha)'}');
         }
         final artifact = artifacts.first as Map;
         if (artifact['expired'] == true) {
