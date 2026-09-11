@@ -1171,12 +1171,6 @@ class AppMenuBar extends ConsumerWidget {
   static void showTableOfContents(WidgetRef ref) =>
       _showSideBarTab(ref, SideBarTab.toc);
 
-  /// The About box, which says which version this is.
-  ///
-  /// A named method rather than a closure inside the menu, so a test can open
-  /// it. The version here was the literal 'v1.0.1' through five releases, and
-  /// the guard comparing pubspec against the constant could not see it,
-  /// because nothing checked that this dialog reads either of them.
   /// Undo or redo, and put the result where the document actually lives.
   ///
   /// In preview mode there is no source editor to restore into, so the notifier
@@ -1199,6 +1193,12 @@ class AppMenuBar extends ConsumerWidget {
     ref.read(tabProvider.notifier).updateContent(id, text, external: true);
   }
 
+  /// The About box, which says which version this is.
+  ///
+  /// A named method rather than a closure inside the menu, so a test can open
+  /// it. The version here was the literal 'v1.0.1' through five releases, and
+  /// the guard comparing pubspec against the constant could not see it,
+  /// because nothing checked that this dialog reads either of them.
   static void showAbout() {
     final context = navigatorKey.currentContext;
     if (context == null) return;

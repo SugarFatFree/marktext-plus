@@ -141,7 +141,21 @@ void main() {
           .map((m) => m.group(1)!)
           .toSet();
 
-      expect(tabled, isNotEmpty, reason: '$file 的总览表格读不出条目，取法要跟着改');
+      // An empty table means one of two things, and they must not be
+      // confused: the extraction stopped matching (the table is there and
+      // this test went blind), or the version genuinely has none of these
+      // yet — a release that only fixes defects has no FEAT, and the first
+      // day of any version has neither. Only the second is allowed, and only
+      // when the document says so in as many words, because a parser that
+      // matches nothing will never be carrying that line.
+      final declaresNone = text.contains('<!-- 本版暂无 $prefix -->');
+      expect(tabled.isNotEmpty || declaresNone, isTrue,
+          reason: '$file 的总览表格读不出条目。真的一条都没有，就写一行 '
+              '`<!-- 本版暂无 $prefix -->`；否则是取法要跟着改');
+      if (declaresNone) {
+        expect(written, isEmpty,
+            reason: '$file 说本版暂无 $prefix，正文里却写了：$written');
+      }
       expect(
         tabled.difference(written).toList()..sort(),
         isEmpty,

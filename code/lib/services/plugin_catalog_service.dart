@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 
 import '../core/net/answered_within.dart';
+import '../core/constants.dart';
 import '../models/plugin_catalog_entry.dart';
 import 'plugin_manager.dart';
 import 'plugin_manifest.dart';
@@ -74,7 +75,7 @@ class PluginCatalogService {
           uri,
           environment: Platform.environment,
         );
-    client.userAgent = 'MarkTextPlus/1.6.0';
+    client.userAgent = 'MarkTextPlus/${AppConstants.appVersion}';
     return client;
   }
 

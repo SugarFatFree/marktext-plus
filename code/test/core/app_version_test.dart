@@ -37,8 +37,25 @@ void main() {
     // literal, and had done through five minor releases. The guard compared
     // the two places the version is *meant* to live and never asked whether
     // the screen that shows it reads either of them.
+    //
+    // Then this guard repeated the mistake one level down. It was written to
+    // match the shape that had broken — a quote, then the version, then a
+    // quote — rather than the rule, which is that no version number is typed
+    // out anywhere but the constant. `'MarkTextPlus/1.6.0'`, the user agent
+    // sent to GitHub, has text in front of the number, so the quote does not
+    // sit against it and the guard read straight past. It said 1.6.0 while
+    // the app shipped 1.6.2, for the same reason About had said 1.0.1: two
+    // places state the version and only one of them is ever updated.
+    //
+    // So the number is looked for anywhere inside a quoted string. What it
+    // must not catch is a dotted number that is not a version: the address
+    // `127.0.0.1` contains `0.0.1`, hence the refusal to match when another
+    // digit or dot sits on either side.
     final offenders = <String>[];
-    final version = RegExp(r"'v?[0-9]+\.[0-9]+\.[0-9]+'");
+    final version = RegExp(
+      '([\'"])[^\'"\n]*?(?<![0-9.])[0-9]+\\.[0-9]+\\.[0-9]+(?![0-9.])'
+      '[^\'"\n]*?\\1',
+    );
     for (final entity in Directory('lib').listSync(recursive: true)) {
       if (entity is! File || !entity.path.endsWith('.dart')) continue;
       // The constant itself, and the generated localisations, which carry
