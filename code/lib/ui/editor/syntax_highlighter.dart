@@ -801,15 +801,27 @@ class _Pattern {
 
     final char = emphasisChar;
     if (char == null) return true;
-    final run = char.length == 1 ? 1 : char.length;
 
-    final openBefore = match.start > 0 ? text[match.start - 1] : ' ';
-    final openAfter = match.start + run < text.length
-        ? text[match.start + run]
-        : ' ';
-    final closeBefore =
-        match.end - run - 1 >= 0 ? text[match.end - run - 1] : ' ';
-    final closeAfter = match.end < text.length ? text[match.end] : ' ';
+    // The run the pattern matched may be shorter than the run that is there.
+    // `\*\*(.+?)\*\*` matches `***加粗。**` out of `***加粗。***后面`, and asking
+    // the flanking rule about the two asterisks it captured is asking about a
+    // delimiter that does not exist: the characters beside *those two* are more
+    // asterisks, so the run looked like it could open and close, and the source
+    // pane tinted the line bold while the preview drew its asterisks.
+    //
+    // The rule is about what sits either side of the whole run, so the run is
+    // measured rather than assumed — the same reading the format actions do
+    // when they decide what a run of markers already carries.
+    final unit = char.codeUnitAt(0);
+    final openStart = _runStart(text, match.start, unit);
+    final openEnd = _runEnd(text, match.start, unit);
+    final closeStart = _runStart(text, match.end - 1, unit);
+    final closeEnd = _runEnd(text, match.end - 1, unit);
+
+    final openBefore = openStart > 0 ? text[openStart - 1] : ' ';
+    final openAfter = openEnd < text.length ? text[openEnd] : ' ';
+    final closeBefore = closeStart > 0 ? text[closeStart - 1] : ' ';
+    final closeAfter = closeEnd < text.length ? text[closeEnd] : ' ';
 
     return emphasisFlanking(
               before: openBefore,
@@ -821,6 +833,25 @@ class _Pattern {
           after: closeAfter,
           char: char[0],
         ).canClose;
+  }
+
+  /// The first index of the run of [unit] that covers [index], or [index]
+  /// itself when the character there is something else.
+  static int _runStart(String text, int index, int unit) {
+    var at = index;
+    while (at > 0 && text.codeUnitAt(at - 1) == unit) {
+      at--;
+    }
+    return at;
+  }
+
+  /// One past the last index of the run of [unit] that covers [index].
+  static int _runEnd(String text, int index, int unit) {
+    var at = index;
+    while (at < text.length && text.codeUnitAt(at) == unit) {
+      at++;
+    }
+    return at;
   }
 
   /// Whether the character at [index] is escaped by a backslash before it.

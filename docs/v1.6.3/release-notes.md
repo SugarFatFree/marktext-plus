@@ -117,6 +117,16 @@ the pane beside it read all six. With Ctrl+I on bold text now writing that
 shape, every nested run in a document carried a stray asterisk. It is one span
 now, bold and italic, and `___bold___` with it.
 
+### Two panes no longer disagree about `***加粗。***后面`
+
+The source pane tinted that line bold and the preview drew its asterisks. The
+bold pattern matches `***加粗。**` out of it and the flanking rule was asked about
+the two asterisks the pattern captured rather than the three that are there — so
+the character after the "opening delimiter" was another delimiter, and the run
+looked like it could both open and close. The run is measured now. A Chinese
+sentence ends in `。` far more often than an English one ends inside the words
+being marked, so this shape is a daily one.
+
 ### A large document's first paint no longer cuts a block in half
 
 A document over 1500 lines is shown in two passes, the top of it first. That
@@ -237,6 +247,14 @@ HKLM、一个在 HKCU），会当作全新安装，旧的那份会留在原地�
 最后那个标记不属于这段强调，而旁边的窗格读到的是全部六个。既然 Ctrl+I 作用于
 粗体现在就会写出这个形状，文档里每一处嵌套强调都会拖着一个落单的星号。
 现在是一段，同时是粗体和斜体，`___加粗___` 也一样。
+
+### 两个窗格不再对 `***加粗。***后面` 各说一套
+
+源码窗格把这一行染成加粗色，预览画的是字面的星号。加粗模式从里面匹配出
+`***加粗。**`，而贴合规则被问的是**它捕获的那两个**星号、不是实际存在的三个——
+于是「开标记后面」答出来是另一个标记，这个运行看上去既能开又能闭。现在运行是
+量出来的。中文句子以 `。` 收尾的频率远高于英文句号出现在被标记的词里，
+所以这个形状每天都会遇到。
 
 ### 大文档的第一屏不再把块切成两半
 

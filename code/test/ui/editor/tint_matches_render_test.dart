@@ -61,6 +61,18 @@ void main() {
     agree('没有任何标记的一行');
   });
 
+  group('nested runs', () {
+    // `***bold***` is strong around emphasis. Ctrl+I on bold text writes this
+    // shape, so it is what the panes have to agree about most often.
+    agree('***加粗加斜***');
+    agree('***both*** here');
+    agree('___both___ here');
+    agree('前面 ***加粗加斜*** 后面');
+    agree('***加粗。***后面接中文');
+    agree('****四个星号****');
+    agree('**加粗里的 *斜体* 一段**');
+  });
+
   group('markers that are not emphasis', () {
     agree('价格 3*4 元 和 5*6 元');
     agree('snake_case_name 是一个词');
