@@ -1136,6 +1136,12 @@ class MarkdownParser {
     // and a blank line inside one is exactly where the cut looks for somewhere
     // to stop.
     String? rawTextCloser;
+    // `$$ … $$` is the third kind that runs to a closing marker, and it was
+    // missed when the raw-text tags were added — the probe that looked for the
+    // closing `$$` found the opening one, which is the same two characters.
+    // Caught by comparing where each block *ends*: the halved block's start is
+    // right by definition, and only its end says it was cut.
+    var inMaths = false;
 
     // Counted at the top, before any of the `continue`s below: a fence's
     // lines cost the parser just as much as a paragraph's, and skipping them
@@ -1157,6 +1163,15 @@ class MarkdownParser {
           frontMatterCloser = opener.close;
           continue;
         }
+      }
+
+      if (inMaths) {
+        if (_mathBlockRe.hasMatch(line)) inMaths = false;
+        continue;
+      }
+      if (_mathBlockRe.hasMatch(line)) {
+        inMaths = true;
+        continue;
       }
 
       if (rawTextCloser != null) {

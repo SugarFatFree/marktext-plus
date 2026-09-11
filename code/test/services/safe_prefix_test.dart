@@ -219,6 +219,56 @@ void main() {
     expect(nodes.first, isA<FrontMatterNode>());
   });
 
+  /// Every block the prefix produced is the same block the whole document did.
+  ///
+  /// Start, kind and end. Comparing only the start — which this did — cannot
+  /// see the failure that matters: the block a cut halves is the last one in
+  /// the prefix, and its start is right by definition. Its *end* is where the
+  /// prefix stopped rather than where the block does, and its kind can change
+  /// outright when an opener loses its closer.
+  ///
+  /// A correctly cut prefix ends at a blank line outside everything, so every
+  /// block in it is complete and every field should agree.
+  void agrees(String what, String source) {
+    final prefix = MarkdownParser.safePrefix(source);
+    if (prefix == null) return;
+    final fromPrefix = parser.parse(prefix);
+    final fromWhole = parser.parse(source);
+    for (var i = 0; i < fromPrefix.length; i++) {
+      expect(fromPrefix[i].sourceStart, fromWhole[i].sourceStart,
+          reason: '$what 第 $i 块的起始行对不上');
+      expect(fromPrefix[i].type, fromWhole[i].type,
+          reason: '$what 第 $i 块的种类变了：'
+              '${fromPrefix[i].type} vs ${fromWhole[i].type}');
+      expect(fromPrefix[i].sourceEnd, fromWhole[i].sourceEnd,
+          reason: '$what 第 $i 块的结束行对不上——'
+              '切点把它截断了，而它的起始行看起来完全正常');
+    }
+  }
+
+  test('a document of things that must not be halved survives the cut', () {
+    // The corpus below is real documents, and none of them happens to carry a
+    // long raw-text HTML block with blank lines in it — so the comparison it
+    // makes could not fire even once the assertions above were sharp enough.
+    // This one is built to carry every kind that runs to a closing marker,
+    // each with a blank line inside it, at a size past the threshold.
+    final filler = List.generate(740, (i) => 'Paragraph $i.\n').join('\n');
+    String withBlanks(String open, String close) =>
+        '$open\n${List.generate(30, (i) => 'line $i\n').join('\n')}\n$close\n';
+
+    for (final (name, open, close) in [
+      ('fence', '```', '```'),
+      ('tilde fence', '~~~', '~~~'),
+      ('maths', r'$$', r'$$'),
+      ('pre', '<pre>', '</pre>'),
+      ('script', '<script>', '</script>'),
+      ('style', '<style>', '</style>'),
+      ('textarea', '<textarea>', '</textarea>'),
+    ]) {
+      agrees(name, '$filler\n${withBlanks(open, close)}\nAfter.\n');
+    }
+  });
+
   test('every fixture either stays whole or splits cleanly', () {
     final files = [
       File('test/fixtures/showcase.md'),
@@ -229,16 +279,7 @@ void main() {
     ];
 
     for (final file in files) {
-      final source = file.readAsStringSync();
-      final prefix = MarkdownParser.safePrefix(source);
-      if (prefix == null) continue;
-
-      final fromPrefix = parser.parse(prefix);
-      final fromWhole = parser.parse(source);
-      for (var i = 0; i < fromPrefix.length; i++) {
-        expect(fromPrefix[i].sourceStart, fromWhole[i].sourceStart,
-            reason: '${file.path} 第 $i 块的行号对不上');
-      }
+      agrees(file.path, file.readAsStringSync());
     }
   });
 }
