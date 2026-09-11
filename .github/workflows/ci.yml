@@ -80,6 +80,23 @@ jobs:
         working-directory: code
         run: dart analyze --fatal-infos lib test
 
+      # The archive a reader downloads, built from the checkout above.
+      #
+      # `packaged_plugin_test` unpacks it and runs the plugin out of it — the
+      # guard for a defect that has happened twice, a plugin "installed" by
+      # copying only its entrypoint, which is half a plugin. It is gated on
+      # PLUGIN_ZIP, and nothing anywhere set that: the four tests had never
+      # run, on CI or on anyone's machine. A guard that does not run is worse
+      # than none, because the list of guards says it is covered.
+      #
+      # A Lua plugin has no build step, so zipping the tree is what making a
+      # release actually is. `.git` is excluded because it is not in one.
+      - name: Pack the plugin the way a release does
+        run: |
+          cd marktext-plus-plugins/marktext-plus-ai-translate-plugin
+          zip -qr "$RUNNER_TEMP/plugin.zip" . -x '.git/*' -x '.github/*'
+          echo "PLUGIN_ZIP=$RUNNER_TEMP/plugin.zip" >> "$GITHUB_ENV"
+
       - name: Test
         working-directory: code
         run: flutter test
