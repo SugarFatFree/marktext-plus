@@ -3116,13 +3116,24 @@ class MarkdownParser {
   }
 
   /// Puts escaped characters back, minus their backslashes.
+  ///
+  /// Except inside a code span, where the backslash comes back with them: a
+  /// code span is literal, so a backslash in it is a backslash. Without this,
+  /// `` `\.` `` came out as `.`, `` `C:\temp\*.md` `` lost the second
+  /// separator, and `` `a\_b` `` lost the escape somebody had put there on
+  /// purpose — a regular expression or a Windows path written in code, in an
+  /// editor whose readers write both.
+  ///
+  /// The sibling of the rule two methods down, which already says entities
+  /// inside inline code are literal. Escapes are the other half of the same
+  /// sentence in the specification and were missed.
   InlineSpan _restoreEscapes(InlineSpan span, List<String> escapes) {
+    final literal = span.type == InlineType.code;
     String restore(String text) {
       return text.replaceAllMapped(RegExp(r'[\uE000-\uF8FF]'), (match) {
         final index = match.group(0)!.codeUnitAt(0) - _escapeSentinelBase;
-        return index >= 0 && index < escapes.length
-            ? escapes[index]
-            : match.group(0)!;
+        if (index < 0 || index >= escapes.length) return match.group(0)!;
+        return literal ? '\\${escapes[index]}' : escapes[index];
       });
     }
 

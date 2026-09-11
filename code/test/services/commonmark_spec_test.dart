@@ -125,7 +125,10 @@ void main() {
     // left blank stopped nesting the rest of its list. Raise it whenever the
     // work raises it; never lower it to make a change pass.
     //
-    // 502 on 2026-09-11, when a numbered list stopped interrupting a paragraph
+    // 503 on 2026-09-11, when a backslash inside a code span stopped being an
+    // escape — `` `\.` `` had been coming out as `.`.
+    //
+    // 502 the same day, when a numbered list stopped interrupting a paragraph
     // unless it is numbered 1 — a wrapped sentence beginning "14." was being
     // turned into a list.
     //
@@ -147,7 +150,7 @@ void main() {
     // folds away — but not everywhere, and a scratch script joining them with
     // nothing counted one example differently. This is the number that
     // counts; anything measured another way is measuring another thing.
-    const floor = 502;
+    const floor = 503;
     expect(passed, greaterThanOrEqualTo(floor),
         reason: '解析能力相比 $floor 例退步了');
     if (passed > floor) {
