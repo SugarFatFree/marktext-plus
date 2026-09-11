@@ -1,3 +1,4 @@
+import 'dart:async';
 import '../../utils/file_utils.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -427,9 +428,13 @@ class _SideBarState extends ConsumerState<SideBar> {
                               // Close the entire folder and all its files
                               final folderPath = node.path;
                               ref.read(fileProvider.notifier).closeDirectory();
-                              ref.read(settingsProvider.notifier).updateConfig(
-                                (c) => c.copyWith(sideBarDirectory: ''),
-                              );
+                              // Not awaited: the setting is for the next
+                              // launch, and nothing here reads it back.
+                              unawaited(ref
+                                  .read(settingsProvider.notifier)
+                                  .updateConfig(
+                                    (c) => c.copyWith(sideBarDirectory: ''),
+                                  ));
 
                               // Close all tabs for files in this folder
                               final inFolder = ref
@@ -707,7 +712,9 @@ class _SideBarState extends ConsumerState<SideBar> {
       isLoading: true,
     );
     tabNotifier.addTab(tab);
-    ref.read(settingsProvider.notifier).addRecentFile(filePath);
+    // The recent list is not awaited: the file is open either way, and the
+    // list is read at the next launch rather than now.
+    unawaited(ref.read(settingsProvider.notifier).addRecentFile(filePath));
 
     // Load file content asynchronously
     try {

@@ -17,6 +17,7 @@
 | BUG-430 | 2026-09-11 | 代码跨度里的反斜杠被当成转义吃掉（正则、Windows 路径） | P1 | 已修复 |
 | BUG-432 | 2026-09-12 | 插件市场出错时 12 种语言的读者一律看到英文 | P1 | 已修复 |
 | BUG-433 | 2026-09-12 | 引用块的竖线在阿拉伯语下站错了边 | P2 | 已修复 |
+| BUG-434 | 2026-09-12 | `set_view_mode` 在模式还没切完时就答「已经切好了」；`unawaited_futures` 未启用 | P1 | 已修复 |
 
 ---
 
@@ -697,6 +698,60 @@ GitHub is rate-limiting searches from this machine; try again in 819 seconds.
 - `code/lib/ui/editor/source_editor.dart`
 - `code/test/ui/layout_follows_the_reading_direction_test.dart`
 - `code/test/ui/editor/rtl_keeps_code_readable_test.dart`
+
+---
+
+## BUG-434：`set_view_mode` 在模式还没切完时就答「已经切好了」
+
+**现象**
+
+MCP 的 `set_view_mode` 不等 `setEditMode` 完成就返回
+`view mode is now split`。代理设完模式立刻 `get_state`，可能读到**旧模式**。
+
+**这是「编辑器说了与事实不符的话」的又一例**——本项目排查缺陷的第二条视角。
+
+**根因分析**
+
+`setEditMode` 返回 `Future<void>`（它要写配置文件），而调用处既没 `await`
+也没 `unawaited()`。**而 `unawaited_futures` 这条 lint 没有启用**，所以分析器
+一声不响。
+
+`unawaited_guard_test` 的标题是「启动了工作却不等它」，两次被证明是缺陷而不是选择
+（BUG-149、BUG-159）。但它只认 `unawaited(` **这一种拼法**——最常见的那种
+（裸调用一个返回 Future 的函数）它看不见，因为没有 lint 把裸调用逼成那两种写法之一。
+**守卫照着当年出问题的那个形状写，而规则是「不等就要说清楚」。**
+
+**修复方案**
+
+1. `set_view_mode` 改为 `await`——答复说它已经发生了，那它就得已经发生。
+2. **启用 `unawaited_futures`**。启用时 `lib` 里有 13 处、`test` 里 2 处裸调用。
+3. 逐处判断：12 处是有意的（对话框、启动时的窗口管理器往返、写最近文件列表、
+   写设置），包成 `unawaited()` 并在上方写明理由——**理由是 `unawaited_guard_test`
+   要求的，于是这条守卫从此覆盖它们**。
+4. 顺手修了守卫自己的一个毛病：它对 `not awaited` **大小写敏感**，
+   而句首大写的「Not awaited」是任何人都会这么写的——一条正确的理由被判成缺失。
+
+**为什么全部包成 `unawaited()` 而不是改成 `await`**：包裹**不改变运行时行为**，
+加 `await` 会改变时序。除了 `set_view_mode` 那一处（答复的诚实性取决于它），
+其余都保持原样行为，只是把隐形的决定变成了写下来的决定。
+
+**过程中踩的坑**：第一次我写脚本批量包裹，用「语句结束于第一个以 `);` 结尾的行」
+判断边界——对嵌套调用是错的，弄坏了五个文件（97 个分析错误）。全部还原、改为手工
+逐处处理。**这正是「脚本生成 Dart 后必须验证」那条记忆。**
+
+**验证**
+
+`dart analyze --fatal-infos lib test` 干净（开着新 lint），全量 3181 条测试绿。
+`unawaited_guard_test` 现在覆盖全部 14 处 `unawaited(`，每一处都有理由。
+
+**涉及文件**
+
+- `code/analysis_options.yaml`（启用 lint）
+- `code/lib/providers/mcp_provider.dart`（`await`）
+- `code/lib/app.dart`、`main.dart`、`providers/file_provider.dart`、
+  `ui/screens/home_screen.dart`、`ui/widgets/{app_menu_bar,editor_tab_bar,side_bar}.dart`
+- `code/test/services/unawaited_guard_test.dart`（不分大小写）
+- `code/test/ui/screens/settings_fields_test.dart`
 
 ---
 

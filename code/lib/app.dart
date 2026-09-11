@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'core/constants.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -121,7 +122,10 @@ Future<void> runExport(String fileName, Future<void> Function() export) async {
   }
 
   final l10n = AppLocalizations.of(context);
-  showDialog<void>(
+  // A dialog is not awaited: whoever opened it has nothing to do when it
+  // closes, and awaiting would hold the caller for as long as the reader
+  // looks at it.
+  unawaited(showDialog<void>(
     context: context,
     barrierDismissible: false,
     builder: (context) => PopScope(
@@ -141,7 +145,7 @@ Future<void> runExport(String fileName, Future<void> Function() export) async {
         ),
       ),
     ),
-  );
+  ));
   // One frame, so the dialog is on screen before the work begins.
   await Future<void>.delayed(Duration.zero);
 

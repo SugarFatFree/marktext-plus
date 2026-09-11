@@ -31,10 +31,13 @@ void main() {
         final above = lines.sublist(from, i);
         final hasReason = above.any((l) {
           final t = l.trim();
+          // Case-insensitive, and one phrase rather than three spellings of
+          // two: "Not awaited" at the start of a sentence is how anybody
+          // would write it, and the version that only matched the lower-case
+          // spelling sent a correct reason back as a missing one.
+          final lower = t.toLowerCase();
           return t.startsWith('//') &&
-              (t.contains('not awaited') ||
-                  t.contains('Deliberately') ||
-                  t.contains('deliberately'));
+              (lower.contains('not awaited') || lower.contains('deliberately'));
         });
         if (!hasReason) offenders.add('${file.path}:${i + 1}');
       }

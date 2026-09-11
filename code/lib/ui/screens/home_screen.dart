@@ -614,7 +614,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
           }
         });
 
-        ref.read(settingsProvider.notifier).addRecentFile(path);
+        // The recent list is not awaited: the file is open either way, and the
+        // list is read at the next launch rather than now.
+        unawaited(ref.read(settingsProvider.notifier).addRecentFile(path));
       } catch (_) {
         // A file named on the command line that cannot be opened is skipped;
         // the others still open. The inner catch above has already removed
@@ -733,7 +735,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
           }
         });
 
-        ref.read(settingsProvider.notifier).addRecentFile(path);
+        // The recent list is not awaited: the file is open either way, and the
+        // list is read at the next launch rather than now.
+        unawaited(ref.read(settingsProvider.notifier).addRecentFile(path));
       } catch (_) {
         // Skip files that can't be read
       }

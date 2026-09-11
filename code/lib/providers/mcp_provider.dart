@@ -212,7 +212,12 @@ class McpController extends StateNotifier<McpStatus> {
             .where((m) => m.name == text('mode'))
             .firstOrNull;
         if (mode == null) return mcpRefused('unknown mode "${text('mode')}"');
-        _ref.read(settingsProvider.notifier).setEditMode(mode);
+        // Awaited, because the sentence below says it already happened. It
+        // was not, so an agent that set the mode and asked for the state in
+        // the next breath could be told "view mode is now split" and then
+        // shown the old one — the editor saying something that is not so,
+        // which is the fault this repository keeps finding.
+        await _ref.read(settingsProvider.notifier).setEditMode(mode);
         return mcpDid('view mode is now ${mode.name}');
 
       case McpAction.newTab:

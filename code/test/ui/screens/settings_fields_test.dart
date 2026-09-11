@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -86,8 +87,10 @@ void main() {
     await tester.enterText(field, '900');
     await tester.pump();
 
-    // Something else on the screen changes, which rebuilds it.
-    container.read(settingsProvider.notifier).toggleSideBar();
+    // Something else on the screen changes, which rebuilds it. Not awaited:
+    // the rebuild is what this is for, and the settings write behind it goes
+    // to disk on its own time.
+    unawaited(container.read(settingsProvider.notifier).toggleSideBar());
     await tester.pump();
 
     expect(fieldShowing('900'), findsOneWidget,
@@ -99,9 +102,11 @@ void main() {
     await pump(tester);
     expect(fieldShowing('5000'), findsOneWidget);
 
-    container.read(settingsProvider.notifier).updateConfig(
-          (c) => c.copyWith(autoSaveDelay: 1234),
-        );
+    // Not awaited, for the same reason: the rebuild is the subject and the
+    // write behind it is not.
+    unawaited(container.read(settingsProvider.notifier).updateConfig(
+      (c) => c.copyWith(autoSaveDelay: 1234),
+    ));
     await tester.pump();
 
     expect(fieldShowing('1234'), findsOneWidget,

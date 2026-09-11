@@ -39,7 +39,10 @@ class FileNotifier extends StateNotifier<List<FileNode>> {
     if (!mounted) return;
     state = [tree];
 
-    _watcherSubscription?.cancel();
+    // The old subscription is not awaited: its callback only refreshes the
+    // tree, so one late delivery costs a redraw of what is already on screen,
+    // and the replacement is installed on the next line.
+    unawaited(_watcherSubscription?.cancel());
     _watcherSubscription = _watcherService.events.listen((_) => _refreshTree());
     _watcherService.watch(_expanded);
   }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'utils/file_utils.dart';
 import 'core/constants.dart';
 import 'dart:io';
@@ -209,7 +210,12 @@ void main(List<String> args) async {
     title: AppConstants.appName,
   );
 
-  windowManager.waitUntilReadyToShow(windowOptions, () async {
+  // Deliberately not awaited. The callback is window-manager round trips,
+  // and the marks inside it measured one launch in four spending 676 ms
+  // there against 5, 2 and 13 in the others. Awaiting would put that in
+  // front of the first frame; the window arrives when it arrives.
+  unawaited(
+      windowManager.waitUntilReadyToShow(windowOptions, () async {
     StartupTrace.mark('window ready to show');
     // Position and maximised state cannot travel in WindowOptions.
     //
@@ -235,7 +241,7 @@ void main(List<String> args) async {
     // thing worth knowing when a launch takes seconds, and the program is
     // sitting in that folder.
     StartupTrace.recordInstallSize();
-  });
+  }));
   final initialLocale = LocaleNotifier.parseLocale(config.locale);
 
   final container = ProviderContainer(

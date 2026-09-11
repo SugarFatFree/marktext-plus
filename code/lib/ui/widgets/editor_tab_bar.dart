@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
@@ -148,7 +149,9 @@ class EditorTabBar extends ConsumerWidget {
       ref
           .read(tabProvider.notifier)
           .updateTabPath(tab.id, path, p.basename(path));
-      ref.read(settingsProvider.notifier).addRecentFile(path);
+      // The recent list is not awaited: the file is open either way, and the
+      // list is read at the next launch rather than now.
+      unawaited(ref.read(settingsProvider.notifier).addRecentFile(path));
     }
     await ref.read(tabProvider.notifier).markSaved(tab.id);
     return true;

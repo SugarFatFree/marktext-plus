@@ -154,7 +154,9 @@ class AppMenuBar extends ConsumerWidget {
         diskStamp: opened.stamp,
       );
       ref.read(tabProvider.notifier).addTab(tab);
-      ref.read(settingsProvider.notifier).addRecentFile(path);
+      // The recent list is not awaited: the file is open either way, and the
+      // list is read at the next launch rather than now.
+      unawaited(ref.read(settingsProvider.notifier).addRecentFile(path));
     } catch (e) {
       // A file can stop being readable between being picked and being read —
       // permissions, a network share going away, something else deleting it.
@@ -167,10 +169,14 @@ class AppMenuBar extends ConsumerWidget {
   static void openFolder(WidgetRef ref) async {
     final result = await FilePicker.platform.getDirectoryPath();
     if (result == null) return;
-    ref.read(fileProvider.notifier).loadDirectory(result);
-    ref.read(settingsProvider.notifier).updateConfig(
+    // Reading the tree is not awaited: it fills the side bar when it
+    // arrives, and the two lines below do not depend on it.
+    unawaited(ref.read(fileProvider.notifier).loadDirectory(result));
+    // The settings write is not awaited either: it goes to disk for the
+    // next launch, and nothing here reads it back.
+    unawaited(ref.read(settingsProvider.notifier).updateConfig(
       (c) => c.copyWith(sideBarDirectory: result),
-    );
+    ));
   }
 
   /// Writes the active tab back to disk, asking for a location if it has
@@ -307,7 +313,9 @@ class AppMenuBar extends ConsumerWidget {
         .read(tabProvider.notifier)
         .updateTabPath(activeTab.id, path, p.basename(path));
     await ref.read(tabProvider.notifier).markSaved(activeTab.id);
-    ref.read(settingsProvider.notifier).addRecentFile(path);
+    // The recent list is not awaited: the file is open either way, and the
+    // list is read at the next launch rather than now.
+    unawaited(ref.read(settingsProvider.notifier).addRecentFile(path));
   }
 
   static void renameFile(WidgetRef ref) async {
@@ -1574,7 +1582,9 @@ class AppMenuBar extends ConsumerWidget {
         diskStamp: opened.stamp,
       );
       ref.read(tabProvider.notifier).addTab(tab);
-      ref.read(settingsProvider.notifier).addRecentFile(filePath);
+      // The recent list is not awaited: the file is open either way, and the
+      // list is read at the next launch rather than now.
+      unawaited(ref.read(settingsProvider.notifier).addRecentFile(filePath));
     } catch (e) {
       // The existence check above passed, so this is a file that is there and
       // cannot be read — which needs saying just as much.
