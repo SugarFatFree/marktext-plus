@@ -109,6 +109,14 @@ other's place.
 Which markers compose and which replace each other is one rule in one place,
 asked by all three of the paths that used to answer it differently.
 
+### The source pane paints a nested run as one colour
+
+`***bold***` was painted as `***bold**` in the bold colour followed by a plain
+asterisk — the pane saying that last marker is not part of the emphasis, while
+the pane beside it read all six. With Ctrl+I on bold text now writing that
+shape, every nested run in a document carried a stray asterisk. It is one span
+now, bold and italic, and `___bold___` with it.
+
 ### A large document's first paint no longer cuts a block in half
 
 A document over 1500 lines is shown in two passes, the top of it first. That
@@ -222,6 +230,13 @@ HKLM、一个在 HKCU），会当作全新安装，旧的那份会留在原地�
 
 哪些标记会叠、哪些互相取代，现在是一处的一条规则，从前各自给出不同答案的
 三条路径都来问它。
+
+### 源码区把嵌套的强调染成同一个颜色
+
+`***加粗***` 以前被染成 `***加粗**`（加粗色）加一个普通色的星号——窗格在说
+最后那个标记不属于这段强调，而旁边的窗格读到的是全部六个。既然 Ctrl+I 作用于
+粗体现在就会写出这个形状，文档里每一处嵌套强调都会拖着一个落单的星号。
+现在是一段，同时是粗体和斜体，`___加粗___` 也一样。
 
 ### 大文档的第一屏不再把块切成两半
 

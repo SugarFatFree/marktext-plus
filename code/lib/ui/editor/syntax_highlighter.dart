@@ -10,6 +10,19 @@ import '../../services/markdown_parser.dart';
 /// to re-scan the whole file on every rebuild.
 class MarkdownSyntaxHighlighter {
   static final List<_Pattern> _inlinePatterns = [
+    // Before the doubled patterns, which the loop needs: at the same starting
+    // point it takes whichever it reaches first, and `\*\*(.+?)\*\*` is happy
+    // to match `***bold**` out of `***bold***` and leave the last asterisk in
+    // the default colour — the pane saying that marker is not part of the
+    // emphasis while the pane beside it reads all six. A run of three is
+    // strong around emphasis, which the preview draws as both.
+    //
+    // Pressing Ctrl+I on bold text is how the shape gets written, so this is
+    // not a corner.
+    _Pattern(RegExp(r'\*\*\*(.+?)\*\*\*'), _PatternType.boldItalic,
+        emphasisChar: '***', requires: '***', marker: _asterisk),
+    _Pattern(RegExp(r'___(.+?)___'), _PatternType.boldItalic,
+        emphasisChar: '___', requires: '___', marker: _underscore),
     _Pattern(RegExp(r'\*\*(.+?)\*\*'), _PatternType.bold,
         emphasisChar: '**', marker: _asterisk),
     // CommonMark gives `_` the same standing as `*`, and the parser has
@@ -66,7 +79,8 @@ class MarkdownSyntaxHighlighter {
         marker: _openBracket),
     // Before the emphasis patterns: a comment may contain anything, and
     // letting `*` inside one match first would colour half of it as italic.
-    _Pattern(RegExp(r'<!--.*?-->'), _PatternType.comment, marker: _lessThan),
+    _Pattern(RegExp(r'<!--.*?-->'), _PatternType.comment,
+        requires: '-->', marker: _lessThan),
     // No flanking test on this one: this project's parser is deliberately
     // more forgiving than GitHub about `~~文字。~~后面` and draws it, so the
     // tint has to agree with the pane beside it rather than with GitHub.
@@ -94,6 +108,17 @@ class MarkdownSyntaxHighlighter {
     _Pattern(RegExp(r'(?<!_)_(?!_)(.+?)(?<!_)_(?!_)'),
         _PatternType.italic, emphasisChar: '_', marker: _underscore),
   ];
+
+  /// The patterns' shapes and the cheap tests standing in front of them, for a
+  /// test that reconciles the two. A pattern whose run is longer than the one
+  /// character [_Pattern.marker] can rule out needs [_Pattern.requires], or
+  /// every line carrying that character pays a scan for a run that is not
+  /// there.
+  @visibleForTesting
+  static List<({String pattern, String? requires})> get shapesForTest => [
+        for (final pattern in _inlinePatterns)
+          (pattern: pattern.regex.pattern, requires: pattern.requires),
+      ];
 
   /// Highlights [text] in one pass, without caching.
   static TextSpan highlight(
@@ -362,26 +387,22 @@ class MarkdownSyntaxHighlighter {
           seen |= 512;
       }
     }
-    // The comment pattern needs more than its opening character. Without
-    // `-->` anywhere on the line there is nothing for it to find, and it
-    // would scan to the end of the line from every `<!--` before admitting
-    // it: a line of twenty thousand openers took twelve seconds. Asking once
-    // whether the closing sequence exists at all costs one pass.
-    //
-    // This is the only pattern whose marker is not a single character, which
-    // is why it is a special case here rather than another bit in the mask.
-    final noCommentEnd = !text.contains('-->');
-
     for (var k = 0; k < _inlinePatterns.length; k++) {
-      if (noCommentEnd && _inlinePatterns[k].type == _PatternType.comment) {
-        spent[k] = true;
-        continue;
-      }
-      final bit = _bitFor(_inlinePatterns[k].marker);
+      final pattern = _inlinePatterns[k];
+      final bit = _bitFor(pattern.marker);
       // No bit means no cheap test for this one — run it. A pattern added
       // without a marker, or with one this switch does not know, must still
       // work; silently skipping it would be a hole nothing points at.
-      if (bit != 0 && seen & bit == 0) spent[k] = true;
+      if (bit != 0 && seen & bit == 0) {
+        spent[k] = true;
+        continue;
+      }
+      // The mask only rules out a missing character. A pattern that also names
+      // a run it cannot do without is asked about that run once — see
+      // [_Pattern.requires] — which is a substring search against a regex that
+      // would otherwise scan the line from every opening position.
+      final needed = pattern.requires;
+      if (needed != null && !text.contains(needed)) spent[k] = true;
     }
 
     while (pos < text.length) {
@@ -450,6 +471,12 @@ class MarkdownSyntaxHighlighter {
     switch (type) {
       case _PatternType.bold:
         return TextStyle(color: colors.bold, fontWeight: FontWeight.bold);
+      case _PatternType.boldItalic:
+        return TextStyle(
+          color: colors.bold,
+          fontWeight: FontWeight.bold,
+          fontStyle: FontStyle.italic,
+        );
       case _PatternType.code:
         return TextStyle(color: colors.code, fontFamily: 'monospace');
       case _PatternType.link:
@@ -711,6 +738,7 @@ class IncrementalMarkdownHighlighter {
 
 enum _PatternType {
   bold,
+  boldItalic,
   code,
   link,
   strikethrough,
@@ -736,8 +764,21 @@ class _Pattern {
   /// forgotten argument.
   final int marker;
 
+  /// A literal run the match cannot do without, checked once per line before
+  /// the regex is ever run.
+  ///
+  /// [marker] rules out the lines that carry none of the opening character at
+  /// all, which is most of them. This is for the patterns where that is not
+  /// enough. The comment pattern without `-->` anywhere would scan to the end
+  /// of the line from every `<!--` before admitting it: a line of twenty
+  /// thousand openers took twelve seconds. The triple-run patterns are on a
+  /// character that is common — a line full of `*` and `_` has to be tried by
+  /// the doubled and single patterns anyway — and a triple that is not there
+  /// cost every ordinary line 11% for nothing.
+  final String? requires;
+
   const _Pattern(this.regex, this.type,
-      {this.emphasisChar, required this.marker});
+      {this.emphasisChar, this.requires, required this.marker});
 
   /// Whether [match] is emphasis where it stands.
   ///
