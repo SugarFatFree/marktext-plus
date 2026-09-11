@@ -119,6 +119,82 @@ Four buttons drawn as an icon alone now say what they are, on hover and to a
 screen reader: the close on the find bar, the × on a tab, the search in the
 sidebar, and the send in the plugin drawer.
 
+### The model's answer arrives as it is written
+
+Asking a plugin to rewrite, proofread or translate used to show a spinner until
+the whole answer was ready. It now appears a piece at a time, the way it is
+written.
+
+Behind that was a worse fault, found by running it: a streamed answer waited
+for the connection to close and for nothing else. A provider that keeps the
+connection open after its last word never returned — measured at fifteen
+minutes on a real machine, with no error, nothing in the log, and no way to
+stop it. Two things end the wait now, and neither of them is the socket.
+
+Three smaller ones in the same panel: pressing Apply on a rewrite left the
+source pane blank and the next keystroke wrote the blank back; a pane that had
+not yet been filled decided a rewrite would replace the whole document rather
+than what you had selected; and the box you type follow-up instructions into
+vanished while the model was working.
+
+### Two ways a document could be damaged
+
+A code fence written under a list item came apart if what was inside it looked
+like a list item — which is what a page explaining list syntax contains. The
+fence became two empty code blocks and its contents were promoted to real
+items. A heading or a quote in the same fence was never at risk, so the fault
+showed up only in the one document most likely to contain it.
+
+On a task list the same shape was worse: the preview drew a tickable box for a
+line of code, and ticking it wrote into the code block and left the task alone.
+
+### JavaScript plugins on Linux never started
+
+The Linux package carried the plugin shim and not the engine behind it, so
+`getJavascriptRuntime()` threw and every JavaScript plugin failed to start —
+with nothing in the editor able to say why, since the failure was inside a
+dependency. Windows was unaffected. Both desktop builds now check their own
+output for the engine before they are packaged.
+
+### Nothing waits forever
+
+Four requests had a size limit and no time limit: testing the AI connection,
+listing the plugin marketplace, fetching a plugin's README, and downloading a
+plugin. A server that accepts a connection and then says nothing left each of
+them spinning with no way to stop and nothing to report. Every request this
+editor makes is now bounded, and the message names who went quiet.
+
+### Mermaid diagrams in the Format menu
+
+Fifty-two format commands, and the menu offered fifty-one. The missing one was
+the fenced diagram block — the only one of its family you cannot get by typing
+two or three characters, since it takes a fence, a word, and a first line that
+decides the diagram's kind. It was reachable from the `/` menu and nowhere
+else.
+
+### Permissions, the rest of them
+
+The menu bar had asked for its permission since it was written and the
+right-click menu asked for none, so a plugin you had approved without it
+appeared there anyway. A settings page needed no permission either.
+
+Seven of the eighteen permissions are marked in the SDK now, in all twelve
+languages: they are real, you are shown them, and the editor has not built the
+thing they would grant. Asking for one gains a plugin nothing today. They stay
+listed because they are part of the manifest and will be honoured when the
+capability arrives — but an author reading "add a toolbar button" and getting
+no button had lost an evening to a sentence.
+
+### What the editor will now tell you
+
+`get_state` reports how much memory the process is holding, and opening a
+document leaves a line saying how big it was, in what encoding, and how long
+the read and the decode took. Both exist because a claim nobody can measure is
+one nobody can keep: this editor's first promise is that it stays light, and
+until now the only way to read that number was a log line the preview wrote —
+so it could be had while a heavy document was open and not once it was closed,
+which is the wrong way round for the only question worth asking.
+
 ### Small honesty fixes
 
 "Check for updates" could tell you that you were on the latest version without
@@ -128,6 +204,19 @@ its ё. The automation interface reported success for a tab it had not switched
 to and a pane it had not closed, and advertised two actions implemented
 nowhere.
 
+A plugin the editor cannot run — a compiled one, or one with no code at all —
+still got an icon in the right-hand rail, and pressing it answered that the
+plugin had no script. The web pane a plugin draws in wrote where the page had
+been to the log on every platform except the one most readers use, where it
+wrote nothing at all. The front page promised that a test fails if four times
+the document costs more than six times the work; it fails above eight, and had
+since the limit was raised.
+
+The automation interface took an answer for a plugin's question and passed it
+on for panels only — a command that asked one sat waiting for a button nobody
+was there to press. Recording the window as a GIF took fifty-two seconds for
+three seconds of video, past the patience of anything that asked for it; it now
+takes about eight, and the file is a third of the size.
 ---
 
 ## 简体中文
@@ -224,9 +313,82 @@ Flutter 只负责画出菜单项的快捷键，不负责执行它；
 四个只有图标的按钮现在有名字了，悬停能看到，读屏软件也念得出：
 查找栏的关闭、标签页的关闭、侧栏搜索、插件抽屉的发送。
 
+### 模型的回答，边写边出现
+
+让插件改写、纠错或翻译，过去是一直转圈直到整段答案备齐。现在它一段一段地出现，
+就像它被写出来的样子。
+
+这背后藏着一个更糟的毛病，是**跑起来才发现的**：流式读取只等一个出口——连接关闭。
+而 provider 说完最后一个字并不关连接，于是永远回不来——真机实测**转了十五分钟**，
+没有报错、日志里没有一行、也没有办法停下。现在有两个出口，而且都不是 socket。
+
+同一个面板里还有三处：改写点「采用」之后源码窗格是空白的，下一次敲键会把空白写回去；
+还没填内容的空窗格把「替换整篇」定死了，你选中的那段被忽略；
+以及模型工作期间，你用来追加要求的输入框会整个消失。
+
+### 两种会损坏正文的情形
+
+写在列表项底下的代码围栏，**如果里面的内容看起来像列表项，就会被拆开**——
+而那正是一篇讲列表语法的文档里会有的东西。围栏变成两个空代码块，
+里面的内容被升格成了真的列表项。同一个围栏里换成标题或引用从来不会出事，
+所以这个毛病只在最可能写到它的那一种文档里现身。
+
+在任务列表上更糟：预览会给代码块里的那一行画出一个可勾选的框，
+**勾它会改写代码块，而你真正想勾的那一项纹丝不动**。
+
+### Linux 上的 JavaScript 插件从来没能启动
+
+Linux 安装包里带的是插件外壳，没有它背后的引擎，于是 `getJavascriptRuntime()`
+直接抛错，**每一个 JavaScript 插件都起不来**——而且编辑器这边说不出原因，
+因为失败发生在依赖内部。Windows 不受影响。现在两个桌面构建在打包之前，
+都会检查自己的产物里有没有这个引擎。
+
+### 不再有永远的等待
+
+有四处请求只有大小上限、没有时间上限：测试 AI 连接、列出插件市场、
+取插件的 README、下载插件。对方接了连接却一句话不说时，
+它们每一个都会一直转下去，既停不掉也报不出。
+现在这个编辑器发出的每一个请求都有时限，而且超时的那句话会说清**是谁不出声**。
+
+### Mermaid 图进了格式菜单
+
+五十二条格式命令，菜单提供了五十一条。缺的那一条是带围栏的图表块——
+**它偏偏是这一族里唯一不能靠敲两三个字符得到的**：要记住围栏、记住那个词、
+还要记住第一行决定图的种类。此前它只能从 `/` 菜单进入。
+
+### 权限，剩下的那些
+
+菜单栏从写下那天起就查自己的权限，而右键菜单一条都不查——
+所以一个你在没有这条权限的情况下批准的插件，照样出现在那里。设置页也同样不需要权限。
+
+十八个权限里有七个，现在在 SDK 文档里**被明确标注**（十二种语言都是）：
+它们是真的、也会展示给你，但编辑器还没有做出它们所授予的那个能力。
+今天声明它们，插件什么也得不到。它们仍列在那里，因为它们是清单的一部分、
+将来做出来时会被兑现——但一个作者读到「加一个工具栏按钮」、照做之后什么都没发生，
+**为一句话赔上了一个晚上**。
+
+### 编辑器现在愿意告诉你的事
+
+`get_state` 会报出进程占用了多少内存；打开一个文档会留下一行，
+说清它多大、什么编码、读盘与解码用了多久。两者都是因为
+**没人能测量的承诺就是没人能守住的承诺**：这个编辑器的第一条承诺是「占用低」，
+而在此之前读到这个数字的唯一途径是预览写的一行日志——
+于是开着大文档时读得到，关掉之后读不到，
+而唯一值得问的问题恰恰是后者。
+
 ### 几处「说实话」的修正
 
 「检查更新」在没连上任何服务器时也能告诉你「已是最新版本」。
 同一个数学块，命令面板叫「数学公式」而设置里叫「数学公式块」；
 俄语的删除线有带 ё 和不带 ё 两种写法。自动化接口会为它没有切过去的标签、
 没有关掉的窗格回报成功，还宣称支持两个从未实现过的动作。
+编辑器跑不了的插件——编译型的，或者根本没有代码的——**照样在右侧栏里得到一个图标**，
+按下去回答的是「这个插件没有脚本」。插件画界面的那个网页窗格，
+会把页面去过哪里写进日志——除了**大多数读者正在用的那个平台**，在那里它什么都不写。
+首页承诺「四倍的文档不超过六倍的开销，否则测试失败」；实际的上限是八倍，
+而且从它被调高的那天起就是。
+
+自动化接口收下「插件提问的答案」之后，只转交给面板——
+**一条会提问的命令会一直等着一个没有人去按的按钮**。
+把窗口录成 GIF，三秒的画面要等五十二秒，超过了任何调用方的耐心；
+现在约八秒，文件还小了三分之二。

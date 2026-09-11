@@ -5,9 +5,21 @@ All notable changes to MarkText Plus will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - v1.6.2
+## [v1.6.2] - 2026-09-11
 
 ### Added
+
+- **Mermaid diagrams reached the Format menu.** Fifty-two format commands and
+  the menu offered fifty-one; the missing one was the fenced diagram block,
+  which is the only one of its family you cannot get by typing two or three
+  characters. It was reachable from the `/` menu and nowhere else
+
+- **The editor will say how much memory it is holding**, through `get_state`,
+  and opening a document leaves a line saying how big it was, in what encoding,
+  and how long the read and decode took. A claim nobody can measure is one
+  nobody can keep, and the only figure available before this was one the
+  preview wrote — so it could be had while a heavy document was open and not
+  once it was closed
 
 - **The model's answer appears as it is written.** A pane opened for an answer
   used to sit empty for the seconds a model takes, which reads as a command
@@ -38,6 +50,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Everything above goes to the application log, which is what a bug report has to go on and what an automation client can read. A plugin that will not load writes its reason there too, naming the key it could not read — until now it appeared only on the plugin page, and the log on a running editor held a single line saying the automation server had started
 
 ### Fixed
+- **A code fence under a list item came apart on its own contents.** If what
+  was inside it looked like a list item — which is what a page explaining list
+  syntax contains — the fence became two empty code blocks and its contents
+  were promoted to real items. A heading or a quote in the same fence was never
+  at risk, so the fault appeared only in the one document most likely to hold it
+- **Ticking a task inside such a document wrote into the code block.** The
+  preview drew a tickable box for a line of code, and pressing it left the real
+  task untouched. Both halves needed fixing: with only the parser corrected the
+  right number of boxes was drawn and the wrong line still edited
+- **JavaScript plugins could not start on Linux.** The package carried the
+  plugin shim and not the engine behind it, so the runtime threw and every
+  JavaScript plugin failed — with nothing in the editor able to say why, the
+  failure being inside a dependency. Windows was unaffected; both desktop
+  builds now check their own output for the engine before packaging
+- **The right-click menu asked for no permission.** The menu bar had asked for
+  its own since it was written, so a plugin approved without `ui.contextMenu`
+  appeared in the right-click menu anyway. A settings page needed none either
+- **A plugin the editor cannot run still got an icon** in the right-hand rail,
+  and pressing it answered that the plugin had no script to run
+- **The web pane logged nowhere it went, on Windows.** `ui.webview` promises
+  that where a plugin's page goes can be read afterwards; the one report the
+  pane listened for is not sent by that platform, so the log was empty on the
+  one most readers use
+- **Four requests had a size limit and no time limit** — testing the AI
+  connection, listing the marketplace, fetching a plugin's README, downloading
+  a plugin. A server that accepts a connection and then says nothing left each
+  spinning with no way to stop and nothing to report
+- **The front page promised a tighter budget than the suite enforces.** It said
+  a test fails if four times the document costs more than six times the work;
+  it fails above eight, and had since the limit was raised
+- **The automation interface dropped the answer to a plugin's question** unless
+  it came through a panel, so a command that asks one waited for a button
+  nobody was there to press
+- **Recording the window as a GIF took fifty-two seconds for three seconds of
+  video**, past the patience of anything that asked for it. About eight now,
+  and a third of the size: the encoder's defaults are meant for photographs,
+  and dithering a window full of flat colour adds noise that costs both bytes
+  and accuracy
 - **The permissions were being displayed, not enforced.** Seventeen of them are declared and shown; four were ever checked. A plugin whose manifest asked for nothing could still put a pane beside your document, open a panel in the side bar, and interrupt you with notifications — and `document.read`, the one you are most likely to be weighing, meant nothing at all: the document and your selection were handed to every plugin regardless of what it had asked for. A plugin that did not ask now sees an empty document, which is a state it has to handle anyway, and every action that reaches you is checked in one place
 - **You can see the list it is being enforced against.** An installed plugin's page now says what it asked for, in sentences rather than identifiers — "Read the open document and your selection", not `document.read` — above the README rather than inside a tab. A plugin that asked for nothing says so. A permission this version does not understand still takes a line, saying it grants nothing, so a `documents.read` typo does not become a plugin that silently does nothing. A plugin you have not installed shows no list: its manifest is inside a package that has not been downloaded, and an empty list there would read as a promise the editor cannot make
 - The refusal notice named only the permission — `ui.sidebar`, a string an author types into a manifest. It now carries the sentence too, for whoever is deciding whether they mind

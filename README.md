@@ -99,7 +99,7 @@ it needs to be, with `require` reaching only inside its own directory.
 |---------|-------------|
 | **🔐 Permissions** | Declared in the manifest, shown on the plugin's page, and **enforced**. VS Code and IntelliJ show a list and then trust the extension; nothing here is reviewed by anybody, so the editor checks. A plugin asking the model without `ai.chat` is told no, and you are told it asked |
 | **🪟 Panes** | The editor already divides a tab between source and preview, and that division is offered out: up to four cells, the dividers drag, and nothing is drawn for a cell nobody filled |
-| **✍️ Writing back** | A plugin can rewrite what you selected — having shown you first. The result appears with an Apply button, and applying goes through the editor's history, so undo takes it back |
+| **✍️ Writing back** | A plugin can rewrite what you selected — having shown you first. The result appears with an Apply button, and applying goes through the editor's history, so undo takes it back The answer appears as it is written rather than only once it is finished. |
 | **⚙️ Own settings** | The editor draws the settings page from what the plugin declared: a switch for a switch, a hidden box for a secret. A plugin describes what it wants; the widgets are the editor's |
 | **🎛️ Own interface** | Beyond a settings page: a command can answer with a tree of text, inputs, chips, dropdowns, checkboxes, Markdown, pictures and buttons, drawn as the editor's own widgets in the pane the command came from. Pressing one hands back every field in the tree, so the plugin need not remember the form it drew |
 | **🌍 Own languages** | A plugin ships translations for whichever languages its author wants, independent of the twelve the editor speaks |

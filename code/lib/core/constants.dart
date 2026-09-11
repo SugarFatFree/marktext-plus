@@ -23,7 +23,7 @@ class AppConstants {
   /// version nobody could match to a release (#1) and — worse — the update
   /// check measured every release against 1.3.0, so anyone on a current build
   /// was told forever that an update was waiting.
-  static const String appVersion = '1.6.1';
+  static const String appVersion = '1.6.2';
 
   /// The range the Increase/Decrease Font Size actions stay inside.
   static const double minFontSize = 12.0;
