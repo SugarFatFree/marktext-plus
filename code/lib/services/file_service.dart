@@ -5,6 +5,7 @@ import '../models/file_node.dart';
 import '../utils/file_utils.dart';
 import '../models/file_encoding.dart';
 import '../models/line_ending.dart';
+import 'app_log.dart';
 
 /// Something already sits where a file was about to be written.
 ///
@@ -50,10 +51,37 @@ class FileService {
     // Bytes, not readAsString: that throws on anything but UTF-8, and the tab
     // then disappeared without a word. It also swallows a UTF-8 byte order
     // mark, so a file written by Notepad lost it the first time it was saved.
+    final watch = Stopwatch()..start();
     final bytes = await File(path).readAsBytes();
     final (raw, encoding) = FileEncoding.decode(bytes);
+    final content = normalizeLineEndings(raw);
+    watch.stop();
+
+    // How long getting the text took, which nothing said before.
+    //
+    // The front page calls 128 KB the last size that still opens in about a
+    // second, and there was no number anywhere to hold that to: the only
+    // per-document line the editor writes is the preview's, and the default
+    // view is the source pane — so the ordinary way of opening a large file
+    // produced no measurement at all.
+    //
+    // This half only: read, decode, normalise. Drawing is the preview line's
+    // business, and keeping the two apart is the point — a reader saying it
+    // took ages can be answered with which half it was.
+    //
+    // Once per open, so not a hot path. A figure in a log rather than an
+    // assertion in a test, for the reason cost_stays_linear_test sets out: a
+    // wall-clock limit loose enough for a slow machine catches nothing, and a
+    // tight one goes red on its own.
+    AppLog.instance.debug(
+      'opened ${p.basename(path)} — ${bytes.length ~/ 1024} KB, '
+      '${encoding.label}, ${content.length} characters, read and decoded in '
+      '${watch.elapsedMilliseconds} ms',
+      source: 'open',
+    );
+
     return (
-      content: normalizeLineEndings(raw),
+      content: content,
       lineEnding: LineEnding.detect(raw),
       encoding: encoding,
       // After the read, so a write that lands between the two is noticed by
