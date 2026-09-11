@@ -81,7 +81,14 @@ class PluginCatalogException implements Exception {
   String toString() => failure.describe();
 }
 
-/// Reads the signed/transport-secured plugin registry lazily.
+/// Finds plugins on GitHub, and installs the one a reader picks.
+///
+/// It used to carry a `fetch(registryUrl)` as well — the curated registry this
+/// marketplace was going to have before it became open discovery by topic.
+/// Nothing called it, in `lib` or in `test`, and the sentence that used to
+/// stand here described it: anyone reading the class was told the editor reads
+/// a signed registry, which it has not done for a long time. Dead code that
+/// explains how something works is worse than dead code that does not.
 class PluginCatalogService {
   /// [cache] is where a listing is kept between launches; null does not cache.
   const PluginCatalogService({
@@ -89,7 +96,7 @@ class PluginCatalogService {
     this.within = const Duration(seconds: 30),
   });
 
-  /// How long to wait for the registry to say anything at all.
+  /// How long to wait for GitHub to say anything at all.
   final Duration within;
 
   /// Where the last listing was written, so a launch need not fetch one.
@@ -143,31 +150,6 @@ class PluginCatalogService {
         );
     client.userAgent = 'MarkTextPlus/${AppConstants.appVersion}';
     return client;
-  }
-
-  Future<List<PluginCatalogEntry>> fetch(Uri registryUrl) async {
-    if (!registryUrl.isScheme('https')) {
-      throw ArgumentError.value(registryUrl, 'registryUrl', 'must use HTTPS');
-    }
-    final client = _client();
-    try {
-      final request = await client.getUrl(registryUrl);
-      final response =
-          await request.close().answeredWithin(within, 'the plugin registry');
-      if (response.statusCode != HttpStatus.ok) {
-        throw HttpException('registry returned ${response.statusCode}');
-      }
-      final json = jsonDecode(await utf8.decoder.bind(response).join());
-      if (json is! Map || json['plugins'] is! List) {
-        throw const FormatException('registry must contain a plugins list');
-      }
-      return [
-        for (final item in json['plugins'])
-          PluginCatalogEntry.fromJson(item as Map<String, dynamic>),
-      ];
-    } finally {
-      client.close(force: true);
-    }
   }
 
   /// Discovers public plugin repositories through GitHub Topics.
