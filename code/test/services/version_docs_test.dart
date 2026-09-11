@@ -79,6 +79,52 @@ void main() {
     }
   });
 
+  /// The English half is English and the two halves say the same things.
+  ///
+  /// Written after the Chinese sections for three changes were appended just
+  /// above the `## 中文` marker instead of below it: they landed at the end of
+  /// the English half, and the Chinese half never got them at all. Nothing
+  /// noticed — the file existed, it was long enough, and both languages were
+  /// present somewhere in it.
+  ///
+  /// Headings only. A Chinese section quite properly contains English
+  /// identifiers, so looking for Latin letters in the Chinese half would find
+  /// them everywhere; a heading in the English half that is written in Chinese
+  /// is unambiguous.
+  test('the release notes keep each language on its own side', () {
+    final dir = current();
+    if (dir == null) return;
+    final text = File('${dir.path}/release-notes.md').readAsStringSync();
+    const marker = '\n## 中文';
+    final split = text.indexOf(marker);
+    if (split < 0) return; // A version whose notes are in one language only.
+
+    List<String> headings(String half) => RegExp(r'^### (.+)$', multiLine: true)
+        .allMatches(half)
+        .map((m) => m.group(1)!)
+        .toList();
+
+    final english = headings(text.substring(0, split));
+    final chinese = headings(text.substring(split));
+    expect(english, isNotEmpty, reason: '英文半区读不出小节，取法要跟着改');
+
+    final cjk = RegExp(r'[一-鿿]');
+    final wrongSide = english.where(cjk.hasMatch).toList();
+    expect(
+      wrongSide,
+      isEmpty,
+      reason: '这些中文小节落在了英文半区——多半是插到了「## 中文」上面：\n'
+          '${wrongSide.join('\n')}',
+    );
+
+    expect(
+      chinese,
+      hasLength(english.length),
+      reason: '两半区的小节数对不上（英文 ${english.length}，中文 ${chinese.length}）'
+          '——有一半读者会少看到一条',
+    );
+  });
+
   /// The manual test has been thought about as far as the fixes go.
   ///
   /// It was written, substantial, and stopped at BUG-371 while `bugfix.md`
