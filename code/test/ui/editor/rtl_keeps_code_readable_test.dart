@@ -63,6 +63,45 @@ void main() {
 
   const code = '```dart\nvar answer = 42;\n```\n';
 
+  /// The blockquote's border, as the widget tree actually holds it.
+  ///
+  /// Read from a real build rather than grepped: the file guard next door can
+  /// only say that `Border(left:` is not written, and a decoration assembled
+  /// some other way would pass it. What matters is the type that reaches the
+  /// tree, because that is what decides which side the bar lands on.
+  ///
+  /// Flutter's own flipping of a `BorderDirectional` is not re-verified here —
+  /// that is Flutter's test to have. What this catches is the bar being
+  /// declared against the left instead of against the beginning.
+  BoxBorder quoteBorder(WidgetTester tester) {
+    for (final element in tester.elementList(find.byType(Container))) {
+      final decoration = (element.widget as Container).decoration;
+      if (decoration is! BoxDecoration) continue;
+      final border = decoration.border;
+      if (border == null) continue;
+      if (border.top == BorderSide.none &&
+          border.bottom == BorderSide.none &&
+          border.dimensions.horizontal == 3) {
+        return border;
+      }
+    }
+    fail('画面上找不到引用块的竖线');
+  }
+
+  testWidgets('the quote bar is declared against the beginning, not the left',
+      (tester) async {
+    // What this replaces: `Border(left: BorderSide(width: 3))`, which does not
+    // turn around, so an Arabic reader saw the bar across the quote from where
+    // the words start — the most recognisable way to get a right-to-left
+    // layout wrong.
+    await draw(tester, '> quoted text\n', TextDirection.rtl);
+    final border = quoteBorder(tester);
+    expect(border, isA<BorderDirectional>(),
+        reason: '引用块的竖线还是固定在某一侧，不会跟着阅读方向翻');
+    expect((border as BorderDirectional).start.width, 3);
+    expect(border.end, BorderSide.none);
+  });
+
   testWidgets('the line numbers stay beside the code, not across from it',
       (tester) async {
     await draw(tester, code, TextDirection.ltr);

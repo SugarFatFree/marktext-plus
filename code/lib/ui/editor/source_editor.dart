@@ -2652,8 +2652,11 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
               width: gutterWidth,
               decoration: BoxDecoration(
                 color: tokens.colorSurface,
-                border: Border(
-                  right: BorderSide(color: tokens.colorBorder, width: 1),
+                // The edge between the gutter and the code, whichever side
+                // the gutter is on: the numbers sit at the reading start, so
+                // in Arabic this line belongs on their left.
+                border: BorderDirectional(
+                  end: BorderSide(color: tokens.colorBorder, width: 1),
                 ),
               ),
               // Each number is placed where its line actually starts, which

@@ -16,6 +16,7 @@
 | BUG-429 | 2026-09-11 | 换行后以「数字.」开头的句子被变成有序列表 | P1 | 已修复 |
 | BUG-430 | 2026-09-11 | 代码跨度里的反斜杠被当成转义吃掉（正则、Windows 路径） | P1 | 已修复 |
 | BUG-432 | 2026-09-12 | 插件市场出错时 12 种语言的读者一律看到英文 | P1 | 已修复 |
+| BUG-433 | 2026-09-12 | 引用块的竖线在阿拉伯语下站错了边 | P2 | 已修复 |
 
 ---
 
@@ -642,6 +643,60 @@ GitHub is rate-limiting searches from this machine; try again in 819 seconds.
 - `code/test/services/a_failed_search_speaks_the_readers_language_test.dart`（新增）
 - `code/test/ui/widgets/a_failed_search_is_shown_translated_test.dart`（新增）
 - `code/test/ui/reader_facing_text_is_translated_test.dart`（扫描范围扩到 providers）
+
+---
+
+## BUG-433：引用块的竖线在阿拉伯语下站错了边
+
+**现象**
+
+引用块左侧有一条 3px 强调色竖线。阿拉伯语（以及任何在设置里选了从右往左的读者）
+文字从右侧开始，**而竖线还在左边**——它落在引用块的另一头，离它标记的文字最远。
+这是 RTL 布局最一眼能看出来的那种错。
+
+同一处还有第二个：源码窗格行号栏与代码之间的 1px 分隔线固定在 `right`。
+行号栏在 RTL 下会翻到右边（`rtl_keeps_code_readable_test` 量过），
+**而那条边线没跟着翻**。
+
+**根因分析**
+
+`layout_follows_the_reading_direction_test` 正是为这件事写的，它的正则点名了
+`Alignment.centerLeft`、`EdgeInsets.only(left:)`、`TextAlign.left`、
+`Positioned(left:)`——**但没有点名 `Border(left:)`**。
+
+又一次「守卫照着当年坏掉的那个形状写」。它的注释里列了十三处当初的问题，
+全是对齐与内边距；边框不在那份名单上，于是这两处一直在。
+
+**修复方案**
+
+- 引用块：`Border(left:)` → `BorderDirectional(start:)`
+- 行号分隔线：`Border(right:)` → `BorderDirectional(end:)`（它属于「行号栏靠代码
+  那一侧」，不是「右侧」）
+- 守卫补上 `Border(\s*(left|right)\s*:` 与 `BorderRadius.only(topLeft|…)`。
+  圆角今天一处都没有——**正是最便宜的时候补**
+
+**验证**（两个变异）
+
+| 变异 | 结果 |
+|------|------|
+| 竖线改回 `Border(left:)` | 源码守卫点名到行号 |
+| 同上 | 新的组件测试也红：「引用块的竖线还是固定在某一侧」 |
+
+新测试从**真实构建的组件树**读那个边框而不是 grep 源码——旁边那条文件守卫只能说
+「没写 `Border(left:`」，换个方式拼出来的装饰它看不见。Flutter 自己怎么翻
+`BorderDirectional` 不由这条测试复验，那是 Flutter 的测试该管的。
+
+**同时查过、判为不值得改的**：`EdgeInsets.fromLTRB` 在 `lib/ui` 有 10 处，
+其中 4 处左右不对称，差值 2–8 px。RTL 下这些会镜像错，但**肉眼几乎看不出**，
+而把它们全改成 `EdgeInsetsDirectional.fromSTEB` 要动 10 处、收益是几个像素。
+记在这里，以免下次重新发现。
+
+**涉及文件**
+
+- `code/lib/ui/editor/markdown_renderer.dart`
+- `code/lib/ui/editor/source_editor.dart`
+- `code/test/ui/layout_follows_the_reading_direction_test.dart`
+- `code/test/ui/editor/rtl_keeps_code_readable_test.dart`
 
 ---
 

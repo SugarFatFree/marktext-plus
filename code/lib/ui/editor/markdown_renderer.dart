@@ -2135,7 +2135,12 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       margin: const EdgeInsets.only(top: 8, bottom: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        border: Border(left: BorderSide(color: tokens.colorAccent, width: 3)),
+        // The side the reader starts from, not the left: in Arabic the bar
+        // belongs against the beginning of the text it marks, and a `left`
+        // here put it across the quote from where the words start.
+        border: BorderDirectional(
+          start: BorderSide(color: tokens.colorAccent, width: 3),
+        ),
         color: tokens.colorAccentMuted.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(4),
       ),

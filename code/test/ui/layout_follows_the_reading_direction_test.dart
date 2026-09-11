@@ -27,7 +27,18 @@ void main() {
     r'Alignment\.(centerLeft|centerRight|topLeft|topRight|bottomLeft|bottomRight)'
     r"|EdgeInsets\.only\([^)]*\b(left|right)\s*:"
     r'|TextAlign\.(left|right)'
-    r'|Positioned\(\s*(left|right)\s*:',
+    r'|Positioned\(\s*(left|right)\s*:'
+    // A border on a named side. `BorderDirectional` is the one that turns
+    // around, and both of these were written the fixed way: the quote's
+    // accent bar sat across the quote from where Arabic text begins, and the
+    // line-number gutter's edge stayed on the same side while the gutter
+    // itself moved. Neither was named by the pattern above, which is how they
+    // lasted.
+    r'|Border\(\s*(left|right)\s*:'
+    // And a corner. `BorderRadius.only(topLeft:)` does not turn around
+    // either; nothing writes one today, which is when a pattern is cheapest
+    // to widen.
+    r'|BorderRadius\.only\([^)]*\b(topLeft|topRight|bottomLeft|bottomRight)\s*:',
   );
 
   /// A side named on purpose, and why.
