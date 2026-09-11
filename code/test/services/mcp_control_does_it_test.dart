@@ -275,6 +275,43 @@ void main() {
       expect(outcome.said, contains('token'));
     });
 
+    test('an update is refused while a tab has unsaved work in it', () async {
+      // The failure this prevents is silent and total: `/CLOSEAPPLICATIONS`
+      // ends the process through the Restart Manager, which asks and then
+      // stops waiting, and the editor comes back a version newer with the
+      // document gone. Nothing downstream could report it.
+      //
+      // It answers without a network round trip, which is what makes it
+      // testable here — and what stops the refusal from arriving late and
+      // looking like GitHub was unreachable.
+      final container = boot();
+      container.read(tabProvider.notifier).addTab(
+            TabInfo(id: 'a', fileName: 'notes.md', content: 'x', isModified: true),
+          );
+      final outcome = await container
+          .read(mcpProvider.notifier)
+          .performAction('update_app', {'source': 'release'})
+          .timeout(const Duration(seconds: 5));
+      expect(outcome.ok, isFalse);
+      expect(outcome.said, contains('notes.md'));
+    });
+
+    test('a dry run still answers with unsaved work open', () async {
+      // Asking what would be installed changes nothing. Refusing that too
+      // would mean the one call that is safe to make at any time is the one
+      // an open document blocks.
+      final container = boot();
+      container.read(tabProvider.notifier).addTab(
+            TabInfo(id: 'a', fileName: 'notes.md', content: 'x', isModified: true),
+          );
+      final outcome = await container
+          .read(mcpProvider.notifier)
+          .performAction('update_app', {'source': 'ci', 'dryRun': true});
+      // No token, so it refuses for that reason — and the point is that the
+      // sentence is about the token, not about the open document.
+      expect(outcome.said, isNot(contains('notes.md')));
+    });
+
     test('an action nothing implements is refused', () async {
       final container = boot();
       final outcome = await container

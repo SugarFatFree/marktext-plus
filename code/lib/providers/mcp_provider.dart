@@ -430,6 +430,37 @@ class McpController extends StateNotifier<McpStatus> {
     if (wanted == null) {
       return mcpRefused('unknown source "$source" — release or ci');
     }
+
+    // Before anything is fetched, and skipped for a dry run: asking what
+    // would be installed is worth answering with unsaved work open, and
+    // installing it is not.
+    //
+    // `/CLOSEAPPLICATIONS` ends this process through the Restart Manager,
+    // which asks and then stops waiting. A tab with unsaved text in it is
+    // gone at that point, and nothing about the update would say so — the
+    // editor would come back a version newer and a document short. There is
+    // no automation on this side that can press Save, so this refuses and
+    // names the tabs rather than deciding for the reader.
+    //
+    // Ahead of the request rather than after it: a refusal that costs a round
+    // trip to GitHub first is a refusal that arrives late and looks like a
+    // network fault.
+    if (!dryRun) {
+      final unsaved = _ref
+          .read(tabProvider)
+          .tabs
+          .where((tab) => tab.isModified)
+          .map((tab) => tab.fileName)
+          .toList();
+      if (unsaved.isNotEmpty) {
+        return mcpRefused(
+          'not while there is unsaved work: ${unsaved.join(', ')} — '
+          'installing closes this editor, and what is in those tabs would go '
+          'with it',
+        );
+      }
+    }
+
     const service = SelfUpdateService();
 
     final UpdateBuild build;
