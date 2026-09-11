@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:marktext_plus/services/self_update_service.dart';
+import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/core/config/app_config.dart';
@@ -26,6 +28,41 @@ void main() {
     server.listen((request) {/* deliberately no response */});
     return Uri.parse('http://127.0.0.1:${server.port}$path');
   }
+
+  /// Answers, starts sending, and then stops — without closing the socket.
+  ///
+  /// The failure a total time limit cannot tell apart from a slow link, and a
+  /// status code cannot see at all: the headers said 200 and some of the file
+  /// arrived. Held open until teardown so the read cannot end by the
+  /// connection dropping either.
+  Future<Uri> stallingServer() async {
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    addTearDown(() => server.close(force: true));
+    server.listen((request) {
+      request.response.headers.contentLength = 1048576;
+      request.response.add(List<int>.filled(16, 0));
+      request.response.flush();
+      // and never another byte, and never a close
+    });
+    return Uri.parse('http://127.0.0.1:${server.port}/package.exe');
+  }
+
+  test('a download that stops part way through gives up', () async {
+    final uri = await stallingServer();
+    const service = SelfUpdateService(stalled: Duration(milliseconds: 300));
+    final build = UpdateBuild(
+      name: 'package.exe',
+      url: uri,
+      sha256: 'a' * 64,
+      bytes: 1048576,
+      zipped: false,
+    );
+
+    await expectLater(
+      service.fetch(build, into: Directory.systemTemp.createTempSync('upd')),
+      throwsA(isA<TimeoutException>()),
+    ).timeout(const Duration(seconds: 5));
+  });
 
   test('testing the AI connection gives up instead of spinning', () async {
     final uri = await silentServer('');

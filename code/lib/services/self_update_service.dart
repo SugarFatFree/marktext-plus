@@ -80,15 +80,24 @@ class UpdateBuild {
 class SelfUpdateService {
   const SelfUpdateService({
     this.within = const Duration(seconds: 30),
-    this.download = const Duration(minutes: 10),
+    this.stalled = const Duration(seconds: 90),
   });
 
   /// How long to wait for GitHub to say anything at all.
   final Duration within;
 
-  /// How long a package may take to arrive. Larger, because it is 15-25 MB
-  /// over whatever connection the reader has.
-  final Duration download;
+  /// How long a download may go without a single new byte.
+  ///
+  /// A package is 15-25 MB and the link it comes over is whatever the reader
+  /// has. Measured on the machine this was written on, the same 15 MB file
+  /// arrived at 14 MB/s one minute and 29 KB/s the next — eight minutes for
+  /// the slow one, and a total time limit set anywhere near that would fail a
+  /// download that was working perfectly well.
+  ///
+  /// What a stuck download looks like is different and unmistakable: no bytes
+  /// at all. That is what this bounds, which is the same shape BUG-404 landed
+  /// on for the AI stream after fifteen minutes of nothing.
+  final Duration stalled;
 
   static const owner = 'SugarFatFree';
   static const repo = 'marktext-plus';
@@ -320,14 +329,25 @@ class SelfUpdateService {
         request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
       }
       request.followRedirects = true;
-      final response = await request.close().answeredWithin(download, 'the download');
+      final response = await request.close().answeredWithin(within, 'the download');
       if (response.statusCode != HttpStatus.ok) {
         throw HttpException('the download answered ${response.statusCode}');
       }
-      final bytes = await response.fold<List<int>>([], (all, chunk) {
-        all.addAll(chunk);
-        return all;
-      });
+      final bytes = <int>[];
+      var announced = 0;
+      await for (final chunk in response.timeout(stalled)) {
+        bytes.addAll(chunk);
+        // Every four megabytes, so that a slow download can be told apart
+        // from a stopped one by reading the log rather than by waiting.
+        if (bytes.length - announced >= 4 * 1048576) {
+          announced = bytes.length;
+          AppLog.instance.info(
+            '${(bytes.length / 1048576).toStringAsFixed(0)} MB of '
+            '${(build.bytes / 1048576).toStringAsFixed(0)} MB',
+            source: 'update',
+          );
+        }
+      }
       final got = sha256.convert(bytes).toString();
       if (got != build.sha256) {
         throw FormatException(
