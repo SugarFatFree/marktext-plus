@@ -69,6 +69,8 @@ void main() {
     agree('___both___ here');
     agree('前面 ***加粗加斜*** 后面');
     agree('***加粗。***后面接中文');
+    agree('***bold.***after');
+    agree('***bold.*** after');
     agree('****四个星号****');
     agree('**加粗里的 *斜体* 一段**');
   });

@@ -117,15 +117,32 @@ the pane beside it read all six. With Ctrl+I on bold text now writing that
 shape, every nested run in a document carried a stray asterisk. It is one span
 now, bold and italic, and `___bold___` with it.
 
-### Two panes no longer disagree about `***加粗。***后面`
+### Two panes no longer disagree about a run of three before a full stop
 
-The source pane tinted that line bold and the preview drew its asterisks. The
-bold pattern matches `***加粗。**` out of it and the flanking rule was asked about
-the two asterisks the pattern captured rather than the three that are there — so
-the character after the "opening delimiter" was another delimiter, and the run
-looked like it could both open and close. The run is measured now. A Chinese
-sentence ends in `。` far more often than an English one ends inside the words
-being marked, so this shape is a daily one.
+`***bold.***after` was tinted bold in the source pane and drawn as six literal
+asterisks in the preview. The bold pattern matches `***bold.**` out of that line,
+and the flanking rule was asked about the two asterisks the pattern captured
+rather than the three that are there — so the character after the "opening
+delimiter" was another delimiter, and a run that can neither open nor close
+looked like it could do both. The run is measured now, at both ends.
+
+A Chinese sentence reaches this shape far more often, because `。` ends a
+sentence where an English full stop would more often fall outside the words
+being marked.
+
+### Pasting from the web no longer turns a paragraph into a code block
+
+A `<del>` holding a `<sub>` — strikethrough around a subscript — was written as
+`~~~x~~~`, and three tildes at the start of a line open a fenced code block. The
+pasted paragraph went inside one, and so did whatever was written after it.
+
+`del` was the only one of the five wrapping tags with no guard on what it was
+wrapping, and the guard the other four use would not have caught this one: it
+asked whether the text *contains* the marker, and `~x~` only *touches* it. Both
+are asked now. When strikethrough and subscript cannot both be written — and in
+this flavour they cannot — the inner one is kept, which is what the other four
+tags have always done. `<strong><em>` still nests as `***x***`, because a run of
+three asterisks is exactly what it means.
 
 ### A large document's first paint no longer cuts a block in half
 
@@ -255,6 +272,17 @@ HKLM、一个在 HKCU），会当作全新安装，旧的那份会留在原地�
 于是「开标记后面」答出来是另一个标记，这个运行看上去既能开又能闭。现在运行是
 量出来的。中文句子以 `。` 收尾的频率远高于英文句号出现在被标记的词里，
 所以这个形状每天都会遇到。
+
+### 从网页粘贴不再把一个段落变成代码块
+
+`<del>` 里套 `<sub>`——删除线里面套下标——以前写出 `~~~x~~~`，而行首三个波浪号
+开启一个代码围栏。粘贴进来的这一段掉进代码块，**接着写的文字也一起进去**。
+
+`del` 是五个包裹类标签里唯一没有守卫的，而另外四个用的那道守卫也挡不住这一种：
+它问的是文本**含不含**该标记，而 `~x~` 只是**贴着**它。现在两件都问。
+删除线与下标无法同时写出时——在本方言里就是无法——保住里面那个，
+这是另外四个标签一直以来的约定。`<strong><em>` 照旧嵌套成 `***x***`，
+因为三个星号一串正是它的意思。
 
 ### 大文档的第一屏不再把块切成两半
 

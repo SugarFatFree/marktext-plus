@@ -444,7 +444,12 @@ class HtmlToMarkdown {
           index = next;
         case 'del' || 's' || 'strike':
           final (inner, next) = _until(tokens, index, token.name);
-          out.write('~~${_inline(inner)}~~');
+          final text = _inline(inner);
+          // The only one of the five wrapping tags with no guard on what it
+          // was wrapping. `<del><sub>x</sub></del>` came out as `~~~x~~~`, and
+          // three tildes at the start of a line open a fenced code block: the
+          // pasted paragraph and everything after it went inside one.
+          out.write(_canWrap(text, '~~') ? '~~$text~~' : text);
           index = next;
         case 'code':
           final (inner, next) = _until(tokens, index, token.name);
@@ -511,9 +516,30 @@ class HtmlToMarkdown {
   /// anyway would produce a document this editor reads back as literal
   /// carets, which is worse than the plain words. Text already containing the
   /// marker is refused for the same reason.
+  /// Whether [text] can be wrapped in [marker] and still say what it says.
+  ///
+  /// Not when the text holds the marker itself: the closing run would be read
+  /// where the text's own copy stands. And not when it begins or ends with the
+  /// marker's character — that shape lengthens the run instead of nesting
+  /// inside it, and `~~` around `~x~` is `~~~x~~~`, which at the start of a
+  /// line is a code fence. Touching is enough; containing is not required,
+  /// which is why the first condition alone let `<del><sub>x</sub></del>`
+  /// through.
+  ///
+  /// Asterisks are never asked, because they are the one run that composes: a
+  /// run of three is strong around emphasis, which is exactly what
+  /// `<strong><em>` means, so those two nest and are written as they are.
+  ///
+  /// [tight] also refuses whitespace, for the markers whose syntax is a single
+  /// word — `^x^` and `~x~`.
+  ///
+  /// Refusing writes the text without the outer marking, keeping what is
+  /// inside. One of the two has to go; this is which.
   static bool _canWrap(String text, String marker, {bool tight = false}) =>
       text.isNotEmpty &&
       !text.contains(marker) &&
+      !text.startsWith(marker[0]) &&
+      !text.endsWith(marker[0]) &&
       (!tight || !text.contains(RegExp(r'\s')));
 
   /// One declaration out of a `style` attribute.
