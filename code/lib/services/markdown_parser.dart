@@ -1120,10 +1120,32 @@ class MarkdownParser {
     int minimumLines = 1500,
     int minimumCharacters = 200 * 1024,
   }) {
-    final lines = _sourceLines(source);
-    if (lines.length <= minimumLines && source.length <= minimumCharacters) {
-      return null;
+    // Lazily, and keeping only the lines walked past. `_sourceLines` splits the
+    // whole document up front, so most of this function's time went into lines
+    // it never looked at — the loop stops at the cut and the splitting did not,
+    // which is the opposite of what a function for large documents should do.
+    // The same splitter, so `\r\n` and a lone `\r` are still lines.
+    //
+    // The short-document case still needs the line count, and asking for it is
+    // the one place a whole-document walk is unavoidable — but it is a count,
+    // not a list of strings.
+    if (source.length <= minimumCharacters) {
+      // Counted the way `LineSplitter` splits: `\n`, and a lone `\r` — which
+      // is a line ending too, and a document written with those would
+      // otherwise count as one line however long it is.
+      var newlines = 0;
+      for (var i = 0; i < source.length; i++) {
+        final unit = source.codeUnitAt(i);
+        if (unit == 0x0A) {
+          newlines++;
+        } else if (unit == 0x0D &&
+            (i + 1 == source.length || source.codeUnitAt(i + 1) != 0x0A)) {
+          newlines++;
+        }
+      }
+      if (newlines + 1 <= minimumLines) return null;
     }
+    final seen = <String>[];
 
     var inFence = false;
     var fenceMarker = '';
@@ -1148,8 +1170,10 @@ class MarkdownParser {
     // here would let a document made mostly of code fences past the budget.
     var consumed = 0;
 
-    for (var i = 0; i < lines.length; i++) {
-      final line = lines[i];
+    var i = -1;
+    for (final line in LineSplitter.split(_stripBom(source))) {
+      i++;
+      seen.add(line);
       consumed += line.length + 1;
       final trimmed = line.trimRight();
 
@@ -1178,12 +1202,19 @@ class MarkdownParser {
         if (line.toLowerCase().contains(rawTextCloser)) rawTextCloser = null;
         continue;
       }
-      final rawTag = _rawTextHtmlTags
-          .where((tag) => RegExp('<$tag\\b', caseSensitive: false).hasMatch(line))
-          .firstOrNull;
-      if (rawTag != null && !line.toLowerCase().contains('</$rawTag>')) {
-        rawTextCloser = '</$rawTag>';
-        continue;
+      // `<` first, because almost no line has one and the four patterns below
+      // are four pattern matches. Built inside this loop rather than once,
+      // these cost about a third of this function on a 1.6 MB document —
+      // measured, after I had put them there.
+      if (line.contains('<')) {
+        final rawTag = _rawTextOpeners.entries
+            .where((entry) => entry.value.hasMatch(line))
+            .map((entry) => entry.key)
+            .firstOrNull;
+        if (rawTag != null && !line.toLowerCase().contains('</$rawTag>')) {
+          rawTextCloser = '</$rawTag>';
+          continue;
+        }
       }
 
       if (inFence) {
@@ -1209,7 +1240,7 @@ class MarkdownParser {
       // something in half.
       final enough = i >= minimumLines || consumed >= minimumCharacters;
       if (!inFence && enough && trimmed.isEmpty) {
-        return lines.sublist(0, i).join('\n');
+        return seen.sublist(0, i).join('\n');
       }
     }
     return null;
@@ -3015,6 +3046,16 @@ class MarkdownParser {
   /// Named by the format itself. A blank line inside one of them belongs to
   /// the text, so the block runs to its closing tag however far down that is.
   static const _rawTextHtmlTags = {'pre', 'script', 'style', 'textarea'};
+
+  /// The opening tag of each, compiled once.
+  ///
+  /// [safePrefix] runs over every line of a document large enough to be shown
+  /// in two passes, so anything built per line is built tens of thousands of
+  /// times.
+  static final _rawTextOpeners = {
+    for (final tag in _rawTextHtmlTags)
+      tag: RegExp('<$tag\\b', caseSensitive: false),
+  };
 
   /// A supported tag pair with plain content, or a line break.
   ///

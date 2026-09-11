@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+
+import '../support/cost_limits.dart';
 import 'package:marktext_plus/services/markdown_parser.dart';
 
 /// Showing the top of a large document while the rest is still being parsed.
@@ -267,6 +269,58 @@ void main() {
     ]) {
       agrees(name, '$filler\n${withBlanks(open, close)}\nAfter.\n');
     }
+  });
+
+  /// The scan stops at the cut, so a bigger document does not cost more.
+  ///
+  /// This is a different property from the one `cost_stays_linear_test` holds
+  /// over parsing and search — theirs is that the work tracks the input, and
+  /// this one's is that it does *not*, because the loop returns at the first
+  /// blank line past the threshold and never sees the rest of the file.
+  ///
+  /// Written after a change of mine put four `RegExp` constructions on every
+  /// line of this loop, which cost a third of the function on a 1.6 MB
+  /// document. Nothing in the suite could have seen it: parsing and search
+  /// have a budget, and this had none. A constant factor is still not what
+  /// this catches — that would need a wall-clock limit, which this project
+  /// refuses for good reasons — but the early return going away, or the scan
+  /// turning superlinear, is exactly what it does.
+  test('a longer document does not make the prefix scan longer', () {
+    String document(int paragraphs) => List.generate(
+          paragraphs,
+          (i) => 'Paragraph $i with some text in it.\n',
+        ).join('\n');
+
+    final unit = document(4000);
+    final four = document(4000 * costSpan);
+    expect(four.length, greaterThan(unit.length * 3.9));
+
+    MarkdownParser.safePrefix(unit); // warm the JIT before either measurement
+
+    int fastest(int times, void Function() body) {
+      var best = 1 << 30;
+      for (var i = 0; i < times; i++) {
+        final watch = Stopwatch()..start();
+        body();
+        watch.stop();
+        if (watch.elapsedMicroseconds < best) best = watch.elapsedMicroseconds;
+      }
+      return best;
+    }
+
+    final one = fastest(5, () => MarkdownParser.safePrefix(unit));
+    final many = fastest(5, () => MarkdownParser.safePrefix(four));
+
+    // Not 1.0: the same work on a larger string still allocates differently,
+    // and a limit that goes red on an idle machine teaches people to ignore
+    // it. Two is far below the four it would take to mean "reads it all".
+    expect(
+      many,
+      lessThan(one * 2),
+      reason: '四倍长的文档让前缀扫描花了 ${(many / one).toStringAsFixed(1)} 倍时间'
+          '（$one µs → $many µs）——它本该在切点就停下，'
+          '所以多出来的长度不该被读到',
+    );
   });
 
   test('every fixture either stays whole or splits cleanly', () {
