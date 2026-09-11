@@ -102,9 +102,14 @@ void main() {
         // A comment line cannot run, and this file's own prose says
         // "return end" while explaining the problem.
         if (line.trimLeft().startsWith('--')) continue;
-        // `return` with nothing after it on the line: either `then return end`
-        // or a line that is only `return`.
-        if (RegExp(r'\breturn\s*(end\b|$)').hasMatch(line)) {
+        // `return` carrying no value, in every way Lua lets one be written:
+        // alone on its line, before `end`, before `else`, closed with a
+        // semicolon, or followed by a comment. The first two were the only
+        // ones named, and the other three are the same statement — a plugin
+        // that wrote `return  -- nothing to do` would have shipped a guard
+        // that does not guard, and inside `while true` that reaches the reader
+        // as an editor which has stopped answering.
+        if (RegExp(r'\breturn\s*(end\b|else\b|;|--|$)').hasMatch(line)) {
           offenders.add('${file.path}:${i + 1}: ${line.trim()}');
         }
       }

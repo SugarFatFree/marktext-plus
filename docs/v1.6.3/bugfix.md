@@ -755,6 +755,40 @@ MCP 的 `set_view_mode` 不等 `setEditMode` 完成就返回
 
 ---
 
+## 无编号：裸 `return` 的守卫只认两种写法中的两种
+
+`lua_bare_return_test` 拦的是「`lua_dardo` 里嵌套函数中的裸 `return` 是空操作」
+——守卫写不守，`while true` 里就是死循环，**读者看到的是编辑器不再响应**。
+
+它的正则是 `\breturn\s*(end\b|$)`：只认「单独一行的 return」和「return end」。
+Lua 允许的其余写法它都看不见：
+
+| 写法 | 旧正则 | 现在 |
+|------|--------|------|
+| `return` 独占一行 | ✓ | ✓ |
+| `then return end` | ✓ | ✓ |
+| `then return; end` | ✗ | ✓ |
+| `then return else …` | ✗ | ✓ |
+| `return  -- nothing to do` | ✗ | ✓ |
+
+今天已发布的 Lua 里三种漏网写法都不存在——**潜在而非现存**。补它的理由和
+Material 3 图标按钮那次一样：代价是三个正则分支，而症状是「编辑器卡死」。
+
+**同时把这条检查放进了 SDK 自己的 `check.py`。** 原先唯一检查它的是主应用仓库的
+测试，而那条测试只在**主应用**推送时跑——改坏 SDK 示例要等到下一次主应用推送
+才会被发现。守卫应当在能破坏它的那个仓库里。
+
+**验证**：三种写法逐个注入到已发布插件的 `blocks.lua`，每次都被点名（2 行失败）；
+SDK 侧注入到 `packages/lua/plugin.lua`，报「packages/lua/plugin.lua:59 的 return
+不会真的返回」。两边都还原干净。
+
+**涉及文件**
+
+- `code/test/services/lua_bare_return_test.dart`
+- SDK 仓库 `scripts/check.py`（新增 `check_no_bare_return`）
+
+---
+
 ## 无编号：发布说明的两半区，中文段落落到了英文半区
 
 **现象**
