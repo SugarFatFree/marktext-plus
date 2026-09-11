@@ -1011,6 +1011,36 @@ HTML 里由 CDN 脚本渲染、预览里只显示图表源码，两件事都早�
 
 ---
 
+## 无编号：README「大文件」那一行有三个数字，守卫只核对两个
+
+`readme_counts_test` 是「对外宣称的清单 vs 实现的清单」这条视角用在最外层的一次，
+覆盖得很全：测试总数、功能表行数、图表类型数、主题数、界面语言数、主题截图、
+图表名，以及成本预算的两个数字。
+
+它读的正是 README 的「Large files」那一行，并核对其中的 **4 倍**与 **8 倍**
+（那条注释还记着教训：「英文那行原本写着六倍，而测试的上限是八倍——限制被提高过，
+而读者据以判断这个项目的那句话留在原地」）。
+
+**同一行还有第三个数字，它读了过去**：
+
+> Highlighting … **stops above 128 KB** … and **a test holds that limit where it is**.
+
+一条测试确实守着那个阈值（`highlight_threshold_test`），**而没有任何东西把那句话
+和那条测试绑在一起**。README 承诺「有测试守着」这件事本身，恰恰没有被守。
+
+**修复方案**：在同一条用例里加上第三个比较，数字取自
+`IncrementalMarkdownHighlighter.maxHighlightedLength`。
+
+**验证**（双向变异）：把 README 改成 512 KB → 报「高亮的上限是 128 KB，
+README 说的是别的」；把代码常量改成 512 KB → 报「高亮的上限是 512 KB，
+README 说的是别的」。
+
+**涉及文件**
+
+- `code/test/services/readme_counts_test.dart`
+
+---
+
 ## 无编号：发布说明的两半区，中文段落落到了英文半区
 
 **现象**

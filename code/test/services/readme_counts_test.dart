@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/core/i18n/l10n/app_localizations.dart';
 import 'package:marktext_plus/core/theme/app_theme.dart';
 import 'package:marktext_plus/ui/editor/mermaid/mermaid.dart';
+import 'package:marktext_plus/ui/editor/syntax_highlighter.dart';
 
 /// The numbers the README puts in front of a reader are the real ones.
 ///
@@ -179,6 +180,15 @@ void main() {
         reason: '测试用的是 $costSpan 倍文档，README 说的是别的');
     expect(row, contains('$limit times the work'),
         reason: '测试的上限是 $costGrowthLimit 倍，README 说的是别的');
+
+    // The third number in the same row, and it was not checked. The sentence
+    // promises that highlighting "stops above 128 KB" and that "a test holds
+    // that limit where it is" — a test does, and nothing held the sentence to
+    // the test. Two numbers out of the row were compared and the third was
+    // read past.
+    final kilobytes = IncrementalMarkdownHighlighter.maxHighlightedLength ~/ 1024;
+    expect(row, contains('stops above $kilobytes KB'),
+        reason: '高亮的上限是 $kilobytes KB，README 说的是别的');
   });
 
   test('every README counts the interface languages the app ships', () {
