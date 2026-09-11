@@ -17,6 +17,18 @@ import 'package:marktext_plus/services/markdown_parser.dart';
 /// somewhere unrelated shows up here as a drop, which is the thing worth
 /// catching; raising the number is ordinary work, and the floor moves up with
 /// it.
+/// What the remaining 147 are made of, measured 2026-09-11 at 501.
+///
+/// Written down so the next person does not spend an evening finding out.
+/// The sections are named as the specification names them.
+///
+/// | Failing | Section | Worth chasing? |
+/// |---------|---------|----------------|
+/// | 31/90 | Links | The realistic forms all work. What is left is URL syntax at the edges: a destination with *two* levels of nested parentheses (one level — `/wiki/Mercury_(planet)` — works), `(title)` as a title delimiter instead of quotes, percent-encoding of a backslash, entity decoding inside a destination, and several unclosed-angle-bracket cases. The fix means editing a forty-group regular expression with a backreference by absolute number, which has frozen the preview twice on pathological input. Not worth it for these. |
+/// | 23/44 + 18/20 | HTML blocks, Raw HTML | **Deliberate.** Inline HTML is an allowlist of formatting tags — `b`, `em`, `mark`, `sub`, `ruby` and the rest of `_inlineHtmlTypes` — and everything else is escaped. The comment beside that list says why: a tag wrapping other markup needs a real HTML parser, and guessing is worse than leaving it as written. These 41 are the price of that decision, not a gap in it. |
+/// | 13/48 + 10/27 | List items, Lists | Unexamined. The largest cluster that is neither deliberate nor guarded by a fragile pattern, so the place to start next. |
+/// | 9/27 + 6/19 | Link reference definitions, Autolinks | Same URL-syntax edges as Links. |
+/// | the rest | scattered | One or two each. |
 void main() {
   /// Folds away the differences that are known and intended, so what is left
   /// is a real disagreement. Every rule here needs a reason, or it is just
