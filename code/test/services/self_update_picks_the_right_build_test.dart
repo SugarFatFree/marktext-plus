@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -172,6 +173,76 @@ void main() {
       // there to give: this runs while the reader is away, which is the point.
       expect(args, contains('/VERYSILENT'));
       expect(args, contains('/SUPPRESSMSGBOXES'));
+    });
+  });
+
+  group('the account the installer leaves behind', () {
+    late Directory directory;
+
+    setUp(() => directory = Directory.systemTemp.createTempSync('inst_'));
+    tearDown(() {
+      if (directory.existsSync()) directory.deleteSync(recursive: true);
+    });
+
+    test('the installer is told where to write it', () {
+      final args = SelfUpdateService.installerArguments(
+        r'D:\apps\MarkText Plus',
+        logPath: r'C:\config\update-install.log',
+      );
+      expect(args, contains(r'/LOG=C:\config\update-install.log'));
+    });
+
+    test('and is not told, when there is nowhere to put it', () {
+      final args = SelfUpdateService.installerArguments(r'D:\apps');
+      expect(args.where((a) => a.startsWith('/LOG=')), isEmpty);
+    });
+
+    test('a launch after an update reports what the installer said', () {
+      File(SelfUpdateService.installLogIn(directory.path)).writeAsStringSync(
+        'Starting the installation process.\n'
+        'Dest filename: D:\\apps\\MarkText Plus\\marktext_plus.exe\n'
+        'Time: 0.031 sec\n'
+        'Installing the files.\n'
+        'Deleting directory: C:\\Temp\\is-ABCDE.tmp\n'
+        'Installation process succeeded.\n',
+      );
+      final said = SelfUpdateService.readInstallLog(directory.path);
+      expect(said, contains('Installation process succeeded'));
+      // Not the whole file: Inno writes thousands of lines of file copies,
+      // and none of them is what somebody reading a log is looking for.
+      expect(said, isNot(contains('Starting the installation process')));
+    });
+
+    test('and it is said once, not on every launch afterwards', () {
+      File(SelfUpdateService.installLogIn(directory.path))
+          .writeAsStringSync('Installation process succeeded.\n');
+      expect(SelfUpdateService.readInstallLog(directory.path), isNotNull);
+      expect(
+        SelfUpdateService.readInstallLog(directory.path),
+        isNull,
+        reason: '留着它，以后每次启动都会重复报同一次安装',
+      );
+    });
+
+    test('an ordinary launch asks one question and is done', () {
+      // Every launch pays for this, so what it costs when nothing happened
+      // matters: one existsSync on a file that is not there.
+      expect(SelfUpdateService.readInstallLog(directory.path), isNull);
+    });
+
+    test('a log the machine wrote in its own code page still reads', () {
+      // Inno writes its log in whatever code page the machine uses, and a
+      // strict UTF-8 decode throws on the first accented character in a path
+      // — turning a perfectly good account into "could not be read", which is
+      // the one answer worse than the log itself.
+      File(SelfUpdateService.installLogIn(directory.path)).writeAsBytesSync([
+        ...utf8.encode('Dest filename: D:\\caf'),
+        0xE9, // é in Latin-1, not valid UTF-8 on its own
+        ...utf8.encode('\nInstallation process succeeded.\n'),
+      ]);
+      final said = SelfUpdateService.readInstallLog(directory.path);
+      expect(said, contains('Installation process succeeded'));
+      expect(said, isNot(contains('could not be read')));
     });
   });
 

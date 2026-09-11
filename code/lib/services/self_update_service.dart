@@ -383,6 +383,56 @@ class SelfUpdateService {
     throw const FormatException('that artifact holds no installer');
   }
 
+  /// Where the installer should write its own account of what it did.
+  ///
+  /// `startup-trace.log` sits beside this; both exist for the same reason.
+  static String installLogIn(String directory) =>
+      p.join(directory, 'update-install.log');
+
+  /// What the installer said, folded into one line, and the file removed.
+  ///
+  /// Read at startup, because that is the first moment the editor exists
+  /// again after an update. Without it a failed install leaves nothing at all
+  /// to look at from a session that is not sitting at the machine: the editor
+  /// either comes back at the old version or does not come back, and neither
+  /// says whether the installer refused, could not write to the directory, or
+  /// was never run. Inno keeps that account; this is what carries it across
+  /// the restart that loses everything else.
+  ///
+  /// Removed once read, so it is reported after the update that produced it
+  /// and not on every launch thereafter.
+  ///
+  /// Costs one `existsSync` on a launch where no update happened.
+  static String? readInstallLog(String directory) {
+    final file = File(installLogIn(directory));
+    if (!file.existsSync()) return null;
+    String? said;
+    try {
+      // Decoded leniently. Inno writes its log in whatever the machine's code
+      // page is, so a single accented character in a path made the strict
+      // decoder throw and turned a perfectly good account into "could not be
+      // read" — the one answer that is worse than the log itself.
+      final lines = const LineSplitter()
+          .convert(utf8.decode(file.readAsBytesSync(), allowMalformed: true))
+          .where((line) => line.trim().isNotEmpty)
+          .toList();
+      // Inno's last lines are its conclusion. The whole file is thousands of
+      // lines of individual file copies, which is not what anybody reading a
+      // log wants to find in it.
+      final tail = lines.length <= 3 ? lines : lines.sublist(lines.length - 3);
+      said = tail.join(' | ');
+    } catch (error) {
+      said = 'could not be read: $error';
+    }
+    try {
+      file.deleteSync();
+    } catch (_) {
+      // Leaving it is better than failing a launch over it; the worst that
+      // happens is the same line again next time.
+    }
+    return said;
+  }
+
   /// What to tell the installer, so that it replaces *this* copy.
   ///
   /// `/DIR` is the one that matters and it was missing. Without it the
@@ -398,7 +448,7 @@ class SelfUpdateService {
   /// Pointing it at the directory this executable is in makes the update an
   /// update rather than a second installation, wherever the reader put it.
   @visibleForTesting
-  static List<String> installerArguments(String directory) => [
+  static List<String> installerArguments(String directory, {String? logPath}) => [
         '/VERYSILENT',
         '/SUPPRESSMSGBOXES',
         '/NORESTART',
@@ -406,6 +456,10 @@ class SelfUpdateService {
         '/CLOSEAPPLICATIONS',
         '/RESTARTAPPLICATIONS',
         '/DIR=$directory',
+        // Its own account of what it did, for the session that will not be
+        // here to watch. Everything this process could have reported goes
+        // away with the process.
+        if (logPath != null) '/LOG=$logPath',
       ];
 
   /// Runs [installer] and lets it replace this editor.
@@ -420,7 +474,7 @@ class SelfUpdateService {
   /// `/CLOSEAPPLICATIONS` is what ends this process; `/RESTARTAPPLICATIONS`
   /// is what brings it back, and with it the MCP server, on the same port and
   /// the same token, both of which live in the configuration file.
-  Future<String> apply(File installer) async {
+  Future<String> apply(File installer, {String? logDirectory}) async {
     if (!Platform.isWindows) {
       throw UnsupportedError(
         'installing in place is only written for Windows so far',
@@ -431,9 +485,10 @@ class SelfUpdateService {
       source: 'update',
     );
     final here = p.dirname(Platform.resolvedExecutable);
+    final logPath = logDirectory == null ? null : installLogIn(logDirectory);
     await Process.start(
       installer.path,
-      installerArguments(here),
+      installerArguments(here, logPath: logPath),
       mode: ProcessStartMode.detached,
     );
     return 'the installer is running against $here; '

@@ -16,6 +16,8 @@ import 'core/diagnostics/startup_trace.dart';
 import 'core/net/system_proxy.dart';
 import 'providers/locale_provider.dart';
 import 'services/plugin_manager.dart';
+import 'services/app_log.dart';
+import 'services/self_update_service.dart';
 import 'providers/settings_provider.dart';
 import 'providers/tab_provider.dart';
 
@@ -150,6 +152,15 @@ void main(List<String> args) async {
   SettingsNotifier.onSaveFailed = reportSettingsSaveFailure;
   final config = await configService.load();
   StartupTrace.mark('config loaded');
+
+  // What the installer said, if this launch is the one after an update. It is
+  // the only account that survives: everything the process could have
+  // reported went away with the process it was replacing.
+  final installed = SelfUpdateService.readInstallLog(configDir);
+  if (installed != null) {
+    AppLog.instance.info('the installer that ran before this launch said: '
+        '$installed', source: 'update');
+  }
 
   // Plugin processes an earlier run left behind. A child is not killed when
   // its parent dies, so a crash leaves every plugin process still running with

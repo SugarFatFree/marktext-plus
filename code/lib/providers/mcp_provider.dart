@@ -5,6 +5,7 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../core/config/app_config.dart';
 import '../core/constants.dart';
@@ -495,7 +496,10 @@ class McpController extends StateNotifier<McpStatus> {
     }
 
     try {
-      final said = await service.apply(installer);
+      // Where the installer should leave its account. The same directory the
+      // startup trace goes to, which is the one this editor always has.
+      final directory = await getApplicationSupportDirectory();
+      final said = await service.apply(installer, logDirectory: directory.path);
       return mcpDid('${build.describe()}: $said');
     } catch (error) {
       return mcpRefused('${build.describe()} arrived and verified, '
