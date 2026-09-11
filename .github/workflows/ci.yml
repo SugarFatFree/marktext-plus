@@ -89,12 +89,17 @@ jobs:
       # run, on CI or on anyone's machine. A guard that does not run is worse
       # than none, because the list of guards says it is covered.
       #
-      # A Lua plugin has no build step, so zipping the tree is what making a
-      # release actually is. `.git` is excluded because it is not in one.
+      # Through the plugin's own packing script, not a `zip` of the tree.
+      # This used to zip everything but `.git` and `.github`, while the
+      # release was assembled by hand from a list of paths — so the archive
+      # these four tests ran against was not the archive anybody installed,
+      # and the defect they exist for is precisely a hand-assembled plugin
+      # missing half of itself. One definition now, in the repository that
+      # owns it, used by the release and by this.
       - name: Pack the plugin the way a release does
         run: |
           cd marktext-plus-plugins/marktext-plus-ai-translate-plugin
-          zip -qr "$RUNNER_TEMP/plugin.zip" . -x '.git/*' -x '.github/*'
+          python3 scripts/pack.py "$RUNNER_TEMP/plugin.zip"
           echo "PLUGIN_ZIP=$RUNNER_TEMP/plugin.zip" >> "$GITHUB_ENV"
 
       - name: Test
