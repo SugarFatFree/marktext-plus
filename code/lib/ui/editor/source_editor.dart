@@ -264,45 +264,105 @@ class SourceEditor extends ConsumerStatefulWidget {
 
     final selected = text.substring(start, end);
 
-    // A doubled marker belongs to the longer syntax: `**bold**` must not read
-    // as an italic wrapper whose content happens to begin with `*`. Applying
-    // italic to bold text should nest, giving `***bold***`.
-    final doubled = before == after && selected.startsWith(before + before);
+    // A run of markers may belong to a syntax other than the one being
+    // toggled, so what is already there has to be read before it is taken
+    // away. `**bold**` is not an italic wrapper whose content happens to begin
+    // with `*`: selecting `bold` inside it and pressing Ctrl+I used to take one
+    // marker off each side and leave `*bold*`, the bold gone and nothing
+    // saying so.
+    //
+    // The whole run is read, however it straddles the selection — the reader
+    // may have dragged across the syntax, across only the words, or across one
+    // marker of two — and [_pressedRun] says how long that run should be
+    // afterwards. Writing the answer as a length rather than as "take some off"
+    // or "put some on" is what makes the straddling cases come out right:
+    // selecting `~struck~` inside `~~struck~~` and asking for strikethrough
+    // used to shorten the run inside the selection and lengthen it outside,
+    // arriving at `~~~struck~~~` — which is not emphasis at all but a code
+    // fence, swallowing the paragraph and everything after it.
+    final uniform =
+        before == after &&
+        before.isNotEmpty &&
+        before.codeUnits.every((unit) => unit == before.codeUnitAt(0));
 
-    if (!doubled &&
-        selected.length >= before.length + after.length &&
-        selected.startsWith(before) &&
-        selected.endsWith(after)) {
-      final inner = selected.substring(
-        before.length,
-        selected.length - after.length,
-      );
-      return (
-        text: text.substring(0, start) + inner + text.substring(end),
-        start: start,
-        end: start + inner.length,
-      );
-    }
+    if (uniform) {
+      final char = before.codeUnitAt(0);
+      final length = end - start;
+      final leftInside = _runFrom(text, start, 1, char, length);
+      final rightInside = _runFrom(text, end - 1, -1, char, length);
 
-    // The markers may sit just outside the selection, which is what happens
-    // when the user selects the words rather than the syntax.
-    final hasBefore =
-        start >= before.length &&
-        text.substring(start - before.length, start) == before;
-    final hasAfter =
-        end + after.length <= text.length &&
-        text.substring(end, end + after.length) == after;
+      // A selection that is nothing but markers has no words to mark, so
+      // there is no run around anything to read: wrap it and let the reader
+      // see what they did.
+      if (leftInside + rightInside <= length) {
+        final leftOutside = _runFrom(text, start - 1, -1, char, start);
+        final rightOutside = _runFrom(
+          text,
+          end,
+          1,
+          char,
+          text.length - end,
+        );
+        final run = _sharedRun(
+          leftOutside + leftInside,
+          rightInside + rightOutside,
+        );
+        final pressed = _pressedRun(
+          before,
+          run,
+          composes: _composingRuns.contains(char),
+        );
+        final markers = String.fromCharCodes(
+          List<int>.filled(pressed, char),
+        );
+        final content = text.substring(start + leftInside, end - rightInside);
+        final from = start - leftOutside;
+        return (
+          text:
+              text.substring(0, from) +
+              markers +
+              content +
+              markers +
+              text.substring(end + rightOutside),
+          start: from + pressed,
+          end: from + pressed + content.length,
+        );
+      }
+    } else {
+      // A pair that is not a run of one character, which nothing in
+      // [wrapMarkers] is today: it comes off wherever it is found.
+      if (selected.length >= before.length + after.length &&
+          selected.startsWith(before) &&
+          selected.endsWith(after)) {
+        final inner = selected.substring(
+          before.length,
+          selected.length - after.length,
+        );
+        return (
+          text: text.substring(0, start) + inner + text.substring(end),
+          start: start,
+          end: start + inner.length,
+        );
+      }
 
-    if (hasBefore && hasAfter) {
-      final newStart = start - before.length;
-      return (
-        text:
-            text.substring(0, newStart) +
-            selected +
-            text.substring(end + after.length),
-        start: newStart,
-        end: newStart + selected.length,
-      );
+      final hasBefore =
+          start >= before.length &&
+          text.substring(start - before.length, start) == before;
+      final hasAfter =
+          end + after.length <= text.length &&
+          text.substring(end, end + after.length) == after;
+
+      if (hasBefore && hasAfter) {
+        final newStart = start - before.length;
+        return (
+          text:
+              text.substring(0, newStart) +
+              selected +
+              text.substring(end + after.length),
+          start: newStart,
+          end: newStart + selected.length,
+        );
+      }
     }
 
     final replacement = before + selected + after;
@@ -311,6 +371,73 @@ class SourceEditor extends ConsumerStatefulWidget {
       start: start + before.length,
       end: start + before.length + selected.length,
     );
+  }
+
+  /// How many copies of [char] run from [index] in direction [step], at most
+  /// [limit] of them.
+  static int _runFrom(String text, int index, int step, int char, int limit) {
+    var count = 0;
+    var i = index;
+    while (count < limit && i >= 0 && i < text.length) {
+      if (text.codeUnitAt(i) != char) break;
+      count++;
+      i += step;
+    }
+    return count;
+  }
+
+  /// The run the two sides of a selection share: a marker only opens what it
+  /// also closes, so the shorter of the two runs is the one that is there.
+  static int _sharedRun(int opening, int closing) =>
+      opening < closing ? opening : closing;
+
+  /// Whether a run of [count] copies of [marker]'s character carries the
+  /// syntax [marker] stands for.
+  ///
+  /// A single `*` is emphasis when the run is odd: two is strong, three is
+  /// strong around emphasis, four is two strongs. `**` is strong as soon as
+  /// the run reaches two. So toggling italic on `**bold**` adds a marker while
+  /// toggling it on `***both***` takes one away, which is what pressing Ctrl+I
+  /// means in each of those.
+  static bool _runCarries(String marker, int count) =>
+      marker.length == 1 ? count.isOdd : count >= marker.length;
+
+  /// The marker characters whose runs compose into a longer syntax.
+  ///
+  /// Only `*` does, of what this editor writes: `***bold***` is strong around
+  /// emphasis and the parser reads it back that way, so a run of three is one
+  /// step past a run of two. `~` looks like a sibling — `~` is subscript, `~~`
+  /// is strikethrough — but `~~~` at the start of a line opens a fenced code
+  /// block, so lengthening a tilde run nests nothing; it hides the paragraph
+  /// and everything after it inside a code block. Subscript inside
+  /// strikethrough cannot be written in this flavour at all, which is why the
+  /// marker pressed takes the run's place there instead of joining it.
+  ///
+  /// `` ` ``, `\$`, `=`, `+` and `^` appear at one length each, so no longer
+  /// run of them is a second syntax to be mistaken for.
+  ///
+  /// A test reconciles this set against [wrapMarkers]: adding a marker that
+  /// shares a character with another at a different length fails until
+  /// someone has decided which of the two kinds it is.
+  static const _composingRuns = <int>{0x2A};
+
+  /// How long the run of [marker]'s character should be after this press,
+  /// given that it is [run] long now.
+  ///
+  /// Nothing there becomes the marker. Where runs compose, a run already
+  /// carrying [marker]'s syntax loses one step and a run that does not gains
+  /// one, so italic on `**bold**` gives three and italic on `***both***` gives
+  /// two. Where they do not compose, a run of exactly [marker] is the second
+  /// press and goes to nothing, and a run of any other length is a different
+  /// syntax that [marker] replaces.
+  static int _pressedRun(String marker, int run, {required bool composes}) {
+    if (run == 0) return marker.length;
+    if (composes) {
+      return _runCarries(marker, run)
+          ? run - marker.length
+          : run + marker.length;
+    }
+    return run == marker.length ? 0 : marker.length;
   }
 
   /// The runs of ordinary text inside a selection, one per block.
@@ -386,38 +513,96 @@ class SourceEditor extends ConsumerStatefulWidget {
     String after,
     bool flanks,
   ) {
-    // Already marked everywhere? Then this is the second press, and it takes
-    // the marking off — the same toggle a single run gets.
-    final wrapped = segments.every((s) {
-      final piece = text.substring(s.$1, s.$2);
-      return piece.length >= before.length + after.length &&
-          piece.startsWith(before) &&
-          piece.endsWith(after);
-    });
+    // What is already on each run decides what this press does, read the same
+    // way a single run reads it — two bold paragraphs selected together and
+    // given italic used to lose the bold in both at once, because one `*` on
+    // each side of `**first**` looked like the italic being taken off.
+    //
+    // All the runs have to agree. A press that would strip one paragraph and
+    // wrap another marks them all instead, which is what dragging across both
+    // and asking for bold means. With nothing on any of them there is no run to
+    // read and the plain path below wraps each, trimming punctuation out of the
+    // markers on the way.
+    final uniform =
+        before == after &&
+        before.isNotEmpty &&
+        before.codeUnits.every((unit) => unit == before.codeUnitAt(0));
+
+    List<({int from, int to, int pressed, String content})>? plans;
+    if (uniform) {
+      final char = before.codeUnitAt(0);
+      final composes = _composingRuns.contains(char);
+      final each = <({int from, int to, int pressed, String content})>[];
+      var agreed = true;
+      int? shared;
+      for (final segment in segments) {
+        final length = segment.$2 - segment.$1;
+        final leftInside = _runFrom(text, segment.$1, 1, char, length);
+        final rightInside = _runFrom(text, segment.$2 - 1, -1, char, length);
+        if (leftInside + rightInside > length) {
+          agreed = false;
+          break;
+        }
+        final leftOutside = _runFrom(text, segment.$1 - 1, -1, char, segment.$1);
+        final rightOutside = _runFrom(
+          text,
+          segment.$2,
+          1,
+          char,
+          text.length - segment.$2,
+        );
+        final run = _sharedRun(
+          leftOutside + leftInside,
+          rightInside + rightOutside,
+        );
+        if (shared == null) {
+          shared = run;
+        } else if (shared != run) {
+          agreed = false;
+          break;
+        }
+        each.add((
+          from: segment.$1 - leftOutside,
+          to: segment.$2 + rightOutside,
+          pressed: _pressedRun(before, run, composes: composes),
+          content: text.substring(
+            segment.$1 + leftInside,
+            segment.$2 - rightInside,
+          ),
+        ));
+      }
+      if (agreed && shared != null && shared != 0) plans = each;
+    }
 
     var out = text;
-    for (final segment in segments.reversed) {
-      var (from, to) = segment;
-      if (wrapped) {
+    if (plans != null) {
+      final char = before.codeUnitAt(0);
+      for (final plan in plans.reversed) {
+        final markers = String.fromCharCodes(
+          List<int>.filled(plan.pressed, char),
+        );
+        out = out.replaceRange(
+          plan.from,
+          plan.to,
+          markers + plan.content + markers,
+        );
+      }
+    } else {
+      for (final segment in segments.reversed) {
+        var (from, to) = segment;
+        if (flanks) {
+          final trimmed = _trimForFlanking(out, from, to);
+          if (trimmed != null) {
+            from = trimmed.$1;
+            to = trimmed.$2;
+          }
+        }
         out = out.replaceRange(
           from,
           to,
-          out.substring(from + before.length, to - after.length),
+          before + out.substring(from, to) + after,
         );
-        continue;
       }
-      if (flanks) {
-        final trimmed = _trimForFlanking(out, from, to);
-        if (trimmed != null) {
-          from = trimmed.$1;
-          to = trimmed.$2;
-        }
-      }
-      out = out.replaceRange(
-        from,
-        to,
-        before + out.substring(from, to) + after,
-      );
     }
 
     final first = segments.first.$1;

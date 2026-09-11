@@ -92,6 +92,23 @@ could take a large part of a document with it:
   out as `.` and `` `C:\temp\*.md` `` lost a separator. A code span is
   literal.
 
+### Adding italic to bold text no longer takes the bold away
+
+Select the words inside `**bold**` — not the asterisks, just the words, which is
+how most people reach for a format — and press Ctrl+I. You used to get
+`*bold*`: one asterisk taken from each side, the bold gone, nothing saying so.
+It nests now, `***bold***`, and pressing Ctrl+I again takes the italic back off.
+
+The same press across two bold paragraphs at once lost the bold in both. And
+asking for subscript inside `~~struck~~` wrote three tildes, which at the start
+of a line is a code fence — the paragraph and everything after it disappeared
+into a code block. Three tildes are never written now: subscript and
+strikethrough cannot be nested in this flavour, so the one you press takes the
+other's place.
+
+Which markers compose and which replace each other is one rule in one place,
+asked by all three of the paths that used to answer it differently.
+
 ### A large document's first paint no longer cuts a block in half
 
 A document over 1500 lines is shown in two passes, the top of it first. That
@@ -191,6 +208,20 @@ HKLM、一个在 HKCU），会当作全新安装，旧的那份会留在原地�
   有序列表只有编号为 1 时才能打断段落，GitHub 也是这样。
 - 代码跨度里的反斜杠被当成转义吃掉：`` `\.` `` 显示成 `.`，
   `` `C:\temp\*.md` `` 少一个分隔符。代码跨度是字面的。
+
+### 给粗体加斜体不再把粗体删掉
+
+选中 `**加粗**` 里面的两个字——不选星号，只选字，这是大多数人加格式的方式——
+按 Ctrl+I。以前会得到 `*加粗*`：两边各拿掉一个星号，**粗体没了，也没有任何提示**。
+现在会嵌套成 `***加粗***`，再按一次 Ctrl+I 只取消斜体。
+
+同一个按键作用于两段各自加粗的段落时，两段的粗体会**一起**消失。而在
+`~~删除线~~` 里要下标会写出三个波浪号——行首三个波浪号是**代码围栏**，
+这一段连同后面的全部内容都会掉进代码块里。现在绝不会写出三个波浪号：
+下标与删除线在本方言里无法嵌套，所以你按下的那一个取代另一个。
+
+哪些标记会叠、哪些互相取代，现在是一处的一条规则，从前各自给出不同答案的
+三条路径都来问它。
 
 ### 大文档的第一屏不再把块切成两半
 
