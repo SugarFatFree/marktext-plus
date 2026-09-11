@@ -54,6 +54,52 @@ class PluginCatalogEntry {
   /// than showing an empty list, which would read as "asks for nothing".
   final List<String> permissions;
 
+  /// Whether [key] is a name for this plugin.
+  ///
+  /// Automation knows a plugin by the id in its manifest — the one
+  /// `run_plugin_command` takes — and a search result does not carry one: it
+  /// is a release on GitHub, and the manifest is inside the archive nobody
+  /// has downloaded yet. So the manifest id is matched the long way round,
+  /// through [repository], which an installed plugin declares and which
+  /// points at the same place GitHub found.
+  ///
+  /// The other two keys need nothing installed: the catalogue's own id, and
+  /// `owner/repo` as a person would write it.
+  ///
+  /// Case is ignored throughout. GitHub treats repository names that way, and
+  /// a caller who types the owner in the wrong case means the same plugin.
+  bool namedBy(String key, {String repository = ''}) {
+    final wanted = key.trim().toLowerCase();
+    if (wanted.isEmpty) return false;
+    if (id.toLowerCase() == wanted) return true;
+    final mine = _ownerAndRepo(repositoryUrl?.toString() ?? '');
+    if (mine.isNotEmpty && mine == wanted) return true;
+    if (repository.trim().isEmpty) return false;
+    return mine.isNotEmpty && mine == _ownerAndRepo(repository);
+  }
+
+  /// `owner/repo` out of whatever shape the URL came in.
+  ///
+  /// A manifest's `repository` is written by its author: with or without the
+  /// scheme, with or without `.git`, with or without a trailing slash. All of
+  /// those name one repository, and comparing the strings as given would say
+  /// they name four.
+  static String _ownerAndRepo(String url) {
+    if (url.trim().isEmpty) return '';
+    var rest = url.trim().toLowerCase();
+    for (final prefix in ['https://', 'http://', 'git@', 'ssh://']) {
+      if (rest.startsWith(prefix)) rest = rest.substring(prefix.length);
+    }
+    if (rest.startsWith('github.com/')) rest = rest.substring('github.com/'.length);
+    if (rest.startsWith('github.com:')) rest = rest.substring('github.com:'.length);
+    if (rest.endsWith('.git')) rest = rest.substring(0, rest.length - 4);
+    while (rest.endsWith('/')) {
+      rest = rest.substring(0, rest.length - 1);
+    }
+    final parts = rest.split('/').where((p) => p.isNotEmpty).toList();
+    return parts.length >= 2 ? '${parts[0]}/${parts[1]}' : '';
+  }
+
   /// Whether this is a plugin already on the reader's machine.
   ///
   /// The detail page was built from a search result, so installing a plugin

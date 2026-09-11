@@ -226,6 +226,24 @@ void main() {
       expect(outcome.ok, isFalse);
     });
 
+    test('install_plugin with no plugin named is refused before any network',
+        () async {
+      // The branch, not the decision — `install_plugin_over_mcp_test` covers
+      // which entry a name chooses. What matters here is that a call with the
+      // field left out comes back without having asked GitHub anything: this
+      // test runs where there is no network, and a version that read the
+      // catalogue first would hang for the timeout and then blame the network
+      // for a mistake the caller made.
+      final container = boot();
+      final outcome =
+          await container.read(mcpProvider.notifier).performAction(
+        'install_plugin',
+        <String, dynamic>{},
+      ).timeout(const Duration(seconds: 5));
+      expect(outcome.ok, isFalse);
+      expect(outcome.said, 'no pluginId given');
+    });
+
     test('an action nothing implements is refused', () async {
       final container = boot();
       final outcome = await container

@@ -19,6 +19,15 @@ enum McpAction {
   closePane('close_pane'),
   runPluginCommand('run_plugin_command'),
 
+  /// Installs a plugin from the catalogue, or updates one already installed.
+  ///
+  /// The same path the reader's Install button takes — HTTPS, the release's
+  /// own SHA-256, and an archive unpacked with the limits and the refusal of
+  /// paths that climb out of it. Nothing here loosens any of that; it only
+  /// removes the need for somebody to press the button, so a plugin fix can
+  /// be built, installed and driven without a person in the loop.
+  installPlugin('install_plugin'),
+
   /// Presses one of the icons in the right-hand rail.
   ///
   /// Not the same as running that command by name: a panel runs it with the
@@ -213,7 +222,7 @@ class McpToolset {
       description:
           'Drive the editor: open and close tabs, switch between them, '
           'change the view mode, write a tab\'s text, run a plugin command, '
-          'close a plugin pane.',
+          'close a plugin pane, install or update a plugin.',
       schema: {
         'type': 'object',
         'required': ['action'],
@@ -243,7 +252,9 @@ class McpToolset {
           },
           'pluginId': {
             'type': 'string',
-            'description': 'Which plugin, from get_state.',
+            'description': 'Which plugin. For a plugin already installed, '
+                'the id from get_state; install_plugin also takes '
+                '"owner/repo" for one that is not installed yet.',
           },
           'command': {
             'type': 'string',

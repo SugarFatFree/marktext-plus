@@ -9,6 +9,8 @@ import '../core/config/app_config.dart';
 import '../models/tab_info.dart';
 import '../services/app_log.dart';
 import '../services/plugin_script_runtime.dart';
+import '../services/plugin_manager.dart';
+import '../services/plugin_catalog_service.dart';
 import '../services/mcp_server.dart';
 import '../services/mcp_tools.dart';
 import '../services/window_capture.dart';
@@ -277,6 +279,12 @@ class McpController extends StateNotifier<McpStatus> {
         // icon to press.
         return open(pluginId, panelId, text('answer'));
 
+      case McpAction.installPlugin:
+        final wanted = text('pluginId') ?? '';
+        // The empty one is refused inside, beside every other reason a name
+        // can fail to name something, so both answers read the same way.
+        return installPlugin(wanted);
+
       case McpAction.closePane:
         final slot = PluginPaneSlot.values
             .where((s) => s.name == text('slot'))
@@ -288,6 +296,106 @@ class McpController extends StateNotifier<McpStatus> {
             ? mcpDid('closed the ${slot.name} pane')
             : mcpRefused('no ${slot.name} pane was open');
 
+    }
+  }
+
+  /// Which catalogue entry [wanted] names, or the sentence saying why none.
+  ///
+  /// Pulled out of [installPlugin] so the deciding can be checked without a
+  /// network: everything above it is one search and one download, and
+  /// everything below it is the installer that already has its own tests.
+  ///
+  /// Refusals rather than a best guess. Two entries answering to one name
+  /// means the name is not one, and installing whichever sorted first is a
+  /// coin toss the caller cannot see the result of. Both refusals say what
+  /// the catalogue actually held, because "no such plugin" with nothing
+  /// beside it reads as an editor fault when it is usually a typo or a
+  /// listing that came back short.
+  @visibleForTesting
+  static ({PluginCatalogEntry? entry, String? refusal}) chooseForInstall(
+    String wanted,
+    List<PluginCatalogEntry> entries, {
+    String repository = '',
+  }) {
+    if (wanted.trim().isEmpty) {
+      return (entry: null, refusal: 'no pluginId given');
+    }
+    final matches =
+        entries.where((e) => e.namedBy(wanted, repository: repository)).toList();
+    if (matches.isEmpty) {
+      final had = entries.isEmpty
+          ? 'the catalogue came back empty'
+          : 'the catalogue has ${entries.length}: '
+              '${entries.map((e) => e.id).join(', ')}';
+      return (
+        entry: null,
+        refusal: 'no plugin in the catalogue is called "$wanted" — $had',
+      );
+    }
+    if (matches.length > 1) {
+      return (
+        entry: null,
+        refusal: '"$wanted" names ${matches.length} plugins: '
+            '${matches.map((e) => e.id).join(', ')}',
+      );
+    }
+    return (entry: matches.single, refusal: null);
+  }
+
+  /// Installs the plugin [wanted] names, or updates it if it is installed.
+  ///
+  /// Separate from the switch above because it is the one action that reaches
+  /// the network and the disk, and because what it has to report — which
+  /// version was there before, which is there now — is worth a sentence
+  /// rather than "done".
+  ///
+  /// The catalogue is refreshed rather than read from its cache. The whole
+  /// point of asking is that something was published a minute ago; a listing
+  /// kept for six hours would answer with the release this is replacing.
+  @visibleForTesting
+  Future<McpOutcome> installPlugin(String wanted) async {
+    if (wanted.trim().isEmpty) return mcpRefused('no pluginId given');
+    final directory = await _ref.read(pluginInstallDirectoryProvider.future);
+    final manager = PluginManager(directory);
+
+    // What is installed under that id now, if anything. Two things come from
+    // it: the repository, which is the only bridge from a manifest id to a
+    // catalogue entry, and the version, so the answer can say what moved.
+    final installed = await manager.loadInstalled();
+    final before = installed.where((p) => p.id == wanted).firstOrNull;
+
+    final List<PluginCatalogEntry> entries;
+    try {
+      entries = await PluginCatalogService().searchGitHubTopic(refresh: true);
+    } catch (error) {
+      return mcpRefused(
+        'the catalogue could not be read: ${PluginCatalogService.describeError(error)}',
+      );
+    }
+
+    final chosen = chooseForInstall(
+      wanted,
+      entries,
+      repository: before?.repository ?? '',
+    );
+    final refusal = chosen.refusal;
+    if (refusal != null) return mcpRefused(refusal);
+    final entry = chosen.entry!;
+    try {
+      final manifest = await PluginCatalogService().install(entry, manager);
+      _ref.invalidate(installedPluginManifestsProvider);
+      _ref.invalidate(installedPluginProblemsProvider);
+      _ref.invalidate(installedPluginSourcesProvider);
+      final from = before == null ? 'nothing' : before.version;
+      return mcpDid(
+        'installed ${manifest.id} ${entry.version} (was $from) '
+        'from ${entry.repositoryUrl ?? entry.id}',
+      );
+    } catch (error) {
+      // The refusals worth reading are in here: a digest that did not match,
+      // an archive that unpacks to more than the limit, an entry that climbs
+      // out of its directory. None of them is "install failed".
+      return mcpRefused('$wanted was not installed: $error');
     }
   }
 
