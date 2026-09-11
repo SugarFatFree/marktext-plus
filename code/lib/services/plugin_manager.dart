@@ -393,6 +393,24 @@ class PluginManager {
         await output.parent.create(recursive: true);
         await output.writeAsBytes(content, flush: true);
       }
+      // The reader's own settings live inside the plugin's directory, and
+      // this replaces that directory wholesale — so every update threw them
+      // away and the plugin came back looking freshly installed. Carried
+      // across here, before the old directory goes.
+      //
+      // Copied after the archive has been unpacked, so it lands on top of any
+      // settings.json the author packaged: theirs is a default, and the
+      // reader's is the answer to the same question given later by the person
+      // whose editor it is.
+      //
+      // The tidier fix is to keep settings somewhere the install never
+      // touches. That means moving every existing one and leaving something
+      // behind to find the old place, which is a larger change than this and
+      // buys the reader nothing they can see.
+      final kept = File(p.join(target.path, 'settings.json'));
+      if (await kept.exists()) {
+        await kept.copy(p.join(temporary.path, 'settings.json'));
+      }
       if (await target.exists()) await target.delete(recursive: true);
       await temporary.rename(target.path);
       return manifest;
