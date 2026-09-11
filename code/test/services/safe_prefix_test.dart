@@ -178,6 +178,31 @@ void main() {
         reason: '``` 不能闭合 ~~~，它们是不同的字符');
   });
 
+  test('the cut is never inside a raw-text HTML block', () {
+    // `<pre>`, `<script>`, `<style>` and `<textarea>` run to their closing tag
+    // however far down it is — the parser says so beside `_rawTextHtmlTags`.
+    // Cut in half, the prefix holds a block with no end, and that block then
+    // swallows everything after it in the prefix: the reader sees the top of
+    // their document with a chunk of it rendered as raw text until the whole
+    // parse arrives. The source ranges are wrong for that moment too, and
+    // editing a block in the preview is what those ranges are for.
+    //
+    // Blank lines inside the block are what makes this reachable at all: the
+    // cut looks for a blank line outside everything, and inside one of these
+    // it is not outside anything.
+    final filler = List.generate(740, (i) => 'Paragraph $i.\n').join('\n');
+    for (final tag in ['pre', 'script', 'style', 'textarea']) {
+      final block = '<$tag>\n'
+          '${List.generate(40, (i) => 'line $i\n').join('\n')}\n'
+          '</$tag>\n';
+      final prefix = MarkdownParser.safePrefix('$filler\n$block\nAfter.\n');
+      if (prefix == null) continue;
+      if (!prefix.contains('<$tag>')) continue; // cut before it: fine
+      expect(prefix, contains('</$tag>'),
+          reason: '<$tag> 被切成两半，前缀里没有它的闭合标签');
+    }
+  });
+
   test('front matter is never cut in half', () {
     final source = StringBuffer()
       ..writeln('---')

@@ -1128,6 +1128,14 @@ class MarkdownParser {
     var inFence = false;
     var fenceMarker = '';
     String? frontMatterCloser;
+    // A `<pre>`, `<script>`, `<style>` or `<textarea>` runs to its closing tag
+    // however far down that is — the parser says so beside
+    // [_rawTextHtmlTags] — so a cut inside one leaves the prefix holding a
+    // block with no end, which then swallows everything after it in the
+    // prefix. Fences and front matter were tracked here and these were not,
+    // and a blank line inside one is exactly where the cut looks for somewhere
+    // to stop.
+    String? rawTextCloser;
 
     // Counted at the top, before any of the `continue`s below: a fence's
     // lines cost the parser just as much as a paragraph's, and skipping them
@@ -1149,6 +1157,18 @@ class MarkdownParser {
           frontMatterCloser = opener.close;
           continue;
         }
+      }
+
+      if (rawTextCloser != null) {
+        if (line.toLowerCase().contains(rawTextCloser)) rawTextCloser = null;
+        continue;
+      }
+      final rawTag = _rawTextHtmlTags
+          .where((tag) => RegExp('<$tag\\b', caseSensitive: false).hasMatch(line))
+          .firstOrNull;
+      if (rawTag != null && !line.toLowerCase().contains('</$rawTag>')) {
+        rawTextCloser = '</$rawTag>';
+        continue;
       }
 
       if (inFence) {
