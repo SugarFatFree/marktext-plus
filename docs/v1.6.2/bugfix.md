@@ -161,6 +161,7 @@
 | BUG-416 | 2026-09-11 | 首页承诺的性能预算比实测更严；11 份译文说高亮是单遍 | P2 | 已修复 |
 | BUG-417 | 2026-09-11 | 验「打包出来的插件能不能跑」的四条测试，从未执行过 | P1 | 已修复 |
 | BUG-418 | 2026-09-11 | Linux 包里没有 QuickJS 桥，JavaScript 插件一个都起不来 | P1 | 已修复 |
+| BUG-419 | 2026-09-11 | `run_plugin_command` 收下 `answer` 却不用，命令挂在对话框上 | P1 | 已修复 |
 
 ---
 
@@ -9135,3 +9136,74 @@ flutter/ephemeral/.plugin_symlinks/flutter_js/linux/shared/libquickjs_c_bridge_p
 **第一次跑就证实了这句话**——而且不是将来会发生，是**已经发生了**。
 那一步里「先把所有 `.so` 列出来再失败」的设计也立刻兑现了价值：
 不是一句干巴巴的红叉，而是一份清单，一眼看出壳在、桥不在。
+
+---
+
+## BUG-419：`run_plugin_command` 收下 `answer` 却不用，命令挂在对话框上
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-419 |
+| 日期 | 2026-09-11 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+
+### 现象
+
+实机测试翻译整篇文档：
+
+```json
+{"action":"run_plugin_command","pluginId":"com.marktextplus.ai-translate",
+ "command":"translate.document","answer":"English"}
+```
+
+**跑满 240 秒没有返回。** 截图显示不是卡死——插件问了「目标语言」，
+`English` 那个选项已被选中、输入框里也填好了，**它在等人点「确认」**。
+而 MCP 这一端没有人。
+
+### 根因
+
+`control` 的 schema 提供 `answer` 参数，两个动作都收：
+
+| 动作 | 实际 |
+|------|------|
+| `open_panel` | `open(pluginId, panelId, text('answer'))` ✅ 传下去了 |
+| `run_plugin_command` | `run(pluginId, command)` ❌ **压根不传** |
+
+参数被静默忽略。调用方传了、没有任何报错、然后命令挂起——
+**本库反复出现的那个形状：接口宣称的参数，被其中一个动作丢在地上。**
+
+而它挡住的是插件的**主要功能**：`translate.selection` 和 `translate.document`
+都会先问目标语言，所以自动化接口驱动不了它们中的任何一个。
+
+### 修复方案
+
+`PluginCommandActions.run` 已经有现成的注入点 `onAsk`（侧边栏那条路在用），
+只是公开的 `run` 没收这个参数。给它加一个可选 `answer`，有值时用一个
+**立即返回它的 `onAsk`**——问题在被画出来之前就已经答了，什么都不显示、什么都不等。
+
+回调类型随之从 `(pluginId, command)` 改成 `(pluginId, command, answer)`。
+
+schema 里那句说明也改了：原文只提 panel，现在写明两个动作都适用。
+
+### 涉及文件
+
+- `code/lib/ui/widgets/plugin_command_actions.dart`
+- `code/lib/ui/screens/home_screen.dart`
+- `code/lib/providers/mcp_provider.dart`
+- `code/lib/services/mcp_tools.dart`（说明）
+- `code/test/services/mcp_control_does_it_test.dart`（新增 2 条）
+
+### 验证
+
+| 变异 | 结果 |
+|------|------|
+| 退回「不传 answer」 | 「答案没有交下去，命令就会停在对话框上等一个不存在的人」红 |
+
+第二条测试守的是另一边：**没给答案时要照旧问人**，而不是替他答一个空字符串。
+
+### 怎么发现的
+
+不是扫出来的，是**实机测试时撞上的**——这也说明一件事：
+这类「接口收下参数却不用」的缺陷，静态地看两边都「有这个参数」，
+只有真的驱动一次才会暴露。

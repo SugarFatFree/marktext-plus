@@ -956,6 +956,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
     ref.read(mcpProvider.notifier).runPluginCommand = (
       pluginId,
       command,
+      answer,
     ) async {
       final plugins =
           ref.read(installedPluginManifestsProvider).valueOrNull ??
@@ -984,6 +985,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
         context: context,
         plugin: plugin,
         command: command,
+        answer: answer,
       );
       return mcpDid('ran $command');
     };

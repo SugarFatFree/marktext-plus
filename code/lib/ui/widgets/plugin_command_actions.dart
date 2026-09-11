@@ -248,17 +248,36 @@ class PluginCommandActions {
   }
 
   /// Runs one plugin command outside a context menu — from the menu bar, say.
+  /// Runs [command], optionally answering the one question it may ask.
+  ///
+  /// [answer] is for a caller with no reader behind it — the automation
+  /// interface. Without it a command that asks puts its question on screen and
+  /// waits, which is right for a person and a hang for an agent: an MCP call
+  /// sat for four minutes with the answer typed into the box and nobody to
+  /// press the button. `open_panel` has taken an answer since it was written,
+  /// and this had the same parameter offered in the same schema and dropped it
+  /// on the floor.
   static Future<void> run(
     WidgetRef ref, {
     required BuildContext context,
     required PluginManifest plugin,
     required String command,
+    String? answer,
   }) async {
     final l10n = AppLocalizations.of(context);
     if (l10n == null) return;
     final tabs = ref.read(tabProvider);
     final active = tabs.tabs.where((tab) => tab.id == tabs.activeTabId);
     await _run(
+      // Answered before it is asked, so nothing is drawn and nothing waits.
+      onAsk: answer == null
+          ? null
+          : ({
+              required String question,
+              required List<String> choices,
+              required String suggested,
+            }) async =>
+              answer,
       navigator: Navigator.of(context),
       messenger: ScaffoldMessenger.of(context),
       container: ProviderScope.containerOf(context, listen: false),

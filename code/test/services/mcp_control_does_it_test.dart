@@ -6,6 +6,7 @@ import 'package:marktext_plus/core/config/app_config.dart';
 import 'package:marktext_plus/core/config/config_service.dart';
 import 'package:marktext_plus/models/tab_info.dart';
 import 'package:marktext_plus/providers/mcp_provider.dart';
+import 'package:marktext_plus/services/mcp_tools.dart';
 import 'package:marktext_plus/providers/settings_provider.dart';
 import 'package:marktext_plus/providers/tab_provider.dart';
 
@@ -44,6 +45,63 @@ void main() {
   }
 
   TabInfo aTab(String id) => TabInfo(id: id, fileName: '$id.md', content: 'x');
+
+  group('answering a plugin question from the automation interface', () {
+    // Measured before it was fixed: an MCP call asking the shipped plugin to
+    // translate a document, with `answer: "English"` passed, sat for four
+    // minutes and returned nothing. The chip was selected and the word was in
+    // the box; the command was waiting for a human to press Confirm, and
+    // there is no human on this end of the socket.
+    //
+    // `open_panel` had taken an answer since it was written. `run_plugin_command`
+    // offered the same parameter in the same schema and never read it — the
+    // shape this project keeps finding, an argument the interface advertises
+    // and one of its actions drops.
+
+    test('run_plugin_command hands the answer to the command', () async {
+      final container = boot();
+      String? taken;
+      var calls = 0;
+      container.read(mcpProvider.notifier).runPluginCommand =
+          (pluginId, command, answer) async {
+        calls++;
+        taken = answer;
+        return mcpDid('ran $command');
+      };
+
+      final outcome = await container
+          .read(mcpProvider.notifier)
+          .performAction('run_plugin_command', {
+        'pluginId': 'com.example.demo',
+        'command': 'translate.document',
+        'answer': 'English',
+      });
+
+      expect(outcome.ok, isTrue);
+      expect(calls, 1);
+      expect(taken, 'English',
+          reason: '答案没有交下去，命令就会停在对话框上等一个不存在的人');
+    });
+
+    test('and null when none was given, which is a reader being asked',
+        () async {
+      final container = boot();
+      String? taken = 'unset';
+      container.read(mcpProvider.notifier).runPluginCommand =
+          (pluginId, command, answer) async {
+        taken = answer;
+        return mcpDid('ran $command');
+      };
+
+      await container.read(mcpProvider.notifier).performAction(
+        'run_plugin_command',
+        {'pluginId': 'com.example.demo', 'command': 'ai.proofread'},
+      );
+
+      expect(taken, isNull,
+          reason: '没给答案时要照旧问人，而不是替他答一个空字符串');
+    });
+  });
 
   group('closing a tab', () {
     test('closes it, and says so', () async {

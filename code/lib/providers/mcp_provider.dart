@@ -145,7 +145,7 @@ class McpController extends StateNotifier<McpStatus> {
   /// come out of a `BuildContext`, and this layer has none. The widget that
   /// has one registers this instead, which is the same shape the toolset
   /// already uses for screenshots.
-  Future<McpOutcome> Function(String pluginId, String command)?
+  Future<McpOutcome> Function(String pluginId, String command, String? answer)?
   runPluginCommand;
 
   /// Presses an icon in the right-hand rail, and says what the drawer showed.
@@ -245,7 +245,7 @@ class McpController extends StateNotifier<McpStatus> {
         // The handler's own answer, not a blanket success: it refuses a
         // plugin that is not installed and a command that plugin has not got,
         // and wrapping those in `mcpDid` reported both as done.
-        return run(pluginId, command);
+        return run(pluginId, command, text('answer'));
 
       case McpAction.openPanel:
         final pluginId = text('pluginId');

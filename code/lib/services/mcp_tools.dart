@@ -260,8 +260,10 @@ class McpToolset {
           'answer': {
             'type': 'string',
             'description':
-                'What to answer if the panel asks something. Without it a '
-                'panel that asks will wait, the way it waits for a reader.',
+                'What to answer if the plugin asks something — for '
+                'open_panel and for run_plugin_command alike. Without it, '
+                'one that asks will wait, the way it waits for a reader, '
+                'and nothing here can press the button.',
           },
         },
       },
