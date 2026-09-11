@@ -153,6 +153,21 @@ came back in three pieces with the backticks it was quoting gone, and a code
 block that itself contained a fence was split into a block, a paragraph and an
 empty block. The delimiter is longer than anything inside it now.
 
+### A pasted table keeps its shape when a cell holds two lines
+
+A row ends at a line ending, so a cell cannot hold one — and a `<br>` inside a
+cell was written as one. `<td>a<br>b</td><td>c</td>` came back as a row holding
+`a` and nothing, then a row holding `b` and `c`: every cell after the break moved
+a column and the header stopped describing what was under it. Two breaks in one
+cell lost the last two pieces outright. Separate paragraphs in a cell, which is
+what a word processor puts on the clipboard, arrived with the words run together
+as `onetwo`.
+
+A break in a cell becomes a space now, and a block boundary becomes one too. GFM
+writes the break as an inline `<br>`, which this editor reads only when HTML is
+turned on and it is off by default — so that would have shown a tag where someone
+wrote a line.
+
 ### A large document's first paint no longer cuts a block in half
 
 A document over 1500 lines is shown in two passes, the top of it first. That
@@ -299,6 +314,18 @@ HKLM、一个在 HKCU），会当作全新安装，旧的那份会留在原地�
 写一个，代码块一律写三个。于是从网页复制的 JavaScript 模板字符串回来时断成三截、
 它引用的反引号全丢，而本身含有围栏的代码块被拆成一个代码块、一个段落和一个空代码块。
 现在分隔符总比内部任何一段更长。
+
+### 粘贴的表格在单元格有两行时仍保持形状
+
+表格的一行在换行处结束，所以单元格里不能有换行——而单元格里的 `<br>` 正是写成了
+换行。`<td>a<br>b</td><td>c</td>` 回来时变成「a」「（空）」一行、「b」「c」一行：
+换行之后的每个单元格都挪了一列，表头也不再对应下面的内容。一个单元格里两个换行，
+后两段直接丢失。而单元格里的多个段落——文字处理软件放到剪贴板上就是这个形状——
+回来时词被粘成 `onetwo`。
+
+现在单元格里的换行变成一个空格，块与块之间也是。GFM 的正规写法是内联 `<br>`，
+但这个编辑器只在 HTML 开关打开时读它，而默认是关的——那样会让写了一个换行的人
+看到一个标签。
 
 ### 大文档的第一屏不再把块切成两半
 

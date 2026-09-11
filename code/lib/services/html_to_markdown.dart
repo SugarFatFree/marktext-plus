@@ -330,9 +330,7 @@ class HtmlToMarkdown {
           if (cell.isTag && !cell.closing && (cell.name == 'td' ||
               cell.name == 'th')) {
             final (content, after) = _until(inner, at, cell.name);
-            // A pipe inside a cell would split it; escaping is how GFM keeps
-            // one there.
-            cells.add(_inline(content).replaceAll('|', r'\|'));
+            cells.add(_cellText(content));
             at = after;
             continue;
           }
@@ -550,6 +548,58 @@ class HtmlToMarkdown {
       !text.startsWith(marker[0]) &&
       !text.endsWith(marker[0]) &&
       (!tight || !text.contains(RegExp(r'\s')));
+
+  /// The tags that end a run of words inside a table cell.
+  ///
+  /// A cell holds one line, so what a page wrote as separate blocks has to
+  /// become separate words rather than separate lines. Without this
+  /// `<td><p>one</p><p>two</p></td>` — which is what a word processor puts on
+  /// the clipboard for a cell of two lines — arrived as `onetwo`.
+  static const _cellBreaks = <String>{
+    'p',
+    'div',
+    'li',
+    'ul',
+    'ol',
+    'blockquote',
+    'h1',
+    'h2',
+    'h3',
+    'h4',
+    'h5',
+    'h6',
+  };
+
+  /// One table cell: a single line, with the pipe escaped.
+  ///
+  /// A row ends at a line ending, so a cell cannot hold one. A `<br>` inside one
+  /// used to write `  \n`, which ended the row inside the cell:
+  /// `<td>a<br>b</td><td>c</td>` came back as a row holding `a` and nothing and
+  /// then a row holding `b` and `c`, with every later cell shifted a column and
+  /// the header no longer describing what was under it. Two breaks in one cell
+  /// lost the last two pieces outright, because the extra rows no longer matched
+  /// the table's width.
+  ///
+  /// GFM writes a break inside a cell as an inline `<br>`. This editor reads
+  /// inline HTML only when it is turned on, and it is off by default, so that
+  /// would show the reader a tag where they wrote a line. A space keeps the
+  /// table and loses only the break — the same trade the wrapping tags make when
+  /// two markings cannot both be written.
+  ///
+  /// A pipe is escaped rather than dropped: that is how GFM keeps one in a cell.
+  static String _cellText(List<_Token> content) {
+    final spaced = <_Token>[];
+    for (final token in content) {
+      spaced.add(token);
+      if (token.isTag && token.closing && _cellBreaks.contains(token.name)) {
+        spaced.add(const _Token.text(' '));
+      }
+    }
+    return _inline(spaced)
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim()
+        .replaceAll('|', r'\|');
+  }
 
   static const _backtick = 0x60;
 
