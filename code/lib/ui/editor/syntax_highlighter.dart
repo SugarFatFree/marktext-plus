@@ -166,6 +166,16 @@ class MarkdownSyntaxHighlighter {
     }
     if (length < 3) return null;
 
+    // A backtick fence's info string may not contain a backtick, so
+    // `` ``` aa ``` `` on a line is a code span rather than the start of a
+    // block — and a block opened there swallows the rest of the document. A
+    // tilde fence has no such restriction.
+    //
+    // `indexOf` from an offset rather than a substring: this runs over every
+    // line on every keystroke, and only a line already carrying a run of
+    // three backticks gets this far.
+    if (char == _backtick && line.indexOf('`', i + length) >= 0) return null;
+
     // A closing fence carries no info string.
     final bare = line.substring(i + length).trim().isEmpty;
     return (char: char, length: length, bare: bare);

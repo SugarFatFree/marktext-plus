@@ -70,6 +70,14 @@ void main() {
   agree('four columns is not a fence', '# a\n    ```\n# b\n    ```\n# c\n');
   // A tab is four columns, by the same rule and for the same reason.
   agree('a tab is not three spaces', '# a\n\t```\n# b\n\t```\n# c\n');
+  // A backtick fence's info string may not contain a backtick, so this line is
+  // a code span and opens nothing. Both panes had it wrong together, which is
+  // why this case is here as much as the two above: a block opened on a line
+  // of prose about backticks swallows everything after it.
+  agree('backticks in the info string open nothing', '# a\n``` aa ```\n# b\n');
+  agree('a bare pair on one line opens nothing', '# a\n``` ```\n# b\n');
+  // A tilde fence may carry them.
+  agree('a tilde fence may carry backticks', '# a\n~~~ `x`\n# b\n~~~\n# c\n');
 
   // Unclosed: everything to the end of the document is code.
   agree('a fence that is never closed', '# a\n```\n# b\n# c\n');

@@ -12,6 +12,7 @@
 | BUG-425 | 2026-09-11 | 更新插件会把读者填的设置删掉 | P1 | 已修复 |
 | BUG-426 | 2026-09-11 | 折叠高亮的规则被前一行抽掉了匹配依据，CommonMark 得分被低估 | P2 | 已修复 |
 | BUG-427 | 2026-09-11 | 缩进四列的围栏，预览当代码块、源码区当普通文字 | P1 | 已修复 |
+| BUG-428 | 2026-09-11 | 一行 `` ``` aa ``` `` 开启代码块，吞掉文档后面全部内容 | P1 | 已修复 |
 
 ---
 
@@ -363,6 +364,61 @@ CommonMark 站在高亮器这边：缩进四列是**缩进代码块**，那三�
 - `code/lib/services/markdown_parser.dart`
 - `code/test/services/fence_rule_agreement_test.dart`
 - `code/test/services/commonmark_spec_test.dart`（下限 497 → 499）
+
+---
+
+## BUG-428：一行 `` ``` aa ``` `` 会开启代码块，把文档后面全部吞掉
+
+**现象**
+
+在文档里写一行
+
+```
+``` aa ```
+```
+
+按 CommonMark 这是一个**代码跨度**（行内代码）。编辑器把它当作围栏的开头——
+而这个围栏没有结尾，所以**它后面的整篇文档都变成了代码**。一行关于反引号的散文，
+代价是整篇文档。
+
+**根因分析**
+
+规范里有一条：**反引号围栏的 info 串不许包含反引号**（波浪号围栏没有这个限制）。
+解析器的 `_codeFenceRe` 只规定了 info 串的**第一个词**不含反引号
+（`([^`\s]*)`），而正则没有锚定行尾，所以「运行长度之后整行都不许有反引号」
+这条规定它表达不了。高亮器的 `_fenceRun` 同样没有这条。
+
+两个窗格这次是**一起错的**，所以 `fence_rule_agreement_test` 不会报——
+它管的是漂移，不是正确性。这一条是靠 CommonMark 规范测试挖出来的。
+
+**修复方案**
+
+- 解析器：新增 `_opensFence(line)`，先用 `_codeFenceRe` 判断形状，再补这条规则
+  ——反引号围栏的运行长度之后整行不许再有反引号。七处「判断开围栏」的调用点
+  全部改走它。**闭合不受影响**：闭合围栏后面什么都不许有，一个反引号本来就已经
+  让它不成立。
+- 高亮器：同一条规则，用 `indexOf(char, offset)` 而不是 `substring`
+  ——它每次按键都要跑遍每一行，而只有已经带了三个反引号运行的行才会走到这里。
+
+**顺带的收益**：CommonMark 得分 499 → 501。
+
+**验证**（三个变异，全部被抓住）
+
+| 变异 | 结果 |
+|------|------|
+| 解析器不再检查反引号 | 25 行失败 |
+| 只让高亮器不检查（制造两窗格不一致） | 「backticks in the info string open nothing」失败 |
+| 波浪号围栏也禁止带反引号（过度收紧） | 「a tilde fence may carry backticks」失败 |
+
+第三条差点被我误判为「没抓住」——当时的 `grep … | head -3` 把失败行截掉了。
+**过滤器会两个方向都骗人**：它既会漏报，也会让人以为没有。
+
+**涉及文件**
+
+- `code/lib/services/markdown_parser.dart`
+- `code/lib/ui/editor/syntax_highlighter.dart`
+- `code/test/services/fence_rule_agreement_test.dart`（三条新用例）
+- `code/test/services/commonmark_spec_test.dart`（下限 499 → 501）
 
 ---
 

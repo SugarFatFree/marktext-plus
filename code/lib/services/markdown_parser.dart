@@ -633,7 +633,7 @@ class MarkdownParser {
         if (_closesFence(lines[i], fence)) fence = '';
         continue;
       }
-      final opener = _codeFenceRe.firstMatch(lines[i]);
+      final opener = _opensFence(lines[i]);
       if (opener != null) {
         fence = opener.group(1)!;
         continue;
@@ -713,6 +713,28 @@ class MarkdownParser {
   ///
   /// The closing fence must use the same character and be at least as long,
   /// so ``` inside a ```` block is content rather than the end of it.
+  /// The fence this line opens, or null.
+  ///
+  /// [_codeFenceRe] answers the shape; this adds the one rule the shape
+  /// cannot state. A backtick fence's info string may not contain a backtick,
+  /// so `` ``` aa ``` `` written on a line is a code span — and was opening a
+  /// code block that swallowed the rest of the document, which is a great deal
+  /// to lose to one line of prose about backticks. A tilde fence has no such
+  /// restriction and may carry backticks in its info string.
+  ///
+  /// Used everywhere an opener is decided. Closing is unaffected: a closing
+  /// fence carries nothing after it at all, so a backtick there already
+  /// disqualified it.
+  static RegExpMatch? _opensFence(String line) {
+    final match = _codeFenceRe.firstMatch(line);
+    if (match == null) return null;
+    final run = match.group(1)!;
+    if (run[0] != '`') return match;
+    // Only spaces can precede the run, so the first occurrence is the run.
+    final rest = line.substring(line.indexOf(run) + run.length);
+    return rest.contains('`') ? null : match;
+  }
+
   static bool _closesFence(String line, String fence) {
     final match = _codeFenceEndRe.firstMatch(line);
     if (match == null) return false;
@@ -1027,7 +1049,7 @@ class MarkdownParser {
       lines[i].trim().isEmpty ||
       _headingRe.hasMatch(lines[i]) ||
       _hrRe.hasMatch(lines[i]) ||
-      _codeFenceRe.hasMatch(lines[i]) ||
+      _opensFence(lines[i]) != null ||
       _blockquoteRe.hasMatch(lines[i]) ||
       _ulRe.hasMatch(lines[i]) ||
       _olRe.hasMatch(lines[i]) ||
@@ -1119,7 +1141,7 @@ class MarkdownParser {
         }
         continue;
       }
-      final opener = _codeFenceRe.firstMatch(line);
+      final opener = _opensFence(line);
       if (opener != null) {
         inFence = true;
         fenceMarker = opener.group(1)!;
@@ -1598,7 +1620,7 @@ class MarkdownParser {
         continue;
       }
       if (blocks.isNotEmpty && _indentColumns(lines[i]) > 0) {
-        final opener = _codeFenceRe.firstMatch(lines[i]);
+        final opener = _opensFence(lines[i]);
         if (opener != null) {
           fence = opener.group(1)!;
           blocks.last.add(lines[i]);
@@ -1814,7 +1836,7 @@ class MarkdownParser {
     var fence = '';
     for (var index = 0; index < lines.length; index++) {
       final line = lines[index];
-      final fenceMatch = _codeFenceRe.firstMatch(line);
+      final fenceMatch = _opensFence(line);
       if (fence.isEmpty) {
         if (fenceMatch != null) fence = fenceMatch.group(1)!;
       } else {
@@ -2075,7 +2097,7 @@ class MarkdownParser {
       }
 
       // Fenced code block
-      final codeFenceMatch = _codeFenceRe.firstMatch(line);
+      final codeFenceMatch = _opensFence(line);
       if (codeFenceMatch != null && !_ulRe.hasMatch(line)) {
         final fence = codeFenceMatch.group(1)!;
         final lang = codeFenceMatch.group(2) ?? '';
