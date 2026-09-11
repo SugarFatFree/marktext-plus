@@ -22,14 +22,27 @@ void main() {
         .where((f) =>
             f.path.endsWith('.md') &&
             !f.path.contains('/.git/') &&
-            !f.path.contains('node_modules'))
+            !f.path.contains('node_modules') &&
+            // Not the packages this project depends on. `flutter pub get`
+            // symlinks them under `*/flutter/ephemeral/.plugin_symlinks`, so
+            // they were being read as though they were this repository's own
+            // documents — and the set of them depends on which platforms have
+            // been built, which made the corpus different on every machine
+            // while `greaterThan(20)` below passed either way. One of them is
+            // 95% a single code sample, which is perfectly reasonable for an
+            // example's README and is not a shape this project can hold
+            // anybody to.
+            !f.path.contains('ephemeral'))
         .toList();
   });
 
   test('there are documents to read', () {
     // Guard on the guard: a wrong path here would make every test below pass
     // by having nothing to look at.
-    expect(documents.length, greaterThan(20));
+    // Raised from 20 once the corpus stopped depending on what had been
+    // built: there are over a hundred, so 20 would no longer notice a path
+    // that had gone wrong.
+    expect(documents.length, greaterThan(50));
   });
 
   /// Reports every document whose HTML matches [bad], with a line of context.
@@ -47,6 +60,38 @@ void main() {
     }
     expect(offenders, isEmpty, reason: '$what（前几处：${offenders.take(3)}）');
   }
+
+  test('no code block swallowed the document it is in', () {
+    // The shape a fence rule gets wrong. BUG-428 was a line reading
+    // `` ``` aa ``` `` — a code span to CommonMark — opening a fence that
+    // never closed, so everything after it became code; BUG-427 was four
+    // columns of indentation opening one in the preview only. Neither is
+    // visible in any single crafted input this suite would have thought of,
+    // and both are unmistakable here: a document is prose with code in it,
+    // not one code block.
+    //
+    // Measured over this repository's own documents, the largest single code
+    // block is 28.5% of its file — `docs/v1.0.1/设计规格文档.md`. Half is
+    // comfortably above that and far below a document that was eaten.
+    final offenders = <String>[];
+    for (final file in documents) {
+      final source = file.readAsStringSync();
+      if (source.length < 500) continue;
+      var biggest = 0;
+      for (final node in MarkdownParser().parse(source)) {
+        if (node.type == NodeType.codeBlock &&
+            node.rawContent.length > biggest) {
+          biggest = node.rawContent.length;
+        }
+      }
+      if (biggest * 2 > source.length) {
+        offenders.add('${file.path}: '
+            '${(biggest * 100 / source.length).round()}% of it is one code block');
+      }
+    }
+    expect(offenders, isEmpty,
+        reason: '某处围栏规则把文档吞掉了：\n${offenders.join('\n')}');
+  });
 
   test('no empty list item', () {
     // An empty marker continues a list; one appearing here would mean a line
