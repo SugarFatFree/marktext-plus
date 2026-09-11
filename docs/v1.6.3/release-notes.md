@@ -74,6 +74,43 @@ target language and the plugin came back looking newly installed. It was
 survivable while updating meant deliberately downloading a ZIP; `install_plugin`
 makes updating routine, which is what turned this into a fix.
 
+### Markdown that came out wrong
+
+Four things the parser read differently from what you wrote, each of which
+could take a large part of a document with it:
+
+- A line reading `` ``` aa ``` `` is a code span. It was opening a code block
+  that never closed, so everything below it became code.
+- A fence indented four columns opened a code block in the preview while the
+  source pane went on colouring the lines inside it as ordinary markdown. Four
+  columns of indentation is an indented code block; the two panes agree now.
+- A sentence that wrapped before a number — "…is / 14. The number of doors…" —
+  was taken apart into a paragraph and a list numbered from fourteen. A
+  numbered list interrupts a paragraph only when it is numbered 1, which is
+  what GitHub does too.
+- A backslash inside a code span was eaten as an escape, so `` `\.` `` came
+  out as `.` and `` `C:\temp\*.md` `` lost a separator. A code span is
+  literal.
+
+### A large document's first paint no longer cuts a block in half
+
+A document over 1500 lines is shown in two passes, the top of it first. That
+first pass could stop inside a `<pre>` or a `$$ … $$` block, which then
+swallowed everything after it until the whole document arrived.
+
+### The plugin marketplace speaks your language when it fails
+
+"could not reach GitHub; check the network or a proxy" was English in all
+twelve languages — in red, at the moment you most need to understand it. The
+two failures you can act on, no network and GitHub asking you to wait, are
+translated now, with the seconds.
+
+### Right to left
+
+A quote's accent bar stood on the left in Arabic, across the quote from where
+the words start, and the rule between the line numbers and the code stayed on
+one side while the numbers moved.
+
 ### Smaller
 
 - The explanation of why the About box's version broke was attached to the undo
@@ -82,6 +119,9 @@ makes updating routine, which is what turned this into a fix.
 - The check that every icon-only button carries a tooltip could not see
   Material 3's named constructors, so an `IconButton.filled` without one would
   have shipped unannounced.
+- Setting the view mode over the automation interface said it had happened
+  before it had, so an agent asking for the state in the next breath could be
+  shown the old one.
 - How long each step of starting up took can now be read over the automation
   interface. The log carried one number — "+901 ms before Dart" — and loading
   the executable, booting the engine and reading the snapshot are three
@@ -139,12 +179,43 @@ HKLM、一个在 HKCU），会当作全新安装，旧的那份会留在原地�
 目标语言全都没了，插件回来时像是刚装上的。以前更新意味着有人专门去下一个 ZIP，
 一年碰不到一次；`install_plugin` 让更新成了常规动作，这才把它从「能忍」变成「必须修」。
 
+### 解析错了的 Markdown
+
+四处解析与你写的不一致，每一处都可能带走文档的一大片：
+
+- 一行 `` ``` aa ``` `` 本是行内代码，却开启了一个永不闭合的代码块，
+  **它下面的全部内容都变成了代码**。
+- 缩进四列的围栏在预览里开了代码块，源码区却照常把里面的行染成普通标记。
+  缩进四列是缩进代码块——两个窗格现在说法一致。
+- 在「数字.」前换行的句子被拆成一个段落加一个从十四开始的列表。
+  有序列表只有编号为 1 时才能打断段落，GitHub 也是这样。
+- 代码跨度里的反斜杠被当成转义吃掉：`` `\.` `` 显示成 `.`，
+  `` `C:\temp\*.md` `` 少一个分隔符。代码跨度是字面的。
+
+### 大文档的第一屏不再把块切成两半
+
+超过 1500 行的文档分两趟显示，先出顶部。那一趟可能停在 `<pre>` 或 `$$ … $$`
+块的中间，未闭合的块会吞掉它后面的全部内容，直到整篇解析到达。
+
+### 插件市场出错时说你的语言
+
+「could not reach GitHub; check the network or a proxy」以前对十二种语言的读者
+都是英文——红色的，而那正是最需要看懂的时刻。现在你能据以行动的两种失败
+（连不上、GitHub 让你等）都翻译了，连秒数一起。
+
+### 从右往左
+
+阿拉伯语下引用块的竖线站在左边，离它标记的文字最远；源码窗格行号与代码之间的
+细线也没跟着行号一起翻到另一侧。
+
 ### 其他
 
 - 解释「关于框版本号为什么会写死」的那段注释，原先挂在撤销/重做上，
   下一个改关于框的人读不到。已归位。
 - 「每个只有图标的按钮都要带提示」这条检查认不得 Material 3 的三个命名构造，
   一个没有 tooltip 的 `IconButton.filled` 会悄无声息地发出去。
+- 通过自动化接口切换视图模式时，答复说「已经切好了」而其实还没有——
+  代理紧接着读状态可能读到旧值。
 - 启动每一步的耗时现在可以通过自动化接口读到。日志里原本只有一个数
   ——「+901 ms before Dart」——而加载可执行文件、启动引擎、读取快照
   是三个不同的问题，答案也不同。
