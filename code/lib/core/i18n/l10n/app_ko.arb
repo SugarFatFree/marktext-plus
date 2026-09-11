@@ -492,5 +492,8 @@
   "permNetworkRequest": "스스로 고른 아무 서버에나 요청을 보냅니다",
   "permUiWebview": "에디터 안에서 자기 웹 페이지를 엽니다. 그 페이지는 어떤 서버에도 닿을 수 있습니다 (어디로 갔는지는 에디터가 기록합니다)",
   "permUnknown": "이 버전이 모르는 권한 — 아무것도 주지 않습니다",
-  "pluginPermissionRefused": "{plugin}은(는) 「{permission}」 권한을 신청하지 않았습니다 — 그 뜻은: {meaning}"
+  "pluginPermissionRefused": "{plugin}은(는) 「{permission}」 권한을 신청하지 않았습니다 — 그 뜻은: {meaning}",
+  "pluginCatalogUnreachable": "GitHub에 연결할 수 없습니다. 네트워크나 프록시를 확인하세요.",
+  "pluginCatalogRateLimited": "GitHub가 이 컴퓨터의 검색을 제한하고 있습니다. 1분 후에 다시 시도하세요.",
+  "pluginCatalogRateLimitedIn": "GitHub가 이 컴퓨터의 검색을 제한하고 있습니다. {seconds}초 후에 다시 시도하세요."
 }

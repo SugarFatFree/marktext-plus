@@ -15,6 +15,72 @@ import 'plugin_manifest.dart';
 export '../models/plugin_catalog_entry.dart';
 
 
+/// Why the plugin catalogue could not be read.
+///
+/// A kind rather than a sentence, so the reader can be told in their own
+/// language. Every message on this path used to be English prose built inside
+/// the service and rendered straight into the panel — so the reader got their
+/// own language while it worked and English the moment it stopped, which is
+/// when they most need to understand what happened. The same shape
+/// `MermaidFailureKind` has had since diagrams needed it.
+enum PluginCatalogFailureKind {
+  /// Nothing reached GitHub at all: no network, or a proxy in the way.
+  unreachable,
+
+  /// GitHub is refusing searches from this machine for the moment. The one
+  /// failure a reader can act on by waiting, which is why it is worth its own
+  /// kind and its own count of seconds.
+  rateLimited,
+
+  /// Anything else. [PluginCatalogFailure.detail] is the best there is, and
+  /// it is technical: a status code, a digest that did not match, an archive
+  /// that unpacks to too much.
+  other,
+}
+
+/// A failure the panel can word for itself.
+@immutable
+class PluginCatalogFailure {
+  const PluginCatalogFailure(this.kind, {this.detail = '', this.retryAfter});
+
+  final PluginCatalogFailureKind kind;
+
+  /// The English sentence, for [PluginCatalogFailureKind.other] and for
+  /// anywhere with no reader to translate for — the automation interface
+  /// answers an agent, and an agent reads English.
+  final String detail;
+
+  /// Seconds until the limit lifts, when GitHub said how long.
+  final int? retryAfter;
+
+  /// The English wording. One source for both: the panel picks a translation
+  /// by [kind], and everything without a reader uses this.
+  String describe() => switch (kind) {
+        PluginCatalogFailureKind.unreachable =>
+          'could not reach GitHub; check the network or a proxy',
+        PluginCatalogFailureKind.rateLimited => retryAfter == null
+            ? 'GitHub is rate-limiting searches from this machine; '
+                'try again in a minute.'
+            : 'GitHub is rate-limiting searches from this machine; '
+                'try again in $retryAfter seconds.',
+        PluginCatalogFailureKind.other => detail,
+      };
+}
+
+/// A failure with its kind still attached.
+///
+/// Thrown where the kind is known, so it survives the throw: the seconds
+/// until a rate limit lifts are worked out from a response header and there
+/// is no reading them back out of a sentence afterwards.
+class PluginCatalogException implements Exception {
+  const PluginCatalogException(this.failure);
+
+  final PluginCatalogFailure failure;
+
+  @override
+  String toString() => failure.describe();
+}
+
 /// Reads the signed/transport-secured plugin registry lazily.
 class PluginCatalogService {
   /// [cache] is where a listing is kept between launches; null does not cache.
@@ -120,17 +186,32 @@ class PluginCatalogService {
     required int status,
     required String? remaining,
     required DateTime? resetAt,
+  }) =>
+      failureFor(status: status, remaining: remaining, resetAt: resetAt)
+          .describe();
+
+  /// The same answer with its kind still on it.
+  ///
+  /// [describeFailure] is this rendered to English. One source for both, so
+  /// the sentence the automation interface reads and the kind the panel
+  /// translates cannot come to disagree.
+  static PluginCatalogFailure failureFor({
+    required int status,
+    required String? remaining,
+    required DateTime? resetAt,
   }) {
     final limited = status == HttpStatus.forbidden || status == 429;
     if (!limited || remaining != '0') {
-      return 'GitHub topic search returned $status';
+      return PluginCatalogFailure(
+        PluginCatalogFailureKind.other,
+        detail: 'GitHub topic search returned $status',
+      );
     }
     final seconds = resetAt?.difference(DateTime.now()).inSeconds;
-    return seconds == null || seconds <= 0
-        ? 'GitHub is rate-limiting searches from this machine; '
-            'try again in a minute.'
-        : 'GitHub is rate-limiting searches from this machine; '
-            'try again in $seconds seconds.';
+    return PluginCatalogFailure(
+      PluginCatalogFailureKind.rateLimited,
+      retryAfter: seconds == null || seconds <= 0 ? null : seconds,
+    );
   }
 
   /// What to tell the reader about [error], without the class name.
@@ -140,19 +221,31 @@ class PluginCatalogService {
   /// that did not appear. The same note is on `PluginManager._describe`,
   /// which does this for the manifest reader — the lesson was learned once
   /// and applied in one place.
-  static String describeError(Object error) => switch (error) {
-        HttpException(:final message) => message,
-        FormatException(:final message) => message,
+  static String describeError(Object error) => classify(error).describe();
+
+  /// [error] as something the panel can word in the reader's language.
+  static PluginCatalogFailure classify(Object error) => switch (error) {
+        // Thrown where the kind was known, so nothing has to be guessed.
+        PluginCatalogException(:final failure) => failure,
         SocketException() =>
-          'could not reach GitHub; check the network or a proxy',
-        _ => '$error',
+          const PluginCatalogFailure(PluginCatalogFailureKind.unreachable),
+        HttpException(:final message) =>
+          PluginCatalogFailure(PluginCatalogFailureKind.other, detail: message),
+        FormatException(:final message) =>
+          PluginCatalogFailure(PluginCatalogFailureKind.other, detail: message),
+        _ => PluginCatalogFailure(PluginCatalogFailureKind.other,
+            detail: '$error'),
       };
 
-  static String _describeFailure(HttpClientResponse response) {
+  static String _describeFailure(HttpClientResponse response) =>
+      _failureFor(response).describe();
+
+  /// The response's failure, kind and all.
+  static PluginCatalogFailure _failureFor(HttpClientResponse response) {
     final resets = int.tryParse(
       response.headers.value('x-ratelimit-reset') ?? '',
     );
-    return describeFailure(
+    return failureFor(
       status: response.statusCode,
       remaining: response.headers.value('x-ratelimit-remaining'),
       resetAt: resets == null
@@ -251,7 +344,7 @@ class PluginCatalogService {
       request.headers.set(HttpHeaders.acceptHeader, 'application/vnd.github+json');
       final response = await request.close().answeredWithin(within, 'GitHub');
       if (response.statusCode != HttpStatus.ok) {
-        throw HttpException(_describeFailure(response));
+        throw PluginCatalogException(_failureFor(response));
       }
       final payload = jsonDecode(await utf8.decoder.bind(response).join());
       if (payload is! Map || payload['items'] is! List) {

@@ -1303,4 +1303,17 @@ class AppLocalizationsIt extends AppLocalizations {
   ) {
     return '$plugin non ha chiesto l\'autorizzazione «$permission» — significa: $meaning';
   }
+
+  @override
+  String get pluginCatalogUnreachable =>
+      'Impossibile raggiungere GitHub. Controlla la rete o un proxy.';
+
+  @override
+  String get pluginCatalogRateLimited =>
+      'GitHub sta limitando le ricerche da questo computer. Riprova tra un minuto.';
+
+  @override
+  String pluginCatalogRateLimitedIn(int seconds) {
+    return 'GitHub sta limitando le ricerche da questo computer. Riprova tra $seconds secondi.';
+  }
 }

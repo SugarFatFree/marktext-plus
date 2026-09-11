@@ -1271,4 +1271,17 @@ class AppLocalizationsKo extends AppLocalizations {
   ) {
     return '$plugin은(는) 「$permission」 권한을 신청하지 않았습니다 — 그 뜻은: $meaning';
   }
+
+  @override
+  String get pluginCatalogUnreachable =>
+      'GitHub에 연결할 수 없습니다. 네트워크나 프록시를 확인하세요.';
+
+  @override
+  String get pluginCatalogRateLimited =>
+      'GitHub가 이 컴퓨터의 검색을 제한하고 있습니다. 1분 후에 다시 시도하세요.';
+
+  @override
+  String pluginCatalogRateLimitedIn(int seconds) {
+    return 'GitHub가 이 컴퓨터의 검색을 제한하고 있습니다. $seconds초 후에 다시 시도하세요.';
+  }
 }

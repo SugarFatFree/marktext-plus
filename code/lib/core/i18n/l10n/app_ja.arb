@@ -492,5 +492,8 @@
   "permNetworkRequest": "自ら選んだ任意のサーバーへ要求を送る",
   "permUiWebview": "エディタ内で自分の Web ページを開く。そのページは任意のサーバーに到達できます（どこへ行ったかはエディタが記録します）",
   "permUnknown": "このバージョンが知らない権限——何も与えられません",
-  "pluginPermissionRefused": "{plugin} は「{permission}」の権限を申請していません——その意味は: {meaning}"
+  "pluginPermissionRefused": "{plugin} は「{permission}」の権限を申請していません——その意味は: {meaning}",
+  "pluginCatalogUnreachable": "GitHub に接続できませんでした。ネットワークまたはプロキシを確認してください。",
+  "pluginCatalogRateLimited": "GitHub がこの端末からの検索を制限しています。1 分ほどおいて再試行してください。",
+  "pluginCatalogRateLimitedIn": "GitHub がこの端末からの検索を制限しています。{seconds} 秒後に再試行してください。"
 }

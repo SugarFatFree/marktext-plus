@@ -1271,4 +1271,17 @@ class AppLocalizationsJa extends AppLocalizations {
   ) {
     return '$plugin は「$permission」の権限を申請していません——その意味は: $meaning';
   }
+
+  @override
+  String get pluginCatalogUnreachable =>
+      'GitHub に接続できませんでした。ネットワークまたはプロキシを確認してください。';
+
+  @override
+  String get pluginCatalogRateLimited =>
+      'GitHub がこの端末からの検索を制限しています。1 分ほどおいて再試行してください。';
+
+  @override
+  String pluginCatalogRateLimitedIn(int seconds) {
+    return 'GitHub がこの端末からの検索を制限しています。$seconds 秒後に再試行してください。';
+  }
 }

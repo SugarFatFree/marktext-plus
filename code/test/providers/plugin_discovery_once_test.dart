@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:marktext_plus/services/plugin_catalog_service.dart';
 import 'package:marktext_plus/providers/plugin_provider.dart';
 
 /// Searching for community plugins the first time the panel is opened.
@@ -29,7 +30,8 @@ void main() {
     // panel turns one broken network into a request per glance.
     final discovery = PluginDiscoveryNotifier();
     discovery.started();
-    discovery.failed('no network');
+    discovery.failed(const PluginCatalogFailure(
+        PluginCatalogFailureKind.unreachable));
     expect(discovery.shouldSearchOnOpen, isFalse);
   });
 

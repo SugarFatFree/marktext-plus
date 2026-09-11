@@ -49,6 +49,28 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
   /// costs a request for every repository it finds — thirty against sixty an
   /// hour, unauthenticated. Two or three launches used up the quota and the
   /// panel said "try again in 819 seconds" where the plugins should be.
+  /// The failure in the reader's language.
+  ///
+  /// The panel used to print the service's English straight into the page, so
+  /// a reader got their own language while the marketplace worked and English
+  /// the moment it stopped — which is when they most need to understand what
+  /// happened. Two of the three kinds are something they can act on; the
+  /// third is technical and stays as it came.
+  static String _wordedFailure(
+      AppLocalizations l10n, PluginCatalogFailure failure) {
+    switch (failure.kind) {
+      case PluginCatalogFailureKind.unreachable:
+        return l10n.pluginCatalogUnreachable;
+      case PluginCatalogFailureKind.rateLimited:
+        final seconds = failure.retryAfter;
+        return seconds == null
+            ? l10n.pluginCatalogRateLimited
+            : l10n.pluginCatalogRateLimitedIn(seconds);
+      case PluginCatalogFailureKind.other:
+        return failure.describe();
+    }
+  }
+
   Future<PluginCatalogService> _catalogue() async {
     final dir = await getApplicationSupportDirectory();
     return PluginCatalogService(
@@ -124,7 +146,7 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
       // Not `'$error'`: that prints the class name first, and
       // "HttpException:" is noise to whoever is looking at a list of plugins
       // that did not appear.
-      discovery.failed(PluginCatalogService.describeError(error));
+      discovery.failed(PluginCatalogService.classify(error));
     }
   }
 
@@ -519,7 +541,7 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
           _sectionTitle(l10n.settingsPluginsDiscover),
           if (discovery.error != null)
             SelectableText(
-              discovery.error!,
+              _wordedFailure(l10n, discovery.error!),
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             )
           else if (discovery.searching)

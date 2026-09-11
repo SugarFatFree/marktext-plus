@@ -61,11 +61,21 @@ void main() {
 
   test('no reader-facing string is written in English in lib/ui', () {
     final offenders = <String>[];
-    final directory = Directory('lib/ui');
-    expect(directory.existsSync(), isTrue, reason: '找不到 lib/ui，取法要跟着改');
+    // And `lib/providers`, which holds what the widgets show. The sentence a
+    // failed plugin search put on the screen was built in a service, carried
+    // through a provider as a `String`, and printed — so it never appeared in
+    // `lib/ui` at all and this test said nothing while every reader who was
+    // not reading English got English at the one moment they most needed to
+    // understand what happened. Nothing in `lib/providers` is flagged today,
+    // which is the point: it costs nothing and closes the way round.
+    final directories = [Directory('lib/ui'), Directory('lib/providers')];
+    for (final directory in directories) {
+      expect(directory.existsSync(), isTrue,
+          reason: '找不到 ${directory.path}，取法要跟着改');
+    }
 
-    for (final file in directory
-        .listSync(recursive: true)
+    for (final file in directories
+        .expand((d) => d.listSync(recursive: true))
         .whereType<File>()
         .where((f) => f.path.endsWith('.dart'))) {
       if (file.path.contains('mermaid')) continue;

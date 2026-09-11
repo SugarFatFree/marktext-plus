@@ -1297,6 +1297,19 @@ class AppLocalizationsPt extends AppLocalizations {
   ) {
     return '$plugin não pediu a permissão «$permission» — significa: $meaning';
   }
+
+  @override
+  String get pluginCatalogUnreachable =>
+      'Não foi possível contactar o GitHub. Verifique a rede ou um proxy.';
+
+  @override
+  String get pluginCatalogRateLimited =>
+      'O GitHub está a limitar as pesquisas a partir deste computador. Tente novamente dentro de um minuto.';
+
+  @override
+  String pluginCatalogRateLimitedIn(int seconds) {
+    return 'O GitHub está a limitar as pesquisas a partir deste computador. Tente novamente dentro de $seconds segundos.';
+  }
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -2589,5 +2602,18 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
     String meaning,
   ) {
     return '$plugin não pediu a permissão «$permission» — significa: $meaning';
+  }
+
+  @override
+  String get pluginCatalogUnreachable =>
+      'Não foi possível acessar o GitHub. Verifique a rede ou um proxy.';
+
+  @override
+  String get pluginCatalogRateLimited =>
+      'O GitHub está limitando as buscas deste computador. Tente de novo em um minuto.';
+
+  @override
+  String pluginCatalogRateLimitedIn(int seconds) {
+    return 'O GitHub está limitando as buscas deste computador. Tente de novo em $seconds segundos.';
   }
 }

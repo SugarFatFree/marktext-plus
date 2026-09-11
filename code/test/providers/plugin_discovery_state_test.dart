@@ -47,9 +47,12 @@ void main() {
     final container = ProviderContainer();
     addTearDown(container.dispose);
 
-    container.read(pluginDiscoveryProvider.notifier).failed('no network');
+    container.read(pluginDiscoveryProvider.notifier).failed(const PluginCatalogFailure(
+        PluginCatalogFailureKind.unreachable));
 
-    expect(container.read(pluginDiscoveryProvider).error, 'no network');
+    expect(container.read(pluginDiscoveryProvider).error?.kind,
+        PluginCatalogFailureKind.unreachable,
+        reason: '失败要带着类型到面板，否则面板无从选翻译');
     expect(container.read(pluginDiscoveryProvider).searching, isFalse);
   });
 }

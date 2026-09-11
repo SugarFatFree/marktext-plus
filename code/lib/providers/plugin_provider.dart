@@ -90,7 +90,14 @@ class PluginDiscovery {
   /// came back with nothing, and the panel says something different for each.
   final List<PluginCatalogEntry>? results;
   final bool searching;
-  final String? error;
+
+  /// Why the last search failed, as a kind rather than a sentence.
+  ///
+  /// It was the English sentence, and the panel printed it. A reader got
+  /// their own language while the marketplace worked and English the moment
+  /// it stopped — the one moment they most need to understand what happened.
+  /// Keeping the kind is what lets the panel choose a translation.
+  final PluginCatalogFailure? error;
 }
 
 class PluginDiscoveryNotifier extends StateNotifier<PluginDiscovery> {
@@ -115,7 +122,7 @@ class PluginDiscoveryNotifier extends StateNotifier<PluginDiscovery> {
   void succeeded(List<PluginCatalogEntry> results) =>
       state = PluginDiscovery(results: results);
 
-  void failed(String error) => state = PluginDiscovery(
+  void failed(PluginCatalogFailure error) => state = PluginDiscovery(
         results: state.results,
         error: error,
       );

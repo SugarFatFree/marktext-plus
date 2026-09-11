@@ -1269,4 +1269,15 @@ class AppLocalizationsZh extends AppLocalizations {
   ) {
     return '$plugin 没有申请「$permission」这项权限——它的意思是：$meaning';
   }
+
+  @override
+  String get pluginCatalogUnreachable => '连接不上 GitHub。请检查网络，或者代理设置。';
+
+  @override
+  String get pluginCatalogRateLimited => 'GitHub 正在限制这台机器的搜索。请过一分钟再试。';
+
+  @override
+  String pluginCatalogRateLimitedIn(int seconds) {
+    return 'GitHub 正在限制这台机器的搜索。请在 $seconds 秒后再试。';
+  }
 }

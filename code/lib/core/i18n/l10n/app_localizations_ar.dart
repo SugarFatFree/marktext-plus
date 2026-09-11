@@ -1285,4 +1285,17 @@ class AppLocalizationsAr extends AppLocalizations {
   ) {
     return 'لم يطلب $plugin إذن «$permission» — ومعناه: $meaning';
   }
+
+  @override
+  String get pluginCatalogUnreachable =>
+      'تعذّر الوصول إلى GitHub. تحقّق من الشبكة أو من الوسيط.';
+
+  @override
+  String get pluginCatalogRateLimited =>
+      '‏GitHub يحدّ من عمليات البحث من هذا الجهاز. أعد المحاولة بعد دقيقة.';
+
+  @override
+  String pluginCatalogRateLimitedIn(int seconds) {
+    return '‏GitHub يحدّ من عمليات البحث من هذا الجهاز. أعد المحاولة بعد $seconds ثانية.';
+  }
 }

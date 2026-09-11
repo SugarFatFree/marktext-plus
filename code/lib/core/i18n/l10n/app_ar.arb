@@ -492,5 +492,8 @@
   "permNetworkRequest": "إرسال طلبات إلى أي خادم يختاره",
   "permUiWebview": "فتح صفحة ويب خاصة به داخل المحرِّر، وهي تستطيع الوصول إلى أي خادم (والمحرِّر يسجّل إلى أيّها)",
   "permUnknown": "إذن غير معروف — هذه النسخة لا تمنح شيئًا مقابله",
-  "pluginPermissionRefused": "لم يطلب {plugin} إذن «{permission}» — ومعناه: {meaning}"
+  "pluginPermissionRefused": "لم يطلب {plugin} إذن «{permission}» — ومعناه: {meaning}",
+  "pluginCatalogUnreachable": "تعذّر الوصول إلى GitHub. تحقّق من الشبكة أو من الوسيط.",
+  "pluginCatalogRateLimited": "‏GitHub يحدّ من عمليات البحث من هذا الجهاز. أعد المحاولة بعد دقيقة.",
+  "pluginCatalogRateLimitedIn": "‏GitHub يحدّ من عمليات البحث من هذا الجهاز. أعد المحاولة بعد {seconds} ثانية."
 }

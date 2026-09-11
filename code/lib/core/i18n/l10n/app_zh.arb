@@ -492,5 +492,8 @@
   "permNetworkRequest": "向它自己选择的任何服务器发请求",
   "permUiWebview": "在编辑器里打开它自己的网页，那个网页能访问任何服务器（编辑器会记录它去了哪里）",
   "permUnknown": "这个版本不认识的权限——它什么也拿不到",
-  "pluginPermissionRefused": "{plugin} 没有申请「{permission}」这项权限——它的意思是：{meaning}"
+  "pluginPermissionRefused": "{plugin} 没有申请「{permission}」这项权限——它的意思是：{meaning}",
+  "pluginCatalogUnreachable": "连接不上 GitHub。请检查网络，或者代理设置。",
+  "pluginCatalogRateLimited": "GitHub 正在限制这台机器的搜索。请过一分钟再试。",
+  "pluginCatalogRateLimitedIn": "GitHub 正在限制这台机器的搜索。请在 {seconds} 秒后再试。"
 }

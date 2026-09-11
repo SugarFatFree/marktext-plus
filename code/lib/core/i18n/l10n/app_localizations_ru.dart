@@ -1291,4 +1291,17 @@ class AppLocalizationsRu extends AppLocalizations {
   ) {
     return '$plugin не запрашивал разрешение «$permission» — оно значит: $meaning';
   }
+
+  @override
+  String get pluginCatalogUnreachable =>
+      'Не удалось связаться с GitHub. Проверьте сеть или прокси.';
+
+  @override
+  String get pluginCatalogRateLimited =>
+      'GitHub ограничивает поиск с этого компьютера. Повторите попытку через минуту.';
+
+  @override
+  String pluginCatalogRateLimitedIn(int seconds) {
+    return 'GitHub ограничивает поиск с этого компьютера. Повторите попытку через $seconds с.';
+  }
 }

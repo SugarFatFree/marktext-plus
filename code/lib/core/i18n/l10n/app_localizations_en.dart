@@ -1287,4 +1287,17 @@ class AppLocalizationsEn extends AppLocalizations {
   ) {
     return '$plugin did not ask for the \"$permission\" permission — $meaning';
   }
+
+  @override
+  String get pluginCatalogUnreachable =>
+      'Could not reach GitHub. Check the network, or a proxy.';
+
+  @override
+  String get pluginCatalogRateLimited =>
+      'GitHub is limiting searches from this machine. Try again in a minute.';
+
+  @override
+  String pluginCatalogRateLimitedIn(int seconds) {
+    return 'GitHub is limiting searches from this machine. Try again in $seconds seconds.';
+  }
 }

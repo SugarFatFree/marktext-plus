@@ -2514,6 +2514,24 @@ abstract class AppLocalizations {
     String permission,
     String meaning,
   );
+
+  /// No description provided for @pluginCatalogUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not reach GitHub. Check the network, or a proxy.'**
+  String get pluginCatalogUnreachable;
+
+  /// No description provided for @pluginCatalogRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'GitHub is limiting searches from this machine. Try again in a minute.'**
+  String get pluginCatalogRateLimited;
+
+  /// No description provided for @pluginCatalogRateLimitedIn.
+  ///
+  /// In en, this message translates to:
+  /// **'GitHub is limiting searches from this machine. Try again in {seconds} seconds.'**
+  String pluginCatalogRateLimitedIn(int seconds);
 }
 
 class _AppLocalizationsDelegate

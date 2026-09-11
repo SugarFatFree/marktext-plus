@@ -492,5 +492,8 @@
   "permNetworkRequest": "Anfragen an jeden Server senden, den es wählt",
   "permUiWebview": "Eine eigene Webseite im Editor öffnen, die jeden Server erreichen kann (der Editor protokolliert, welchen)",
   "permUnknown": "Unbekannte Berechtigung — diese Version gewährt dafür nichts",
-  "pluginPermissionRefused": "{plugin} hat die Berechtigung „{permission}\" nicht angefordert — sie bedeutet: {meaning}"
+  "pluginPermissionRefused": "{plugin} hat die Berechtigung „{permission}\" nicht angefordert — sie bedeutet: {meaning}",
+  "pluginCatalogUnreachable": "GitHub ist nicht erreichbar. Prüfen Sie das Netzwerk oder einen Proxy.",
+  "pluginCatalogRateLimited": "GitHub begrenzt die Suchanfragen von diesem Rechner. Versuchen Sie es in einer Minute erneut.",
+  "pluginCatalogRateLimitedIn": "GitHub begrenzt die Suchanfragen von diesem Rechner. Versuchen Sie es in {seconds} Sekunden erneut."
 }

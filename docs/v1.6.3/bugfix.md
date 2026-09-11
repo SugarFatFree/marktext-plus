@@ -15,6 +15,7 @@
 | BUG-428 | 2026-09-11 | 一行 `` ``` aa ``` `` 开启代码块，吞掉文档后面全部内容 | P1 | 已修复 |
 | BUG-429 | 2026-09-11 | 换行后以「数字.」开头的句子被变成有序列表 | P1 | 已修复 |
 | BUG-430 | 2026-09-11 | 代码跨度里的反斜杠被当成转义吃掉（正则、Windows 路径） | P1 | 已修复 |
+| BUG-432 | 2026-09-12 | 插件市场出错时 12 种语言的读者一律看到英文 | P1 | 已修复 |
 
 ---
 
@@ -575,6 +576,72 @@ CommonMark 的规则是：**有序列表只有编号为 1 时才能打断段落*
 **涉及文件**
 
 - `code/test/services/repository_documents_test.dart`
+
+---
+
+## BUG-432：插件市场出错时，12 种语言的读者一律看到英文
+
+**现象**
+
+插件市场列不出插件时，面板上显示的是：
+
+```
+could not reach GitHub; check the network or a proxy
+GitHub is rate-limiting searches from this machine; try again in 819 seconds.
+```
+
+**不管读者选的是哪种语言。** 红色、无外壳、原样印出。
+
+**根因分析**
+
+`reader_facing_text_is_translated_test` 的开篇就写着这件事的教训：
+「读者在成功时得到自己的语言，失败时得到英文，而那正是他最需要看懂的时刻」
+——那条说的是 AI 配置测试失败的对话框。**同一个形状在插件市场里又出现了一次，
+而守卫看不见**：它只扫 `lib/ui`，而这些句子产在 `lib/services`，经 provider
+以 `String` 穿过，最后被印出来——**全程没有一个英文字面量出现在 `lib/ui` 里**。
+
+**修复方案**
+
+照搬本项目已有的做法：Mermaid 的失败早就是「kind 而非散文」
+（`MermaidFailureKind` + 渲染器按 kind 取翻译）。**这次是把学过一次的东西
+用到它的兄弟上。**
+
+- `PluginCatalogFailureKind`：`unreachable`（连不上）、`rateLimited`（被限流，
+  带 `retryAfter` 秒数）、`other`（技术细节，原样）
+- `PluginCatalogException` 让 kind **穿过 throw**——秒数是从响应头算出来的，
+  一旦变成英文句子就再也读不回来
+- `describeFailure` / `describeError` 改为「同一份失败渲染成英文」，
+  所以自动化接口读到的句子和面板翻译用的 kind **不可能各说各话**
+- 三个 l10n 键 × 12 种语言。只翻译读者**能据以行动**的两类；
+  第三类是技术细节（状态码、摘要不匹配），保持原样
+
+**为什么只翻两类**：告诉读者「连不上，查网络或代理」和「等 47 秒」是他能照做的；
+把「GitHub topic search returned 500」翻译成十二种语言，对谁都没有帮助。
+
+**守卫也扩了**：扫描范围从 `lib/ui` 加上 `lib/providers`——provider 持有的正是
+界面要显示的东西。今天扩过去**一条都不点名**，正是重点：代价为零，堵住了这条路。
+
+**验证**（三个变异）
+
+| 变异 | 结果 |
+|------|------|
+| 限流丢掉秒数 | 9 行失败 |
+| `SocketException` 归为 `other`（翻译失效） | 9 行失败 |
+| 面板改回直接印 `describe()` | **第一次没被抓住**——编译通过、全绿 |
+
+第三条是重点：**映射测了，调用点没人钉**。补了一条组件测试，用 `zh` 语言环境
+把面板搭起来，断言屏幕上出现的是中文那句、且**不出现**英文那句；再跑同一个变异，
+它红了。另有一条断言限流的秒数确实到了屏幕上。
+
+**涉及文件**
+
+- `code/lib/services/plugin_catalog_service.dart`（kind、异常、一份来源）
+- `code/lib/providers/plugin_provider.dart`（失败带类型而非字符串）
+- `code/lib/ui/widgets/plugin_panel.dart`（按 kind 取翻译）
+- `code/lib/core/i18n/l10n/app_*.arb`（3 键 × 12 语言）
+- `code/test/services/a_failed_search_speaks_the_readers_language_test.dart`（新增）
+- `code/test/ui/widgets/a_failed_search_is_shown_translated_test.dart`（新增）
+- `code/test/ui/reader_facing_text_is_translated_test.dart`（扫描范围扩到 providers）
 
 ---
 

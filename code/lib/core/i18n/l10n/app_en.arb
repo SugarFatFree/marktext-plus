@@ -688,5 +688,17 @@
   },
   "@pluginFollowUpHint": {
     "description": "Placeholder in the box where a reader asks a plugin panel to rework its last answer."
+  },
+  "pluginCatalogUnreachable": "Could not reach GitHub. Check the network, or a proxy.",
+  "@pluginCatalogUnreachable": {},
+  "pluginCatalogRateLimited": "GitHub is limiting searches from this machine. Try again in a minute.",
+  "@pluginCatalogRateLimited": {},
+  "pluginCatalogRateLimitedIn": "GitHub is limiting searches from this machine. Try again in {seconds} seconds.",
+  "@pluginCatalogRateLimitedIn": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
   }
 }

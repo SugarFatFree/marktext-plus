@@ -492,5 +492,8 @@
   "permNetworkRequest": "Отправлять запросы на любой сервер по своему выбору",
   "permUiWebview": "Открывать свою веб-страницу внутри редактора; такая страница может обратиться к любому серверу (редактор записывает, к какому)",
   "permUnknown": "Неизвестное разрешение — эта версия ничего по нему не даёт",
-  "pluginPermissionRefused": "{plugin} не запрашивал разрешение «{permission}» — оно значит: {meaning}"
+  "pluginPermissionRefused": "{plugin} не запрашивал разрешение «{permission}» — оно значит: {meaning}",
+  "pluginCatalogUnreachable": "Не удалось связаться с GitHub. Проверьте сеть или прокси.",
+  "pluginCatalogRateLimited": "GitHub ограничивает поиск с этого компьютера. Повторите попытку через минуту.",
+  "pluginCatalogRateLimitedIn": "GitHub ограничивает поиск с этого компьютера. Повторите попытку через {seconds} с."
 }
