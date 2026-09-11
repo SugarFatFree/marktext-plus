@@ -31,15 +31,23 @@ void main() {
     // be here, so every highlighted example counted as a parse failure. The
     // spans carrying the colours go too; their text stays, so a real
     // difference in the code's content still shows.
-    out = out.replaceAll(RegExp(r' class="(?:hljs|language-)[^"]*"'), '');
     // Innermost first, repeatedly, so a nested highlight unwraps in pairs.
     // Stripping every `</span>` instead would have taken the closing tag of
     // the one other span the exporter writes — inline maths — and left its
     // opening tag behind.
+    //
+    // Before the attribute is stripped, not after. These two rules ran the
+    // other way round, and the first one deleted `class="hljs-keyword"` —
+    // it begins with `hljs` — so the pattern below, which matches on exactly
+    // that attribute, never matched anything. Every highlighted code block
+    // kept its spans and counted as a parse failure: the score this file
+    // reports was lower than the parser deserved, and the comment above said
+    // the spans went while they stayed.
     final highlightSpan = RegExp(r'<span class="hljs-[^"]*">([^<]*)</span>');
     while (highlightSpan.hasMatch(out)) {
       out = out.replaceAllMapped(highlightSpan, (m) => m.group(1)!);
     }
+    out = out.replaceAll(RegExp(r' class="(?:hljs|language-)[^"]*"'), '');
     // Two spellings of a void element.
     out = out.replaceAll('<hr />', '<hr>').replaceAll('<br />', '<br>');
     out = out.replaceAll(RegExp(r' />'), '>');
@@ -105,11 +113,17 @@ void main() {
     // left blank stopped nesting the rest of its list. Raise it whenever the
     // work raises it; never lower it to make a change pass.
     //
+    // 497 on 2026-09-11, and this one was not the parser getting better: the
+    // two rules that fold away syntax highlighting ran in the wrong order, so
+    // the one that unwraps the spans never matched and every highlighted code
+    // block counted as a failure. The parser had been right about them all
+    // along and this file was saying otherwise.
+    //
     // The blocks are joined with a newline above, which `normalise` mostly
     // folds away — but not everywhere, and a scratch script joining them with
     // nothing counted one example differently. This is the number that
     // counts; anything measured another way is measuring another thing.
-    const floor = 495;
+    const floor = 497;
     expect(passed, greaterThanOrEqualTo(floor),
         reason: '解析能力相比 $floor 例退步了');
     if (passed > floor) {

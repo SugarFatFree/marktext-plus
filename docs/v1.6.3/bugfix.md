@@ -10,6 +10,7 @@
 | BUG-423 | 2026-09-11 | 「每个请求都要能结束」的守卫，看不见 package:http，也就看不见它自己引用的那个好例子 | P1 | 已修复 |
 | BUG-424 | 2026-09-11 | 「每个图标按钮都要说出自己做什么」的守卫，认不得 Material 3 的三个命名构造 | P2 | 已修复 |
 | BUG-425 | 2026-09-11 | 更新插件会把读者填的设置删掉 | P1 | 已修复 |
+| BUG-426 | 2026-09-11 | 折叠高亮的规则被前一行抽掉了匹配依据，CommonMark 得分被低估 | P2 | 已修复 |
 
 ---
 
@@ -264,6 +265,51 @@ FEAT-148 的 `install_plugin` 正是要让更新变成常规动作——**是它
 
 - `code/lib/services/plugin_manager.dart`
 - `code/test/services/updating_a_plugin_keeps_its_settings_test.dart`（新增）
+
+---
+
+## BUG-426：折叠高亮的那条规则一直没生效，CommonMark 得分被低估
+
+**现象**
+
+`commonmark_spec_test` 跑官方 648 个例子，记录通过数（棘轮，只许上不许下）。
+所有**带语法高亮的代码块**都算作失败——比如 ` ```ruby ` 那两例，期望
+`<pre><code>def foo(x) …</code></pre>`，实得同样的文字但外面裹着一层层 `<span>`。
+
+解析器是对的，是这份测试在说假话。
+
+**根因分析**
+
+`normalise()` 里两条规则的顺序反了：
+
+```dart
+out = out.replaceAll(RegExp(r' class="(?:hljs|language-)[^"]*"'), '');   // ① 删 class
+final highlightSpan = RegExp(r'<span class="hljs-[^"]*">([^<]*)</span>'); // ② 按 class 匹配
+```
+
+①把 `class="hljs-keyword"` 删掉了（它以 `hljs` 开头），于是②**永远匹配不到任何东西**。
+而②上方的注释写着「带颜色的 span 也会被去掉；它们的文字留着，所以代码内容真有差异
+时仍然看得出来」——**这句话描述的是意图，不是发生的事**。
+
+这是守卫失效的又一种形态：不是没写，是被它前面一行悄悄抽掉了匹配依据。
+两条规则各自看都对，合起来第二条是死的。
+
+**修复方案**
+
+把②挪到①之前——趁 class 还在的时候拆 span。安全性：导出器只写两种 span
+（`hljs-*` 与 `math-inline`，见 `export_service.dart:1004` 与 `:1274`），
+②只匹配 `hljs-`，所以行内公式不受影响；这也正是注释里担心的那一种。
+
+**得分从 495 升到 497**，而这不是解析器变好了——是它一直都对，这份测试此前没看出来。
+下限随之抬到 497，并在注释里写明这一次抬的是测量而非能力。
+
+**验证**
+
+把两条规则的顺序换回去 → 「解析能力相比 497 例退步了」。
+
+**涉及文件**
+
+- `code/test/services/commonmark_spec_test.dart`
 
 ---
 
