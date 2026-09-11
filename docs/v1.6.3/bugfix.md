@@ -907,6 +907,60 @@ CI 照样全绿——**而「人按先例手工挑路径」恰恰就是那两次
 
 ---
 
+## 无编号：那条「守卫不跑比没有更糟」的元守卫，自己能被一句注释满足
+
+`a_gated_test_is_a_test_that_runs_test` 的存在理由写得很清楚：
+`packaged_plugin_test` 等一个 `PLUGIN_ZIP`，而**没有任何地方设置它**，
+四条用例从写下那天起从未运行过——「而这比没写更糟：套件把它报成 skipped，
+读起来像『此处不适用』而不是『到处都没跑过』，于是那份『我们检查了什么』的清单
+说压缩包是被覆盖的」。
+
+**它自己有两个同样的洞。**
+
+**洞一：只要名字在文件里出现就算数。** 它用的是
+`workflow.contains(gate.key)`——而 ci.yml 的**注释里**就写着 `PLUGIN_ZIP`
+（正是解释这条测试为什么存在的那段）。变异验证：删掉真正设置它的那一行、
+注释留着，**守卫依然全绿**。
+
+改法：先剥掉注释行，再要求名字以**赋值**形式出现（`NAME=` 或 `NAME:`）。
+前者对应 `echo "NAME=…" >> $GITHUB_ENV`，后者对应 `env:` 块；
+光秃秃的名字是有人在谈论它。
+
+**洞二：只认一种拼法。** 它找的是 `Platform.environment['NAME']`，
+而 `plugin_js_runtime_test` 用的是 `Platform.environment.containsKey('NAME')`。
+于是——
+
+### 由此暴露的真实缺口：JavaScript 引擎没有任何端到端测试跑过
+
+`the engine runs a plugin end to end` 是**唯一**真正启动 QuickJS、跑一个 JS 插件
+的测试。它的开关 `MARKTEXT_QUICKJS_AVAILABLE` 在 ci.yml 里**一处都没有**，
+所以它从来没跑过。
+
+而它**在 `flutter test` 下确实跑不了**：那是没有应用外壳的纯 Dart，QuickJS 原生库
+不会被加载，硬设那个变量只会把 skip 变成 failure，更糟。
+
+所以这一条没有「修好」，而是**被写成一条明确的豁免**，连同代价：
+
+> 要打开它，需要一个跑在**已构建应用**里的 `integration_test`——CI 本来就在
+> Linux 和 Windows 上各构建一个——而这套架子本项目还没有。在那之前，
+> **JavaScript 引擎的端到端行为没有任何测试覆盖**。
+
+今天早些时候「Linux 构建里没有 QuickJS 桥」正是这块地方出的事，所以这不是一个
+理论上的空白。列为后续候选。
+
+**验证**（两个变异，结构互补）
+
+| 变异 | 结果 | 说明 |
+|------|------|------|
+| 退回只认下标写法、同时删掉豁免 | **全绿** | 证明旧守卫对 `containsKey` 天生瞎 |
+| 保留识别、只删豁免 | 点名 `MARKTEXT_QUICKJS_AVAILABLE` | 证明它绿是因为写下了决定，不是因为没看见 |
+
+**涉及文件**
+
+- `code/test/a_gated_test_is_a_test_that_runs_test.dart`
+
+---
+
 ## 无编号：发布说明的两半区，中文段落落到了英文半区
 
 **现象**
