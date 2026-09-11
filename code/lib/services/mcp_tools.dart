@@ -28,6 +28,16 @@ enum McpAction {
   /// be built, installed and driven without a person in the loop.
   installPlugin('install_plugin'),
 
+  /// Replaces this editor with a newer build of itself.
+  ///
+  /// The loop this exists for: a fix is pushed, CI packages it, this installs
+  /// it, and the editor comes back on the same port with the same token — so
+  /// the fix can be exercised without anybody downloading anything. The build
+  /// comes from this project's own repository and nowhere else, and it is
+  /// checked against the SHA-256 the release or the artifact publishes before
+  /// a single byte of it is run.
+  updateApp('update_app'),
+
   /// Presses one of the icons in the right-hand rail.
   ///
   /// Not the same as running that command by name: a panel runs it with the
@@ -222,7 +232,8 @@ class McpToolset {
       description:
           'Drive the editor: open and close tabs, switch between them, '
           'change the view mode, write a tab\'s text, run a plugin command, '
-          'close a plugin pane, install or update a plugin.',
+          'close a plugin pane, install or update a plugin, update the '
+          'editor itself.',
       schema: {
         'type': 'object',
         'required': ['action'],
@@ -271,6 +282,34 @@ class McpToolset {
             'description':
                 'Which panel of that plugin to open, from its manifest. The '
                 'rail draws one icon per panel.',
+          },
+          'source': {
+            'type': 'string',
+            'enum': ['release', 'ci'],
+            'description':
+                'For update_app: a published release, or what CI built for '
+                'one commit. "ci" needs a token and is how a fix is tried '
+                'without publishing a version for it.',
+          },
+          'ref': {
+            'type': 'string',
+            'description':
+                'Which one: a release tag — for example v1.6.2 — or the '
+                'commit sha '
+                'CI built. Empty with source "release" means the newest.',
+          },
+          'token': {
+            'type': 'string',
+            'description':
+                'A GitHub token, used for this call and never written down. '
+                'Needed only for source "ci": workflow artifacts are not '
+                'public, on a public repository or otherwise.',
+          },
+          'dryRun': {
+            'type': 'boolean',
+            'description':
+                'For update_app: work out which build would be installed and '
+                'say so, without fetching or running anything.',
           },
           'answer': {
             'type': 'string',

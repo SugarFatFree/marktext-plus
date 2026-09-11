@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/services/mcp_tools.dart';
 
@@ -61,9 +63,34 @@ void main() {
     // `path` outlived `open_file` because `new_tab` names a tab with it.
     // Anything here that nothing reads invites a caller to fill it in and
     // wait for something that will not happen.
-    const read = {'action', 'path', 'tabId', 'mode', 'content', 'slot',
-        'pluginId', 'command', 'panelId', 'answer'};
-    expect(controlSchema().keys.toSet().difference(read), isEmpty);
+    //
+    // The list of what is read used to be written out here by hand, which
+    // made this a comparison between the schema and somebody's memory of the
+    // handler. It is read out of the handler now: the two lists this is for
+    // are the one an agent is shown and the one the editor acts on, and a
+    // third one maintained by hand is the thing this test exists to prevent.
+    final handler = File('lib/providers/mcp_provider.dart').readAsStringSync();
+    final read = <String>{
+      // The selector itself, which the switch takes rather than looks up.
+      'action',
+      for (final m in RegExp(r"text\('([A-Za-z]+)'\)").allMatches(handler))
+        m.group(1)!,
+      for (final m in RegExp(r"arguments\['([A-Za-z]+)'\]").allMatches(handler))
+        m.group(1)!,
+    };
+    expect(read.length, greaterThan(5),
+        reason: '从处理器里读不出几个参数名，取法要跟着改');
+
+    expect(
+      controlSchema().keys.toSet().difference(read),
+      isEmpty,
+      reason: 'schema 里有、处理器不读——调用方会填了它然后等一件不会发生的事',
+    );
+    expect(
+      read.difference(controlSchema().keys.toSet()).difference({'action'}),
+      isEmpty,
+      reason: '处理器读了、schema 没说——调用方无从知道可以填它',
+    );
   });
 
   test('control says what it does, and does not promise more', () {

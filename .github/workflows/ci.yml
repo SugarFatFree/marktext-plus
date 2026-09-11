@@ -265,6 +265,9 @@ jobs:
           $version = "$pubspecVersion.$env:GITHUB_RUN_NUMBER"
           $iss = @"
           [Setup]
+          AppId={{9C6F4E2A-7B3D-4F51-9E28-1A5C6D8B0F73}
+          PrivilegesRequired=lowest
+          PrivilegesRequiredOverridesAllowed=commandline
           AppName=MarkText Plus
           AppVersion=$version
           AppPublisher=MarkText Plus

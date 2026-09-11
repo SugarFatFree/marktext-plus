@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import '../core/diagnostics/resident_memory.dart';
 import 'dart:math';
 
@@ -6,9 +7,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/config/app_config.dart';
+import '../core/constants.dart';
 import '../models/tab_info.dart';
 import '../services/app_log.dart';
 import '../services/plugin_script_runtime.dart';
+import '../services/self_update_service.dart';
 import '../services/plugin_manager.dart';
 import '../services/plugin_catalog_service.dart';
 import '../services/mcp_server.dart';
@@ -285,6 +288,14 @@ class McpController extends StateNotifier<McpStatus> {
         // can fail to name something, so both answers read the same way.
         return installPlugin(wanted);
 
+      case McpAction.updateApp:
+        return updateApp(
+          source: text('source') ?? 'release',
+          ref: text('ref') ?? '',
+          token: text('token'),
+          dryRun: arguments['dryRun'] == true,
+        );
+
       case McpAction.closePane:
         final slot = PluginPaneSlot.values
             .where((s) => s.name == text('slot'))
@@ -397,6 +408,92 @@ class McpController extends StateNotifier<McpStatus> {
       // out of its directory. None of them is "install failed".
       return mcpRefused('$wanted was not installed: $error');
     }
+  }
+
+  /// Replaces this editor with the build [source] and [ref] name.
+  ///
+  /// Three answers, and they are deliberately different sentences: what would
+  /// be installed (a dry run), what went wrong before anything ran, and the
+  /// one case where this returns while the editor is on its way out.
+  ///
+  /// Nothing is stored. The token is a parameter of this call and lives as
+  /// long as it; the repository is a constant in the service and not
+  /// something a caller can point somewhere else.
+  @visibleForTesting
+  Future<McpOutcome> updateApp({
+    required String source,
+    required String ref,
+    String? token,
+    bool dryRun = false,
+  }) async {
+    final wanted = UpdateSource.byWireName(source);
+    if (wanted == null) {
+      return mcpRefused('unknown source "$source" — release or ci');
+    }
+    const service = SelfUpdateService();
+
+    final UpdateBuild build;
+    try {
+      build = await service.find(source: wanted, ref: ref, token: token);
+    } catch (error) {
+      return mcpRefused('no build to install: $error');
+    }
+
+    if (dryRun) {
+      return mcpDid('would install ${build.describe()} from ${build.url}');
+    }
+
+    // Refused here rather than after the download, because a build older than
+    // the running one is nearly always a mistyped tag, and the cost of being
+    // wrong is an editor rolled back without anybody meaning to. A CI build
+    // is named after a commit and calls itself no version, so there is
+    // nothing to compare — and answering "not older" about a comparison that
+    // never happened would be a lie told by an empty string.
+    if (build.version.isNotEmpty && !isNewerBuild(build.version, AppConstants.appVersion)) {
+      return mcpRefused(
+        'that build is ${build.version} and this one is ${AppConstants.appVersion} '
+        '— name a newer tag, or use source "ci" to install a specific commit',
+      );
+    }
+
+    final File installer;
+    try {
+      installer = await service.fetch(build, token: token);
+    } catch (error) {
+      return mcpRefused('$error');
+    }
+
+    try {
+      final said = await service.apply(installer);
+      return mcpDid('${build.describe()}: $said');
+    } catch (error) {
+      return mcpRefused('${build.describe()} arrived and verified, '
+          'but could not be installed: $error');
+    }
+  }
+
+  /// Whether [candidate] is a later version than [current].
+  ///
+  /// Three parts compared as numbers. `update_service` has the same rule for
+  /// the banner it shows the reader; this is the one that decides whether to
+  /// replace the program, so it errs the other way — anything it cannot read
+  /// as three numbers is not newer, and the caller is told to name a tag.
+  @visibleForTesting
+  static bool isNewerBuild(String candidate, String current) {
+    List<int>? parts(String v) {
+      final bits = v.trim().replaceFirst('v', '').split('.');
+      if (bits.length != 3) return null;
+      final numbers = [for (final b in bits) int.tryParse(b)];
+      return numbers.contains(null) ? null : numbers.cast<int>();
+    }
+
+    final a = parts(candidate);
+    final b = parts(current);
+    if (a == null || b == null) return false;
+    for (var i = 0; i < 3; i++) {
+      if (a[i] != b[i]) return a[i] > b[i];
+    }
+    return false;
   }
 
   @override

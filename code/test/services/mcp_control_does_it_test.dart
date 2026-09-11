@@ -244,6 +244,37 @@ void main() {
       expect(outcome.said, 'no pluginId given');
     });
 
+    test('update_app refuses a source it does not have, before any network',
+        () async {
+      final container = boot();
+      final outcome =
+          await container.read(mcpProvider.notifier).performAction(
+        'update_app',
+        {'source': 'somewhere-else'},
+      ).timeout(const Duration(seconds: 5));
+      expect(outcome.ok, isFalse);
+      expect(outcome.said, contains('somewhere-else'));
+      // The two it does have, named in the refusal: a caller who guessed
+      // wrong should not have to read the schema to find out what to guess
+      // next.
+      expect(outcome.said, contains('release'));
+      expect(outcome.said, contains('ci'));
+    });
+
+    test('a CI build with no token is refused rather than tried', () async {
+      // Artifacts are not public. Without this the call reaches GitHub, is
+      // told 404, and reports that the commit was never built — which sends
+      // whoever reads it looking at CI instead of at the missing token.
+      final container = boot();
+      final outcome =
+          await container.read(mcpProvider.notifier).performAction(
+        'update_app',
+        {'source': 'ci', 'ref': 'abc1234'},
+      ).timeout(const Duration(seconds: 20));
+      expect(outcome.ok, isFalse);
+      expect(outcome.said, contains('token'));
+    });
+
     test('an action nothing implements is refused', () async {
       final container = boot();
       final outcome = await container

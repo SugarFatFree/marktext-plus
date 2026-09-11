@@ -44,6 +44,25 @@ Both the gate and the counting now know about that library.
   and redo method rather than to the About box, where the next person to touch
   it would read it.
 
+### 编辑器可以自己更新自己了
+
+`control` 新增 `update_app`：从这个仓库的 release 或者 CI 为某个提交打好的包里
+取一个构建，比对 GitHub 公布的 SHA-256，然后交给安装器装上；应用关闭，再自行回来。
+`install_plugin` 是同一件事的插件版，走的是读者点「安装」那条一模一样的路。
+
+仓库是代码里的常量而不是调用方给的参数——「下载一个东西并运行它」和「下载**这一个**
+东西并运行它」是两种权力，只需要后者。没有公布 sha256 的构建直接拒绝：那是唯一一道
+挡在「网络上来的字节」和「机器上运行的程序」之间的门。
+
+### Windows 安装包改为按用户安装 ← **升级前请先卸载旧版**
+
+装到 `%LocalAppData%\Programs\MarkText Plus` 而不是 Program Files，安装与更新都
+不再需要管理员权限，也就不再弹 UAC。文件关联、开始菜单项、桌面快捷方式照旧。
+
+**如果你之前装的是 Program Files 版本**：新安装器看不见它（两者的卸载信息一个在
+HKLM、一个在 HKCU），会当作全新安装，旧的那份会留在原地。请手动卸载一次旧版。
+这是一次性的，之后所有更新都不会再打扰你。
+
 ## 中文
 
 到目前为止三条修复，其实是同一件事的三个侧面：**守卫是照着作者眼前那一个坏掉的
