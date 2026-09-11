@@ -144,6 +144,15 @@ this flavour they cannot — the inner one is kept, which is what the other four
 tags have always done. `<strong><em>` still nests as `***x***`, because a run of
 three asterisks is exactly what it means.
 
+### Code pasted from the web keeps its backticks
+
+A run of backticks ends at the next run of the same length, and the converter
+always wrote one around an inline `<code>` and three around a `<pre>` without
+looking at what was inside. So a JavaScript template literal copied off a page
+came back in three pieces with the backticks it was quoting gone, and a code
+block that itself contained a fence was split into a block, a paragraph and an
+empty block. The delimiter is longer than anything inside it now.
+
 ### A large document's first paint no longer cuts a block in half
 
 A document over 1500 lines is shown in two passes, the top of it first. That
@@ -283,6 +292,13 @@ HKLM、一个在 HKCU），会当作全新安装，旧的那份会留在原地�
 删除线与下标无法同时写出时——在本方言里就是无法——保住里面那个，
 这是另外四个标签一直以来的约定。`<strong><em>` 照旧嵌套成 `***x***`，
 因为三个星号一串正是它的意思。
+
+### 从网页粘贴的代码保住它的反引号
+
+一段反引号在遇到同样长度的下一段时结束，而转换器从不看内容里有几个——内联一律
+写一个，代码块一律写三个。于是从网页复制的 JavaScript 模板字符串回来时断成三截、
+它引用的反引号全丢，而本身含有围栏的代码块被拆成一个代码块、一个段落和一个空代码块。
+现在分隔符总比内部任何一段更长。
 
 ### 大文档的第一屏不再把块切成两半
 

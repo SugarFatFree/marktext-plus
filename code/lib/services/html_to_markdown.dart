@@ -249,7 +249,16 @@ class HtmlToMarkdown {
           // snippet pasted from documentation arrived with no colouring at
           // all, in a program whose fences carry a language.
           final language = _codeLanguage(inner);
-          out.write('```$language\n${_decode(code).trimRight()}\n```\n\n');
+          // A fence ends at the first run of backticks as long as its own, so a
+          // block holding three of them was split into a code block, a
+          // paragraph and an empty code block. The fence is longer than
+          // anything inside it, and still the usual three when nothing is.
+          final body = _decode(code).trimRight();
+          final inside = _longestRunOf(body, _backtick);
+          final fence = String.fromCharCodes(
+            List<int>.filled(inside < 3 ? 3 : inside + 1, _backtick),
+          );
+          out.write('$fence$language\n$body\n$fence\n\n');
           index = next;
         case 'table':
           final (inner, next) = _until(tokens, index, token.name);
@@ -453,7 +462,7 @@ class HtmlToMarkdown {
           index = next;
         case 'code':
           final (inner, next) = _until(tokens, index, token.name);
-          out.write('`${_inline(inner)}`');
+          out.write(_codeSpan(_inline(inner)));
           index = next;
         case 'a':
           final (inner, next) = _until(tokens, index, 'a');
@@ -541,6 +550,48 @@ class HtmlToMarkdown {
       !text.startsWith(marker[0]) &&
       !text.endsWith(marker[0]) &&
       (!tight || !text.contains(RegExp(r'\s')));
+
+  static const _backtick = 0x60;
+
+  /// The longest unbroken run of [unit] in [text].
+  static int _longestRunOf(String text, int unit) {
+    var longest = 0;
+    var run = 0;
+    for (var i = 0; i < text.length; i++) {
+      if (text.codeUnitAt(i) == unit) {
+        run++;
+        if (run > longest) longest = run;
+      } else {
+        run = 0;
+      }
+    }
+    return longest;
+  }
+
+  /// A code span holding [text], delimited so that [text] cannot close it.
+  ///
+  /// A code span ends at the first run of backticks as long as the one that
+  /// opened it. One backtick around `const s = \`hi\`;` therefore came apart
+  /// into three pieces with the quoted backticks gone — a JavaScript template
+  /// literal copied off a page is the everyday way to arrive at that. The
+  /// format's answer is a longer run than anything inside.
+  ///
+  /// A space on each side when the text begins or ends with a backtick or a
+  /// space, because the reader of a code span takes one space off each end when
+  /// both are there: without the padding the delimiters and the content run
+  /// together, and with it the text comes back as it went in.
+  static String _codeSpan(String text) {
+    if (text.isEmpty) return '';
+    final fence = String.fromCharCodes(
+      List<int>.filled(_longestRunOf(text, _backtick) + 1, _backtick),
+    );
+    final tight = text.startsWith('`') ||
+        text.endsWith('`') ||
+        text.startsWith(' ') ||
+        text.endsWith(' ');
+    final pad = tight ? ' ' : '';
+    return '$fence$pad$text$pad$fence';
+  }
 
   /// One declaration out of a `style` attribute.
   static String? _style(String attributes, String property) {
