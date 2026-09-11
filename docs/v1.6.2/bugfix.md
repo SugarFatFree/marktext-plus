@@ -160,6 +160,7 @@
 | BUG-415 | 2026-09-11 | 勾选复选框时按行计数，不认围栏，改错行 | P1 | 已修复 |
 | BUG-416 | 2026-09-11 | 首页承诺的性能预算比实测更严；11 份译文说高亮是单遍 | P2 | 已修复 |
 | BUG-417 | 2026-09-11 | 验「打包出来的插件能不能跑」的四条测试，从未执行过 | P1 | 已修复 |
+| BUG-418 | 2026-09-11 | Linux 包里没有 QuickJS 桥，JavaScript 插件一个都起不来 | P1 | 已修复 |
 
 ---
 
@@ -9055,3 +9056,82 @@ README 功能表的「大文件」一行，两处与事实不符，而且**分�
 
 这**不能**替代端到端测试，只是把「谁都没在看」变成「掉了会有人喊」。
 真正的集成测试仍然待做。
+
+---
+
+## BUG-418：Linux 包里没有 QuickJS 桥，JavaScript 插件一个都起不来
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-418 |
+| 日期 | 2026-09-11 |
+| 优先级 | P1 |
+| 状态 | 已修复（CI 验证） |
+
+### 现象
+
+**上一条（BUG-417 补记）刚加的那个 CI 检查，第一次跑就抓到了它。**
+
+Linux 构建产物 `bundle/lib/` 里有：
+
+```
+libflutter_js_plugin.so     ← Flutter 插件壳
+libpdfium.so  libapp.so  libwindow_manager_plugin.so ...
+```
+
+**没有 `libquickjs_c_bridge_plugin.so`**——真正的 JS 引擎桥。
+同一次 CI 里 Windows 的 `quickjs_c_bridge.dll` 是在的。
+
+而 Dart 侧在 Linux 上是按名字加载它的：
+
+```dart
+DynamicLibrary.open(Platform.environment['LIBQUICKJSC_PATH'] ??
+    'libquickjs_c_bridge_plugin.so')
+```
+
+所以 **Linux 上 `getJavascriptRuntime()` 直接抛错，每一个 JavaScript 插件都起不来**，
+而且报错来自插件包内部，编辑器这边没有一句话能说明原因。
+
+### 根因（在上游包里）
+
+`flutter_js-0.8.7` 的 `linux/CMakeLists.txt`：
+
+```cmake
+set(flutter_qjs_bundled_libraries
+  "$<TARGET_FILE:libquickjs_c_bridge_plugin.so>"
+  PARENT_SCOPE)
+```
+
+Flutter 的 Linux 构建读的是 **`<插件名>_bundled_libraries`**，
+这个插件叫 `flutter_js`，所以它找的是 `flutter_js_bundled_libraries`。
+**变量名对不上（`flutter_qjs_` vs `flutter_js_`），于是整条被忽略。**
+（那个 `$<TARGET_FILE:...>` 也指向一个并不存在的 CMake target——
+那是个预编译文件，不是构建目标。）
+
+Windows 侧的规则是对的，所以只有 Linux 短了。
+
+### 修复方案
+
+在**本应用**的 `linux/CMakeLists.txt` 里，紧接着 `PLUGIN_BUNDLED_LIBRARIES`
+那个循环之后，把它从插件的符号链接目录装进 bundle：
+
+```
+flutter/ephemeral/.plugin_symlinks/flutter_js/linux/shared/libquickjs_c_bridge_plugin.so
+```
+
+**找不到时只 warning 不报错**：哪天上游把自己的打包修好了，这段应当变成
+多余而不是开始阻断构建。**硬闸门是 CI 那一步**（检查构建出来的 bundle 里有没有它）。
+
+### 验证
+
+本机不做完整构建，所以这条修复**由 CI 验证**：同一个检查步骤，
+修复前失败并列出了所有 `.so`，修复后应当通过。
+
+### 这条是怎么被抓到的
+
+一小时前我给两个构建作业加了「引擎库必须随包」的检查，理由写的是
+「证明它能跑要集成测试，证明它随包发出去了只要一行；**而后者才是现实中会发生的那种退化**」。
+
+**第一次跑就证实了这句话**——而且不是将来会发生，是**已经发生了**。
+那一步里「先把所有 `.so` 列出来再失败」的设计也立刻兑现了价值：
+不是一句干巴巴的红叉，而是一份清单，一眼看出壳在、桥不在。

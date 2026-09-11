@@ -106,6 +106,36 @@ foreach(bundled_library ${PLUGIN_BUNDLED_LIBRARIES})
     COMPONENT Runtime)
 endforeach(bundled_library)
 
+# The QuickJS bridge, which flutter_js does not manage to bundle on Linux.
+#
+# Its linux/CMakeLists.txt sets `flutter_qjs_bundled_libraries`, and Flutter
+# reads `<plugin name>_bundled_libraries` — here `flutter_js_bundled_libraries`
+# — so the variable is ignored and the library never reaches the bundle. The
+# Windows build of the same package ships its DLL correctly; only Linux is
+# short. Measured on CI: the bundle carries libflutter_js_plugin.so, the shim,
+# and not the bridge it calls into.
+#
+# What that costs: the Dart side opens it by name at runtime, so on Linux
+# `getJavascriptRuntime()` throws and **every JavaScript plugin fails to
+# start** — with nothing in the editor to say why, since the failure is inside
+# the plugin package.
+#
+# A warning rather than an error if it is ever absent: the day the package
+# fixes its own bundling this file should stop being needed rather than start
+# breaking the build. The CI step that checks the built bundle for it is the
+# hard gate.
+set(QUICKJS_BRIDGE
+  "${CMAKE_CURRENT_SOURCE_DIR}/flutter/ephemeral/.plugin_symlinks/flutter_js/linux/shared/libquickjs_c_bridge_plugin.so")
+if(EXISTS "${QUICKJS_BRIDGE}")
+  install(FILES "${QUICKJS_BRIDGE}"
+    DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+    COMPONENT Runtime)
+else()
+  message(WARNING
+    "libquickjs_c_bridge_plugin.so was not found beside flutter_js; "
+    "JavaScript plugins will not start unless the package now bundles it")
+endif()
+
 # Copy the native assets provided by the build.dart from all packages.
 set(NATIVE_ASSETS_DIR "${PROJECT_BUILD_DIR}native_assets/linux/")
 install(DIRECTORY "${NATIVE_ASSETS_DIR}"
