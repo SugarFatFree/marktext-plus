@@ -456,8 +456,21 @@ class MarkdownParser {
   /// and CommonMark allows ~~~ as well. Matching only ``` turned a ````
   /// fence into two empty blocks with the contents lost, and left a ~~~ block
   /// as an ordinary paragraph.
-  static final _codeFenceRe = RegExp(r'^\s*(`{3,}|~{3,})\s*([^`\s]*)');
-  static final _codeFenceEndRe = RegExp(r'^\s*(`{3,}|~{3,})\s*$');
+  /// Three columns of indentation, not any amount of whitespace.
+  ///
+  /// `^\s*` here while the highlighter's hand-rolled `_fenceRun` counted at
+  /// most three spaces: a fence indented four columns opened a code block in
+  /// the preview and was ordinary markdown in the source pane, which is this
+  /// repository's oldest kind of defect — the two panes disagreeing about
+  /// where a code block is. CommonMark is on the highlighter's side: four
+  /// columns of indentation is an indented code block, so the ``` belongs to
+  /// the code rather than delimiting it.
+  ///
+  /// Spaces and not `\s`, for the same reason: a tab counts as four columns,
+  /// so a tab-indented fence is not one. That is what the highlighter does,
+  /// having only ever looked for spaces.
+  static final _codeFenceRe = RegExp(r'^ {0,3}(`{3,}|~{3,})\s*([^`\s]*)');
+  static final _codeFenceEndRe = RegExp(r'^ {0,3}(`{3,}|~{3,})\s*$');
 
   /// The headings of [source], in document order.
   ///

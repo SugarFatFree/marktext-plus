@@ -113,7 +113,11 @@ void main() {
     // left blank stopped nesting the rest of its list. Raise it whenever the
     // work raises it; never lower it to make a change pass.
     //
-    // 497 on 2026-09-11, and this one was not the parser getting better: the
+    // 499 on 2026-09-11, when a fence indented four columns stopped opening a
+    // code block — CommonMark makes that an indented code block, and the
+    // highlighter had always read it that way while the parser had not.
+    //
+    // 497 the same day, and that one was not the parser getting better: the
     // two rules that fold away syntax highlighting ran in the wrong order, so
     // the one that unwraps the spans never matched and every highlighted code
     // block counted as a failure. The parser had been right about them all
@@ -123,7 +127,7 @@ void main() {
     // folds away — but not everywhere, and a scratch script joining them with
     // nothing counted one example differently. This is the number that
     // counts; anything measured another way is measuring another thing.
-    const floor = 497;
+    const floor = 499;
     expect(passed, greaterThanOrEqualTo(floor),
         reason: '解析能力相比 $floor 例退步了');
     if (passed > floor) {

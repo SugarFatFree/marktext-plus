@@ -61,6 +61,15 @@ void main() {
 
   // Up to three columns of indentation still opens and closes a block.
   agree('an indented fence', '# a\n   ```\n# b\n   ```\n# c\n');
+  // And four columns opens nothing: that is an indented code block, so the
+  // ``` belongs to the code rather than delimiting it. The two implementations
+  // had drifted here — the parser took any amount of whitespace and the
+  // highlighter counted at most three spaces — so a fence indented four
+  // columns opened a code block in the preview and stayed ordinary markdown in
+  // the source pane. The case above could not see it: both sides accept three.
+  agree('four columns is not a fence', '# a\n    ```\n# b\n    ```\n# c\n');
+  // A tab is four columns, by the same rule and for the same reason.
+  agree('a tab is not three spaces', '# a\n\t```\n# b\n\t```\n# c\n');
 
   // Unclosed: everything to the end of the document is code.
   agree('a fence that is never closed', '# a\n```\n# b\n# c\n');
