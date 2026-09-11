@@ -132,6 +132,28 @@ jobs:
             --dart-define=BUILD_RUN=${GITHUB_RUN_NUMBER} \
             --dart-define=BUILD_SDK=$(flutter --version --machine | python3 -c 'import json,sys; print(json.load(sys.stdin)["frameworkVersion"])')
 
+      # The JavaScript engine a plugin runs in, in the bundle a reader gets.
+      #
+      # `flutter test` cannot load it — there is no platform there — so the one
+      # test that runs a JS plugin end to end skips everywhere, and the whole
+      # path is unexercised by anything automated. Proving it *runs* needs an
+      # integration test and a display; proving it *shipped* costs one line,
+      # and "the engine was not in the package" is the regression that would
+      # actually arrive, since it rides on a transitive dependency's build
+      # rules rather than on anything written here.
+      #
+      # Listed before the check so a change of name shows up as a name rather
+      # than as a bare failure.
+      - name: The JavaScript engine is in the bundle
+        run: |
+          find code/build/linux/x64/release/bundle -name '*.so' -printf '  %P\n'
+          find code/build/linux/x64/release/bundle -name 'libquickjs*' \
+            | grep -q . || {
+              echo '::error::the QuickJS bridge is not in the bundle —'\
+                   'a JavaScript plugin would fail to start for every reader'
+              exit 1
+            }
+
       - name: Package
         run: |
           cd code/build/linux/x64/release/bundle
@@ -205,6 +227,28 @@ jobs:
             ForEach-Object {
               Write-Host ("{0,10:N2} MB  {1}" -f ($_.Length / 1MB), $_.Name)
             }
+
+      # The JavaScript engine a plugin runs in, in what a reader installs.
+      #
+      # `flutter test` cannot load it — there is no platform there — so the one
+      # test that runs a JS plugin end to end skips everywhere and the path is
+      # unexercised by anything automated. Proving it *runs* needs an
+      # integration test and a display; proving it *shipped* costs one line,
+      # and shipping is where the realistic regression is: the library rides
+      # on a transitive dependency's build rules, not on anything written
+      # here, so a version bump is all it would take.
+      - name: The JavaScript engine is in the build
+        working-directory: code/build/windows/x64/runner/Release
+        shell: pwsh
+        run: |
+          $found = Get-ChildItem -Recurse -File -Filter 'quickjs_c_bridge*'
+          if (-not $found) {
+            Get-ChildItem -Recurse -File -Filter '*.dll' |
+              ForEach-Object { Write-Host ("  " + $_.Name) }
+            Write-Host '::error::the QuickJS bridge is not in the build — a JavaScript plugin would fail to start for every reader'
+            exit 1
+          }
+          $found | ForEach-Object { Write-Host ("found " + $_.Name) }
 
       # An installer as well as the loose files. A folder unzipped from a
       # downloaded artifact carries the mark of the web and is unsigned, so
