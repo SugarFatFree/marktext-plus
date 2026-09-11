@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'app_log.dart';
+import '../core/diagnostics/startup_trace.dart';
 
 /// Everything `control` can be asked to do.
 ///
@@ -126,9 +127,14 @@ class McpToolset {
     this.recordGif,
     this.describeState,
     this.perform,
+    this.startupTrace,
   });
 
   final AppLog? log;
+
+  /// The startup trace, as text. Injectable so a test need not have started
+  /// an application to have one.
+  final String Function()? startupTrace;
 
   /// PNG bytes of the editor window.
   final Future<List<int>> Function()? screenshot;
@@ -183,6 +189,17 @@ class McpToolset {
         },
       },
       run: _readLogs,
+    ),
+    McpTool(
+      name: 'read_startup_trace',
+      description:
+          'How long each step of starting up took, including the part before '
+          'Dart runs — loading the executable, booting the engine, reading '
+          'the snapshot. Previous launches are kept too, so a cold start can '
+          'be compared with the warm ones after it. Use this when a launch '
+          'is slow; read_logs carries only the milestones.',
+      schema: {'type': 'object', 'properties': {}},
+      run: _readStartupTrace,
     ),
     McpTool(
       name: 'screenshot',
@@ -354,6 +371,17 @@ class McpToolset {
       source: arguments['source'] as String?,
     );
     return McpContent.text(text.isEmpty ? '(no log lines)' : text);
+  }
+
+  McpContent _readStartupTrace(Map<String, dynamic> arguments) {
+    final read = startupTrace ?? StartupTrace.readBack;
+    final text = read();
+    return McpContent.text(
+      text.isEmpty
+          ? '(no startup trace yet — nothing has been marked, or the '
+              'directory to write it to has not been resolved)'
+          : text,
+    );
   }
 
   Future<McpContent> _screenshot(Map<String, dynamic> arguments) async {

@@ -471,6 +471,47 @@ class StartupTrace {
     return cut <= 0 ? null : executable.substring(0, cut);
   }
 
+  /// The trace as it stands, for a session that cannot reach the file.
+  ///
+  /// Only the milestones go to the application log — forty `mark` lines would
+  /// push everything else off the end of it — so the breakdown lives in
+  /// `startup-trace.log` beside the settings and beside the executable. The
+  /// comment at the top of this class says the file is the only way to get
+  /// the numbers back on Windows, and that is true of a person sitting at the
+  /// machine. A session driving the editor over MCP is not sitting at it, and
+  /// for that session the file may as well not exist: the log shows
+  /// "+901 ms before Dart" and nothing about where those milliseconds went —
+  /// loading the executable, booting the engine, and reading the AOT snapshot
+  /// being three different problems with three different answers.
+  ///
+  /// The file is preferred over [_lines] because it carries the previous runs
+  /// as well, and comparing a cold start with the warm ones after it is the
+  /// question the file was given a history for.
+  static String readBack({int atMost = 64 * 1024}) {
+    for (final path in _logPaths) {
+      try {
+        final file = File(path);
+        if (!file.existsSync()) continue;
+        final text = file.readAsStringSync();
+        if (text.length <= atMost) return text;
+        // The tail, because the current run is at the end.
+        return '(the first ${text.length - atMost} characters are not shown)\n'
+            '${text.substring(text.length - atMost)}';
+      } catch (_) {
+        // An unreadable trace is not worth failing the request over; the next
+        // location, or the lines held in memory, may still answer.
+      }
+    }
+    if (_lines.isEmpty) return '';
+    // Nothing on disk: the config directory has not been resolved yet, which
+    // is itself worth saying rather than reporting no trace at all.
+    return '$_runSeparator\n'
+        '${DateTime.now().toIso8601String()}\n'
+        '$buildStamp\n'
+        'log: (not written to disk yet)\n'
+        '${_lines.join('\n')}\n';
+  }
+
   /// Records how much there was to load, and what the biggest pieces were.
   ///
   /// Windows has to read all of this before the first line of Dart runs, so
