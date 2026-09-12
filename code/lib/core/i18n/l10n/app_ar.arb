@@ -416,6 +416,7 @@
   "pluginNoReleaseNotes": "لا توجد ملاحظات لهذا الإصدار.",
   "pluginOpenRepository": "فتح المستودع",
   "pluginSaveSettings": "حفظ الإعدادات",
+  "pluginNoSettings": "لا توجد إعدادات لـ {plugin}.",
   "pluginSdkOpenFailed": "تعذّر فتح حزمة تطوير الإضافات",
   "pluginDevelop": "تطوير إضافة",
   "pluginNoReleases": "لم يُعثر على إصدارات قابلة للتثبيت لهذا الموضوع.",

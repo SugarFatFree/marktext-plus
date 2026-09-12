@@ -575,6 +575,15 @@
   "pluginNoReleaseNotes": "This release came with no notes.",
   "pluginOpenRepository": "Open repository",
   "pluginSaveSettings": "Save settings",
+  "pluginNoSettings": "{plugin} has no settings.",
+  "@pluginNoSettings": {
+    "description": "Shown on a plugin settings page when the plugin declares no settings fields.",
+    "placeholders": {
+      "plugin": {
+        "type": "String"
+      }
+    }
+  },
   "pluginSdkOpenFailed": "Could not open plugin SDK",
   "pluginDevelop": "Develop a plugin",
   "pluginNoReleases": "No installable releases found for this topic.",

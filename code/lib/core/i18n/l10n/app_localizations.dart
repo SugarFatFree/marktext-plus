@@ -2133,6 +2133,12 @@ abstract class AppLocalizations {
   /// **'Save settings'**
   String get pluginSaveSettings;
 
+  /// Shown on a plugin settings page when the plugin declares no settings fields.
+  ///
+  /// In en, this message translates to:
+  /// **'{plugin} has no settings.'**
+  String pluginNoSettings(String plugin);
+
   /// No description provided for @pluginSdkOpenFailed.
   ///
   /// In en, this message translates to:

@@ -1083,6 +1083,11 @@ class AppLocalizationsPt extends AppLocalizations {
   String get pluginSaveSettings => 'Guardar as definições';
 
   @override
+  String pluginNoSettings(String plugin) {
+    return '$plugin não tem configurações.';
+  }
+
+  @override
   String get pluginSdkOpenFailed => 'Não foi possível abrir o SDK de plugins';
 
   @override
@@ -2387,6 +2392,11 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get pluginSaveSettings => 'Salvar as configurações';
+
+  @override
+  String pluginNoSettings(String plugin) {
+    return '$plugin não tem configurações.';
+  }
 
   @override
   String get pluginSdkOpenFailed => 'Não foi possível abrir o SDK de plugins';

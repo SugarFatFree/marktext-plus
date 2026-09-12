@@ -416,6 +416,7 @@
   "pluginNoReleaseNotes": "У этого выпуска нет описания.",
   "pluginOpenRepository": "Открыть репозиторий",
   "pluginSaveSettings": "Сохранить настройки",
+  "pluginNoSettings": "У «{plugin}» нет настроек.",
   "pluginSdkOpenFailed": "Не удалось открыть SDK плагинов",
   "pluginDevelop": "Создать плагин",
   "pluginNoReleases": "Для этой темы не найдено устанавливаемых выпусков.",

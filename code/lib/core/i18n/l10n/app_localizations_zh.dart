@@ -1064,6 +1064,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pluginSaveSettings => '保存设置';
 
   @override
+  String pluginNoSettings(String plugin) {
+    return '$plugin 没有可配置的设置。';
+  }
+
+  @override
   String get pluginSdkOpenFailed => '无法打开插件 SDK 页面';
 
   @override

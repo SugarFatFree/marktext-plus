@@ -1075,6 +1075,11 @@ class AppLocalizationsAr extends AppLocalizations {
   String get pluginSaveSettings => 'حفظ الإعدادات';
 
   @override
+  String pluginNoSettings(String plugin) {
+    return 'لا توجد إعدادات لـ $plugin.';
+  }
+
+  @override
   String get pluginSdkOpenFailed => 'تعذّر فتح حزمة تطوير الإضافات';
 
   @override

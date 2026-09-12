@@ -1065,6 +1065,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get pluginSaveSettings => '설정 저장';
 
   @override
+  String pluginNoSettings(String plugin) {
+    return '$plugin 에는 설정할 항목이 없습니다.';
+  }
+
+  @override
   String get pluginSdkOpenFailed => '플러그인 SDK를 열 수 없습니다';
 
   @override

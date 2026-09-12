@@ -416,6 +416,7 @@
   "pluginNoReleaseNotes": "このリリースには説明がありません。",
   "pluginOpenRepository": "リポジトリを開く",
   "pluginSaveSettings": "設定を保存",
+  "pluginNoSettings": "{plugin} に設定項目はありません。",
   "pluginSdkOpenFailed": "プラグイン SDK を開けませんでした",
   "pluginDevelop": "プラグインを開発する",
   "pluginNoReleases": "このトピックにインストールできるリリースは見つかりませんでした。",

@@ -266,6 +266,17 @@ dead service.
 Both spellings work now, with or without the `/v1`. The field's own advice — enter
 the root, not the full request path — is true either way, so it has not changed.
 
+### One sentence that was English in every language
+
+A plugin declaring no settings was told so in English — `X has no settings.` —
+whatever language the rest of the window was in. It was the only one of the
+editor's 403 strings written in the source rather than in the translation files,
+and the kind of leak that only somebody reading in another language would notice.
+
+A scan now looks at every place a sentence reaches the reader and fails on a
+literal holding two or more running English words, so the next one fails a test
+instead of shipping.
+
 ### A large document's first paint no longer cuts a block in half
 
 A document over 1500 lines is shown in two passes, the top of it first. That
@@ -498,6 +509,15 @@ Anthropic 的 `https://api.anthropic.com/v1`，所有说同一套协议的服务
 
 现在带不带 `/v1` 都能用。输入框自己那句提示——填根地址、不要填完整请求路径——
 两种写法下都成立，所以没有改动。
+
+### 一句在所有语言里都是英文的话
+
+没有声明任何设置项的插件，其设置页会用英文告知——`X has no settings.`——
+无论窗口其余部分是哪种语言。它是编辑器 403 条文案里唯一写在源码而不是翻译文件里的一条，
+而这种泄漏只有用别的语言阅读的人才会注意到。
+
+现在有一条扫描守卫，检查句子能到达读者的每一个位置，只要字面量里出现两个以上
+连写的英文单词就失败——下一次泄漏会红在测试里，而不是发到读者手上。
 
 ### 大文档的第一屏不再把块切成两半
 

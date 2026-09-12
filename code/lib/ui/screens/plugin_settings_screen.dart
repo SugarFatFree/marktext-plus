@@ -165,7 +165,7 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
                   ),
           ),
         if (widget.plugin.settings.isEmpty)
-          Text('${widget.plugin.name} has no settings.'),
+          Text(l10n.pluginNoSettings(widget.plugin.name)),
         Align(
           alignment: AlignmentDirectional.centerEnd,
           child: FilledButton.icon(

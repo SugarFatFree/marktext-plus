@@ -416,6 +416,7 @@
   "pluginNoReleaseNotes": "这个版本没有附带更新说明。",
   "pluginOpenRepository": "打开仓库",
   "pluginSaveSettings": "保存设置",
+  "pluginNoSettings": "{plugin} 没有可配置的设置。",
   "pluginSdkOpenFailed": "无法打开插件 SDK 页面",
   "pluginDevelop": "开发插件",
   "pluginNoReleases": "这个话题下没有找到可安装的发行版。",

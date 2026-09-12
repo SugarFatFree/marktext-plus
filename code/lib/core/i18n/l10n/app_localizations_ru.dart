@@ -1078,6 +1078,11 @@ class AppLocalizationsRu extends AppLocalizations {
   String get pluginSaveSettings => 'Сохранить настройки';
 
   @override
+  String pluginNoSettings(String plugin) {
+    return 'У «$plugin» нет настроек.';
+  }
+
+  @override
   String get pluginSdkOpenFailed => 'Не удалось открыть SDK плагинов';
 
   @override

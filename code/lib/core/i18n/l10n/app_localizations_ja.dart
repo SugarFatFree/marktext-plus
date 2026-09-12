@@ -1065,6 +1065,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get pluginSaveSettings => '設定を保存';
 
   @override
+  String pluginNoSettings(String plugin) {
+    return '$plugin に設定項目はありません。';
+  }
+
+  @override
   String get pluginSdkOpenFailed => 'プラグイン SDK を開けませんでした';
 
   @override

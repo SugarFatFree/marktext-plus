@@ -416,6 +416,7 @@
   "pluginNoReleaseNotes": "Cette version n'est accompagnée d'aucune note.",
   "pluginOpenRepository": "Ouvrir le dépôt",
   "pluginSaveSettings": "Enregistrer les réglages",
+  "pluginNoSettings": "{plugin} n’a aucun réglage.",
   "pluginSdkOpenFailed": "Impossible d'ouvrir le SDK des plugins",
   "pluginDevelop": "Développer un plugin",
   "pluginNoReleases": "Aucune version installable n'a été trouvée pour ce sujet.",

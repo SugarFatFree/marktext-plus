@@ -1084,6 +1084,11 @@ class AppLocalizationsEs extends AppLocalizations {
   String get pluginSaveSettings => 'Guardar la configuración';
 
   @override
+  String pluginNoSettings(String plugin) {
+    return '$plugin no tiene ajustes.';
+  }
+
+  @override
   String get pluginSdkOpenFailed => 'No se pudo abrir el SDK de plugins';
 
   @override
