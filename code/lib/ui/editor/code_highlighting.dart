@@ -240,7 +240,6 @@ class CodeHighlighting {
   /// How much source the cache is holding, for the test that bounds it.
   static int get cachedChars => _cachedChars;
 
-  /// Empties the cache. Tests start from a known state with this.
   /// Empties the cache.
   ///
   /// Only the tests call this, and they need it: the cache is static, so one

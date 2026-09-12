@@ -238,8 +238,6 @@ class WordCountService {
       (rune >= 0xF900 && rune <= 0xFAFF) || // CJK compatibility ideographs
       (rune >= 0x20000 && rune <= 0x2FA1F); // CJK extensions B and beyond
 
-  /// Everything that is not whitespace or punctuation, so that Cyrillic,
-  /// Greek and accented Latin all count as parts of a word.
   /// Characters that join a word rather than ending it.
   ///
   /// Only counted as such between two word characters — a bullet `-` or a
@@ -249,6 +247,8 @@ class WordCountService {
       rune == 0x2019 || // right single quotation mark, the typographic one
       rune == 0x2D; // hyphen-minus
 
+  /// Everything that is not whitespace or punctuation, so that Cyrillic,
+  /// Greek and accented Latin all count as parts of a word.
   static bool _isWordCharacter(int rune) {
     if (rune <= 0x20) return false; // control characters and space
     if (rune >= 0x21 && rune <= 0x2F) return false; // ! through /

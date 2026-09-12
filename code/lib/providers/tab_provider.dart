@@ -590,7 +590,6 @@ class TabNotifier extends StateNotifier<TabState> {
   /// Records that a tab's file changed underneath the editor.
   void markDiskConflict(String id) => _setDiskConflict(id, true);
 
-  /// Records, or clears, that a tab's file changed underneath the editor.
   /// Records the encoding a save actually used.
   ///
   /// Only when it differs from what was asked for, which happens when the
@@ -603,6 +602,7 @@ class TabNotifier extends StateNotifier<TabState> {
     );
   }
 
+  /// Records, or clears, that a tab's file changed underneath the editor.
   void _setDiskConflict(String id, bool conflict) {
     if (state.tabs.where((t) => t.id == id).firstOrNull?.diskConflict ==
         conflict) {
@@ -703,7 +703,6 @@ class TabNotifier extends StateNotifier<TabState> {
     );
   }
 
-  /// Rebinds a tab to a different file, after a rename or a "save as".
   /// Follows a rename on disk, for a file or for a whole folder.
   ///
   /// Renaming from the sidebar only moved the file and refreshed the tree: an
@@ -772,6 +771,7 @@ class TabNotifier extends StateNotifier<TabState> {
     _persistOpenedFiles();
   }
 
+  /// Rebinds a tab to a different file, after a rename or a "save as".
   void updateTabPath(String id, String newPath, String newName) {
     final oldPath = state.tabs.where((t) => t.id == id).firstOrNull?.filePath;
 

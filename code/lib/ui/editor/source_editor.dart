@@ -1683,10 +1683,6 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     return found;
   }
 
-  /// Works out which line numbers are on screen and where to draw them.
-  ///
-  /// Only the visible ones: a five megabyte document has no business asking
-  /// the layout about lines nobody is looking at.
   /// Puts the caret at the end of the document.
   ///
   /// For the blank space under the last line, which in the preview is a place
@@ -1698,11 +1694,6 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     );
   }
 
-  /// Scrolls the caret into view.
-  ///
-  /// The field no longer scrolls itself, so nothing else does this: without
-  /// it, typing past the bottom of the pane leaves the caret somewhere the
-  /// reader cannot see.
   /// Pixel Y of [offset] within what this pane scrolls, or null while the
   /// field has not been laid out.
   ///
@@ -1741,6 +1732,12 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     return _contentYOf(starts[line.clamp(0, starts.length - 1)]);
   }
 
+  /// Scrolls the caret into view.
+  ///
+  /// The field no longer scrolls itself, so without this — or typewriter mode,
+  /// which stands in for it and centres the line instead — typing past the
+  /// bottom of the pane leaves the caret somewhere the reader cannot see. The
+  /// two are exclusive: see the call site in `_onSelectionChanged`.
   void _showCaret() {
     final editable = _renderEditable();
     final position = _editorScrollController.hasClients
@@ -1779,6 +1776,10 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     return object is RenderBox ? object : null;
   }
 
+  /// Works out which line numbers are on screen and where to draw them.
+  ///
+  /// Only the visible ones: a five megabyte document has no business asking
+  /// the layout about lines nobody is looking at.
   void _updateGutterMarks() {
     final editable = _renderEditable();
     final gutter = _gutterKey.currentContext?.findRenderObject() as RenderBox?;
@@ -2564,7 +2565,6 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     return (start, end);
   }
 
-  /// Runs a block-level edit that reports where the caret should land.
   /// Trades the block under the caret with the one before or after it.
   ///
   /// With a selection, the lines it touches move instead — the selection is
@@ -2612,6 +2612,7 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     );
   }
 
+  /// Runs a block-level edit that reports where the caret should land.
   void _applyBlockEdit((String, int) Function(String, int) edit) {
     final text = _controller.text;
     final caret = _controller.selection.baseOffset.clamp(0, text.length);

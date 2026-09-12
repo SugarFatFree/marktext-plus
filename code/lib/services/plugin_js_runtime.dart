@@ -187,11 +187,6 @@ globalThis.require = function (name) {
     }
   }
 
-  /// Turns one action, as the script returned it, into what the host runs.
-  ///
-  /// Static and free of the engine so it can be tested: the QuickJS library
-  /// only exists inside a built application, so everything that does not need
-  /// it is kept where the test suite can reach it.
   /// One node of a plugin's interface, from the JSON it returned.
   ///
   /// Same shapes and same bounds as the Lua side — a plugin author picks the
@@ -320,6 +315,11 @@ globalThis.require = function (name) {
     return null;
   }
 
+  /// Turns one action, as the script returned it, into what the host runs.
+  ///
+  /// Static and free of the engine so it can be tested: the QuickJS library
+  /// only exists inside a built application, so everything that does not need
+  /// it is kept where the test suite can reach it.
   static PluginScriptAction parseAction(String json) {
     final decoded = jsonDecode(json);
     if (decoded is! Map) return const PluginNoAction();

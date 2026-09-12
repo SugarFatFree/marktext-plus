@@ -44,6 +44,7 @@
 | BUG-459 | 2026-09-12 | SDK 向作者承诺三个窗格槽位，分屏时只画两个，两侧都没说 | P2 | 已修复 |
 | BUG-460 | 2026-09-12 | 「按别的编码重读」清掉了冲突横幅却不更新基准，下一次保存又冲突 | P1 | 已修复 |
 | BUG-461 | 2026-09-12 | 基准戳取在读之后，落在中间的写入被算成「已看过」，保存时静默盖掉 | P1 | 已修复 |
+| BUG-462 | 2026-09-13 | 29 处文档注释挂在了错的成员头上，被它们描述的成员一句都没有 | P2 | 已修复 |
 
 ---
 
@@ -2915,3 +2916,99 @@ lib 里没有任何调用者、只有一条测它自己的测试。旁边就是
 而**基准说文件已变**、并且此时保存会抛 `FileChangedOnDiskException`。
 变异回旧顺序后变红。另有一条守住寻常情形：中间什么都没发生时，
 基准与读到的内容一致（否则就是每次打开都无端冲突）。
+
+---
+
+## BUG-462：29 处文档注释挂在了错的成员头上
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-462 |
+| 日期 | 2026-09-13 |
+| 优先级 | P2 |
+| 状态 | 已修复 |
+
+### 现象
+
+打开 `app.dart` 会读到：
+
+```dart
+/// Tells the reader that a save did not happen.
+///
+/// All three save paths — the menu, Save As, and the one the tab bar uses when
+/// closing — used to swallow the failure. …
+/// Tells the reader that a tab would not close because its file changed.
+///
+/// Reuses the wording the save-conflict dialog uses …
+void reportDiskConflict(String fileName) { … }
+```
+
+整整一段讲「三条保存路径都曾吞掉失败」的文字，挂在了**三个函数之外**的
+`reportDiskConflict` 头上；而它真正描述的 `reportSaveFailure` **一句文档都没有**。
+全库共 **29 处**这样。
+
+### 根因：插入点取在声明行，而不是文档注释的顶上
+
+机制每次都一样——在一个已有成员上方写入新成员时，插入点取成了
+`void foo() {` 那一行，而不是**它文档注释的第一行**。于是：
+
+| 结果 | 后果 |
+|------|------|
+| 旧文档留在新成员上方 | 新成员宣称了两件事，其中一件不是它 |
+| 旧成员失去文档 | 它变成无文档成员，谁也不知道它是干什么的 |
+
+**其中两处是我自己在前三轮造成的**（插 `_contentYOf` 与 `_contentYOfLine` 时，
+锚点都用了 `"  void _showCaret() {"`）——于是 `_showCaret` 至今一句文档都没有，
+而它那段「字段自己不再滚动，所以没有别的东西做这件事」挂在了别的方法头上。
+这条正好也**已经过期**：上一轮我让打字机模式顶替了 `_showCaret`。
+
+**分析器对此一言不发**：一段文档注释紧贴任何声明都是合法的。
+
+### 怎么找出来的
+
+写了一个检测器找这个形状：**一个摘要、它的正文，然后紧跟第二个「读起来像摘要」
+的句子，中间没有空的 `///` 行**。40 处命中，逐个进文件读：
+
+| 分类 | 数量 | 处理 |
+|------|------|------|
+| 真孤儿（描述的是另一个成员） | **29** | 找到那个无文档的成员，把前半段搬回去 |
+| 同一成员的两段文档 | 11 | **留着**——两段说的都是它，不是假话 |
+
+找主人的办法：孤儿摘要描述的那个成员，**必然是个无文档成员**，就在附近。
+逐个 grep 确认（`reportSaveFailure`、`PluginNotifyAction`、`PluginNoAction`、
+`parseAction`、`_isWordCharacter`、`_closesFence`、`_sourceLines`、`headingOutline`、
+`_buildListItems`、`_toggleTask`、`_enhanceClipboardWithHtml`、`_updateGutterMarks`、
+`_applyBlockEdit`、`_setDiskConflict`、`_onDocumentChanged`、`undo`、`outlineProvider`、
+`updateTabPath`、`_catalogue`、`complete`、`openDiagnosticLog`、`typedef _Snapshot`、
+`PluginCommandActions`、`PluginUiSink`、`_LineEndingButton`、`_client`、
+`searchGitHubTopic` 等），全部确认无文档。
+
+两处特殊：
+
+- `code_highlighting.clearCache` 是**字面重复**的摘要（`/// Empties the cache.` 两行），删掉一行
+- `box_edge_geometry.dart` 的块首其实是**整个文件的文档**，挂在了第一个函数上。
+  按 `html_to_markdown` 的先例移到文件顶部并加 `library;`
+
+### 为什么这次装了守卫，而上一轮拒绝装
+
+上一轮我删掉了一条「grep 源码里的 `documentCells == 2`」的守卫，理由是**改个变量名
+就会误报**。这一条不同：剩余的 11 处是**我逐个读过并判定过**的封闭集合，
+写进 `allowed` 时每条都注明了「两段说的是哪一个成员」。而且它加了一条对账断言——
+**命中数必须等于 `allowed` 的条数**，所以新增一处、或 `allowed` 里有一条已经不存在，
+两个方向都会红。
+
+键用**第二句摘要的文本**而不是行号：行号会被上方任何改动移动。
+
+### 涉及文件
+
+- 25 个 `lib/` 文件（只有注释位置变化，无一行代码改动）
+- `code/test/a_doc_comment_belongs_to_the_member_below_it_test.dart`（新增）
+
+### 验证：两次变异
+
+| 变异 | 结果 |
+|------|------|
+| 把 `reportSaveFailure` 的文档又挪回 `reportDiskConflict` 头上 | 红 |
+| 删掉 `allowed` 里一条 | 红：「查到的处数与 allowed 的条数不再相等」 |
+
+全量测试 3468 通过（本次不改行为），`dart analyze --fatal-infos lib test` 干净。

@@ -1033,10 +1033,6 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     );
   }
 
-  /// Flips the checkbox marker on one task line and writes the list back.
-  ///
-  /// The parser consumes exactly one source line per list item, so item
-  /// [index] is line [index] of the list's own source.
   /// A line with any leading blockquote markers taken off.
   ///
   /// Only for deciding what the line *is*; what gets written back is the line
@@ -1044,6 +1040,10 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   static String _withoutQuoteMarkers(String line) =>
       line.replaceFirst(RegExp(r'^\s*(?:>\s?)+'), '');
 
+  /// Flips the checkbox marker on one task line and writes the list back.
+  ///
+  /// The parser consumes exactly one source line per list item, so item
+  /// [index] is line [index] of the list's own source.
   void _toggleTask(md.ListNode node, int index, bool checked) {
     final onChanged = widget.onSourceChanged;
     if (onChanged == null) return;
@@ -1481,14 +1481,6 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     );
   }
 
-  /// Puts an HTML flavour of the selection on the clipboard beside the text.
-  ///
-  /// Built from the blocks this preview drew, not by parsing what was copied.
-  /// A selection here returns the *rendered* text — a heading comes back as
-  /// `My Heading`, without the `#` — so feeding it back through the markdown
-  /// parser, which is what this used to do, could only ever produce a
-  /// paragraph. Pasting into Word lost every heading and every bold run, which
-  /// is the whole thing rich copy exists to keep.
   /// The link the pointer is over, shown along the bottom of the preview.
   ///
   /// A notifier rather than a field set through setState. The bar is one small
@@ -1569,6 +1561,14 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     );
   }
 
+  /// Puts an HTML flavour of the selection on the clipboard beside the text.
+  ///
+  /// Built from the blocks this preview drew, not by parsing what was copied.
+  /// A selection here returns the *rendered* text — a heading comes back as
+  /// `My Heading`, without the `#` — so feeding it back through the markdown
+  /// parser, which is what this used to do, could only ever produce a
+  /// paragraph. Pasting into Word lost every heading and every bold run, which
+  /// is the whole thing rich copy exists to keep.
   Future<void> _enhanceClipboardWithHtml() async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     final selectedText = data?.text;

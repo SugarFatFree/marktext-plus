@@ -116,9 +116,6 @@ class PluginCatalogService {
   /// they want the current answer.
   static const cacheFor = Duration(hours: 6);
 
-  /// Uses the operating system proxy variables when present. GitHub requests
-  /// are user-triggered, so a proxy failure is reported by the panel rather
-  /// than delaying application startup.
   /// The most recently published release, pre-release or not.
   ///
   /// Drafts are left out — they are not published, so nobody but their author
@@ -142,6 +139,9 @@ class PluginCatalogService {
     return best;
   }
 
+  /// Uses the operating system proxy variables when present. GitHub requests
+  /// are user-triggered, so a proxy failure is reported by the panel rather
+  /// than delaying application startup.
   HttpClient _client() {
     final client = HttpClient();
     client.findProxy = (uri) => HttpClient.findProxyFromEnvironment(
@@ -152,12 +152,6 @@ class PluginCatalogService {
     return client;
   }
 
-  /// Discovers public plugin repositories through GitHub Topics.
-  ///
-  /// This is deliberately uncurated: any public repository may opt in by
-  /// adding `marktext-plus-plugin`. Repositories without a latest release, a
-  /// ZIP asset, or GitHub's SHA-256 asset digest are listed nowhere as
-  /// installable, because discovery and installation trust are separate.
   /// What went wrong, in terms the reader can act on.
   ///
   /// GitHub allows ten unauthenticated searches a minute, and pressing the
@@ -309,6 +303,12 @@ class PluginCatalogService {
     }
   }
 
+  /// Discovers public plugin repositories through GitHub Topics.
+  ///
+  /// This is deliberately uncurated: any public repository may opt in by
+  /// adding `marktext-plus-plugin`. Repositories without a latest release, a
+  /// ZIP asset, or GitHub's SHA-256 asset digest are listed nowhere as
+  /// installable, because discovery and installation trust are separate.
   Future<List<PluginCatalogEntry>> searchGitHubTopic({
     int perPage = 30,
     bool refresh = false,

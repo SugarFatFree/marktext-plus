@@ -171,7 +171,6 @@ class AiChatService {
     throw const FormatException('The AI provider returned no translated text');
   }
 
-  /// Sends [prompt] to the configured provider and returns what it replied.
   /// Answers instead of the model, when something has been put here.
   ///
   /// The `ai` continuation — a plugin returning a prompt, the host asking the
@@ -198,6 +197,7 @@ class AiChatService {
   /// It is here so that a server which accepts the connection and then says
   /// nothing ends in an error rather than in a spinner nobody can stop, and
   /// ten minutes is short enough for that and long enough for the rest.
+  /// Sends [prompt] to the configured provider and returns what it replied.
   static Future<String> complete({
     required AppConfig config,
     required String prompt,

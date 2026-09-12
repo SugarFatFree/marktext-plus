@@ -196,12 +196,6 @@ class EditorState {
 class EditorNotifier extends StateNotifier<EditorState> {
   EditorNotifier() : super(const EditorState());
 
-  /// One recorded state of the document, and where the caret was in it.
-  ///
-  /// Undo used to restore the text alone and drop the caret at the very end.
-  /// In a long document that means every undo throws the reader to the bottom
-  /// of the file, away from the edit they were undoing — which makes a working
-  /// undo tiring to use.
   /// Undo history, kept per tab.
   ///
   /// A single shared stack meant switching tabs carried the previous file's
@@ -498,6 +492,12 @@ class EditorNotifier extends StateNotifier<EditorState> {
     }
   }
 
+  /// Whether a source editor is on screen holding the document's text.
+  ///
+  /// Undo restores into that field when there is one. In preview mode there is
+  /// not, and the caller has to write the result to the tab instead.
+  bool get hasSourceEditor => _controller != null;
+
   /// Steps back one snapshot and answers with the text the document should
   /// hold, or null when there was nowhere to go.
   ///
@@ -508,12 +508,6 @@ class EditorNotifier extends StateNotifier<EditorState> {
   /// so a rewrite the reader accepted could not be taken back, and the key did
   /// nothing at all. The caller writes the answer to the tab, which is where
   /// the document lives when nothing is being typed into.
-  /// Whether a source editor is on screen holding the document's text.
-  ///
-  /// Undo restores into that field when there is one. In preview mode there is
-  /// not, and the caller has to write the result to the tab instead.
-  bool get hasSourceEditor => _controller != null;
-
   String? undo({String? current}) {
     if (_undoStack.isEmpty) return null;
 
@@ -708,4 +702,10 @@ final editorProvider = StateNotifierProvider<EditorNotifier, EditorState>((ref) 
   return EditorNotifier();
 });
 
+  /// One recorded state of the document, and where the caret was in it.
+  ///
+  /// Undo used to restore the text alone and drop the caret at the very end.
+  /// In a long document that means every undo throws the reader to the bottom
+  /// of the file, away from the edit they were undoing — which makes a working
+  /// undo tiring to use.
 typedef _Snapshot = ({String text, int caret});

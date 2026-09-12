@@ -1,12 +1,14 @@
-import 'dart:math' as math;
-import 'dart:ui';
-
 /// Geometry shared by the painters that draw boxes joined by lines.
 ///
 /// The class diagram and the ER diagram each carried their own byte-identical
 /// copy of both of these. Nothing had gone wrong yet, but this file has already
 /// shown what happens when one copy is fixed and the others are not — the
 /// diagram error box was three copies, and only one of them followed the theme.
+library;
+
+import 'dart:math' as math;
+import 'dart:ui';
+
 /// Where a line aimed at [target] leaves [rect].
 ///
 /// Used to stop an edge at the border of a box rather than running into its

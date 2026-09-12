@@ -472,16 +472,6 @@ class MarkdownParser {
   static final _codeFenceRe = RegExp(r'^ {0,3}(`{3,}|~{3,})\s*([^`\s]*)');
   static final _codeFenceEndRe = RegExp(r'^ {0,3}(`{3,}|~{3,})\s*$');
 
-  /// The headings of [source], in document order.
-  ///
-  /// The outline panel and the preview's scroll targets both need this and
-  /// have to agree exactly: the preview maps its Nth heading widget to the
-  /// Nth entry here, so one list seeing a heading the other does not puts
-  /// every later entry on the wrong line.
-  ///
-  /// Lines inside a fenced code block are not headings. `# install deps` in a
-  /// shell snippet is a comment, and counting it filled the outline with
-  /// entries that scrolled somewhere unrelated.
   /// The heading level [line] carries, or null when it is not a heading.
   ///
   /// Public because the source pane colours headings as they are typed and has
@@ -594,6 +584,16 @@ class MarkdownParser {
     return buffer.toString();
   }
 
+  /// The headings of [source], in document order.
+  ///
+  /// The outline panel and the preview's scroll targets both need this and
+  /// have to agree exactly: the preview maps its Nth heading widget to the
+  /// Nth entry here, so one list seeing a heading the other does not puts
+  /// every later entry on the wrong line.
+  ///
+  /// Lines inside a fenced code block are not headings. `# install deps` in a
+  /// shell snippet is a comment, and counting it filled the outline with
+  /// entries that scrolled somewhere unrelated.
   static List<({int line, int level, String text})> headingOutline(
       String source) {
     // A byte order mark would sit in front of the first '#' and stop it
@@ -709,10 +709,6 @@ class MarkdownParser {
     ];
   }
 
-  /// Whether [line] closes a block opened by [fence].
-  ///
-  /// The closing fence must use the same character and be at least as long,
-  /// so ``` inside a ```` block is content rather than the end of it.
   /// The fence this line opens, or null.
   ///
   /// [_codeFenceRe] answers the shape; this adds the one rule the shape
@@ -735,6 +731,10 @@ class MarkdownParser {
     return rest.contains('`') ? null : match;
   }
 
+  /// Whether [line] closes a block opened by [fence].
+  ///
+  /// The closing fence must use the same character and be at least as long,
+  /// so ``` inside a ```` block is content rather than the end of it.
   static bool _closesFence(String line, String fence) {
     final match = _codeFenceEndRe.firstMatch(line);
     if (match == null) return false;
@@ -1085,8 +1085,6 @@ class MarkdownParser {
     'link', 'meta', 'param', 'source', 'track', 'wbr',
   };
 
-  /// Splits [source] the same way [parse] does, so line indices recorded on a
-  /// node line up with the returned list.
   /// How much of [source] can be shown while the rest is still being parsed.
   ///
   /// Parsing costs about 0.02–0.04 ms per block and there is no hot spot to
@@ -1246,6 +1244,8 @@ class MarkdownParser {
     return null;
   }
 
+  /// Splits [source] the same way [parse] does, so line indices recorded on a
+  /// node line up with the returned list.
   static List<String> _sourceLines(String source) {
     return const LineSplitter().convert(_stripBom(source));
   }
@@ -1336,14 +1336,6 @@ class MarkdownParser {
     return columns;
   }
 
-  /// Builds list items from one block of lines per item.
-  ///
-  /// The distinct indentation widths in the list are sorted and an item's
-  /// depth is its position among them, so two-space and four-space authors
-  /// both get 0, 1, 2 rather than 1, 2 and 2, 4.
-  ///
-  /// Lines after the first in a block are continuation lines, joined with a
-  /// space — markdown treats a wrapped item as one paragraph.
   /// The marker to draw in front of each of [items].
   ///
   /// Numbering runs per nesting level, so a numbered list inside a numbered
@@ -1378,6 +1370,14 @@ class MarkdownParser {
     return '$next. ';
   }
 
+  /// Builds list items from one block of lines per item.
+  ///
+  /// The distinct indentation widths in the list are sorted and an item's
+  /// depth is its position among them, so two-space and four-space authors
+  /// both get 0, 1, 2 rather than 1, 2 and 2, 4.
+  ///
+  /// Lines after the first in a block are continuation lines, joined with a
+  /// space — markdown treats a wrapped item as one paragraph.
   List<ListItem> _buildListItems(
     List<List<String>> itemBlocks,
     List<int> itemStarts,

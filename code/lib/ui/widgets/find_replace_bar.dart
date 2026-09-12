@@ -175,8 +175,6 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
     _findMatches();
   }
 
-  /// The editor's controller also notifies on selection changes, so compare the
-  /// text before rescanning. Never moves the caret: the user is typing.
   /// Rescans after the reader stops typing, not on every character.
   ///
   /// Scanning a five megabyte document takes 40 to 65 ms, which was paid per
@@ -187,6 +185,8 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
   /// catching up a moment later.
   Timer? _rescan;
 
+  /// The editor's controller also notifies on selection changes, so compare the
+  /// text before rescanning. Never moves the caret: the user is typing.
   void _onDocumentChanged() {
     if (_getSearchText() == _scannedText) return;
     _rescan?.cancel();

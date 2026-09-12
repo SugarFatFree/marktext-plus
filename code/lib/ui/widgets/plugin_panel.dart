@@ -43,12 +43,6 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
         (dir) => PluginManager(p.join(dir.path, 'plugins')),
       );
 
-  /// The catalogue, with somewhere to keep its last answer.
-  ///
-  /// Without a cache this searched GitHub on every launch, and each search
-  /// costs a request for every repository it finds — thirty against sixty an
-  /// hour, unauthenticated. Two or three launches used up the quota and the
-  /// panel said "try again in 819 seconds" where the plugins should be.
   /// The failure in the reader's language.
   ///
   /// The panel used to print the service's English straight into the page, so
@@ -71,6 +65,12 @@ class _PluginPanelState extends ConsumerState<PluginPanel> {
     }
   }
 
+  /// The catalogue, with somewhere to keep its last answer.
+  ///
+  /// Without a cache this searched GitHub on every launch, and each search
+  /// costs a request for every repository it finds — thirty against sixty an
+  /// hour, unauthenticated. Two or three launches used up the quota and the
+  /// panel said "try again in 819 seconds" where the plugins should be.
   Future<PluginCatalogService> _catalogue() async {
     final dir = await getApplicationSupportDirectory();
     return PluginCatalogService(

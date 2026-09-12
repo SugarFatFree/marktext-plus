@@ -226,7 +226,6 @@ class StatusBar extends ConsumerWidget {
   }
 }
 
-/// The line ending indicator, which switches convention when clicked.
 /// The encoding the document was read as, and a way to say it read it wrong.
 ///
 /// Detection is a guess: the share of double-byte pairs tells GBK from
@@ -299,6 +298,7 @@ class _EncodingButton extends ConsumerWidget {
   }
 }
 
+/// The line ending indicator, which switches convention when clicked.
 class _LineEndingButton extends ConsumerWidget {
   const _LineEndingButton({required this.lineEnding, required this.style});
 

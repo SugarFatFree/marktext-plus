@@ -32,13 +32,6 @@ void reportSettingsSaveFailure(Object error) {
   );
 }
 
-/// Tells the reader that a save did not happen.
-///
-/// All three save paths — the menu, Save As, and the one the tab bar uses when
-/// closing — used to swallow the failure. Ctrl+S on a read-only file, or one
-/// another program holds open, did nothing at all: no message, and the only
-/// clue was the modified dot that stayed put. Upstream MarkText notifies on
-/// every one of these.
 /// Tells the reader that a tab would not close because its file changed.
 ///
 /// Reuses the wording the save-conflict dialog uses, so the same situation is
@@ -174,6 +167,13 @@ Future<void> runExport(String fileName, Future<void> Function() export) async {
   );
 }
 
+/// Tells the reader that a save did not happen.
+///
+/// All three save paths — the menu, Save As, and the one the tab bar uses when
+/// closing — used to swallow the failure. Ctrl+S on a read-only file, or one
+/// another program holds open, did nothing at all: no message, and the only
+/// clue was the modified dot that stayed put. Upstream MarkText notifies on
+/// every one of these.
 void reportSaveFailure(Object error) {
   final context = navigatorKey.currentContext;
   if (context == null || !context.mounted) return;

@@ -11,12 +11,6 @@ import 'tab_provider.dart';
 /// One heading in the document's outline.
 typedef OutlineEntry = ({int line, int level, String text});
 
-/// The outline of the document being read, computed off the typing path and
-/// off the isolate drawing the window.
-///
-/// The table of contents used to call [MarkdownParser.headingOutline] inside
-/// the sidebar's `build`, on a provider it watched for content — run again for
-/// every keystroke, and the panel did not even have to be open, only built.
 /// Debouncing fixed the frequency; it left the cost where it was.
 ///
 /// Measured here: 4.7 MB over 160,000 lines takes 184 ms, which is the word
@@ -97,6 +91,12 @@ class OutlineNotifier extends StateNotifier<List<OutlineEntry>> {
 }
 
 /// The current document's headings.
+/// The outline of the document being read, computed off the typing path and
+/// off the isolate drawing the window.
+///
+/// The table of contents used to call [MarkdownParser.headingOutline] inside
+/// the sidebar's `build`, on a provider it watched for content — run again for
+/// every keystroke, and the panel did not even have to be open, only built.
 final outlineProvider =
     StateNotifierProvider<OutlineNotifier, List<OutlineEntry>>(
   OutlineNotifier.new,

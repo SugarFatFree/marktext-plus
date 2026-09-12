@@ -214,7 +214,6 @@ class PluginDiffAction extends PluginScriptAction {
   final String result;
 }
 
-/// Say something to the reader and stop.
 /// A permission the plugin never asked for, and which one.
 ///
 /// Not a [PluginNotifyAction] carrying a finished sentence: that sentence was
@@ -238,6 +237,7 @@ class PluginPermissionRefusedAction extends PluginScriptAction {
   final String permission;
 }
 
+/// Say something to the reader and stop.
 class PluginNotifyAction extends PluginScriptAction {
   const PluginNotifyAction(this.message);
 
@@ -251,7 +251,6 @@ class PluginReplaceAction extends PluginScriptAction {
   final String text;
 }
 
-/// The script chose to do nothing.
 /// A tree the editor draws, and the events it sends back.
 ///
 /// The container it lands in is the one the command was started from — a
@@ -263,6 +262,7 @@ class PluginUiAction extends PluginScriptAction {
   final String title;
 }
 
+/// The script chose to do nothing.
 class PluginNoAction extends PluginScriptAction {
   const PluginNoAction();
 }

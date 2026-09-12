@@ -1128,13 +1128,6 @@ class AppMenuBar extends ConsumerWidget {
     return l10n.updateUpToDate;
   }
 
-  /// Shows the reader where the startup trace went.
-  ///
-  /// The installer puts the program under Program Files, which it cannot write
-  /// to, so the trace falls back to the config directory — and finding that by
-  /// hand means knowing both that `%APPDATA%` is not expanded by PowerShell
-  /// and what the version resource calls the company. Someone who has been
-  /// asked for a log should not have to work that out.
   /// The pages the Help menu links to.
   ///
   /// One named method each rather than a closure carrying a URL, so the
@@ -1218,6 +1211,13 @@ class AppMenuBar extends ConsumerWidget {
     );
   }
 
+  /// Shows the reader where the startup trace went.
+  ///
+  /// The installer puts the program under Program Files, which it cannot write
+  /// to, so the trace falls back to the config directory — and finding that by
+  /// hand means knowing both that `%APPDATA%` is not expanded by PowerShell
+  /// and what the version resource calls the company. Someone who has been
+  /// asked for a log should not have to work that out.
   static Future<void> openDiagnosticLog() async {
     final context = navigatorKey.currentContext;
     final path = StartupTrace.logPath;

@@ -21,12 +21,6 @@ import '../../services/plugin_image_loader.dart';
 import 'ai_setup_text.dart';
 import 'plugin_permission_text.dart';
 
-/// Puts the commands installed plugins contribute into a right-click menu, and
-/// carries out what those commands ask for.
-///
-/// Both panes call this. The source pane had the translate command and the
-/// preview did not, so whether the reader saw it depended on which half of a
-/// split view they had clicked in.
 /// Which half of the editor a command was started from.
 ///
 /// In split view the editor is showing both at once, so "what is the reader
@@ -53,12 +47,6 @@ typedef PluginTextSink = void Function(
   PluginPaneRender render,
 });
 
-/// Where a tree the plugin drew goes, when the caller draws it itself.
-///
-/// Returns what the reader did with it, or null if they closed it — the same
-/// shape as declining a question, and for the same reason: a run waiting on
-/// something nobody answered has to be told rather than left holding a future
-/// that never completes.
 /// Where a plugin's question goes when the caller has a place for it.
 ///
 /// The card is the default and reaches every way of starting a command. A
@@ -72,6 +60,12 @@ typedef PluginAskSink = Future<String?> Function({
   required String suggested,
 });
 
+/// Where a tree the plugin drew goes, when the caller draws it itself.
+///
+/// Returns what the reader did with it, or null if they closed it — the same
+/// shape as declining a question, and for the same reason: a run waiting on
+/// something nobody answered has to be told rather than left holding a future
+/// that never completes.
 typedef PluginUiSink = Future<PluginUiEvent?> Function(
   PluginUiNode root,
   String title,
@@ -115,6 +109,12 @@ String _permissionFor(String location) => switch (location) {
       _ => '\u0000 no permission grants this',
     };
 
+/// Puts the commands installed plugins contribute into a right-click menu, and
+/// carries out what those commands ask for.
+///
+/// Both panes call this. The source pane had the translate command and the
+/// preview did not, so whether the reader saw it depended on which half of a
+/// split view they had clicked in.
 class PluginCommandActions {
   const PluginCommandActions._();
 
