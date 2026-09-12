@@ -183,6 +183,18 @@ needs neither is left alone, so a balanced `http://x/a(b)c` still looks like
 itself. A linked thumbnail stays an image: only the label's text is escaped, not
 the markup inside it.
 
+### A pasted italic is no longer cut short by an asterisk in the text
+
+An emphasis ends at the run that closes it, so `<em>a*b</em>` — written as
+`*a*b*` — came back with the italic stopping at the reader's own asterisk and the
+rest of it left as a stray character. Bold went the same way on a doubled one.
+
+The asterisks in the text are escaped rather than the emphasis being dropped,
+because dropping it is what the other wrapping tags do and it would cost more
+than the bug here: italic around bold is an everyday shape and the markup for the
+inner one is asterisks. Nothing is lost now, and a code span inside an emphasis
+keeps its asterisks untouched — a backslash in code is a backslash.
+
 ### A large document's first paint no longer cuts a block in half
 
 A document over 1500 lines is shown in two passes, the top of it first. That
@@ -352,6 +364,15 @@ HKLM、一个在 HKCU），会当作全新安装，旧的那份会留在原地�
 需要的时候地址用角括号包起来——格式本来就为这件事准备了它——标签里的方括号转义。
 不需要时原样不动，所以成对的 `http://x/a(b)c` 看起来还是它本来的样子。
 带链接的缩略图仍是图片：只转义标签里的**文字**，不动里面的标记。
+
+### 粘贴的斜体不再被文字里的星号截断
+
+强调在闭合它的那段运行处结束，所以 `<em>a*b</em>`——写成 `*a*b*`——回来时斜体停在
+读者自己的那个星号上，后面剩下一个孤零零的字符。粗体在双星号上同样如此。
+
+现在是把文字里的星号转义，而不是丢掉这一层强调：丢掉是其他包裹类标签的做法，
+在这里代价比原缺陷更大——斜体里套粗体是每天都有的形状，而内层的标记正是星号。
+现在什么都不丢，强调里的代码跨度也原样保留它的星号——代码里的反斜杠就是反斜杠。
 
 ### 大文档的第一屏不再把块切成两半
 

@@ -442,12 +442,18 @@ class HtmlToMarkdown {
           // exactly that — `<b style="font-weight:normal">` — so a fragment
           // copied out of it arrived with the whole paste in asterisks.
           final reallyBold = !_styleSaysNotBold(token.attributes);
-          if (text.isNotEmpty) out.write(reallyBold ? '**$text**' : text);
+          if (text.isNotEmpty) {
+            out.write(
+              reallyBold ? '**${_inline(_escapedEmphasis(inner))}**' : text,
+            );
+          }
           index = next;
         case 'em' || 'i':
           final (inner, next) = _until(tokens, index, token.name);
           final text = _inline(inner);
-          if (text.isNotEmpty) out.write('*$text*');
+          if (text.isNotEmpty) {
+            out.write('*${_inline(_escapedEmphasis(inner))}*');
+          }
           index = next;
         case 'del' || 's' || 'strike':
           final (inner, next) = _until(tokens, index, token.name);
@@ -576,6 +582,41 @@ class HtmlToMarkdown {
         for (final token in content)
           if (token.isText) _Token.text(_escapeBrackets(token.text)) else token,
       ];
+
+  /// An emphasis's content with the asterisks in its *text* escaped.
+  ///
+  /// An emphasis ends at the run that closes it, so a literal asterisk inside one
+  /// closed it early: `<em>a*b</em>` was written `*a*b*` and came back as
+  /// `<em>a</em>b*`, the italic stopping at the reader's own asterisk with the
+  /// rest of it left as a stray character.
+  ///
+  /// The wrapping tags with a guard answer this by dropping the outer marking,
+  /// which cannot be the answer here. `<em>` around a `<strong>` is an everyday
+  /// shape and the markup for the inner one is asterisks, so "the content has an
+  /// asterisk, refuse" would lose the italic from every nested emphasis.
+  /// Escaping the text loses nothing instead.
+  ///
+  /// Not the text inside a `<code>`: a backslash in a code span is a backslash,
+  /// and the span's own delimiters already keep what is inside it literal. The
+  /// token list is flat, so the depth is counted here.
+  static List<_Token> _escapedEmphasis(List<_Token> content) {
+    final out = <_Token>[];
+    var literal = 0;
+    for (final token in content) {
+      if (token.isTag && (token.name == 'code' || token.name == 'pre')) {
+        literal += token.closing ? -1 : 1;
+        if (literal < 0) literal = 0;
+        out.add(token);
+        continue;
+      }
+      out.add(
+        token.isText && literal == 0
+            ? _Token.text(token.text.replaceAll('*', r'\*'))
+            : token,
+      );
+    }
+    return out;
+  }
 
   /// A destination that survives being written between parentheses.
   ///
