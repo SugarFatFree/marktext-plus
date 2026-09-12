@@ -465,13 +465,20 @@ class HtmlToMarkdown {
         case 'a':
           final (inner, next) = _until(tokens, index, 'a');
           final href = _attribute(token.attributes, 'href');
-          final text = _inline(inner);
-          out.write(href == null || href.isEmpty ? text : '[$text]($href)');
+          if (href == null || href.isEmpty) {
+            out.write(_inline(inner));
+          } else {
+            out.write(
+              '[${_inline(_escapedLabel(inner))}](${_destination(href)})',
+            );
+          }
           index = next;
         case 'img':
           final src = _attribute(token.attributes, 'src') ?? '';
           final alt = _attribute(token.attributes, 'alt') ?? '';
-          if (src.isNotEmpty) out.write('![$alt]($src)');
+          if (src.isNotEmpty) {
+            out.write('![${_escapeBrackets(alt)}](${_destination(src)})');
+          }
           index++;
         case 'br':
           out.write('  \n');
@@ -548,6 +555,57 @@ class HtmlToMarkdown {
       !text.startsWith(marker[0]) &&
       !text.endsWith(marker[0]) &&
       (!tight || !text.contains(RegExp(r'\s')));
+
+  /// A label's brackets, said so they do not end the label.
+  ///
+  /// A label ends at the `]` that closes it, so `[a ] b](http://x)` is not a
+  /// link at all: it arrived as literal characters with the address showing
+  /// beside them. The opening one is escaped too — left alone it would pair with
+  /// a later closing one and take the label apart the same way.
+  static String _escapeBrackets(String text) =>
+      text.replaceAll('[', r'\[').replaceAll(']', r'\]');
+
+  /// A link's content with the brackets in its *text* escaped.
+  ///
+  /// Only the text, because markup this converter wrote for what was inside the
+  /// link has brackets of its own that mean something: a linked thumbnail is
+  /// `[![alt](src)](href)`, and escaping those would turn the image into four
+  /// literal characters. The token list is flat, so a `]` nested inside a
+  /// `<strong>` in the label is reached without threading anything through.
+  static List<_Token> _escapedLabel(List<_Token> content) => [
+        for (final token in content)
+          if (token.isText) _Token.text(_escapeBrackets(token.text)) else token,
+      ];
+
+  /// A destination that survives being written between parentheses.
+  ///
+  /// A `)` the address did not open ends the destination early — the link came
+  /// back cut at it, with the rest leaking into the paragraph as text — and a
+  /// space ends it too, which is how a link to a path with a space in it stopped
+  /// being a link. The format's answer is angle brackets, which allow both; what
+  /// they do not allow is an unescaped `<` or `>`, so inside them those are
+  /// percent-encoded, as a browser encodes them anyway.
+  ///
+  /// An address that needs neither is written as it is, so a balanced
+  /// `http://x/a(b)c` — a Wikipedia article, most often — keeps the shape the
+  /// reader would recognise.
+  static String _destination(String href) {
+    if (!href.contains(RegExp(r'\s')) && _parensBalance(href)) return href;
+    return '<${href.replaceAll('<', '%3C').replaceAll('>', '%3E')}>';
+  }
+
+  static bool _parensBalance(String text) {
+    var depth = 0;
+    for (var i = 0; i < text.length; i++) {
+      final unit = text.codeUnitAt(i);
+      if (unit == 0x28) depth++;
+      if (unit == 0x29) {
+        depth--;
+        if (depth < 0) return false;
+      }
+    }
+    return depth == 0;
+  }
 
   /// The tags that end a run of words inside a table cell.
   ///

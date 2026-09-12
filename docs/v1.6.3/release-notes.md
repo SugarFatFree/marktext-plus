@@ -168,6 +168,21 @@ writes the break as an inline `<br>`, which this editor reads only when HTML is
 turned on and it is off by default — so that would have shown a tag where someone
 wrote a line.
 
+### A pasted link is no longer cut short by its own address
+
+A destination ends at the `)` that closes it and a label at the `]`, and the
+converter wrote both without asking what was inside. A link to an address holding
+an unbalanced bracket came back pointing at the part before it, with the rest
+leaking into the paragraph as text; an address holding a space stopped being a
+link at all; and a label holding a `]` — "see [1] here" — arrived as literal
+characters with the address showing beside them. Images went the same way.
+
+Addresses that need it are written between angle brackets, which the format
+allows for exactly this, and brackets in a label are escaped. An address that
+needs neither is left alone, so a balanced `http://x/a(b)c` still looks like
+itself. A linked thumbnail stays an image: only the label's text is escaped, not
+the markup inside it.
+
 ### A large document's first paint no longer cuts a block in half
 
 A document over 1500 lines is shown in two passes, the top of it first. That
@@ -326,6 +341,17 @@ HKLM、一个在 HKCU），会当作全新安装，旧的那份会留在原地�
 现在单元格里的换行变成一个空格，块与块之间也是。GFM 的正规写法是内联 `<br>`，
 但这个编辑器只在 HTML 开关打开时读它，而默认是关的——那样会让写了一个换行的人
 看到一个标签。
+
+### 粘贴的链接不再被自己的网址截断
+
+地址在闭合它的那个 `)` 处结束，标签在 `]` 处结束，而转换器写这两者时从不问内容里
+有什么。网址里有不成对括号的链接，回来时只指向括号之前那一截，剩下的漏进正文；
+网址里有空格的干脆不再是链接；链接文字里有 `]` 的（比如「see [1] here」）
+变成一串字面字符，网址还露在旁边。图片同理。
+
+需要的时候地址用角括号包起来——格式本来就为这件事准备了它——标签里的方括号转义。
+不需要时原样不动，所以成对的 `http://x/a(b)c` 看起来还是它本来的样子。
+带链接的缩略图仍是图片：只转义标签里的**文字**，不动里面的标记。
 
 ### 大文档的第一屏不再把块切成两半
 
