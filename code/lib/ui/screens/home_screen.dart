@@ -51,6 +51,7 @@ import '../../core/diagnostics/startup_trace.dart';
 import '../../utils/file_utils.dart';
 import '../../providers/mcp_provider.dart';
 import '../widgets/deferred_editor_builder.dart';
+import '../../app.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   /// Whether a dropped file is one nothing in the window will do anything
@@ -609,8 +610,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
               (_) => StartupTrace.mark('document painted'),
             );
           } catch (e) {
-            // Handle error: remove the loading tab or show error state
+            // "or show error state" is what the comment here used to end with,
+            // which is a choice left unmade: a file named on the command line
+            // — which is how a double click in the file manager arrives — that
+            // cannot be read put up a tab, took it away again, and said
+            // nothing. The outer catch's decision stands, and is a different
+            // one: the *other* files still open.
             ref.read(tabProvider.notifier).removeTab(tabId);
+            reportOpenFailure(e);
           }
         });
 
@@ -731,15 +738,32 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
                   stamp: await FileService.stampOf(path),
                 );
           } catch (e) {
+            // Said out loud, not only undone. The file was there when it was
+            // dropped — the type check above read it — so getting here means
+            // permissions, a share that went away, or something deleting it in
+            // between, and the tab appearing and vanishing is the whole of
+            // what the reader saw. The two other ways of opening a file have
+            // reported this for a long time; this one had not caught up.
+            //
+            // One message per file that failed, rather than a count at the end
+            // like the refusals below: these reads finish after the loop does,
+            // so there is nothing left to count by then. Dropping several
+            // unreadable files at once is rarer than dropping one.
             ref.read(tabProvider.notifier).removeTab(tabId);
+            reportOpenFailure(e);
           }
         });
 
         // The recent list is not awaited: the file is open either way, and the
         // list is read at the next launch rather than now.
         unawaited(ref.read(settingsProvider.notifier).addRecentFile(path));
-      } catch (_) {
-        // Skip files that can't be read
+      } catch (e) {
+        // Nothing in this try reads the file — that happens in the callback
+        // above, which reports for itself. What is left is building the tab,
+        // which is not expected to fail; if it does, the reader is told rather
+        // than left with a drop that did nothing. The comment here used to say
+        // "skip files that can't be read", describing a job that had moved.
+        reportOpenFailure(e);
       }
     }
 

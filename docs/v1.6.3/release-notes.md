@@ -351,6 +351,20 @@ One thing changed with it: in preview mode, where there is no text field, the ta
 commands are greyed out. They used to light up for a position built from whatever
 the source pane last reported, which is not somewhere the reader can see.
 
+### A file that cannot be read says so, however you opened it
+
+Drop a `.md` the editor cannot read — no permission, a share that went away,
+something deleting it between the drop and the read — and a tab appeared, span
+for a moment and vanished, with nothing on screen to say why. Double-clicking
+one in the file manager was the same: the editor started, showed nothing, and
+explained nothing.
+
+Opening through the sidebar, the File menu and Open Recent have all reported
+this for a long time. Dropping and being handed a file on the command line were
+the two copies that had not caught up — the comment on one of them ended "or
+show error state", a choice never made. Both now say it, and the other files in
+a multi-file drop still open.
+
 ### Icons that point somewhere point the way you read
 
 In Arabic the file tree indents to the left, and the arrow on a collapsed folder
@@ -716,6 +730,16 @@ Mermaid 包够不到编辑器的翻译，所以它自带的错误框按设计是
 
 随之改变的一件事：预览模式下没有文本框，表格命令现在**置灰**。以前它们会按源码窗格
 最后报告的位置点亮，而那个位置读者在预览里看不见。
+
+### 读不了的文件会说出来，无论你是怎么打开它的
+
+把一个编辑器读不了的 `.md` 拖进窗口——没有权限、网络共享断开、拖放与读取之间被
+删掉——标签页出现、转一下、消失，屏幕上没有任何说明。在文件管理器里双击一个
+同样的文件也一样：应用起来了，什么都没有，也不说为什么。
+
+从侧边栏、「文件 ▸ 打开」、「打开最近」打开时，这件事早就会说了。**拖放**和
+**命令行传入**是没跟上的两份——其中一处的注释以「or show error state」结尾，
+一个从没做完的选择。现在两处都会说，而一次拖入多个文件时，其余的照常打开。
 
 ### 指向某处的图标，现在指着你阅读的方向
 
