@@ -10,6 +10,10 @@
 /// carries is a handful of shapes — headings, paragraphs, lists, tables,
 /// links, code, emphasis — and a general HTML library brings a great deal of
 /// machinery for the rest of the language that this never needs.
+library;
+
+import 'package:flutter/foundation.dart';
+
 class HtmlToMarkdown {
   const HtmlToMarkdown._();
 
@@ -214,7 +218,19 @@ class HtmlToMarkdown {
           // fragments in one, and treating it as a paragraph flattened every
           // heading, list and table inside it into a single run of text.
           final (inner, next) = _until(tokens, index, 'div');
-          if (inner.any((t) => t.isTag && _isBlock(t.name))) {
+          final maths = _mathsExpression(
+            token.attributes,
+            inner,
+            'math-block',
+            r'\[',
+            r'\]',
+          );
+          final note = _footnoteDefinition(token.attributes, inner);
+          if (maths != null) {
+            out.write('\$\$\n$maths\n\$\$\n\n');
+          } else if (note != null) {
+            out.write('[^${note.id}]: ${note.body}\n\n');
+          } else if (inner.any((t) => t.isTag && _isBlock(t.name))) {
             _writeBlocks(inner, out);
           } else {
             final text = _inline(inner);
@@ -475,15 +491,19 @@ class HtmlToMarkdown {
             out.write(_inline(inner));
           } else {
             out.write(
-              '[${_inline(_escapedLabel(inner))}](${_destination(href)})',
+              '[${_inline(_escapedLabel(inner))}]'
+              '(${_destination(href)}${_titleSuffix(token.attributes)})',
             );
           }
           index = next;
         case 'img':
-          final src = _attribute(token.attributes, 'src') ?? '';
+          final src = _imageSource(token.attributes);
           final alt = _attribute(token.attributes, 'alt') ?? '';
           if (src.isNotEmpty) {
-            out.write('![${_escapeBrackets(alt)}](${_destination(src)})');
+            out.write(
+              '![${_escapeBrackets(alt)}]'
+              '(${_destination(src)}${_titleSuffix(token.attributes)})',
+            );
           }
           index++;
         case 'br':
@@ -505,8 +525,13 @@ class HtmlToMarkdown {
           index = next;
         case 'sup':
           final (inner, next) = _until(tokens, index, 'sup');
-          final text = _inline(inner);
-          out.write(_canWrap(text, '^', tight: true) ? '^$text^' : text);
+          final note = _footnoteReference(inner);
+          if (note != null) {
+            out.write('[^$note]');
+          } else {
+            final text = _inline(inner);
+            out.write(_canWrap(text, '^', tight: true) ? '^$text^' : text);
+          }
           index = next;
         case 'sub':
           final (inner, next) = _until(tokens, index, 'sub');
@@ -519,8 +544,19 @@ class HtmlToMarkdown {
           // write `<b>`. Without this, everything pasted from one arrived as
           // plain text with its emphasis gone.
           final (inner, next) = _until(tokens, index, 'span');
-          final text = _inline(inner);
-          out.write(_wrapStyled(text, token.attributes));
+          final maths = _mathsExpression(
+            token.attributes,
+            inner,
+            'math-inline',
+            r'\(',
+            r'\)',
+          );
+          if (maths != null) {
+            out.write('\$$maths\$');
+          } else {
+            final text = _inline(inner);
+            out.write(_wrapStyled(text, token.attributes));
+          }
           index = next;
         default:
           index++;
@@ -529,13 +565,6 @@ class HtmlToMarkdown {
     return out.toString().trim();
   }
 
-  /// Whether [text] can be wrapped in [marker] and still read back as markup.
-  ///
-  /// `^x^` and `~x~` are defined as a run with no whitespace in it — the
-  /// parser's own rule — so a phrase cannot be written that way. Writing it
-  /// anyway would produce a document this editor reads back as literal
-  /// carets, which is worse than the plain words. Text already containing the
-  /// marker is refused for the same reason.
   /// Whether [text] can be wrapped in [marker] and still say what it says.
   ///
   /// Not when the text holds the marker itself: the closing run would be read
@@ -582,6 +611,116 @@ class HtmlToMarkdown {
         for (final token in content)
           if (token.isText) _Token.text(_escapeBrackets(token.text)) else token,
       ];
+
+  /// The ` "title"` a link or an image carries, ready to sit after the address.
+  ///
+  /// A page puts a title on most of its links and this editor's export writes
+  /// one, and neither was read back: the tooltip a document had was dropped
+  /// every time it went through here. A quote inside the title is escaped, which
+  /// is how the format keeps one there.
+  static String _titleSuffix(String attributes) {
+    final title = _attribute(attributes, 'title');
+    if (title == null || title.isEmpty) return '';
+    return ' "${_decode(title).replaceAll('"', r'\"')}"';
+  }
+
+  /// Whether [attributes] names [className] among its classes.
+  ///
+  /// The substring test comes first and answers almost every call: this is asked
+  /// of every `<span>` and `<div>` in a paste, and what a word processor puts on
+  /// the clipboard is mostly spans. Splitting each of their class lists to find
+  /// out that none of them is a maths element would be a regular expression per
+  /// span for nothing.
+  static bool _hasClass(String attributes, String className) {
+    final classes = _attribute(attributes, 'class');
+    if (classes == null || !classes.contains(className)) return false;
+    return classes.split(RegExp(r'\s+')).contains(className);
+  }
+
+  /// The expression inside one of the editor's own maths elements.
+  ///
+  /// Exported as `<span class="math-inline">\(a+b\)</span>` and
+  /// `<div class="math-block">\[a+b\]</div>` — the delimiters a maths renderer
+  /// expects, which are not the ones the document was written with. Without this
+  /// the span came back as the text `\(a+b\)`, which reads as `(a+b)`: the
+  /// formula gone and a pair of parentheses it never had in its place.
+  static String? _mathsExpression(
+    String attributes,
+    List<_Token> inner,
+    String className,
+    String open,
+    String close,
+  ) {
+    if (!_hasClass(attributes, className)) return null;
+    var text = _decode(
+      inner.where((token) => token.isText).map((token) => token.text).join(),
+    ).trim();
+    if (text.startsWith(open)) text = text.substring(open.length);
+    if (text.endsWith(close)) {
+      text = text.substring(0, text.length - close.length);
+    }
+    return text.trim();
+  }
+
+  /// The label of a footnote reference, if that is what these tokens are.
+  ///
+  /// Exported as `<sup><a href="#fn-id">[label]</a></sup>`. Without this the
+  /// `<sup>` came back as a superscript wrapped around a link —
+  /// `^[\[src\]](#fn-src)^` — four pieces of markup where the document had one,
+  /// and no longer joined to the note it named.
+  static String? _footnoteReference(List<_Token> inner) {
+    final anchors = inner
+        .where((token) => token.isTag && !token.closing && token.name == 'a')
+        .toList();
+    if (anchors.length != 1) return null;
+    if (!(_attribute(anchors.single.attributes, 'href') ?? '')
+        .startsWith('#fn-')) {
+      return null;
+    }
+    final label = _decode(
+      inner.where((token) => token.isText).map((token) => token.text).join(),
+    ).trim();
+    final bare = label.length >= 2 && label.startsWith('[') && label.endsWith(']')
+        ? label.substring(1, label.length - 1)
+        : label;
+    return bare.isEmpty ? null : bare;
+  }
+
+  /// The id and body of a footnote definition, if that is what this div is.
+  ///
+  /// Exported as `<div class="footnote" id="fn-id"><sup>id</sup> body</div>`.
+  /// Without this it came back as a paragraph opening with a superscript, so the
+  /// note read as a stray line and nothing referred to it.
+  ///
+  /// The id is taken from the `<sup>`, not from the `id` attribute: the
+  /// attribute is a sanitised version — an id with a space in it cannot be an
+  /// HTML id — and writing that back would rename the note away from the
+  /// reference that names it.
+  static ({String id, String body})? _footnoteDefinition(
+    String attributes,
+    List<_Token> inner,
+  ) {
+    if (!_hasClass(attributes, 'footnote')) return null;
+    final opens = inner.indexWhere(
+      (token) => token.isTag && !token.closing && token.name == 'sup',
+    );
+    if (opens < 0) return null;
+    final closes = inner.indexWhere(
+      (token) => token.isTag && token.closing && token.name == 'sup',
+      opens,
+    );
+    if (closes < 0) return null;
+    final id = _decode(
+      inner
+          .sublist(opens + 1, closes)
+          .where((token) => token.isText)
+          .map((token) => token.text)
+          .join(),
+    ).trim();
+    if (id.isEmpty) return null;
+    final body = _inline(inner.sublist(closes + 1)).trim();
+    return (id: id, body: body);
+  }
 
   /// An emphasis's content with the asterisks in its *text* escaped.
   ///
@@ -823,12 +962,66 @@ class HtmlToMarkdown {
     return '';
   }
 
+  /// The patterns, kept rather than rebuilt.
+  ///
+  /// One was compiled on every call, and this is asked several times of every
+  /// tag in a paste — `class` of each span, `href` and `title` of each link. A
+  /// clipboard of six thousand spans spent 12% of its time compiling the same
+  /// handful of patterns over and over. There are a dozen attribute names in
+  /// this file and no more.
+  static final _attributePatterns = <String, RegExp>{};
+
+  /// How many attribute patterns are being kept, for a test that this file's
+  /// dozen names are what the cache is keyed by.
+  ///
+  /// Zero after a conversion means the cache is not being used and a pattern is
+  /// compiled per call again. A number that grows with the document means it is
+  /// keyed by something unbounded — the attribute string rather than the name —
+  /// which would hold every tag of every paste for the life of the process.
+  @visibleForTesting
+  static int get keptPatternCount => _attributePatterns.length;
+
+  /// The value of the attribute called exactly [name].
+  ///
+  /// The name is bounded on the left, because it was not: `src` matched
+  /// `data-src`, `href` matched `data-href` and `title` matched `data-title`, so
+  /// which value a paste read was decided by which attribute the page wrote
+  /// first.
   static String? _attribute(String attributes, String name) {
-    final match = RegExp('$name\\s*=\\s*(?:"([^"]*)"|\'([^\']*)\')',
-            caseSensitive: false)
-        .firstMatch(attributes);
+    final pattern = _attributePatterns.putIfAbsent(
+      name,
+      () => RegExp(
+        '(?<![\\w-])$name\\s*=\\s*(?:"([^"]*)"|\'([^\']*)\')',
+        caseSensitive: false,
+      ),
+    );
+    final match = pattern.firstMatch(attributes);
     if (match == null) return null;
     return _decode(match.group(1) ?? match.group(2) ?? '');
+  }
+
+  /// Where a lazily loaded image really lives.
+  ///
+  /// The web as it is keeps a placeholder in `src` and the address in a data
+  /// attribute, so reading `src` strictly — which is what reading it at all now
+  /// means — would paste the placeholder. Taken only when `src` has nothing
+  /// usable in it, so an image this editor inlined as a data URI on its way out
+  /// is left exactly as it was.
+  static const _lazySources = <String>[
+    'data-src',
+    'data-original',
+    'data-lazy-src',
+    'data-actualsrc',
+  ];
+
+  static String _imageSource(String attributes) {
+    final src = _attribute(attributes, 'src') ?? '';
+    if (src.isNotEmpty && !src.startsWith('data:')) return src;
+    for (final name in _lazySources) {
+      final lazy = _attribute(attributes, name);
+      if (lazy != null && lazy.isNotEmpty) return lazy;
+    }
+    return src;
   }
 
   /// Collapses the whitespace HTML would collapse, and decodes entities.

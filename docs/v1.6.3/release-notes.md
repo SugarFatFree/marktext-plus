@@ -195,6 +195,34 @@ than the bug here: italic around bold is an everyday shape and the markup for th
 inner one is asterisks. Nothing is lost now, and a code span inside an emphasis
 keeps its asterisks untouched — a backslash in code is a backslash.
 
+### Exported HTML reads back as the document it came from
+
+Five things the export could write and the paste path could not read: a link's
+title, inline maths, a maths block, a footnote reference and a footnote
+definition. So a document exported to HTML and pasted back — or formatted text
+copied between two MarkText windows — came back with its tooltips gone, its
+formulas turned into the parentheses `\(a+b\)` reads as, and its footnotes split
+into a superscript wrapped around a link, no longer joined to the note they named.
+
+This had happened once before, to four other tags, and the fix then was the four
+tags rather than a way of noticing. Now every kind of block and span needs either
+a sample that survives the round trip or an exemption saying why it cannot, so a
+new kind fails until somebody has decided which it is. Three are exempt, each
+with its reason written down.
+
+### A picture pasted from a lazily loading page is the picture
+
+Reading an attribute matched the end of a longer name: asking for `src` found
+`data-src`, `href` found `data-href` and `title` found `data-title`, so which
+value a paste used was decided by which attribute the page happened to write
+first. The whole name has to match now.
+
+On its own that would have been a step backwards for the web as it is, where a
+lazily loaded image keeps a placeholder in `src` and its real address in a data
+attribute. That fallback is a decision now instead of an accident of attribute
+order, and it is only taken when `src` has nothing usable in it — so a picture
+this editor inlined on its way out is left exactly as it was.
+
 ### A large document's first paint no longer cuts a block in half
 
 A document over 1500 lines is shown in two passes, the top of it first. That
@@ -373,6 +401,26 @@ HKLM、一个在 HKCU），会当作全新安装，旧的那份会留在原地�
 现在是把文字里的星号转义，而不是丢掉这一层强调：丢掉是其他包裹类标签的做法，
 在这里代价比原缺陷更大——斜体里套粗体是每天都有的形状，而内层的标记正是星号。
 现在什么都不丢，强调里的代码跨度也原样保留它的星号——代码里的反斜杠就是反斜杠。
+
+### 导出的 HTML 粘贴回来仍是原来那篇文档
+
+导出写得出而粘贴读不回的五样：链接的提示文字、行内公式、公式块、脚注引用、脚注定义。
+于是一篇导出成 HTML 再粘回来的文档——或者在两个 MarkText 窗口之间复制格式化内容——
+提示没了，公式变成 `\(a+b\)` 被读成的那对括号，脚注拆成上标套链接、
+不再连着它指的那条注。
+
+这件事发生过一次，当时是另外四个标签，而那次的修法是补那四个标签，
+不是建立一种「会发现」的机制。现在每一种块与每一种内联**要么**有一条能通过往返的样本，
+**要么**有一条写明理由的豁免，新增一种就会红到有人做出决定为止。三种是豁免，各有理由。
+
+### 从懒加载网页粘来的图片就是那张图片
+
+读属性时会匹配到更长名字的尾部：问 `src` 找到了 `data-src`，问 `href` 找到 `data-href`，
+问 `title` 找到 `data-title`——取到哪个值由页面先写了哪个决定。现在必须整名匹配。
+
+单这一条对现实中的网页是退步：懒加载的图片把占位符放在 `src`、真地址放在 data 属性里。
+那个回退现在是一个决定，而不是属性顺序的巧合，并且只在 `src` 没有可用内容时才走——
+所以编辑器自己导出时内嵌的图片原样保留。
 
 ### 大文档的第一屏不再把块切成两半
 
