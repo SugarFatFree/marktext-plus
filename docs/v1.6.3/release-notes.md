@@ -253,6 +253,19 @@ regular-expression replace is for. A group number the pattern does not have is
 left as it stands rather than quietly becoming nothing, and a literal search still
 replaces literally, so `$5` stays `$5`.
 
+### The AI endpoint accepts the base URL the provider documents
+
+Every provider writes its base URL with the version on the end — OpenAI's
+`https://api.openai.com/v1`, Anthropic's `https://api.anthropic.com/v1`, and so
+does every service that speaks the same protocol, from a local Ollama to
+OpenRouter. That is what gets pasted into the endpoint field, and the version was
+appended anyway: the request went to `/v1/v1/chat/completions` and came back a 404
+whose body says nothing about a doubled path, so it read as a missing model or a
+dead service.
+
+Both spellings work now, with or without the `/v1`. The field's own advice — enter
+the root, not the full request path — is true either way, so it has not changed.
+
 ### A large document's first paint no longer cuts a block in half
 
 A document over 1500 lines is shown in two passes, the top of it first. That
@@ -474,6 +487,17 @@ HKLM、一个在 HKCU），会当作全新安装，旧的那份会留在原地�
 `\[(.+?)\]\((.+?)\)`、替换为 `$2: $1`，选区里每个链接的文字与地址就都对调了，
 而这正是正则替换唯一的用途。模式里没有的组号原样保留，不会悄悄变成空；
 字面查找仍然字面替换，`$5` 还是 `$5`。
+
+### AI 端点接受供应商文档里给的那个 base URL
+
+每家供应商写出的 base URL 都带版本段——OpenAI 的 `https://api.openai.com/v1`、
+Anthropic 的 `https://api.anthropic.com/v1`，所有说同一套协议的服务也一样，
+从本机的 Ollama 到 OpenRouter。粘进端点框里的就是它，而代码仍然会再追加一次版本段：
+请求发到了 `/v1/v1/chat/completions`，回来一个 404，而响应体里不会提路径重复，
+于是读起来像是「模型不存在」或「服务挂了」。
+
+现在带不带 `/v1` 都能用。输入框自己那句提示——填根地址、不要填完整请求路径——
+两种写法下都成立，所以没有改动。
 
 ### 大文档的第一屏不再把块切成两半
 

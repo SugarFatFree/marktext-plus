@@ -30,6 +30,7 @@
 | BUG-445 | 2026-09-12 | 导出写得出、粘贴读不回：链接标题、行内/块公式、脚注引用与定义 | P1 | 已修复 |
 | BUG-446 | 2026-09-12 | `src` 匹配到 `data-src`（属性名无左边界）；属性正则每次重新编译 | P1 | 已修复 |
 | BUG-447 | 2026-09-12 | 「复制为 HTML」用自己手写的正则链，写出的不是这个编辑器的 HTML | P1 | 已修复 |
+| BUG-448 | 2026-09-12 | AI 端点填成 `…/v1` 会被拼成 `/v1/v1/…`，请求 404 | P1 | 已修复 |
 
 ---
 
@@ -1690,6 +1691,97 @@ over the source」红——后者是为了证明这两个动作没有被绑到�
 
 **顺手核实过没有第六份**：全库 grep `replaceAllMapped` 配 `<strong>`/`<em>`/`<h1>`
 等，无输出——手写的 markdown→HTML 只有这一处，已经消掉。
+
+---
+
+## BUG-448：AI 端点填成 `https://api.openai.com/v1` 会被拼成 `/v1/v1/...`
+
+**现象**：设置里的 API 端点如果以 `/v1` 结尾，请求发到的地址会多一段 `/v1`：
+
+| 填进去的 | 实际请求 |
+|---------|---------|
+| `https://api.openai.com/v1` | `https://api.openai.com/v1/**v1**/chat/completions` → 404 |
+| `https://api.anthropic.com/v1` | `…/v1/**v1**/messages` → 404 |
+| `http://localhost:11434/v1`（Ollama） | 同样 404 |
+| `https://openrouter.ai/api/v1` | 同样 404 |
+| `https://api.deepseek.com/v1` | 同样 404 |
+
+404 的响应体里不会提到路径重复，所以读者看到的是「模型不存在 / 服务不可用」这类
+无从下手的错误。
+
+**为什么这是最可能被填错的形状，而不是边角**：**每一家供应商的文档给出的 base URL
+都带 `/v1`**——OpenAI 的 `https://api.openai.com/v1`、Anthropic 的
+`https://api.anthropic.com/v1`，以及所有说同一套协议的服务。所有 SDK 的
+`base_url` 参数填的也是它。
+
+而设置里那句提示写的是「只填写服务商**根地址**；不要添加 /v1/messages 或
+/v1/chat/completions」——**它只禁止了完整请求路径，没有禁止 `/v1`**，而对多数人来说
+OpenAI API 的「根」就是 `https://api.openai.com/v1`。**提示本身在邀请这个输入。**
+
+**根因**：`requestUri` 已经会剥掉末尾斜杠、也会拒绝完整请求路径并给出改法，
+**唯独漏了这中间的一种形状**：
+
+```dart
+final suffix = provider == AiProvider.anthropic ? '/v1/messages' : '/v1/chat/completions';
+return base.replace(path: '$path$suffix');   // path 已经是 /v1 时就重复了
+```
+
+**修复**：端点路径已以 `/v1` 结尾时，后缀里省掉版本段。两种写法都仍然工作
+（`https://api.openai.com` 与 `https://api.openai.com/v1`），所以**那句提示不用改**，
+也就不用再添 12 份翻译。
+
+**涉及文件**：
+
+- `code/lib/services/ai_connection_service.dart`（`requestUri`）
+- `code/test/services/an_endpoint_ending_in_v1_is_not_doubled_test.dart`（11 条）
+
+**验证**（两次变异）：退回「一律追加版本段」→ **5 条红**；
+第二次变异改成「从端点里剥掉 `/v1` 再追加完整后缀」→ **0 条红，而这是对的**：
+两种写法对所有形状给出同一个 URL，是等价变异。
+
+**等价变异抓到的不是行为错误，是我注释里的理由是错的**：我原本写「不从端点剥掉，
+是为了让挂在 `/openai` 下的网关保住自己的路径」——剥掉的写法同样保得住。
+已改成真实的理由（不改写读者填的东西，上线的路径就是他能在框里看到的那一条）。
+错的理由比没有理由更糟：下一个人会照着它推断，而它推不出任何东西。
+
+**怎么找到的**：给一批枚举各加一个探针成员、跑一次 `dart analyze`，看哪些类型会
+因为「switch 不穷尽」报错——21 个里 14 个编译器管得住。`AiProvider` 是管不住的
+那几个之一（7 处 `== AiProvider.anthropic` 的 if-else 分散在两个文件里），
+顺着它读这两个文件时撞到了端点拼接。**两个现存成员今天都处理正确**，
+所以 `AiProvider` 本身记在下面的无编号小节里，不是缺陷。
+
+---
+
+## 无编号：21 个枚举里有 7 个编译器管不住
+
+**这一条没有找到缺陷，是一次扫查的记录，免得下次从头再做一遍。**
+
+做法：给一批代表「用户可见能力」的枚举各插入一个探针成员，跑**一次**
+`dart analyze lib`，看哪些类型名出现在「isn't exhaustively matched」报错里。
+一次就能分出两堆。
+
+**编译器管得住的 14 个**（新增成员不实现就编译不过）：`ColumnAlign`、`DiagramType`、
+`EditMode`、`FileEncoding`、`FormatAction`、`McpAction`、`PluginCatalogFailureKind`、
+`PluginInstallState`、`PluginMenuCondition`、`PluginPaneRender`、`PluginRuntime`、
+`SideBarTab`、`TableEdit`、`UpdateSource`。
+
+**管不住的**：`SearchTarget`、`ImageStorageMode`、`PluginPaneSlot`、`AiProvider`、
+`FileOpenBehavior`、`LogLevel`，以及 `LineEnding`（它的构造函数要参数，探针没编译成，
+这一次没测到）。
+
+**逐个问过「现存成员有没有已经被错处理」，答案都是没有**，所以这里不改代码。
+其中值得记下的一条：`AiProvider` 由 **7 处** `== AiProvider.anthropic` 的 if-else
+决定行为，分散在 `ai_chat_service.dart` 与 `ai_connection_service.dart` 两个文件里。
+两个成员今天都对；将来加第三家供应商的人必须找齐这 7 处，而没有任何东西会提醒他——
+届时应当把它收敛成一处（每家供应商一张表），而不是再加一轮 if-else。
+
+**探针本身的两个坑**（下次直接避开）：
+
+1. 带构造参数的枚举（`LineEnding`、`FileEncoding`、`McpAction`、`UpdateSource`）
+   插裸成员会报 `not_enough_positional_arguments`，那是**探针无效**而不是结论。
+   要给探针补上参数。
+2. 报错要按**类型名**归类去看，不要数总数——一处不穷尽的 switch 只报一条，
+   而一个枚举可能有多处。
 
 ---
 
