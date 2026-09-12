@@ -997,12 +997,19 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
   }
 
   /// Scrolls so that [line] — 1-based — is at the top of the viewport.
+  ///
+  /// Measured, not multiplied: this used to be `(line - 1) * lineHeight`,
+  /// which counts document lines. In a pane narrower than its longest line the
+  /// answer is short by a line for every wrap above the target — asking for
+  /// line 20 of a document of long lines left it 1497 pixels *below* the
+  /// bottom of the window, which is as good as not jumping at all.
   void _scrollToTargetLine(int? line) {
     if (line == null || !_editorScrollController.hasClients) return;
 
     final config = ref.read(settingsProvider);
-    final lineHeight = config.fontSize * config.lineHeight;
-    final targetOffset = ((line - 1) * lineHeight).clamp(
+    final measured = _contentYOfLine(line - 1);
+    final targetOffset =
+        (measured ?? (line - 1) * config.fontSize * config.lineHeight).clamp(
       0.0,
       _editorScrollController.position.maxScrollExtent,
     );
@@ -1531,23 +1538,39 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     // change of selection. Nothing ever read it, and each write was a second
     // state change per cursor move on top of the position above.
 
-    _scrollToTypewriterPosition(line);
-    // The field no longer scrolls itself, so this is the only thing that
-    // keeps the caret on screen while typing past the bottom of the pane.
+    // One of these, never both. The field no longer scrolls itself, so
+    // something has to keep the caret on screen while typing past the bottom
+    // of the pane — but `_showCaret` scrolls to the nearest edge, and it used
+    // to run *after* typewriter mode had animated the line to the middle,
+    // undoing it every time. Typewriter mode already leaves the caret on
+    // screen, so it stands in for `_showCaret` when it is on.
+    //
+    // Both wait for the frame: the position either of them wants is read off
+    // the text layout, which does not exist yet when the selection changes.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _showCaret();
+      if (!mounted) return;
+      if (_scrollToTypewriterPosition(line)) return;
+      _showCaret();
     });
   }
 
-  void _scrollToTypewriterPosition(int line) {
+  /// Centres [line] in the pane, and says whether it did.
+  ///
+  /// A false answer means the caret still has to be kept on screen some other
+  /// way — see the call site.
+  bool _scrollToTypewriterPosition(int line) {
     final config = ref.read(settingsProvider);
-    if (!config.typewriterMode) return;
-    if (!_editorScrollController.hasClients) return;
+    if (!config.typewriterMode) return false;
+    if (!_editorScrollController.hasClients) return false;
 
     final lineHeight = config.fontSize * config.lineHeight;
     final viewportHeight = _editorScrollController.position.viewportDimension;
-    final targetOffset =
-        (line * lineHeight) - (viewportHeight / 2) + (lineHeight / 2);
+    // The same measurement the outline jump uses, for the same reason: with
+    // long lines in a narrow pane the multiplication put the caret's line near
+    // the bottom edge instead of the middle. The half line added afterwards is
+    // a nudge to centre the line rather than its top, and stays a nominal one.
+    final top = _contentYOfLine(line) ?? (line * lineHeight);
+    final targetOffset = top - (viewportHeight / 2) + (lineHeight / 2);
     final clampedOffset = targetOffset.clamp(
       0.0,
       _editorScrollController.position.maxScrollExtent,
@@ -1558,6 +1581,7 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
       duration: const Duration(milliseconds: 100),
       curve: Curves.easeOut,
     );
+    return true;
   }
 
   void _onEditorScroll() {
@@ -1703,6 +1727,18 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     final caretTop = editable.localToGlobal(Offset(0, caret.top)).dy;
     final viewportTop = viewport.localToGlobal(Offset.zero).dy;
     return _editorScrollController.position.pixels + (caretTop - viewportTop);
+  }
+
+  /// Pixel Y of the first character of [line] (0-based) within what this pane
+  /// scrolls, or null while the field has not been laid out.
+  ///
+  /// Six things ask this pane to go to a line — the outline, the sidebar's two
+  /// search lists, a click in the preview, and the find bar with the preview as
+  /// its target — and every one of them means "the line I can see", not "the
+  /// nth multiple of a line height".
+  double? _contentYOfLine(int line) {
+    final starts = _ensureLineStarts(_controller.text);
+    return _contentYOf(starts[line.clamp(0, starts.length - 1)]);
   }
 
   void _showCaret() {

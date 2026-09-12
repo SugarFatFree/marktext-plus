@@ -351,6 +351,21 @@ One thing changed with it: in preview mode, where there is no text field, the ta
 commands are greyed out. They used to light up for a position built from whatever
 the source pane last reported, which is not somewhere the reader can see.
 
+### Jumping to a line goes to that line, and typewriter mode works at all
+
+Six things ask the editing pane to go to a line: the outline, the sidebar's two
+search lists, a click in the preview, and the find bar when the preview is the
+target. The pane turned the line number into a pixel by multiplying by the line
+height, which is short by a line for every long line that wrapped above it —
+asking for line 20 of a document of long paragraphs left it 1497 pixels below
+the bottom of the window.
+
+Typewriter mode had the same sum in it, and something worse: the line it centred
+was jumped back to the nearest edge a frame later, by the code that keeps the
+caret on screen when the pane scrolls. Whatever it animated to, the caret ended
+up against the bottom edge. The two now take turns instead of fighting, and both
+wait for the text to be laid out before asking where anything is.
+
 ### The formatting strip appears over the text it belongs to
 
 Its horizontal position was measured against the font; its vertical position
@@ -675,6 +690,18 @@ Mermaid 包够不到编辑器的翻译，所以它自带的错误框按设计是
 
 随之改变的一件事：预览模式下没有文本框，表格命令现在**置灰**。以前它们会按源码窗格
 最后报告的位置点亮，而那个位置读者在预览里看不见。
+
+### 跳到某一行会真的跳到那一行，打字机模式也终于生效
+
+有六个地方会让编辑窗格跳到某一行：大纲、侧栏的两个搜索列表、在预览里点击定位、
+以及查找栏在以预览为目标时。窗格把行号乘以行高当作像素——**上方每有一条换行的
+长行就少算一行**。在长段落较多的文档里点大纲的第 20 行，那一行落在窗口**下方
+1497 像素**处。
+
+打字机模式里是同一个乘法，还多一件更糟的：它居中之后，**下一帧就被「把光标滚进
+视野」的那段代码跳回最近边缘**。所以不管它动画到哪，光标最后都贴在底边——
+这个模式从来没真正生效过。现在两者**轮流**而不是互相抵消，并且都等排版完成后
+再去问位置。
 
 ### 格式工具条浮在它所属的那段文字上方
 
