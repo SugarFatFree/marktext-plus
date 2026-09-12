@@ -294,6 +294,18 @@ A provider's own reply is still shown as it came. A 400 about a model that does 
 exist or a key that has expired says far more than a sentence of ours could, and
 rewriting it would take that away.
 
+### A diagram with a typo no longer explains itself in English inside your PDF
+
+The Mermaid package cannot reach the editor's translations, so its own error box
+is English by design and the app words the failure itself. The preview did that;
+the export and the fullscreen view did not. So a document with one mistyped
+diagram came out of the exporter with a red English panel baked into it — a PDF
+the reader then sends to somebody else — and tapping a broken diagram to enlarge
+it answered in English too.
+
+All three draw the same box now. The diagram type names inside it stay as they
+are, in every language, because they are what has to be typed.
+
 ### A large document's first paint no longer cuts a block in half
 
 A document over 1500 lines is shown in two passes, the top of it first. That
@@ -548,6 +560,16 @@ Anthropic 的 `https://api.anthropic.com/v1`，所有说同一套协议的服务
 
 供应商自己的回复仍然原样显示。一个「模型不存在」或「密钥已过期」的 400 响应，
 说的比我们的句子多得多，改写它等于把这些信息拿走。
+
+### 打错的图表不再在你的 PDF 里用英文解释自己
+
+Mermaid 包够不到编辑器的翻译，所以它自带的错误框按设计是英文的，由应用自己措辞。
+预览这样做了，**导出和全屏查看没有**。于是一份只有一处图表打错的文档，
+导出后里面烙着一块英文红色面板——而那是读者要发给别人的 PDF；
+点开那个坏图表放大，答复也是英文。
+
+现在三处画的是同一个框。框里的图表类型名在任何语言下都保持原文，
+因为它们是要照着打出来的东西。
 
 ### 大文档的第一屏不再把块切成两半
 

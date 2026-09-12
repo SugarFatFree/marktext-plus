@@ -28,6 +28,7 @@ import '../../utils/platform_utils.dart';
 import '../editor/mermaid/widgets/mermaid_diagram.dart';
 import '../editor/mermaid/models/style.dart';
 import 'editor_tab_bar.dart';
+import 'mermaid_failure.dart';
 import '../editor/mermaid/parser/mermaid_parser.dart';
 import '../../providers/sidebar_provider.dart';
 import 'command_palette.dart';
@@ -1442,6 +1443,11 @@ class AppMenuBar extends ConsumerWidget {
             child: MermaidDiagram(
               code: code,
               style: const MermaidStyle(),
+              // The same box the preview shows. Without a builder this captured
+              // the package's own English panel and embedded it in the PDF, the
+              // Word file and the HTML — in a document the reader then sends to
+              // somebody else, whatever language they wrote it in.
+              errorBuilder: (context, error) => MermaidFailureBox(code: code),
             ),
           ),
         ),
