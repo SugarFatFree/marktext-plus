@@ -1093,6 +1093,22 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settingsAiTestFailed => 'فشل اختبار إعدادات الذكاء الاصطناعي';
 
   @override
+  String get aiSetupDisabled =>
+      'يُرجى تشغيل الذكاء الاصطناعي في الإعدادات أولًا.';
+
+  @override
+  String get aiSetupEndpoint =>
+      'يُرجى إدخال عنوان الذكاء الاصطناعي في الإعدادات أولًا.';
+
+  @override
+  String get aiSetupModel =>
+      'يُرجى إدخال طراز الذكاء الاصطناعي في الإعدادات أولًا.';
+
+  @override
+  String get aiSetupKey =>
+      'يُرجى إدخال مفتاح API للذكاء الاصطناعي في الإعدادات أولًا.';
+
+  @override
   String get settingsCopyError => 'نسخ الخطأ';
 
   @override

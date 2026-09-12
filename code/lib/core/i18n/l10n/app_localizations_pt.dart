@@ -1101,6 +1101,21 @@ class AppLocalizationsPt extends AppLocalizations {
   String get settingsAiTestFailed => 'Falha ao testar a configuração de IA';
 
   @override
+  String get aiSetupDisabled => 'Active primeiro a IA nas Definições.';
+
+  @override
+  String get aiSetupEndpoint =>
+      'Introduza primeiro o ponto de acesso da IA nas Definições.';
+
+  @override
+  String get aiSetupModel =>
+      'Introduza primeiro o modelo de IA nas Definições.';
+
+  @override
+  String get aiSetupKey =>
+      'Introduza primeiro a chave de API da IA nas Definições.';
+
+  @override
   String get settingsCopyError => 'Copiar o erro';
 
   @override
@@ -2410,6 +2425,21 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get settingsAiTestFailed => 'Falha ao testar a configuração de IA';
+
+  @override
+  String get aiSetupDisabled => 'Ative primeiro a IA nas Configurações.';
+
+  @override
+  String get aiSetupEndpoint =>
+      'Informe primeiro o endpoint da IA nas Configurações.';
+
+  @override
+  String get aiSetupModel =>
+      'Informe primeiro o modelo de IA nas Configurações.';
+
+  @override
+  String get aiSetupKey =>
+      'Informe primeiro a chave de API da IA nas Configurações.';
 
   @override
   String get settingsCopyError => 'Copiar o erro';

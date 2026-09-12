@@ -1099,6 +1099,22 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsAiTestFailed => 'Test der KI-Konfiguration fehlgeschlagen';
 
   @override
+  String get aiSetupDisabled =>
+      'Schalten Sie KI zuerst in den Einstellungen ein.';
+
+  @override
+  String get aiSetupEndpoint =>
+      'Tragen Sie zuerst den KI-Endpunkt in den Einstellungen ein.';
+
+  @override
+  String get aiSetupModel =>
+      'Tragen Sie zuerst das KI-Modell in den Einstellungen ein.';
+
+  @override
+  String get aiSetupKey =>
+      'Tragen Sie zuerst den KI-API-Schlüssel in den Einstellungen ein.';
+
+  @override
   String get settingsCopyError => 'Fehler kopieren';
 
   @override

@@ -1094,6 +1094,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsAiTestFailed => 'AI configuration test failed';
 
   @override
+  String get aiSetupDisabled => 'Turn on AI in Settings first.';
+
+  @override
+  String get aiSetupEndpoint => 'Set the AI endpoint in Settings first.';
+
+  @override
+  String get aiSetupModel => 'Set the AI model in Settings first.';
+
+  @override
+  String get aiSetupKey => 'Set the AI API key in Settings first.';
+
+  @override
   String get settingsCopyError => 'Copy error';
 
   @override

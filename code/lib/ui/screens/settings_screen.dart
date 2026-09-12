@@ -15,6 +15,7 @@ import '../../services/keybinding_service.dart';
 import '../../services/image_service.dart';
 import '../../services/ai_connection_service.dart';
 import '../../providers/mcp_provider.dart';
+import '../widgets/ai_setup_text.dart';
 import '../widgets/action_labels.dart';
 
 enum _Category { general, editor, markdown, theme, keybindings, ai, mcp }
@@ -598,17 +599,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       );
     } catch (error) {
       if (!mounted) return;
+      // Not set up yet is a refusal the reader can act on, so it is worded in
+      // their language; a provider's own reply is kept as it came.
+      final said = wordedAiFailure(error, l10n) ?? '$error';
       await showDialog<void>(
         context: context,
         builder: (dialogContext) => AlertDialog(
           title: Text(l10n.settingsAiTestFailed),
           content: SingleChildScrollView(
-            child: SelectableText('$error'),
+            child: SelectableText(said),
           ),
           actions: [
             TextButton.icon(
               onPressed: () async {
-                await Clipboard.setData(ClipboardData(text: '$error'));
+                await Clipboard.setData(ClipboardData(text: said));
                 if (dialogContext.mounted) Navigator.of(dialogContext).pop();
               },
               icon: const Icon(Icons.copy),

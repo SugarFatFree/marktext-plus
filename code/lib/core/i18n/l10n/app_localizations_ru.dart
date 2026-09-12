@@ -1096,6 +1096,18 @@ class AppLocalizationsRu extends AppLocalizations {
   String get settingsAiTestFailed => 'Не удалось проверить настройки ИИ';
 
   @override
+  String get aiSetupDisabled => 'Сначала включите ИИ в настройках.';
+
+  @override
+  String get aiSetupEndpoint => 'Сначала укажите адрес ИИ в настройках.';
+
+  @override
+  String get aiSetupModel => 'Сначала укажите модель ИИ в настройках.';
+
+  @override
+  String get aiSetupKey => 'Сначала укажите ключ API для ИИ в настройках.';
+
+  @override
   String get settingsCopyError => 'Скопировать ошибку';
 
   @override

@@ -1082,6 +1082,18 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsAiTestFailed => 'AI 設定のテストに失敗しました';
 
   @override
+  String get aiSetupDisabled => '先に設定で AI を有効にしてください。';
+
+  @override
+  String get aiSetupEndpoint => '先に設定で AI エンドポイントを入力してください。';
+
+  @override
+  String get aiSetupModel => '先に設定で AI モデルを入力してください。';
+
+  @override
+  String get aiSetupKey => '先に設定で AI の API キーを入力してください。';
+
+  @override
   String get settingsCopyError => 'エラーをコピー';
 
   @override

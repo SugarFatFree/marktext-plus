@@ -1104,6 +1104,21 @@ class AppLocalizationsIt extends AppLocalizations {
       'Test della configurazione IA non riuscito';
 
   @override
+  String get aiSetupDisabled => 'Attiva prima l’IA nelle Impostazioni.';
+
+  @override
+  String get aiSetupEndpoint =>
+      'Inserisci prima l’endpoint dell’IA nelle Impostazioni.';
+
+  @override
+  String get aiSetupModel =>
+      'Inserisci prima il modello dell’IA nelle Impostazioni.';
+
+  @override
+  String get aiSetupKey =>
+      'Inserisci prima la chiave API dell’IA nelle Impostazioni.';
+
+  @override
   String get settingsCopyError => 'Copia l\'errore';
 
   @override

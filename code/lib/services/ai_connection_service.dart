@@ -1,8 +1,68 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+
 import '../core/config/app_config.dart';
 import '../core/net/answered_within.dart';
+
+/// What has to be filled in before the model can be asked.
+///
+/// In the order the reader meets the fields, because the first one missing is
+/// the one they are sent to: telling somebody with three blank fields to check
+/// the key sends them past the two above it.
+enum AiSetupProblem {
+  /// AI is switched off altogether.
+  disabled,
+
+  /// No endpoint. The one that has to be right before anything else can be.
+  endpoint,
+
+  /// No model name.
+  model,
+
+  /// No API key.
+  key,
+}
+
+/// The reader has not set the AI up yet, said in a form their language can word.
+///
+/// The refusal used to be a `FormatException` holding an English sentence, and
+/// both places that show it print the error as it stands — so an editor running
+/// in Chinese answered in English. The permission refusal beside it was already
+/// structured this way, and so were the plugin marketplace's failures after
+/// BUG-432; this is the third of the same shape.
+///
+/// [toString] is the English sentence, which is what the log wants and what a
+/// caller with no localisations to hand falls back to.
+@immutable
+class AiNotConfigured implements Exception {
+  const AiNotConfigured(this.problem);
+
+  final AiSetupProblem problem;
+
+  @override
+  String toString() => switch (problem) {
+        AiSetupProblem.disabled => 'Turn on AI in Settings first',
+        AiSetupProblem.endpoint => 'Set the AI endpoint in Settings first',
+        AiSetupProblem.model => 'Set the AI model in Settings first',
+        AiSetupProblem.key => 'Set the AI API key in Settings first',
+      };
+
+  /// The first thing missing in [config], or null when nothing is.
+  ///
+  /// One reading for both callers: Settings' test button and the plugin asking
+  /// the model refused on different subsets before this, so the same blank
+  /// endpoint was a complaint in one place and a failed HTTP request in the
+  /// other.
+  static AiSetupProblem? of(AppConfig config) {
+    if (!config.aiEnabled) return AiSetupProblem.disabled;
+    if (config.aiEndpoint.trim().isEmpty) return AiSetupProblem.endpoint;
+    if (config.aiModel.trim().isEmpty) return AiSetupProblem.model;
+    if (config.aiApiKey.trim().isEmpty) return AiSetupProblem.key;
+    return null;
+  }
+}
 
 class AiConnectionService {
   const AiConnectionService._();
@@ -47,12 +107,8 @@ class AiConnectionService {
     AppConfig config, {
     Duration within = const Duration(seconds: 30),
   }) async {
-    if (!config.aiEnabled) {
-      throw const FormatException('Enable AI plugins before testing the connection');
-    }
-    if (config.aiModel.trim().isEmpty || config.aiApiKey.trim().isEmpty) {
-      throw const FormatException('Model and API key are required');
-    }
+    final missing = AiNotConfigured.of(config);
+    if (missing != null) throw AiNotConfigured(missing);
     final key = config.aiApiKey.trim();
     final client = HttpClient();
     client.findProxy = (uri) => HttpClient.findProxyFromEnvironment(

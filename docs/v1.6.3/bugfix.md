@@ -32,6 +32,7 @@
 | BUG-447 | 2026-09-12 | 「复制为 HTML」用自己手写的正则链，写出的不是这个编辑器的 HTML | P1 | 已修复 |
 | BUG-448 | 2026-09-12 | AI 端点填成 `…/v1` 会被拼成 `/v1/v1/…`，请求 404 | P1 | 已修复 |
 | BUG-449 | 2026-09-12 | 插件设置页里有一句写死的英文，12 种语言的读者都看到它 | P2 | 已修复 |
+| BUG-450 | 2026-09-12 | 「还没配好 AI」这句话对 12 种语言的读者都是英文，而且让人去查三个字段 | P1 | 已修复 |
 
 ---
 
@@ -1826,6 +1827,78 @@ if (widget.plugin.settings.isEmpty)
 | 把那句英文写回去 | 红，并指出文件与行号 |
 | 在 `status_bar.dart` 里新写一句英文（模拟下一个功能的泄漏） | 红 |
 | 把扫描目录改成不存在的 | 红——「只扫到 0 个 dart 文件，取法要跟着改」，而不是安静通过 |
+
+---
+
+## BUG-450：「还没配好 AI」这句话对 12 种语言的读者都是英文
+
+**现象**：装上 AI 插件、运行一条命令，而还没填端点／模型／密钥——弹出的对话框写着
+`Set the AI endpoint, model and API key in Settings first`。**整个窗口是中文，这一句是
+英文。** 设置页里按「测试连接」同理。
+
+**这是任何人都会先遇到的一步**：AI 功能要三个字段都填好才工作，所以第一次运行必然撞上。
+
+**根因**：拒绝是一个携带英文句子的 `FormatException`，而两个显示点都**原样打印**
+错误文本：
+
+```dart
+await _showFailure(navigator.context, l10n, plugin.name, '$error');   // 插件失败对话框
+child: SelectableText('$error'),                                       // 设置页测试连接
+```
+
+**旁边的权限拒绝早就不是这样做的**：服务层给出「哪个插件、哪个权限」，句子在读者的语言里
+查（`PluginPermissionRefusedAction` + `describePermission`）。插件市场的失败在 BUG-432
+之后也是这个形状（`PluginCatalogFailureKind` + `_wordedFailure`）。**这是同一形状的第三处，
+而它是最先被撞到的那一处。**
+
+**修复**：照同一个形状做，不发明第二套。
+
+```dart
+enum AiSetupProblem { disabled, endpoint, model, key }
+class AiNotConfigured implements Exception { final AiSetupProblem problem; ... }
+```
+
+界面侧 `describeAiSetup(problem, l10n)` 是**穷尽 switch**——第五个要填的字段不给句子
+就编译不过。4 个键 × 12 语言。
+
+**顺带修正了一处实质问题，不只是语言**：原来那句让读者去查**三个**字段，而通常只有一个是空的。
+现在只点出第一个缺的那一个，**并且按读者看到字段的顺序**（端点在上、密钥在下）——
+告诉一个三个都空着的人去填密钥，会让他跳过上面两个。有一条测试专门钉住这个顺序。
+
+**供应商自己的回复不翻译**：`wordedAiFailure` 只认 `AiNotConfigured`，其余原样返回。
+一个「模型名不存在」或「密钥过期」的 400 响应体说的比我们的句子多得多，改写它是有害的。
+有一条测试钉住这一点。
+
+**同一处读法给了两个调用者**：`AiNotConfigured.of(config)`。原先设置页的「测试连接」
+只查模型与密钥、插件那一侧查三个——**同一个空端点在一处是提示、在另一处是一个失败的
+HTTP 请求**。
+
+**涉及文件**：
+
+- `code/lib/services/ai_connection_service.dart`（`AiSetupProblem`、`AiNotConfigured`）
+- `code/lib/services/ai_chat_service.dart`（改用同一处读法）
+- `code/lib/ui/widgets/ai_setup_text.dart`（新增：`describeAiSetup`、`wordedAiFailure`）
+- `code/lib/ui/widgets/plugin_command_actions.dart`、`code/lib/ui/screens/settings_screen.dart`（两个显示点）
+- 12 份 `.arb` 各 4 个键
+- `code/test/ui/ai_setup_is_explained_in_every_language_test.dart`（10 条）
+
+**验证**（五次变异，各钉一个决定）：
+
+| 变异 | 红在哪 |
+|------|--------|
+| 检查顺序改成先查 key | 「the piece named is the first one missing」 |
+| 两个问题给同一句话 | 「两个不同的问题给出了同一句话，读者会去改错的字段」 |
+| 中文沿用英文（模拟没翻译） | 「中文与英文相同——多半是没翻译」 |
+| 插件对话框不问 `wordedAiFailure` | 「直接显示了 error，读者会看到英文」 |
+| 供应商的回复也被改写 | 「供应商自己的回复被改写了——它说的比我们的句子多」 |
+
+**服务层对不等于界面用上了**，所以有一条守卫单独查那两个显示点都调用了
+`wordedAiFailure`——这是本库「[[written-but-never-wired-up]]」那一族的第五例预防。
+
+**没有一并翻译的 17 处插件脚本异常**（「declares X, which is not in the installed
+plugin」之类）：那些是给**插件作者或安装者**看的打包错误，不是普通读者会撞到的路径；
+12 语言 × 17 条是 204 条文案，而收益远低于这一条。判据是「普通读者做普通事会不会撞到」，
+不是「它是不是英文」。
 
 ---
 

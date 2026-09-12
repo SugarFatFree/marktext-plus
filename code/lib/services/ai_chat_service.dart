@@ -209,16 +209,10 @@ class AiChatService {
       return stub(prompt, (soFar) => onChunk?.call(soFar));
     }
 
-    if (!config.aiEnabled) {
-      throw const FormatException('Enable AI in Settings first');
-    }
-    if (config.aiEndpoint.trim().isEmpty ||
-        config.aiModel.trim().isEmpty ||
-        config.aiApiKey.trim().isEmpty) {
-      throw const FormatException(
-        'Set the AI endpoint, model and API key in Settings first',
-      );
-    }
+    // One reading of "is this set up", shared with Settings' test button, and
+    // carrying which piece is missing so the reader's own language can say it.
+    final missing = AiNotConfigured.of(config);
+    if (missing != null) throw AiNotConfigured(missing);
     if (prompt.trim().isEmpty) {
       throw const FormatException('The plugin sent an empty prompt');
     }

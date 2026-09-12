@@ -1082,6 +1082,18 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsAiTestFailed => 'AI 설정 테스트에 실패했습니다';
 
   @override
+  String get aiSetupDisabled => '먼저 설정에서 AI를 켜십시오.';
+
+  @override
+  String get aiSetupEndpoint => '먼저 설정에서 AI 엔드포인트를 입력하십시오.';
+
+  @override
+  String get aiSetupModel => '먼저 설정에서 AI 모델을 입력하십시오.';
+
+  @override
+  String get aiSetupKey => '먼저 설정에서 AI API 키를 입력하십시오.';
+
+  @override
   String get settingsCopyError => '오류 복사';
 
   @override

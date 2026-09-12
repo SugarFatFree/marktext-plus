@@ -588,6 +588,22 @@
   "pluginDevelop": "Develop a plugin",
   "pluginNoReleases": "No installable releases found for this topic.",
   "settingsAiTestFailed": "AI configuration test failed",
+  "aiSetupDisabled": "Turn on AI in Settings first.",
+  "@aiSetupDisabled": {
+    "description": "Shown when the reader runs something needing AI while AI is off."
+  },
+  "aiSetupEndpoint": "Set the AI endpoint in Settings first.",
+  "@aiSetupEndpoint": {
+    "description": "Shown when the AI endpoint field is empty."
+  },
+  "aiSetupModel": "Set the AI model in Settings first.",
+  "@aiSetupModel": {
+    "description": "Shown when the AI model field is empty."
+  },
+  "aiSetupKey": "Set the AI API key in Settings first.",
+  "@aiSetupKey": {
+    "description": "Shown when the AI API key field is empty."
+  },
   "settingsCopyError": "Copy error",
   "settingsPluginsUnreadable": "Installed but unreadable",
   "settingsPluginsUninstall": "Uninstall",

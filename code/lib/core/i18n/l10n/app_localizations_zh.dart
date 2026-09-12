@@ -1081,6 +1081,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsAiTestFailed => 'AI 配置测试失败';
 
   @override
+  String get aiSetupDisabled => '请先在设置里打开 AI 功能。';
+
+  @override
+  String get aiSetupEndpoint => '请先在设置里填写 AI 端点。';
+
+  @override
+  String get aiSetupModel => '请先在设置里填写 AI 模型。';
+
+  @override
+  String get aiSetupKey => '请先在设置里填写 AI API 密钥。';
+
+  @override
   String get settingsCopyError => '复制错误信息';
 
   @override

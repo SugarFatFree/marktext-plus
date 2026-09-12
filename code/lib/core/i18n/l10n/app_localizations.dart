@@ -2163,6 +2163,30 @@ abstract class AppLocalizations {
   /// **'AI configuration test failed'**
   String get settingsAiTestFailed;
 
+  /// Shown when the reader runs something needing AI while AI is off.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on AI in Settings first.'**
+  String get aiSetupDisabled;
+
+  /// Shown when the AI endpoint field is empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Set the AI endpoint in Settings first.'**
+  String get aiSetupEndpoint;
+
+  /// Shown when the AI model field is empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Set the AI model in Settings first.'**
+  String get aiSetupModel;
+
+  /// Shown when the AI API key field is empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Set the AI API key in Settings first.'**
+  String get aiSetupKey;
+
   /// No description provided for @settingsCopyError.
   ///
   /// In en, this message translates to:

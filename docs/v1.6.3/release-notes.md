@@ -277,6 +277,23 @@ A scan now looks at every place a sentence reaches the reader and fails on a
 literal holding two or more running English words, so the next one fails a test
 instead of shipping.
 
+### "You have not set the AI up yet" is said in your language, and names one field
+
+Running an AI command before filling in the endpoint, the model and the key is the
+first thing anybody meets, and the refusal was an English sentence — in an editor
+running in Chinese, Japanese or Arabic. Both places that show it, the plugin
+failure dialog and Settings' test button, printed the error exactly as it came.
+
+It is translated now, and it names the one field that is missing instead of
+listing three: a reader with only the key blank was being sent to check the
+endpoint and the model as well. The field named is the first one missing in the
+order they appear on screen, so somebody who has filled in nothing is sent to the
+top of the form rather than the bottom.
+
+A provider's own reply is still shown as it came. A 400 about a model that does not
+exist or a key that has expired says far more than a sentence of ours could, and
+rewriting it would take that away.
+
 ### A large document's first paint no longer cuts a block in half
 
 A document over 1500 lines is shown in two passes, the top of it first. That
@@ -518,6 +535,19 @@ Anthropic 的 `https://api.anthropic.com/v1`，所有说同一套协议的服务
 
 现在有一条扫描守卫，检查句子能到达读者的每一个位置，只要字面量里出现两个以上
 连写的英文单词就失败——下一次泄漏会红在测试里，而不是发到读者手上。
+
+### 「还没配好 AI」这句话会用你的语言说，并且只点出一个字段
+
+还没填端点、模型和密钥就运行 AI 命令，是任何人都会先遇到的一步，而那句拒绝是英文的——
+在一个界面为中文、日文或阿拉伯文的编辑器里。两个显示它的地方（插件失败对话框与设置页的
+测试按钮）都原样打印了错误文本。
+
+现在它被翻译了，而且**只点出缺的那一个字段**，不再列出三个：原先只有密钥为空的读者，
+会被要求把端点和模型也检查一遍。点出的是按屏幕顺序**第一个**缺的，
+所以三个都没填的人会被送到表单顶部，而不是底部。
+
+供应商自己的回复仍然原样显示。一个「模型不存在」或「密钥已过期」的 400 响应，
+说的比我们的句子多得多，改写它等于把这些信息拿走。
 
 ### 大文档的第一屏不再把块切成两半
 

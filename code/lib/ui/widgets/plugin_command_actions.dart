@@ -18,6 +18,7 @@ import '../../services/plugin_script_runtime.dart';
 import '../../services/plugin_ui.dart';
 import '../../services/plugin_logger.dart';
 import '../../services/plugin_image_loader.dart';
+import 'ai_setup_text.dart';
 import 'plugin_permission_text.dart';
 
 /// Puts the commands installed plugins contribute into a right-click menu, and
@@ -615,11 +616,15 @@ class PluginCommandActions {
       }
       messenger.showSnackBar(SnackBar(content: Text(l10n.pluginTooManySteps)));
     } catch (error) {
+      // A refusal the reader caused and can fix is worded in their language;
+      // anything else keeps the text it came with, because a provider's own
+      // message about a wrong model says more than a sentence of ours.
+      final said = wordedAiFailure(error, l10n) ?? '$error';
       if (!navigator.mounted) {
-        messenger.showSnackBar(SnackBar(content: Text('$error')));
+        messenger.showSnackBar(SnackBar(content: Text(said)));
         return;
       }
-      await _showFailure(navigator.context, l10n, plugin.name, '$error');
+      await _showFailure(navigator.context, l10n, plugin.name, said);
     } finally {
       // However the run ended — finished, threw, or ran out of steps — nothing
       // is still coming. A pane left spinning over half a translation, or a
