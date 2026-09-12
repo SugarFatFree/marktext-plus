@@ -1525,11 +1525,10 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     if (_isInitialized) _syncLanguagePicker(text);
 
     ref.read(editorProvider.notifier).updateCursor(line, col);
-    ref.read(editorProvider.notifier).setSelectedText(
-      selection.isCollapsed
-          ? ''
-          : text.substring(selection.start, selection.end),
-    );
+    // The range, not the text. Taking a substring here copied the selection on
+    // every selection change, and the three places that want it read it when a
+    // command runs — see `EditorNotifier.setSourceSelection`.
+    ref.read(editorProvider.notifier).setSourceSelection(selection);
 
     if (_isInitialized) _syncFormatToolbar();
 

@@ -991,7 +991,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
           contextMenuBuilder: _buildPreviewContextMenu,
           onSelectionChanged: (content) => ref
               .read(editorProvider.notifier)
-              .setSelectedText(content?.plainText ?? ''),
+              .setPreviewSelection(content?.plainText ?? ''),
           // Centred inside a maximum width, which is right for a page of
           // prose and wrong for a caret waiting on an empty document: beside a
           // source pane that starts hard against the left, an editor floating
@@ -1525,7 +1525,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
           ref: ref,
           location: PluginCommandActions.editorContextMenu,
           half: PluginEditorView.preview,
-          selection: () => ref.read(editorProvider).selectedText,
+          selection: () => ref.read(editorProvider.notifier).selectedText(),
           document: () => widget.markdown,
         ),
       ],

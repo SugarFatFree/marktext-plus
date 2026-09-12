@@ -240,7 +240,7 @@ class PluginCommandActions {
       // not happy with. A plugin reads the selection as "the part to work
       // on", so handing back its own last answer is how "and make it
       // shorter" is said in the language the plugin already speaks.
-      selection: about ?? ref.read(editorProvider).selectedText,
+      selection: about ?? ref.read(editorProvider.notifier).selectedText(),
       document: active.isEmpty ? '' : active.first.content,
       into: into,
       onUi: onUi,
@@ -287,7 +287,7 @@ class PluginCommandActions {
       plugin: plugin,
       command: command,
       view: viewFor(null, ref.read(settingsProvider).editMode),
-      selection: ref.read(editorProvider).selectedText,
+      selection: ref.read(editorProvider.notifier).selectedText(),
       document: active.isEmpty ? '' : active.first.content,
     );
   }

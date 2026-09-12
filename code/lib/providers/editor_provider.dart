@@ -103,7 +103,6 @@ class EditorState {
   final bool previewSearchWholeWord;
   final bool previewSearchUseRegex;
   final int previewCurrentMatchIndex;
-  final String selectedText;
 
   /// Bumped each time the user asks to step to another search match.
   ///
@@ -140,7 +139,6 @@ class EditorState {
     this.previewSearchWholeWord = false,
     this.previewSearchUseRegex = false,
     this.previewCurrentMatchIndex = -1,
-    this.selectedText = '',
     this.findStepRequest = 0,
     this.imageRevision = 0,
     this.findStepForward = true,
@@ -165,7 +163,6 @@ class EditorState {
     bool? previewSearchWholeWord,
     bool? previewSearchUseRegex,
     int? previewCurrentMatchIndex,
-    String? selectedText,
     int? findStepRequest,
     int? imageRevision,
     bool? findStepForward,
@@ -187,7 +184,6 @@ class EditorState {
       previewSearchWholeWord: previewSearchWholeWord ?? this.previewSearchWholeWord,
       previewSearchUseRegex: previewSearchUseRegex ?? this.previewSearchUseRegex,
       previewCurrentMatchIndex: previewCurrentMatchIndex ?? this.previewCurrentMatchIndex,
-      selectedText: selectedText ?? this.selectedText,
       findStepRequest: findStepRequest ?? this.findStepRequest,
       imageRevision: imageRevision ?? this.imageRevision,
       findStepForward: findStepForward ?? this.findStepForward,
@@ -635,10 +631,55 @@ class EditorNotifier extends StateNotifier<EditorState> {
     );
   }
 
-  void setSelectedText(String text) {
-    if (state.selectedText == text) return;
-    state = state.copyWith(selectedText: text);
+  /// The source pane's selection, as a range into the document it holds.
+  ///
+  /// A range and not the text. The text used to be pushed here on every
+  /// selection change — a substring of the selection, a comparison of that
+  /// whole string against the one before it, and a state notification — while
+  /// all three places that want it ask for it at the moment a command runs.
+  /// Holding Shift+Down through a large document copied a progressively larger
+  /// string on every keypress, so the gesture as a whole was quadratic, and a
+  /// four-megabyte selection then sat in the state until the next one, beside
+  /// the document, the field's own copy and the undo history.
+  ///
+  /// Measured before this: a partial substring of half a megabyte takes 1.1 ms
+  /// and of four megabytes 3.6 ms. Select-All was free, because Dart hands back
+  /// the same string for the whole range — which is why trying it by selecting
+  /// everything showed nothing.
+  void setSourceSelection(TextSelection selection) {
+    _previewSelection = '';
+    _sourceSelection =
+        selection.isValid && !selection.isCollapsed ? selection : null;
   }
+
+  /// What the reader dragged across in the preview.
+  ///
+  /// Kept as text because the preview has no offsets to keep instead: its
+  /// selection is rendered text, and the source it came from is spread over the
+  /// blocks it covers. Flutter has already built the string by the time this is
+  /// called, so nothing is copied here that was not copied anyway.
+  void setPreviewSelection(String text) {
+    _sourceSelection = null;
+    _previewSelection = text;
+  }
+
+  /// The selected text, taken now.
+  ///
+  /// Whichever pane changed last is the one that answers, which is what the one
+  /// shared field used to give: a plugin run from the preview must not be handed
+  /// what the source pane had selected a minute ago.
+  String selectedText() {
+    final selection = _sourceSelection;
+    if (selection == null) return _previewSelection;
+    final text = _controller?.text;
+    if (text == null) return '';
+    final start = selection.start.clamp(0, text.length);
+    final end = selection.end.clamp(start, text.length);
+    return text.substring(start, end);
+  }
+
+  TextSelection? _sourceSelection;
+  String _previewSelection = '';
 }
 
 final editorProvider = StateNotifierProvider<EditorNotifier, EditorState>((ref) {

@@ -320,6 +320,19 @@ are cheap, which is almost every Markdown file: everything under about eighty
 kilobytes keeps all two hundred steps. Above that the oldest states are dropped
 first, and at least one undo is always kept however large the document is.
 
+### Extending a selection through a large document stays smooth
+
+Every selection change copied the whole selected text into the editor's state and
+compared it against the one before it, while the three places that want it ask for
+it at the moment a command runs. So holding Shift+Down through a large document
+copied a progressively larger string on every keypress — the gesture as a whole
+quadratic — and a four-megabyte selection then sat in memory until the next one,
+beside the document, the text field's own copy and the undo history.
+
+The selection is a range now, and the text is taken when somebody asks. Which pane
+answers is unchanged: whichever one the reader touched last, so a plugin run from
+the preview is not handed what the source pane had selected a minute ago.
+
 ### A large document's first paint no longer cuts a block in half
 
 A document over 1500 lines is shown in two passes, the top of it first. That
@@ -594,6 +607,16 @@ Mermaid 包够不到编辑器的翻译，所以它自带的错误框按设计是
 现在历史**同时**受「保存了多少文字」和「多少步」两个上限约束。文档小到「两百份副本
 很便宜」时行为完全不变，而这几乎是全部 Markdown 文件：**约 80 KB 以下一步不少**。
 超过之后先丢最旧的状态，并且无论文档多大，**至少保留一次撤销**。
+
+### 在大文档里扩展选区不再越选越卡
+
+每次选区变化都会把整段选中的文字拷进编辑器状态、再与上一次的整串比较一遍，
+而真正要用它的三个地方都是在命令运行的那一刻才去读。于是在大文档里按住 Shift+↓，
+每一次按键都拷一个更大的字符串——整个手势是平方级的——而一个 4 MB 的选区随后
+一直留在内存里，与文档本体、文本框自己那份、撤销历史并列。
+
+现在选区是一个范围，文字在有人要的时候才取。**哪个窗格答话的规则没有变**：
+读者最后动过的那个，所以从预览运行的插件不会拿到源码区一分钟前选的东西。
 
 ### 大文档的第一屏不再把块切成两半
 
