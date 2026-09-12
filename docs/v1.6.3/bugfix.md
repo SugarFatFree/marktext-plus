@@ -37,6 +37,7 @@
 | BUG-452 | 2026-09-12 | 撤销历史按步数限，10 MB 文档的历史能占到 2 GB | P1 | 已修复 |
 | BUG-453 | 2026-09-12 | 每次选区变化都拷贝整个选区进状态，Shift+↓ 扩选整体 O(n²) | P1 | 已修复 |
 | BUG-454 | 2026-09-12 | 大文档里每按一次方向键要把整篇文档切成行两次（约 73 ms） | P1 | 已修复 |
+| BUG-455 | 2026-09-12 | 「查找下一个」为定位一个匹配而重排整个前缀，4 MB 文档冻结 2.3 秒 | P1 | 已修复 |
 
 ---
 
@@ -2371,3 +2372,112 @@ SDK 不在这台机器上时整条 skip（向上查找 6 层，与既有的 `sdk
 - 留着标记但正文加一节 `## FEAT-148` → 「说本版暂无 FEAT，正文里却写了：{FEAT-148}」
 
 两条原有的对账断言（表格有正文没有／正文有表格没有）原样保留，没有放松。
+
+---
+
+## BUG-455：「查找下一个」为定位一个匹配而把整个前缀重新排版一遍
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-455 |
+| 日期 | 2026-09-12 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+
+### 现象
+
+在一个几 MB 的文档里搜索，按「查找下一个」跳到**靠后**的匹配时，界面整体冻结。
+匹配越靠后越久。走完二十个匹配要等将近一分钟。
+
+### 根因
+
+`EditorNotifier.scrollToSearchMatch` 要把匹配的偏移量换成一个**像素 Y**，
+好把它滚到视口三分之一处。软换行会让一条文档行占好几条视觉行（分屏窗格更窄，
+更明显），所以行号乘行高是不够的——这一点是对的。
+
+**错的是它怎么拿到那个像素值**：它自己**新建一个 `TextPainter`，把
+从文档开头到匹配处的整段文字重新排版一遍**，然后取 `painter.height`。
+
+实测（同一台机器，测试环境，跳过 JIT 预热）：
+
+| 前缀 | TextPainter 排版 | 只数换行 | 切片+split |
+|---|---|---|---|
+| 256 KB | 138 ms | 0.6 ms | 5.4 ms |
+| 1 MB | **532 ms** | 2.3 ms | 4.1 ms |
+| 4 MB | **2326 ms** | 9.5 ms | 17.8 ms |
+
+**而文字本来就已经排版好了**：那个窗格正在屏幕上画它。同一个文件里
+`_showCaret` 早就用着正确的仪器——`_renderEditable().getLocalRectForCaret(…)`，
+从已完成的排版里查一个位置，46 微秒。这是「一条规则抄了两份，其中一份用的是
+笨办法」，而笨的那份在用户最会连按的那条路上。
+
+**第二笔浪费**：调用方每次都先算 `text.substring(0, match.start).split('\n').length`
+（4 MB 上 17.8 ms、5.5 万个字符串），而这个行号**只是 painter 那条路的兜底值**，
+平常根本用不上——「提前返回之前的急切准备」的一个变种：为一条基本不走的分支付全价。
+
+### 修复
+
+**把测量交给正在画这段文字的那一端，策略留在原处。**
+
+| 位置 | 改动 |
+|------|------|
+| `source_editor._contentYOf(offset)` | 新增：从 `getLocalRectForCaret` 读出位置，按 `_showCaret` 的方式换算到内容坐标 |
+| `source_editor` initState／dispose | 注册／按身份注销这个测量函数 |
+| `editor_provider` | 删掉 `_editorTextFieldWidth` 与 TextPainter 分支；改为问 `_offsetLocator`，问不到才按行高估算 |
+| `editor_provider` | `scrollToSearchMatch(int offset, …)`：收偏移量，不再收行号与 `charOffset` |
+| `find_replace_bar` | 源码路径直接传 `match.start`；预览路径改用 `TextSearch.lineIndexOf` |
+| `text_search_service` | 新增 `TextSearch.lineIndexOf`：数换行，不切片不分配 |
+| `source_editor` build | 删掉那个**只为推送窗格宽度而存在**的 `LayoutBuilder`（每次布局一个 post-frame 闭包） |
+
+1/3 定位与自适应动画时长**一行未动**——只有「那个像素值从哪来」变了。
+
+### 为什么测量必须由窗格来做，而不是 provider
+
+`getLocalRectForCaret` 给的是**字段自己的坐标**，而字段不是滚动内容的顶端
+（上面还有内边距等）。所以 `_contentYOf` 像 `_showCaret` 一样**经屏幕坐标换算**
+再减去视口顶端、加上当前 `pixels`，而不是假设两套坐标重合。provider 拿不到
+视口的 RenderBox，这个换算只能在窗格里做。
+
+### 涉及文件
+
+- `code/lib/ui/editor/source_editor.dart`
+- `code/lib/providers/editor_provider.dart`
+- `code/lib/ui/widgets/find_replace_bar.dart`
+- `code/lib/services/text_search_service.dart`
+- `code/test/ui/editor/a_search_jump_measures_instead_of_relaying_out_test.dart`（新增）
+- `code/test/providers/the_jump_to_a_match_asks_the_pane_test.dart`（新增）
+- `code/test/services/a_line_index_agrees_with_cutting_and_splitting_test.dart`（新增）
+
+### 验证：六次变异
+
+| 变异 | 结果 |
+|------|------|
+| 窗格不注册测量函数 | 红：滚到 652 px，而真实位置 >1638 px |
+| provider 忽略测量值 | 红（同上） |
+| `_contentYOf` 返回朴素估算 | 红（同上） |
+| **把旧的 TextPainter 量法放回去** | 红：**3013 ms**，代价守卫上限 150 ms |
+| `clearOffsetLocator` 不查身份 | 红：另一个窗格把这个窗格注销掉了 |
+| 兜底不用 `lineIndexOf`（当第 0 行） | 红 |
+
+**决定性的测试必须让文字换行。** 不换行时「行号 × 行高」恰好是对的，
+测量与猜测给出同一个数——而猜测正是 TextPainter 当年被加进来要替掉的东西。
+所以那条测试用的是**每行都远宽于窗格**的文档，断言落点**超过朴素估算的两倍**。
+
+### 一件我自己做错、被变异查出来的事
+
+兜底路径那条测试，我第一版写的是「第 10 行、字号 10、行高 2」——目标
+`10×10×2 = 200` 像素，而视口的三分之一正好也是 200，两者相减为 0；
+把 `lineIndexOf` 变异成常数 0 之后**同样 clamp 到 0**，测试全绿。
+**期望值等于默认值的测试什么也没证明。** 改成第 30 行（600 − 200 = 400），
+并在测试里**先断言这个期望值离 0 足够远**（`expect(estimate, greaterThan(100))`），
+免得以后有人调了尺寸又悄悄退回这种情况。
+
+### 三处看着像同类、核实后不是的地方
+
+顺手把 lib 里所有「偏移量→行号」的写法都查了，另有三处形状相同但**不是缺陷**：
+
+| 位置 | 为什么不是 |
+|------|-----------|
+| `markdown_parser._linkDefinitionAt` 的 `linesTo` | `text` 是**三行的窗口**，不是全文 |
+| `markdown_renderer` 的 `lineCount` | 数的是**正在编辑的那个块**，不是文档 |
+| `source_editor._applyBlockEdit` / `_toggleLooseList` | 命令路径，且本身要改写文本——split 不可免，不是白付 |

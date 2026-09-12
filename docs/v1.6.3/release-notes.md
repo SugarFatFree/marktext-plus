@@ -351,6 +351,21 @@ One thing changed with it: in preview mode, where there is no text field, the ta
 commands are greyed out. They used to light up for a position built from whatever
 the source pane last reported, which is not somewhere the reader can see.
 
+### Find Next in a large file no longer freezes the editor
+
+Jumping to a match needed the pixel the match had been drawn at, so that it could
+be scrolled a third of the way down — and the line number alone will not do, since
+in split view a long line wraps into several visual ones. To get that pixel the
+editor laid the whole run of text before the match out a second time: 532 ms at one
+megabyte, 2.3 seconds at four, for every press. Walking twenty matches meant nearly
+a minute of a frozen window.
+
+The pane is already drawing that text. The position is now read off it, which takes
+46 microseconds and accounts for wrapping because it *is* the wrapping. On top of
+that, every press used to count the lines before the match by cutting the document
+there and splitting the piece into lines — 55 000 strings on a four megabyte
+document — for a number only the fallback path ever wanted.
+
 ### A large document's first paint no longer cuts a block in half
 
 A document over 1500 lines is shown in two passes, the top of it first. That
@@ -649,6 +664,17 @@ Mermaid 包够不到编辑器的翻译，所以它自带的错误框按设计是
 
 随之改变的一件事：预览模式下没有文本框，表格命令现在**置灰**。以前它们会按源码窗格
 最后报告的位置点亮，而那个位置读者在预览里看不见。
+
+### 在大文件里按「查找下一个」不再冻结编辑器
+
+跳到一个匹配，需要知道它被画在**哪个像素**上，才能把它滚到视口三分之一处——
+光有行号不够，因为分屏时一条长行会换行成好几条视觉行。而编辑器拿到那个像素的办法，
+是把匹配**之前的全部文字重新排版一遍**：1 MB 上 532 ms，4 MB 上 **2.3 秒**，
+每按一次都付。走完二十个匹配，窗口冻结将近一分钟。
+
+那段文字本来就正由窗格画着。现在位置直接从它那里读，**46 微秒**，
+并且天然算上换行——因为它就是换行本身。此外，每按一次还会先把文档在匹配处切开、
+把前半截分成行来数行号（4 MB 上 5.5 万个字符串），而这个数**只有兜底那条路用得上**。
 
 ### 大文档的第一屏不再把块切成两半
 

@@ -11,6 +11,22 @@ import 'package:flutter/services.dart' show TextRange;
 class TextSearch {
   const TextSearch._();
 
+  /// The 0-based line [offset] falls on.
+  ///
+  /// Counts the line breaks before it rather than cutting the text there and
+  /// splitting: the cut copies the whole prefix and the split allocates one
+  /// string per line — 55 000 of them on a four megabyte document — to read a
+  /// single number off them. Both callers ask while the reader is waiting for
+  /// a jump to the next match.
+  static int lineIndexOf(String text, int offset) {
+    final end = offset.clamp(0, text.length);
+    var lines = 0;
+    for (var i = 0; i < end; i++) {
+      if (text.codeUnitAt(i) == 0x0A) lines++;
+    }
+    return lines;
+  }
+
   /// Scans [text] for [pattern], returning non-overlapping ranges in document
   /// order.
   ///

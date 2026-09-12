@@ -940,6 +940,7 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
       ref
           .read(editorProvider.notifier)
           .setEditorScrollController(_editorScrollController);
+      ref.read(editorProvider.notifier).setOffsetLocator(_contentYOf);
       ref.read(editorProvider.notifier)
         ..setHistoryTab(widget.tabId)
         ..pushHistory(widget.initialContent);
@@ -1033,6 +1034,7 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     // editor is on screen".
     _editorNotifier.clearController(_controller);
     _editorNotifier.clearEditorScrollController(_editorScrollController);
+    _editorNotifier.clearOffsetLocator(_contentYOf);
 
     // Before the controller is disposed, and read straight off it rather than
     // tracked on every scroll: a tab switch is one write, scrolling is none.
@@ -1684,6 +1686,32 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
   /// The field no longer scrolls itself, so nothing else does this: without
   /// it, typing past the bottom of the pane leaves the caret somewhere the
   /// reader cannot see.
+  /// Pixel Y of [offset] within what this pane scrolls, or null while the
+  /// field has not been laid out.
+  ///
+  /// Read off the field that is already drawing the text, so soft wrapping
+  /// costs nothing to account for. The search bar used to reach the same
+  /// number through the notifier, which laid the whole prefix out in a second
+  /// TextPainter: 532 ms at one megabyte and 2.3 seconds at four, paid on
+  /// every press of Find Next, against 46 microseconds here.
+  ///
+  /// The caret rectangle is in the field's own coordinates, and the field is
+  /// not the top of the scrolling content, so this converts through the screen
+  /// the way [_showCaret] does rather than assuming the two line up.
+  double? _contentYOf(int offset) {
+    final editable = _renderEditable();
+    final viewport = _viewportBox();
+    if (editable == null || viewport == null) return null;
+    if (!_editorScrollController.hasClients) return null;
+
+    final caret = editable.getLocalRectForCaret(
+      TextPosition(offset: offset.clamp(0, _controller.text.length)),
+    );
+    final caretTop = editable.localToGlobal(Offset(0, caret.top)).dy;
+    final viewportTop = viewport.localToGlobal(Offset.zero).dy;
+    return _editorScrollController.position.pixels + (caretTop - viewportTop);
+  }
+
   void _showCaret() {
     final editable = _renderEditable();
     final position = _editorScrollController.hasClients
@@ -2844,64 +2872,57 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
               ),
             ),
             Expanded(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (mounted) {
-                      ref
-                          .read(editorProvider.notifier)
-                          .setEditorTextFieldWidth(constraints.maxWidth);
-                    }
-                  });
-
-                  return Focus(
-                    onKeyEvent: _handleKeyEvent,
-                    child: DropTarget(
-                      onDragDone: _handleImageDrop,
-                      // The pane scrolls, not the field. Bottom padding inside
-                      // an InputDecoration lengthens what can be scrolled and
-                      // shortens the visible box by the same amount, so the
-                      // room ends up as dead white at the bottom of the window
-                      // whatever the reader scrolls to — measured at 659 of
-                      // 900 pixels, against the preview's full 900. The room
-                      // belongs after the last line, inside what scrolls.
-                      child: SingleChildScrollView(
-                        controller: _editorScrollController,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            TextField(
-                              key: _fieldKey,
-                              focusNode: _fieldFocus,
-                              controller: _controller,
-                              contextMenuBuilder: _buildContextMenu,
-                              maxLines: null,
-                              // Neither expands nor scrolls: it is as tall as
-                              // its text, and the pane around it scrolls.
-                              scrollPhysics:
-                                  const NeverScrollableScrollPhysics(),
-                              style: editorStyle,
-                              decoration: const InputDecoration(
-                                border: InputBorder.none,
-                                contentPadding: EdgeInsets.all(8),
-                              ),
-                              onChanged: (value) {
-                                setState(() {});
-                              },
+              // The pane's width used to be pushed to the notifier from a
+              // LayoutBuilder here, on every layout, so that the search bar
+              // could lay the document out again to find a match. It measures
+              // through `_contentYOf` now, and nothing else ever wanted the
+              // width.
+              child: Focus(
+                  onKeyEvent: _handleKeyEvent,
+                  child: DropTarget(
+                    onDragDone: _handleImageDrop,
+                    // The pane scrolls, not the field. Bottom padding inside
+                    // an InputDecoration lengthens what can be scrolled and
+                    // shortens the visible box by the same amount, so the
+                    // room ends up as dead white at the bottom of the window
+                    // whatever the reader scrolls to — measured at 659 of
+                    // 900 pixels, against the preview's full 900. The room
+                    // belongs after the last line, inside what scrolls.
+                    child: SingleChildScrollView(
+                      controller: _editorScrollController,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          TextField(
+                            key: _fieldKey,
+                            focusNode: _fieldFocus,
+                            controller: _controller,
+                            contextMenuBuilder: _buildContextMenu,
+                            maxLines: null,
+                            // Neither expands nor scrolls: it is as tall as
+                            // its text, and the pane around it scrolls.
+                            scrollPhysics:
+                                const NeverScrollableScrollPhysics(),
+                            style: editorStyle,
+                            decoration: const InputDecoration(
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.all(8),
                             ),
-                            // Tapping here puts the caret at the end, the way
-                            // tapping under the text does in the preview.
-                            GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: _caretToEnd,
-                              child: SizedBox(height: room),
-                            ),
-                          ],
-                        ),
+                            onChanged: (value) {
+                              setState(() {});
+                            },
+                          ),
+                          // Tapping here puts the caret at the end, the way
+                          // tapping under the text does in the preview.
+                          GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: _caretToEnd,
+                            child: SizedBox(height: room),
+                          ),
+                        ],
                       ),
                     ),
-                  );
-                },
+                  ),
               ),
             ),
           ],

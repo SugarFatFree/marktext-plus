@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../services/text_search_service.dart';
+
 enum SearchTarget { source, preview }
 
 enum FormatAction {
@@ -358,7 +360,14 @@ class EditorNotifier extends StateNotifier<EditorState> {
       (preview ? _previewScroll : _sourceScroll)[tabId];
   TextEditingController? _controller;
   ScrollController? _editorScrollController;
-  double _editorTextFieldWidth = 0;
+  /// Pixel Y of a document offset, in the source pane's scrolling content.
+  ///
+  /// Registered by the pane, because only the field that is already drawing
+  /// the text can turn an offset into a position without laying the document
+  /// out a second time. This used to be a width, which this notifier fed to a
+  /// TextPainter over the whole prefix — 532 ms at one megabyte, 2.3 seconds
+  /// at four, for every press of Find Next.
+  double? Function(int offset)? _offsetLocator;
 
   TextEditingController? get controller => _controller;
 
@@ -391,49 +400,42 @@ class EditorNotifier extends StateNotifier<EditorState> {
     }
   }
 
-  /// Store the actual width available for text rendering inside the TextField.
-  /// SourceEditor should call this after layout so that scrollToSearchMatch
-  /// can account for soft-wrapped lines when computing the scroll target.
-  void setEditorTextFieldWidth(double width) {
-    _editorTextFieldWidth = width;
+  /// Registers how to measure where an offset sits on screen.
+  void setOffsetLocator(double? Function(int offset) locator) {
+    _offsetLocator = locator;
   }
 
-  void scrollToSearchMatch(int lineNumber, double fontSize, double lineHeight, {int? charOffset}) {
-    if (_editorScrollController == null || !_editorScrollController!.hasClients) return;
+  /// Drops [locator] if it is still the registered one.
+  ///
+  /// The identity check is the same one [clearController] needs, and for the
+  /// same reason: the replacement pane registers itself before the outgoing
+  /// one is disposed. A bound method compares equal to itself, so the pane can
+  /// hand back the very tear-off it registered.
+  void clearOffsetLocator(double? Function(int offset) locator) {
+    if (_offsetLocator == locator) _offsetLocator = null;
+  }
+
+  /// Scrolls the source pane so the match at [offset] is a third of the way
+  /// down.
+  void scrollToSearchMatch(int offset, double fontSize, double lineHeight) {
+    if (_editorScrollController == null ||
+        !_editorScrollController!.hasClients) {
+      return;
+    }
 
     final actualLineHeight = fontSize * lineHeight;
     final viewportHeight = _editorScrollController!.position.viewportDimension;
 
-    double targetY;
+    // Measured by the pane, which accounts for soft wrapping — the reason the
+    // line number alone is not enough in split view, where the narrower pane
+    // turns one document line into several visual ones. Falling back to the
+    // line number is right as long as nothing wrapped, and is all there is
+    // when the field has not been laid out yet.
+    final measured = _offsetLocator?.call(offset);
+    final targetY = measured ??
+        TextSearch.lineIndexOf(_controller?.text ?? '', offset) *
+            actualLineHeight;
 
-    // When charOffset and a valid editor width are available, use TextPainter
-    // to compute the real pixel-Y that accounts for soft-wrapped lines.
-    // This fixes the split-mode bug where the narrower pane causes extra
-    // visual lines that the simple `lineNumber * lineHeight` formula misses.
-    if (charOffset != null && _editorTextFieldWidth > 0 && _controller != null) {
-      final text = _controller!.text;
-      final safeOffset = charOffset.clamp(0, text.length);
-      final textBefore = text.substring(0, safeOffset);
-
-      final painter = TextPainter(
-        text: TextSpan(
-          text: textBefore,
-          style: TextStyle(fontSize: fontSize, height: lineHeight),
-        ),
-        textDirection: TextDirection.ltr,
-      );
-      // 16 = contentPadding horizontal (8 * 2) in SourceEditor's TextField
-      final layoutWidth = _editorTextFieldWidth - 16;
-      painter.layout(maxWidth: layoutWidth > 0 ? layoutWidth : double.infinity);
-      targetY = painter.height;
-      painter.dispose();
-    } else {
-      // Fallback: simple line-based calculation (works when no wrapping)
-      targetY = lineNumber * actualLineHeight;
-    }
-
-    // Position the target line at the upper 1/3 of the viewport for better
-    // readability. lineNumber is 0-based from find_replace_bar.dart.
     final targetOffset = (targetY - viewportHeight / 3).clamp(
       0.0,
       _editorScrollController!.position.maxScrollExtent,

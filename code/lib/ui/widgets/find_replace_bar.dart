@@ -279,18 +279,17 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
         extentOffset: match.end,
       );
 
-      // Scroll to match
-      final lineNumber = text.substring(0, match.start).split('\n').length - 1;
+      // The offset, not a line number: the pane measures where that offset
+      // has actually been drawn.
       final config = ref.read(settingsProvider);
       ref.read(editorProvider.notifier).scrollToSearchMatch(
-        lineNumber,
+        match.start,
         config.fontSize,
         config.lineHeight,
-        charOffset: match.start,
       );
     } else {
       // Preview mode: scroll to line
-      final lineNumber = text.substring(0, match.start).split('\n').length;
+      final lineNumber = TextSearch.lineIndexOf(text, match.start) + 1;
       ref.read(editorProvider.notifier).scrollToLine(lineNumber);
     }
   }
