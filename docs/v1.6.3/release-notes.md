@@ -351,6 +351,17 @@ One thing changed with it: in preview mode, where there is no text field, the ta
 commands are greyed out. They used to light up for a position built from whatever
 the source pane last reported, which is not somewhere the reader can see.
 
+### Exporting Word over a file you already have cannot destroy it
+
+The picker asks whether to replace, so exporting over an earlier `.docx` is an
+ordinary thing to do — and the write truncated that file the moment it opened
+it. A failure after that left nothing behind: a full disk, no permission, or, on
+Windows, the same document still open in Word, which locks it.
+
+HTML and PDF have been written through a scratch file and swapped into place for
+a while. Word's write was inside the package that builds the document, where a
+search of this repository does not find it. It goes through the same path now.
+
 ### The encoding shown is the encoding written
 
 A document read as Latin-1 or GBK, with a character that encoding cannot carry
@@ -743,6 +754,15 @@ Mermaid 包够不到编辑器的翻译，所以它自带的错误框按设计是
 
 随之改变的一件事：预览模式下没有文本框，表格命令现在**置灰**。以前它们会按源码窗格
 最后报告的位置点亮，而那个位置读者在预览里看不见。
+
+### 导出 Word 覆盖已有文件，不会再毁掉它
+
+选择框会问「要替换吗」，所以覆盖上一份 `.docx` 是很平常的操作——而那次写入**一打开
+目标文件就把它截断**。此后一旦失败就什么都不剩：磁盘满、没有权限，或者在 Windows 上
+那份文档仍开在 Word 里（它会加锁）。
+
+HTML 与 PDF 早就改成「写临时文件再换过去」了。Word 的写盘在负责生成文档的那个包里，
+**在本仓库里搜不到**。现在它走同一条路。
 
 ### 状态栏显示的编码，就是真正写盘的编码
 

@@ -396,7 +396,21 @@ class ExportService {
     }
 
     final doc = builder.build();
-    await DocxExporter().exportToFile(doc, savePath);
+    // The bytes, and the write is ours. `DocxExporter.exportToFile` goes
+    // through the package's own `FileSaver.save`, which is a plain
+    // `File(path).writeAsBytes` — it truncates the destination the moment it
+    // opens it, so a write that then fails leaves nothing where the reader's
+    // previous export was. That is the failure [FileService.writeBytesAtomically]
+    // was made public for, and both the other two formats have gone through it
+    // for a while; this one's write was inside a package, where a search of
+    // `lib/` does not find it.
+    //
+    // On Windows the case is not hypothetical: a `.docx` open in Word is locked,
+    // so the write fails — after the truncation.
+    await FileService.writeBytesAtomically(
+      savePath,
+      await DocxExporter().exportToBytes(doc),
+    );
   }
 
   static DocxDocumentBuilder _addNodeToDocx(

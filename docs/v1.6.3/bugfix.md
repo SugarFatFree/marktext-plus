@@ -48,6 +48,7 @@
 | BUG-463 | 2026-09-13 | 阿拉伯语下三个指向性图标指着相反方向，折叠文件夹的箭头背对它要展开的地方 | P2 | 已修复 |
 | BUG-464 | 2026-09-13 | 拖入或双击打开一个读不了的文件：标签页闪一下就消失，什么也不说 | P1 | 已修复 |
 | BUG-465 | 2026-09-13 | Ctrl+S／另存为／覆盖都丢掉「实际写盘用了哪种编码」，状态栏从此说谎 | P1 | 已修复 |
+| BUG-466 | 2026-09-13 | 导出 Word 覆盖已有文件时先截断再写，失败一次就毁掉上一份导出 | P1 | 已修复 |
 
 ---
 
@@ -3270,3 +3271,97 @@ Future<void> markSaved(String id, {required FileEncoding written}) async
 
 第一条测试里还先断言了「Latin-1 确实装不下这段中文、写盘确实退回了 UTF-8」——
 否则这个用例可能什么都没造出来就绿了。
+
+---
+
+## BUG-466：导出 Word 会先截断目标文件，写失败就毁掉上一份
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-466 |
+| 日期 | 2026-09-13 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+
+### 现象
+
+「导出 ▸ Word」，在选择框里挑一个**已经存在**的 `.docx`（选择框会问「要替换吗」）。
+如果写入过程中失败——磁盘满、权限、**或者那个文件正被 Word 打开（Windows 上会加锁）**
+——**上一份导出已经没了**：它在写入开始前就被截断成 0 字节。
+
+### 根因：写盘藏在第三方包里，grep `lib/` 看不见
+
+`FileService.writeBytesAtomically` 的文档注释写着这条规则和它的由来：
+
+> A plain `writeAsBytes` truncates the file the moment it opens it … Killed
+> process, full disk, lost power, and the file is empty or half written with
+> nothing to recover from. … **Public because the exports need it too.**
+> Exporting over a file that already exists — which the picker invites, by
+> asking whether to replace it — had the truncating behaviour, so a failed
+> export destroyed the previous one.
+
+HTML 与 PDF 都照做了（`export_service.dart:233`、`:255`）。**Word 没有**，而且原因很具体：
+它的写盘不在这个仓库里——
+
+```dart
+// export_service.dart（改之前）
+await DocxExporter().exportToFile(doc, savePath);
+
+// docx_creator-1.3.2/lib/src/utils/file_saver_io.dart
+static Future<void> save(String filePath, Uint8List bytes) async {
+  final file = File(filePath);
+  await file.writeAsBytes(bytes);      // ← 一打开就截断
+}
+```
+
+**在 `lib/` 里搜 `writeAsBytes` 永远找不到它。** 这是「一条规则的第三份副本没跟上」
+的一个新变种：那份副本不在你的代码里。
+
+### 修复
+
+要字节，自己写：
+
+```dart
+await FileService.writeBytesAtomically(
+  savePath,
+  await DocxExporter().exportToBytes(doc),
+);
+```
+
+`exportToBytes` 是那个包的公开方法，所以不需要改包或换包。
+
+### 怎么把它测出来（这一步是关键）
+
+「写到一半失败」在测试里不好造。但两种写法有一个**可观测的区别**：
+
+| 写法 | 需要什么权限 |
+|------|-------------|
+| `File(dest).writeAsBytes` | 对**文件**的写权限（要打开它） |
+| 临时文件 + `rename` | 对**目录**的写权限（不打开目标） |
+
+所以**一个只读文件放在可写目录里**能把两者分开：原子写替换成功，直接写 EACCES。
+这一点是**先在本机量过**再写测试的（`chmod 444` + `os.replace` 各试一次），
+而不是照理论假设。
+
+变异（退回 `DocxExporter().exportToFile`）红在正确的位置，并给出机制性证据：
+
+```
+DocxExportException (DOCX): Failed to write file:
+PathAccessException: Cannot open file … (OS Error: Permission denied, errno = 13)
+```
+
+测试里还先断言了「这个文件确实无法被打开写入」——否则用例可能什么都没造出来就绿了。
+
+### 顺带扫过、确认无同类问题的地方
+
+- **其他「把字节交给第三方包落盘」的调用**：没有了（`pdf` 包返回字节由我们写，
+  Mermaid 图片导出用的也是 `writeBytesAtomically`）。
+- **`sanitiseHtmlForExport` 有没有被接上**：有，在 `nodeToHtml` 里，HTML 导出与
+  富文本复制都经过它。PDF/DOCX 不产出 HTML，与它无关——一开始我的粗筛显示
+  「四处都没清洗」，那是按字符窗口切分造成的假象。
+- **导出成功/失败是否上报**：四条路都包在 `runExport` 里，两者都会说。
+
+### 涉及文件
+
+- `code/lib/services/export_service.dart`
+- `code/test/services/an_export_never_truncates_what_it_replaces_test.dart`（新增 3 条）
