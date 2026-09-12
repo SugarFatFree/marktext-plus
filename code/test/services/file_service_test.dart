@@ -17,18 +17,13 @@ void main() {
   });
 
   group('FileService', () {
-    test('readFile returns content of existing file', () async {
-      final path = '${tempDir.path}/test.md';
-      File(path).writeAsStringSync('# Hello');
-      final content = await service.readFile(path);
-      expect(content, '# Hello');
-    });
-
-    test('writeFile creates and writes file', () async {
-      final path = '${tempDir.path}/output.md';
-      await service.writeFile(path, '# World');
-      expect(File(path).readAsStringSync(), '# World');
-    });
+    // `readFile` and `writeFile` were tested here and called nowhere else.
+    // They were the unsafe halves of two rules this file spends paragraphs
+    // explaining: reading without the line ending or the baseline that goes
+    // with it, and writing with a `writeAsString` that truncates the file the
+    // moment it opens it. Left in place they were the version the next person
+    // would find first. `readFileWithLineEnding` and `writeBytesAtomically`
+    // are what the application uses, and now the only thing it can.
 
     test('listDirectory returns file nodes', () async {
       File('${tempDir.path}/a.md').writeAsStringSync('');

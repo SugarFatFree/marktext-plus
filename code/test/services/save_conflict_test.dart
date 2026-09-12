@@ -407,4 +407,56 @@ void main() {
         .toList();
     expect(leftovers, isEmpty, reason: '临时文件留在了用户的文件夹里');
   });
+
+  group('the baseline is taken before the bytes, not after', () {
+    // The two are not the same moment, and which side a concurrent write falls
+    // on decides whether the reader is asked or quietly overruled:
+    //
+    //   stamp, write, read   → tab holds the write, baseline predates it
+    //                          → next save raises a conflict → the reader
+    //                            decides (and their tab already has it)
+    //   read, write, stamp   → tab holds the older bytes, baseline describes
+    //                          the write → the check sees nothing → the next
+    //                            save writes over it without a word
+    //
+    // The second is the outcome the whole stamp exists to prevent, and it is
+    // the order the code used — under a comment arguing for the first.
+    test('a write between the baseline and the read is still noticed',
+        () async {
+      var rewritten = false;
+      final opened = await FileService().readFileWithLineEnding(
+        path,
+        betweenStampAndRead: () async {
+          File(path).writeAsStringSync('somebody else got here first\n');
+          rewritten = true;
+        },
+      );
+      expect(rewritten, isTrue, reason: '接缝没有被调用，这个用例什么也没造出来');
+
+      // The content is what the writer left, because the read came after it.
+      expect(opened.content, 'somebody else got here first\n');
+      // And the baseline says the file is not what it was — so a save made now
+      // asks rather than overwriting.
+      expect(
+        await FileService.hasChangedSince(path, opened.stamp),
+        isTrue,
+        reason: '基准把那次写入算成了「已经看过」，'
+            '下一次保存会不声不响地盖掉它',
+      );
+      await expectLater(
+        FileService.saveDocumentIfUnchanged(path, 'mine\n',
+            expect: opened.stamp),
+        throwsA(isA<FileChangedOnDiskException>()),
+      );
+    });
+
+    test('with nothing in between, the baseline matches what was read',
+        () async {
+      // The ordinary case has to stay ordinary: no conflict out of nowhere on
+      // every open.
+      final opened = await FileService().readFileWithLineEnding(path);
+      expect(opened.content, 'original\n');
+      expect(await FileService.hasChangedSince(path, opened.stamp), isFalse);
+    });
+  });
 }

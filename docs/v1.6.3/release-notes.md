@@ -351,6 +351,21 @@ One thing changed with it: in preview mode, where there is no text field, the ta
 commands are greyed out. They used to light up for a position built from whatever
 the source pane last reported, which is not somewhere the reader can see.
 
+### Rereading a file in another encoding is a way out of a conflict again
+
+When something else rewrites a file you have open, the status bar says so and
+offers three ways out: reload, overwrite, or read it again in an encoding you
+pick. The third put the banner away and left the baseline describing the file as
+it was *before* the rewrite — so the next save raised the same conflict, over a
+change already sitting in your tab. It now records what it read.
+
+Underneath both: that baseline was taken after the bytes rather than before
+them, so a write landing between the two was recorded as already seen and the
+next save went over it without asking. The comment beside the code argued for
+the other order; the code has been brought round to it. Two reading and writing
+helpers that nothing used — one of which truncated the file it opened — are
+gone, so the unsafe version is no longer the one found first.
+
 ### Jumping to a line goes to that line, and typewriter mode works at all
 
 Six things ask the editing pane to go to a line: the outline, the sidebar's two
@@ -690,6 +705,18 @@ Mermaid 包够不到编辑器的翻译，所以它自带的错误框按设计是
 
 随之改变的一件事：预览模式下没有文本框，表格命令现在**置灰**。以前它们会按源码窗格
 最后报告的位置点亮，而那个位置读者在预览里看不见。
+
+### 「按别的编码重读」重新成为一条走得通的出路
+
+打开的文件被别的程序改写时，状态栏会说明，并给出三条出路：重新加载、覆盖、
+或按你选的编码重新读取。第三条会把横幅收起来，却让基准继续描述**改写之前**的
+文件——于是下一次保存又弹出同一个冲突，而冲突的内容正是你标签页里已经有的那份。
+现在它会记下自己读到的东西。
+
+两者底下还有一层：那个基准是**在读完字节之后**取的，而不是之前，所以落在两者之间
+的写入会被记成「已经看过」，下一次保存不问一声就盖过去。代码旁边的注释主张的正是
+另一种顺序，现在代码跟上了。另外删掉了两个没人用的读写辅助方法——其中一个一打开
+文件就把它截断——这样先被找到的不再是不安全那半。
 
 ### 跳到某一行会真的跳到那一行，打字机模式也终于生效
 

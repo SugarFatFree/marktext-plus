@@ -23,14 +23,6 @@ class PathExistsException implements Exception {
 class FileService {
   /// Reads [path] as text, normalised to LF.
   ///
-  /// Goes through the same decode as [readFileWithLineEnding]: two ways of
-  /// reading a document is how one of them ends up unable to open a file the
-  /// other can.
-  Future<String> readFile(String path) async {
-    final (content, _) = FileEncoding.decode(await File(path).readAsBytes());
-    return normalizeLineEndings(content);
-  }
-
   /// Reads [path] and reports which line ending it used.
   ///
   /// The editor works in LF throughout, but saving has to put back what the
@@ -41,13 +33,32 @@ class FileService {
   /// tab with no stamp cannot be saved at all — "we never looked" and "the
   /// file was not there" are the same thing to the check. That window was
   /// short enough to pass on this machine and long enough to fail on CI.
+  ///
+  /// [betweenStampAndRead] exists so a test can produce the interleaving this
+  /// order is for — a write landing after the baseline was taken and before
+  /// the bytes were. Nothing in the application passes it, the same way
+  /// [renameWithRetry] takes its seams.
   Future<
       ({
         String content,
         LineEnding lineEnding,
         FileEncoding encoding,
         ({DateTime modified, int size})? stamp,
-      })> readFileWithLineEnding(String path) async {
+      })> readFileWithLineEnding(
+    String path, {
+    Future<void> Function()? betweenStampAndRead,
+  }) async {
+    // Before the bytes, not after them. A write landing between the two is
+    // then outside the baseline and inside the content: the next save compares
+    // the file against a stamp that predates that write, raises a conflict,
+    // and the reader decides. Taken afterwards, the same write is *inside* the
+    // baseline — the check sees nothing to report and the save writes over it
+    // without a word, which is the one outcome this stamp exists to prevent.
+    // The comment that used to sit on the return argued for exactly this and
+    // described the other order.
+    final stamp = await stampOf(path);
+    if (betweenStampAndRead != null) await betweenStampAndRead();
+
     // Bytes, not readAsString: that throws on anything but UTF-8, and the tab
     // then disappeared without a word. It also swallows a UTF-8 byte order
     // mark, so a file written by Notepad lost it the first time it was saved.
@@ -84,9 +95,7 @@ class FileService {
       content: content,
       lineEnding: LineEnding.detect(raw),
       encoding: encoding,
-      // After the read, so a write that lands between the two is noticed by
-      // the next save rather than being baked in as the baseline.
-      stamp: await stampOf(path),
+      stamp: stamp,
     );
   }
 
@@ -261,10 +270,6 @@ class FileService {
         await pause(delays[attempt]);
       }
     }
-  }
-
-  Future<void> writeFile(String path, String content) async {
-    await File(path).writeAsString(content);
   }
 
   /// Reads one level of [dirPath]. Directories first, then files, each group

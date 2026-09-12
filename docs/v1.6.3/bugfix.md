@@ -42,6 +42,8 @@
 | BUG-457 | 2026-09-12 | 大纲/侧栏搜索/预览点击跳到某一行，落点差一整屏（实测那行在视口下方 1497 px） | P1 | 已修复 |
 | BUG-458 | 2026-09-12 | 打字机模式一直是失效的：动画刚开始就被 `_showCaret` 跳回去 | P1 | 已修复 |
 | BUG-459 | 2026-09-12 | SDK 向作者承诺三个窗格槽位，分屏时只画两个，两侧都没说 | P2 | 已修复 |
+| BUG-460 | 2026-09-12 | 「按别的编码重读」清掉了冲突横幅却不更新基准，下一次保存又冲突 | P1 | 已修复 |
+| BUG-461 | 2026-09-12 | 基准戳取在读之后，落在中间的写入被算成「已看过」，保存时静默盖掉 | P1 | 已修复 |
 
 ---
 
@@ -2790,3 +2792,126 @@ WidgetsBinding.instance.addPostFrameCallback((_) {
 |------|------|
 | 抽掉俄语译本里的 `◆` | 红：「README_ru-RU.md 有 0 个 ◆，应当是 1 个」 |
 | 让宫格在分屏下画三个 | 红：「分栏只剩两格……SDK 的 12 份文档里那处 ◆ 要跟着改」 |
+
+---
+
+## BUG-460：「按别的编码重读」清掉横幅却不更新基准
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-460 |
+| 日期 | 2026-09-12 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+
+### 现象
+
+文件被别的程序改写，状态栏升起「磁盘上已改变」的横幅。读者从状态栏选一种编码
+**重新读取**（这是编辑器提供的三条出路之一）——**横幅消失了**，看起来解决了。
+接着编辑、保存，**同一个冲突又弹出来**，而冲突的内容正是读者刚刚自己读进来的。
+
+### 根因：一条规则内联了 8 份，其中一份漏了
+
+`tab_provider.refreshDiskStamp` 的文档注释写着：
+
+> Called wherever a document arrives from disk or goes to it. Doing it at each
+> of those call sites instead would mean **one of them eventually not doing it**
+> — and a tab with no stamp is a tab whose saves are unchecked, **which looks
+> exactly like a tab that is fine**.
+
+**而这个方法在 lib 里一个调用者都没有。** 基准戳是在 8 个地方内联设置的
+（`markdown_renderer:713`、`app_menu_bar:155/1587`、`tab_provider:496/572/657/689/863`）
+——正是它警告的那种做法。把「文档进／出磁盘」的路径全部枚举后，**漏的那一个是
+`rereadAs`**：它绕过 `readFileWithLineEnding`（那个把内容与基准一起交回的 helper），
+直接 `File(...).readAsBytes()`，于是没有戳可传。
+
+最糟的是**组合**：`loadTabContent` 会把 `diskConflict` 清成 `false`，
+而 `copyWith` 对 `stamp: null` 的语义是**保留旧值**。所以重读之后：
+
+| 字段 | 结果 |
+|------|------|
+| `diskConflict` | 清掉了——横幅消失，看起来是一条出路 |
+| `diskStamp` | **还是改动之前那个** |
+
+### 修复
+
+`rereadAs` 取基准并传下去。这条路**不能**直接用 helper（它必须按读者选的编码解码，
+而不是按探测猜的），所以顺序照 helper 那一条：**先取基准，再读字节**。
+
+### 涉及文件
+
+- `code/lib/providers/tab_provider.dart`
+- `code/test/providers/reread_encoding_test.dart`（新增一组两条）
+
+### 验证
+
+两条测试都**先于修复写好并失败**，第二条直接抛出 `FileChangedOnDiskException`
+——即读者用了「三条出路」之一，保存却照旧冲突。变异（`stamp: null`）后重新变红。
+
+---
+
+## BUG-461：基准戳取在读之后，落在中间的写入会被静默盖掉
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-461 |
+| 日期 | 2026-09-12 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+
+### 根因：注释说的是对的，代码做的是相反的
+
+`readFileWithLineEnding` 的返回处写着：
+
+> After the read, so a write that lands between the two is **noticed by the next
+> save** rather than being baked in as the baseline.
+
+**这个理由成立，但它要求的顺序正好相反。** 展开两种排列：
+
+| 顺序 | 并发写入落在哪 | 下一次保存 |
+|------|---------------|-----------|
+| 取戳 → 写入 → 读 | 基准**早于**那次写入；内容里已有它 | 文件 ≠ 基准 → **升起冲突，读者决定** |
+| 读 → 写入 → 取戳 | 基准**正好包含**那次写入；内容里没有它 | 文件 == 基准 → 检查无话可说 → **不声不响盖掉** |
+
+第二种就是这整套基准要防的那一件事，而它是代码当时的顺序。
+
+### 修复
+
+把 `stampOf` 挪到读字节之前，并加一个测试接缝
+`betweenStampAndRead`——让测试**造得出**这个交错（照 `renameWithRetry` 的先例，
+那里已经有 `rename`/`wait` 两个接缝，理由写在文档里）。
+
+### 顺带删掉两个「不安全的死孪生」
+
+这次调查的入口是 `FileService.writeFile`：一个**裸 `writeAsString`**、
+lib 里没有任何调用者、只有一条测它自己的测试。旁边就是
+`writeBytesAtomically`，它的文档用一整段解释为什么截断不可接受。
+`readFile` 同样：没人走，而且丢掉换行风格与基准。
+
+两个都删了。**留着它们，下一个人先找到的就是不安全那半。**
+
+### 为什么守卫没抓到
+
+`nothing_is_written_and_left_unused_test`（名字听起来正好管这件事）**只查类型**，
+成员只在 extension 里查；而且「测试里用到」也算用到。所以一个公开的服务方法
+只有测它自己的测试时，它是隐形的。
+
+**没有去扩这条守卫**：把它推广到所有方法会报出每个 `build`、每个 override，
+噪声大到得写一长串豁免。这次改成**手动扫一遍服务层与状态层**
+（16 处命中，逐个进文件确认：4 处是我扫描器误读构造/throw 行，
+3 处 `*ForTest` 是刻意的，`startPlugin` 是已记录的 ‡，`isNewer` 是
+`@visibleForTesting`，`configDirectory`/`sourceOf`/`closeAll` 属同类）
+——**产出是顺着名单读代码时撞到的 BUG-460**，而不是那条守卫。
+
+### 涉及文件
+
+- `code/lib/services/file_service.dart`
+- `code/test/services/save_conflict_test.dart`（新增一组两条）
+- `code/test/services/file_service_test.dart`（删掉两条，留下为什么）
+
+### 验证
+
+新测试用接缝在「取戳」与「读」之间写入文件，断言**内容是写入者留下的**、
+而**基准说文件已变**、并且此时保存会抛 `FileChangedOnDiskException`。
+变异回旧顺序后变红。另有一条守住寻常情形：中间什么都没发生时，
+基准与读到的内容一致（否则就是每次打开都无端冲突）。

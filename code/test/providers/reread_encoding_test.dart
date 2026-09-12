@@ -9,6 +9,7 @@ import 'package:marktext_plus/models/file_encoding.dart';
 import 'package:marktext_plus/models/tab_info.dart';
 import 'package:marktext_plus/providers/settings_provider.dart';
 import 'package:marktext_plus/providers/tab_provider.dart';
+import 'package:marktext_plus/services/file_service.dart';
 
 /// Saying what a file really is when the guess got it wrong.
 ///
@@ -118,5 +119,79 @@ void main() {
     ));
 
     expect(await tabs.rereadAs('untitled', FileEncoding.gbk), isFalse);
+  });
+
+  group('a reread is one of the three ways out of a disk conflict', () {
+    /// Opens a file the way every real call site does — with the stamp that
+    /// describes the bytes just read.
+    Future<TabInfo> openWithStamp(List<int> bytes) async {
+      final file = File('${root.path}/note.md')..writeAsBytesSync(bytes);
+      final (text, encoding) = FileEncoding.decode(Uint8List.fromList(bytes));
+      container.read(tabProvider.notifier).addTab(
+            TabInfo(
+              id: 'note',
+              filePath: file.path,
+              fileName: 'note.md',
+              content: text,
+              encoding: encoding,
+              diskStamp: await FileService.stampOf(file.path),
+            ),
+          );
+      return container.read(tabProvider).tabs.single;
+    }
+
+    TabInfo tabNow() => container.read(tabProvider).tabs.single;
+
+    /// Rewrites the file with something else, in the same encoding, long
+    /// enough that the stamp differs whatever the clock's resolution is.
+    Future<void> somebodyElseRewrites(String path) async {
+      File(path).writeAsBytesSync([...gbkBytes, ...gbkBytes, ...gbkBytes]);
+      // A modification time a filesystem cannot round away.
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+    }
+
+    test('the stamp after a reread describes the file that was read',
+        () async {
+      final tab = await openWithStamp(gbkBytes);
+      await somebodyElseRewrites(tab.filePath!);
+
+      await container
+          .read(tabProvider.notifier)
+          .rereadAs(tab.id, FileEncoding.gbk);
+
+      // The tab now holds what the file holds, so the baseline has to say so.
+      // It used to keep the stamp taken before the rewrite: `copyWith` reads a
+      // null stamp as "leave it alone", and `rereadAs` passed none.
+      expect(
+        await FileService.hasChangedSince(tab.filePath!, tabNow().diskStamp),
+        isFalse,
+        reason: '重读之后基准仍描述改动前的文件——下一次保存会把'
+            '读者自己刚读进来的内容报成「别人改了」',
+      );
+    });
+
+    test('a save after a reread is not a conflict', () async {
+      // What the reader actually does: the banner says the file changed, they
+      // pick their encoding from the status bar to see it properly, the banner
+      // clears — `loadTabContent` clears it — and then the save they make next
+      // raises the same conflict again, for a change that is already in their
+      // tab.
+      final tab = await openWithStamp(gbkBytes);
+      await somebodyElseRewrites(tab.filePath!);
+      await container
+          .read(tabProvider.notifier)
+          .rereadAs(tab.id, FileEncoding.gbk);
+      expect(tabNow().diskConflict, isFalse,
+          reason: '重读清掉了横幅，所以它自称是一条出路');
+
+      await expectLater(
+        FileService.saveDocumentIfUnchanged(
+          tab.filePath!,
+          'mine\n',
+          expect: tabNow().diskStamp,
+        ),
+        completes,
+      );
+    });
   });
 }

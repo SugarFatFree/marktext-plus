@@ -404,6 +404,11 @@ class TabNotifier extends StateNotifier<TabState> {
     final tab = state.tabs.where((t) => t.id == id).firstOrNull;
     if (tab == null || tab.filePath == null || tab.isModified) return false;
 
+    // The baseline first, then the bytes — the order [readFileWithLineEnding]
+    // uses, and for the same reason. This path cannot call that helper because
+    // it must decode as the encoding the reader chose rather than the one
+    // detection guesses.
+    final stamp = await FileService.stampOf(tab.filePath!);
     final bytes = await File(tab.filePath!).readAsBytes();
     final text = FileEncoding.decodeAs(bytes, encoding);
     loadTabContent(
@@ -411,6 +416,11 @@ class TabNotifier extends StateNotifier<TabState> {
       FileService.normalizeLineEndings(text),
       lineEnding: LineEnding.detect(text),
       encoding: encoding,
+      // Without this the tab kept the stamp from before the file was last
+      // rewritten, while `loadTabContent` cleared the conflict banner: a way
+      // out of the conflict that put the banner away and left the next save to
+      // raise it again. `copyWith` reads a null stamp as "leave it alone".
+      stamp: stamp,
     );
     return true;
   }
