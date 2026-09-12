@@ -41,6 +41,7 @@
 | BUG-456 | 2026-09-12 | 格式工具条按行号定位，长行换行或滚动后浮在别处（实测偏 13 744 px） | P1 | 已修复 |
 | BUG-457 | 2026-09-12 | 大纲/侧栏搜索/预览点击跳到某一行，落点差一整屏（实测那行在视口下方 1497 px） | P1 | 已修复 |
 | BUG-458 | 2026-09-12 | 打字机模式一直是失效的：动画刚开始就被 `_showCaret` 跳回去 | P1 | 已修复 |
+| BUG-459 | 2026-09-12 | SDK 向作者承诺三个窗格槽位，分屏时只画两个，两侧都没说 | P2 | 已修复 |
 
 ---
 
@@ -2696,3 +2697,96 @@ WidgetsBinding.instance.addPostFrameCallback((_) {
 因为打字机模式现在**顶替**了 `_showCaret`，它必须也承担「让光标可见」这个职责，
 所以补了一条**最后一行**的测试（最后一行无法居中，只能靠 clamp 落在可见处）。
 第四条变异正是针对这个新引入的风险。
+
+---
+
+## BUG-459：SDK 承诺三个槽位，分屏时只画两个，两侧都没说
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-459 |
+| 日期 | 2026-09-12 |
+| 优先级 | P2 |
+| 状态 | 已修复 |
+
+### 现象
+
+插件作者按 SDK 写满三个槽位（`right` / `bottom` / `corner`），**读者若在分屏里读，
+第三个窗格不会被画出来，也没有任何提示**。作者的一个晚上换来「装上了、命令跑了、
+什么也没出现」。
+
+### 根因：一侧承诺，另一侧实现，没人说这句话在分屏时不成立
+
+分屏的文档**自己占两格**（源码与预览本来就是一次分割；把它算成一格，曾经导致
+源码、预览、翻译三栏并排——那是修过的旧缺陷）。所以分屏时旁边只剩两格。
+
+`plugin_panes.dart` 的注释**自己承认**了这件事：
+
+> Four cells is the most there are, so a split document leaves room for two panes
+> and **any beyond that are not drawn**.
+
+而三处对外的说法都没有提它：
+
+| 说法在哪 | 原文怎么说 |
+|---------|-----------|
+| SDK README + 11 份翻译 | 只说「With three cells and a document that is **not split**…」，分屏的情形一字未提 |
+| `PluginPaneSlot` 的文档注释 | 「a plugin may fill the other three」——无条件 |
+| 布局测试的文件注释 | 同上 |
+
+讽刺的是 SDK 在同一节里写着原则：
+
+> A slot name the editor does not know is **refused rather than guessed at**:
+> a pane appearing somewhere you did not ask for, with no way to find out why,
+> is worse than being told.
+
+### 为什么这次只补说法，不改宫格
+
+**这个洞目前不可达**：`PluginPaneSlot` 只有三个值，而现存唯一的插件（官方 AI 助手）
+只用 `bottom` 与 `right`（`plugin.lua` 五处 `slot =`，核对过）。要触发它需要一个
+填满三个槽位的第三方插件。
+
+而每一种「完整」的修法都要动宫格——用户已三次要求**宫格定死别再改**：
+
+| 想过的修法 | 为什么不做 |
+|-----------|-----------|
+| 分屏时把文档算成一格 | 正是被修过的旧缺陷（三栏并排） |
+| 画最近的两个 | 窗格会无声地消失，换一种静默 |
+| 抛异常拒绝 | 完整，但要新增 12 种语言的文案，为一个不可达的情形 |
+| 第三个改走悬浮卡片 | 流式追加会在另一行留下新的静默缺口 |
+
+所以这次做的是：**把承诺改成真的，并让测试盯住它**。等到真有插件填满三个槽位，
+或用户要求改宫格时，再动布局。
+
+### 修复
+
+| 位置 | 改动 |
+|------|------|
+| SDK README + 11 份翻译 | 三宫格那一段下面加一句，带 `◆` 标记：分屏的文档占两格，第三个槽位在读者离开分屏前不会被画 |
+| `plugin_script_runtime.PluginPaneSlot` | 文档注释加上分屏的条件，并指向 `◆` 与对账测试 |
+| `plugin_panes_layout_test` | 文件注释说明为什么是两格；**两条新的行为守卫** |
+| `the_sdk_says_what_the_editor_does_not_do_test` | 新增一组：12 份文档必须各带**恰好一处** `◆` |
+
+`◆` 是这里第三个这类标记，前两个是 `†`（接受但不生效的权限）与 `‡`（编译型运行时
+不被启动）。每个标记都有一条对账测试，这条照着写。
+
+### 一处我特意没有加的守卫
+
+原先还写了一条「从 `plugin_panes.dart` 源码里 grep `documentCells == 2`」。**删掉了**：
+改个变量名就会让它红，而承诺其实一点没变。行为已经由隔壁
+`plugin_panes_layout_test` 的两条测试钉住，那条的 `reason` 里直接写明
+「如果改成画三个，SDK 那 12 处 ◆ 要跟着改」——**会叫的守卫要叫在真出事的时候**，
+否则它是下一个被人删掉的。
+
+### 涉及文件
+
+- SDK：`README.md` + `docs/i18n/README_*.md`（共 12 份）
+- `code/lib/services/plugin_script_runtime.dart`
+- `code/test/ui/widgets/plugin_panes_layout_test.dart`
+- `code/test/services/the_sdk_says_what_the_editor_does_not_do_test.dart`
+
+### 验证：两次变异
+
+| 变异 | 结果 |
+|------|------|
+| 抽掉俄语译本里的 `◆` | 红：「README_ru-RU.md 有 0 个 ◆，应当是 1 个」 |
+| 让宫格在分屏下画三个 | 红：「分栏只剩两格……SDK 的 12 份文档里那处 ◆ 要跟着改」 |

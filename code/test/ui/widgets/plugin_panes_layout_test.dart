@@ -17,6 +17,13 @@ import 'package:marktext_plus/ui/widgets/plugin_panes.dart';
 /// The document holds the first; a plugin may fill the other three. Nothing is
 /// drawn for a slot no plugin asked for — an empty pane is a strip of nothing
 /// taking space from the document.
+///
+/// A document being read in split view is two of those cells, not one: source
+/// and preview are already a division, and counting them as one cell put
+/// source, preview and a translation side by side in three columns. So beside
+/// a split document there is room for two panes and not three — which is a
+/// promise the SDK has to make to authors, and the reason the marked sentence
+/// in its twelve documents exists.
 void main() {
   late Directory configDir;
 
@@ -56,12 +63,15 @@ void main() {
   ///
   /// The tab matters: a pane belongs to the document it was opened beside, so
   /// with no active tab there is nothing to draw one next to.
-  ProviderContainer withPanes(Map<PluginPaneSlot, String> panes) {
+  ProviderContainer withPanes(
+    Map<PluginPaneSlot, String> panes, {
+    EditMode mode = EditMode.source,
+  }) {
     final container = ProviderContainer(overrides: [
       settingsProvider.overrideWith(
         (ref) => SettingsNotifier(
           ConfigService(configDir: configDir.path),
-          AppConfig(),
+          AppConfig(editMode: mode),
         ),
       ),
     ]);
@@ -176,5 +186,45 @@ void main() {
     expect(find.byType(PluginPaneView), findsNothing);
     final document = tester.getSize(find.byKey(const Key('document')));
     expect(document.width, area(tester).width);
+  });
+
+  testWidgets('beside a split document there is room for two panes, not three',
+      (tester) async {
+    // Not a cap someone put on the plugin: the cells are all used. Pinned
+    // because the SDK tells authors so in twelve documents, and the editor is
+    // the only side that knows whether it is still true — if this starts
+    // drawing three, `the_sdk_says_what_the_editor_does_not_do_test` is where
+    // the sentence to change is listed.
+    await pump(
+      tester,
+      withPanes(const {
+        PluginPaneSlot.right: 'one',
+        PluginPaneSlot.bottom: 'two',
+        PluginPaneSlot.corner: 'three',
+      }, mode: EditMode.split),
+    );
+
+    expect(find.byType(PluginPaneView), findsNWidgets(2),
+        reason: '分屏的文档占两格，旁边只剩两格。如果这里改成画三个，'
+            'SDK 的 12 份文档里那处 ◆ 的说法要跟着改——'
+            '见 the_sdk_says_what_the_editor_does_not_do_test');
+  });
+
+  testWidgets('two panes beside a split document are both drawn',
+      (tester) async {
+    await pump(
+      tester,
+      withPanes(const {
+        PluginPaneSlot.right: 'one',
+        PluginPaneSlot.bottom: 'two',
+      }, mode: EditMode.split),
+    );
+
+    expect(find.byType(PluginPaneView), findsNWidgets(2));
+    final document = tester.getSize(find.byKey(const Key('document')));
+    final size = area(tester);
+    expect(document.width, size.width,
+        reason: '分屏的文档自己占满一行，两个窗格分下面那一行');
+    expect(document.height, lessThan(size.height));
   });
 }

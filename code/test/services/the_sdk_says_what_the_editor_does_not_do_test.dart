@@ -120,4 +120,24 @@ void main() {
       }
     });
   });
+
+  group('the editor still draws two of three slots beside a split document',
+      () {
+    // The behaviour is pinned next door, in `plugin_panes_layout_test`: if the
+    // grid starts drawing three panes beside a split document, that guard
+    // fails first and its reason sends whoever did it here. Not asserted again
+    // from this side by reading the source — a rename would fail it while
+    // nothing about the promise had changed, and a guard that cries wolf is
+    // the one people delete.
+
+    test('every SDK README carries the mark that says so', () {
+      for (final file in readmes()) {
+        final marks = file.readAsStringSync().split('◆').length - 1;
+        expect(marks, 1,
+            reason: '${file.path} 有 $marks 个 ◆，应当是 1 个：'
+                '三宫格那一段下面，说明分屏的文档占两格、第三个槽位不会被画。'
+                '少了它，作者填满三个槽位又在分屏里读，会看不到自己要的东西');
+      }
+    }, skip: skip);
+  });
 }

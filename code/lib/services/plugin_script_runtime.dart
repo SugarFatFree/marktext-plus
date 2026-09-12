@@ -109,7 +109,11 @@ class PluginShowAction extends PluginScriptAction {
 ///
 /// The editor already splits a tab between source and preview; this is that
 /// split offered to a plugin. The document keeps the first cell of a two by
-/// two grid and a plugin may fill the other three.
+/// two grid and a plugin may fill the other three — the other two when the
+/// document is being read in split view, because source and preview are
+/// already a division and take a cell each. The SDK's twelve documents say so
+/// beside a `◆`, and `the_sdk_says_what_the_editor_does_not_do_test` holds
+/// them to it.
 enum PluginPaneSlot {
   /// Beside the document.
   right,
