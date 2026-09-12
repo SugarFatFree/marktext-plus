@@ -102,17 +102,6 @@ class SourceEditor extends ConsumerStatefulWidget {
   /// Leading whitespace, hoisted like its two siblings above.
   static final _leadingSpaceRe = RegExp(r'^\s*');
 
-  /// Applies [prefix] to [line].
-  ///
-  /// Toggles off when the line already starts with exactly this prefix, and
-  /// replaces a prefix of the same family otherwise — so applying "bullet
-  /// list" to `1. item` gives `- item`, not `- 1. item`. Leading indentation
-  /// is preserved, since it carries list nesting.
-  ///
-  /// Exposed for testing: this is pure string work, and testing it through the
-  /// widget would need a whole editor to assert one line.
-  /// Result of toggling an inline wrapper.
-  @visibleForTesting
   /// The characters a list action writes in front of a line.
   ///
   /// The bullet the reader chose, for every kind of bullet: a task list wrote
@@ -211,6 +200,11 @@ class SourceEditor extends ConsumerStatefulWidget {
     return level == null ? body : '${'#' * level} $body';
   }
 
+  /// Wraps, or unwraps, the selection in [action]'s markers.
+  ///
+  /// Answers with the whole new text and where the selection should sit in it —
+  /// "result of toggling an inline wrapper", which is what the summary stranded
+  /// four hundred lines above used to say about this record.
   static ({String text, int start, int end}) toggleWrap(
     String text,
     int start,
@@ -774,6 +768,15 @@ class SourceEditor extends ConsumerStatefulWidget {
     return updated.join('\n') + (source.endsWith('\n') ? '\n' : '');
   }
 
+  /// Applies [prefix] to [line].
+  ///
+  /// Toggles off when the line already starts with exactly this prefix, and
+  /// replaces a prefix of the same family otherwise — so applying "bullet
+  /// list" to `1. item` gives `- item`, not `- 1. item`. Leading indentation
+  /// is preserved, since it carries list nesting.
+  ///
+  /// Exposed for testing: this is pure string work, and testing it through the
+  /// widget would need a whole editor to assert one line.
   @visibleForTesting
   static String applyLinePrefix(String line, String prefix) {
     final family = prefix.trimLeft().startsWith('>')

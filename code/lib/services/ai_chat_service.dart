@@ -186,6 +186,8 @@ class AiChatService {
   static Future<String> Function(String prompt, void Function(String soFar) emit)?
       answerFor;
 
+  /// Sends [prompt] to the configured provider and returns what it replied.
+  ///
   /// [reply] bounds the wait for the provider's response headers, and [idle]
   /// inside [readStream] bounds the wait between two lines after that.
   ///
@@ -197,7 +199,6 @@ class AiChatService {
   /// It is here so that a server which accepts the connection and then says
   /// nothing ends in an error rather than in a spinner nobody can stop, and
   /// ten minutes is short enough for that and long enough for the rest.
-  /// Sends [prompt] to the configured provider and returns what it replied.
   static Future<String> complete({
     required AppConfig config,
     required String prompt,

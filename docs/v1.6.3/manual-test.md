@@ -356,4 +356,8 @@
   `control{action:"new_tab"}` → `control{action:"set_content",content:"x"}`
   → `control{action:"close_tab"}` 应当**被拒绝**并说出标签页名字。
 
-<!-- 人工测试已考虑到 BUG-467 -->
+- **BUG-468**（又 10 处文档注释挂错成员）：**不需要人工测试**——一行代码都没改，
+  3483 条测试已覆盖行为。要抽查就读 `lib/providers/tab_provider.dart` 里
+  `markDiskConflict` 上方：现在应当只有属于它自己的那一句。
+
+<!-- 人工测试已考虑到 BUG-468 -->

@@ -43,12 +43,6 @@ final installedPluginSourcesProvider =
   return PluginManager(p.join(directory.path, 'plugins')).sources();
 });
 
-/// Opens a plugin's page as a tab, or returns to the one already open.
-///
-/// The page used to be state that replaced the editor area: whichever document
-/// was open stayed the active tab, stayed highlighted in the tab bar, and had
-/// a plugin page drawn over it. A page the editor has open is a tab, like
-/// everything else it has open.
 /// The directory installed plugins live in.
 final pluginInstallDirectoryProvider = FutureProvider<String>((ref) async {
   final directory = await getApplicationSupportDirectory();
@@ -67,6 +61,12 @@ void openPluginSettingsTab(WidgetRef ref, PluginManifest plugin) {
   ref.read(tabProvider.notifier).addTab(tab);
 }
 
+/// Opens a plugin's page as a tab, or returns to the one already open.
+///
+/// The page used to be state that replaced the editor area: whichever document
+/// was open stayed the active tab, stayed highlighted in the tab bar, and had
+/// a plugin page drawn over it. A page the editor has open is a tab, like
+/// everything else it has open.
 void openPluginDetailTab(WidgetRef ref, PluginCatalogEntry plugin) {
   final tab = TabInfo.pluginDetail(plugin);
   final tabs = ref.read(tabProvider);

@@ -50,6 +50,7 @@
 | BUG-465 | 2026-09-13 | Ctrl+S／另存为／覆盖都丢掉「实际写盘用了哪种编码」，状态栏从此说谎 | P1 | 已修复 |
 | BUG-466 | 2026-09-13 | 导出 Word 覆盖已有文件时先截断再写，失败一次就毁掉上一份导出 | P1 | 已修复 |
 | BUG-467 | 2026-09-13 | 自动化接口的 `close_tab` 把未保存的改动不声不响地丢掉，还回报「已关闭」 | P1 | 已修复 |
+| BUG-468 | 2026-09-13 | 又 10 处文档注释挂在错的成员头上，其中 3 处是我修 BUG-462 时新造的 | P2 | 已修复 |
 
 ---
 
@@ -3449,3 +3450,77 @@ if (closing.isModified) {
 | 拒绝但不说是哪个标签页 | 红：「要说出是哪个标签页，不然调用方无从下手」 |
 
 第一条测试里还先断言了「这个标签页确实被标成已修改」——否则用例可能什么都没造出来就绿。
+
+---
+
+## BUG-468：又 10 处文档注释挂在错的成员头上，其中 3 处是我自己新造的
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-468 |
+| 日期 | 2026-09-13 |
+| 优先级 | P2 |
+| 状态 | 已修复 |
+
+### 怎么发现的
+
+读 `tab_provider` 时撞见：
+
+```dart
+  /// Marks the tab saved and records what the file now looks like, so the
+  /// next save compares against this write rather than the original read.
+  /// Records that a tab's file changed underneath the editor.
+  void markDiskConflict(String id) => _setDiskConflict(id, true);
+```
+
+第一句是 `_markSavedWithStamp` 的文档——**BUG-465 里我删掉了那个方法，却把它的文档留下了**。
+正是 BUG-462 那一类，在修完它的下一轮由我亲手制造。
+
+**而 BUG-462 装的守卫没抓到。** 它要求第二个摘要下面紧跟一个空 `///` 行
+（「它有自己的正文，所以它是摘要」），于是只能看见**被偷走的文档有正文**的那些。
+没有正文的——一句话的文档被偷走后，剩下一个裸摘要紧贴声明——它看不见。
+这样的还有 **10 处**。
+
+### 我自己造的 3 处（如实清算）
+
+| 处 | 怎么造的 |
+|---|---|
+| `tab_provider` | BUG-465 删 `_markSavedWithStamp` 时没删它的文档 |
+| `ai_chat_service` | BUG-462 搬移时，目标 `complete` **本来已有文档块**，我的摘要插在声明正上方 = 粘到了那个块的**末尾** |
+| `outline_provider` | 同上，目标 `outlineProvider` 本来已有摘要 |
+
+用 `git show 27dafa0^` 把那 27 处搬移的目标逐个回查，**恰好 2 处的目标原本已有文档**
+——就是上面这两处。修法不是再搬一次，而是**把摘要移到那个块的开头**（`ai_chat_service`）
+或**把两个摘要合成一个块**（`outline_provider`）。
+
+**教训**：搬移文档时，锚点取声明行是不够的，还要**先确认目标没有自己的文档**；
+有的话，要么并入块首，要么说明它们本是同一件事。
+
+### 另外 7 处（旧有的）
+
+| 位置 | 处理 |
+|------|------|
+| `startup_trace` | 「Where later marks should be written…」还给 `useDirectory` |
+| `html_to_markdown` | 「Blocks that cannot contain a paragraph…」还给 `_closesParagraph` |
+| `plugin_provider` | 「Opens a plugin's page as a tab…」还给 `openPluginDetailTab`（无文档） |
+| `source_editor` | **两个孤儿叠着**，还有一段文档夹在 `@visibleForTesting` **之后**：<br>「Applies [prefix] to [line]…」还给 `applyLinePrefix`；<br>「Result of toggling an inline wrapper.」还给 `toggleWrap`（它的返回记录就是这个） |
+| `app_menu_bar`（全屏） | 「Both toggles ask the window…」是两个开关共用的说明，把摘要移到块首即可 |
+| `app_menu_bar`（打印） | **同一个方法两个摘要**（改写残留），删掉较弱的那句 |
+| `markdown_parser` | `_startsAnotherList` 的文档被改写过，旧副本留在 `_markerOf` 头上；删旧副本，**把它多出的那一句**（解释缩进守卫）并进新文档 |
+| `right_side_bar` | 那段描述的是**已经不存在的「问句表单」**——`_SayBox` 自己的文档里就写着「what the question form used to offer」。删掉 |
+
+### 守卫：从一个形状扩到两个
+
+放宽那条「第二摘要后必须有空 `///`」的要求，改成**空 `///` 或声明本身**都算。
+`allowed` 从 11 条增到 **19 条**，新增的 8 条全部是**块尾的收尾句**
+（同一个成员的最后一句话），每条都逐个读过并写明是哪个成员。
+「命中数必须等于 allowed 条数」这条对账断言保留，所以两个方向都仍然会红。
+
+### 验证：两次变异
+
+| 变异 | 结果 |
+|------|------|
+| 重现「删了方法留下文档」（新变体，无正文） | 红——**正是我这次造的那处** |
+| 去掉放宽、退回只看「有正文」的旧形状 | 红 |
+
+全量 3483 通过，**一行代码都没改**（只有注释位置与守卫）。

@@ -646,12 +646,6 @@ class _RightSideBarState extends ConsumerState<RightSideBar> {
   }
 }
 
-/// The question a command asked, in the drawer its answer will fill.
-///
-/// Deliberately the same three parts the card offers — the question, whatever
-/// answers the plugin named, and a box already holding what was chosen last
-/// time — so that starting a command here and starting it from a menu are the
-/// same exchange in two places rather than two exchanges.
 /// One thing the reader asked for, above the answer it produced.
 class _Said extends StatelessWidget {
   const _Said(this.text);

@@ -568,8 +568,6 @@ class TabNotifier extends StateNotifier<TabState> {
     }
   }
 
-  /// Marks the tab saved and records what the file now looks like, so the
-  /// next save compares against this write rather than the original read.
   /// Records that a tab's file changed underneath the editor.
   void markDiskConflict(String id) => _setDiskConflict(id, true);
 

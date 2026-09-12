@@ -19,7 +19,18 @@ import 'package:flutter_test/flutter_test.dart';
 /// happens to be above.
 ///
 /// The shape this looks for is a summary, its body, and then a *second*
-/// sentence that reads as a summary with no blank `///` line before it. That
+/// sentence that reads as a summary with no blank `///` line before it.
+///
+/// Two shapes, in fact. The first version required a blank `///` under that
+/// second sentence — "it has a body of its own, so it is a summary" — and so it
+/// only saw the orphans that had one. Ten more had none: a bare summary line
+/// with the declaration directly under it, which is what is left when the doc
+/// that was stolen was a single sentence. Three of those ten I had made myself,
+/// two of them *while fixing the others*: the move inserted the text above the
+/// target declaration, and when the target already had a doc comment the text
+/// landed at the end of that block instead of the start of its own. The third
+/// was a doc comment left standing after the method it described was deleted,
+/// one cycle later. That
 /// also describes one honest thing — a member documented in two sections,
 /// where both sections are about it — so those are listed in [allowed] with
 /// the member they share. Keyed by the second sentence rather than a line
@@ -51,6 +62,24 @@ void main() {
         'overwriteOnDisk — what it writes, then how it reports failing',
     'lib/ui/widgets/plugin_command_actions.dart|Runs [command], optionally':
         'run — where it is called from, then what it does with the question',
+    // The eight below end a block rather than starting one: a last sentence
+    // about the member the block is already about. Read one by one.
+    'lib/services/export_service.dart|Both ends of the pair go through this':
+        '_footnoteAnchor — why the id and the href cannot drift apart',
+    'lib/services/file_service.dart|Returns the encoding actually written':
+        'saveDocumentIfUnchanged — what it answers with',
+    'lib/ui/editor/mermaid/parser/state_diagram_parser.dart|All `[*]` as source':
+        '_registerNode — what it does with the start and end markers',
+    'lib/core/config/app_config.dart|Upstream keeps the two apart':
+        'codeFontSize — the same reason, stated once more',
+    'lib/providers/editor_provider.dart|Nothing reads it except the pane':
+        '_sourceScroll — who reads the map the paragraph above describes',
+    'lib/providers/plugin_provider.dart|Keeping the kind is what lets':
+        'error — why it is a kind and not a sentence',
+    'lib/providers/tab_provider.dart|Independent from [tabs]':
+        'openedFiles — what it is, then what it is not',
+    'lib/providers/tab_provider.dart|Also closes the corresponding tab':
+        'removeOpenedFile — the second half of what it does',
   };
 
   bool isDoc(String line) => line.trimLeft().startsWith('///');
@@ -79,9 +108,12 @@ void main() {
         if (sentence.isEmpty || sentence[0].toLowerCase() == sentence[0]) {
           continue;
         }
-        // A blank `///` under it is what makes it read as a summary rather
-        // than a sentence carrying on.
-        if (below != '///') continue;
+        // Either a blank `///` under it — it has a body of its own — or the
+        // declaration itself, which is what a stolen one-line doc looks like.
+        final isDeclaration = below.isNotEmpty &&
+            !below.startsWith('///') &&
+            !below.startsWith('//');
+        if (below != '///' && !isDeclaration) continue;
         checked++;
         final key = allowed.keys.firstWhere(
           (k) =>

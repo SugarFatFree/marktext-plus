@@ -1072,9 +1072,10 @@ class AppMenuBar extends ConsumerWidget {
     );
   }
 
+  /// Flips full screen, keeping [fullScreenProvider] in step with it.
+  ///
   /// Both toggles ask the window what it is doing before flipping it, so a
   /// change made outside the menu cannot leave them inverted.
-  /// Flips full screen, keeping [fullScreenProvider] in step with it.
   static Future<void> toggleFullScreen(WidgetRef ref) async {
     final next = !await windowManager.isFullScreen();
     await windowManager.setFullScreen(next);
@@ -1355,7 +1356,6 @@ class AppMenuBar extends ConsumerWidget {
   /// Through the printing plugin rather than by writing a PDF and opening it:
   /// the dialog's own page setup — printer, paper, range, copies — only
   /// reaches a document that is laid out for it.
-  /// Sends the active tab to the printer.
   static void printDocument(WidgetRef ref) async {
     final activeTab = ref.read(activeTabProvider);
     if (activeTab == null) return;

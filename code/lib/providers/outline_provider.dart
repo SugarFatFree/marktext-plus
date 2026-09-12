@@ -91,8 +91,8 @@ class OutlineNotifier extends StateNotifier<List<OutlineEntry>> {
 }
 
 /// The current document's headings.
-/// The outline of the document being read, computed off the typing path and
-/// off the isolate drawing the window.
+///
+/// Computed off the typing path, and off the isolate that draws the window.
 ///
 /// The table of contents used to call [MarkdownParser.headingOutline] inside
 /// the sidebar's `build`, on a provider it watched for content — run again for

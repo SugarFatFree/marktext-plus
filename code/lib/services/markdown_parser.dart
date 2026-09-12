@@ -1785,11 +1785,6 @@ class MarkdownParser {
     return (blocks, blockStarts, i, loose);
   }
 
-  /// Whether [line] begins a list separate from the one being collected.
-  ///
-  /// Changing from numbers to bullets — or back — starts a new list, as
-  /// CommonMark has it. Only at the list's own indentation: a bulleted
-  /// sub-point under a numbered step is a deeper item of the same list.
   /// The character a list item is marked with: `-`, `*`, `+`, `.` or `)`.
   static String? _markerOf(String line) {
     final match = _continuationRe.firstMatch(line);
@@ -1813,6 +1808,10 @@ class MarkdownParser {
   /// `+` after a run of `-` is a second list, not a third item of the first.
   /// Only the kind was compared before, so a document that switched bullets
   /// to separate two lists got one list back.
+  ///
+  /// Only at the list's own indentation: a bulleted sub-point under a numbered
+  /// step is a deeper item of the same list, which is what the first check
+  /// here is for.
   bool _startsAnotherList(
     String line,
     int firstIndent,

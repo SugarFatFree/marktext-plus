@@ -403,16 +403,6 @@ class StartupTrace {
     return landed;
   }
 
-  /// Where later marks should be written, once the config directory is known.
-  ///
-  /// Everything recorded before this point is flushed now, so the marks from
-  /// before the directory was resolved are not lost.
-  ///
-  /// Beside the executable when that folder can be written to, and only then
-  /// the config directory. Someone running a build from an unzipped folder
-  /// finds the log next to the program; hunting through `%APPDATA%` for it is
-  /// its own small ordeal, and one the person reporting a slow start should
-  /// not have to go through.
   /// The line that starts each run's block in the file.
   @visibleForTesting
   static const runSeparator = '=== MarkText Plus startup trace ===';
@@ -435,6 +425,16 @@ class StartupTrace {
     return '${kept.map((run) => '$_runSeparator\n$run').join('\n\n')}\n\n';
   }
 
+  /// Where later marks should be written, once the config directory is known.
+  ///
+  /// Everything recorded before this point is flushed now, so the marks from
+  /// before the directory was resolved are not lost.
+  ///
+  /// Beside the executable when that folder can be written to, and only then
+  /// the config directory. Someone running a build from an unzipped folder
+  /// finds the log next to the program; hunting through `%APPDATA%` for it is
+  /// its own small ordeal, and one the person reporting a slow start should
+  /// not have to go through.
   static void useDirectory(String directory) {
     _logPaths.clear();
     // The config directory first and unconditionally. Trying beside the

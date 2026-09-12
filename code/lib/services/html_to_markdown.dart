@@ -373,14 +373,14 @@ class HtmlToMarkdown {
     out.write('\n');
   }
 
+  /// Whether a tag introduces a block, rather than inline content.
+  static bool _isBlock(String name) => _closesParagraph.contains(name);
+
   /// Blocks that cannot contain a paragraph, and so close an open one.
   ///
   /// `<p>one<p>two` is two paragraphs in HTML — the closing tag is optional
   /// and browsers put it on the clipboard that way. Taking everything to the
   /// end of the document instead ran the two together into one line.
-  /// Whether a tag introduces a block, rather than inline content.
-  static bool _isBlock(String name) => _closesParagraph.contains(name);
-
   static const _closesParagraph = {
     'p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
     'ul', 'ol', 'table', 'blockquote', 'pre', 'hr',
