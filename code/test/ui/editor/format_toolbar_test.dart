@@ -185,7 +185,11 @@ void main() {
     expect(above || below, isTrue,
         reason: '工具栏既没贴在这一行上方也没贴在下方：'
             '${toolbar.top}–${toolbar.bottom}，行是 $lineTop–$lineBottom');
-    expect(toolbar.height, FormatToolbar.height,
+    // Within a hundredth of a pixel, not exactly: the strip now sits at the
+    // fractional position the text is actually drawn at, and subtracting two
+    // fractional screen coordinates does not give back a whole number. A real
+    // disagreement with the exported height is pixels, not 1e-14.
+    expect(toolbar.height, closeTo(FormatToolbar.height, 0.01),
         reason: '实际高度与组件导出的高度不一致，定位就会算错');
   });
 }

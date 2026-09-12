@@ -351,6 +351,17 @@ One thing changed with it: in preview mode, where there is no text field, the ta
 commands are greyed out. They used to light up for a position built from whatever
 the source pane last reported, which is not somewhere the reader can see.
 
+### The formatting strip appears over the text it belongs to
+
+Its horizontal position was measured against the font; its vertical position
+was worked out as `line * lineHeight`, corrected for the scroll by hand. Neither
+is what the pane draws: a long line in a narrow split pane wraps into several
+visual ones, the line height rounds to a whole pixel, and the scroll correction
+did not match. Three wrapped lines above the selection put the strip 317 pixels
+too high; on line 550 of a 600 line document it left the screen entirely.
+
+Both coordinates now come from the field that is drawing the text.
+
 ### Find Next in a large file no longer freezes the editor
 
 Jumping to a match needed the pixel the match had been drawn at, so that it could
@@ -664,6 +675,15 @@ Mermaid 包够不到编辑器的翻译，所以它自带的错误框按设计是
 
 随之改变的一件事：预览模式下没有文本框，表格命令现在**置灰**。以前它们会按源码窗格
 最后报告的位置点亮，而那个位置读者在预览里看不见。
+
+### 格式工具条浮在它所属的那段文字上方
+
+它的**水平**位置一直是按字体量出来的；**垂直**位置却是用「行号 × 行高」算出来、
+再手工减去滚动量的。两者都不是窗格实际画的：分屏的窄窗格里一条长行会换成好几条
+视觉行，行高会被取整到整像素，手工减的滚动量也对不上。选区上方只要有三条换行的
+长行，工具条就偏高 **317 像素**；600 行文档的第 550 行上，它直接飘出屏幕。
+
+现在两个坐标都从正在画这段文字的那个字段读。
 
 ### 在大文件里按「查找下一个」不再冻结编辑器
 

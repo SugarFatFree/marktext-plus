@@ -1167,7 +1167,7 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     if (_formatToolbar != null && _toolbarSelection == selection) return;
     _closeFormatToolbar();
 
-    final position = _toolbarPosition(text, start, end);
+    final position = _toolbarPosition(text, start);
     if (position == null) return;
 
     final overlay = Overlay.maybeOf(context);
@@ -1180,7 +1180,7 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
       builder: (_) {
         // Recomputed on every build so the strip follows the text when the
         // editor is scrolled.
-        final at = _toolbarPosition(_controller.text, start, end);
+        final at = _toolbarPosition(_controller.text, start);
         if (at == null) return const SizedBox.shrink();
         return Positioned(
           left: at.dx,
@@ -1205,46 +1205,43 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
 
   /// Where the toolbar's top-left corner goes, in screen coordinates.
   ///
-  /// Measured rather than estimated: the prefix of the line is laid out with
-  /// the editor's own text style, so a proportional font, a CJK character and
-  /// a tab all land where they actually are.
-  Offset? _toolbarPosition(String text, int start, int end) {
+  /// Read off the field that is drawing the text, so a proportional font, a
+  /// CJK character, a tab and a **wrapped line** all put the strip where the
+  /// selection actually is.
+  ///
+  /// The vertical position used to be `line * lineHeight`, which counts
+  /// document lines. A pane narrower than its longest line — split view,
+  /// always — turns one document line into several visual ones, so every line
+  /// below a wrapped one is further down the screen than its number says:
+  /// measured at 317 pixels too high with three wrapped lines above the
+  /// selection, and far enough off in a real document that the strip flipped
+  /// to the "no room above" branch and drew below the wrong line.
+  Offset? _toolbarPosition(String text, int start) {
     final box = _fieldKey.currentContext?.findRenderObject() as RenderBox?;
-    if (box == null || !box.hasSize) return null;
+    final editable = _renderEditable();
+    if (box == null || !box.hasSize || editable == null) return null;
 
-    final config = ref.read(settingsProvider);
-    final style = TextStyle(
-      fontFamily: config.fontFamily,
-      fontSize: config.fontSize,
-      height: config.lineHeight,
+    final caret = editable.getLocalRectForCaret(
+      TextPosition(offset: start.clamp(0, text.length)),
     );
-    final (line, column) = _positionOf(text, start);
-    final lineStart = start - column;
-    final painter = TextPainter(
-      text: TextSpan(text: text.substring(lineStart, start), style: style),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    final prefixWidth = painter.width;
-    painter.dispose();
+    // Converted through the screen rather than by adding the field's own
+    // padding: the editable sits inside the decoration, and the scroll offset
+    // is already in the answer. Both used to be corrected for by hand here.
+    final caretTopLeft = editable.localToGlobal(Offset(caret.left, caret.top));
+    final origin = box.localToGlobal(Offset.zero);
 
-    final lineHeight = config.fontSize * config.lineHeight;
-    final scroll =
-        _editorScrollController.hasClients ? _editorScrollController.offset : 0.0;
-
-    // `_fieldPadding` is the text field's own content padding, which the text
-    // starts after.
     // From the toolbar itself, so the two cannot disagree about how tall it
     // is — a stale copy here would put the strip over the line it is about.
     const toolbarHeight = FormatToolbar.height;
     const gap = 4.0;
-    var dx = _fieldPadding + prefixWidth;
-    var dy = _fieldPadding + line * lineHeight - scroll - toolbarHeight - gap;
+
+    final dx = caretTopLeft.dx - origin.dx;
+    var dy = caretTopLeft.dy - origin.dy - toolbarHeight - gap;
 
     // Below the line instead when there is no room above it, which is the
     // case on the document's first line.
-    if (dy < 0) dy = _fieldPadding + (line + 1) * lineHeight - scroll + gap;
+    if (dy < 0) dy = caretTopLeft.dy - origin.dy + caret.height + gap;
 
-    final origin = box.localToGlobal(Offset.zero);
     final toolbarWidth = FormatToolbar.widthFor(6);
     final maxDx = box.size.width - toolbarWidth;
     return Offset(
@@ -1258,10 +1255,6 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     _formatToolbar = null;
     _toolbarSelection = null;
   }
-
-  /// The text field's content padding, which the toolbar has to account for
-  /// when it measures from the field's own corner.
-  static const double _fieldPadding = 8;
 
   /// Takes the menu down, and applies [command] if one was chosen.
   void _closeSlashMenu(SlashCommand? command) {

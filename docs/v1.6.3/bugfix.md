@@ -38,6 +38,7 @@
 | BUG-453 | 2026-09-12 | 每次选区变化都拷贝整个选区进状态，Shift+↓ 扩选整体 O(n²) | P1 | 已修复 |
 | BUG-454 | 2026-09-12 | 大文档里每按一次方向键要把整篇文档切成行两次（约 73 ms） | P1 | 已修复 |
 | BUG-455 | 2026-09-12 | 「查找下一个」为定位一个匹配而重排整个前缀，4 MB 文档冻结 2.3 秒 | P1 | 已修复 |
+| BUG-456 | 2026-09-12 | 格式工具条按行号定位，长行换行或滚动后浮在别处（实测偏 13 744 px） | P1 | 已修复 |
 
 ---
 
@@ -2481,3 +2482,95 @@ SDK 不在这台机器上时整条 skip（向上查找 6 层，与既有的 `sdk
 | `markdown_parser._linkDefinitionAt` 的 `linesTo` | `text` 是**三行的窗口**，不是全文 |
 | `markdown_renderer` 的 `lineCount` | 数的是**正在编辑的那个块**，不是文档 |
 | `source_editor._applyBlockEdit` / `_toggleLooseList` | 命令路径，且本身要改写文本——split 不可免，不是白付 |
+
+---
+
+## BUG-456：格式工具条按行号定位，换行或滚动之后浮在别的地方
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-456 |
+| 日期 | 2026-09-12 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+
+### 现象
+
+选中一段文字，浮起来的格式工具条**不在选区上方**。两种触发都很容易碰到：
+
+- **分屏**（窗格更窄，长行会换行）：选区上方只要有三条换行的长行，
+  工具条就偏高 **317 px**——已经飘到别的段落上去了。
+- **滚动到文档深处**：600 行的文档里选中第 550 行，工具条落在 **-12922**，
+  而那行文字在 **822**——偏 **13 744 px**，即完全在屏幕外。
+
+### 根因
+
+这是 BUG-455 的**同一个根因在同一个文件里的第二处**，而且是修完 455 之后
+用同一把尺子扫出来的：
+
+`_toolbarPosition` 的**水平**位置是量出来的（单独排一行的前缀，注释里还专门
+写了「measured rather than estimated」，对付比例字体、CJK、Tab）。
+但**垂直**位置是算出来的：
+
+```dart
+var dy = _fieldPadding + line * lineHeight - scroll - toolbarHeight - gap;
+```
+
+三个假设，各自会错：
+
+| 假设 | 实情 |
+|------|------|
+| 一条文档行占一条视觉行 | 窗格比最长行窄时占好几条——**这正是 455 里认定「行号不够」的那件事** |
+| 行高等于 `fontSize × lineHeight` | 实测 25.6 vs 字段实际画的 **26.0** |
+| 手工减 `scroll` 能换算到屏幕 | 深处选区实测偏出上万像素 |
+
+**同一个文件里的行号列早就不这么做了**——`_updateGutterMarks` 用的是
+字段报告的真实位置。工具条没跟上。（这是备忘 `fix-the-siblings-of-the-branch-you-touched`
+的又一次命中：横向读兄弟。）
+
+### 修复
+
+整个函数改成一次 `getLocalRectForCaret`，水平与垂直都从它来：
+
+```dart
+final caret = editable.getLocalRectForCaret(TextPosition(offset: start));
+final caretTopLeft = editable.localToGlobal(Offset(caret.left, caret.top));
+final origin = box.localToGlobal(Offset.zero);
+final dx = caretTopLeft.dx - origin.dx;
+var dy = caretTopLeft.dy - origin.dy - toolbarHeight - gap;
+```
+
+**经屏幕坐标换算，而不是手工加字段内边距**：编辑区在 `InputDecoration` 里面，
+滚动偏移也已经在答案里了——这两项原先都是手工补的。顺带删掉两样变成多余的东西：
+`_fieldPadding` 常量，和 `_toolbarPosition` 那个**从来没被用过的 `end` 参数**
+（去掉后让编译器点出两处调用点）。
+
+### 涉及文件
+
+- `code/lib/ui/editor/source_editor.dart`
+- `code/test/ui/editor/the_format_strip_follows_wrapped_text_test.dart`（新增）
+- `code/test/ui/editor/format_toolbar_test.dart`（一处浮点断言放宽，见下）
+
+### 验证：先证明它坏，再证明测试能红
+
+按「先复现」写的测试，在修复前就红，并打印出 `46.8–80.8 而文字在 398.0`。
+修好后把旧算法变异回去，**两条测试都红**（换行那条 317 px，深处那条 13 744 px）。
+
+### 两件我自己做错的事
+
+1. **第一版的第二条测试是废的。** 我写了「30 行不换行的文档」，
+   变异回旧算法后**它仍然绿**。去量才知道：漂移是 **0.4 px/行**（25.6 对 26.0），
+   第 29 行只差 11.6 px，而工具条自身高 34 px——容差把它吃掉了。
+   改到第 550 行才越线。**先去量那条线在哪，再定规模**
+   （备忘 `perf-tests-need-a-size-that-crosses-the-line` 同一条）。
+2. **我一开始把行高读成了 14×1.5=21**，于是以为漂移是 5 px/行。
+   实际 `AppConfig` 是 16×1.6=25.6。文档里现在写的是**测出来的数**，
+   而不是我推算的数；也没有去硬分「换行」和「滚动」各占多少——
+   两条测试证明的是**合起来错**，就这么写。
+
+### 一处放宽的断言
+
+`format_toolbar_test` 里 `expect(toolbar.height, FormatToolbar.height)` 变成
+`closeTo(…, 0.01)`。工具条现在落在**文字真正所在的分数坐标**上，
+两个分数屏幕坐标相减得不到整数（34.0 vs 33.99999999999999）。
+真正的高度不一致是**像素级**的，1e-14 不是。
