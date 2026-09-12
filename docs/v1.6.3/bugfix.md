@@ -49,6 +49,7 @@
 | BUG-464 | 2026-09-13 | 拖入或双击打开一个读不了的文件：标签页闪一下就消失，什么也不说 | P1 | 已修复 |
 | BUG-465 | 2026-09-13 | Ctrl+S／另存为／覆盖都丢掉「实际写盘用了哪种编码」，状态栏从此说谎 | P1 | 已修复 |
 | BUG-466 | 2026-09-13 | 导出 Word 覆盖已有文件时先截断再写，失败一次就毁掉上一份导出 | P1 | 已修复 |
+| BUG-467 | 2026-09-13 | 自动化接口的 `close_tab` 把未保存的改动不声不响地丢掉，还回报「已关闭」 | P1 | 已修复 |
 
 ---
 
@@ -3365,3 +3366,86 @@ PathAccessException: Cannot open file … (OS Error: Permission denied, errno = 
 
 - `code/lib/services/export_service.dart`
 - `code/test/services/an_export_never_truncates_what_it_replaces_test.dart`（新增 3 条）
+
+---
+
+## BUG-467：自动化接口的 `close_tab` 把未保存的改动不声不响地丢掉
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-467 |
+| 日期 | 2026-09-13 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+
+### 现象
+
+通过 MCP 的 `control` 调 `close_tab`，如果那个标签页有**未保存的改动**，
+它会被直接关掉——**撤销历史随之释放，内容再也拿不回来**——而回答是
+`closed tab <id>`，看不出刚刚丢掉了什么。
+
+### 根因：同一个 switch 里，规则只写在了一个分支上
+
+关闭标签页的每一条**人**走的路都会先问：
+
+| 路径 | 会问吗 |
+|------|--------|
+| 标签页上的 × / 文件▸关闭 / 侧边栏 / 窗口动作 | ✓ 都走 `EditorTabBar.closeTab` |
+| 右键菜单的「关闭其他／右侧／全部」 | ✓ 都包在 `_closeMany` 里 |
+| **窗口的关闭按钮**（整个会话） | ✓ `onWindowClose` 逐个列出未保存的标签页，且「放弃一次保存就放弃退出」 |
+| **MCP `close_tab`** | **✗ 直接 `removeTab`** |
+
+而**同一个文件里的 `update_app` 早就有这条规则**，理由写得很清楚：
+
+> there is **no automation on this side that can press Save**, so this refuses
+> and names the tabs rather than deciding for the reader.
+
+这个理由对 `close_tab` 一字不差地成立，只是没人把它写过去。
+
+### 修复：照先例拒绝，并说出是哪一个
+
+```dart
+if (closing.isModified) {
+  return mcpRefused(
+    'not while "${closing.fileName}" has unsaved work — closing it '
+    'would throw that away, and nothing here can press Save',
+  );
+}
+```
+
+顺带把「有没有这个标签页」的判断挪到改动**之前**（原先靠 `removeTab` 的返回值），
+这样查不到时不会先动状态。
+
+**没有文件的标签页不算例外**：自动保存**完全跳过**没有路径的标签页，
+所以它的内容只存在于那个标签页里。单标签关闭那条路的文档注释就是这么写的
+（「its contents were lost for good with nothing asked and nothing said」），
+自动化接口必须与它一致。这一点单独有一条测试。
+
+### 一个我如实交代的代价，以及刻意没做的选择
+
+`set_content` 会把标签页标记为已修改。所以**「new_tab → set_content → close_tab」
+这条自动化流程从此会被拒绝**——包括我自己在验证时用的那条。这是真实的摩擦。
+
+想过、但**没有**加 `discard: true` 这个逃生口：
+
+| 方案 | 为什么没选 |
+|------|-----------|
+| 一律拒绝（选了这个） | 与同文件的 `update_app` 一致；**保护不依赖调用方是否细心** |
+| `discard: true` 才关 | 调用方就是我，而今晚修的这一串缺陷全都源于「调用方没记住」 |
+
+要让自动化能收拾自己的临时标签页，正确的补法是**加一个 `save_tab` 动作**——
+让「保存」成为那个显式决定，而不是「丢弃」。这条留给下一次，不在这里顺手加。
+
+### 涉及文件
+
+- `code/lib/providers/mcp_provider.dart`
+- `code/test/services/mcp_control_does_it_test.dart`（新增 2 条）
+
+### 验证：两次变异
+
+| 变异 | 结果 |
+|------|------|
+| 去掉未保存检查（缺陷原状） | 红：两条都红（有文件的、没文件的） |
+| 拒绝但不说是哪个标签页 | 红：「要说出是哪个标签页，不然调用方无从下手」 |
+
+第一条测试里还先断言了「这个标签页确实被标成已修改」——否则用例可能什么都没造出来就绿。

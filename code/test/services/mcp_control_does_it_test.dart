@@ -116,6 +116,47 @@ void main() {
       expect(container.read(tabProvider).tabs, isEmpty);
     });
 
+    test('refuses one with unsaved work, and leaves it open', () async {
+      // Every way a person closes a tab asks first — the tab bar's button, the
+      // File menu, the side bar, the window's own close button. This was the
+      // one way that did not: it threw the work away and reported a close.
+      // `update_app` in this same switch already refuses for exactly this
+      // reason, and says why: nothing on this side can press Save.
+      final container = boot();
+      container.read(tabProvider.notifier).addTab(aTab('one'));
+      container.read(tabProvider.notifier).updateContent('one', 'edited\n');
+      expect(container.read(tabProvider).tabs.single.isModified, isTrue,
+          reason: '这个用例靠「已修改」成立，先确认它真的被标上了');
+
+      final outcome = await container
+          .read(mcpProvider.notifier)
+          .performAction('close_tab', {'tabId': 'one'});
+
+      expect(outcome.ok, isFalse, reason: '未保存的内容被不声不响地丢掉了');
+      expect(outcome.said, contains('one.md'),
+          reason: '要说出是哪个标签页，不然调用方无从下手');
+      expect(container.read(tabProvider).tabs, hasLength(1));
+      expect(container.read(tabProvider).tabs.single.content, 'edited\n');
+    });
+
+    test('a tab with no file behind it is not an exception', () async {
+      // Auto-save skips a tab with no path entirely, so its contents exist
+      // nowhere but in the tab. The single-tab path says this in its own doc
+      // comment; the automation interface has to agree.
+      final container = boot();
+      container.read(tabProvider.notifier).addTab(
+            TabInfo(id: 'scratch', fileName: 'Untitled', content: ''),
+          );
+      container.read(tabProvider.notifier).updateContent('scratch', 'typed\n');
+
+      final outcome = await container
+          .read(mcpProvider.notifier)
+          .performAction('close_tab', {'tabId': 'scratch'});
+
+      expect(outcome.ok, isFalse);
+      expect(container.read(tabProvider).tabs, hasLength(1));
+    });
+
     test('refuses a tab that is not open, rather than reporting a close', () async {
       final container = boot();
       container.read(tabProvider.notifier).addTab(aTab('one'));

@@ -242,6 +242,25 @@ class McpController extends StateNotifier<McpStatus> {
       case McpAction.closeTab:
         final id = text('tabId') ?? _ref.read(tabProvider).activeTabId;
         if (id == null) return mcpRefused('no tab to close');
+        final closing =
+            _ref.read(tabProvider).tabs.where((tab) => tab.id == id).firstOrNull;
+        if (closing == null) return mcpRefused('there is no tab $id');
+        // The same refusal [McpAction.updateApp] makes, for the same reason it
+        // gives: there is no automation on this side that can press Save, so
+        // this names the tab rather than deciding for the reader. Closing a
+        // modified tab lets its undo history go with it, so there is nothing
+        // left to take the decision back with — and every way a *person* closes
+        // a tab asks first, including the window's own close button. This was
+        // the one way that did not.
+        //
+        // A tab with no file behind it counts too: auto-save skips those
+        // entirely, so its contents exist nowhere else at all.
+        if (closing.isModified) {
+          return mcpRefused(
+            'not while "${closing.fileName}" has unsaved work — closing it '
+            'would throw that away, and nothing here can press Save',
+          );
+        }
         return _ref.read(tabProvider.notifier).removeTab(id)
             ? mcpDid('closed tab $id')
             : mcpRefused('there is no tab $id');

@@ -351,6 +351,19 @@ One thing changed with it: in preview mode, where there is no text field, the ta
 commands are greyed out. They used to light up for a position built from whatever
 the source pane last reported, which is not somewhere the reader can see.
 
+### The automation interface will not close a tab over your unsaved work
+
+Every way a person closes a tab asks first — the tab bar's button, the File menu,
+the side bar, and the window's own close button, which lists what is unsaved and
+abandons the quit if a save is abandoned. `close_tab` over the automation socket
+was the one way that did not: it closed the tab, let the undo history go with it,
+and answered "closed tab". It now refuses and names the tab, which is what
+`update_app` in the same switch has always done, for the reason it gives — there
+is nothing on this side that can press Save.
+
+A tab with no file behind it is not an exception: auto-save skips those entirely,
+so what is in one exists nowhere else.
+
 ### Exporting Word over a file you already have cannot destroy it
 
 The picker asks whether to replace, so exporting over an earlier `.docx` is an
@@ -754,6 +767,16 @@ Mermaid 包够不到编辑器的翻译，所以它自带的错误框按设计是
 
 随之改变的一件事：预览模式下没有文本框，表格命令现在**置灰**。以前它们会按源码窗格
 最后报告的位置点亮，而那个位置读者在预览里看不见。
+
+### 自动化接口不会带着你未保存的改动关掉标签页
+
+每一条**人**关闭标签页的路都会先问——标签页上的 ×、文件菜单、侧边栏，
+以及窗口自己的关闭按钮（它会列出未保存的内容，且放弃一次保存就放弃退出）。
+只有自动化接口的 `close_tab` 不问：它关掉标签页、让撤销历史一起消失，
+然后回答「closed tab」。现在它会拒绝并说出是哪一个——这正是同一个 switch 里
+`update_app` 一直在做的事，理由也是它写下的那句：**这一端没有任何东西能按下保存**。
+
+没有文件的标签页不算例外：自动保存完全跳过它们，里面的内容不存在于别处。
 
 ### 导出 Word 覆盖已有文件，不会再毁掉它
 
