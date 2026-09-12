@@ -1547,6 +1547,15 @@ static List<_Token> _escapedEmphasis(List<_Token> content) { ... }
 没有东西把它们连起来」——当时导出学会了 `<mark>`/`<u>`/`<sup>`/`<sub>` 而粘贴一个都不认。
 **那次的修法是补四个标签，不是建立一种"会发现"的机制**，所以又漏了五个。
 
+**为什么另一个方向没有出过这种事**（实测，不是推测）：临时给 `NodeType` 和
+`InlineType` 各加一个成员，`dart analyze` 报 **7 处错**——`export_service.dart` 里
+HTML / Word / PDF 三种格式各两处（块与内联），加上 `markdown_renderer.dart` 的预览。
+**这些 switch 都是穷尽的，编译器不放过任何一处漏实现。**
+
+而 `html_to_markdown.dart` **不在这 7 处里**，因为它 switch 的是 HTML 标签名
+（字符串）而不是枚举——**导入方向天生没有编译器可用**。所以这里需要的不是再一次
+「补上差额」，而是一个替代编译器的测试。
+
 **这次先建机制**：`both_directions_know_the_same_tags_test` 遍历
 `InlineType.values` 与 `NodeType.values`，每个成员**要么**有一条能通过往返的样本，
 **要么**有一条写明理由的豁免。任何一个枚举新增成员都会红在「在两张表里都找不到」。
@@ -1636,6 +1645,40 @@ grew with the document」；去掉左边界 → 三条红；懒加载回退不�
 **第三次变异一开始得到 0 红，而那不是"变异存活"**——替换串没匹配上（文件里是双反斜杠），
 变异压根没落地。加了 `assert old in s` 重做才拿到三条红。这是记忆里
 「先确认变异落地」的又一次。
+
+---
+
+## 无编号：两个运行时的 action 词汇表一致，但没有东西在守它
+
+**这一条没有找到缺陷。** Lua 与 JS 两个运行时对全部 10 种脚本可返回的 action
+（含 pane 的全部 8 个字段、两种错误路径）读出来的结果完全相同——实测逐个比对过。
+加守卫是因为**没有任何东西在守它**。
+
+`plugin_ui_two_runtimes_test` 守的是两个运行时读出的**界面树**，而它自己的注释写着
+当初为什么要写：那个名叫「a JS action becomes the same thing a Lua action does」的
+测试**从来没有运行过 Lua 那一侧**——它拿 JS 的结果去对写死的值，
+「which is a different and weaker thing」，于是那个测试被改名成它实际做的事。
+
+**同一句话对 action 仍然成立**：两侧各有对写死值的测试，没有一处把两侧放在一起比。
+它们今天一致，是因为两份解析器是同一个人在同一天写的。CLAUDE.md 里那张表的最后一行
+正是这种情况：「SDK 文档的界面上限 / `PluginUiLimits` / 今天一致，明天没人管」。
+
+**机制**：`describe` 对 sealed 的 `PluginScriptAction` 做**穷尽** switch，
+所以第 12 种 action 会让这个文件**编译不过**，而不是安静地少测一种。
+比较的是字段而不只是类型——pane 的 `append` 在一侧漂了，只比类型是过得去的。
+
+**界面树在这里只比根节点的种类。** 比整棵树是另一个文件的事，做两遍就是两处要维护。
+
+**验证**（三次变异）：
+
+| 变异 | 结果 |
+|------|------|
+| JS 侧 `append` 默认改成真 | 「pane, defaults」红 |
+| JS 侧不读 `replaces` | 「pane, every field」红 |
+| 新增第 12 种 action | **编译不过**（报在本测试文件第 25 行的 switch 上）——设计中的编译期守卫 |
+
+**唯一豁免的是 `PluginPermissionRefusedAction`**：那是宿主拒绝插件时自己造的，
+没有脚本能要求它。豁免写在「every action a script can return has a row」的理由里。
 
 ---
 
