@@ -1785,6 +1785,44 @@ return base.replace(path: '$path$suffix');   // path 已经是 /v1 时就重复�
 
 ---
 
+## 无编号：六处保存都传了行尾与编码，但没有东西在守它
+
+**这一条没有找到缺陷。** `FileService.saveDocument` 的 `lineEnding` 与 `encoding`
+都有默认值（LF / UTF-8），而**六处调用全都显式传了**——逐个确认过。
+
+**默认值对「新建文档」是对的，对「保存已有文档」是猜**，而猜错的代价是数据层面的：
+
+| 猜错什么 | 后果 |
+|---------|------|
+| 行尾 | CRLF 文件**每一行**都被改写，一处编辑变成整文件 diff |
+| 编码 | GBK 文件被写成 UTF-8，那已经不是读者原来那个文件 |
+
+**写路径本身有测试**（`saveDocument writes back the line ending the file had`）。
+**没被守的是调用者有没有把它交出去**——第 7 个调用者忘了传，全套测试照样绿，
+读者要从版本控制里才发现。
+
+**守卫形式为什么不是「把默认值改成 required」**：那是更强的形式（编译器管，不会漂），
+本库也一贯偏好它。但测试里有约 18 处 `saveDocument(path, content)` 依赖默认值，
+而它们关心的是符号链接、保存冲突、原子写——让每一处都写出
+`lineEnding: LineEnding.lf, encoding: FileEncoding.utf8Encoding` 是十八行纯噪声。
+所以采用源码扫描，与**同一个文件里既有的那条**（「每次保存都要比对磁盘戳」）同一形状。
+
+**两条记忆里的坑都避开了**：
+
+1. **不只看第一个匹配**——逐个匹配都查（`saveDocument` 在这三个文件里共 6 处）。
+2. **防止守卫空过**——断言扫到的调用数 ≥ 6。变异把扫描字符串改成
+   `FileService.writeDocument` 之后，守卫报的是「only 0 save calls were found —
+   the scan has stopped matching, so fix the scan before trusting it」，
+   而不是安静地通过。
+
+**测试里写明了它抓不到什么**：传了**别的**标签页的行尾，或者传了字面量而不是文档自己的。
+那需要读代码，而这是一次扫描。
+
+**另有一条兜底**：断言 `file_service.dart` 里那两个默认值仍然是 LF / UTF-8——
+默认值一变，这条守卫存在的理由就搬家了，那时应当回来重读而不是让它继续绿着。
+
+---
+
 ## 无编号：两个运行时的 action 词汇表一致，但没有东西在守它
 
 **这一条没有找到缺陷。** Lua 与 JS 两个运行时对全部 10 种脚本可返回的 action
