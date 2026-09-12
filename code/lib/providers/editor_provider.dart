@@ -293,6 +293,26 @@ class EditorNotifier extends StateNotifier<EditorState> {
     return selection.baseOffset;
   }
 
+  /// Where the caret is, as an offset into the document — or null when there is
+  /// no source pane holding one.
+  ///
+  /// The field knows this; it does not have to be worked out. The Format menu
+  /// rebuilt it from the line and column it shows in the status bar, which meant
+  /// splitting the document into lines to add their lengths up — 36.7 ms over
+  /// eight megabytes, on every caret move, and again inside
+  /// `TableEditService.locate` for the same keypress.
+  ///
+  /// Null rather than zero when there is no source pane: in preview mode the
+  /// line and column are whatever the source pane last reported, so an offset
+  /// built from them points into a document nobody is editing. The table
+  /// commands are source-pane commands and being told "nowhere" is what greys
+  /// them out.
+  int? get caretOffset {
+    final selection = _controller?.selection;
+    if (selection == null || !selection.isValid) return null;
+    return selection.baseOffset;
+  }
+
   /// Puts [snapshot] back on screen, caret and all.
   void _restore(_Snapshot snapshot) {
     final controller = _controller;

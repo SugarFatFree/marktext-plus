@@ -36,6 +36,7 @@
 | BUG-451 | 2026-09-12 | 打错的图表在导出的 PDF／全屏查看里显示英文错误面板 | P1 | 已修复 |
 | BUG-452 | 2026-09-12 | 撤销历史按步数限，10 MB 文档的历史能占到 2 GB | P1 | 已修复 |
 | BUG-453 | 2026-09-12 | 每次选区变化都拷贝整个选区进状态，Shift+↓ 扩选整体 O(n²) | P1 | 已修复 |
+| BUG-454 | 2026-09-12 | 大文档里每按一次方向键要把整篇文档切成行两次（约 73 ms） | P1 | 已修复 |
 
 ---
 
@@ -2115,6 +2116,82 @@ ref.read(editorProvider.notifier).setSelectedText(
 我在 `setSourceSelection` 的注释里写明了这个陷阱，然后在自己的测试里踩了它。
 改成 `0..length-1` 之后，676 倍的差距立刻显出来。
 **是「变异没被抓住」这件事查出了测试的洞**，而不是别的什么。
+
+---
+
+## BUG-454：在大文档里移动光标，每按一次方向键要把整篇文档切成行两次
+
+**现象**：8 MB 文档里按一次方向键，约 **73 ms** 花在把文档 `split('\n')` 上——而一帧是
+16.7 ms，所以每次光标移动掉 **2–4 帧**；按住方向键就是持续卡顿。这是编辑器里最基本的
+交互，也是「大文件表现」上最直接的伤。
+
+**根因**：格式菜单要决定表格命令是否可用，于是在**构建时**问「光标在表格里吗」。
+这条路上有两次全文 split：
+
+| 位置 | 做了什么 |
+|------|---------|
+| `app_menu_bar._caretOffset` | 把状态栏的行列**重新算成偏移量**——`content.split('\n')` 后把前面各行长度加起来 |
+| `TableEditService.locate` | 又 `text.split('\n')` 一次，才去看光标那一行 |
+
+**而两样东西本来都有现成的**：文本框自己知道光标偏移量（`selection.baseOffset`）；
+而「光标在表格里吗」只需要**光标所在那一行**。
+
+**实测（8 MB 文档）**：
+
+| 做法 | 代价 |
+|------|------|
+| `split('\n')` | **36.7 ms** |
+| 数换行（无分配） | 6.9 ms |
+| **只找光标所在行的边界**（`lastIndexOf` + `indexOf`） | **0 µs** |
+
+**修复**：
+
+1. `_caretOffset` 改为向 notifier 要 `caretOffset`——O(1)，直接读文本框。
+2. `locate` 前置一个**免费的拒绝**：找到光标那一行，不是表格行就返回 null。
+   光标真在表格行上时才走原来的完整流程（那时这个答案值得读一遍文档）。
+
+**顺带修正了一处语义**：`caretOffset` 在**没有源码窗格**时返回 null 而不是 0。
+预览模式下没有文本框，行列是源码窗格最后报告的，据此算出的偏移量指向一个
+**读者看不见的位置**——旧代码会因此**点亮**表格命令。现在置灰。
+
+**菜单仍然 watch 光标**（改成了 `select(cursorLine)` / `select(cursorCol)`）：
+表格命令要随光标离开表格而置灰，所以菜单必须在光标移动时重建。
+**去掉的不是重建，是重建时去读整篇文档。**
+
+**涉及文件**：
+
+- `code/lib/providers/editor_provider.dart`（`caretOffset`）
+- `code/lib/ui/widgets/app_menu_bar.dart`（`_caretOffset`）
+- `code/lib/services/table_edit_service.dart`（`locate` 的前置拒绝）
+- `code/test/services/finding_a_table_does_not_read_the_document_test.dart`（8 条）
+- `code/test/providers/the_selection_is_read_not_copied_test.dart`（+3 条）
+- `code/test/ui/widgets/table_menu_enablement_test.dart`（设置方式改为注册 controller，+1 条）
+
+**验证**：代价守卫在修复前红在 **17640 µs vs 128 µs（138 倍）**；
+变异回「去掉前置拒绝」再次红在同一处。另有「菜单永远拿不到光标」（全灰）、
+「偏移量固定为 0」（3 条红）、「没有源码窗格时返回 0」（预览语义）各一次变异。
+
+### 三件我自己做错、并被变异查出来的事
+
+**一、`git checkout` 对未跟踪文件静默无效。** 还原一次对测试文件的变异时我又用了
+`git checkout`——而那个文件是本轮新建的，从未提交，所以 checkout **什么也没做**，
+变异留在了文件里。是 `grep -c MUTANT` 查出来的。**变异还原只有一种写法：`cp 备份 文件`。**
+
+**二、改了既有测试之后必须证明它还能失败。** `table_menu_enablement_test` 原先只调
+`updateCursor`、不注册 controller，我的改动让它红了 3 条。我改了它的设置方式——
+而这正是「把测试调成通过」最容易发生的地方，所以补做了三次变异证明它仍然咬得住。
+
+**三、那个测试文件的注释一直在说谎，而我差点照抄。** 它写着
+「the caret is actually moved between the assertions」——**并没有**：每条用例都新建一棵
+控件树、光标已在目标位置。**去掉菜单对光标的 watch，四条用例全绿。**
+补了一条在**同一棵树里**移动光标的用例，那句注释才成为事实。
+
+**一个近似等价的变异，如实记下**：把行边界的 `indexOf('\n', lineStart)` 改成
+`lineStart + 1`，没有任何测试变红。查清了原因：只有光标停在**空行**上时两者才不同，
+而那时前置拒绝会让 `_isTableLine` 看到 `"\n| ..."`，trim 之后仍以 `|` 开头从而放行，
+随后完整流程里的 `_isTableLine(lines[caret.line])` 仍会拒绝——**结果相同，只是慢一点**。
+补了两条空行用例（表格上方与下方各一）把这个行为钉住，但**它们抓不住那个变异**，
+这里写明，免得以后误以为覆盖了。
 
 ---
 

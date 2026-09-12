@@ -144,4 +144,32 @@ void main() {
         reason: '记录一个大选区比记录一个小选区贵得多（$huge µs vs $tiny µs）——'
             '说明它在拷贝选区，而不是记下范围');
   });
+
+  /// The field knows where the caret is. The Format menu used to rebuild the
+  /// offset from the line and column the status bar shows, which meant splitting
+  /// the document into lines on every caret move — 36.7 ms over eight megabytes,
+  /// and again inside `TableEditService.locate` for the same keypress.
+  group('where the caret is', () {
+    test('the offset comes from the field', () {
+      final controller = attach('one two three');
+      controller.selection = const TextSelection.collapsed(offset: 7);
+      expect(notifier().caretOffset, 7);
+    });
+
+    /// In preview mode the line and column are whatever the source pane last
+    /// reported, so an offset built from them points into a document nobody is
+    /// editing. The table commands are source-pane commands and "nowhere" is
+    /// what greys them out.
+    test('nowhere when there is no source pane', () {
+      expect(notifier().caretOffset, isNull);
+    });
+
+    test('nowhere again once the source pane goes away', () {
+      final controller = attach('one two three');
+      controller.selection = const TextSelection.collapsed(offset: 3);
+      expect(notifier().caretOffset, 3);
+      notifier().clearController(controller);
+      expect(notifier().caretOffset, isNull);
+    });
+  });
 }

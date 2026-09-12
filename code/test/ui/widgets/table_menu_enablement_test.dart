@@ -14,10 +14,24 @@ import 'package:marktext_plus/ui/widgets/app_menu_bar.dart';
 
 /// The table commands are offered only where they apply.
 ///
-/// Reading the code is not enough to know this works: the menu takes the caret
-/// from the editor's line-and-column state and the text from the active tab,
-/// and either of those going stale would leave the entries permanently grey or
-/// permanently live. So the caret is actually moved between the assertions.
+/// Reading the code is not enough to know this works: either the caret or the
+/// text going stale would leave the entries permanently grey or permanently
+/// live.
+///
+/// This file used to say the caret was moved between the assertions. It was not:
+/// every case built a fresh tree with the caret already where it wanted it, so
+/// nothing here needed the menu to notice a caret that moves. Removing the watch
+/// on the caret left all of them green. The last test below is the one that
+/// moves it inside one tree.
+///
+/// The caret comes from the field, not from the line and column the status bar
+/// shows. It used to be rebuilt from those by splitting the document into lines
+/// and adding their lengths up — 36.7 ms over eight megabytes, while the menu
+/// was being built, so on every caret move. The two agree in the running editor
+/// because one selection sets both; where they differ is preview mode, which has
+/// no field, and there an offset built from the last line and column reported by
+/// the source pane points at a position the reader cannot see. So this registers
+/// a controller and moves its selection, which is what the source pane does.
 void main() {
   late Directory configDir;
 
@@ -52,7 +66,24 @@ void main() {
     container.read(tabProvider.notifier).addTab(
           TabInfo(id: 't1', fileName: 'x.md', content: document),
         );
+
+    // Both, as one selection change does in the editor: the field carries the
+    // offset the commands are worked out from, and the line and column are what
+    // the menu watches to know it has to rebuild.
+    final controller = TextEditingController(text: document);
+    addTearDown(controller.dispose);
+    final lines = document.split('\n');
+    var offset = 0;
+    for (var i = 0; i < line && i < lines.length; i++) {
+      offset += lines[i].length + 1;
+    }
+    controller.selection = TextSelection.collapsed(
+      offset: offset + column.clamp(0, lines[line].length),
+    );
+    container.read(editorProvider.notifier).setController(controller);
     container.read(editorProvider.notifier).updateCursor(line, column);
+    _lastContainer = container;
+    _lastController = controller;
 
     await tester.pumpWidget(
       UncontrolledProviderScope(
@@ -117,4 +148,53 @@ void main() {
     expect(entries['Delete Column'], isTrue,
         reason: '两列的表格应当可以删列');
   });
+
+  /// The menu has to notice a caret that moves, which is the half the cases
+  /// above cannot show: each of them builds its own tree with the caret already
+  /// in place. Mutating the watch away left every one of them green.
+  testWidgets('the entries follow a caret that moves', (tester) async {
+    final outside = await entriesWithCaretOn(tester, 0, 3);
+    expect(outside.values, everyElement(isFalse),
+        reason: '起点应当在表格外');
+
+    // Into the table, in the tree that is already on screen.
+    final container = _lastContainer!;
+    final controller = _lastController!;
+    final lines = document.split('\n');
+    var offset = 0;
+    for (var i = 0; i < 4; i++) {
+      offset += lines[i].length + 1;
+    }
+    controller.selection = TextSelection.collapsed(offset: offset + 2);
+    container.read(editorProvider.notifier).updateCursor(4, 2);
+    await tester.pumpAndSettle();
+
+    final live = await _readEntries(tester);
+    expect(live['Insert Row Below'], isTrue,
+        reason: '光标移进表格之后菜单没有跟着更新');
+    expect(live['Align Column Center'], isTrue);
+  });
+}
+
+ProviderContainer? _lastContainer;
+TextEditingController? _lastController;
+
+/// Reads the four entries from the submenu that is already open.
+///
+/// The open menu is not closed by a rebuild underneath it — the entries are
+/// rebuilt in place — so moving the caret and pumping is enough to see them
+/// change. Tapping the top-level item again would close the menu instead.
+Future<Map<String, bool>> _readEntries(WidgetTester tester) async {
+  final result = <String, bool>{};
+  for (final label in [
+    'Insert Row Below',
+    'Delete Row',
+    'Delete Column',
+    'Align Column Center',
+  ]) {
+    final finder = find.widgetWithText(MenuItemButton, label);
+    expect(finder, findsOneWidget, reason: '菜单里没有「$label」');
+    result[label] = tester.widget<MenuItemButton>(finder).onPressed != null;
+  }
+  return result;
 }

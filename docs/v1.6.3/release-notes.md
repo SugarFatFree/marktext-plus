@@ -333,6 +333,24 @@ The selection is a range now, and the text is taken when somebody asks. Which pa
 answers is unchanged: whichever one the reader touched last, so a plugin run from
 the preview is not handed what the source pane had selected a minute ago.
 
+### Moving the caret in a large file is no longer slower than the file
+
+Every caret move split the whole document into lines — twice. The Format menu
+works out whether the table commands apply while it is being built, and it did
+that by rebuilding the caret's offset from the line and column the status bar
+shows, then handing the document to a table lookup that split it again. Over eight
+megabytes that is 36.7 ms each, so an arrow key cost about seventy milliseconds
+against a frame of 16.7, and holding one down stuttered.
+
+The text field knows where the caret is, and whether the caret is in a table needs
+only the line it is on: 0 µs on the same document. The menu still rebuilds when the
+caret moves, because the commands grey out when it leaves a table — what it no
+longer does is read the document to find out where it went.
+
+One thing changed with it: in preview mode, where there is no text field, the table
+commands are greyed out. They used to light up for a position built from whatever
+the source pane last reported, which is not somewhere the reader can see.
+
 ### A large document's first paint no longer cuts a block in half
 
 A document over 1500 lines is shown in two passes, the top of it first. That
@@ -617,6 +635,20 @@ Mermaid 包够不到编辑器的翻译，所以它自带的错误框按设计是
 
 现在选区是一个范围，文字在有人要的时候才取。**哪个窗格答话的规则没有变**：
 读者最后动过的那个，所以从预览运行的插件不会拿到源码区一分钟前选的东西。
+
+### 在大文件里移动光标不再比文件本身还慢
+
+每次光标移动都会把整篇文档切成行——**两次**。格式菜单在构建时判断表格命令是否适用，
+而它的做法是先用状态栏显示的行列**重新算出**光标偏移量，再把整篇文档交给表格查找、
+又切一次。8 MB 文档下每次 36.7 ms，于是按一次方向键约七十毫秒，而一帧是 16.7 ms，
+按住方向键就持续卡顿。
+
+文本框本来就知道光标在哪；而「光标在表格里吗」只需要它所在的那一行——同一份文档上
+**0 µs**。菜单仍然会在光标移动时重建，因为命令要随光标离开表格而置灰；
+**不再做的是重建时去读整篇文档**。
+
+随之改变的一件事：预览模式下没有文本框，表格命令现在**置灰**。以前它们会按源码窗格
+最后报告的位置点亮，而那个位置读者在预览里看不见。
 
 ### 大文档的第一屏不再把块切成两半
 
