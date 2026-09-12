@@ -555,8 +555,7 @@ class TabNotifier extends StateNotifier<TabState> {
         lineEnding: tab.lineEnding,
         encoding: tab.encoding,
       );
-      if (written != tab.encoding) _setEncoding(tabId, written);
-      await _markSavedWithStamp(tabId, tab.filePath!);
+      await markSaved(tabId, written: written);
     } on FileChangedOnDiskException {
       // Something else rewrote the file while this document was being edited.
       // Auto-save stops here and says so rather than choosing a winner: the
@@ -571,38 +570,9 @@ class TabNotifier extends StateNotifier<TabState> {
 
   /// Marks the tab saved and records what the file now looks like, so the
   /// next save compares against this write rather than the original read.
-  Future<void> _markSavedWithStamp(String id, String path) async {
-    final stamp = await FileService.stampOf(path);
-    if (!mounted) return;
-    state = state.copyWith(
-      tabs: state.tabs
-          .map((tab) => tab.id == id
-              ? tab.copyWith(
-                  isModified: false,
-                  diskStamp: stamp,
-                  diskConflict: false,
-                )
-              : tab)
-          .toList(),
-    );
-  }
-
   /// Records that a tab's file changed underneath the editor.
   void markDiskConflict(String id) => _setDiskConflict(id, true);
 
-  /// Records the encoding a save actually used.
-  ///
-  /// Only when it differs from what was asked for, which happens when the
-  /// document holds a character the encoding cannot carry.
-  void _setEncoding(String id, FileEncoding encoding) {
-    state = state.copyWith(
-      tabs: state.tabs
-          .map((tab) => tab.id == id ? tab.copyWith(encoding: encoding) : tab)
-          .toList(),
-    );
-  }
-
-  /// Records, or clears, that a tab's file changed underneath the editor.
   void _setDiskConflict(String id, bool conflict) {
     if (state.tabs.where((t) => t.id == id).firstOrNull?.diskConflict ==
         conflict) {
@@ -630,13 +600,13 @@ class TabNotifier extends StateNotifier<TabState> {
   Future<bool> overwriteOnDisk(String id) async {
     final tab = state.tabs.where((t) => t.id == id).firstOrNull;
     if (tab?.filePath == null) return false;
-    await FileService.saveDocument(
+    final written = await FileService.saveDocument(
       tab!.filePath!,
       tab.content,
       lineEnding: tab.lineEnding,
       encoding: tab.encoding,
     );
-    await _markSavedWithStamp(id, tab.filePath!);
+    await markSaved(id, written: written);
     return true;
   }
 
@@ -673,7 +643,7 @@ class TabNotifier extends StateNotifier<TabState> {
     return true;
   }
 
-  /// Records that [id] has been written to disk.
+  /// Records that [id] has been written to disk, in [written].
   ///
   /// Awaitable, and the stamp is taken before the state is published rather
   /// than by an unawaited call afterwards. That version left a window: the
@@ -684,8 +654,29 @@ class TabNotifier extends StateNotifier<TabState> {
   /// changed their file when nothing had but them.
   ///
   /// This is the same shape as BUG-149, in the one place that had kept it:
-  /// auto-save has gone through [_markSavedWithStamp] since then.
-  Future<void> markSaved(String id) async {
+  /// auto-save has gone through here since then.
+  ///
+  /// [written] is part of the record and not an afterthought. `saveDocument`
+  /// answers with the encoding it actually used, which is not always the one
+  /// it was asked for: text holding a character the encoding cannot carry is
+  /// written as UTF-8 instead. Three of the four save paths threw that answer
+  /// away, so the status bar went on naming an encoding the file was no longer
+  /// in — and the "read it again as…" menu beside it would then have decoded a
+  /// UTF-8 file as GBK, turning the reader's own document into mojibake. Made
+  /// required rather than optional so a fifth save path cannot forget it.
+  ///
+  /// `stamp ?? t.diskStamp` keeps the old baseline when the stat after a write
+  /// fails — a null stamp is not a conflict but *no information*, and the check
+  /// would be off for that tab from then on.
+  ///
+  /// Two methods used to do this one job. They agreed on this point, including
+  /// the version that wrote `diskStamp: stamp` and looked as though it did not:
+  /// `TabInfo.copyWith` reads a null as "leave it alone", which is what
+  /// `clearDiskStamp` exists to override. Saying they disagreed is what the
+  /// first version of this comment said, and a mutation of each half came back
+  /// green until both were removed at once — two nets, either one enough. The
+  /// consolidation was still worth doing; the second bug was not there.
+  Future<void> markSaved(String id, {required FileEncoding written}) async {
     final tab = state.tabs.where((t) => t.id == id).firstOrNull;
     final path = tab?.filePath;
     final stamp = path == null ? null : await FileService.stampOf(path);
@@ -697,6 +688,7 @@ class TabNotifier extends StateNotifier<TabState> {
                   isModified: false,
                   diskConflict: false,
                   diskStamp: stamp ?? t.diskStamp,
+                  encoding: written,
                 )
               : t)
           .toList(),

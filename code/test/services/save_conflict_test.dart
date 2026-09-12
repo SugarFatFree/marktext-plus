@@ -365,12 +365,14 @@ void main() {
     ));
 
     notifier.updateContent('tab', 'mine\n');
-    await FileService.saveDocumentIfUnchanged(
+    final written = await FileService.saveDocumentIfUnchanged(
       path,
       'mine\n',
       expect: container.read(tabProvider).tabs.single.diskStamp,
     );
-    await notifier.markSaved('tab');
+    // The encoding the write actually used, which is what the tab records —
+    // every real save path hands this over now.
+    await notifier.markSaved('tab', written: written);
 
     final stamp = container.read(tabProvider).tabs.single.diskStamp;
     expect(await FileService.hasChangedSince(path, stamp), isFalse,

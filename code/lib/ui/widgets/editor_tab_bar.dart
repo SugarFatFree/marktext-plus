@@ -13,6 +13,7 @@ import '../../utils/file_reveal.dart';
 import '../../utils/file_utils.dart';
 import '../../providers/tab_provider.dart';
 import '../../services/file_service.dart';
+import '../../models/file_encoding.dart';
 
 /// What the user chose when asked about unsaved work.
 enum _UnsavedChoice { cancel, discard, save }
@@ -104,6 +105,7 @@ class EditorTabBar extends ConsumerWidget {
       if (path == null) return false;
     }
 
+    final FileEncoding written;
     try {
       if (tab.filePath == path) {
         // An existing document, so the same check the menu's Save makes:
@@ -111,7 +113,7 @@ class EditorTabBar extends ConsumerWidget {
         // closing is not a reason to write over that. A path just chosen in
         // the picker has no baseline to compare against and the picker has
         // already asked about replacing anything there.
-        await FileService.saveDocumentIfUnchanged(
+        written = await FileService.saveDocumentIfUnchanged(
           path,
           tab.content,
           expect: tab.diskStamp,
@@ -123,7 +125,7 @@ class EditorTabBar extends ConsumerWidget {
         // asked about replacing anything there, and there is no baseline to
         // compare a file this tab has never read. Written unconditionally on
         // purpose.
-        await FileService.saveDocument(path, tab.content,
+        written = await FileService.saveDocument(path, tab.content,
             lineEnding: tab.lineEnding, encoding: tab.encoding);
       }
     } on FileChangedOnDiskException {
@@ -153,7 +155,10 @@ class EditorTabBar extends ConsumerWidget {
       // list is read at the next launch rather than now.
       unawaited(ref.read(settingsProvider.notifier).addRecentFile(path));
     }
-    await ref.read(tabProvider.notifier).markSaved(tab.id);
+    // The tab is about to close, so the encoding it takes on here is only
+    // read if closing is then called off — but the record is the record, and
+    // leaving one path out of it is how three of the four came to be wrong.
+    await ref.read(tabProvider.notifier).markSaved(tab.id, written: written);
     return true;
   }
 

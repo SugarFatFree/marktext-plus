@@ -47,6 +47,7 @@
 | BUG-462 | 2026-09-13 | 29 处文档注释挂在了错的成员头上，被它们描述的成员一句都没有 | P2 | 已修复 |
 | BUG-463 | 2026-09-13 | 阿拉伯语下三个指向性图标指着相反方向，折叠文件夹的箭头背对它要展开的地方 | P2 | 已修复 |
 | BUG-464 | 2026-09-13 | 拖入或双击打开一个读不了的文件：标签页闪一下就消失，什么也不说 | P1 | 已修复 |
+| BUG-465 | 2026-09-13 | Ctrl+S／另存为／覆盖都丢掉「实际写盘用了哪种编码」，状态栏从此说谎 | P1 | 已修复 |
 
 ---
 
@@ -3179,3 +3180,93 @@ for (final guard in guards) { expect(guard, contains('reportOpenFailure')); }
 | 拖放路径不上报 | 红 |
 | 启动路径不上报 | 红（这正是旧正则漏掉的那一处） |
 | 不再移除占位标签页 | 红 |
+
+---
+
+## BUG-465：三条保存路径丢掉了「实际写盘用了哪种编码」
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-465 |
+| 日期 | 2026-09-13 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+
+### 现象
+
+一个标签页的编码是 Latin-1（或 GBK），文档里出现了这种编码装不下的字符（例如一段中文）。
+按 Ctrl+S——文件**按 UTF-8 写成**（正确，否则那些字就丢了），但**状态栏仍然写着
+Latin-1**。接着从状态栏那个菜单选「按 Latin-1 重新读取」，就把一个 UTF-8 文件当
+Latin-1 解码——**读者亲手把自己的文档变成乱码**。
+
+### 根因
+
+`FileService.saveDocument` 的文档注释自己写着：
+
+> Returns the encoding the file was actually written in, which is not always
+> [encoding] … **The caller updates the document with it so the status bar keeps
+> telling the truth.**
+
+四条保存路径里，**只有自动保存照做了**：
+
+| 路径 | 写回实际编码 |
+|------|-------------|
+| 自动保存 | ✓ `if (written != tab.encoding) _setEncoding(...)` |
+| **Ctrl+S** | ✗ 丢弃返回值 |
+| **另存为** | ✗ 丢弃返回值 |
+| **冲突里选「覆盖」** | ✗ 丢弃返回值 |
+| 关闭前保存 | ✗（标签页随后关闭，看不见，但记录仍应完整） |
+
+CLAUDE.md 里「排查缺陷最有效的三条视角」第 2 条的举例原文就是
+**「状态栏写的编码不是真正写盘的编码」**——这个视角命中过，但当时只修了自动保存那条。
+
+### 修复：把它变成「已写盘」这条记录的必填项
+
+四条路都以「记录这个标签页已写盘」收尾，而这件事原本有**两个方法**
+（`markSaved` 与 `_markSavedWithStamp`，区别只是路径是传进来还是从标签页读）。
+合并成一个，并把签名改成：
+
+```dart
+Future<void> markSaved(String id, {required FileEncoding written}) async
+```
+
+`required` 让**编译器点出每一个调用方**——它精确地报出了那三处丢掉返回值的地方。
+顺带删掉只有一个调用者的 `_setEncoding`（已折进来）。
+
+### 一件我判断错、被变异查出来的事
+
+合并这两个方法时我以为还发现了第二个缺陷：`_markSavedWithStamp` 写的是
+`diskStamp: stamp`（不带兜底），而 `markSaved` 写的是 `stamp ?? t.diskStamp`。
+既然 `hasChangedSince(path, null)` 返回 `false`，我据此写下「写盘后 stat 失败会把
+基准置空，于是这个标签页此后再也不做冲突检查」，还写进了注释。
+
+**变异证明这是错的。** 把兜底去掉，测试**全绿**——因为
+`TabInfo.copyWith` 的实现是 `diskStamp: clearDiskStamp ? null : (diskStamp ?? this.diskStamp)`，
+**传 null 本身就表示「别动」**（`clearDiskStamp` 就是为了覆盖这个语义而存在的）。
+两个方法在这一点上**从来就是一致的**。
+
+我把注释和测试里那段错误的根因改掉了。进一步地：单独变异任一层兜底都是**等价变异**
+（另一层顶上），只有**两层同时去掉**才会红——所以那条测试守的是
+「写盘后 stat 失败不得置空基准」这个**属性**，而不是其中某一层实现。这一点也写进了
+测试的文档注释，免得下一个人以为单独改一层是安全的。
+
+合并两个方法仍然是对的（一件事一个方法），只是第二个缺陷并不存在。
+
+### 涉及文件
+
+- `code/lib/providers/tab_provider.dart`（合并两个收口点，删掉 `_setEncoding`）
+- `code/lib/ui/widgets/app_menu_bar.dart`、`editor_tab_bar.dart`
+- `code/test/providers/a_save_records_the_encoding_it_used_test.dart`（新增 3 条）
+- `code/test/services/save_conflict_test.dart`（跟上新签名）
+
+### 验证：四次变异，其中两次是等价变异
+
+| 变异 | 结果 |
+|------|------|
+| 不写回编码（三条路原来的样子） | 红：「状态栏还写着 Latin-1，而文件已经是 UTF-8」 |
+| 去掉 `markSaved` 里的 `?? t.diskStamp` | **绿——等价变异**，`copyWith` 顶上了 |
+| 让 `copyWith` 把 null 当「清空」 | **绿——等价变异**，`markSaved` 的 `??` 顶上了 |
+| 两层同时去掉 | 红 |
+
+第一条测试里还先断言了「Latin-1 确实装不下这段中文、写盘确实退回了 UTF-8」——
+否则这个用例可能什么都没造出来就绿了。

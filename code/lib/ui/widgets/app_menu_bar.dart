@@ -46,6 +46,7 @@ import '../../services/update_service.dart';
 import '../../core/constants.dart';
 import '../../services/plugin_manifest.dart';
 import '../../utils/file_reveal.dart';
+import '../../models/file_encoding.dart';
 
 class AppMenuBar extends ConsumerWidget {
   const AppMenuBar({super.key});
@@ -186,8 +187,12 @@ class AppMenuBar extends ConsumerWidget {
     final activeTab = ref.read(activeTabProvider);
     if (activeTab == null) return;
     if (activeTab.filePath != null) {
+      final FileEncoding written;
       try {
-        await FileService.saveDocumentIfUnchanged(
+        // The answer, not just the act: a character the document's encoding
+        // cannot carry is written as UTF-8 instead, and the tab has to take
+        // that on or the status bar goes on naming the encoding it asked for.
+        written = await FileService.saveDocumentIfUnchanged(
           activeTab.filePath!,
           activeTab.content,
           expect: activeTab.diskStamp,
@@ -209,7 +214,9 @@ class AppMenuBar extends ConsumerWidget {
         reportSaveFailure(e);
         return;
       }
-      await ref.read(tabProvider.notifier).markSaved(activeTab.id);
+      await ref
+          .read(tabProvider.notifier)
+          .markSaved(activeTab.id, written: written);
     } else {
       saveFileAs(ref);
     }
@@ -299,8 +306,9 @@ class AppMenuBar extends ConsumerWidget {
       allowedExtensions: FileUtils.markdownExtensions,
     );
     if (path == null) return;
+    final FileEncoding written;
     try {
-      await FileService.saveDocument(path, activeTab.content,
+      written = await FileService.saveDocument(path, activeTab.content,
           lineEnding: activeTab.lineEnding, encoding: activeTab.encoding);
     } catch (e) {
       reportSaveFailure(e);
@@ -313,7 +321,9 @@ class AppMenuBar extends ConsumerWidget {
     ref
         .read(tabProvider.notifier)
         .updateTabPath(activeTab.id, path, p.basename(path));
-    await ref.read(tabProvider.notifier).markSaved(activeTab.id);
+    await ref
+        .read(tabProvider.notifier)
+        .markSaved(activeTab.id, written: written);
     // The recent list is not awaited: the file is open either way, and the
     // list is read at the next launch rather than now.
     unawaited(ref.read(settingsProvider.notifier).addRecentFile(path));
