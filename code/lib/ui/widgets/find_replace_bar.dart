@@ -29,12 +29,24 @@ class FindReplaceBar extends ConsumerStatefulWidget {
     String text,
     List<TextRange> ranges,
     String replacement,
+  ) =>
+      replaceRangesWith(text, ranges, (_) => replacement);
+
+  /// The same splice, with a replacement worked out for each range.
+  ///
+  /// A regular-expression replacement can name what the pattern captured, and
+  /// what it captured differs from hit to hit, so the text put in cannot be one
+  /// string. Back to front, as before, so the earlier offsets stay valid.
+  static String replaceRangesWith(
+    String text,
+    List<TextRange> ranges,
+    String Function(TextRange range) replacementFor,
   ) {
     var out = text;
     for (var i = ranges.length - 1; i >= 0; i--) {
       final range = ranges[i];
       out = out.substring(0, range.start) +
-          replacement +
+          replacementFor(range) +
           out.substring(range.end);
     }
     return out;
@@ -315,7 +327,14 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
       return;
     }
 
-    final replacement = _replaceController.text;
+    final replacement = TextSearch.expandReplacement(
+      text,
+      match.start,
+      _findController.text,
+      _replaceController.text,
+      caseSensitive: _caseSensitive,
+      useRegex: _useRegex,
+    );
     final newText = text.substring(0, match.start) +
         replacement +
         text.substring(match.end);
@@ -359,8 +378,18 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
     // which finds its own matches — including the empty ones this deliberately
     // skips. Searching `x*` in `axbxc` reported two matches and then wrote
     // `YaYYbYYcY`: six replacements, in a document the user had been shown two.
-    final newText =
-        FindReplaceBar.replaceRanges(text, _matches, replacement);
+    final newText = FindReplaceBar.replaceRangesWith(
+      text,
+      _matches,
+      (range) => TextSearch.expandReplacement(
+        text,
+        range.start,
+        _findController.text,
+        replacement,
+        caseSensitive: _caseSensitive,
+        useRegex: _useRegex,
+      ),
+    );
 
     widget.textController!.value = TextEditingValue(
       text: newText,
@@ -557,7 +586,15 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
                   child: TextField(
                     controller: _replaceController,
                     decoration: InputDecoration(
-                      hintText: l10n.editReplace,
+                      // The two spellings a regular-expression replacement
+                      // understands, shown where the reader is deciding what to
+                      // type. Symbols rather than a sentence: a capability
+                      // nobody can find is the same as no capability, and a
+                      // sentence here would be a thirteenth string to
+                      // translate for something `$1` says in every language.
+                      hintText: _useRegex
+                          ? '${l10n.editReplace}   \$1  \$&'
+                          : l10n.editReplace,
                       isDense: true,
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 8,

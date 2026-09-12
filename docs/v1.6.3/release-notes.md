@@ -237,6 +237,22 @@ that made it; `**加粗。**后面` came out bold where the preview draws asteri
 and nothing was escaped, so a selection holding `a < b` produced HTML that no
 longer said `a < b`. It uses the same conversion as the other four now.
 
+### A regular-expression search anchors to lines, and a replacement can put back what it found
+
+`^` and `$` meant the start and end of the whole document, so `^#+ ` — the most
+natural thing to type into a regular-expression search here, "find every heading"
+— found the first heading only if the document opened with one, and nothing
+otherwise. They anchor to lines now, as they do in every other editor. `.` still
+does not cross a line.
+
+And a replacement can name what the pattern captured: `$1` through `$99` for a
+group, `$&` for the whole match, `$$` for a literal dollar — the spelling every
+other editor uses. So searching `\[(.+?)\]\((.+?)\)` and replacing with `$2: $1`
+turns every link in the selection around, which is the one thing a
+regular-expression replace is for. A group number the pattern does not have is
+left as it stands rather than quietly becoming nothing, and a literal search still
+replaces literally, so `$5` stays `$5`.
+
 ### A large document's first paint no longer cuts a block in half
 
 A document over 1500 lines is shown in two passes, the top of it first. That
@@ -446,6 +462,18 @@ HKLM、一个在 HKCU），会当作全新安装，旧的那份会留在原地�
 都以写出它们的 Markdown 原样出现；`**加粗。**后面` 变成了粗体，而预览画的是
 字面星号；而且一字不转义，所以含 `a < b` 的选区产出的 HTML 已经不再说 `a < b`。
 现在它用与那四处相同的那一份转换。
+
+### 正则查找按行锚定，替换可以放回它捕获到的东西
+
+`^` 与 `$` 原先指的是整个文档的开头与结尾，所以 `^#+ `——在这里输入正则查找最自然的
+一件事，「找出所有标题」——只在文档恰好以标题开头时找到第一个，否则一个也找不到。
+现在它们按行锚定，和其他编辑器一样。`.` 仍然不跨行。
+
+替换文本也可以指名模式捕获到的东西了：`$1` 到 `$99` 是分组，`$&` 是整个匹配，
+`$$` 是一个字面的美元号——所有其他编辑器用的就是这套拼法。于是查
+`\[(.+?)\]\((.+?)\)`、替换为 `$2: $1`，选区里每个链接的文字与地址就都对调了，
+而这正是正则替换唯一的用途。模式里没有的组号原样保留，不会悄悄变成空；
+字面查找仍然字面替换，`$5` 还是 `$5`。
 
 ### 大文档的第一屏不再把块切成两半
 
