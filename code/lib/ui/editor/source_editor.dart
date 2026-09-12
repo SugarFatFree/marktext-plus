@@ -2312,49 +2312,22 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
         }
       case FormatAction.copyAsHtml:
         if (!selection.isCollapsed) {
+          // The same conversion Ctrl+C, Cut, the menu's Copy and the preview's
+          // copy all use. This case ran its own chain of regular expressions —
+          // four inline forms and six heading levels — so the one item named
+          // after HTML was the one that did not write the editor's HTML: no
+          // lists, tables, links, images, code blocks, quotes, maths or
+          // footnotes, no flanking rule, and nothing escaped, so a selection
+          // holding `a < b` produced HTML that no longer said it.
           final selected = text.substring(selection.start, selection.end);
-          var html = selected;
-          html = html.replaceAllMapped(
-            RegExp(r'\*\*(.+?)\*\*'),
-            (m) => '<strong>${m[1]}</strong>',
+          Clipboard.setData(
+            ClipboardData(
+              text: RichCopyService.htmlForMarkdownSelection(
+                selected,
+                enableHtml: ref.read(settingsProvider).enableHtml,
+              ),
+            ),
           );
-          html = html.replaceAllMapped(
-            RegExp(r'\*(.+?)\*'),
-            (m) => '<em>${m[1]}</em>',
-          );
-          html = html.replaceAllMapped(
-            RegExp(r'~~(.+?)~~'),
-            (m) => '<del>${m[1]}</del>',
-          );
-          html = html.replaceAllMapped(
-            RegExp(r'`(.+?)`'),
-            (m) => '<code>${m[1]}</code>',
-          );
-          html = html.replaceAllMapped(
-            RegExp(r'^#{6}\s+(.+)$', multiLine: true),
-            (m) => '<h6>${m[1]}</h6>',
-          );
-          html = html.replaceAllMapped(
-            RegExp(r'^#{5}\s+(.+)$', multiLine: true),
-            (m) => '<h5>${m[1]}</h5>',
-          );
-          html = html.replaceAllMapped(
-            RegExp(r'^#{4}\s+(.+)$', multiLine: true),
-            (m) => '<h4>${m[1]}</h4>',
-          );
-          html = html.replaceAllMapped(
-            RegExp(r'^#{3}\s+(.+)$', multiLine: true),
-            (m) => '<h3>${m[1]}</h3>',
-          );
-          html = html.replaceAllMapped(
-            RegExp(r'^#{2}\s+(.+)$', multiLine: true),
-            (m) => '<h2>${m[1]}</h2>',
-          );
-          html = html.replaceAllMapped(
-            RegExp(r'^#\s+(.+)$', multiLine: true),
-            (m) => '<h1>${m[1]}</h1>',
-          );
-          Clipboard.setData(ClipboardData(text: html));
         }
       case FormatAction.selectAll:
         _controller.selection = TextSelection(

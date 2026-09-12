@@ -223,6 +223,20 @@ attribute. That fallback is a decision now instead of an accident of attribute
 order, and it is only taken when `src` has nothing usable in it — so a picture
 this editor inlined on its way out is left exactly as it was.
 
+### Copy as HTML hands over the editor's HTML
+
+Four places turn a selection into HTML for the clipboard — Ctrl+C, Cut, the
+menu's Copy, and the preview's copy — and all four parse the markdown and write
+it out the way the export does. The one item named after HTML did not: it ran a
+chain of regular expressions over the selected text, four inline forms and six
+heading levels, and left everything else as it was.
+
+So a list, a table, a link, an image, a code block, a quote, a formula, a
+footnote, a highlight, an underline or a raised letter came out as the markdown
+that made it; `**加粗。**后面` came out bold where the preview draws asterisks;
+and nothing was escaped, so a selection holding `a < b` produced HTML that no
+longer said `a < b`. It uses the same conversion as the other four now.
+
 ### A large document's first paint no longer cuts a block in half
 
 A document over 1500 lines is shown in two passes, the top of it first. That
@@ -421,6 +435,17 @@ HKLM、一个在 HKCU），会当作全新安装，旧的那份会留在原地�
 单这一条对现实中的网页是退步：懒加载的图片把占位符放在 `src`、真地址放在 data 属性里。
 那个回退现在是一个决定，而不是属性顺序的巧合，并且只在 `src` 没有可用内容时才走——
 所以编辑器自己导出时内嵌的图片原样保留。
+
+### 「复制为 HTML」交出的是这个编辑器的 HTML
+
+有四处把选区转成剪贴板上的 HTML——Ctrl+C、剪切、菜单的「复制」、预览自己的复制——
+四处都是先解析 Markdown、再按导出的方式写出来。唯一一个名字里带 HTML 的菜单项
+不是这样：它对选中的文本跑一串正则，四种内联加六级标题，其余一概原样留下。
+
+于是列表、表格、链接、图片、代码块、引用、公式、脚注、高亮、下划线、上下标
+都以写出它们的 Markdown 原样出现；`**加粗。**后面` 变成了粗体，而预览画的是
+字面星号；而且一字不转义，所以含 `a < b` 的选区产出的 HTML 已经不再说 `a < b`。
+现在它用与那四处相同的那一份转换。
 
 ### 大文档的第一屏不再把块切成两半
 
