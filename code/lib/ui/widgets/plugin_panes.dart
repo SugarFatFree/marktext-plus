@@ -360,7 +360,10 @@ class PluginPaneView extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(12, 6, 4, 6),
+          // Directional: the title is at the start and the buttons at the
+          // end, so the wider margin belongs to whichever side the title is
+          // on. In a left-to-right layout this resolves to the same numbers.
+          padding: const EdgeInsetsDirectional.fromSTEB(12, 6, 4, 6),
           child: Row(
             children: [
               Expanded(

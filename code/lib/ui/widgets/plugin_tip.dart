@@ -153,7 +153,7 @@ class _PluginTipCardState extends ConsumerState<PluginTipCard> {
         borderRadius: BorderRadius.circular(8),
         color: theme.colorScheme.surface,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 8, 6, 10),
+          padding: const EdgeInsetsDirectional.fromSTEB(12, 8, 6, 10),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,

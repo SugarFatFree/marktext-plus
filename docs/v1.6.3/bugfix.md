@@ -45,6 +45,7 @@
 | BUG-460 | 2026-09-12 | 「按别的编码重读」清掉了冲突横幅却不更新基准，下一次保存又冲突 | P1 | 已修复 |
 | BUG-461 | 2026-09-12 | 基准戳取在读之后，落在中间的写入被算成「已看过」，保存时静默盖掉 | P1 | 已修复 |
 | BUG-462 | 2026-09-13 | 29 处文档注释挂在了错的成员头上，被它们描述的成员一句都没有 | P2 | 已修复 |
+| BUG-463 | 2026-09-13 | 阿拉伯语下三个指向性图标指着相反方向，折叠文件夹的箭头背对它要展开的地方 | P2 | 已修复 |
 
 ---
 
@@ -3012,3 +3013,81 @@ void reportDiskConflict(String fileName) { … }
 | 删掉 `allowed` 里一条 | 红：「查到的处数与 allowed 的条数不再相等」 |
 
 全量测试 3468 通过（本次不改行为），`dart analyze --fatal-infos lib test` 干净。
+
+---
+
+## BUG-463：阿拉伯语下三个指向性图标指着相反的方向
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-463 |
+| 日期 | 2026-09-13 |
+| 优先级 | P2 |
+| 状态 | 已修复 |
+
+### 现象
+
+阿拉伯语界面（RTL）下：
+
+| 位置 | 现象 |
+|------|------|
+| 左侧文件树 | 折叠的文件夹箭头指**右**，而树是往**左**缩进展开的——箭头背对它要展开的方向 |
+| 设置的分类列表 | 标记「当前选中」的 `>` 指右，而右侧内容面板在**左**边 |
+| 插件抽屉的提问框 | 发送按钮的纸飞机指右，即指着读者**读过来**的方向 |
+
+### 根因：改了一个分支，没改它紧挨着的兄弟
+
+`side_bar.dart:389` 的缩进**早就是** `EdgeInsetsDirectional.only(start: depth * 16.0 + 8, …)`，
+而**紧挨着它下一行**的箭头还是裸的 `Icons.keyboard_arrow_right`。仓库里
+`EdgeInsetsDirectional` / `AlignmentDirectional` 已有十余处——这一轮做 RTL 的人
+改了容器的内边距，没有回头看它里面画的那个箭头。
+
+Material 的规定是：**指向某处的图标必须随文字方向镜像**。全库扫了 34 个这类图标名，
+命中 3 处，全部是真的。
+
+### 修复
+
+新增 `DirectionalIcon`，把规则收在一处。**两种镜像方式**，因为 Material 只提供了第一种：
+
+| 情形 | 做法 |
+|------|------|
+| 有朝反方向的对应图标 | 换成它（`chevron_right` → `chevron_left` 等 6 对） |
+| 没有对应图标（这里只有 `send`） | 水平翻转 |
+
+**翻转不能代替换图标**：`keyboard_arrow_right` 翻过来**不是**
+`keyboard_arrow_left`——两个字形并非互为镜像，16 像素下看得出差别。这条写在类的
+文档注释里，并有一条测试对着 `partners` 表本身断言（映射到自己会被抓住）。
+
+一个 Dart 细节：`partners` **不能是 `const`**——`IconData` 重写了 `==`，
+而常量 map 的键不允许这样。写成 `static final` 并注明理由。
+
+### 顺带：三处标题栏内边距改成方向性
+
+`plugin_panes` / `plugin_tip` / `right_side_bar` 的标题栏是「标题在起始侧、按钮在结束侧」，
+内边距却是 `EdgeInsets.fromLTRB(12, …, 4, …)`：RTL 下标题会被挤到离边 4px，
+而按钮那侧空出 12px。改成 `EdgeInsetsDirectional.fromSTEB`，**LTR 下解析结果完全相同**。
+
+**没有为这三处单独写测试**：它们改变的只是「内边距会不会镜像」，
+而这是 `EdgeInsetsDirectional` 本身保证的，测试只会在测 Flutter。
+另外两处不对称的没有改——`plugin_panel` 只差 2px（看不出来），
+`export_service` 那处在 PDF 导出里，导出的文字方向是另一件事。
+
+### 涉及文件
+
+- `code/lib/ui/widgets/directional_icon.dart`（新增）
+- `code/lib/ui/widgets/side_bar.dart`、`right_side_bar.dart`、`plugin_panes.dart`、`plugin_tip.dart`
+- `code/lib/ui/screens/settings_screen.dart`
+- `code/test/ui/widgets/a_pointing_icon_points_the_way_the_text_runs_test.dart`（新增，5 条）
+
+### 验证：三次变异
+
+| 变异 | 结果 |
+|------|------|
+| `side_bar` 退回裸 `Icon` | 红：守卫报出 `side_bar.dart:403  Icons.keyboard_arrow_right` |
+| RTL 时不换对应图标、只翻转 | 红 |
+| RTL 时什么都不做 | 红 |
+
+守卫是**按整个文件扫**的，而不是逐行：`DirectionalIcon(` 与图标名之间会有换行和缩进，
+逐行看会把三处正确的用法也报成违规（第一版正是这样）。豁免两类并写明理由：
+`directional_icon.dart` 自己，以及 `mermaid/`——那里的箭头是画在画布上的几何图形，
+文字方向到不了，整张图要么全镜像要么不镜像。

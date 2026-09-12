@@ -17,6 +17,7 @@ import '../../services/ai_connection_service.dart';
 import '../../providers/mcp_provider.dart';
 import '../widgets/ai_setup_text.dart';
 import '../widgets/action_labels.dart';
+import '../widgets/directional_icon.dart';
 
 enum _Category { general, editor, markdown, theme, keybindings, ai, mcp }
 
@@ -202,7 +203,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
                 if (isSelected)
-                  Icon(
+                  DirectionalIcon(
                     Icons.chevron_right,
                     size: 16,
                     color: tokens.colorAccent,

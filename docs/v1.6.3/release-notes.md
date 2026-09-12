@@ -351,6 +351,17 @@ One thing changed with it: in preview mode, where there is no text field, the ta
 commands are greyed out. They used to light up for a position built from whatever
 the source pane last reported, which is not somewhere the reader can see.
 
+### Icons that point somewhere point the way you read
+
+In Arabic the file tree indents to the left, and the arrow on a collapsed folder
+pointed right — away from where it opens. Two more: the chevron marking the
+selected settings category pointed at the edge of the window rather than at the
+panel, and the send button's paper plane pointed back the way you came.
+
+The tree's indentation had been direction-aware for a while; the arrow drawn
+inside it had not. All three now mirror, and three title bars whose padding put
+the wider margin on the wrong side mirror with them.
+
 ### Rereading a file in another encoding is a way out of a conflict again
 
 When something else rewrites a file you have open, the status bar says so and
@@ -705,6 +716,15 @@ Mermaid 包够不到编辑器的翻译，所以它自带的错误框按设计是
 
 随之改变的一件事：预览模式下没有文本框，表格命令现在**置灰**。以前它们会按源码窗格
 最后报告的位置点亮，而那个位置读者在预览里看不见。
+
+### 指向某处的图标，现在指着你阅读的方向
+
+阿拉伯语下文件树往左缩进，而折叠文件夹的箭头指右——**背对它要展开的地方**。
+另有两处：设置里标记当前分类的箭头指向窗口边缘而不是内容面板，
+发送按钮的纸飞机指着你读过来的方向。
+
+文件树的**缩进**早就随方向镜像了，画在它里面的那个箭头没有。现在三处都会镜像；
+另有三条标题栏的内边距把较宽的一侧放错了边，一并跟着镜像。
 
 ### 「按别的编码重读」重新成为一条走得通的出路
 

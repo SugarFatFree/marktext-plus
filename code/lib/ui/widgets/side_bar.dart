@@ -22,6 +22,7 @@ import '../../services/file_service.dart';
 import '../../services/trash_service.dart';
 import 'editor_tab_bar.dart';
 import 'plugin_panel.dart';
+import 'directional_icon.dart';
 
 
 /// Which question to ask before removing something.
@@ -392,12 +393,17 @@ class _SideBarState extends ConsumerState<SideBar> {
                 child: Row(
                   children: [
                     if (node.isDirectory)
-                      Icon(
-                        node.isExpanded
-                            ? Icons.keyboard_arrow_down
-                            : Icons.keyboard_arrow_right,
-                        size: 16,
-                      ),
+                      // Down does not mirror; right does — see
+                      // [DirectionalIcon]. The indentation beside it has been
+                      // directional for a while and the arrow had not caught
+                      // up, so in Arabic a collapsed folder pointed away from
+                      // where it opens.
+                      node.isExpanded
+                          ? const Icon(Icons.keyboard_arrow_down, size: 16)
+                          : const DirectionalIcon(
+                              Icons.keyboard_arrow_right,
+                              size: 16,
+                            ),
                     if (!node.isDirectory) const SizedBox(width: 16),
                     Icon(
                       node.isDirectory ? Icons.folder : Icons.insert_drive_file,

@@ -15,6 +15,7 @@ import 'plugin_command_actions.dart';
 import 'plugin_icons.dart';
 import 'plugin_ui_view.dart';
 import '../../services/plugin_ui.dart';
+import 'directional_icon.dart';
 
 /// The rail of plugin panels down the right-hand side, and the drawer one of
 /// them opens.
@@ -720,7 +721,7 @@ class _SayBox extends StatelessWidget {
             ),
           ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(12, 8, 8, 10),
+          padding: const EdgeInsetsDirectional.fromSTEB(12, 8, 8, 10),
           child: Row(
             children: [
               Expanded(
@@ -743,7 +744,7 @@ class _SayBox extends StatelessWidget {
               IconButton(
                 key: const Key('plugin-drawer-send'),
                 tooltip: l10n?.pluginSend,
-                icon: const Icon(Icons.send, size: 18),
+                icon: const DirectionalIcon(Icons.send, size: 18),
                 onPressed: busy ? null : onSend,
               ),
             ],
