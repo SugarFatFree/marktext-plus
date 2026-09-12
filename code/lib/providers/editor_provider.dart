@@ -228,7 +228,62 @@ class EditorNotifier extends StateNotifier<EditorState> {
   ///
   /// Each entry is a whole copy of the document, pushed on a 300ms debounce,
   /// so an unbounded stack would grow without limit over a long session.
-  static const _maxHistory = 200;
+  static const maxHistory = 200;
+
+  /// How much snapshot text one tab's history will hold.
+  ///
+  /// The step count alone was the wrong unit. An entry is a whole copy of the
+  /// document, so two hundred of them is twenty megabytes of history for a
+  /// 100 KB note, two hundred megabytes for a one-megabyte document and two
+  /// gigabytes for a ten-megabyte one — per tab, and again for redo. A low
+  /// footprint and large files are the first two things this editor promises,
+  /// and this was the largest thing in the process that nothing measured. The
+  /// highlighter's cache a few files away budgets by characters for exactly
+  /// this reason; the history counted steps.
+  ///
+  /// Sixteen megabytes leaves every document under about eighty kilobytes with
+  /// all two hundred steps — which is almost every Markdown file — and turns the
+  /// pathological case from gigabytes into this.
+  static const historyCharBudget = 16 * 1024 * 1024;
+
+  /// Drops the oldest snapshots until [stack] is inside both bounds.
+  ///
+  /// Never below two: the top of the stack is the current state, so one entry
+  /// means there is nowhere to go back to and the key does nothing. A single
+  /// snapshot larger than the whole budget is therefore kept — one undo on a
+  /// huge document is worth more than the budget is.
+  ///
+  /// The total is summed rather than carried along. `String.length` is constant
+  /// time and the stack is two hundred entries at most, so this is two hundred
+  /// additions on a push that is already behind a 300 ms debounce; a running
+  /// total would be a second piece of state to keep in step with redo, which
+  /// moves entries between the two stacks.
+  static void _trim(List<_Snapshot> stack) {
+    if (stack.length > maxHistory) {
+      stack.removeRange(0, stack.length - maxHistory);
+    }
+    var chars = 0;
+    for (final entry in stack) {
+      chars += entry.text.length;
+    }
+    while (chars > historyCharBudget && stack.length > 2) {
+      chars -= stack.removeAt(0).text.length;
+    }
+  }
+
+  /// How much text one tab's history is holding, for the test that bounds it.
+  @visibleForTesting
+  int historyCharsForTest(String tabId) => (_undoStacks[tabId] ?? const [])
+      .fold(0, (total, entry) => total + entry.text.length);
+
+  /// How many snapshots one tab's history is holding.
+  @visibleForTesting
+  int historyLengthForTest(String tabId) => (_undoStacks[tabId] ?? const []).length;
+
+  /// The newest snapshot's text, to check that eviction took the oldest.
+  @visibleForTesting
+  String? historyTopForTest(String tabId) =>
+      (_undoStacks[tabId] ?? const <_Snapshot>[]).lastOrNull?.text;
 
   List<_Snapshot> get _undoStack =>
       _undoStacks.putIfAbsent(_historyKey, () => []);
@@ -415,10 +470,8 @@ class EditorNotifier extends StateNotifier<EditorState> {
     if (stack.isNotEmpty && stack.last.text == content) return;
 
     stack.add((text: content, caret: _caret));
-    if (stack.length > _maxHistory) {
-      // Oldest first: the recent past is what undo is for.
-      stack.removeRange(0, stack.length - _maxHistory);
-    }
+    // Oldest first: the recent past is what undo is for.
+    _trim(stack);
     if (tabId == null || tabId == _historyKey) {
       _redoStack.clear();
       _updateUndoRedoState();
@@ -465,9 +518,7 @@ class EditorNotifier extends StateNotifier<EditorState> {
     // clears the redo stack — the one thing undo must not do.
     if (_undoStack.last.text != now) {
       _undoStack.add((text: now, caret: _caret));
-      if (_undoStack.length > _maxHistory) {
-        _undoStack.removeRange(0, _undoStack.length - _maxHistory);
-      }
+      _trim(_undoStack);
     }
 
     // Only the current state is left; there is nowhere to go back to.

@@ -306,6 +306,20 @@ it answered in English too.
 All three draw the same box now. The diagram type names inside it stay as they
 are, in every language, because they are what has to be typed.
 
+### Editing a large file no longer fills memory with undo history
+
+Every undo step is a whole copy of the document, and the history was bounded at
+two hundred steps. For a note that is a few megabytes of history; for a
+one-megabyte document it is two hundred megabytes, and for a ten-megabyte one two
+gigabytes — per tab, and again for redo. It was the largest thing in the process
+and nothing measured it.
+
+The history is bounded by how much text it holds now, as well as by how many
+steps. Nothing changes for a document small enough that two hundred copies of it
+are cheap, which is almost every Markdown file: everything under about eighty
+kilobytes keeps all two hundred steps. Above that the oldest states are dropped
+first, and at least one undo is always kept however large the document is.
+
 ### A large document's first paint no longer cuts a block in half
 
 A document over 1500 lines is shown in two passes, the top of it first. That
@@ -570,6 +584,16 @@ Mermaid 包够不到编辑器的翻译，所以它自带的错误框按设计是
 
 现在三处画的是同一个框。框里的图表类型名在任何语言下都保持原文，
 因为它们是要照着打出来的东西。
+
+### 编辑大文件不再让撤销历史占满内存
+
+每一步撤销都是整份文档的副本，而历史的上限是**两百步**。对一篇笔记这是几 MB 的历史；
+对一个 1 MB 的文档是 200 MB；对一个 10 MB 的文档是 **2 GB**——每个标签页一套，
+重做还有一套。它是进程里最大的一块，而没有任何东西在量它。
+
+现在历史**同时**受「保存了多少文字」和「多少步」两个上限约束。文档小到「两百份副本
+很便宜」时行为完全不变，而这几乎是全部 Markdown 文件：**约 80 KB 以下一步不少**。
+超过之后先丢最旧的状态，并且无论文档多大，**至少保留一次撤销**。
 
 ### 大文档的第一屏不再把块切成两半
 
