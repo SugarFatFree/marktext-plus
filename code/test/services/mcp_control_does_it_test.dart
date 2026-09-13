@@ -171,6 +171,77 @@ void main() {
       expect(container.read(tabProvider).tabs, isEmpty);
     });
 
+    test('a tab made over the socket can be given a file', () async {
+      // The corner automation can walk into and not out of: `new_tab` names a
+      // tab and gives it no file, so a save had nothing to write to, a close
+      // was refused because the tab was modified, and `update_app` was refused
+      // because something was unsaved. Three correct refusals adding up to a
+      // tab nobody could be rid of — met on a real machine, blocking the very
+      // update this interface exists for.
+      final container = boot();
+      container.read(tabProvider.notifier).addTab(aTab('scratch'));
+      container.read(tabProvider.notifier).updateContent('scratch', 'typed\n');
+      final to = '${dir.path}/kept.md';
+
+      final outcome = await container
+          .read(mcpProvider.notifier)
+          .performAction('save_tab', {'tabId': 'scratch', 'path': to});
+
+      expect(outcome.ok, isTrue, reason: outcome.said);
+      expect(File(to).readAsStringSync(), 'typed\n');
+      final tab = container.read(tabProvider).tabs.single;
+      expect(tab.filePath, to, reason: '存过之后它应当就是那个文件了');
+      expect(tab.isModified, isFalse);
+
+      // And now it can be tidied away, which was the point.
+      expect(
+        (await container
+                .read(mcpProvider.notifier)
+                .performAction('close_tab', {'tabId': 'scratch'}))
+            .ok,
+        isTrue,
+      );
+    });
+
+    test('will not put it where something already is', () async {
+      final container = boot();
+      container.read(tabProvider.notifier).addTab(aTab('scratch'));
+      container.read(tabProvider.notifier).updateContent('scratch', 'mine\n');
+      final taken = File('${dir.path}/taken.md')
+        ..writeAsStringSync('somebody else\n');
+
+      final outcome = await container
+          .read(mcpProvider.notifier)
+          .performAction('save_tab', {'tabId': 'scratch', 'path': taken.path});
+
+      expect(outcome.ok, isFalse);
+      expect(taken.readAsStringSync(), 'somebody else\n',
+          reason: '这一端没有选择框可以问「要替换吗」');
+    });
+
+    test('will not take a relative path', () async {
+      final container = boot();
+      container.read(tabProvider.notifier).addTab(aTab('scratch'));
+      container.read(tabProvider.notifier).updateContent('scratch', 'mine\n');
+
+      final outcome = await container
+          .read(mcpProvider.notifier)
+          .performAction('save_tab', {'tabId': 'scratch', 'path': 'kept.md'});
+
+      expect(outcome.ok, isFalse,
+          reason: '相对于什么？调用方看不见编辑器的工作目录');
+    });
+
+    test('will not move a document the reader opened', () async {
+      final (container, file) = await openAFile('first\n');
+      final outcome = await container.read(mcpProvider.notifier).performAction(
+          'save_tab', {'tabId': 'one', 'path': '${dir.path}/elsewhere.md'});
+
+      expect(outcome.ok, isFalse);
+      expect(File('${dir.path}/elsewhere.md').existsSync(), isFalse);
+      expect(file.existsSync(), isTrue);
+    });
+
     test('refuses a tab with no file behind it', () async {
       final container = boot();
       container.read(tabProvider.notifier).addTab(aTab('scratch'));

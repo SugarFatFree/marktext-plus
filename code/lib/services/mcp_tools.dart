@@ -272,7 +272,9 @@ class McpToolset {
             'type': 'string',
             'description':
                 'What to call a new tab. This names the tab; it does not '
-                'read the file, so pass the text as "content".',
+                'read the file, so pass the text as "content". For save_tab '
+                'it is where to keep a tab that has no file yet — a whole '
+                'path, and nothing there already.',
           },
           'tabId': {
             'type': 'string',

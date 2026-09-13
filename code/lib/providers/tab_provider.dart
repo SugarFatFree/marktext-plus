@@ -600,9 +600,10 @@ class TabNotifier extends StateNotifier<TabState> {
   /// Six places wrote a document before this one existed, and the survey that
   /// put them side by side is what found BUG-465: three of them threw away the
   /// encoding the write came back with.
-  Future<SaveOutcome> saveToDisk(String id) async {
+  Future<SaveOutcome> saveToDisk(String id, {String? to}) async {
     final tab = state.tabs.where((t) => t.id == id).firstOrNull;
     if (tab == null) return SaveOutcome.noTab;
+    if (to != null) return _saveAs(tab, to);
     if (tab.filePath == null) return SaveOutcome.noFile;
     if (!tab.isModified) return SaveOutcome.nothingToWrite;
     // Already known to be in conflict: writing now would resolve it by
@@ -630,6 +631,43 @@ class TabNotifier extends StateNotifier<TabState> {
     }
   }
 
+  /// Gives a tab its first file, and writes it there.
+  ///
+  /// The corner this exists for is one automation can walk into and not walk
+  /// out of: a tab made over the socket has no file — `new_tab`'s `path` names
+  /// it and nothing more — so a save had nothing to write to, a close was
+  /// refused because the tab was modified, and `update_app` was refused
+  /// because something was unsaved. Three correct refusals adding up to a tab
+  /// nobody could be rid of, and an editor that could not update itself.
+  ///
+  /// Still never "discard": what an automated caller can be asked for is where
+  /// to keep something.
+  ///
+  /// Only a tab that has no file. Moving a document the reader opened, on an
+  /// agent's say-so, is a different act and nobody has asked for it.
+  Future<SaveOutcome> _saveAs(TabInfo tab, String to) async {
+    if (tab.filePath != null) return SaveOutcome.alreadyHasFile;
+    // Relative to what? The editor's working directory is not something the
+    // caller can see, so a relative path would land somewhere neither of them
+    // chose.
+    if (!p.isAbsolute(to)) return SaveOutcome.pathNotAbsolute;
+    // No picker on this side to ask about replacing, so this does not.
+    if (await File(to).exists()) return SaveOutcome.wouldOverwrite;
+    try {
+      final written = await FileService.saveDocument(
+        to,
+        tab.content,
+        lineEnding: tab.lineEnding,
+        encoding: tab.encoding,
+      );
+      updateTabPath(tab.id, to, p.basename(to));
+      await markSaved(tab.id, written: written);
+      return SaveOutcome.saved;
+    } catch (_) {
+      return SaveOutcome.failed;
+    }
+  }
+
   Future<void> _performAutoSave(String tabId) async {
     switch (await saveToDisk(tabId)) {
       case SaveOutcome.conflict:
@@ -647,6 +685,12 @@ class TabNotifier extends StateNotifier<TabState> {
       case SaveOutcome.noTab:
       case SaveOutcome.noFile:
       case SaveOutcome.nothingToWrite:
+      // Auto-save never passes a place to save, so these three cannot arise
+      // here — named rather than defaulted, so that adding a fourth is a
+      // compile error somebody has to think about.
+      case SaveOutcome.alreadyHasFile:
+      case SaveOutcome.pathNotAbsolute:
+      case SaveOutcome.wouldOverwrite:
         break;
     }
   }
@@ -983,4 +1027,12 @@ enum SaveOutcome {
   /// version survives — which is the reader's decision.
   conflict,
   failed,
+
+  /// A place to save was given for a tab that already has one. Moving a
+  /// document the reader opened is a different act.
+  alreadyHasFile,
+  pathNotAbsolute,
+
+  /// Something is already there, and this side has no picker to ask with.
+  wouldOverwrite,
 }

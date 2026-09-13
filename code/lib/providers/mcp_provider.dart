@@ -238,7 +238,8 @@ class McpController extends StateNotifier<McpStatus> {
         // The same write Ctrl+S makes, through the same method auto-save uses,
         // so the checks cannot drift apart: the file must not have changed
         // underneath, and the encoding the write actually used is recorded.
-        switch (await _ref.read(tabProvider.notifier).saveToDisk(id)) {
+        final to = text('path');
+        switch (await _ref.read(tabProvider.notifier).saveToDisk(id, to: to)) {
           case SaveOutcome.saved:
             final now =
                 _ref.read(tabProvider).tabs.where((t) => t.id == id).firstOrNull;
@@ -248,10 +249,26 @@ class McpController extends StateNotifier<McpStatus> {
             return mcpDid('${saving.fileName} had nothing unsaved');
           case SaveOutcome.noFile:
             // No picker on this side, and inventing a path would put the
-            // reader's document somewhere they never chose.
+            // reader's document somewhere they never chose — so the caller
+            // names one.
             return mcpRefused(
-              '"${saving.fileName}" has no file behind it — open it from a '
-              'path, or save it once by hand',
+              '"${saving.fileName}" has no file behind it — pass "path" to '
+              'say where to keep it',
+            );
+          case SaveOutcome.alreadyHasFile:
+            return mcpRefused(
+              '"${saving.fileName}" already has a file; moving a document the '
+              'reader opened is not this action',
+            );
+          case SaveOutcome.pathNotAbsolute:
+            return mcpRefused(
+              '"$to" is relative, and the editor\'s working directory is not '
+              'something you can see from there — give a whole path',
+            );
+          case SaveOutcome.wouldOverwrite:
+            return mcpRefused(
+              'there is already a file at "$to", and there is no picker here '
+              'to ask about replacing it',
             );
           case SaveOutcome.conflict:
             return mcpRefused(
