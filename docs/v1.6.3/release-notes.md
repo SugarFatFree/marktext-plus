@@ -506,6 +506,13 @@ that, every press used to count the lines before the match by cutting the docume
 there and splitting the piece into lines — 55 000 strings on a four megabyte
 document — for a number only the fallback path ever wanted.
 
+### An untitled document you emptied closes without asking
+
+Typing into a new tab and then deleting it all left the tab counted as unsaved
+work, so closing it asked whether to save something that was not there. Every
+other editor closes that one quietly. A document that has a file behind it is
+unchanged: emptying one of those is an edit, and is still treated as one.
+
 ### Clicking the end of a long document's outline goes there
 
 While a long document is still filling in, the preview knew how many blocks had
@@ -951,6 +958,12 @@ HTML 与 PDF 早就改成「写临时文件再换过去」了。Word 的写盘�
 那段文字本来就正由窗格画着。现在位置直接从它那里读，**46 微秒**，
 并且天然算上换行——因为它就是换行本身。此外，每按一次还会先把文档在匹配处切开、
 把前半截分成行来数行号（4 MB 上 5.5 万个字符串），而这个数**只有兜底那条路用得上**。
+
+### 删空的未命名文档关闭时不再追问
+
+在新标签页里打几个字再全部删掉，它仍算「有未保存的工作」，按关闭会问要不要保存
+一份并不存在的东西。其他编辑器都是直接关掉。**有文件的文档不变**——
+把一份写过的文档删光是改动，照旧按改动对待。
 
 ### 长文档还在补画时点大纲，现在会到那一条
 

@@ -446,12 +446,11 @@ class TabNotifier extends StateNotifier<TabState> {
     return true;
   }
 
-  /// Writes [content] into [id], and says whether that tab was there.
+  /// Puts [content] in the tab, and says whether the tab was there to put it
+  /// in.
   ///
   /// Same reason as [removeTab]: an id naming no tab used to be reported as a
   /// write that happened.
-  /// Puts [content] in the tab, and says whether the tab was there to put it
-  /// in.
   ///
   /// [external] for a write that did not come from someone typing: a plugin's
   /// rewrite being accepted, an edit arriving over the automation interface, an
@@ -470,7 +469,21 @@ class TabNotifier extends StateNotifier<TabState> {
       if (tab.id == id) {
         return tab.copyWith(
           content: content,
-          isModified: true,
+          // An empty tab that has never been saved holds nothing to lose, so
+          // it is not "modified" and closes without a word — which is what
+          // every other editor does with an untitled document you emptied.
+          //
+          // Found from the other side: the automation interface can open a
+          // tab and write to it but had no way to be rid of one, because
+          // `close_tab` refuses unsaved work and there is nobody there to
+          // press Save. Clearing the text left it "modified" all the same, so
+          // a scratch tab an agent made could only be closed by a person.
+          //
+          // Not by comparing against the file: that would mean keeping a
+          // second copy of the document, and this editor is for large ones.
+          // A tab with a file is modified by this call as it always was —
+          // emptying a written document *is* an edit.
+          isModified: tab.filePath != null || content.isNotEmpty,
           isLoading: false,
           externalRevision:
               external ? tab.externalRevision + 1 : tab.externalRevision,
