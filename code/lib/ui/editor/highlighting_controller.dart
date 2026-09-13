@@ -92,10 +92,6 @@ class HighlightingController extends TextEditingController {
   final IncrementalMarkdownHighlighter _highlighter =
       IncrementalMarkdownHighlighter();
 
-  /// Whether the document is large enough that highlighting has been turned
-  /// off. Editing still works; only the colouring is gone.
-  bool get isHighlightingSuspended => _highlighter.isSuspended;
-
   @override
   TextSpan buildTextSpan({
     required BuildContext context,

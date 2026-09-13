@@ -536,6 +536,19 @@ your system does not have falls back rather than drawing boxes. The editing
 pane's row is unchanged, and says "editor" in every language now rather than
 "body text" in three of them.
 
+### The status bar no longer goes striped over a large document
+
+"Syntax highlighting off" appears for a document past the size the highlighter
+gives up at — and its width had never been counted, because the check that keeps
+the bar from overflowing pumps a bar with no document open, where that line is
+never shown. So a 200 KB file striped the bar at 1200 pixels. The line is
+measured now, in whichever of the twelve languages it is written in, and the
+least useful counts stand down sooner to make room for it; below a width where
+even the word count has to fit around it, the explanation stands down too.
+
+It is also no longer said in preview-only mode, which builds no source editor at
+all: nothing was coloured there, so nothing was taken away.
+
 ### Replace is one undo, and so is Replace All
 
 Both buttons write through the same path typing takes, and that path records
@@ -1007,6 +1020,16 @@ HTML 与 PDF 早就改成「写临时文件再换过去」了。Word 的写盘�
 列表、表格、引用都跟着它走，**代码仍用代码字体**——这正是分成两个设置的意义。
 填了系统里没有的字体会回落，不会画成方框。编辑窗格那一行没有变化，
 只是十二种语言现在一致地说「编辑器字体」，而不是其中三种说「正文字体」。
+
+### 打开大文档时状态栏不再变成黄黑条纹
+
+「语法高亮已关闭」只在文档超过高亮器放弃的尺寸时出现，**而它的宽度从没被算进去**——
+因为那条防止状态栏溢出的检查，pump 的是一个**没有打开任何文档**的 bar，那一格永远不显示。
+于是一份 200 KB 的文件会让状态栏在 **1200 像素**就溢出。现在这句话的宽度是**量出来的**
+（十二种语言各不相同），最没用的那几个计数会提前让位；而到了连字数都要绕着它排的宽度，
+这句说明自己也会让位。
+
+**纯预览模式下也不再说这句话**——那个模式压根不建源码编辑器，没有上过色，也就没有被拿走。
 
 ### 替换是一次撤销，全部替换也是
 

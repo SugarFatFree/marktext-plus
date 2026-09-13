@@ -12,6 +12,7 @@ import '../../providers/update_provider.dart';
 import '../../providers/word_count_provider.dart';
 import '../../services/update_service.dart';
 import '../editor/syntax_highlighter.dart';
+import '../../core/config/app_config.dart';
 import '../../models/file_encoding.dart';
 import '../../models/line_ending.dart';
 
@@ -24,13 +25,29 @@ class StatusBar extends ConsumerWidget {
     final wordCount = ref.watch(wordCountProvider);
     // Losing the syntax colours on a huge file is otherwise unexplained. This
     // reads only the boolean, so typing does not rebuild the status bar.
-    final highlightOff = ref.watch(
-      activeTabProvider.select(
-        (tab) =>
-            (tab?.content.length ?? 0) >
-            IncrementalMarkdownHighlighter.maxHighlightedLength,
-      ),
-    );
+    //
+    // Only where there is a pane to lose them from: in preview-only mode no
+    // source editor is built, nothing is highlighted, and nothing was taken
+    // away — so saying it had been was a sentence about a pane that is not on
+    // screen.
+    //
+    // The condition is asked here rather than of the highlighter, which knows
+    // its own answer and offered it: a selector on the content length flips
+    // exactly when the answer changes, while reading the controller would
+    // rebuild this bar on every keystroke or need a provider of its own to
+    // avoid it. The threshold is the highlighter's own constant, so the two
+    // cannot drift, and above it the subject is the same text.
+    final sourcePaneOnScreen =
+        ref.watch(settingsProvider.select((c) => c.editMode)) !=
+            EditMode.preview;
+    final highlightOff = sourcePaneOnScreen &&
+        ref.watch(
+          activeTabProvider.select(
+            (tab) =>
+                (tab?.content.length ?? 0) >
+                IncrementalMarkdownHighlighter.maxHighlightedLength,
+          ),
+        );
     final lineEnding = ref.watch(
       activeTabProvider.select((tab) => tab?.lineEnding ?? LineEnding.lf),
     );
@@ -62,7 +79,20 @@ class StatusBar extends ConsumerWidget {
       // So the least useful counts stand down instead.
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final width = constraints.maxWidth;
+          // What the explanation takes, measured rather than guessed: it is a
+          // translated sentence, so its width is different in each of the
+          // twelve languages and a constant would be right in one of them.
+          //
+          // It was not in this sum at all, and the ladder was tuned without it
+          // — `narrow_window_test` pumps a bar with no tab open, where the
+          // explanation is never shown. A document past the limit therefore
+          // striped the bar at 1200 pixels, which is the width of a window
+          // nobody would call narrow.
+          final explanation = highlightOff ? l10n.statusHighlightOff : null;
+          final taken = explanation == null
+              ? 0.0
+              : _widthOf(explanation, style, context) + _dividerWidth;
+          final width = constraints.maxWidth - taken;
           final showParagraphs = width >= 820;
           final showChars = width >= 700;
           final showDocumentKind = width >= 600;
@@ -116,9 +146,11 @@ class StatusBar extends ConsumerWidget {
           // is needed: the label is "LF" or "CRLF" in every language.
           if (showLineEnding)
             _LineEndingButton(lineEnding: lineEnding, style: style),
-          if (highlightOff) ...[
+          // Last to be added and first to go: at a width where even the word
+          // count has to fit around it, a striped bar explains nothing.
+          if (explanation != null && width >= 300) ...[
             _divider(tokens),
-            Text(l10n.statusHighlightOff, style: style),
+            Text(explanation, style: style),
           ],
           const Spacer(),
           if (updateState.availableUpdate != null &&
@@ -148,6 +180,24 @@ class StatusBar extends ConsumerWidget {
         },
       ),
     );
+  }
+
+  /// A divider and the padding around it.
+  static const _dividerWidth = 17.0;
+
+  /// How wide [text] is in [style], in the direction the text runs.
+  ///
+  /// The same painter the bar will use, so the answer is the one that matters
+  /// rather than a character count times a guess.
+  static double _widthOf(String text, TextStyle style, BuildContext context) {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: Directionality.of(context),
+      maxLines: 1,
+    )..layout();
+    final width = painter.width;
+    painter.dispose();
+    return width;
   }
 
   Widget _buildUpdateIndicator(

@@ -7,7 +7,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/core/config/app_config.dart';
 import 'package:marktext_plus/core/config/config_service.dart';
 import 'package:marktext_plus/core/i18n/l10n/app_localizations.dart';
+import 'package:marktext_plus/models/tab_info.dart';
 import 'package:marktext_plus/providers/locale_provider.dart';
+import 'package:marktext_plus/providers/tab_provider.dart';
+import 'package:marktext_plus/ui/editor/syntax_highlighter.dart';
 import 'package:marktext_plus/providers/settings_provider.dart';
 import 'package:marktext_plus/ui/widgets/app_menu_bar.dart';
 import 'package:marktext_plus/ui/widgets/editor_tab_bar.dart';
@@ -18,7 +21,18 @@ import 'package:marktext_plus/ui/widgets/status_bar.dart';
 /// The chrome above and below the document was laid out with nothing able to
 /// give way, and went striped from about 780 pixels down — the same fault the
 /// settings page had, in three more places.
+///
+/// With a document open as well as without. Every bar here was pumped with no
+/// tab at all, which is a state the reader passes through on the way to using
+/// the editor and not one they stay in — and it hid a real fault: the status
+/// bar's "syntax highlighting off" is only shown for a document past the
+/// highlighter's limit, so it was never on screen in this test, and the widths
+/// were tuned without it. A 200 KB document striped the bar at 1200 pixels.
 void main() {
+  /// Roomy, and past the highlighter's limit — so every indicator the bar can
+  /// show is showing, which is the widest the bar ever gets.
+  final withADocument = 'a' * (IncrementalMarkdownHighlighter.maxHighlightedLength + 1);
+
   final bars = <String, Widget>{
     'the menu bar': const AppMenuBar(),
     'the tab bar': const EditorTabBar(),
@@ -27,7 +41,10 @@ void main() {
 
   for (final bar in bars.entries) {
     for (final width in [1200.0, 900.0, 700.0, 500.0, 360.0]) {
-      testWidgets('${bar.key} fits at ${width.toInt()} px', (tester) async {
+      for (final open in [false, true]) {
+      testWidgets(
+          '${bar.key} fits at ${width.toInt()} px'
+          '${open ? ' with a document open' : ''}', (tester) async {
         final configDir = Directory.systemTemp.createTempSync('narrow');
         addTearDown(() {
           if (configDir.existsSync()) configDir.deleteSync(recursive: true);
@@ -43,12 +60,27 @@ void main() {
             settingsProvider.overrideWith(
               (ref) => SettingsNotifier(
                 ConfigService(configDir: configDir.path),
-                AppConfig(),
+                // A source pane on screen in the open-document round: the
+                // status bar's widest state includes an indicator that is only
+                // shown where there is highlighting to lose, and the default
+                // mode is preview — so leaving the default here would test the
+                // narrow bar without the thing that made it overflow, which is
+                // the hole this round exists to close.
+                AppConfig(editMode: open ? EditMode.split : EditMode.preview),
               ),
             ),
           ],
         );
         addTearDown(container.dispose);
+        if (open) {
+          container.read(tabProvider.notifier).addTab(
+                TabInfo(
+                  id: 'open',
+                  fileName: 'a-long-document.md',
+                  content: withADocument,
+                ),
+              );
+        }
 
         final caught = <String>[];
         final previous = FlutterError.onError;
@@ -79,6 +111,7 @@ void main() {
         expect(caught, isEmpty, reason: caught.join(' | '));
         tester.takeException();
       });
+      }
     }
   }
 }
