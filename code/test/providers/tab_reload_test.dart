@@ -232,4 +232,41 @@ void main() {
 
     expect(container.read(tabProvider).tabs.single.externalRevision, before);
   });
+
+  test('a document whose file is deleted says so, and keeps its text', () async {
+    // Not the reader's own delete — that closes the tab, through `pathDeleted`.
+    // This is the other way a file goes away: a git checkout, a sync client,
+    // another program. The tab used to look exactly as it had a moment before,
+    // so closing it took the last copy of the document with it and neither the
+    // deletion nor the loss was ever mentioned.
+    openDocument();
+    await Future<void>.delayed(const Duration(milliseconds: 200));
+
+    document.deleteSync();
+    await settle();
+
+    final tab = container.read(tabProvider).tabs.single;
+    expect(tab.content, 'one',
+        reason: '内容必须留着——磁盘上已经没有第二份了');
+    expect(tab.diskConflict, isTrue,
+        reason: '文件没了而标签页看起来毫无异样，关掉它就两头都没了');
+  });
+
+  test('a read that fails while the file still exists raises nothing', () async {
+    // A file another program is part-way through writing is briefly
+    // unreadable. Raising a conflict for that is a false alarm the reader then
+    // has to clear, so the banner is for a file that is actually gone.
+    openDocument();
+    await Future<void>.delayed(const Duration(milliseconds: 200));
+
+    // Unreadable, but present.
+    final chmod = Process.runSync('chmod', ['000', document.path]);
+    expect(chmod.exitCode, 0, reason: 'chmod 没成功，这个用例什么也没造出来');
+    addTearDown(() => Process.runSync('chmod', ['644', document.path]));
+    document.setLastModifiedSync(DateTime.now().add(const Duration(seconds: 1)));
+    await settle();
+
+    expect(container.read(tabProvider).tabs.single.diskConflict, isFalse,
+        reason: '文件还在，只是这一刻读不了——不该报冲突');
+  });
 }

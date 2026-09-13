@@ -351,6 +351,20 @@ One thing changed with it: in preview mode, where there is no text field, the ta
 commands are greyed out. They used to light up for a position built from whatever
 the source pane last reported, which is not somewhere the reader can see.
 
+### A file deleted from under an open tab says so
+
+Something else removing a file you have open — a checkout, a sync client, `rm` —
+left the tab looking exactly as it had a moment before: no dot, no banner, the
+path still in the status bar. Closing it then took the last copy of the document
+with it, and neither the deletion nor the loss was ever mentioned.
+
+The text is kept, which was already right, and the banner now says what happened:
+changed on disk, auto-save paused. Of the three ways out of a conflict, Overwrite
+is the one that puts the file back. Deleting a file yourself still closes its tab
+— that is a different thing and was already handled. A file another program is
+part-way through writing is briefly unreadable, and that is not reported, because
+it is not gone.
+
 ### The automation interface will not close a tab over your unsaved work
 
 Every way a person closes a tab asks first — the tab bar's button, the File menu,
@@ -767,6 +781,17 @@ Mermaid 包够不到编辑器的翻译，所以它自带的错误框按设计是
 
 随之改变的一件事：预览模式下没有文本框，表格命令现在**置灰**。以前它们会按源码窗格
 最后报告的位置点亮，而那个位置读者在预览里看不见。
+
+### 打开着的文件被别人删掉时会说出来
+
+别的东西删掉你正打开的文件——`git checkout`、同步客户端、`rm`——标签页会**毫无异样**：
+没有修改点、没有横幅、状态栏照旧显示那个路径。此时关掉它，**文件和内容两头都没了**，
+而删除和丢失从头到尾没被提起过。
+
+内容仍然留着（这一点本来就对），而横幅现在会说明发生了什么：磁盘上已改变，
+自动保存已暂停。冲突的三条出路里，**「覆盖」就是把文件写回去**的那一条。
+你自己删除文件时仍然会直接关掉它的标签页——那是另一件事，本来就处理好了。
+别的程序写到一半的文件会短暂读不了，那种情况不会报，因为它并没有消失。
 
 ### 自动化接口不会带着你未保存的改动关掉标签页
 

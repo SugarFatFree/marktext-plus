@@ -130,6 +130,12 @@ class TabNotifier extends StateNotifier<TabState> {
 
     try {
       final opened = await FileService().readFileWithLineEnding(path);
+      // The read took a moment, and in that moment the notifier may have been
+      // disposed — the window closing while a watcher event was in flight.
+      // Reading `state` then throws, and this is a stream callback, so the
+      // throw escapes as an unhandled asynchronous error with nothing to catch
+      // it. The same window the stamp refresh already guards against.
+      if (!mounted) return;
       if (opened.content == tab.content) return;
 
       // Read again from state: the await gave the user time to start typing.
@@ -144,8 +150,23 @@ class TabNotifier extends StateNotifier<TabState> {
         stamp: opened.stamp,
       );
     } catch (_) {
-      // The file went away, or was unreadable mid-write. The tab keeps what
-      // it has, which is the safe outcome.
+      // The tab keeps what it has, which is the safe outcome. But not in
+      // silence when the file is gone: nothing about the tab looked any
+      // different — no dot, no banner — so closing it took the last copy of the
+      // document with it, and neither the deletion nor the loss was ever
+      // mentioned. The reader's own delete does close the tab (`pathDeleted`);
+      // this is the other way a file goes away.
+      //
+      // The banner already says the true thing — "changed on disk, auto-save is
+      // paused for this file" — and the three ways out of a conflict still make
+      // sense, with Overwrite being the one that puts the file back.
+      //
+      // Only when it is really gone, not on any read failure: a file another
+      // program is part-way through writing is briefly unreadable, and raising
+      // a conflict for that is a false alarm the reader then has to clear.
+      if (!await File(path).exists() && mounted) {
+        _setDiskConflict(tab.id, true);
+      }
     }
   }
 
