@@ -94,47 +94,61 @@ class MarkdownRenderer extends ConsumerStatefulWidget {
   static Key footnoteMarkerKey(String label) =>
       ValueKey('footnote-marker-$label');
 
+  /// The largest number of blocks one pass will add.
+  ///
+  /// Measured, and the measurement is the only reason for the number. See
+  /// [nextRenderedCount].
+  @visibleForTesting
+  static const maxBatchSize = 2000;
+
   /// How many blocks are drawn after [rendered] of [total] already are.
   ///
-  /// Doubling, with no ceiling — and the ceiling is the point. There used to be
-  /// one, 2000, a bare constant with no reason written down, and it made every
-  /// measure worse:
+  /// Doubling up to [maxBatchSize], then that many at a time.
   ///
-  /// A pass costs work in proportion to the blocks *already* on screen, not to
-  /// the ones it adds. Not because those are built again — [_blockWidgets]
-  /// exists to stop that, and does — but because they all live in one [Column]
-  /// inside a scroll view that draws its whole child: every block on screen is
-  /// walked by the loop in `build`, reconciled against its element, and
-  /// painted, on every pass. Capping the step therefore shortens no pass. It
-  /// only adds more of the expensive ones, and it adds them in proportion to
-  /// the document:
+  /// A pass costs two things: it builds the blocks it adds, and it walks,
+  /// reconciles and repaints every block already on screen — the blocks live in
+  /// one [Column] inside a scroll view that draws its whole child. Profiled on
+  /// a 25 000-block document, the second is about 0.12 ms per block already
+  /// drawn and the first about 1.7 ms per block added, so the total is
+  /// dominated by building each block once (42 s of the 43-48 s below, on this
+  /// machine) and the step size decides only how much repeated walking is added
+  /// and how the building is cut into frames.
   ///
-  ///     25 368 blocks: 19 passes over 198 918 blocks, against 10 over 50 918
-  ///     50 736 blocks: 31 passes over 682 686 blocks, against 11 over 101 886
+  /// Which is a trade with no free end. Each frame's whole duration is a frozen
+  /// window, and the ceiling has to buy responsiveness with total time:
   ///
-  /// Doubling walks about twice the document whatever its size; the cap walks
-  /// 7.8× the document at a megabyte and 13.5× at two.
+  ///     ceiling   worst frame   total
+  ///     none          24.3 s    40.1 s
+  ///     4000          10.3 s    42.9 s
+  ///     2000           7.4 s    48.2 s
+  ///     1000           4.8 s    55.5 s
+  ///      500           3.0 s    70.0 s
   ///
-  /// Measured on the reader's machine through the editor's own clock, before
-  /// this changed: 1 MB / 25 368 blocks took 14.0 s to finish filling, and
-  /// 2 MB / 50 736 blocks 37.8 s — 2× the document for 2.7× the wait. Less
-  /// than the 3.4× the walked totals alone predict, because the rest of the
-  /// fill is linear: every block is built, laid out and painted into place
-  /// exactly once however the steps are sized.
+  /// This was once a bare 2000 with nothing written beside it, and taking it
+  /// away looked free: the arithmetic of *walked* blocks says no ceiling walks
+  /// 2N against 7.8N, and the worst frame walks all of them either way. That
+  /// reasoning left out the building, which is the larger term — and without a
+  /// ceiling one pass builds half the document, which is the 24 second frame.
   ///
-  /// The most expensive single pass is identical either way: the last one,
-  /// which walks all of them.
+  /// So 2000 is kept, which is where it was. Nothing on this curve is an
+  /// improvement on it without also being a regression, and the numbers are
+  /// here so that moving it is a decision with evidence rather than an
+  /// arithmetic that looks clean.
   ///
-  /// Measured on the reader's machine before and after, through the editor's
-  /// own stopwatch: 1 MB / 25 368 blocks took 14.0 s to finish filling, and
-  /// 2 MB / 50 736 blocks took 37.8 s — worse than linear, which is what a
-  /// quadratic term looks like from outside.
+  /// None of this is reachable below 4000 blocks, which is nearly every
+  /// document: the ceiling never binds and the fill doubles to the end.
+  ///
+  /// The floor under all of it is the 0.12 ms — at 25 000 blocks every pass
+  /// costs three seconds before it adds anything, so no step size makes a
+  /// document that large fill smoothly. That is a property of the Column, and
+  /// [_blockWidgets] says why it is one.
   ///
   /// A function of its own because the fill runs across frames and cannot be
-  /// timed from a test; the number of passes it asks for can be.
+  /// timed from a test; what it asks for can be.
   @visibleForTesting
   static int nextRenderedCount(int rendered, int total) =>
-      (rendered + rendered).clamp(0, total);
+      (rendered + (rendered < maxBatchSize ? rendered : maxBatchSize))
+          .clamp(0, total);
 
   @override
   ConsumerState<MarkdownRenderer> createState() => _MarkdownRendererState();
