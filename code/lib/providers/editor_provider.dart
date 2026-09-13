@@ -69,6 +69,21 @@ enum FormatAction {
   // another. Here the block under the caret trades places with its neighbour.
   moveBlockUp,
   moveBlockDown,
+
+  /// Cut and paste, which the Edit menu used to carry out itself.
+  ///
+  /// Its own paste read only the plain flavour of the clipboard and wrote it
+  /// straight in, while Ctrl+V goes on to replace what landed with the HTML
+  /// flavour converted to Markdown — or with a link, when a web address was
+  /// pasted over some words. So one editor had two pastes: the keyboard's kept
+  /// the headings, lists and links of a page copied out of a browser, and the
+  /// menu's threw them away. Neither of its two writes recorded a restore
+  /// point either.
+  ///
+  /// Here rather than in the menu because the source editor is where the one
+  /// implementation already lives.
+  cut,
+  paste,
 }
 
 class EditorState {

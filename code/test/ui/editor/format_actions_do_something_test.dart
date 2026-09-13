@@ -156,6 +156,12 @@ void main() {
     ),
     (FormatAction.horizontalRule, 'a', at(1), 'a\n---\n'),
 
+    // Cut, which the Edit menu used to carry out itself. Staged like any other
+    // edit: what it puts on the clipboard goes out through a channel this
+    // harness does not answer, and what it takes out of the document does not
+    // depend on that.
+    (FormatAction.cut, 'abc', over(1, 2), 'ac'),
+
     // Lines and paragraphs.
     (FormatAction.duplicateLine, 'abc', at(1), 'abc\nabc'),
     (FormatAction.createParagraph, 'a', at(1), 'a\n\n'),
@@ -238,6 +244,10 @@ void main() {
   const cannotBeStaged = <FormatAction, String>{
     FormatAction.copyAsMarkdown: '写系统剪贴板，不改文档',
     FormatAction.copyAsHtml: '同上',
+    // 这一条**是**改文档的，但要先让剪贴板里有东西，需要接管平台通道——
+    // 那件事在 `the_menu_cuts_and_pastes_like_the_keyboard_test` 里做了，
+    // 连同「HTML 要按 Ctrl+V 的方式转成 Markdown」和「一次撤销退一次粘贴」。
+    FormatAction.paste: '需要剪贴板里先有内容；在菜单粘贴那份测试里驱动',
   };
 
   for (final (action, input, selection, want) in cases) {

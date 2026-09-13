@@ -369,6 +369,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
       FormatAction.copyAsMarkdown: l10n.editCopyAsMarkdown,
       FormatAction.copyAsHtml: l10n.editCopyAsHtml,
       FormatAction.selectAll: l10n.editSelectAll,
+      // Reachable by name as well as from the Edit menu, the same as everything
+      // else the menu offers: a palette that says "all commands" and leaves two
+      // of them out is the second list this one already went wrong as.
+      FormatAction.cut: l10n.editCut,
+      FormatAction.paste: l10n.editPaste,
       FormatAction.duplicateLine: l10n.editDuplicateLine,
       FormatAction.promoteHeading: l10n.paragraphPromoteHeading,
       FormatAction.demoteHeading: l10n.paragraphDemoteHeading,

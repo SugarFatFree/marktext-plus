@@ -1468,6 +1468,44 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     );
   }
 
+  /// Pastes the clipboard the way Ctrl+V does.
+  ///
+  /// The keyboard's paste is the framework's, which this widget then corrects
+  /// in [_afterPaste]: the plain flavour lands first — waiting on the HTML
+  /// flavour before every paste would make every paste feel slow — and is then
+  /// replaced by the HTML converted to Markdown, or by a link when a web
+  /// address was pasted over some words.
+  ///
+  /// A paste asked for by name has no framework paste in front of it, so it
+  /// does both halves here. What it must not do is decide any of it differently
+  /// from the keyboard, which is what the Edit menu's own paste did.
+  Future<void> _pasteFromClipboard() async {
+    final plain = (await Clipboard.getData(Clipboard.kTextPlain))?.text;
+    if (plain == null || !mounted) return;
+    final html = await ClipboardService.readHtml();
+    if (!mounted) return;
+
+    final text = _controller.text;
+    final selection = _controller.selection;
+    final start = selection.isValid ? selection.start : text.length;
+    final end = selection.isValid ? selection.end : text.length;
+    final selected = text.substring(start, end);
+
+    final link = SourceEditor.linkFromPaste(selected, plain);
+    // The plain flavour when there is no HTML, and also when the HTML declines
+    // to convert — [HtmlToMarkdown.convert] answers null for a page it cannot
+    // make Markdown of, and the text is better than nothing in front of the
+    // reader.
+    final insert =
+        link ?? (html == null ? null : HtmlToMarkdown.convert(html)) ?? plain;
+
+    ref.read(editorProvider.notifier).pushHistory(text);
+    _controller.value = TextEditingValue(
+      text: text.substring(0, start) + insert + text.substring(end),
+      selection: TextSelection.collapsed(offset: start + insert.length),
+    );
+  }
+
   /// Whether an input method is in the middle of composing a word.
   ///
   /// A pinyin or kana IME rewrites the text on every keystroke while the
@@ -2389,6 +2427,37 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
             ),
           );
         }
+      case FormatAction.cut:
+        if (selection.isCollapsed) return;
+        final selected = text.substring(selection.start, selection.end);
+        // Both flavours, the same as the menu's Copy and Ctrl+C: a cut that
+        // pastes as plain text where a copy pastes as rich text is one editor
+        // with two clipboards.
+        //
+        // Deliberately not awaited: the cut has to take the text out now, while
+        // the native clipboard receives both flavours in its own time. This is
+        // what the menu's own cut did for the same reason.
+        unawaited(
+          ClipboardService.copyWithHtml(
+            selected,
+            RichCopyService.htmlForMarkdownSelection(
+              selected,
+              enableHtml: ref.read(settingsProvider).enableHtml,
+            ),
+          ),
+        );
+        // A restore point: a cut is a bulk edit, and one press of Ctrl+Z has to
+        // bring it back rather than whatever the debounce last happened to save.
+        ref.read(editorProvider.notifier).pushHistory(text);
+        _controller.value = TextEditingValue(
+          text: text.substring(0, selection.start) +
+              text.substring(selection.end),
+          selection: TextSelection.collapsed(offset: selection.start),
+        );
+      case FormatAction.paste:
+        // Deliberately not awaited: the clipboard is read asynchronously and
+        // this switch is called from a listener that cannot wait.
+        unawaited(_pasteFromClipboard());
       case FormatAction.selectAll:
         _controller.selection = TextSelection(
           baseOffset: 0,

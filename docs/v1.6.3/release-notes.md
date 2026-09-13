@@ -536,6 +536,20 @@ your system does not have falls back rather than drawing boxes. The editing
 pane's row is unchanged, and says "editor" in every language now rather than
 "body text" in three of them.
 
+### The Edit menu's Paste keeps what the keyboard's Paste keeps
+
+Ctrl+V reads both flavours of the clipboard and replaces what landed with the
+HTML converted to Markdown — so a page copied out of a browser arrives with its
+headings and lists. The Edit menu's Paste read the plain flavour and wrote it
+straight in, so the same page arrived as a wall of text. It also pasted a web
+address over selected words as an address rather than as a link, and neither it
+nor Cut left anything for Ctrl+Z to come back to.
+
+Both now go through the editor, where that one implementation already lives, so
+there is one paste rather than two. Cut publishes the rich flavour the way Copy
+does, and both are one press of undo. They are also searchable in the command
+palette, which offers every other editing command.
+
 ### The status bar no longer goes striped over a large document
 
 "Syntax highlighting off" appears for a document past the size the highlighter
@@ -1020,6 +1034,16 @@ HTML 与 PDF 早就改成「写临时文件再换过去」了。Word 的写盘�
 列表、表格、引用都跟着它走，**代码仍用代码字体**——这正是分成两个设置的意义。
 填了系统里没有的字体会回落，不会画成方框。编辑窗格那一行没有变化，
 只是十二种语言现在一致地说「编辑器字体」，而不是其中三种说「正文字体」。
+
+### 编辑菜单的「粘贴」现在和键盘的粘贴一样
+
+Ctrl+V 会读剪贴板的两种格式，把 HTML 转成 Markdown——所以从浏览器复制的网页带着标题和列表。
+而**编辑菜单里的「粘贴」只读纯文本直接写进去**，同一段网页变成一坨没有结构的文字；
+在选中的词上粘一个网址也只是贴个网址、不会变成链接；并且它和「剪切」都**没有留下可撤销的还原点**。
+
+两者现在都走编辑器——那份唯一的实现本来就在那里——所以**只有一种粘贴**。
+剪切像复制一样发布富文本格式，两者都是按一次撤销就回来。它们也能在命令面板里搜到了，
+而命令面板本来就提供其他所有编辑命令。
 
 ### 打开大文档时状态栏不再变成黄黑条纹
 

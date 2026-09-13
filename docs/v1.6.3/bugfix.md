@@ -63,6 +63,7 @@
 | BUG-478 | 2026-09-13 | 连按替换一串，一次 Ctrl+Z 把整串退掉——同一个文件里另两处批量编辑都先压了快照 | P2 | 已修复 |
 | BUG-479 | 2026-09-13 | 打开 200 KB 文档，状态栏在 1200px 就变成黄黑条纹——宽度阶梯从没算上「高亮已关闭」这个标签 | P2 | 已修复 |
 | BUG-480 | 2026-09-13 | 纯预览模式下状态栏说「语法高亮已关闭」，而那个模式压根不建源码窗格 | P3 | 已修复 |
+| BUG-481 | 2026-09-13 | 编辑菜单里的「粘贴」丢掉 HTML 结构、也不压还原点——Ctrl+V 和它是两种粘贴 | P2 | 已修复 |
 
 ---
 
@@ -4472,3 +4473,97 @@ General 恰好是打开时就显示的那一类，所以被覆盖了；**AI 与 
 ### 涉及文件
 
 - `code/test/ui/screens/settings_fields_test.dart`（只改测试；产品代码一个字节都没动）
+
+## BUG-481：一个编辑器，两种粘贴
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-481 |
+| 日期 | 2026-09-13 |
+| 优先级 | P2 |
+| 状态 | 已修复 |
+
+### 怎么发现的：做上一轮该做而没做的那次 grep
+
+BUG-478 修的是「查找替换直接写控制器而不压还原点」。我当时只扫了
+`source_editor.dart` 和 `find_replace_bar.dart`，**而正确的做法是全局扫「谁直接写控制器」**：
+
+```
+grep -rn "controller.value = " lib/
+→ source_editor.dart × 29、app_menu_bar.dart × 2、editor_provider.dart × 1、plugin_tip.dart × 1
+```
+
+`editor_provider` 那处是撤销恢复（正确地不压）。**`app_menu_bar` 那两处是菜单里的「剪切」和「粘贴」**，
+两处都改文本、两处都没有还原点。
+
+而看到菜单的粘贴时，发现的是更大的一件事：
+
+| | Ctrl+V | 菜单的「粘贴」 |
+|---|---|---|
+| 读剪贴板 | 纯文本 **+ HTML** | **只读纯文本** |
+| 从浏览器复制一段网页 | HTML → Markdown（标题、列表、链接都在） | **结构全丢** |
+| 在选中的词上粘一个网址 | 变成 `[词](网址)` | 只是把网址贴进去 |
+| 还原点 | 有（框架的粘贴 + 防抖） | **没有** |
+
+**一个编辑器有两种粘贴**，而菜单那种是次的。
+
+### 修复：走既有的那条通路，而不是再实现一遍
+
+菜单里的「复制为 Markdown」「复制为 HTML」「全选」早就走 `applyFormat(FormatAction.…)`，
+由源码窗格统一处理。剪切和粘贴现在也走这条路：
+
+- `FormatAction` 加 `cut` 与 `paste`——**switch 穷尽，所以不实现就编译不过**（当场生效了）；
+- 粘贴的那套判断收敛成 `_pasteFromClipboard()`：读纯文本 + HTML、
+  `linkFromPaste` 优先、`HtmlToMarkdown.convert` 其次、**转不动时回落到纯文本**、
+  压还原点、再写；
+- 剪切：发布两种剪贴板格式（和复制一致）、压还原点、再删除；
+- 菜单两项各自缩成一行。
+
+### 三条既有守卫接住了这次改动，全是它们在正常工作
+
+| 守卫 | 它说了什么 | 我做了什么 |
+|------|-----------|-----------|
+| `command_palette_coverage_test` | 每个 `FormatAction` 都要能在命令面板里搜到 | 给两个新动作加了标签（复用 `editCut`/`editPaste`，12 语言现成） |
+| `menu_copy_rich_guard_test` | 菜单的复制和剪切都要发布富文本、且要传读者的 `enableHtml` | **剪切搬走了，守卫跟着搬**：改成「lib 下每一处富复制都不许写死开关」＋「菜单仍富复制」＋「cut 分支里必须有富复制、copyWithHtml、pushHistory」 |
+| `unawaited_guard_test` | 每个 `unawaited(` 上方要写明为什么不等 | 补上了 |
+| `format_actions_do_something_test` | 每个动作要么被真正驱动过，要么写明为什么造不出来 | `cut` 进了 cases（`'abc'` 选中 `b` → `'ac'`）；`paste` 写明「需要剪贴板里先有内容，在菜单粘贴那份测试里驱动」 |
+
+**守卫跟着实现搬家时不要钉在「代码在哪个文件」上**——那样下次再搬又会红。
+钉在「每一处调用都必须如何」加「这两个地方必须有一处调用」上。
+
+### 涉及文件
+
+- `code/lib/providers/editor_provider.dart`（枚举 + 为什么放在这里）
+- `code/lib/ui/editor/source_editor.dart`（两个分支 + `_pasteFromClipboard`）
+- `code/lib/ui/widgets/app_menu_bar.dart`（两项各缩成一行）
+- `code/lib/ui/screens/home_screen.dart`（命令面板标签）
+- `code/test/ui/editor/the_menu_cuts_and_pastes_like_the_keyboard_test.dart`（新增 7 条）
+- `code/test/ui/widgets/menu_copy_rich_guard_test.dart`（守卫跟着搬家，3 条）
+- `code/test/ui/editor/format_actions_do_something_test.dart`（+1 case，+1 理由）
+
+### 验证
+
+| 变异 | 结果 |
+|------|------|
+| 粘贴只用纯文本（即菜单原本的做法） | 红，「菜单的粘贴没有把 HTML 转成 Markdown，和 Ctrl+V 不一致」 |
+| 粘贴不压还原点 | 红，「一次退回了两次粘贴」 |
+| 剪切不压还原点 | 红，「一次退回了两次剪切」 |
+| 去掉链接判定 | 红 |
+| 剪切不发富文本 | 红（守卫） |
+| `enableHtml` 写死 | 红（守卫） |
+
+### 我又踩了两次同一个陷阱，值得写下来
+
+**一、撤销测试只做一次是测不出来的。** 「粘贴一次 → Ctrl+Z」无论压不压还原点都能退回去——
+编辑器在 `initState` 里把初始内容压进了栈，而 `undo` 自己会把屏幕上的当前状态补上去。
+**必须连做两次**，第二次才落在「防抖还没关上第一步」的那个缝里。两个变异因此从绿变红。
+
+**二、`AppConfig()` 的默认 `editMode` 是 `preview`，而格式动作只在有源码窗格时生效。**
+今天第三次被这个默认值挡住（前两次是 BUG-479 的宽度轮次、BUG-480 的模式限定）。
+
+### 下一步：`source_editor.dart` 里还有 29 处直接写控制器，只有 7 处压了还原点
+
+这一轮只动了菜单那两处。那 29 处里有一部分**只改选区**（不需要还原点），
+其余是格式动作（加粗、标题、列表、插入块……）。下一轮要做的是**逐个分类**
+（改文本 / 只改选区），把改文本的那些收敛到一个「程序化写入」的入口上。
+现在别一次性动 29 处——那是一次大重构，值得单独一轮并配一条穷尽的守卫。

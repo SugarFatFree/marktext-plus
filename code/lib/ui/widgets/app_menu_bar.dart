@@ -542,26 +542,13 @@ class AppMenuBar extends ConsumerWidget {
         ),
         const Divider(height: 1),
         MenuItemButton(
+          // Through the editor, like Copy as Markdown and Select All beside it,
+          // rather than carried out here. This item had its own copy of cutting
+          // — the rich clipboard, the splice — and it wrote the text without
+          // recording anything for Ctrl+Z to come back to.
           child: Text(l10n.editCut),
-          onPressed: () {
-            final controller = ref.read(editorProvider.notifier).controller;
-            if (controller == null) return;
-            final sel = controller.selection;
-            if (!sel.isValid || sel.isCollapsed) return;
-            final text = controller.text;
-            final selected = text.substring(sel.start, sel.end);
-            final html = RichCopyService.htmlForMarkdownSelection(
-              selected,
-              enableHtml: ref.read(settingsProvider).enableHtml,
-            );
-            // Deliberately not awaited: cutting must update the editor
-            // immediately while the native clipboard receives both flavours.
-            unawaited(ClipboardService.copyWithHtml(selected, html));
-            controller.value = TextEditingValue(
-              text: text.substring(0, sel.start) + text.substring(sel.end),
-              selection: TextSelection.collapsed(offset: sel.start),
-            );
-          },
+          onPressed: () =>
+              ref.read(editorProvider.notifier).applyFormat(FormatAction.cut),
         ),
         MenuItemButton(
           child: Text(l10n.editCopy),
@@ -581,22 +568,15 @@ class AppMenuBar extends ConsumerWidget {
           },
         ),
         MenuItemButton(
+          // Also through the editor. Its own paste read the plain flavour of
+          // the clipboard and wrote it straight in, while Ctrl+V goes on to
+          // replace what landed with the HTML flavour converted to Markdown, or
+          // with a link when a web address was pasted over some words. A page
+          // copied out of a browser therefore kept its headings and lists
+          // through the keyboard and lost them through this menu.
           child: Text(l10n.editPaste),
-          onPressed: () async {
-            final controller = ref.read(editorProvider.notifier).controller;
-            if (controller == null) return;
-            final data = await Clipboard.getData(Clipboard.kTextPlain);
-            if (data?.text == null) return;
-            final sel = controller.selection;
-            final text = controller.text;
-            final offset = sel.isValid ? sel.start : text.length;
-            final end = sel.isValid ? sel.end : text.length;
-            final paste = data!.text!;
-            controller.value = TextEditingValue(
-              text: text.substring(0, offset) + paste + text.substring(end),
-              selection: TextSelection.collapsed(offset: offset + paste.length),
-            );
-          },
+          onPressed: () =>
+              ref.read(editorProvider.notifier).applyFormat(FormatAction.paste),
         ),
         const Divider(height: 1),
         MenuItemButton(
