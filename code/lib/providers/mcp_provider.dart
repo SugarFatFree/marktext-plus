@@ -229,6 +229,42 @@ class McpController extends StateNotifier<McpStatus> {
         _ref.read(tabProvider.notifier).addTab(tab);
         return mcpDid('opened tab ${tab.id}');
 
+      case McpAction.saveTab:
+        final id = text('tabId') ?? _ref.read(tabProvider).activeTabId;
+        if (id == null) return mcpRefused('no tab to save');
+        final saving =
+            _ref.read(tabProvider).tabs.where((tab) => tab.id == id).firstOrNull;
+        if (saving == null) return mcpRefused('there is no tab $id');
+        // The same write Ctrl+S makes, through the same method auto-save uses,
+        // so the checks cannot drift apart: the file must not have changed
+        // underneath, and the encoding the write actually used is recorded.
+        switch (await _ref.read(tabProvider.notifier).saveToDisk(id)) {
+          case SaveOutcome.saved:
+            final now =
+                _ref.read(tabProvider).tabs.where((t) => t.id == id).firstOrNull;
+            return mcpDid('saved ${saving.fileName}'
+                '${now == null ? '' : ' as ${now.encoding.label}'}');
+          case SaveOutcome.nothingToWrite:
+            return mcpDid('${saving.fileName} had nothing unsaved');
+          case SaveOutcome.noFile:
+            // No picker on this side, and inventing a path would put the
+            // reader's document somewhere they never chose.
+            return mcpRefused(
+              '"${saving.fileName}" has no file behind it — open it from a '
+              'path, or save it once by hand',
+            );
+          case SaveOutcome.conflict:
+            return mcpRefused(
+              '"${saving.fileName}" changed on disk since it was read — '
+              'writing now would decide which version survives, which is the '
+              "reader's to decide",
+            );
+          case SaveOutcome.failed:
+            return mcpRefused('could not write ${saving.fileName}');
+          case SaveOutcome.noTab:
+            return mcpRefused('there is no tab $id');
+        }
+
       case McpAction.activateTab:
         final id = text('tabId');
         if (id == null) return mcpRefused('no tabId given');

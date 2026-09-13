@@ -6,6 +6,7 @@ import 'package:marktext_plus/core/config/app_config.dart';
 import 'package:marktext_plus/core/config/config_service.dart';
 import 'package:marktext_plus/models/tab_info.dart';
 import 'package:marktext_plus/providers/mcp_provider.dart';
+import 'package:marktext_plus/services/file_service.dart';
 import 'package:marktext_plus/services/mcp_tools.dart';
 import 'package:marktext_plus/providers/settings_provider.dart';
 import 'package:marktext_plus/providers/tab_provider.dart';
@@ -100,6 +101,116 @@ void main() {
 
       expect(taken, isNull,
           reason: '没给答案时要照旧问人，而不是替他答一个空字符串');
+    });
+  });
+
+  group('saving a tab', () {
+    // `close_tab` refuses a tab with unsaved work, because nothing on this side
+    // can press Save. That left an agent that had written to a tab unable
+    // either to keep what it wrote or to tidy the tab away — so the missing
+    // piece was saving. Never a "discard anyway" flag: the explicit decision an
+    // automated caller can be asked for is "keep this".
+    late Directory dir;
+    setUp(() => dir = Directory.systemTemp.createTempSync('mcp_save'));
+    tearDown(() {
+      if (dir.existsSync()) dir.deleteSync(recursive: true);
+    });
+
+    Future<(ProviderContainer, File)> openAFile(String text) async {
+      final file = File('${dir.path}/note.md')..writeAsStringSync(text);
+      final container = boot();
+      container.read(tabProvider.notifier).addTab(TabInfo(
+            id: 'one',
+            filePath: file.path,
+            fileName: 'note.md',
+            content: text,
+            diskStamp: await FileService.stampOf(file.path),
+          ));
+      return (container, file);
+    }
+
+    test('writes what the tab holds, and says so', () async {
+      final (container, file) = await openAFile('first\n');
+      await container
+          .read(mcpProvider.notifier)
+          .performAction('set_content', {'tabId': 'one', 'content': 'second\n'});
+
+      final outcome = await container
+          .read(mcpProvider.notifier)
+          .performAction('save_tab', {'tabId': 'one'});
+
+      expect(outcome.ok, isTrue, reason: outcome.said);
+      expect(file.readAsStringSync(), 'second\n');
+      expect(container.read(tabProvider).tabs.single.isModified, isFalse);
+      expect(outcome.said, contains('note.md'));
+    });
+
+    test('and then the tab can be closed, which is the point', () async {
+      // The loop this exists for: make a tab, write to it, keep it, tidy up.
+      final (container, _) = await openAFile('first\n');
+      await container
+          .read(mcpProvider.notifier)
+          .performAction('set_content', {'tabId': 'one', 'content': 'second\n'});
+      expect(
+        (await container
+                .read(mcpProvider.notifier)
+                .performAction('close_tab', {'tabId': 'one'}))
+            .ok,
+        isFalse,
+        reason: '未保存时就该拒绝——这是 BUG-467，不能被这次改动放松',
+      );
+
+      await container
+          .read(mcpProvider.notifier)
+          .performAction('save_tab', {'tabId': 'one'});
+      final closed = await container
+          .read(mcpProvider.notifier)
+          .performAction('close_tab', {'tabId': 'one'});
+
+      expect(closed.ok, isTrue, reason: closed.said);
+      expect(container.read(tabProvider).tabs, isEmpty);
+    });
+
+    test('refuses a tab with no file behind it', () async {
+      final container = boot();
+      container.read(tabProvider.notifier).addTab(aTab('scratch'));
+      container.read(tabProvider.notifier).updateContent('scratch', 'typed\n');
+
+      final outcome = await container
+          .read(mcpProvider.notifier)
+          .performAction('save_tab', {'tabId': 'scratch'});
+
+      expect(outcome.ok, isFalse);
+      expect(outcome.said, contains('scratch.md'),
+          reason: '要说出是哪个标签页，不然调用方无从下手');
+      expect(container.read(tabProvider).tabs.single.isModified, isTrue);
+    });
+
+    test('refuses when the file changed underneath, rather than deciding',
+        () async {
+      final (container, file) = await openAFile('first\n');
+      await container
+          .read(mcpProvider.notifier)
+          .performAction('set_content', {'tabId': 'one', 'content': 'mine\n'});
+      file.writeAsStringSync('somebody else got here\n');
+
+      final outcome = await container
+          .read(mcpProvider.notifier)
+          .performAction('save_tab', {'tabId': 'one'});
+
+      expect(outcome.ok, isFalse);
+      expect(file.readAsStringSync(), 'somebody else got here\n',
+          reason: '自动化这一端不该替读者决定哪一份留下');
+      expect(container.read(tabProvider).tabs.single.content, 'mine\n');
+    });
+
+    test('an unmodified tab is not an error', () async {
+      final (container, _) = await openAFile('first\n');
+      final outcome = await container
+          .read(mcpProvider.notifier)
+          .performAction('save_tab', {'tabId': 'one'});
+      expect(outcome.ok, isTrue);
+      expect(outcome.said, contains('nothing unsaved'));
     });
   });
 

@@ -586,13 +586,29 @@ class TabNotifier extends StateNotifier<TabState> {
     );
   }
 
-  Future<void> _performAutoSave(String tabId) async {
-    final tab = state.tabs.where((t) => t.id == tabId).firstOrNull;
-    if (tab == null || tab.filePath == null || !tab.isModified) return;
+  /// How a write to a tab's own file ended.
+  ///
+  /// Named outcomes rather than a bool, because the two callers answer for
+  /// different audiences and must not have to guess which failure they got:
+  /// auto-save turns [conflict] into the banner and says nothing about the
+  /// rest, while the automation socket has to tell whoever asked *why* nothing
+  /// was written.
+  ///
+  /// Both go through [saveToDisk] so there is one description of what an
+  /// ordinary save is — check the file has not changed underneath, write it,
+  /// take on the encoding that was actually used, record the new baseline.
+  /// Six places wrote a document before this one existed, and the survey that
+  /// put them side by side is what found BUG-465: three of them threw away the
+  /// encoding the write came back with.
+  Future<SaveOutcome> saveToDisk(String id) async {
+    final tab = state.tabs.where((t) => t.id == id).firstOrNull;
+    if (tab == null) return SaveOutcome.noTab;
+    if (tab.filePath == null) return SaveOutcome.noFile;
+    if (!tab.isModified) return SaveOutcome.nothingToWrite;
     // Already known to be in conflict: writing now would resolve it by
-    // discarding whatever is on disk, which is not a decision auto-save gets
-    // to make.
-    if (tab.diskConflict) return;
+    // discarding whatever is on disk, which is not a decision either caller
+    // gets to make on the reader's behalf.
+    if (tab.diskConflict) return SaveOutcome.conflict;
     try {
       // What was written may not be the encoding asked for: a character the
       // document's encoding cannot carry is written as UTF-8 instead. The tab
@@ -605,16 +621,33 @@ class TabNotifier extends StateNotifier<TabState> {
         lineEnding: tab.lineEnding,
         encoding: tab.encoding,
       );
-      await markSaved(tabId, written: written);
+      await markSaved(id, written: written);
+      return SaveOutcome.saved;
     } on FileChangedOnDiskException {
-      // Something else rewrote the file while this document was being edited.
-      // Auto-save stops here and says so rather than choosing a winner: the
-      // reader's work stays in the tab, and what is on disk stays on disk.
-      _setDiskConflict(tabId, true);
+      return SaveOutcome.conflict;
     } catch (_) {
-      // Left marked as modified so the close confirmation still fires and the
-      // status bar keeps showing the dot: a silent success here would tell the
-      // user their work was written when it was not.
+      return SaveOutcome.failed;
+    }
+  }
+
+  Future<void> _performAutoSave(String tabId) async {
+    switch (await saveToDisk(tabId)) {
+      case SaveOutcome.conflict:
+        // Something else rewrote the file while this document was being
+        // edited. Auto-save stops here and says so rather than choosing a
+        // winner: the reader's work stays in the tab, and what is on disk
+        // stays on disk.
+        _setDiskConflict(tabId, true);
+      case SaveOutcome.failed:
+        // Left marked as modified so the close confirmation still fires and
+        // the status bar keeps showing the dot: a silent success here would
+        // tell the user their work was written when it was not.
+        break;
+      case SaveOutcome.saved:
+      case SaveOutcome.noTab:
+      case SaveOutcome.noFile:
+      case SaveOutcome.nothingToWrite:
+        break;
     }
   }
 
@@ -935,3 +968,19 @@ final activeTabProvider = Provider<TabInfo?>((ref) {
 
 /// File paths passed as command-line arguments at startup.
 final startupFilesProvider = StateProvider<List<String>>((ref) => []);
+
+/// How [TabNotifier.saveToDisk] ended.
+enum SaveOutcome {
+  saved,
+  noTab,
+
+  /// Nothing on disk to write to. There is no picker on the automation side,
+  /// so this is a refusal there rather than a prompt.
+  noFile,
+  nothingToWrite,
+
+  /// The file changed underneath the editor, so writing would decide which
+  /// version survives — which is the reader's decision.
+  conflict,
+  failed,
+}

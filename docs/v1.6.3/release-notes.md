@@ -351,6 +351,18 @@ One thing changed with it: in preview mode, where there is no text field, the ta
 commands are greyed out. They used to light up for a position built from whatever
 the source pane last reported, which is not somewhere the reader can see.
 
+### The automation interface can save a tab
+
+`close_tab` refuses a tab with unsaved work, because nothing on that side can
+press Save — which left a caller that had written to a tab unable either to keep
+what it wrote or to tidy the tab away. `save_tab` is the missing half, and it is
+the half worth having: what an automated caller can be asked for is "keep this",
+never "throw it away".
+
+It writes the way Ctrl+S does, through the same method auto-save now uses, so the
+checks cannot drift apart: the file must not have changed underneath, and the
+encoding the write actually used is what the tab records afterwards.
+
 ### Ctrl+Z takes back an edit made in the preview
 
 The preview is not read-only — a checkbox can be ticked in it, a block edited in
@@ -792,6 +804,16 @@ Mermaid 包够不到编辑器的翻译，所以它自带的错误框按设计是
 
 随之改变的一件事：预览模式下没有文本框，表格命令现在**置灰**。以前它们会按源码窗格
 最后报告的位置点亮，而那个位置读者在预览里看不见。
+
+### 自动化接口可以保存标签页了
+
+`close_tab` 会拒绝有未保存内容的标签页，因为那一端没有任何东西能按下保存——
+于是一个写过内容的调用方既留不住它写的东西，也收拾不掉那个标签页。
+`save_tab` 就是缺的那一半，而且是**值得有的那一半**：能向自动化调用方索取的显式决定
+是「留下它」，不是「扔掉它」。
+
+它按 Ctrl+S 的方式写，并且走的是自动保存现在也在走的那个方法，所以两者的检查不会各走各的：
+文件必须没有在底下被改过，而真正用于写盘的编码就是标签页随后记下的那个。
 
 ### Ctrl+Z 能撤回在预览里做的编辑
 

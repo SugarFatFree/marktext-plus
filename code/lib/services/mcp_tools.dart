@@ -14,6 +14,15 @@ import '../core/diagnostics/startup_trace.dart';
 enum McpAction {
   newTab('new_tab'),
   closeTab('close_tab'),
+
+  /// Writes a tab to its own file, the way Ctrl+S does.
+  ///
+  /// Added because [closeTab] refuses a tab with unsaved work — there is no
+  /// automation on this side that can press Save, so an agent that wrote to a
+  /// tab could neither keep what it had written nor tidy the tab away. The
+  /// missing piece was saving, not a way to discard: the explicit decision an
+  /// automated caller can be asked for is "keep this", never "throw it away".
+  saveTab('save_tab'),
   activateTab('activate_tab'),
   setViewMode('set_view_mode'),
   setContent('set_content'),
