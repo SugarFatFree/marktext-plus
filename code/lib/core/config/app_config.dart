@@ -98,6 +98,17 @@ class AppConfig {
   String imageStorageMode;
   String imageFolder;
   FileOpenBehavior fileOpenBehavior;
+  /// Whether the editor asks GitHub for a newer release on its own.
+  ///
+  /// On by default, which is what it always did. It is here because it was the
+  /// one thing that reached the network without the reader doing anything and
+  /// the one they could not stop: the MCP port is off until they open it, a
+  /// plugin's browser is behind a permission, exported HTML carries no links
+  /// but the maths one — and this went out on every launch a day apart, with
+  /// `lastUpdateCheck` and `skipVersion` recording that it had happened and
+  /// nothing to say it should not.
+  bool checkForUpdates;
+
   String lastUpdateCheck;
   String skipVersion;
   String sideBarDirectory;
@@ -172,6 +183,7 @@ class AppConfig {
     this.imageStorageMode = 'copy',
     this.imageFolder = 'assets/images',
     this.fileOpenBehavior = FileOpenBehavior.notSet,
+    this.checkForUpdates = true,
     this.lastUpdateCheck = '',
     this.skipVersion = '',
     this.sideBarDirectory = '',
@@ -227,6 +239,7 @@ class AppConfig {
     'imageStorageMode': imageStorageMode,
     'imageFolder': imageFolder,
     'fileOpenBehavior': fileOpenBehavior.name,
+    'checkForUpdates': checkForUpdates,
     'lastUpdateCheck': lastUpdateCheck,
     'skipVersion': skipVersion,
     'sideBarDirectory': sideBarDirectory,
@@ -289,6 +302,7 @@ class AppConfig {
       imageStorageMode: _parseString(json['imageStorageMode'], 'copy'),
       imageFolder: _parseString(json['imageFolder'], 'assets/images'),
       fileOpenBehavior: _parseFileOpenBehavior(json['fileOpenBehavior']),
+      checkForUpdates: _parseBool(json['checkForUpdates'], true),
       lastUpdateCheck: _parseString(json['lastUpdateCheck'], ''),
       skipVersion: _parseString(json['skipVersion'], ''),
       sideBarDirectory: _parseString(json['sideBarDirectory'], ''),
@@ -411,6 +425,7 @@ class AppConfig {
     String? imageStorageMode,
     String? imageFolder,
     FileOpenBehavior? fileOpenBehavior,
+    bool? checkForUpdates,
     String? lastUpdateCheck,
     String? skipVersion,
     String? sideBarDirectory,
@@ -466,6 +481,7 @@ class AppConfig {
       imageStorageMode: imageStorageMode ?? this.imageStorageMode,
       imageFolder: imageFolder ?? this.imageFolder,
       fileOpenBehavior: fileOpenBehavior ?? this.fileOpenBehavior,
+      checkForUpdates: checkForUpdates ?? this.checkForUpdates,
       lastUpdateCheck: lastUpdateCheck ?? this.lastUpdateCheck,
       skipVersion: skipVersion ?? this.skipVersion,
       sideBarDirectory: sideBarDirectory ?? this.sideBarDirectory,

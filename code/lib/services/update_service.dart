@@ -13,6 +13,30 @@ class UpdateService {
   static const _apiUrl = 'https://api.github.com/repos/SugarFatFree/marktext-plus/releases/latest';
   static const _releasesUrl = 'https://github.com/SugarFatFree/marktext-plus/releases/latest';
 
+  /// Whether the automatic check should go out at all.
+  ///
+  /// A function of its own because it is the whole of the decision, and the
+  /// request it guards cannot be made in a test: three inputs, one answer.
+  ///
+  /// [enabled] is the reader's setting, off by nothing but their choice —
+  /// this was the one connection the editor made without being asked and the
+  /// one they could not stop. [lastCheck] and [now] keep it to once a day,
+  /// which is what it always did.
+  static bool shouldCheckAutomatically({
+    required bool enabled,
+    required DateTime? lastCheck,
+    required DateTime now,
+  }) {
+    if (!enabled) return false;
+    if (lastCheck == null) return true;
+    // A clock that moved backwards leaves a check in the future. Its age is
+    // negative, which is not "checked recently"; it is a stamp this cannot
+    // reason about, so it checks again.
+    final age = now.difference(lastCheck);
+    if (age.isNegative) return true;
+    return age.inHours >= 24;
+  }
+
   /// Asks GitHub for the latest release.
   ///
   /// Reports whether the check actually happened, separately from whether it

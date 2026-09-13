@@ -398,6 +398,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsLanguage => 'Langue';
 
   @override
+  String get settingsCheckForUpdates => 'Rechercher les mises à jour';
+
+  @override
   String get settingsAutoSave => 'Sauvegarde automatique';
 
   @override

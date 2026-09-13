@@ -387,6 +387,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsLanguage => '语言';
 
   @override
+  String get settingsCheckForUpdates => '自动检查更新';
+
+  @override
   String get settingsAutoSave => '自动保存';
 
   @override

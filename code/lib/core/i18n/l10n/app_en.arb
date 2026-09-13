@@ -202,6 +202,10 @@
   "settingsTheme": "Theme",
   "settingsKeybindings": "Keybindings",
   "settingsLanguage": "Language",
+  "settingsCheckForUpdates": "Check for updates",
+  "@settingsCheckForUpdates": {
+    "description": "Settings row for whether the editor asks GitHub for a newer release on its own"
+  },
   "settingsAutoSave": "Auto Save",
   "settingsAutoSaveDelay": "Auto Save Delay (ms)",
   "settingsFontSize": "Font Size",

@@ -397,6 +397,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get settingsLanguage => 'Idioma';
 
   @override
+  String get settingsCheckForUpdates => 'Buscar actualizaciones';
+
+  @override
   String get settingsAutoSave => 'Guardado automático';
 
   @override

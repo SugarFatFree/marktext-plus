@@ -396,6 +396,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get settingsLanguage => 'Idioma';
 
   @override
+  String get settingsCheckForUpdates => 'Procurar atualizações';
+
+  @override
   String get settingsAutoSave => 'Guardar automaticamente';
 
   @override
@@ -1725,6 +1728,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get settingsLanguage => 'Idioma';
+
+  @override
+  String get settingsCheckForUpdates => 'Procurar atualizações';
 
   @override
   String get settingsAutoSave => 'Salvamento automático';

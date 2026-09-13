@@ -296,10 +296,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
     _updateCheckDone = true;
 
     final config = ref.read(settingsProvider);
-    final lastCheck = DateTime.tryParse(config.lastUpdateCheck);
     final now = DateTime.now();
-
-    if (lastCheck != null && now.difference(lastCheck).inHours < 24) return;
+    // The whole of the decision, where it can be tested: the reader's setting
+    // and the once-a-day rule.
+    if (!UpdateService.shouldCheckAutomatically(
+      enabled: config.checkForUpdates,
+      lastCheck: DateTime.tryParse(config.lastUpdateCheck),
+      now: now,
+    )) {
+      return;
+    }
 
     await ref
         .read(settingsProvider.notifier)

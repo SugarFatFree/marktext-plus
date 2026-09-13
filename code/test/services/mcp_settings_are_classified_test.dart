@@ -55,6 +55,7 @@ void main() {
     'imageStorageMode',
     'imageFolder',
     'fileOpenBehavior',
+    'checkForUpdates',
     'lastUpdateCheck',
     'skipVersion',
     'sideBarDirectory',

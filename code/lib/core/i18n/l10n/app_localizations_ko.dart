@@ -388,6 +388,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsLanguage => '언어';
 
   @override
+  String get settingsCheckForUpdates => '업데이트 자동 확인';
+
+  @override
   String get settingsAutoSave => '자동 저장';
 
   @override

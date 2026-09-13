@@ -388,6 +388,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsLanguage => '言語';
 
   @override
+  String get settingsCheckForUpdates => '更新を自動で確認する';
+
+  @override
   String get settingsAutoSave => '自動保存';
 
   @override

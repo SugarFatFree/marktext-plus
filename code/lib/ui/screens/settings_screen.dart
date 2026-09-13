@@ -417,6 +417,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ),
         _row(
+          // The one connection the editor made without being asked, and the one
+          // the reader could not stop: the port is off until they open it, a
+          // plugin's browser is behind a permission, and this went to GitHub on
+          // every launch a day apart with nothing to say it should not.
+          l10n.settingsCheckForUpdates,
+          Switch(
+            value: config.checkForUpdates,
+            onChanged: (v) => ref
+                .read(settingsProvider.notifier)
+                .updateConfig((c) => c.copyWith(checkForUpdates: v)),
+          ),
+        ),
+        _row(
           l10n.settingsAutoSave,
           Switch(
             value: config.autoSave,

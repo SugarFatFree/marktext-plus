@@ -394,6 +394,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get settingsLanguage => 'Язык';
 
   @override
+  String get settingsCheckForUpdates => 'Проверять обновления';
+
+  @override
   String get settingsAutoSave => 'Автосохранение';
 
   @override

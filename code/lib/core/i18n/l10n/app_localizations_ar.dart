@@ -393,6 +393,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settingsLanguage => 'اللغة';
 
   @override
+  String get settingsCheckForUpdates => 'التحقق من التحديثات';
+
+  @override
   String get settingsAutoSave => 'حفظ تلقائي';
 
   @override

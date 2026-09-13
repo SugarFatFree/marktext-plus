@@ -549,6 +549,22 @@ Typing is unchanged on purpose. Auto-pairing a bracket, closing a list on Enter,
 deleting the other half of a pair — those are keystrokes, and giving each its own
 step would make undo character-by-character.
 
+### You can turn off the check for new versions
+
+It was the one thing this editor did on the network without being asked, and the
+one you could not stop. The automation port is off until you open it; a plugin's
+browser is behind a permission and its every host is logged; exported HTML
+carries no link but the maths one. The update check went to GitHub after the
+first frame of every launch a day apart, and the settings that mentioned it —
+when it last ran, which version to stop mentioning — recorded that it had
+happened rather than whether it should.
+
+Settings ▸ General now has a switch, on by default, so nothing changes unless
+you ask. Help ▸ Check for updates still works when it is off: what the switch
+governs is the one nobody asked for. A clock that has moved backwards no longer
+skips the check either — a timestamp from the future is one to ignore, not one to
+trust.
+
 ### The Edit menu's Paste keeps what the keyboard's Paste keeps
 
 Ctrl+V reads both flavours of the clipboard and replaces what landed with the
@@ -1057,6 +1073,18 @@ HTML 与 PDF 早就改成「写临时文件再换过去」了。Word 的写盘�
 
 **打字有意保持不变**：自动配对括号、回车续列表、删掉配对的另一半——那些是按键，
 每个按键一个撤销步会让撤销变成逐字。
+
+### 可以关掉「自动检查新版本」
+
+这是这个编辑器**唯一一个没被要求就发生的外连**，也是唯一一个你关不掉的。
+自动化端口默认关闭、要你主动开；插件的浏览器在权限后面，去过哪些主机都写进日志；
+导出的 HTML 除了数学公式那一处零外链。而更新检查在每次启动的首帧之后就发往 GitHub
+（相隔一天以上时），配置里提到它的那两项——上次什么时候查的、哪个版本别再提醒——
+记的是「已经发生了」，而不是「该不该发生」。
+
+**设置 ▸ 通用**现在有一个开关，**默认开**，所以不主动去关就什么都不变。
+关掉之后「帮助 ▸ 立即检查更新」照旧可用——这个开关管的是**没人要求的那一次**。
+另外，时钟倒退时不再跳过检查：**来自未来的时间戳是该忽略的，不是该相信的。**
 
 ### 编辑菜单的「粘贴」现在和键盘的粘贴一样
 

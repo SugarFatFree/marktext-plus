@@ -825,6 +825,12 @@ abstract class AppLocalizations {
   /// **'Language'**
   String get settingsLanguage;
 
+  /// Settings row for whether the editor asks GitHub for a newer release on its own
+  ///
+  /// In en, this message translates to:
+  /// **'Check for updates'**
+  String get settingsCheckForUpdates;
+
   /// No description provided for @settingsAutoSave.
   ///
   /// In en, this message translates to:
