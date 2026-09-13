@@ -338,6 +338,7 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
         replacement +
         text.substring(match.end);
 
+    _closeTheUndoStep(text);
     widget.textController!.value = TextEditingValue(
       text: newText,
       selection: TextSelection.collapsed(
@@ -390,6 +391,7 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
       ),
     );
 
+    _closeTheUndoStep(text);
     widget.textController!.value = TextEditingValue(
       text: newText,
       selection: TextSelection.collapsed(offset: 0),
@@ -397,6 +399,23 @@ class _FindReplaceBarState extends ConsumerState<FindReplaceBar> {
 
     _findMatches();
   }
+
+  /// Records [before] so that this replacement is one step of its own.
+  ///
+  /// Both buttons write straight to the editor's controller, which is the path
+  /// typing takes — and that path records history on a 300 ms debounce. So a
+  /// run of replacements faster than that reached the stack as one entry, and
+  /// only the last one: pressing Replace ten times and then Ctrl+Z took back
+  /// all ten, along with anything typed in the same 300 ms. Pressing it
+  /// repeatedly is the designed way to use it — the comment above the resume
+  /// logic says so — which is exactly when the window is open.
+  ///
+  /// The same thing `_moveBlock` and the table edits in [SourceEditor] do, for
+  /// the reason written beside the table one: a bulk edit has to be one undo.
+  /// `pushHistory` drops a snapshot equal to the top of the stack, so a press
+  /// that changes nothing adds nothing.
+  void _closeTheUndoStep(String before) =>
+      ref.read(editorProvider.notifier).pushHistory(before);
 
   void _close() {
     _clearHighlighting();

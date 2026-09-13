@@ -536,6 +536,19 @@ your system does not have falls back rather than drawing boxes. The editing
 pane's row is unchanged, and says "editor" in every language now rather than
 "body text" in three of them.
 
+### Replace is one undo, and so is Replace All
+
+Both buttons write through the same path typing takes, and that path records
+history 300 ms after a pause — so a run of replacements faster than that arrived
+as a single entry, and only the last state. Pressing Replace ten times and then
+Ctrl+Z took back all ten; replacing one term everywhere and then another took
+both back at once. Pressing Replace over and over is how you walk a document,
+which is exactly when that window is open.
+
+An edit an agent made over the automation interface can be taken back too. It
+was the one writer of a document that recorded nothing to step back to, so
+Ctrl+Z either did nothing or stepped past it to whatever you last typed.
+
 ### An untitled document you emptied closes without asking
 
 Typing into a new tab and then deleting it all left the tab counted as unsaved
@@ -994,6 +1007,16 @@ HTML 与 PDF 早就改成「写临时文件再换过去」了。Word 的写盘�
 列表、表格、引用都跟着它走，**代码仍用代码字体**——这正是分成两个设置的意义。
 填了系统里没有的字体会回落，不会画成方框。编辑窗格那一行没有变化，
 只是十二种语言现在一致地说「编辑器字体」，而不是其中三种说「正文字体」。
+
+### 替换是一次撤销，全部替换也是
+
+两个替换按钮走的是和打字相同的那条路，而那条路在停顿 300ms 之后才记录历史——
+于是比这更快的一串替换只会进栈一条、而且是最后那个状态。连按 Replace 十次再 Ctrl+Z
+会**十处全退**；先全部替换一个词、紧接着替换另一个，一次就把两轮都退掉。
+而连着按 Replace 恰恰就是走一遍文档的用法，那个窗口正好开着。
+
+**代理通过自动化接口做的修改现在也能撤销了。** 它是所有文档写入者里唯一没留还原点的，
+所以按 Ctrl+Z 要么毫无反应，要么跨过它退回到你上次自己打的字。
 
 ### 删空的未命名文档关闭时不再追问
 
