@@ -506,6 +506,15 @@ that, every press used to count the lines before the match by cutting the docume
 there and splitting the piece into lines — 55 000 strings on a four megabyte
 document — for a number only the fallback path ever wanted.
 
+### Clicking the end of a long document's outline goes there
+
+While a long document is still filling in, the preview knew how many blocks had
+been *asked for* and took that for how many were on screen — the blocks, and so
+the headings a jump aims at, only appear in the frame after. A jump arriving in
+that gap settled for the last heading that really had been drawn, which can be
+thousands of lines short, and threw the request away, so nothing ever corrected
+it. At a megabyte that window was the fourteen seconds the fill took.
+
 ### A megabyte-long document fills in three times faster
 
 The preview draws a long document a batch of blocks at a time so the first
@@ -942,6 +951,13 @@ HTML 与 PDF 早就改成「写临时文件再换过去」了。Word 的写盘�
 那段文字本来就正由窗格画着。现在位置直接从它那里读，**46 微秒**，
 并且天然算上换行——因为它就是换行本身。此外，每按一次还会先把文档在匹配处切开、
 把前半截分成行来数行号（4 MB 上 5.5 万个字符串），而这个数**只有兜底那条路用得上**。
+
+### 长文档还在补画时点大纲，现在会到那一条
+
+长文档还在逐屏填充时，预览把「已经**要求**画多少块」当成了「屏幕上已经有多少块」
+——块（以及跳转要找的那些标题）要到下一帧才出现。落在这道缝里的跳转会退而停在
+最后一个真正画出来的标题上，可能差几千行，并且请求随即被丢掉，没有任何人纠正它。
+1 MB 的文档上，这道缝就是补画那十四秒。
 
 ### 1 MB 的文档补画快了三倍
 

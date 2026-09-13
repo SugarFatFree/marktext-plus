@@ -55,6 +55,7 @@
 | BUG-470 | 2026-09-13 | 纯预览模式下勾选复选框后 Ctrl+Z 毫无反应；分屏下一次退回好几步 | P1 | 已修复 |
 | BUG-471 | 2026-09-13 | 安装或更新插件不留任何记录，而打开一份文档都会记 | P2 | 已修复 |
 | BUG-472 | 2026-09-13 | 预览逐帧补画时给每帧的步长封了顶，而每帧都在重建已画的全部，于是帧数随文档变多、帧长一点没短 | P1 | 已修复 |
+| BUG-473 | 2026-09-13 | 补画还没画到的目标，跳过去会停在错的地方并留在那里——计数是「要求画的」被当成「画好的」 | P1 | 已修复 |
 
 ---
 
@@ -3787,7 +3788,16 @@ static const _maxBatchSize = 2000;
 final step = _renderedNodeCount < _maxBatchSize ? _renderedNodeCount : _maxBatchSize;
 ```
 
-裸常量，上面一个字的理由都没有。它大概是按「别一次建太多，会卡一帧」加的。
+裸常量，紧邻一个字的理由都没有。但**二十行之上有**——「Progressive rendering
+state」那段组注释写着：
+
+> Every frame rebuilds all the blocks rendered so far, so adding a fixed 50 per
+> frame made the total work quadratic: a 5000-block document took 100 frames and
+> built about 250000 widgets. **Doubling gets to the same place in eight frames.**
+
+**翻倍是原设计，而且它的理由和这里算的是同一笔账。** 这个上限是后来加上去的，
+与二十行之上写着的话正面矛盾，而那段话没人回去读——它离得够远，
+够到「改这一行的时候不会看到它」。
 
 **一趟的代价与「已经画出来多少块」成正比，而不是与「这一趟加了多少块」成正比。**
 
@@ -3863,3 +3873,89 @@ static int nextRenderedCount(int rendered, int total) =>
 真机那一半：更新到含本改动的构建后，重新打开同一份 1 MB 文档，日志里那一行的
 耗时应当明显低于 14.0 s。**这一条必须人工在真机上确认**，因为测试只证明了趟数，
 没有——也无法——证明耗时。
+
+## BUG-473：长文档还在补画时点大纲，落在几千行之前
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-473 |
+| 日期 | 2026-09-13 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+
+### 怎么发现的：给一条注释补守卫，结果撞上真缺陷
+
+BUG-472 让我读懂了预览为什么**不是**惰性列表（`_contentYOf` 要问标题的 `GlobalKey`
+画在哪，而惰性列表不会创建屏幕外的孩子）。这个理由只写在注释里，没有守卫——
+下一个人把它「优化」成惰性列表，测试不会红。于是我写守卫：往下跳到一个
+屏幕外的标题，断言**预览真的到了那里**。
+
+原有的那条测试只断言「请求被消费了」，文档才 7 行。**惰性列表下它照样绿**：
+key 答不上来，请求也一样被清掉。
+
+新守卫的第四条——「补画还没到那里时就发起跳转」——**在未变异的代码上直接红了**。
+
+### 根因：一个计数有两个含义
+
+```
+PROBE enter   line=397 rendered=200 keys=50
+PROBE resolve rendered=200 keys=50 exact=false ctx=true
+```
+
+`_renderedNodeCount` 已经是 200（足够覆盖第 397 行），但 `_headingKeys` 只有 50 个
+——**树还停在上一次 build 的 50 个块上**。
+
+因为这个计数是**「要求画的」**，不是**「画好的」**：补画在 `setState` 里把它抬上去，
+块（以及标题的 key）要到随后那次 build 才出现。跳转正好落在这道缝里：
+
+1. `_renderUpTo(397)` 比较 `needed(200) <= _renderedNodeCount(200)`，答「早画过了」；
+2. `_keyForLine(397)` 拿不到精确 key，退回到最后一个**画过**的标题（第 50 节）；
+3. `Scrollable.ensureVisible` 老老实实滚到第 50 节；
+4. **目标随即被清掉**，所以没有任何人纠正它。
+
+`_scrollToTargetLine` 的注释声称修过这个缺陷（「clicking an entry near the end of a
+long document's outline landed somewhere else and stayed there」）。**修的是另一半**
+——「还没解析到」，不是「解析到了但还没画到」。
+
+用户撞得上的窗口有多大：1 MB 文档补画要 14 秒（BUG-472 修复前）。**这 14 秒里
+点大纲末尾的任何一条，都走这条路。**
+
+### 修复
+
+加一个 `_drawnNodeCount`，在 build 里记下这一次真正放上屏幕的数量。跳转时若
+`_drawnNodeCount < _renderedNodeCount`，说明树落后于计数，等一帧再来：
+
+```dart
+if (_drawnNodeCount < _renderedNodeCount) {
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (mounted) _scrollToTargetLine(line);
+  });
+  return;
+}
+```
+
+和 `_renderUpTo` 的重试用的是同一条路，两者可以叠加。
+
+### 顺带：一段被后来的改动否掉的注释
+
+`// Progressive rendering state` 那段还在讲「每帧重建已画全部，所以固定加 50
+会让总量变成平方，翻倍八帧到位」——而 2000 的上限（BUG-472）正是固定步长的变体。
+注释归位到 `nextRenderedCount` 上，那里现在是这笔账的唯一出处。
+
+### 涉及文件
+
+- `code/lib/ui/editor/markdown_renderer.dart`
+- `code/test/ui/editor/a_jump_reaches_a_heading_below_the_fold_test.dart`（新增 4 条）
+
+### 验证
+
+| 变异 | 结果 |
+|------|------|
+| 去掉「等树追上」的守卫（即缺陷原状） | 红，失败信息正是「停在了补画当时画到的最后一个标题上」 |
+| 删掉 build 里记录 `_drawnNodeCount` 的那一行 | 红（永远等不到，一次也不滚） |
+| 让屏幕外的标题拿不到 context（即改成惰性列表） | 红 —— 这是这组测试最初要守的那件事 |
+| 去掉 `_renderUpTo` 的先行绘制 | **绿，等价变异** |
+
+最后一条如实记在测试文件里：120 节的文档补画四趟就完，「等」和「直接画过去」
+没有可测的差别；`_renderUpTo` 的价值是补画要好几秒的文档上的延迟，
+而那个规模进不了 widget test。**正确性那张网是 `_drawnNodeCount`，拆掉它会红。**

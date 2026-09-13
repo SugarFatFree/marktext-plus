@@ -174,18 +174,34 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   /// every frame for a while. A 216 KB document took 18.5 seconds to finish
   /// drawing, almost all of it rebuilding blocks that had not changed.
   ///
+  /// Not a lazy list for two reasons, both of which cost something real and
+  /// neither of which a cache can give back, so read them before changing it:
+  ///
+  /// A lazy list never creates the children that are off screen, and two
+  /// features here need them to exist. [_contentYOf] asks a heading's
+  /// [GlobalKey] where it was drawn, which answers nothing for a heading that
+  /// has no element — that is how the outline, the sidebar's search results and
+  /// the split panes' scroll sync all find their target, and all of them aim
+  /// *off screen* by definition. And [SelectionArea] can only reach children
+  /// that exist, so selecting to the end of a long document — which is what
+  /// "copy as HTML" and the selected word count read — would stop wherever the
+  /// list had got to.
+  ///
+  /// What it costs to keep them: a pass over the preview walks, reconciles and
+  /// paints every block on screen, and the scroll view does not cull to the
+  /// viewport. See [MarkdownRenderer.nextRenderedCount], which is where that
+  /// bill is smallest.
+  ///
   /// Handing Flutter the same widget instance is what makes this pay: an
   /// element whose new widget is identical to its old one is not rebuilt, and
   /// a render object that was not marked dirty is not laid out again either.
   ///
   /// What it does *not* buy back — and this reads like it does, which is how a
   /// later reader got the reason for [MarkdownRenderer.nextRenderedCount]
-  /// wrong: the loop in `build` still walks every block on screen, the column's
-  /// element still reconciles every child against it, and the scroll view still
-  /// draws its whole child because it does not cull to the viewport. A pass
-  /// therefore still costs something in proportion to the blocks already drawn.
-  /// Cheap per block, and it is the step size, not this cache, that decides how
-  /// many times it is paid.
+  /// wrong: the walking, reconciling and painting above. A pass therefore still
+  /// costs something in proportion to the blocks already drawn. Cheap per
+  /// block, and it is the step size, not this cache, that decides how many
+  /// times it is paid.
   final _blockWidgets = <md.MarkdownNode, Widget>{};
 
   /// The preview's own scrolling, so it can be moved to follow the pane
@@ -258,17 +274,27 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   final md.MarkdownNode _appendNode =
       md.ParagraphNode(content: '', inlineSpans: const []);
 
-  // Progressive rendering state.
-  //
-  // Every frame rebuilds all the blocks rendered so far, so adding a fixed 50
-  // per frame made the total work quadratic: a 5000-block document took 100
-  // frames and built about 250000 widgets. Doubling gets to the same place in
-  // eight frames.
+  // Progressive rendering state. Why the batch doubles, and what that cost
+  // when it did not, is on [MarkdownRenderer.nextRenderedCount].
+
   /// The document whose full parse is still owed, when only a prefix of it has
   /// been parsed so far. Null when what is cached is the whole thing.
   String? _awaitingFullParse;
 
   int _renderedNodeCount = 0;
+
+  /// How many blocks the tree on screen actually holds.
+  ///
+  /// [_renderedNodeCount] is what has been *asked for*: the fill raises it
+  /// inside `setState` and the blocks — and so the headings' keys — only appear
+  /// in the build that follows. Anything that reads the counter as "already
+  /// drawn" is reading it one frame early, and [_scrollToTargetLine] did:
+  /// a jump arriving in that gap found the counter past its target, went
+  /// looking for a key that did not exist yet, settled for the last heading
+  /// that *had* been drawn, and cleared the request — so nothing corrected it.
+  /// Clicking the end of a long document's outline while it was still filling
+  /// in landed a few thousand lines short and stayed there.
+  int _drawnNodeCount = 0;
   bool _batchScheduled = false;
 
   /// Times the progressive fill, so how long a document took can be asked.
@@ -440,6 +466,16 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     // near the end of a long document's outline landed somewhere else and
     // stayed there.
     if (_renderUpTo(line)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _scrollToTargetLine(line);
+      });
+      return;
+    }
+
+    // The tree can be a frame behind the counter — see [_drawnNodeCount]. Asked
+    // in that gap, [_renderUpTo] answers "already drawn" about blocks that are
+    // not on screen yet and whose headings therefore have no key.
+    if (_drawnNodeCount < _renderedNodeCount) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _scrollToTargetLine(line);
       });
@@ -902,6 +938,9 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
         searching ? draw() : _blockWidgets.putIfAbsent(node, draw);
 
     final widgets = <Widget>[];
+    // What this build is about to put on screen, for anything that needs to
+    // know whether the tree has caught up with [_renderedNodeCount].
+    _drawnNodeCount = _renderedNodeCount;
     _matchCounter = 0;
     // Rebuild heading key map fresh each frame so duplicate or unknown
     // line numbers can't share the same GlobalKey across siblings.

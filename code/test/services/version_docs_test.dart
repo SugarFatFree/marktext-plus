@@ -153,13 +153,22 @@ void main() {
     expect(fixed, isNotNull, reason: 'bugfix.md 里读不出编号，取法要跟着改');
 
     final plan = File('${dir.path}/manual-test.md').readAsStringSync();
-    final claimed = RegExp(r'<!--\s*人工测试已考虑到 BUG-(\d+)\s*-->')
-        .firstMatch(plan);
-    expect(claimed, isNotNull,
+    final markers =
+        RegExp(r'<!--\s*人工测试已考虑到 BUG-(\d+)\s*-->').allMatches(plan);
+    expect(markers, isNotEmpty,
         reason: '${dir.path}/manual-test.md 没有「已考虑到 BUG-N」的标记');
+    // One marker, moved — not a new one appended beside the old.
+    //
+    // Said out loud because `firstMatch` only implied it, and a second marker
+    // then made this test report the *stale* number: it was red, correctly,
+    // but for a reason that reads like the newest fix was never considered.
+    expect(markers.length, 1,
+        reason: '有 ${markers.length} 个标记。这是一个要被**移动**的标记，'
+            '不是每条修复追加一个——否则读到的是旧的那个');
+    final claimed = markers.first;
 
     expect(
-      int.parse(claimed!.group(1)!),
+      int.parse(claimed.group(1)!),
       fixed,
       reason: '人工测试计划考虑到的编号和 bugfix.md 的最新一条对不上——'
           '要么给新修复加一条步骤，要么想清楚它不需要，再把标记抬上去',
