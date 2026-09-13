@@ -102,7 +102,7 @@ flutter pub get && flutter run
 
 ### 给 AI Agent 用
 
-一个可选的 MCP 服务，**默认关闭**：它会在你的机器上开一个端口，能访问到它的东西就能读你的文档、操作你的编辑器，所以要你主动开启，并且带一个可以随时更换的令牌。
+一个可选的 MCP 服务，**默认关闭**：它会在你的机器上开一个端口，**能访问到它的东西就能读你的文档、操作你的编辑器、修改你的设置、安装插件，以及用 CI 的构建替换应用本体**。所以它默认关闭、要你主动开启，并且带一个可以随时更换的令牌。
 
 | 工具 | 说明 |
 |---------|-------------|
@@ -110,7 +110,11 @@ flutter pub get && flutter run
 | **`screenshot`** | 当前窗口的样子 |
 | **`record_gif`** | 最长五秒，用来看动画效果 |
 | **`get_state`** | 开了哪些标签、视图模式、装了哪些插件、窗格里有什么 |
-| **`control`** | 开关标签、切换视图模式、写入内容、关闭窗格 |
+| **`read_startup_trace`** | 启动每一步花了多久，包括 Dart 还没跑起来的那一段 |
+| **`control`** | 十二个动作：开关标签、保存、切换标签、写入内容、切换视图模式、关闭窗格、运行插件命令、打开插件面板、修改设置，**以及安装插件、用 CI 的构建替换应用本体** |
+
+这十二个动作，按 agent 实际发送的名字：
+`new_tab`, `close_tab`, `save_tab`, `activate_tab`, `set_view_mode`, `set_content`, `close_pane`, `run_plugin_command`, `open_panel`, `install_plugin`, `update_app`, `set_setting`
 
 ## ⚖️ 横向对比
 

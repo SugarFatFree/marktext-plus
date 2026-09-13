@@ -65,6 +65,7 @@
 | BUG-480 | 2026-09-13 | 纯预览模式下状态栏说「语法高亮已关闭」，而那个模式压根不建源码窗格 | P3 | 已修复 |
 | BUG-481 | 2026-09-13 | 编辑菜单里的「粘贴」丢掉 HTML 结构、也不压还原点——Ctrl+V 和它是两种粘贴 | P2 | 已修复 |
 | BUG-482 | 2026-09-14 | 连做两个命令（加粗、标题、缩进、移块……）一次 Ctrl+Z 全退——25 处写入把断步交给了打字防抖 | P2 | 已修复 |
+| BUG-483 | 2026-09-14 | 12 份 README 把自动化接口的能力说小了：5 个工具里列了 4 个，12 个动作里描述了 4 个——而漏掉的包括「装插件」和「替换应用本体」 | P1 | 已修复 |
 
 ---
 
@@ -4693,3 +4694,81 @@ set state(TabState value) {
 刚把 25 处写入改走一个入口，要确认**同一个命令里不会压两次**
 （那会让一个命令需要按两次撤销，是反向缺陷）。有四处方法/分支各含两个写入点
 （`link`、`image`、`_indentSelection`、`_insertBlock`），**全部是 if/else 互斥**。
+
+## BUG-483：读者据以决定「要不要开这个端口」的那张表，把能力说小了
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-483 |
+| 日期 | 2026-09-14 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+
+### 怎么发现的：问「我今天新增的成员过了哪些关卡」
+
+昨天和今天我给自动化接口加了 `save_tab`（FEAT-155）和 `set_setting`（FEAT-158）。
+两者都过了 schema（从枚举生成）、分类守卫、动作穷尽的 switch。
+于是问：**还有哪份清单在对外宣称这个接口能做什么？**
+
+`grep` 文档：README 有一张「给 AI Agent 用」的工具表。对账：
+
+| | 实际 | README |
+|---|---|---|
+| 工具 | **6 个** | 5 个（缺 `read_startup_trace`） |
+| `control` 的动作 | **12 个** | 描述了 4 个 |
+
+漏掉的 8 个动作里有：`run_plugin_command`、`set_setting`、`save_tab`、`activate_tab`、
+`open_panel`，以及——
+
+> **`install_plugin`（把网络上的代码装进编辑器会执行的位置）**
+> **`update_app`（用 CI 的构建替换应用本体）**
+
+### 为什么这不是一条普通的过期清单
+
+这张表**就是读者用来决定要不要打开那个端口的依据**。而它旁边那句安全说明写的是：
+
+> …lets whatever reaches it **read your documents and drive your editor**，
+> so it is opt-in and carries a token you can regenerate.
+
+「读文档、操作编辑器」——**没有提到它能装代码、能替换程序本体**。
+把能力说小，等于把读者要做的那个决定说小了。**这是低估，不是遗漏。**
+
+### 修复
+
+**一、安全那句改成完整的**（英文与中文）：
+
+> …whatever reaches that port can read your documents, drive your editor,
+> **change your settings, install a plugin and replace the application itself
+> with a build from CI**. Hence opt-in, and hence the token you can regenerate.
+
+**二、12 份 README 的表补上第 6 个工具**，`control` 那一行改成说出十二个动作，
+并把「装插件 / 替换应用本体」**加粗**。
+
+**三、表后加一行动作名清单**（12 个 snake_case 标识符）。
+这一行同时服务两个读者：人看上面的散文，**agent 作者和守卫看这行标识符**——
+而标识符不翻译，所以十二种语言可以被同一份清单约束。
+
+### 守卫
+
+`the_readmes_name_every_automation_tool_test`，三条：
+
+1. **取法自检**：从 `mcp_tools.dart` 读出的工具名超过 4 个且包含 `control`——
+   否则正则失效会让下面两条在空集合上通过；
+2. 每份 README 提到**每一个工具**；
+3. 每份 README 提到 `control` 的**每一个动作**（从 `McpAction.values` 来）。
+
+### 涉及文件
+
+- `README.md` 与 `docs/i18n/README_*.md`（共 12 份）
+- `code/test/services/the_readmes_name_every_automation_tool_test.dart`（新增 3 条）
+
+### 验证
+
+| 变异 | 结果 |
+|------|------|
+| 英文表里删掉 `read_startup_trace` | 红，点名 `README.md: [read_startup_trace]` |
+| 韩文版少一个 `update_app` | 红，点名 `README_ko-KR.md: [update_app]` |
+
+跨语言的那条既有守卫（`readme_counts_test` 的「feature tables list the same rows
+in every language」）**看不见这张表**——它只认行内带 emoji 的行，而这张表的行没有。
+所以这张表既没和代码对账、也没做跨语言检查，两个缺口现在都补上了。

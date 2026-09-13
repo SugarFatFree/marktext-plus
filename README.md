@@ -110,8 +110,10 @@ Start from the [plugin SDK](https://github.com/marktext-plus-plugins/marktext-pl
 ### For AI agents
 
 An optional MCP server, **off unless you turn it on**: it opens a port on your
-machine that lets whatever reaches it read your documents and drive your
-editor, so it is opt-in and carries a token you can regenerate.
+machine, and whatever reaches that port can read your documents, drive your
+editor, change your settings, install a plugin and replace the application
+itself with a build from CI. Hence opt-in, and hence the token you can
+regenerate.
 
 | Tool | Description |
 |---------|-------------|
@@ -119,7 +121,11 @@ editor, so it is opt-in and carries a token you can regenerate.
 | **`screenshot`** | The window as it looks right now |
 | **`record_gif`** | Up to five seconds, for looking at an animation |
 | **`get_state`** | What is open: tabs, view mode, installed plugins, the panes they filled |
-| **`control`** | Open and close tabs, change the view mode, write content, close a pane |
+| **`read_startup_trace`** | The time each step of starting up took, including the part before Dart runs |
+| **`control`** | Twelve actions: open, close, save and switch tabs, write content, change the view mode, close a pane, run a plugin command, open a plugin's panel, change a setting — **and install a plugin or replace the application with a build from CI** |
+
+The twelve actions, by the names an agent sends:
+`new_tab`, `close_tab`, `save_tab`, `activate_tab`, `set_view_mode`, `set_content`, `close_pane`, `run_plugin_command`, `open_panel`, `install_plugin`, `update_app`, `set_setting`
 
 ## ⚖️ How it compares
 
