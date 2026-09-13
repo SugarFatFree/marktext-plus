@@ -9,6 +9,7 @@ import '../core/constants.dart';
 import '../models/plugin_catalog_entry.dart';
 import 'plugin_manager.dart';
 import 'plugin_manifest.dart';
+import 'app_log.dart';
 
 // Re-exported so every caller keeps importing the catalogue from the service
 // that fetches it. Moving the type was about layering, not about churn.
@@ -448,6 +449,29 @@ class PluginCatalogService {
     }
   }
 
+  /// What the log says after a plugin arrives.
+  ///
+  /// Installing one takes code off the network and puts it where the editor
+  /// will run it, and it left no trace at all — while the same log carries a
+  /// line for opening a document and two for drawing a preview. When a plugin
+  /// updated in the background is what changed the editor's behaviour, nothing
+  /// tied the two together. Found by updating a plugin on a real machine over
+  /// the automation socket and then reading the log, which had nothing in it.
+  ///
+  /// Written in [install], where all three ways in go — the detail page's
+  /// button, the panel's button, and the socket — so a fourth cannot forget.
+  ///
+  /// A name of its own for the same reason [refuseInsecureDownload] has one:
+  /// the download talks to the network and cannot be tested, and the sentence
+  /// can. Which version arrived is the question anybody reads this line to
+  /// answer, and whether it was a pre-release matters in a project whose rule
+  /// is that plugins stay pre-release.
+  @visibleForTesting
+  static String installedLine(PluginCatalogEntry entry, int bytes) =>
+      'installed ${entry.id} ${entry.version}'
+      '${entry.isPrerelease ? ' (pre-release)' : ''} — '
+      '${(bytes / 1024).toStringAsFixed(0)} KB, digest verified';
+
   /// Whether [bytes] are what the catalog said they would be.
   ///
   /// Compared exactly, not case-insensitively. Hexadecimal digests are
@@ -493,6 +517,19 @@ class PluginCatalogService {
       }
       await temporary.writeAsBytes(bytes, flush: true);
       final manifest = await manager.installZip(temporary);
+      // Said out loud, here rather than at each of the three ways in — the two
+      // Install buttons and the automation socket. Installing a plugin takes
+      // code off the network and puts it where the editor will run it, and it
+      // left no trace at all: a plugin updated in the background and the
+      // editor behaving differently afterwards had nothing tying the two
+      // together. Opening a document says more than this did.
+      //
+      // The version that was there is part of it, because "what changed" is
+      // the question anybody reads this line to answer.
+      AppLog.instance.info(
+        installedLine(entry, bytes.length),
+        source: 'plugin',
+      );
       // Which release this was is not in the plugin — it is a property of the
       // release — so it is written down here, at the one moment it is known.
       await manager.recordSource(

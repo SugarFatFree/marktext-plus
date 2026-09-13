@@ -53,6 +53,7 @@
 | BUG-468 | 2026-09-13 | 又 10 处文档注释挂在错的成员头上，其中 3 处是我修 BUG-462 时新造的 | P2 | 已修复 |
 | BUG-469 | 2026-09-13 | 别的程序删掉打开着的文件时一声不响，关掉标签页就两头都没了 | P1 | 已修复 |
 | BUG-470 | 2026-09-13 | 纯预览模式下勾选复选框后 Ctrl+Z 毫无反应；分屏下一次退回好几步 | P1 | 已修复 |
+| BUG-471 | 2026-09-13 | 安装或更新插件不留任何记录，而打开一份文档都会记 | P2 | 已修复 |
 
 ---
 
@@ -3673,3 +3674,78 @@ there is not, and the caller has to write the result to the tab instead.**」，
 **还有一件我自己做错的事**：第一版测试里，我把修复**写在了测试的辅助函数里**
 （辅助函数自己调 `pushHistory`），于是**修复之前它就是绿的**——那测的是我的辅助函数，
 不是应用。改成调用应用真正的那两个方法、且顺序与应用一致之后，变异才咬得住。
+
+---
+
+## BUG-471：安装或更新插件不留任何记录
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-471 |
+| 日期 | 2026-09-13 |
+| 优先级 | P2 |
+| 状态 | 已修复 |
+
+### 怎么发现的：用它，而不是读它
+
+用户装好客户端后，我第一次通过 MCP 连上真机做验证。把插件从 0.1.4 更新到 0.1.5：
+
+```
+installed com.marktextplus.ai-translate v0.1.5 (was 0.1.4) from https://github.com/...
+```
+
+紧接着 `read_logs`——**一行都没有**。而同一份日志里有：
+
+```
+[open]    opened ….md — 16 KB, UTF-8, 8673 characters, read and decoded in 37 ms
+[preview] preview drew 112 blocks in 384 ms (200 MB resident)
+```
+
+**打开一份文档比这记得多。** 而安装插件是「把网络上的代码放到编辑器会去执行的位置」，
+一旦某次后台更新改变了编辑器的行为，日志里没有任何东西把两件事连起来。
+
+（应用**自身**的更新是记的：`the installer that ran before this launch said: …`。
+插件这条没跟上——同一条规则，另一半没人写。）
+
+### 修复
+
+写在 `PluginCatalogService.install` 里——**三个入口都经过它**（详情页的按钮、
+面板的按钮、自动化接口），第四个入口也就漏不掉。
+
+```
+[plugin] installed com.marktextplus.ai-translate v0.1.5 — 42 KB, digest verified
+```
+
+版本必写（「到底装了哪个」是任何人看这行的唯一理由），预发布必标（本项目的规矩是
+**插件一律预发布**，所以「来的是哪一种」值得一个词）。
+
+### 测试只测得了一半，另一半如实说明
+
+`install` 会建 HTTPS 客户端并访问网络。这个文件自己的注释早就写着：
+
+> A name of its own because **the download itself cannot be tested**: it builds
+> a client and talks to the network. **The rule can be.**
+
+我先写了一版测试，用本地 HTTP 服务器发一个真 zip——**被 `refuseInsecureDownload`
+当场拒绝**（它连回环地址的明文 HTTP 也不放行）。我在测试注释里写的「回环应当被允许」
+是错的，写测试而不是信自己的假设，正好把这个错抓住了。
+
+**我没有为了一行日志去削弱那条安全边界。** 照这个文件自己的办法：把**能测的那部分
+取个名字**（`installedLine(entry, bytes)`），调用留在 `install` 里。
+所以测试覆盖的是「这句话说了什么」，而「它确实被写出来了」这一半——
+**在发现这个缺陷的那台真机上验证**（见下）。
+
+### 涉及文件
+
+- `code/lib/services/plugin_catalog_service.dart`
+- `code/test/services/an_install_says_what_arrived_test.dart`（新增 2 条）
+
+### 验证
+
+| 变异 | 结果 |
+|------|------|
+| 不说版本 | 红 |
+| 预发布不标注 | 红 |
+
+真机那一半：更新到含本改动的构建后，再跑一次 `install_plugin` 并 `read_logs`，
+应当看到那一行。
