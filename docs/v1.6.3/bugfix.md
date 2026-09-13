@@ -4647,3 +4647,49 @@ void _writeAsOneStep(TextEditingValue next) {
 改成要求 `cut` 分支走 `_writeAsOneStep(`，而「入口先记录后写入」这条归
 `every_controller_write_is_classified_test` 管。**同一条承诺不要在两个守卫里各写一份**——
 那正是这个文件存在的理由。
+
+## 无编号：「State 里建的可释放对象都释放了吗」——扫过，干净
+
+2026-09-14。这条不变量 Flutter 的分析器不查，而它直接关系到「占用低」。
+写了个扫描器：找所有 `State` / `StateNotifier` / `ChangeNotifier` 的子类，
+取它们持有的 `TextEditingController`、`ScrollController`、`FocusNode`、
+`AnimationController`、`TransformationController`、`StreamSubscription`、`Timer`、
+`OverlayEntry`、`TapGestureRecognizer`、`ValueNotifier`、`PageController` 字段，
+再看 `dispose` 里有没有对应的 `dispose/cancel/close/remove`。
+
+**5 个候选，全部是误报或早已处理**：
+
+| 候选 | 实情 |
+|------|------|
+| `_SourceEditorState` 的 `_debounce`、`_editorScrollController` | 都在 `dispose` 里释放了——我的扫描器在这个大文件上花括号配平失败 |
+| `EditorNotifier` 的 `_controller`、`_editorScrollController` | **引用的是别人拥有的对象**（源码窗格建的），这个类不该释放它们 |
+| `FileNotifier` 的 `_watcherSubscription` | 方法里和 provider 的 onDispose 里各有一处 cancel |
+
+### 顺带核了一件更值得记的事：按标签页保存的状态谁来清
+
+`EditorNotifier` 没有 `dispose`，而它按标签页持有撤销栈、重做栈、两个窗格的滚动位置。
+关标签页时谁清？答案在 `TabNotifier` **对 `state` setter 的覆写**里：
+
+```dart
+set state(TabState value) {
+  final gone = state.tabs.map((t) => t.id).toSet()
+    ..removeAll(value.tabs.map((t) => t.id));
+  super.state = value;
+  for (final id in gone) _releaseTab(id);   // 撤销历史 + 自动保存定时器
+  _syncDiskWatch();
+}
+```
+
+**所有让标签页消失的路径都被构造性地覆盖**——五条（`removeTab`、`failTabLoading`、
+`updateTabPath`、`closeOtherTabs`、`closeAllTabs`）都只是给 `state` 赋值。
+注释还记着当年怎么坏的：「removeTab 两件事都手做了，而三种批量关闭一件都没做」。
+
+> 这是「一条规则散在 N 处」的**最好那种解法**：不是去 N 处各调一次，
+> 而是**找到那条所有路径都必经的窄口**（这里是 state 赋值），把规则放在窄口上。
+> 比守卫更强——守卫防漏，窄口让漏不可能。
+
+### 顺带自查了 BUG-482 的改动
+
+刚把 25 处写入改走一个入口，要确认**同一个命令里不会压两次**
+（那会让一个命令需要按两次撤销，是反向缺陷）。有四处方法/分支各含两个写入点
+（`link`、`image`、`_indentSelection`、`_insertBlock`），**全部是 if/else 互斥**。
