@@ -4426,3 +4426,49 @@ final width = constraints.maxWidth - taken;   // 阶梯用这个宽度
 | 变异 | 结果 |
 |------|------|
 | 去掉按模式限定（即缺陷原状） | 红，「纯预览模式下没有建源码窗格，没有高亮可失去」 |
+
+## 无编号：设置页的宽度守卫从没打开过其中两页，而它的失败信息读不出来
+
+2026-09-13。上一轮（BUG-479）学到的是「**守卫搭在读者只会路过的状态上**」。
+横向再用一次这把尺子，落在设置页的宽度守卫
+（`settings_fields_test` 的 "the page fits the window it is given"）。
+
+### 它走了 5 个分类，而设置页有 7 个
+
+```
+_catTile(_Category.general | editor | markdown | theme | keybindings | ai | mcp)
+                                                          ↑ 从没打开过  ↑ 从没打开过
+```
+
+手写的清单是 `['Editor', 'Markdown', 'Theme', 'Keybindings']`——
+General 恰好是打开时就显示的那一类，所以被覆盖了；**AI 与 MCP 两页在任何宽度下都没被打开过**。
+一页从没被溢出检查访问过，就是一页没有溢出检查。
+
+**结论是好的**：把七页都走一遍之后，四个宽度（1200/1000/800/600）**都不溢出**。
+这次没有产品缺陷。但守卫现在真的覆盖了它声称覆盖的东西，并且
+**分类数量从 `settings_screen.dart` 的源码里数出来**（`_catTile(_Category.` 的调用点），
+所以加第八类会让这条测试红，而不是悄悄地不被测。
+
+### 它的失败信息读不出来，这才是这一节存在的原因
+
+原结构是「装上 `FlutterError.onError` 接管 → 一路 `expect` → 靠 `addTearDown` 恢复」。
+一旦某个 expect 真的失败，框架报的是：
+
+> A test overrode FlutterError.onError but either failed to return it to its
+> original state... Typically, this is caused by **using expect() before
+> restoring FlutterError.onError**.
+
+紧接着 flutter_tools 的 reporter 死锁（`Bad state: Cannot close sink while adding stream`），
+于是 `flutter test` **看起来是卡死的**——我为此在「哪一页会挂」上白花了三次隔离。
+
+改成框架要的顺序：**收集 → 恢复 → 再断言**。缺失的分类先收进一个列表而不是就地 expect。
+于是失败信息变成了「设置页画了 7 个分类入口，这里只走了 6 个」和
+「找不到这些分类入口：[Automation]」——**一眼就知道下一步做什么**。
+
+`narrow_window_test` 是同样的结构，**没有动它**：上一轮它的溢出信息如实打印出来了
+（「A RenderFlex overflowed by 49 pixels」），它在实际触发时是可读的。
+为对称而改一份能正常工作的守卫，是这个仓库不需要的改动。
+
+### 涉及文件
+
+- `code/test/ui/screens/settings_fields_test.dart`（只改测试；产品代码一个字节都没动）

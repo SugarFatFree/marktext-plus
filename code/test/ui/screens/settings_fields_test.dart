@@ -137,23 +137,61 @@ void main() {
         await tester.binding.setSurfaceSize(Size(width, 800));
         addTearDown(() => tester.binding.setSurfaceSize(null));
 
+        // Every category, not the four that were named here by hand. General
+        // happens to be the one that opens, so it was covered; **AI was never
+        // opened at any width**, and a page the overflow check never visits is a
+        // page with no overflow check.
+        //
+        // English labels, the way the rest of this file names things: asking the
+        // delegate for them means awaiting a real future inside the fake clock
+        // `testWidgets` runs under, and that never returns.
+        const pages = [
+          'General',
+          'Editor',
+          'Markdown',
+          'Theme',
+          'Keybindings',
+          'AI models',
+          'MCP',
+        ];
+
+        // Counted before the override goes on: everything below has to run
+        // without an `expect`, because the binding treats a failed expectation
+        // while `FlutterError.onError` is replaced as "a test broke the error
+        // machinery" and reports that instead of what happened. This test hid a
+        // real overflow behind that message for as long as it took to work out.
+        final declared = RegExp(r'_catTile\(_Category\.')
+            .allMatches(
+              File('lib/ui/screens/settings_screen.dart').readAsStringSync(),
+            )
+            .length;
+
         final caught = <String>[];
+        final missing = <String>[];
         final previous = FlutterError.onError;
         FlutterError.onError = (details) =>
             caught.add(details.exceptionAsString().split('\n').first);
-        addTearDown(() => FlutterError.onError = previous);
 
         await pumpAt(tester);
 
-        for (final page in ['Editor', 'Markdown', 'Theme', 'Keybindings']) {
+        for (final page in pages) {
           final tile = find.text(page);
-          expect(tile, findsWidgets, reason: '找不到 $page 分类入口');
+          if (tile.evaluate().isEmpty) {
+            missing.add(page);
+            continue;
+          }
           await tester.tap(tile.first);
           await tester.pump();
         }
 
-        expect(caught, isEmpty, reason: caught.join(' | '));
+        FlutterError.onError = previous;
         tester.takeException();
+
+        expect(missing, isEmpty, reason: '找不到这些分类入口：$missing');
+        expect(declared, pages.length,
+            reason: '设置页画了 $declared 个分类入口，这里只走了 ${pages.length} 个——'
+                '新增了一类就把它加进来，不然它一个宽度都没测过');
+        expect(caught, isEmpty, reason: caught.join(' | '));
       });
     }
   });
