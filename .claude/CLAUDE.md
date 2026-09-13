@@ -81,7 +81,7 @@ marktext-plus/
 - **ARB 键命名**: camelCase，带区域前缀（如 `settingsGeneral`, `menuFile`, `editUndo`）
 
 ### 主题系统
-- **Token 化设计**: `AppThemeTokens` 包含 14 个颜色 token
+- **Token 化设计**: `AppThemeTokens` 有 16 个字段（15 个颜色 + `brightness`）
 - **8 个内置主题**: Red Graphite, Shibuya, Pink Blossom, Sky Blue, Dark Graphite, Dieci OLED, Nord, Midnight
 - **自动明暗模式**: 主题自动判断明暗，无需独立开关
 
@@ -140,7 +140,10 @@ marktext-plus/
 - **支持图表类型（22 种，全部接入渲染器）**: Flowchart, Sequence, Class, State, ER, Journey,
   GitGraph, Mindmap, Pie, Gantt, Timeline, Kanban, Radar, Quadrant, Requirement, Sankey,
   Block, C4, Treemap, Architecture, Packet, XY Chart
-  （核实办法：`grep 'case DiagramType\.' lib/ui/editor/mermaid/parser/mermaid_parser.dart`）
+  （**不要用 grep 数它**——`grep -c 'case DiagramType\.'` 数出 46，因为同一个类型
+  出现在好几个 switch 里。正确的数法是 `DiagramType.values` 去掉 `unknown`，
+  而这件事已经有人在做：`readme_counts_test`「every README counts the diagram
+  types the parser has」，它同时把 12 份 README 里的数字对上）
 - **布局引擎**: Dagre + Sugiyama 分层布局
 - **交互功能**: 复制源码按钮
 
@@ -292,7 +295,7 @@ flutter clean
    | 设置里可重绑的 56 个快捷键 | 处理器接的 14 个 | **11 个键画在菜单上、按下去没反应** |
    | 命令面板自称"所有命令" | 手写的 9 条 | zoom/打印/导出等 16 条搜不到 |
    | README 的「直接依赖数」 | `pubspec.yaml` | 19 处，两个说法，都不对 |
-   | SDK 文档的界面上限 | `PluginUiLimits` | 今天一致，明天没人管 |
+   | SDK 文档的界面上限 | `PluginUiLimits` | 当时一致而无人对账——现在有了（`sdk_schema_agrees_test`，含阿拉伯数字） |
    | `get_state` 报的插件命令 | handler 查的另一个字段 | **报出四个命令，一个都不接受** |
 
    **修法不是把差额逐条补上**——那样下次还漏。**把两份合成一份，让编译器或
