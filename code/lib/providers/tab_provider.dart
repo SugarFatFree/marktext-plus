@@ -515,7 +515,14 @@ class TabNotifier extends StateNotifier<TabState> {
   /// editing report their new text differently — preview-only mode through the
   /// tab, the split through its own `onChanged`, which is also the path typing
   /// takes — and this is the one thing they both need and neither did.
-  void recordPreviewEdit(String id, String next) {
+  ///
+  /// Named for what it is rather than for where it was first needed, because
+  /// the preview is not the only writer that is not the source editor's own
+  /// controller: an agent writing over the automation interface is another, and
+  /// it had the same hole. `external` is the word [updateContent] already uses
+  /// for a write that did not come from someone typing, and those are exactly
+  /// the writes nobody else has recorded a restore point for.
+  void recordExternalEdit(String id, String next) {
     final tab = state.tabs.where((t) => t.id == id).firstOrNull;
     if (tab == null || tab.content == next) return;
     final editor = _ref.read(editorProvider.notifier);

@@ -1176,7 +1176,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
               onSourceChanged: (edited) {
                 ref
                     .read(tabProvider.notifier)
-                    .recordPreviewEdit(activeTab.id, edited);
+                    .recordExternalEdit(activeTab.id, edited);
                 onContentChanged(edited);
               },
             ),

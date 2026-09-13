@@ -54,7 +54,7 @@ void main() {
   /// and passed before anything was fixed, which is a test of its own helper.
   void tickACheckbox(String id, String now) {
     final tabs = container.read(tabProvider.notifier);
-    tabs.recordPreviewEdit(id, now);
+    tabs.recordExternalEdit(id, now);
     tabs.updateContent(id, now);
   }
 
@@ -106,7 +106,7 @@ void main() {
     container.read(tabProvider.notifier).addTab(
           TabInfo(id: 'note', fileName: 'note.md', content: before),
         );
-    container.read(tabProvider.notifier).recordPreviewEdit('note', before);
+    container.read(tabProvider.notifier).recordExternalEdit('note', before);
     expect(container.read(editorProvider).canUndo, isFalse,
         reason: '什么都没改却留下一个撤销点，读者要按两次才退一步');
   });

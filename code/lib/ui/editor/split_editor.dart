@@ -109,7 +109,7 @@ class _SplitEditorState extends ConsumerState<SplitEditor> {
     // The restore point first, while the tab still holds what came before.
     // `onChanged` cannot do this for us: it is also the path typing takes, and
     // the source pane has a history of its own for that.
-    ref.read(tabProvider.notifier).recordPreviewEdit(widget.tabId, newContent);
+    ref.read(tabProvider.notifier).recordExternalEdit(widget.tabId, newContent);
     setState(() {
       _content = newContent;
       _renderedContent = newContent;

@@ -323,6 +323,13 @@ class McpController extends StateNotifier<McpStatus> {
         final content = text('content');
         if (id == null) return mcpRefused('no tab to write to');
         if (content == null) return mcpRefused('no content given');
+        // A restore point first, for the reason a plugin's rewrite gets one and
+        // an edit in the preview gets one: the reader did not type this, and
+        // Ctrl+Z is how they take back something they did not do. Every other
+        // writer of a document in this application records one; this was the
+        // one that did not, so an agent's rewrite either could not be undone at
+        // all or stepped back past it to whatever the reader last typed.
+        _ref.read(tabProvider.notifier).recordExternalEdit(id, content);
         return _ref
                 .read(tabProvider.notifier)
                 .updateContent(id, content, external: true)
