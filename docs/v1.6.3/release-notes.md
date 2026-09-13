@@ -536,6 +536,19 @@ your system does not have falls back rather than drawing boxes. The editing
 pane's row is unchanged, and says "editor" in every language now rather than
 "body text" in three of them.
 
+### Two commands in a row are two presses of undo
+
+The editor closes an undo step 300 ms after a pause in typing, and a command —
+bold, a heading, an indent, duplicating a line, moving a block — left the
+boundary to that. So two commands quicker than the pause arrived as one entry
+holding only the last state: a single Ctrl+Z took back both, along with anything
+typed in the same window. Twenty-five writes were like that; two were not, which
+is where the fix came from.
+
+Typing is unchanged on purpose. Auto-pairing a bracket, closing a list on Enter,
+deleting the other half of a pair — those are keystrokes, and giving each its own
+step would make undo character-by-character.
+
 ### The Edit menu's Paste keeps what the keyboard's Paste keeps
 
 Ctrl+V reads both flavours of the clipboard and replaces what landed with the
@@ -1034,6 +1047,16 @@ HTML 与 PDF 早就改成「写临时文件再换过去」了。Word 的写盘�
 列表、表格、引用都跟着它走，**代码仍用代码字体**——这正是分成两个设置的意义。
 填了系统里没有的字体会回落，不会画成方框。编辑窗格那一行没有变化，
 只是十二种语言现在一致地说「编辑器字体」，而不是其中三种说「正文字体」。
+
+### 连做两个命令，就是按两次撤销
+
+编辑器在停下打字 300 毫秒后才关上一个撤销步，而命令——加粗、标题、缩进、复制行、移动块
+——把断步交给了它。于是比这更快的两个命令只会进栈一条、而且是最后那个状态：
+**一次 Ctrl+Z 把两个命令连同同一窗口里打的字一起退掉**。这样的写入有 25 处；
+另有 2 处不是这样，修法就是从那 2 处来的。
+
+**打字有意保持不变**：自动配对括号、回车续列表、删掉配对的另一半——那些是按键，
+每个按键一个撤销步会让撤销变成逐字。
 
 ### 编辑菜单的「粘贴」现在和键盘的粘贴一样
 

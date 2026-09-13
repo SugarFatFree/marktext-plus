@@ -1282,11 +1282,11 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     final text = _controller.text;
     if (_slashOffset >= 0 && _slashOffset < text.length &&
         text[_slashOffset] == '/') {
-      _controller.value = TextEditingValue(
+      _writeAsOneStep(TextEditingValue(
         text: text.substring(0, _slashOffset) +
             text.substring(_slashOffset + 1),
         selection: TextSelection.collapsed(offset: _slashOffset),
-      );
+      ));
     }
     _slashOffset = -1;
 
@@ -1407,10 +1407,10 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     if (lineEnd < 0) lineEnd = updated.length;
     _languageSettled = updated.substring(lineStart, lineEnd);
 
-    _controller.value = TextEditingValue(
+    _writeAsOneStep(TextEditingValue(
       text: updated,
       selection: TextSelection.collapsed(offset: start + language.length),
-    );
+    ));
     _languageStart = -1;
   }
 
@@ -1458,14 +1458,14 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
         (html == null ? null : HtmlToMarkdown.convert(html));
     if (replacement == null) return;
 
-    _controller.value = TextEditingValue(
+    _writeAsOneStep(TextEditingValue(
       text: text.substring(0, range.start) +
           replacement +
           text.substring(range.end),
       selection: TextSelection.collapsed(
         offset: range.start + replacement.length,
       ),
-    );
+    ));
   }
 
   /// Pastes the clipboard the way Ctrl+V does.
@@ -1499,11 +1499,37 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     final insert =
         link ?? (html == null ? null : HtmlToMarkdown.convert(html)) ?? plain;
 
-    ref.read(editorProvider.notifier).pushHistory(text);
-    _controller.value = TextEditingValue(
+    _writeAsOneStep(TextEditingValue(
       text: text.substring(0, start) + insert + text.substring(end),
       selection: TextSelection.collapsed(offset: start + insert.length),
-    );
+    ));
+  }
+
+  /// Writes [next], with what is on screen now recorded so that this edit is
+  /// one press of Ctrl+Z.
+  ///
+  /// Every command-like edit in this widget goes through here: the format
+  /// actions, the block moves, the table edits, the indents, the inserts, cut
+  /// and paste. Twenty-five of them wrote the controller directly and left the
+  /// step boundary to the typing debounce, which closes 300 ms after a pause —
+  /// so two commands quicker than that arrived as one entry holding only the
+  /// last state, and one undo took back both. Two of the twenty-five pushed
+  /// their own snapshot, which is where this came from.
+  ///
+  /// What does *not* come through here, and must not: the writes that happen
+  /// while somebody is typing. Auto-pairing a bracket, closing a list on Enter,
+  /// deleting the other half of a pair with Backspace, skipping over a quote
+  /// already there — those are keystrokes, and giving each one its own step
+  /// would make undo character-by-character. The debounce and the
+  /// end-of-word rule own those, deliberately. `didUpdateWidget` is also not
+  /// one: text arriving from outside the pane is the tab's history to record,
+  /// and [TabNotifier.recordExternalEdit] does.
+  ///
+  /// `pushHistory` drops a snapshot equal to the top of the stack, so a command
+  /// that changes nothing adds nothing.
+  void _writeAsOneStep(TextEditingValue next) {
+    ref.read(editorProvider.notifier).pushHistory(_controller.text);
+    _controller.value = next;
   }
 
   /// Whether an input method is in the middle of composing a word.
@@ -2222,11 +2248,11 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     }
 
     const block = '---\ntitle: \n---\n\n';
-    _controller.value = TextEditingValue(
+    _writeAsOneStep(TextEditingValue(
       text: block + text,
       // Just after "title: ", ready to type.
       selection: const TextSelection.collapsed(offset: 11),
-    );
+    ));
   }
 
   void _applyFormat(FormatAction action) {
@@ -2297,17 +2323,17 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
         if (selection.isCollapsed) {
           final offset = selection.baseOffset;
           const insert = '[text](url)';
-          _controller.value = TextEditingValue(
+          _writeAsOneStep(TextEditingValue(
             text: text.substring(0, offset) + insert + text.substring(offset),
             selection: TextSelection(
               baseOffset: offset + 1,
               extentOffset: offset + 5,
             ),
-          );
+          ));
         } else {
           final selected = text.substring(selection.start, selection.end);
           final replacement = '[$selected](url)';
-          _controller.value = TextEditingValue(
+          _writeAsOneStep(TextEditingValue(
             text:
                 text.substring(0, selection.start) +
                 replacement +
@@ -2316,23 +2342,23 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
               baseOffset: selection.start + selected.length + 3,
               extentOffset: selection.start + selected.length + 6,
             ),
-          );
+          ));
         }
       case FormatAction.image:
         if (selection.isCollapsed) {
           final offset = selection.baseOffset;
           const insert = '![alt](url)';
-          _controller.value = TextEditingValue(
+          _writeAsOneStep(TextEditingValue(
             text: text.substring(0, offset) + insert + text.substring(offset),
             selection: TextSelection(
               baseOffset: offset + 2,
               extentOffset: offset + 5,
             ),
-          );
+          ));
         } else {
           final selected = text.substring(selection.start, selection.end);
           final replacement = '![$selected](url)';
-          _controller.value = TextEditingValue(
+          _writeAsOneStep(TextEditingValue(
             text:
                 text.substring(0, selection.start) +
                 replacement +
@@ -2341,7 +2367,7 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
               baseOffset: selection.start + selected.length + 4,
               extentOffset: selection.start + selected.length + 7,
             ),
-          );
+          ));
         }
       case FormatAction.horizontalRule:
         _insertAtCursor('\n---\n');
@@ -2392,7 +2418,7 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
                 RegExp(r'^ {0,3}#{1,6}(?:[ \t]+|$)', multiLine: true),
                 '',
               );
-          _controller.value = TextEditingValue(
+          _writeAsOneStep(TextEditingValue(
             text:
                 text.substring(0, selection.start) +
                 cleaned +
@@ -2401,7 +2427,7 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
               baseOffset: selection.start,
               extentOffset: selection.start + cleaned.length,
             ),
-          );
+          ));
         }
       case FormatAction.copyAsMarkdown:
         if (!selection.isCollapsed) {
@@ -2446,14 +2472,11 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
             ),
           ),
         );
-        // A restore point: a cut is a bulk edit, and one press of Ctrl+Z has to
-        // bring it back rather than whatever the debounce last happened to save.
-        ref.read(editorProvider.notifier).pushHistory(text);
-        _controller.value = TextEditingValue(
+        _writeAsOneStep(TextEditingValue(
           text: text.substring(0, selection.start) +
               text.substring(selection.end),
           selection: TextSelection.collapsed(offset: selection.start),
-        );
+        ));
       case FormatAction.paste:
         // Deliberately not awaited: the clipboard is read asynchronously and
         // this switch is called from a listener that cannot wait.
@@ -2470,13 +2493,13 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
         int lineEnd = text.indexOf('\n', offset);
         lineEnd = lineEnd == -1 ? text.length : lineEnd;
         final currentLine = text.substring(lineStart, lineEnd);
-        _controller.value = TextEditingValue(
+        _writeAsOneStep(TextEditingValue(
           text:
               '${text.substring(0, lineEnd)}\n$currentLine${text.substring(lineEnd)}',
           selection: TextSelection.collapsed(
             offset: lineEnd + 1 + currentLine.length,
           ),
-        );
+        ));
     }
 
     setState(() {});
@@ -2490,12 +2513,12 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
 
     final result = SourceEditor.toggleWrap(text, start, end, before, after);
 
-    _controller.value = TextEditingValue(
+    _writeAsOneStep(TextEditingValue(
       text: result.text,
       selection: result.start == result.end
           ? TextSelection.collapsed(offset: result.start)
           : TextSelection(baseOffset: result.start, extentOffset: result.end),
-    );
+    ));
   }
 
   /// Sets the current line's heading level, or clears it when [level] is null.
@@ -2517,7 +2540,7 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     final replacement = SourceEditor.applyHeadingLevel(line, level);
     final delta = replacement.length - line.length;
 
-    _controller.value = TextEditingValue(
+    _writeAsOneStep(TextEditingValue(
       text:
           text.substring(0, lineStart) + replacement + text.substring(lineEnd),
       selection: TextSelection.collapsed(
@@ -2526,7 +2549,7 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
           lineStart + replacement.length,
         ),
       ),
-    );
+    ));
   }
 
   /// Current line's heading level, or 0 when it is not a heading.
@@ -2573,10 +2596,10 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
 
     if (selection.isCollapsed) {
       final offset = selection.baseOffset;
-      _controller.value = TextEditingValue(
+      _writeAsOneStep(TextEditingValue(
         text: text.substring(0, offset) + indent + text.substring(offset),
         selection: TextSelection.collapsed(offset: offset + indent.length),
-      );
+      ));
       return;
     }
 
@@ -2584,13 +2607,13 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     final lines = text.substring(start, end).split('\n');
     final replacement = lines.map((line) => '$indent$line').join('\n');
 
-    _controller.value = TextEditingValue(
+    _writeAsOneStep(TextEditingValue(
       text: text.substring(0, start) + replacement + text.substring(end),
       selection: TextSelection(
         baseOffset: start,
         extentOffset: start + replacement.length,
       ),
-    );
+    ));
   }
 
   /// Removes up to [width] columns of indentation from the affected lines.
@@ -2611,13 +2634,13 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
         })
         .join('\n');
 
-    _controller.value = TextEditingValue(
+    _writeAsOneStep(TextEditingValue(
       text: text.substring(0, start) + replacement + text.substring(end),
       selection: TextSelection(
         baseOffset: start,
         extentOffset: start + replacement.length,
       ),
-    );
+    ));
   }
 
   /// Start and end offsets of the whole lines the selection touches.
@@ -2652,14 +2675,13 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
       up: up,
     );
     if (result == null) return;
-    ref.read(editorProvider.notifier).pushHistory(text);
-    _controller.value = TextEditingValue(
+    _writeAsOneStep(TextEditingValue(
       text: result.text,
       selection: TextSelection(
         baseOffset: result.base,
         extentOffset: result.extent,
       ),
-    );
+    ));
   }
 
   /// Rewrites the table under the caret.
@@ -2675,13 +2697,10 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     final result = TableEditService.apply(text, offset.clamp(0, text.length),
         edit);
     if (result == null) return;
-    // A snapshot first: the whole table is reformatted, so a single undo has
-    // to take the reader back to what they had.
-    ref.read(editorProvider.notifier).pushHistory(text);
-    _controller.value = TextEditingValue(
+    _writeAsOneStep(TextEditingValue(
       text: result.text,
       selection: TextSelection.collapsed(offset: result.offset),
-    );
+    ));
   }
 
   /// Runs a block-level edit that reports where the caret should land.
@@ -2698,12 +2717,12 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     for (var i = 0; i < targetLine && i < lines.length; i++) {
       offset += lines[i].length + 1;
     }
-    _controller.value = TextEditingValue(
+    _writeAsOneStep(TextEditingValue(
       text: updated,
       selection: TextSelection.collapsed(
         offset: offset.clamp(0, updated.length),
       ),
-    );
+    ));
   }
 
   /// Applies [SourceEditor.toggleLooseList] to the document at the caret.
@@ -2739,12 +2758,12 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
       offset += newLines[i].length + 1;
     }
 
-    _controller.value = TextEditingValue(
+    _writeAsOneStep(TextEditingValue(
       text: updated,
       selection: TextSelection.collapsed(
         offset: (offset + column).clamp(0, updated.length),
       ),
-    );
+    ));
   }
 
   /// Adds or removes [prefix] on every line the selection touches.
@@ -2792,7 +2811,7 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     final replacement = replaced;
     final delta = replacement.length - (blockEnd - blockStart);
 
-    _controller.value = TextEditingValue(
+    _writeAsOneStep(TextEditingValue(
       text: text.substring(0, blockStart) +
           replacement +
           text.substring(blockEnd),
@@ -2810,7 +2829,7 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
               baseOffset: blockStart,
               extentOffset: blockStart + replacement.length,
             ),
-    );
+    ));
   }
 
   void _insertBlock(String before, String after) {
@@ -2820,14 +2839,14 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     if (selection.isCollapsed) {
       final offset = selection.baseOffset;
       final insert = '$before$after';
-      _controller.value = TextEditingValue(
+      _writeAsOneStep(TextEditingValue(
         text: text.substring(0, offset) + insert + text.substring(offset),
         selection: TextSelection.collapsed(offset: offset + before.length),
-      );
+      ));
     } else {
       final selected = text.substring(selection.start, selection.end);
       final replacement = '$before$selected$after';
-      _controller.value = TextEditingValue(
+      _writeAsOneStep(TextEditingValue(
         text:
             text.substring(0, selection.start) +
             replacement +
@@ -2836,7 +2855,7 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
           baseOffset: selection.start + before.length,
           extentOffset: selection.start + before.length + selected.length,
         ),
-      );
+      ));
     }
   }
 
@@ -2845,10 +2864,10 @@ class _SourceEditorState extends ConsumerState<SourceEditor> {
     final text = _controller.text;
     final offset = selection.baseOffset.clamp(0, text.length);
 
-    _controller.value = TextEditingValue(
+    _writeAsOneStep(TextEditingValue(
       text: text.substring(0, offset) + insert + text.substring(offset),
       selection: TextSelection.collapsed(offset: offset + insert.length),
-    );
+    ));
   }
 
   @override

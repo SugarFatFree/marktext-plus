@@ -72,7 +72,11 @@ void main() {
         reason: '剪切没有发布富文本，粘贴到 Word 里会变成纯文本');
     expect(body, contains('ClipboardService.copyWithHtml'),
         reason: '剪切没有把两种格式都放上剪贴板');
-    expect(body, contains('pushHistory'),
-        reason: '剪切没有压还原点，一次 Ctrl+Z 会退过它');
+    // Through the entry point that records first, not by recording here: that
+    // claim — and that it records *before* it writes — belongs to
+    // `every_controller_write_is_classified_test`, which owns the entry point.
+    // Two copies of it would be the drift this file exists to prevent.
+    expect(body, contains('_writeAsOneStep('),
+        reason: '剪切直接写了控制器，一次 Ctrl+Z 会退过它');
   });
 }
