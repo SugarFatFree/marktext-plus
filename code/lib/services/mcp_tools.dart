@@ -54,7 +54,19 @@ enum McpAction {
   /// drawer as the place its answer goes, and that path had no way in from
   /// here at all. A defect lived in it — an answer shown with no way to take
   /// it — precisely because everything automated went the other way.
-  openPanel('open_panel');
+  openPanel('open_panel'),
+
+  /// Changes one of the reader's settings.
+  ///
+  /// The interface could open documents, write into them, save them and run
+  /// plugins, and could not put the editor into the state a check needs: every
+  /// change that shows up as an appearance — a font, a theme, a width, whether
+  /// code blocks wrap — could only be verified by asking a person to open the
+  /// settings page. An interface whose premise is that nobody is present was
+  /// missing the one thing that makes an appearance testable at all.
+  ///
+  /// Not everything. See [McpSettings.notOverTheWire].
+  setSetting('set_setting');
 
   const McpAction(this.wireName);
 
@@ -64,6 +76,60 @@ enum McpAction {
   /// The action [wireName] names, or null if nothing does.
   static McpAction? byWireName(String? wireName) =>
       values.where((a) => a.wireName == wireName).firstOrNull;
+}
+
+/// Which settings [McpAction.setSetting] will not touch, and why each.
+///
+/// A list of what is *refused* rather than of what is allowed, because
+/// [AppConfig] already enumerates its own fields twice — in `toJson` and in
+/// `fromJson` — and a third list of settable names beside them is the drift
+/// this codebase keeps removing. A setting is applied by writing the name into
+/// that JSON, so every field is reachable by construction and this says which
+/// ones must not be.
+///
+/// A list of refusals fails *open*: a sensitive setting added later would be
+/// settable until somebody remembered. So `mcp_settings_are_classified_test`
+/// pins the whole field list and goes red when [AppConfig] grows one, which
+/// turns "somebody remembers" into "the suite will not go green".
+abstract final class McpSettings {
+  static const notOverTheWire = <String, String>{
+    // Credentials, and where a credential is sent. The host holds the key and
+    // nothing else is ever handed it — a wire that could move the endpoint
+    // could move the key with it.
+    'aiApiKey': '凭据，永远不经过这个接口',
+    'aiEndpoint': '改它就是改密钥发往哪里',
+    'aiProvider': '同上，它决定请求去哪个服务',
+    'aiEnabled': '和上面三个一组，整组都不放行',
+    'aiModel': '同上',
+
+    // The connection this very request arrived on.
+    'mcpEnabled': '关掉它就再也连不上，只有人能打开',
+    'mcpPort': '换端口等于挂断，而挂断之后没人能重连',
+    'mcpToken': '换令牌等于把钥匙交给别处',
+
+    // Records of what happened, not settings. Writing a scalar into one of
+    // these would either do nothing or corrupt the record.
+    'recentFiles': '这是记录不是设置',
+    'sessionTabs': '这是记录不是设置',
+    'sessionActiveTab': '这是记录不是设置',
+    'sideBarDirectory': '这是记录不是设置',
+    'sideBarOpenedFiles': '这是记录不是设置',
+    'lastUpdateCheck': '更新检查的记账',
+    'skipVersion': '写它会让读者再也收不到某个版本的更新提示',
+
+    // Written by the window manager as the window moves. Setting them stores
+    // a number and moves nothing, which would be the editor saying something
+    // that is not so.
+    'windowWidth': '窗口尺寸由窗口管理器写入，设它不会移动窗口',
+    'windowHeight': '同上',
+    'windowX': '同上',
+    'windowY': '同上',
+    'isMaximized': '同上',
+    'splitRatio': '分隔条的位置由拖动写入，设它不会移动分隔条',
+
+    // One thing, one way in.
+    'editMode': 'set_view_mode 就是做这件事的，一件事两条路是这个仓库一直在删的缺陷',
+  };
 }
 
 /// What an action did, and whether it did it.
@@ -333,6 +399,21 @@ class McpToolset {
                 'A GitHub token, used for this call and never written down. '
                 'Needed only for source "ci": workflow artifacts are not '
                 'public, on a public repository or otherwise.',
+          },
+          'setting': {
+            'type': 'string',
+            'description':
+                'For set_setting: which one, by the name it has in the config '
+                'file — previewFontFamily, themeName, editorMaxWidth. '
+                'Credentials, the connection this request arrived on, and the '
+                'records of what happened are refused by name, and the refusal '
+                'says which it was.',
+          },
+          'value': {
+            'description':
+                'For set_setting: the value, of the kind that setting holds — '
+                'a string, a number or true/false. A value of the wrong kind '
+                'is refused rather than quietly read as the default.',
           },
           'dryRun': {
             'type': 'boolean',

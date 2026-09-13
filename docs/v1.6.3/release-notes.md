@@ -506,6 +506,21 @@ that, every press used to count the lines before the match by cutting the docume
 there and splitting the piece into lines — 55 000 strings on a four megabyte
 document — for a number only the fallback path ever wanted.
 
+### An agent can put the editor into the state it needs to check
+
+The automation interface could open documents, write into them, save them and
+run plugins, and could not change a setting — so every change that shows up as
+an appearance could only be verified by asking a person to open the settings
+page. `set_setting` does that now, by name.
+
+Not everything: credentials and where a credential is sent, the connection the
+request arrived on, the records of what happened, the numbers the window manager
+writes as the window moves, and the one setting `set_view_mode` already changes,
+are all refused, each with a sentence saying which it was. A value of the wrong
+kind is refused too, and nothing is written when it is — the first version of
+this wrote the default first and then reported the refusal, which changed the
+reader's font size on the way to saying it would not.
+
 ### You can choose the font the preview reads in
 
 There was one font setting and it belonged to the editing pane, which shows
@@ -973,6 +988,17 @@ HTML 与 PDF 早就改成「写临时文件再换过去」了。Word 的写盘�
 那段文字本来就正由窗格画着。现在位置直接从它那里读，**46 微秒**，
 并且天然算上换行——因为它就是换行本身。此外，每按一次还会先把文档在匹配处切开、
 把前半截分成行来数行号（4 MB 上 5.5 万个字符串），而这个数**只有兜底那条路用得上**。
+
+### 自动化接口可以把编辑器摆成要检查的那个样子
+
+自动化接口能开文档、能写、能存、能跑插件，**却改不了任何设置**——于是凡是「看得见的
+改动」都只能请人打开设置页来确认。现在有了 `set_setting`，按名字改。
+
+**不是什么都能改**：凭据与它发往哪里、这次请求进来的那条连接、各种「记录」、
+窗口移动时由窗口管理器写入的那些数字，以及 `set_view_mode` 已经在做的那一个，
+全部拒绝，并且每一条都说得出自己属于哪一类。类型不对的值也拒绝，
+**而且拒绝时一个字都不写**——这个功能的第一版是先写后校验，
+于是它会先把读者的字号改回默认值，再告诉对方「这个值取不了」。
 
 ### 预览用什么字体读，可以自己选了
 

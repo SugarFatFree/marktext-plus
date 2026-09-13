@@ -433,6 +433,15 @@
   5. 确认**「编辑器字体」**那一行仍然只作用于源码窗格（中文标签已由
      「正文字体」改为「编辑器字体」）。
 
-<!-- 人工测试已考虑到 FEAT-157 -->
+- **FEAT-158**（自动化接口能改设置）：有 17 条测试，**这条路上没有界面，人工不必测**。
+  要确认的话通过 MCP 走一圈：
+
+  1. `set_setting previewFontFamily=Georgia` → 应答「previewFontFamily is now "Georgia"」，
+     且设置页那一行真的变了；
+  2. `set_setting aiApiKey=...` → **应当被拒绝**，并说出「凭据」；
+  3. `set_setting mcpPort=9999` → **应当被拒绝**（改了就再也连不上）；
+  4. `set_setting fontSize=large` → 应当被拒绝，**且字号没有被改成默认值**。
+
+<!-- 人工测试已考虑到 FEAT-158 -->
 
 <!-- 人工测试已考虑到 BUG-474 -->

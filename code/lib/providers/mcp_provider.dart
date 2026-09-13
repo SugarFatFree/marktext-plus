@@ -385,7 +385,76 @@ class McpController extends StateNotifier<McpStatus> {
             ? mcpDid('closed the ${slot.name} pane')
             : mcpRefused('no ${slot.name} pane was open');
 
+      case McpAction.setSetting:
+        return _setSetting(text('setting'), arguments['value']);
     }
+  }
+
+  /// Writes one setting, and says what it actually became.
+  ///
+  /// Through [AppConfig]'s own JSON rather than through a switch over names:
+  /// `toJson` and `fromJson` already enumerate every field, so this needs no
+  /// third list to fall behind them.
+  ///
+  /// Worked out in full before anything is written, and that order is the whole
+  /// of it. `fromJson` reads a value of the wrong type as the field's default,
+  /// so writing first and checking after did not merely answer wrongly — it had
+  /// already put the default in the config file and saved it. Asking for
+  /// `fontSize: "large"` reset the reader's font size to 16 and then said it
+  /// would not take the value, which is worse than not refusing at all.
+  Future<McpOutcome> _setSetting(String? name, Object? value) async {
+    if (name == null) return mcpRefused('no setting named');
+    final refusal = McpSettings.notOverTheWire[name];
+    if (refusal != null) return mcpRefused('$name 不经过这个接口：$refusal');
+
+    final notifier = _ref.read(settingsProvider.notifier);
+    final before = notifier.state.toJson();
+    if (!before.containsKey(name)) {
+      return mcpRefused('no such setting "$name"');
+    }
+    if (value == null) {
+      return mcpRefused('no value given for "$name"; it is now ${before[name]}');
+    }
+
+    final candidate = AppConfig.fromJson({...before, name: value});
+    final after = candidate.toJson();
+    if (!_sameSettingValue(after[name], value)) {
+      return mcpRefused(
+        '$name would not take ${jsonEncode(value)}; it reads as '
+        '${jsonEncode(after[name])} — a value of the wrong kind is read as the '
+        'default, so nothing was written',
+      );
+    }
+
+    // Nothing else moved. Writing a setting goes out through `fromJson`, so a
+    // field that does not survive that round trip would be reset every time any
+    // setting was changed — quietly, and by the interface meant for checking
+    // things.
+    final collateral = [
+      for (final key in after.keys)
+        if (key != name && jsonEncode(after[key]) != jsonEncode(before[key]))
+          key,
+    ];
+    if (collateral.isNotEmpty) {
+      return mcpRefused(
+        'setting $name would also change $collateral — that is a round trip '
+        'fault in the config, and nothing was written',
+      );
+    }
+
+    await notifier.updateConfig((_) => candidate);
+    return mcpDid('$name is now ${jsonEncode(after[name])}');
+  }
+
+  /// Whether the setting took the value that was asked for.
+  ///
+  /// Numbers compared as numbers: a whole number arrives from the wire as `22`
+  /// and a `double` field holds it as `22.0`, which is the same answer written
+  /// two ways. Everything else compared as JSON, so a list or a string has to
+  /// match exactly.
+  static bool _sameSettingValue(Object? got, Object? asked) {
+    if (got is num && asked is num) return got == asked;
+    return jsonEncode(got) == jsonEncode(asked);
   }
 
   /// Which catalogue entry [wanted] names, or the sentence saying why none.
