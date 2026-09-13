@@ -3,11 +3,12 @@ import 'package:marktext_plus/ui/editor/markdown_renderer.dart';
 
 /// How many passes the preview takes to finish drawing a document.
 ///
-/// Each pass rebuilds everything drawn so far, not only the blocks it adds, so
-/// the cost of a frame is what `rendered` costs and the step does not shorten
-/// it. A ceiling on the step therefore buys nothing and adds passes: with one
-/// of 2000, a 25 368-block document took 19 passes and 198 918 block builds.
-/// Doubling takes 10 passes and 50 918.
+/// A pass costs work in proportion to the blocks already on screen rather than
+/// to the ones it adds — they are all in one Column inside a scroll view that
+/// draws its whole child, so each is walked, reconciled and painted again. A
+/// ceiling on the step therefore shortens no pass and adds passes: with one of
+/// 2000, a 25 368-block document took 19 passes over 198 918 blocks. Doubling
+/// takes 10 passes over 50 918.
 ///
 /// Measured on real hardware through the editor's own stopwatch before this
 /// changed: 1 MB / 25 368 blocks filled in 14.0 s, and 2 MB / 50 736 blocks in
@@ -51,9 +52,9 @@ void main() {
   });
 
   test('the total work is about twice the document, not many times it', () {
-    // Each pass rebuilds `rendered` blocks, so the sum of the sequence is the
-    // work the fill does. Doubling sums to about 2N; a ceiling of 2000 summed
-    // to roughly 6N at a megabyte and 12N at two.
+    // Each pass walks `rendered` blocks, so the sum of the sequence is the
+    // repeated work the fill does. Doubling sums to about 2N; a ceiling of
+    // 2000 summed to 7.8N at a megabyte and 13.5N at two.
     final seen = passes(25368);
     final work = seen.fold<int>(0, (a, b) => a + b);
     expect(work, lessThan(25368 * 3),

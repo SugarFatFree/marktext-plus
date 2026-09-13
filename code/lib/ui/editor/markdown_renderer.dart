@@ -100,15 +100,30 @@ class MarkdownRenderer extends ConsumerStatefulWidget {
   /// one, 2000, a bare constant with no reason written down, and it made every
   /// measure worse:
   ///
-  /// Each pass rebuilds *everything drawn so far*, not only the new blocks, so
-  /// a frame costs what `rendered` costs whatever the step is. Capping the step
-  /// therefore does not shorten any frame — it only adds more of the long ones,
-  /// and it adds them in proportion to the document. A 25 368-block document
-  /// took 19 passes and 198 918 block builds with the cap, and takes 10 passes
-  /// and 50 918 with doubling; at 50 736 blocks it was 31 passes and 682 686
-  /// against 11 and 101 886. Doubling costs about 2× the document whatever its
-  /// size; the cap costs 8× at a megabyte and 13× at two. The worst single
-  /// frame is identical either way: the last one, which rebuilds all of them.
+  /// A pass costs work in proportion to the blocks *already* on screen, not to
+  /// the ones it adds. Not because those are built again — [_blockWidgets]
+  /// exists to stop that, and does — but because they all live in one [Column]
+  /// inside a scroll view that draws its whole child: every block on screen is
+  /// walked by the loop in `build`, reconciled against its element, and
+  /// painted, on every pass. Capping the step therefore shortens no pass. It
+  /// only adds more of the expensive ones, and it adds them in proportion to
+  /// the document:
+  ///
+  ///     25 368 blocks: 19 passes over 198 918 blocks, against 10 over 50 918
+  ///     50 736 blocks: 31 passes over 682 686 blocks, against 11 over 101 886
+  ///
+  /// Doubling walks about twice the document whatever its size; the cap walks
+  /// 7.8× the document at a megabyte and 13.5× at two.
+  ///
+  /// Measured on the reader's machine through the editor's own clock, before
+  /// this changed: 1 MB / 25 368 blocks took 14.0 s to finish filling, and
+  /// 2 MB / 50 736 blocks 37.8 s — 2× the document for 2.7× the wait. Less
+  /// than the 3.4× the walked totals alone predict, because the rest of the
+  /// fill is linear: every block is built, laid out and painted into place
+  /// exactly once however the steps are sized.
+  ///
+  /// The most expensive single pass is identical either way: the last one,
+  /// which walks all of them.
   ///
   /// Measured on the reader's machine before and after, through the editor's
   /// own stopwatch: 1 MB / 25 368 blocks took 14.0 s to finish filling, and
@@ -162,6 +177,15 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   /// Handing Flutter the same widget instance is what makes this pay: an
   /// element whose new widget is identical to its old one is not rebuilt, and
   /// a render object that was not marked dirty is not laid out again either.
+  ///
+  /// What it does *not* buy back — and this reads like it does, which is how a
+  /// later reader got the reason for [MarkdownRenderer.nextRenderedCount]
+  /// wrong: the loop in `build` still walks every block on screen, the column's
+  /// element still reconciles every child against it, and the scroll view still
+  /// draws its whole child because it does not cull to the viewport. A pass
+  /// therefore still costs something in proportion to the blocks already drawn.
+  /// Cheap per block, and it is the step size, not this cache, that decides how
+  /// many times it is paid.
   final _blockWidgets = <md.MarkdownNode, Widget>{};
 
   /// The preview's own scrolling, so it can be moved to follow the pane
