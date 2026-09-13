@@ -351,6 +351,17 @@ One thing changed with it: in preview mode, where there is no text field, the ta
 commands are greyed out. They used to light up for a position built from whatever
 the source pane last reported, which is not somewhere the reader can see.
 
+### Ctrl+Z takes back an edit made in the preview
+
+The preview is not read-only — a checkbox can be ticked in it, a block edited in
+place — and in preview-only mode Ctrl+Z did nothing at all afterwards. Every
+undo snapshot in the editor was taken by the source pane, and preview-only mode
+does not build one. In the split it was coarse instead of absent: one press
+stepped back past however many boxes had been ticked since the source pane last
+recorded anything.
+
+Each edit made in the preview is now its own step back, in both modes.
+
 ### A file deleted from under an open tab says so
 
 Something else removing a file you have open — a checkout, a sync client, `rm` —
@@ -781,6 +792,15 @@ Mermaid 包够不到编辑器的翻译，所以它自带的错误框按设计是
 
 随之改变的一件事：预览模式下没有文本框，表格命令现在**置灰**。以前它们会按源码窗格
 最后报告的位置点亮，而那个位置读者在预览里看不见。
+
+### Ctrl+Z 能撤回在预览里做的编辑
+
+预览不是只读的——可以勾选复选框，也可以就地编辑一个块——而在**纯预览模式**下，
+做完之后按 Ctrl+Z **毫无反应**。编辑器里每一个撤销快照都由源码窗格记录，
+而纯预览模式并不构建它。分屏下则是「有反应但不准」：一次按键会退回源码窗格上一次
+记录之处，把此后勾的每一项一起撤掉。
+
+现在预览里的每一次编辑都是**独立的一步**，两种模式都如此。
 
 ### 打开着的文件被别人删掉时会说出来
 

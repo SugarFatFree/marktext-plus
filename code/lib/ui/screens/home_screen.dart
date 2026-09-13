@@ -1169,7 +1169,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
               // source pane owns the position and this one follows it.
               tabId: activeTab.id,
               markdown: content,
-              onSourceChanged: onContentChanged,
+              // Not `onContentChanged`: an edit made here is a discrete act —
+              // a box ticked, a block committed — and gets a restore point.
+              // The source editor's own listener is what pushes for typing,
+              // and it is not built in this mode.
+              onSourceChanged: (edited) {
+                ref
+                    .read(tabProvider.notifier)
+                    .recordPreviewEdit(activeTab.id, edited);
+                onContentChanged(edited);
+              },
             ),
           ),
           // EditMode.split (index 2)

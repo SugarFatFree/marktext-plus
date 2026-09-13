@@ -483,6 +483,35 @@ class TabNotifier extends StateNotifier<TabState> {
     return true;
   }
 
+  /// Records a restore point before an edit made in the preview.
+  ///
+  /// The preview is not read-only: a checkbox can be ticked in it and a block
+  /// edited in place. Every `pushHistory` in the application was in the source
+  /// editor, and preview-only mode does not build one — `DeferredEditorBuilder`
+  /// builds the mode on screen and no other — so that tab's undo stack was
+  /// empty and Ctrl+Z did nothing whatever. In the split it was coarse rather
+  /// than absent: the stack held the source pane's own snapshots, so one press
+  /// stepped back past however many boxes had been ticked since the last one.
+  ///
+  /// The machinery for preview undo was already built and waiting.
+  /// [EditorNotifier.hasSourceEditor] exists so undo knows to hand its answer
+  /// to the caller instead of writing it into a field, and says so in its own
+  /// doc comment. What it never had was a snapshot to go back to.
+  ///
+  /// The restore point only, not the write: the two ways into the preview's
+  /// editing report their new text differently — preview-only mode through the
+  /// tab, the split through its own `onChanged`, which is also the path typing
+  /// takes — and this is the one thing they both need and neither did.
+  void recordPreviewEdit(String id, String next) {
+    final tab = state.tabs.where((t) => t.id == id).firstOrNull;
+    if (tab == null || tab.content == next) return;
+    final editor = _ref.read(editorProvider.notifier);
+    // Preview-only mode never built a source editor, so nothing has told the
+    // history which tab it is for. A no-op when it already knows.
+    editor.setHistoryTab(id);
+    editor.pushHistory(tab.content, tabId: id);
+  }
+
   /// Records what a tab's file looks like right now.
   ///
   /// Called wherever a document arrives from disk or goes to it. Doing it at

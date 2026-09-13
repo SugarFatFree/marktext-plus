@@ -52,6 +52,7 @@
 | BUG-467 | 2026-09-13 | 自动化接口的 `close_tab` 把未保存的改动不声不响地丢掉，还回报「已关闭」 | P1 | 已修复 |
 | BUG-468 | 2026-09-13 | 又 10 处文档注释挂在错的成员头上，其中 3 处是我修 BUG-462 时新造的 | P2 | 已修复 |
 | BUG-469 | 2026-09-13 | 别的程序删掉打开着的文件时一声不响，关掉标签页就两头都没了 | P1 | 已修复 |
+| BUG-470 | 2026-09-13 | 纯预览模式下勾选复选框后 Ctrl+Z 毫无反应；分屏下一次退回好几步 | P1 | 已修复 |
 
 ---
 
@@ -3603,3 +3604,72 @@ if (!await File(path).exists() && mounted) _setDiskConflict(tab.id, true);
 
 测试用的是**真实的文件监视器**（照 `tab_reload_test` 既有的做法：动一下文件再等防抖），
 而不是直接调私有方法。
+
+---
+
+## BUG-470：预览里的编辑撤不回来
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-470 |
+| 日期 | 2026-09-13 |
+| 优先级 | P1 |
+| 状态 | 已修复 |
+
+### 现象
+
+预览**不是只读的**：可以勾选复选框，也可以就地编辑一个块。而：
+
+| 模式 | 勾一下之后按 Ctrl+Z |
+|------|--------------------|
+| **纯预览** | **毫无反应**——那一栏的撤销栈是空的 |
+| **分屏** | 有反应，但**一次退回好几步**：退到源码窗格上一个快照，把此后勾的每一项一起撤掉 |
+
+### 根因：机制早就建好了，就是没有快照可用
+
+全库**每一处 `pushHistory` 都在源码窗格里**，而纯预览模式**根本不构建源码窗格**
+（`DeferredEditorBuilder(shouldBuild: currentIndex == 0)`，只建当前那一个模式）。
+于是那个标签页的撤销栈从头到尾是空的，`undo()` 第一行 `if (_undoStack.isEmpty) return null;`
+直接返回，`stepHistory` 什么也不做。
+
+**而预览撤销这件事是被设计过的**：`EditorNotifier.hasSourceEditor` 就是为它存在的，
+它的文档注释写着「Undo restores into that field when there is one. **In preview mode
+there is not, and the caller has to write the result to the tab instead.**」，
+`stepHistory` 也照着传了 `current: tab?.content`。**唯一缺的是一个可退回的快照**
+——又一处「建好了却没接上」。
+
+对照之下，两条**插件**改写文档的路（Apply 按钮、插件的 replace 动作）**都显式记录了撤销点**
+（`pushHistory(edit.before, tabId: tabId)`）。预览自己的编辑没有。
+
+### 修复
+
+新增 `TabNotifier.recordPreviewEdit(id, next)`：设置 history 所属标签页（纯预览模式下
+没人设过），并把**改动前**的内容记为撤销点。两条入口各加一行调用。
+
+**只记录撤销点，不代为写入**——这一点改过一次，值得写下来：我第一版让这个方法**连内容一起写**
+（`previewEdited(id, content)`），于是分屏那侧就不再调 `widget.onChanged`，
+**弄红了既有的 `split_preview_is_editable_test`**。那条测试通过 `onChanged` 观察
+「文档被写回」，而 `SplitEditor` 本来**没有任何 provider 读取**——它靠回调向父级汇报。
+我的改法既破坏了那个设计，也破坏了它的测试。改回「两条入口各自照原样汇报新文本，
+只多一行记录撤销点」之后，既有测试原样通过。
+
+（那条既有测试其实**早就断言了 `canUndo` 为真**，理由写着「这一步没有进历史」——
+它在分屏下能过，是因为源码窗格的历史非空。它测的是「有得撤」，不是「撤得准」。）
+
+### 涉及文件
+
+- `code/lib/providers/tab_provider.dart`
+- `code/lib/ui/screens/home_screen.dart`、`code/lib/ui/editor/split_editor.dart`
+- `code/test/providers/an_edit_in_the_preview_can_be_undone_test.dart`（新增 4 条）
+
+### 验证：三次变异，其中一次是等价变异
+
+| 变异 | 结果 |
+|------|------|
+| 不记录撤销点（缺陷原状） | 红：「预览里的编辑撤不回来」 |
+| 不设置 history 所属标签页 | 红（纯预览模式会去读错的那一栏） |
+| 去掉「内容未变则不记录」 | **绿——等价变异**：`pushHistory` 自带「与栈顶相同则不记」，而 `canUndo` 的定义是 `_undoStack.length > 1`，本就要求有可退回之处 |
+
+**还有一件我自己做错的事**：第一版测试里，我把修复**写在了测试的辅助函数里**
+（辅助函数自己调 `pushHistory`），于是**修复之前它就是绿的**——那测的是我的辅助函数，
+不是应用。改成调用应用真正的那两个方法、且顺序与应用一致之后，变异才咬得住。

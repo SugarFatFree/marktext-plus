@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/settings_provider.dart';
 import 'source_editor.dart';
 import 'markdown_renderer.dart';
+import '../../providers/tab_provider.dart';
 
 class SplitEditor extends ConsumerStatefulWidget {
   final String initialContent;
@@ -105,6 +106,10 @@ class _SplitEditorState extends ConsumerState<SplitEditor> {
   /// is for.
   void _onPreviewEdited(String newContent) {
     _debounce?.cancel();
+    // The restore point first, while the tab still holds what came before.
+    // `onChanged` cannot do this for us: it is also the path typing takes, and
+    // the source pane has a history of its own for that.
+    ref.read(tabProvider.notifier).recordPreviewEdit(widget.tabId, newContent);
     setState(() {
       _content = newContent;
       _renderedContent = newContent;
