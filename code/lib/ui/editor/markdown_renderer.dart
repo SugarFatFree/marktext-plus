@@ -94,6 +94,33 @@ class MarkdownRenderer extends ConsumerStatefulWidget {
   static Key footnoteMarkerKey(String label) =>
       ValueKey('footnote-marker-$label');
 
+  /// How many blocks are drawn after [rendered] of [total] already are.
+  ///
+  /// Doubling, with no ceiling — and the ceiling is the point. There used to be
+  /// one, 2000, a bare constant with no reason written down, and it made every
+  /// measure worse:
+  ///
+  /// Each pass rebuilds *everything drawn so far*, not only the new blocks, so
+  /// a frame costs what `rendered` costs whatever the step is. Capping the step
+  /// therefore does not shorten any frame — it only adds more of the long ones,
+  /// and it adds them in proportion to the document. A 25 368-block document
+  /// took 19 passes and 198 918 block builds with the cap, and takes 10 passes
+  /// and 50 918 with doubling; at 50 736 blocks it was 31 passes and 682 686
+  /// against 11 and 101 886. Doubling costs about 2× the document whatever its
+  /// size; the cap costs 8× at a megabyte and 13× at two. The worst single
+  /// frame is identical either way: the last one, which rebuilds all of them.
+  ///
+  /// Measured on the reader's machine before and after, through the editor's
+  /// own stopwatch: 1 MB / 25 368 blocks took 14.0 s to finish filling, and
+  /// 2 MB / 50 736 blocks took 37.8 s — worse than linear, which is what a
+  /// quadratic term looks like from outside.
+  ///
+  /// A function of its own because the fill runs across frames and cannot be
+  /// timed from a test; the number of passes it asks for can be.
+  @visibleForTesting
+  static int nextRenderedCount(int rendered, int total) =>
+      (rendered + rendered).clamp(0, total);
+
   @override
   ConsumerState<MarkdownRenderer> createState() => _MarkdownRendererState();
 }
@@ -240,7 +267,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   /// window where the prefix is all there is and nothing says so.
   bool _fullParseOwed = false;
   static const _initialBatchSize = 50;
-  static const _maxBatchSize = 2000;
+
 
   /// One [GlobalKey] per heading position, kept between frames.
   ///
@@ -1626,10 +1653,8 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
       _batchScheduled = false;
       if (!mounted || _renderedNodeCount >= totalNodes) return;
       setState(() {
-        final step = _renderedNodeCount < _maxBatchSize
-            ? _renderedNodeCount
-            : _maxBatchSize;
-        _renderedNodeCount = (_renderedNodeCount + step).clamp(0, totalNodes);
+        _renderedNodeCount =
+            MarkdownRenderer.nextRenderedCount(_renderedNodeCount, totalNodes);
       });
       _tryRestoreScroll();
       if (_renderedNodeCount >= totalNodes) _finishedFilling(totalNodes);

@@ -506,6 +506,21 @@ that, every press used to count the lines before the match by cutting the docume
 there and splitting the piece into lines — 55 000 strings on a four megabyte
 document — for a number only the fallback path ever wanted.
 
+### A megabyte-long document fills in three times faster
+
+The preview draws a long document a batch of blocks at a time so the first
+screen arrives early, and each batch was capped at 2000. Every batch rebuilds
+*everything drawn so far*, not only the blocks it adds — so the cap shortened no
+frame at all. It only added more of the long ones, and it added them in
+proportion to the document: 19 passes and 198 918 block builds at 25 368 blocks,
+31 passes and 682 686 at 50 736. Doubling the batch each time costs about twice
+the document whatever its size. Measured on real hardware through the editor's
+own clock, a one megabyte document took 14.0 seconds to finish filling and a two
+megabyte one 37.8 — two times the document for 2.7 times the wait.
+
+The longest single frame is unchanged: it was always the last one, which
+rebuilds all of them.
+
 ### A large document's first paint no longer cuts a block in half
 
 A document over 1500 lines is shown in two passes, the top of it first. That
@@ -926,6 +941,16 @@ HTML 与 PDF 早就改成「写临时文件再换过去」了。Word 的写盘�
 那段文字本来就正由窗格画着。现在位置直接从它那里读，**46 微秒**，
 并且天然算上换行——因为它就是换行本身。此外，每按一次还会先把文档在匹配处切开、
 把前半截分成行来数行号（4 MB 上 5.5 万个字符串），而这个数**只有兜底那条路用得上**。
+
+### 1 MB 的文档补画快了三倍
+
+预览按批画长文档，好让第一屏早点出来，而每批原先封顶 2000 块。**每一批重建的是
+已经画出来的全部块**，不只是新增的那些——所以这个上限一帧也没缩短，只是把长帧
+变多了，而且多的数量随文档增长：25 368 块要 19 趟、198 918 次块构建，50 736 块
+要 31 趟、682 686 次。每批翻倍的话，总量永远约等于文档的两倍。用编辑器自己的秒表
+在真机上量：1 MB 的文档补画完要 14.0 秒，2 MB 要 37.8 秒——文档两倍，等待 2.7 倍。
+
+最长的那一帧没有变化：它一直是最后一趟，重建全部。
 
 ### 大文档的第一屏不再把块切成两半
 
