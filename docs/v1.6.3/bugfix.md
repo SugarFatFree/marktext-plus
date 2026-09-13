@@ -4757,6 +4757,26 @@ set state(TabState value) {
 2. 每份 README 提到**每一个工具**；
 3. 每份 README 提到 `control` 的**每一个动作**（从 `McpAction.values` 来）。
 
+### ⚠️ 这个修复读者还看不到（2026-09-14 04:51 核实）
+
+仓库的**默认分支是 `main`**，所以 github.com 首页显示的是 `main` 的 README——
+而 `main` 上那一段**至今还是旧的**：
+
+```
+$ git show origin/main:README.md | grep "read your documents and drive"
+113:machine that lets whatever reaches it read your documents and drive your
+$ git show origin/main:README.md | grep -c "read_startup_trace"
+0
+```
+
+`dev` 领先 `main` **90 个提交**。按本项目的流程，dev 合进 main 发生在**发版时**
+（`.claude/commands/release.md` 第 6 步），而发版需要人工测试后由用户决定。
+所以这条 P1 的修复要等到下一次发版才对访问者生效。
+
+**没有擅自动 `main`**：那是对外可见的改动，而且流程把 main 留给发版。
+如果希望它更早可见，可以只把这一处文档改动放到 main 上（不含代码、不改版本号、不发版）
+——**这需要用户明确同意**，已在会话里提出。
+
 ### 涉及文件
 
 - `README.md` 与 `docs/i18n/README_*.md`（共 12 份）
@@ -4812,3 +4832,33 @@ in every language」）**看不见这张表**——它只认行内带 emoji 的�
 
 `lib/` 一个字节都没动。三个轴里两个干净、一个已在上一轮修掉。记在这里，
 下一轮从别处开始。
+
+## 无编号：剪贴板与目录监听两个轴，扫过，干净
+
+2026-09-14。接着「它在文档之外做了什么」往下问的两个轴。
+
+### 剪贴板什么时候被读
+
+四处读取，**全部在读者主动发起的复制/粘贴里**：
+
+| 处 | 时机 |
+|---|---|
+| `markdown_renderer._enhanceClipboardWithHtml` | 预览里按了 Ctrl+C 之后，**读回自己刚写进去的那份**去拼 HTML 格式 |
+| `source_editor._afterPaste` → `readHtml()` | 框架的粘贴落地之后 |
+| `_pasteFromClipboard` → `getData` + `readHtml()` | 显式的粘贴（菜单/命令面板，见 BUG-481） |
+
+**没有轮询，没有在获得焦点时读，也没有为了灰掉「粘贴」菜单项而去读它**
+——后者是很多编辑器会做的事，而剪贴板里可能是密码。这里「粘贴」始终可点，
+剪贴板为空时什么也不做，比去读它更好。
+
+### 目录监听的范围
+
+`FileWatcherService` 的注释第一句就是：**「Deliberately not a recursive watch of the
+project root.」** 理由写着：Linux 上每个被监听的目录占一个 inotify watch，
+`fs.inotify.max_user_watches` 在大树上很容易耗尽——而**耗尽会抛异常**，
+并且侧边栏本来只显示读者展开过的层级。
+
+`watch(paths)` 还是**对账式**的（比较想要的集合与已有的订阅，只增删差额），
+注释说明了为什么不重订：每次刷新都重建全部监听会白白消耗文件描述符。
+
+两个轴都不需要改动。
