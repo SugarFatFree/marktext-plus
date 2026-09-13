@@ -298,9 +298,13 @@
   "formatClearFormatting": "Clear Formatting",
   "settingsCodeFontFamily": "Code Font Family",
   "settingsCodeFontSize": "Code Font Size",
+  "settingsPreviewFontFamily": "Preview Font Family",
+  "@settingsPreviewFontFamily": {
+    "description": "Settings row for the font the preview draws prose in"
+  },
   "settingsEditorFontFamily": "Editor Font Family",
   "@settingsEditorFontFamily": {
-    "description": "Settings row for the font the editor's body text is drawn in"
+    "description": "Settings row for the font the editing pane draws its text in"
   },
   "settingsEditorMaxWidth": "Editor Max Width",
   "settingsTextDirection": "Text Direction",

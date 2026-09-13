@@ -1179,7 +1179,13 @@ abstract class AppLocalizations {
   /// **'Code Font Size'**
   String get settingsCodeFontSize;
 
-  /// Settings row for the font the editor's body text is drawn in
+  /// Settings row for the font the preview draws prose in
+  ///
+  /// In en, this message translates to:
+  /// **'Preview Font Family'**
+  String get settingsPreviewFontFamily;
+
+  /// Settings row for the font the editing pane draws its text in
   ///
   /// In en, this message translates to:
   /// **'Editor Font Family'**

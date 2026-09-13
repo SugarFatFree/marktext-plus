@@ -233,6 +233,7 @@
   "formatClearFormatting": "Очистить форматирование",
   "settingsCodeFontFamily": "Шрифт кода",
   "settingsCodeFontSize": "Размер шрифта кода",
+  "settingsPreviewFontFamily": "Шрифт предпросмотра",
   "settingsEditorFontFamily": "Шрифт редактора",
   "settingsEditorMaxWidth": "Максимальная ширина редактора",
   "settingsTextDirection": "Направление текста",

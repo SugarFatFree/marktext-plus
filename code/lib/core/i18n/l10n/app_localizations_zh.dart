@@ -572,7 +572,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsCodeFontSize => '代码字体大小';
 
   @override
-  String get settingsEditorFontFamily => '正文字体';
+  String get settingsPreviewFontFamily => '预览字体';
+
+  @override
+  String get settingsEditorFontFamily => '编辑器字体';
 
   @override
   String get settingsEditorMaxWidth => '编辑器最大宽度';

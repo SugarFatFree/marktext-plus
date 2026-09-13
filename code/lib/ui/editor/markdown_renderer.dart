@@ -826,6 +826,7 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
     // preview has to follow them.
     _baseFontSize = config.fontSize;
     _baseLineHeight = config.lineHeight;
+    _previewFontFamily = config.previewFontFamily;
     // Only the preview's search state, not the whole of it. Watching the whole
     // provider meant every cursor move and every change of selection in the
     // source pane rebuilt the entire preview — in split view, on every arrow
@@ -1106,9 +1107,11 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
                   24,
                   24 + _bottomRoom(context),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: widgets,
+                child: _inReadingFont(
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: widgets,
+                  ),
                 ),
               ),
             ),
@@ -1796,6 +1799,15 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   double _baseFontSize = _designFontSize;
   double _baseLineHeight = 1.6;
 
+  /// The face the reader chose for reading in, or empty for the platform's.
+  ///
+  /// Applied once, above every block, rather than written into each style:
+  /// headings, tables, quotes and list markers each build a [TextStyle] of
+  /// their own and none of them names a family, so one [DefaultTextStyle] above
+  /// them reaches all of it. A code block names its own family and keeps it,
+  /// which is the point of having two settings.
+  String _previewFontFamily = '';
+
   /// How much empty space to leave under the last block.
   ///
   /// A share of the viewport rather than a fixed number: on a tall window a
@@ -1809,6 +1821,32 @@ class _MarkdownRendererState extends ConsumerState<MarkdownRenderer> {
   /// A size from the original design, at the reader's scale.
   double _scaled(double designSize) =>
       designSize * (_baseFontSize / _designFontSize);
+
+  /// [child] with the reader's reading font over it, or [child] itself.
+  ///
+  /// Merged rather than set, so the fallback list each style already carries
+  /// survives: a face that has no glyph for a character still falls through to
+  /// the platform's, which is what stopped a missing font from drawing boxes
+  /// before there was a setting at all.
+  ///
+  /// And inherited rather than written into each block's own style, which is
+  /// what makes this the one text setting that does *not* belong in
+  /// [_blockSignature]. Every setting named there is one a block writes into
+  /// itself, so a cached block keeps the old value until the cache is thrown
+  /// away. A [DefaultTextStyle] is an inherited widget: the framework marks
+  /// every `Text` that read it dirty when it changes, cached widget or not. Put
+  /// it in the signature and changing the face would discard and rebuild every
+  /// block on screen to reach the same picture.
+  ///
+  /// Nothing when empty, rather than an empty family: merging
+  /// `TextStyle(fontFamily: '')` sets the family to the empty string, which is
+  /// not the same as leaving the platform's alone.
+  Widget _inReadingFont(Widget child) => _previewFontFamily.isEmpty
+      ? child
+      : DefaultTextStyle.merge(
+          style: TextStyle(fontFamily: _previewFontFamily),
+          child: child,
+        );
 
   TextStyle get _defaultTextStyle => TextStyle(
         fontSize: _baseFontSize,

@@ -72,6 +72,20 @@ class AppConfig {
   bool typewriterMode;
   String codeFontFamily;
 
+  /// The font the preview draws prose in. Empty means the platform's own.
+  ///
+  /// Separate from [fontFamily], which is the editing pane's, for the same
+  /// reason [codeFontSize] is separate from [fontSize]: they are different
+  /// wishes. The editing pane shows markup and defaults to a monospace face so
+  /// that a table's pipes line up; the preview is what the document is *read*
+  /// in. One field could not be both — it was the editing pane's, and the
+  /// preview drew prose in a face nobody could choose.
+  ///
+  /// Empty rather than a named default so that nothing changes for anyone who
+  /// has not asked for something: the preview keeps using the fallback list the
+  /// platform supplies, which is what it always did.
+  String previewFontFamily;
+
   /// The size code is drawn at, independent of the body font size.
   ///
   /// Separate because raising the reading size of prose and raising the size
@@ -151,6 +165,7 @@ class AppConfig {
     this.focusMode = false,
     this.typewriterMode = false,
     this.codeFontFamily = 'Courier New',
+    this.previewFontFamily = '',
     this.codeFontSize = 14.0,
     this.editorMaxWidth = 800,
     this.textDirection = 'ltr',
@@ -205,6 +220,7 @@ class AppConfig {
     'focusMode': focusMode,
     'typewriterMode': typewriterMode,
     'codeFontFamily': codeFontFamily,
+    'previewFontFamily': previewFontFamily,
     'codeFontSize': codeFontSize,
     'editorMaxWidth': editorMaxWidth,
     'textDirection': textDirection,
@@ -266,6 +282,7 @@ class AppConfig {
       focusMode: _parseBool(json['focusMode'], false),
       typewriterMode: _parseBool(json['typewriterMode'], false),
       codeFontFamily: _parseString(json['codeFontFamily'], 'Courier New'),
+      previewFontFamily: _parseString(json['previewFontFamily'], ''),
       codeFontSize: _parseDouble(json['codeFontSize'], 14.0),
       editorMaxWidth: _parseInt(json['editorMaxWidth'], 800),
       textDirection: _parseString(json['textDirection'], 'ltr'),
@@ -387,6 +404,7 @@ class AppConfig {
     bool? focusMode,
     bool? typewriterMode,
     String? codeFontFamily,
+    String? previewFontFamily,
     double? codeFontSize,
     int? editorMaxWidth,
     String? textDirection,
@@ -441,6 +459,7 @@ class AppConfig {
       focusMode: focusMode ?? this.focusMode,
       typewriterMode: typewriterMode ?? this.typewriterMode,
       codeFontFamily: codeFontFamily ?? this.codeFontFamily,
+      previewFontFamily: previewFontFamily ?? this.previewFontFamily,
       codeFontSize: codeFontSize ?? this.codeFontSize,
       editorMaxWidth: editorMaxWidth ?? this.editorMaxWidth,
       textDirection: textDirection ?? this.textDirection,

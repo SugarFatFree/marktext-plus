@@ -583,6 +583,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get settingsCodeFontSize => 'Dimensione font del codice';
 
   @override
+  String get settingsPreviewFontFamily => 'Font dell\'anteprima';
+
+  @override
   String get settingsEditorFontFamily => 'Font dell\'editor';
 
   @override

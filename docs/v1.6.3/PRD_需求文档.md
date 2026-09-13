@@ -11,6 +11,7 @@
 | FEAT-154 | 2026-09-12 | 正则替换可以放回捕获组（`$1`、`$&`、`$$`） | P1 | 中 | 已完成 |
 | FEAT-155 | 2026-09-13 | 自动化接口补上 `save_tab`，让「写→存→关」这条循环走得通 | P1 | 中 | 已完成 |
 | FEAT-156 | 2026-09-13 | `save_tab` 收一个 `path`，让自动化建的标签页有地方可存（否则它会卡死更新闭环） | P1 | 低 | 已完成 |
+| FEAT-157 | 2026-09-13 | 预览的散文字体谁都选不了——唯一那个字体设置属于编辑窗格，而三种语言把它叫作「正文字体」 | P2 | 低 | 已完成 |
 
 ---
 
@@ -487,3 +488,89 @@ installing closes this editor, and what is in those tabs would go with it
 | 接受相对路径 | 红 |
 | 允许移动读者已打开的文档 | 红 |
 | 存过之后不改绑 | 红 |
+
+## FEAT-157：预览用什么字体读，现在可以选
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | FEAT-157 |
+| 日期 | 2026-09-13 |
+| 优先级 | P2 |
+| 难易度 | 低 |
+| 状态 | 已完成 |
+
+### 怎么发现的：对账 AppConfig 的 51 个字段 × 设置界面
+
+扫「能改但没人读」和「有人读但改不了」。51 个字段全都有真读者，不在设置界面里的 7 个
+都是会话/窗口状态——这一张表是干净的。
+
+**但缓存签名那条线索没干净**：签名里有 `codeFontFamily`、`codeFontSize`、`fontSize`、
+`lineHeight`，**没有 `fontFamily`**。顺着查下去，`config.fontFamily` 只出现在
+源码窗格（2 处）和插件窗格（1 处）——**预览一次都没读它**，走的是主题的
+`platformFontFallback`。
+
+于是：**这个编辑器里，文档被读的那个窗格用什么字体，谁都定不了。**
+
+而那一行设置的中文叫**「正文字体」**，日文「本文フォント」，韩文「본문 글꼴」，
+代码注释写的是 "the editor's **body font**"，英文 `@description` 写的是
+"the font the editor's **body text** is drawn in"。
+
+> 正文正是在预览里读的。**那三条译文和这句英文描述，承诺的正是它不做的那一半。**
+
+（另外 9 种语言说的是「编辑器字体」——Editor-Schriftart、Fuente del editor、
+Шрифт редактора……**限定正确**，所以这不是全员译错，是三条译文越界。）
+
+### 为什么不是「让预览听 `fontFamily` 就行了」
+
+因为它的默认值是 `'monospace'`。让预览听它，**每一个没动过设置的读者**都会得到
+等宽的散文预览——为了修一个只影响「改过设置的人」的不一致，把所有人的观感改掉。
+
+两个设置才是对的，而且有先例：VS Code 正是 `editor.fontFamily`（源码）
+与 `markdown.preview.fontFamily`（预览）两个。
+
+### 实现方案
+
+| 项 | 做法 |
+|---|---|
+| 新字段 | `previewFontFamily`，默认 **空串**＝平台默认（没动过设置的人一切不变） |
+| 施加点 | 预览子树外层一个 `DefaultTextStyle.merge` |
+| 为什么在外层 | 标题、表格、引用、列表标记各自建 `TextStyle` 且**都不写字体族**，一个继承点全覆盖；代码块写了自己的族，于是保持等宽——这正是分两个设置的意义 |
+| 为什么 merge 不是 set | 各处样式已带 `fontFamilyFallback`，合并后仍然保留：选了一个缺字形的字体不会画成方框 |
+| 空串不合并 | `TextStyle(fontFamily: '')` 会把族**设成空串**，那不等于「不管平台默认」 |
+| 不进缓存签名 | 见下 |
+| i18n | 新键 `settingsPreviewFontFamily` × 12 种语言；中/日/韩的 `settingsEditorFontFamily` 改为「编辑器字体 / エディターのフォント / 편집기 글꼴」；英文 `@description` 改为编辑窗格 |
+
+### 那条守卫和它的豁免
+
+`block_cache_signature_test` 立刻报红：**「画进块里却不在签名中」**。
+它是对的形状——这个仓库为此栽过两次（reload images 无效、代码字号改了不变）。
+
+但这一条确实不该进签名，理由写进了豁免表：
+
+> 外层 `DefaultTextStyle`，每次 build 都重新应用；而且它是 **InheritedWidget**
+> ——改了之后框架会把读过它的每个 `Text` 标脏，**缓存里那一份也一样重建**。
+> 放进签名反而会为了同一幅画面丢掉并重建全部块。
+
+这一点是**变异查出来的**：我一开始把它加进了签名，去掉签名那一条之后测试仍然全绿
+（等价变异）。等价变异证伪了我写下的理由，而正确的机制比它更好。
+
+### 涉及文件
+
+- `code/lib/core/config/app_config.dart`
+- `code/lib/ui/editor/markdown_renderer.dart`
+- `code/lib/ui/screens/settings_screen.dart`
+- `code/lib/core/i18n/l10n/*.arb`（12 份）+ 生成代码
+- `code/test/ui/editor/the_preview_reads_in_the_chosen_face_test.dart`（新增 4 条）
+- `code/test/ui/editor/block_cache_signature_test.dart`（豁免 + 理由）
+
+### 验收标准
+
+| 变异 | 结果 |
+|------|------|
+| 不施加阅读字体（即改动前） | 红 |
+| 空串也强行合并（顶掉平台默认） | 红，「空字符串是『被顶掉了』，不是平台默认」 |
+| 代码块不写自己的族（跟着阅读字体走） | 红，「两个设置分开的意义就在这里」 |
+| 改成写进各块自己的样式（缓存会冻住它） | 红，正是「改了设置画面不跟上」那一条 |
+
+两条断言本身也被证明有意义：第三条不能只写 `isNot('Georgia')`（空串也不是 Georgia），
+改成断言「继承链上有一个非空的族」；起点值必须不等于目标值，否则第四条什么也没测。

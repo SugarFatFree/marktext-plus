@@ -583,6 +583,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get settingsCodeFontSize => 'Tamanho da fonte de código';
 
   @override
+  String get settingsPreviewFontFamily => 'Fonte da pré-visualização';
+
+  @override
   String get settingsEditorFontFamily => 'Fonte do editor';
 
   @override
@@ -1909,6 +1912,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get settingsCodeFontSize => 'Tamanho da fonte de código';
+
+  @override
+  String get settingsPreviewFontFamily => 'Fonte da pré-visualização';
 
   @override
   String get settingsEditorFontFamily => 'Fonte do editor';

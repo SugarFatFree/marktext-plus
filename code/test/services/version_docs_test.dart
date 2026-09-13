@@ -138,42 +138,54 @@ void main() {
   /// that with how far the fixes go. Not every fix needs a step — most of the
   /// last few were guards and documents — but somebody has to have decided
   /// that, and moving the marker is where they decide it.
-  test('the manual test says how far it has been thought through', () {
-    final dir = current();
-    if (dir == null) return;
+  /// Both documents, not only the fixes.
+  ///
+  /// This tracked `bugfix.md` alone, so a whole feature could be finished with
+  /// nothing in the plan and the marker still agreeing with itself — and a
+  /// feature is the half where only a person can say whether it looks right.
+  /// Found by writing a feature: the marker was moved to its FEAT number, and
+  /// the test said there was no marker at all.
+  for (final (doc, prefix) in [
+    ('bugfix.md', 'BUG'),
+    ('PRD_需求文档.md', 'FEAT'),
+  ]) {
+    test('the manual test says how far $prefix has been thought through', () {
+      final dir = current();
+      if (dir == null) return;
 
-    int? highest(String text) {
-      final numbers = RegExp(r'BUG-(\d+)')
-          .allMatches(text)
-          .map((m) => int.parse(m.group(1)!));
-      return numbers.isEmpty ? null : numbers.reduce((a, b) => a > b ? a : b);
-    }
+      int? highest(String text) {
+        final numbers = RegExp('$prefix-(\\d+)')
+            .allMatches(text)
+            .map((m) => int.parse(m.group(1)!));
+        return numbers.isEmpty ? null : numbers.reduce((a, b) => a > b ? a : b);
+      }
 
-    final fixed = highest(File('${dir.path}/bugfix.md').readAsStringSync());
-    expect(fixed, isNotNull, reason: 'bugfix.md 里读不出编号，取法要跟着改');
+      final recorded = highest(File('${dir.path}/$doc').readAsStringSync());
+      if (recorded == null) return; // 这一版还没有这一类改动
 
-    final plan = File('${dir.path}/manual-test.md').readAsStringSync();
-    final markers =
-        RegExp(r'<!--\s*人工测试已考虑到 BUG-(\d+)\s*-->').allMatches(plan);
-    expect(markers, isNotEmpty,
-        reason: '${dir.path}/manual-test.md 没有「已考虑到 BUG-N」的标记');
-    // One marker, moved — not a new one appended beside the old.
-    //
-    // Said out loud because `firstMatch` only implied it, and a second marker
-    // then made this test report the *stale* number: it was red, correctly,
-    // but for a reason that reads like the newest fix was never considered.
-    expect(markers.length, 1,
-        reason: '有 ${markers.length} 个标记。这是一个要被**移动**的标记，'
-            '不是每条修复追加一个——否则读到的是旧的那个');
-    final claimed = markers.first;
+      final plan = File('${dir.path}/manual-test.md').readAsStringSync();
+      final markers =
+          RegExp('<!--\\s*人工测试已考虑到 $prefix-(\\d+)\\s*-->').allMatches(plan);
+      expect(markers, isNotEmpty,
+          reason: '${dir.path}/manual-test.md 没有「已考虑到 $prefix-N」的标记');
+      // One marker per kind, moved — not a new one appended beside the old.
+      //
+      // Said out loud because `firstMatch` only implied it, and a second marker
+      // then made this test report the *stale* number: it was red, correctly,
+      // but for a reason that reads like the newest change was never
+      // considered.
+      expect(markers.length, 1,
+          reason: '有 ${markers.length} 个 $prefix 标记。这是一个要被**移动**的标记，'
+              '不是每条追加一个——否则读到的是旧的那个');
 
-    expect(
-      int.parse(claimed.group(1)!),
-      fixed,
-      reason: '人工测试计划考虑到的编号和 bugfix.md 的最新一条对不上——'
-          '要么给新修复加一条步骤，要么想清楚它不需要，再把标记抬上去',
-    );
-  });
+      expect(
+        int.parse(markers.first.group(1)!),
+        recorded,
+        reason: '人工测试计划考虑到的编号和 $doc 的最新一条对不上——'
+            '要么给新改动加一条步骤，要么想清楚它不需要，再把标记抬上去',
+      );
+    });
+  }
 
   for (final (file, prefix) in [
     ('bugfix.md', 'BUG'),

@@ -710,6 +710,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ),
         _row(
+          // The preview's face, kept apart from the editing pane's: the pane
+          // shows markup and wants a monospace default so a table's pipes line
+          // up, and the preview is what the document is read in. Empty gives
+          // the platform's own, which is what the preview always drew in.
+          l10n.settingsPreviewFontFamily,
+          SizedBox(
+            width: 200,
+            child: TextField(
+              controller: _field('previewFontFamily', config.previewFontFamily),
+              onSubmitted: (v) {
+                ref
+                    .read(settingsProvider.notifier)
+                    .updateConfig((c) => c.copyWith(previewFontFamily: v));
+              },
+            ),
+          ),
+        ),
+        _row(
           l10n.settingsCodeFontFamily,
           SizedBox(
             width: 200,

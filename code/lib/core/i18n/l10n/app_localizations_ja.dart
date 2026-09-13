@@ -573,7 +573,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsCodeFontSize => 'コードフォントサイズ';
 
   @override
-  String get settingsEditorFontFamily => '本文フォント';
+  String get settingsPreviewFontFamily => 'プレビューのフォント';
+
+  @override
+  String get settingsEditorFontFamily => 'エディターのフォント';
 
   @override
   String get settingsEditorMaxWidth => 'エディタの最大幅';

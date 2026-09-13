@@ -233,6 +233,7 @@
   "formatClearFormatting": "مسح التنسيق",
   "settingsCodeFontFamily": "خط الكود",
   "settingsCodeFontSize": "حجم خط الكود",
+  "settingsPreviewFontFamily": "خط المعاينة",
   "settingsEditorFontFamily": "خط المحرر",
   "settingsEditorMaxWidth": "أقصى عرض للمحرر",
   "settingsTextDirection": "اتجاه النص",

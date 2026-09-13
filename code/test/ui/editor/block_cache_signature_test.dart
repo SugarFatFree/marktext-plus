@@ -28,6 +28,10 @@ void main() {
   const exempt = <String, String>{
     'editorMaxWidth':
         '外层 ConstrainedBox，不在被缓存的块里，每次 build 都重新应用',
+    'previewFontFamily':
+        '外层 DefaultTextStyle，每次 build 都重新应用；而且它是 InheritedWidget——'
+        '改了之后框架会把读过它的每个 Text 标脏，缓存里那一份也一样重建。'
+        '放进签名反而会为了同一幅画面丢掉并重建全部块',
   };
 
   test('every setting the preview draws from is in the block signature', () {

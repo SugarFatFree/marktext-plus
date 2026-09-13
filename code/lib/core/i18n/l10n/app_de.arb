@@ -233,6 +233,7 @@
   "formatClearFormatting": "Formatierung löschen",
   "settingsCodeFontFamily": "Code-Schriftart",
   "settingsCodeFontSize": "Code-Schriftgröße",
+  "settingsPreviewFontFamily": "Schriftart der Vorschau",
   "settingsEditorFontFamily": "Editor-Schriftart",
   "settingsEditorMaxWidth": "Maximale Editorbreite",
   "settingsTextDirection": "Textrichtung",

@@ -579,6 +579,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settingsCodeFontSize => 'حجم خط الكود';
 
   @override
+  String get settingsPreviewFontFamily => 'خط المعاينة';
+
+  @override
   String get settingsEditorFontFamily => 'خط المحرر';
 
   @override

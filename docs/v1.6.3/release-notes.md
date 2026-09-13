@@ -506,6 +506,21 @@ that, every press used to count the lines before the match by cutting the docume
 there and splitting the piece into lines — 55 000 strings on a four megabyte
 document — for a number only the fallback path ever wanted.
 
+### You can choose the font the preview reads in
+
+There was one font setting and it belonged to the editing pane, which shows
+markup and defaults to a monospace face so a table's pipes line up. The preview
+— where a document is actually read — drew prose in whatever the platform
+supplied, and nothing could change it. Three of the twelve translations called
+that one setting "body text font", which is the half it did not do.
+
+**Preview Font Family** is its own row now, empty by default, so nothing changes
+unless you ask for something. Headings, paragraphs, lists, tables and quotes all
+follow it; code keeps the code font, which is the point of having two. A face
+your system does not have falls back rather than drawing boxes. The editing
+pane's row is unchanged, and says "editor" in every language now rather than
+"body text" in three of them.
+
 ### An untitled document you emptied closes without asking
 
 Typing into a new tab and then deleting it all left the tab counted as unsaved
@@ -958,6 +973,17 @@ HTML 与 PDF 早就改成「写临时文件再换过去」了。Word 的写盘�
 那段文字本来就正由窗格画着。现在位置直接从它那里读，**46 微秒**，
 并且天然算上换行——因为它就是换行本身。此外，每按一次还会先把文档在匹配处切开、
 把前半截分成行来数行号（4 MB 上 5.5 万个字符串），而这个数**只有兜底那条路用得上**。
+
+### 预览用什么字体读，可以自己选了
+
+原先只有一个字体设置，它属于**编辑窗格**——那里显示的是标记，默认等宽，好让表格的
+竖线对齐。而预览，也就是真正读文档的地方，用的是平台给什么就什么，**谁都改不了**。
+十二种语言里有三种把这一个设置叫作「正文字体」，而正文恰恰是它不管的那一半。
+
+现在**「预览字体」**是独立一行，**默认留空**，所以不主动去填就什么都不变。标题、段落、
+列表、表格、引用都跟着它走，**代码仍用代码字体**——这正是分成两个设置的意义。
+填了系统里没有的字体会回落，不会画成方框。编辑窗格那一行没有变化，
+只是十二种语言现在一致地说「编辑器字体」，而不是其中三种说「正文字体」。
 
 ### 删空的未命名文档关闭时不再追问
 

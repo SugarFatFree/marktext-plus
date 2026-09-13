@@ -233,6 +233,7 @@
   "formatClearFormatting": "Borrar formato",
   "settingsCodeFontFamily": "Fuente de código",
   "settingsCodeFontSize": "Tamaño de fuente de código",
+  "settingsPreviewFontFamily": "Fuente de la vista previa",
   "settingsEditorFontFamily": "Fuente del editor",
   "settingsEditorMaxWidth": "Ancho máximo del editor",
   "settingsTextDirection": "Dirección del texto",

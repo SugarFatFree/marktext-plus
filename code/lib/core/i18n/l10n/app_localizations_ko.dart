@@ -573,7 +573,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsCodeFontSize => '코드 글꼴 크기';
 
   @override
-  String get settingsEditorFontFamily => '본문 글꼴';
+  String get settingsPreviewFontFamily => '미리보기 글꼴';
+
+  @override
+  String get settingsEditorFontFamily => '편집기 글꼴';
 
   @override
   String get settingsEditorMaxWidth => '편집기 최대 너비';

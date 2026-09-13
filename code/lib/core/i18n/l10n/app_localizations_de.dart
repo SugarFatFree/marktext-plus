@@ -581,6 +581,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsCodeFontSize => 'Code-Schriftgröße';
 
   @override
+  String get settingsPreviewFontFamily => 'Schriftart der Vorschau';
+
+  @override
   String get settingsEditorFontFamily => 'Editor-Schriftart';
 
   @override

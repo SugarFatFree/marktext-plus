@@ -585,6 +585,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsCodeFontSize => 'Taille de police du code';
 
   @override
+  String get settingsPreviewFontFamily => 'Police de l\'aperçu';
+
+  @override
   String get settingsEditorFontFamily => 'Police de l\'éditeur';
 
   @override
