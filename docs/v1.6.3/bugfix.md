@@ -4862,3 +4862,53 @@ project root.」** 理由写着：Linux 上每个被监听的目录占一个 ino
 注释说明了为什么不重订：每次刷新都重建全部监听会白白消耗文件描述符。
 
 两个轴都不需要改动。
+
+## 无编号：核实三个「我一直假设为真」的事——CI 到底验了什么
+
+2026-09-14。上一轮发现「dev 上的 README 读者看不到」是靠**核实一个假设**，
+这一轮继续核实另外三个。**都成立**，但值得把数字记下来，以后一行就能复查。
+
+### 一、「CI 绿」包含真正的编译吗？包含
+
+早前一次失败的运行里 job 列表是「Analyze & Test / Build Linux **skipped** / Build
+Windows **skipped**」，那是因为测试先失败了。**成功的运行里两个构建都真的跑**：
+
+```
+Analyze & Test  success  6 分 04 秒
+Build Windows   success  10 分 08 秒
+Build Linux     success  2 分 16 秒
+```
+
+所以这一版累积的改动是**编译过的**，不只是 `flutter test` + `analyze` 过了。
+
+### 二、被跳过的那 4 条测试，在 CI 里跑了吗？跑了
+
+本机全量一直显示 `+3590 ~4`——**4 条被跳过**，原因是
+`Skip: PLUGIN_ZIP 未指向一个存在的 zip`。CI 的 analyze job 里有一步
+「Pack the plugin the way a release does」，用 `scripts/pack.py` 打出 zip 并写进
+`$GITHUB_ENV`。核实结果：
+
+| | 条数 |
+|---|---|
+| 本机 | 3590 通过 + **4 跳过** |
+| CI | **3594 通过**，日志里 `PLUGIN_ZIP 未指向` 出现 **0 次** |
+
+**3590 + 4 = 3594。** 这笔算术就是「CI 里没有静默跳过」的检查——
+以后只要两边的数对不上，就说明有守卫在某一侧悄悄没跑。
+（会跳过的守卫不是守卫；而这 4 条只在**没有打包插件**的机器上跳。）
+
+### 三、macOS 在哪里构建？只在发版时，但每次都成功产出
+
+| 工作流 | 触发 | 构建 |
+|--------|------|------|
+| `ci.yml` | 每次 push / PR | analyze+test、**Linux**、**Windows** |
+| `release.yml` | 打 tag | 版本号对账、Windows（x64 + **arm64**）、**macOS**、Linux、发布 |
+
+近五个发行版（v1.5.5 → v1.6.2）**每一个都带 `macos-universal` 的 dmg 与 zip**，
+所以那个 job 是通的。差别只是：**破坏 macOS 构建的改动只会在打 tag 之后才暴露。**
+
+本次会话的改动全在 `lib/` 的纯 Dart 与测试/文档里，macOS 特有面
+（`macos/Runner`、podspec、entitlements）一个字未碰，所以**增量风险≈0，不值得为它改 CI**。
+如果希望发版前能先验一次 mac，可以给 `ci.yml` 加一个
+`if: github.event_name == 'workflow_dispatch'` 的 macOS job——平时零开销，
+要用时手动点一次。**这要花用户的 macOS runner 额度，需要他同意，已在会话里提出。**
