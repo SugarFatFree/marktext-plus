@@ -333,17 +333,29 @@ class McpToolset {
     ),
     McpTool(
       name: 'control',
+      // The list is read off [McpAction] rather than written out here.
+      // Spelled out, this was a third hand-written list beside the schema and
+      // the handler, and it fell behind them the way the READMEs did
+      // (BUG-483): nine behaviours named where there were thirteen actions,
+      // leaving out saving a tab, taking a close back, opening a panel and
+      // changing a setting. This paragraph is what an agent reads to decide
+      // whether this is the tool it wants, so an action missing from it is an
+      // action nobody goes looking for.
       description:
-          'Drive the editor: open and close tabs, switch between them, '
-          'change the view mode, write a tab\'s text, run a plugin command, '
-          'close a plugin pane, install or update a plugin, update the '
-          'editor itself.',
+          'Drive the editor — one action per call, named by "action", and '
+          'these are all of them: '
+          '${McpAction.values.map((a) => a.wireName).join(', ')}. '
+          'The arguments each one takes are described beside them; an action '
+          'reads only its own.',
       schema: {
         'type': 'object',
         'required': ['action'],
         'properties': {
           'action': {
             'type': 'string',
+            'description': 'Which one thing to do. Every other argument here '
+                'belongs to one or more of these, and an action reads only '
+                'its own.',
             'enum': [for (final a in McpAction.values) a.wireName],
           },
           'path': {
@@ -361,6 +373,8 @@ class McpToolset {
           },
           'mode': {
             'type': 'string',
+            'description': 'For set_view_mode: the markdown as text, as it is '
+                'drawn, or both side by side.',
             'enum': ['source', 'preview', 'split'],
           },
           'content': {
@@ -381,6 +395,13 @@ class McpToolset {
           },
           'slot': {
             'type': 'string',
+            // Named after quadrants, not edges, and that is worth saying:
+            // "bottom" is the bottom *left* one. A caller reading the word
+            // would assume the strip along the bottom, and nothing in the
+            // protocol said otherwise.
+            'description': 'For close_pane: which quarter of the tab. The '
+                'document holds the top left; "right" is the top right, '
+                '"bottom" the bottom left, "corner" the bottom right.',
             'enum': ['right', 'bottom', 'corner'],
           },
           'panelId': {

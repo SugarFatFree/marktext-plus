@@ -680,6 +680,15 @@ one side while the numbers moved.
 - Asked to close a pane without saying which, it replied `unknown slot "null"`,
   quoting back a value the caller never sent. Missing and wrong are different
   answers, and both now name the slots there are.
+- The automation tool's own description named nine things it could do where
+  there are thirteen, leaving out saving a tab, taking a close back, opening a
+  panel and changing a setting. That paragraph is the first thing read to
+  decide whether the tool is the one wanted, so it now reads its list off the
+  actions instead of carrying a third hand-written copy of them.
+- Three of its seventeen arguments said nothing about themselves, and one of
+  those was the one that needed it: the panes are named after quarters of the
+  tab rather than edges of it, so "bottom" is the bottom *left* one and
+  nothing in the protocol said so.
 
 ### Reopen a closed tab
 
@@ -1243,6 +1252,12 @@ Ctrl+V 会读剪贴板的两种格式，把 HTML 转成 Markdown——所以从�
 - 让它关一个窗格却没说关哪个时，它回答 `unknown slot "null"`，
   把调用方从没发过的值引述回去。「没给」和「给错」是两种答复，
   现在两种都会列出有哪些槽位。
+- 自动化工具**自己的描述**讲了 9 件它能做的事，而它有 13 个动作——
+  少掉的是存盘、把关闭收回、打开面板和改设置。那一段是决定「要不要用这个工具」
+  时最先读到的，所以它现在直接从动作本身读出清单，不再是第三份手抄件。
+- 它 17 个参数里有 3 个什么也没说，而其中一个恰恰是最需要说的：
+  窗格是按**象限**命名的，不是按边——`bottom` 是左**下**那一格，
+  协议里原本没有一处讲过。
 
 ### 关掉的标签页可以拿回来
 

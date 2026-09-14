@@ -93,14 +93,51 @@ void main() {
     );
   });
 
+  test('every argument the schema offers says what it is for', () {
+    // Fourteen of the seventeen explained themselves and three did not:
+    // `action`, `mode` and `slot`. All three carry an enum, so a caller can
+    // see the values — but `slot` is the one where the values do not explain
+    // themselves. They name quadrants of the tab, not edges of it: `bottom`
+    // is the bottom **left** one, which is not what a caller reading the word
+    // would assume, and there was nothing anywhere in the protocol to say so.
+    final undescribed = <String>[];
+    for (final tool in const McpToolset().all) {
+      final props = tool.schema['properties'];
+      if (props is! Map) continue;
+      props.forEach((name, spec) {
+        if (spec is Map && (spec['description'] as String?)?.isNotEmpty != true) {
+          undescribed.add('${tool.name}.$name');
+        }
+      });
+    }
+    expect(undescribed, isEmpty,
+        reason: '调用方看不到它是干什么的，只能猜或者被拒绝之后才知道');
+  });
+
   test('control says what it does, and does not promise more', () {
+    // This used to pin two phrases out of nine — "view mode" and "plugin
+    // command" — and so could not see the four actions the sentence never
+    // mentioned. It named nine behaviours where there were thirteen actions,
+    // leaving out saving a tab, taking a close back, opening a panel and
+    // changing a setting: a third hand-written list beside the schema and the
+    // handler, drifting the way the READMEs did (BUG-483). And this paragraph
+    // is what an agent reads to decide whether this is the tool it wants, so
+    // an action missing from it is an action nobody goes looking for.
+    //
+    // The description now reads its list off [McpAction], and this holds both
+    // directions of that: nothing missing, and nothing promised that is not
+    // there.
     final control =
         const McpToolset().all.firstWhere((t) => t.name == 'control');
-    // Every action the enum holds should be recognisable in that sentence,
-    // and nothing else should be.
-    expect(control.description, contains('view mode'));
-    expect(control.description, contains('plugin command'));
-    expect(control.description, isNot(contains('open a file')));
+    final named = RegExp(r'\b[a-z]+_[a-z_]+\b')
+        .allMatches(control.description)
+        .map((m) => m.group(0)!)
+        .toSet();
+    expect(
+      named,
+      unorderedEquals([for (final a in McpAction.values) a.wireName]),
+      reason: '描述里提到的动作，和枚举里真有的动作，必须是同一批',
+    );
   });
 
   group('a refusal is a refusal in the protocol too', () {

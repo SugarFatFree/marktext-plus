@@ -72,6 +72,8 @@
 | BUG-487 | 2026-09-14 | `save_tab` 带 `path` 存盘后答复说的是**存之前**那个名字——「saved Untitled as UTF-8」，而写出去的文件叫别的 | P3 | 已修复并真机验证 |
 | BUG-488 | 2026-09-14 | 自动化接口用**两种语言**作答：22 条拒绝理由是中文，其余上百条是英文；其中 5 条只写着「同上」，而它们是**一条一条单独送出去**的 | P3 | 已修复 |
 | BUG-489 | 2026-09-14 | 不给 `slot` 调 `close_pane`，它回答 `unknown slot "null"`——把调用方从没发过的值引述回去；`set_setting` 缺参数时是半句话 | P3 | 已修复 |
+| BUG-490 | 2026-09-14 | `control` 工具**自己的描述**只讲了 9 件事，而它有 13 个动作——BUG-483 修的是 README，这一份是代理最先读到的那一段 | P2 | 已修复 |
+| BUG-491 | 2026-09-14 | 17 个参数里有 3 个没有任何说明；其中 `slot` 的取值按**象限**命名——`bottom` 是左**下**那一格，而协议里没有一处说过 | P3 | 已修复 |
 
 ---
 
@@ -5418,3 +5420,121 @@ unknown slot "middle" — right, bottom, corner
 
 - `code/lib/providers/mcp_provider.dart`
 - `code/test/services/mcp_control_does_it_test.dart`
+
+---
+
+## BUG-490：代理最先读到的那一段，只讲了九件事
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-490 |
+| 日期 | 2026-09-14 |
+| 优先级 | P2 |
+| 状态 | 已修复 |
+
+### 怎么发现的
+
+同一条视角的第四次：在真机上把 `tools/list` 拉下来，**逐条读描述**。
+
+```
+Drive the editor: open and close tabs, switch between them, change the view
+mode, write a tab's text, run a plugin command, close a plugin pane, install
+or update a plugin, update the editor itself.
+```
+
+数一数：9 件事。而 `McpAction` 有 **13 个**。少掉的是
+**存盘（`save_tab`）、把关闭收回（`reopen_tab`）、打开面板（`open_panel`）、
+改设置（`set_setting`）**。
+
+### 这和 BUG-483 是同一件事，只是更靠里一层
+
+BUG-483 修的是 **12 份 README** 里那张表。修的时候没有人回头看
+**协议自己的那段描述**——而这一段才是代理真正读到的第一手材料：
+它读它来决定「这个工具是不是我要的」。
+
+schema 里的 `action` 枚举是从 `McpAction.values` 生成的，13 个一个不少
+（`mcp_action_test` 一直在双向对账）。**所以名字是能查到的**——
+但一个不知道编辑器能改设置的代理，不会去查。
+
+### 根因：那段散文是**第三份**手写清单
+
+schema（生成的）、handler 的 switch（编译器穷尽检查）、**以及这段描述**（手写）。
+前两份用机制绑死了，第三份没人管。
+
+### 修复：不是让它跟上，而是让它没有清单可落后
+
+```dart
+'Drive the editor — one action per call, named by "action", and '
+'these are all of them: '
+'${McpAction.values.map((a) => a.wireName).join(', ')}. '
+```
+
+### 守卫：把原来那条改写成双向对账
+
+原来有一条 `control says what it does, and does not promise more`，
+它钉的是**两个短语**——`view mode` 和 `plugin command`——
+所以它对「没提到的那四个」完全无感。**这正是「守卫照着坏掉的形状写」的样子。**
+
+改写成：把描述里所有下划线形式的词取出来，和 `McpAction.values` 做
+`unorderedEquals`。少一个、多一个都会红。变异（把生成的清单换成手写的三个）
+立刻失败。
+
+### 涉及文件
+
+- `code/lib/services/mcp_tools.dart`
+- `code/test/services/mcp_action_test.dart`
+
+---
+
+## BUG-491：`bottom` 不是底下那一条
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-491 |
+| 日期 | 2026-09-14 |
+| 优先级 | P3 |
+| 状态 | 已修复 |
+
+### 现象
+
+同一次「逐条读」里接着往下数：`control` 的 17 个参数，**14 个有说明，3 个没有**
+——`action`、`mode`、`slot`。
+
+三个都带 `enum`，所以**取值**是看得见的。但其中一个的取值**本身不解释自己**：
+
+| 槽位名 | 实际位置 |
+|---|---|
+| （文档） | 左上 |
+| `right` | 右上 |
+| **`bottom`** | **左下** |
+| `corner` | 右下 |
+
+它们是**象限**的名字，不是边的名字。一个读到 `bottom` 的调用方会以为那是
+「贴着底边的一条」，而它其实是**左下那一格**——协议里没有任何一处说过这件事。
+
+（BUG-489 刚把拒绝消息改成会列出槽位名，但**列出名字不等于说清它在哪**。
+只修拒绝那一端，是修症状。）
+
+### 修复
+
+三个参数都补上说明，`slot` 那条把四格的对应关系写全：
+
+> For close_pane: which quarter of the tab. The document holds the top left;
+> "right" is the top right, "bottom" the bottom left, "corner" the bottom right.
+
+与 `PluginPaneSlot` 各成员的文档注释逐条核对过（`right`「Beside the document」、
+`bottom`「Under it」、`corner`「The fourth cell, under the right-hand pane」），
+也与 `.claude/CLAUDE.md` 里那张定死的表一致。
+
+### 守卫
+
+`mcp_action_test`「every argument the schema offers says what it is for」：
+遍历**每个工具的每个参数**，缺说明就红。钉的是这一类——
+下一个加参数的人忘了写说明会立刻知道，不用等到有人在真机上读出来。
+
+失败时它点名 `['control.action', 'control.mode', 'control.slot']`。
+
+### 涉及文件
+
+- `code/lib/services/mcp_tools.dart`
+- `code/test/services/mcp_action_test.dart`
