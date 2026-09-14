@@ -70,6 +70,8 @@
 | BUG-485 | 2026-09-14 | 握手时编辑器自报版本是 `dev`——那个版本号读的是一个全仓库从没人定义过的编译期常量 | P2 | 已修复并真机验证 |
 | BUG-486 | 2026-09-14 | 发行构建（读者唯一会装的那个）没有打构建标记，启动追踪里写着「这不是 CI 构建」——而只有被丢掉的 CI 产物打了 | P2 | 已修复 |
 | BUG-487 | 2026-09-14 | `save_tab` 带 `path` 存盘后答复说的是**存之前**那个名字——「saved Untitled as UTF-8」，而写出去的文件叫别的 | P3 | 已修复并真机验证 |
+| BUG-488 | 2026-09-14 | 自动化接口用**两种语言**作答：22 条拒绝理由是中文，其余上百条是英文；其中 5 条只写着「同上」，而它们是**一条一条单独送出去**的 | P3 | 已修复 |
+| BUG-489 | 2026-09-14 | 不给 `slot` 调 `close_pane`，它回答 `unknown slot "null"`——把调用方从没发过的值引述回去；`set_setting` 缺参数时是半句话 | P3 | 已修复 |
 
 ---
 
@@ -5284,6 +5286,133 @@ return mcpDid('saved ${(now ?? saving).fileName}' ...);
 `mcp_control_does_it_test`「a tab made over the socket can be given a file」
 增两条断言：答复里要有 `kept.md`，且**不能**有 `scratch.md`。
 改回旧代码后失败信息正是 `Expected: contains 'kept.md' Actual: 'saved scratch.md as UTF-8'`。
+
+### 涉及文件
+
+- `code/lib/providers/mcp_provider.dart`
+- `code/test/services/mcp_control_does_it_test.dart`
+
+---
+
+## BUG-488：接口用两种语言作答，其中五句是「同上」
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-488 |
+| 日期 | 2026-09-14 |
+| 优先级 | P3 |
+| 状态 | 已修复 |
+
+### 怎么发现的
+
+刚在真机上撞到 BUG-487（「逐句读它的答复」这条视角当天第二次奏效），于是**接着往下问**
+——专挑零副作用的错误路径，只看它怎么回答：
+
+```
+control {"action":"set_setting"}                → no setting named
+control {"action":"close_pane","pane":"right"}  → unknown slot "null"
+set_setting {"setting":"aiApiKey", ...}         → aiApiKey 不经过这个接口：凭据，永远不经过这个接口
+```
+
+最后那句和前面上百句不是一种语言。
+
+### 根因一：一张表和它周围的一切不一样
+
+`McpSettings.notOverTheWire` 的 22 条理由全是中文，而这个接口**其余的全部输出**
+——工具描述、拒绝、「做了什么」的答复——都是英文。
+
+这不是「哪种语言对」的问题。读者自己的界面翻译成 12 种语言，那是它存在的理由；
+**而这条线是协议，只有一种受众**，一个用两种语言作答的协议，
+普通的使用者有一半读不懂。
+
+### 根因二（更要紧）：那些理由是照着源码从上往下读写的
+
+```dart
+'aiProvider': '同上，它决定请求去哪个服务',
+'aiModel': '同上',
+'windowHeight': '同上',
+'windowX': '同上',
+'windowY': '同上',
+'isMaximized': '同上',
+```
+
+**但它们是一条一条单独送出去的。** 调用方问 `aiModel`，拿到的整句话就是「同上」
+——上面是什么，它看不见。**五条理由等于什么也没说。**
+
+这是「一份清单写给读源码的人，实际读者却是别人」的又一例。
+
+### 修复
+
+22 条全部改写成**能独立读懂**的英文，五条「同上」各自把话说完整
+（如 `aiModel: part of the same group as the endpoint, the provider and the key`）。
+拼接那一行也改成英文：`$name is not set over this interface: $refusal`。
+
+### 守卫
+
+新增 `the_interface_answers_in_one_language_test`，两条：
+
+1. `mcp_tools.dart` / `mcp_provider.dart` / `mcp_server.dart` 三个文件里**不许出现 CJK**。
+   钉在文件上而不是字符串上，是因为这三个文件的注释本来就是英文——
+   出现 CJK 只可能是一条要发给调用方的消息，或者一个笔误。
+2. 每条理由都得**说点什么**：长度大于 8，且不能只是把设置名重复一遍。
+   这一条就是抓出那五个「同上」的（`Actual: <2>`）。
+
+### 涉及文件
+
+- `code/lib/services/mcp_tools.dart`、`code/lib/providers/mcp_provider.dart`
+- `code/test/services/the_interface_answers_in_one_language_test.dart`（新增）
+- `code/test/services/a_setting_can_be_changed_over_the_wire_test.dart`（一条断言跟着改）
+
+---
+
+## BUG-489：它把调用方从没发过的值引述回去
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-489 |
+| 日期 | 2026-09-14 |
+| 优先级 | P3 |
+| 状态 | 已修复 |
+
+### 现象
+
+```
+control {"action":"close_pane"}   → unknown slot "null"
+control {"action":"set_setting"}  → no setting named
+```
+
+第一句**把一个从来没发过的值加引号还给调用方**，像是它真发了个字符串 `"null"`；
+第二句是半句话。而同一个 switch 里的兄弟分支是这么说的：
+`no tabId given`、`no content given`。
+
+### 根因
+
+```dart
+final slot = PluginPaneSlot.values.where((s) => s.name == text('slot')).firstOrNull;
+if (slot == null) return mcpRefused('unknown slot "${text('slot')}"');
+```
+
+**「没给」和「给错了」走了同一条出口。** 而 Dart 的字符串插值把 `null` 变成了
+四个字母的 `null`——[[a-null-that-became-the-string-null]] 那一类。
+
+### 修复
+
+两种情况分开答，**并且两种都列出可用的槽位**——槽位清单从枚举生成，
+不另立一份（同一个文件里 `update_app` 的 `unknown source "$source" — release or ci`
+是硬编码的，这里没跟着抄）。
+
+```
+no slot given — right, bottom, corner
+unknown slot "middle" — right, bottom, corner
+```
+
+`set_setting` 的半句话改成 `no setting given`，和兄弟分支一个形状。
+
+### 守卫
+
+`mcp_control_does_it_test` 增两条：不给 slot 时答复里**不许出现 `null`**、
+要含 `no slot given`，且**枚举里每一个槽位名都要出现**；给错 slot 时要把那个值
+引述回来、同样列出全部槽位。变异回旧写法，失败信息正是 `Actual: 'unknown slot "null"'`。
 
 ### 涉及文件
 

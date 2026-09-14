@@ -420,11 +420,18 @@ class McpController extends StateNotifier<McpStatus> {
         );
 
       case McpAction.closePane:
-        final slot = PluginPaneSlot.values
-            .where((s) => s.name == text('slot'))
-            .firstOrNull;
+        // "Missing" and "wrong" are different answers. Asked with no slot at
+        // all this used to reply `unknown slot "null"` — a value the caller
+        // never sent, quoted back at them as though they had. Both answers
+        // name the slots there are, listed from the enum so there is no second
+        // list of them to fall behind.
+        final named = PluginPaneSlot.values.map((s) => s.name).join(', ');
+        final wanted = text('slot');
+        if (wanted == null) return mcpRefused('no slot given — $named');
+        final slot =
+            PluginPaneSlot.values.where((s) => s.name == wanted).firstOrNull;
         final id = _ref.read(tabProvider).activeTabId;
-        if (slot == null) return mcpRefused('unknown slot "${text('slot')}"');
+        if (slot == null) return mcpRefused('unknown slot "$wanted" — $named');
         if (id == null) return mcpRefused('no tab is active');
         return _ref.read(pluginPanesProvider.notifier).close(id, slot)
             ? mcpDid('closed the ${slot.name} pane')
@@ -448,9 +455,9 @@ class McpController extends StateNotifier<McpStatus> {
   /// `fontSize: "large"` reset the reader's font size to 16 and then said it
   /// would not take the value, which is worse than not refusing at all.
   Future<McpOutcome> _setSetting(String? name, Object? value) async {
-    if (name == null) return mcpRefused('no setting named');
+    if (name == null) return mcpRefused('no setting given');
     final refusal = McpSettings.notOverTheWire[name];
-    if (refusal != null) return mcpRefused('$name 不经过这个接口：$refusal');
+    if (refusal != null) return mcpRefused('$name is not set over this interface: $refusal');
 
     final notifier = _ref.read(settingsProvider.notifier);
     final before = notifier.state.toJson();

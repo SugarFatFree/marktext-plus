@@ -105,39 +105,39 @@ abstract final class McpSettings {
     // Credentials, and where a credential is sent. The host holds the key and
     // nothing else is ever handed it — a wire that could move the endpoint
     // could move the key with it.
-    'aiApiKey': '凭据，永远不经过这个接口',
-    'aiEndpoint': '改它就是改密钥发往哪里',
-    'aiProvider': '同上，它决定请求去哪个服务',
-    'aiEnabled': '和上面三个一组，整组都不放行',
-    'aiModel': '同上',
+    'aiApiKey': 'a credential, and credentials never travel this wire',
+    'aiEndpoint': 'changing it changes where the key gets sent',
+    'aiProvider': 'it decides which service the request and the key go to',
+    'aiEnabled': 'one group with the endpoint, the provider and the key, and the group is refused whole',
+    'aiModel': 'part of the same group as the endpoint, the provider and the key',
 
     // The connection this very request arrived on.
-    'mcpEnabled': '关掉它就再也连不上，只有人能打开',
-    'mcpPort': '换端口等于挂断，而挂断之后没人能重连',
-    'mcpToken': '换令牌等于把钥匙交给别处',
+    'mcpEnabled': 'turning it off closes this connection, and only a person at the machine can turn it back on',
+    'mcpPort': 'moving the port hangs up this call, and nothing out here knows where to call back',
+    'mcpToken': 'replacing the token hands the key to whoever holds the new one',
 
     // Records of what happened, not settings. Writing a scalar into one of
     // these would either do nothing or corrupt the record.
-    'recentFiles': '这是记录不是设置',
-    'sessionTabs': '这是记录不是设置',
-    'sessionActiveTab': '这是记录不是设置',
-    'sideBarDirectory': '这是记录不是设置',
-    'sideBarOpenedFiles': '这是记录不是设置',
-    'lastUpdateCheck': '更新检查的记账',
-    'skipVersion': '写它会让读者再也收不到某个版本的更新提示',
+    'recentFiles': 'a record of what was opened, not a setting',
+    'sessionTabs': 'a record of what was open last time, not a setting',
+    'sessionActiveTab': 'a record of what was in front last time, not a setting',
+    'sideBarDirectory': 'a record of which folder the side bar was showing, not a setting',
+    'sideBarOpenedFiles': 'a record of what the side bar was listing, not a setting',
+    'lastUpdateCheck': "the update check's own bookkeeping, not something to set",
+    'skipVersion': 'writing it would stop the reader ever being offered one particular version again',
 
     // Written by the window manager as the window moves. Setting them stores
     // a number and moves nothing, which would be the editor saying something
     // that is not so.
-    'windowWidth': '窗口尺寸由窗口管理器写入，设它不会移动窗口',
-    'windowHeight': '同上',
-    'windowX': '同上',
-    'windowY': '同上',
-    'isMaximized': '同上',
-    'splitRatio': '分隔条的位置由拖动写入，设它不会移动分隔条',
+    'windowWidth': 'the window manager writes this as the window is resized; setting it stores a number and moves nothing',
+    'windowHeight': 'the window manager writes this as the window is resized; setting it stores a number and moves nothing',
+    'windowX': 'the window manager writes this as the window is moved; setting it stores a number and moves nothing',
+    'windowY': 'the window manager writes this as the window is moved; setting it stores a number and moves nothing',
+    'isMaximized': 'the window manager writes this when the window is maximised; setting it stores a flag and changes nothing',
+    'splitRatio': 'the divider writes this as it is dragged; setting it moves no divider',
 
     // One thing, one way in.
-    'editMode': 'set_view_mode 就是做这件事的，一件事两条路是这个仓库一直在删的缺陷',
+    'editMode': 'set_view_mode is the action for this, and one thing reachable two ways is the drift this repository keeps removing',
   };
 }
 

@@ -8,6 +8,7 @@ import 'package:marktext_plus/models/tab_info.dart';
 import 'package:marktext_plus/providers/mcp_provider.dart';
 import 'package:marktext_plus/services/file_service.dart';
 import 'package:marktext_plus/services/mcp_tools.dart';
+import 'package:marktext_plus/services/plugin_script_runtime.dart';
 import 'package:marktext_plus/providers/settings_provider.dart';
 import 'package:marktext_plus/providers/tab_provider.dart';
 
@@ -507,6 +508,35 @@ void main() {
         EditMode.preview,
         reason: '被拒绝的请求不该改变任何东西',
       );
+    });
+
+    test('asked with no slot it says so, and names the ones there are',
+        () async {
+      // It used to answer `unknown slot "null"` — quoting back a value the
+      // caller never sent. "Missing" and "wrong" are different answers, and
+      // neither is useful without the list.
+      final outcome = await boot()
+          .read(mcpProvider.notifier)
+          .performAction('close_pane', const {});
+
+      expect(outcome.ok, isFalse);
+      expect(outcome.said, isNot(contains('null')));
+      expect(outcome.said, contains('no slot given'));
+      for (final slot in PluginPaneSlot.values) {
+        expect(outcome.said, contains(slot.name));
+      }
+    });
+
+    test('an unknown slot is named back, with the ones there are', () async {
+      final outcome = await boot()
+          .read(mcpProvider.notifier)
+          .performAction('close_pane', const {'slot': 'middle'});
+
+      expect(outcome.ok, isFalse);
+      expect(outcome.said, contains('"middle"'));
+      for (final slot in PluginPaneSlot.values) {
+        expect(outcome.said, contains(slot.name));
+      }
     });
 
     test('closing a pane that was never open is refused', () async {

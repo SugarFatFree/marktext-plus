@@ -111,7 +111,8 @@ void main() {
 
       expect(outcome.ok, isFalse);
       expect(c.read(settingsProvider).aiApiKey, isEmpty);
-      expect(outcome.said, contains('凭据'));
+      expect(outcome.said, contains('credential'),
+          reason: '要说出拒绝的是「哪一类东西」，调用方才知道别再试');
     });
 
     test('where a credential is sent', () async {

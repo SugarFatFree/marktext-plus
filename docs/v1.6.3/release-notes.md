@@ -673,6 +673,13 @@ one side while the numbers moved.
   time answered with the name the tab had before, not the name of the file it
   had just written — the only case where the two differ, and the case the
   caller most needs answered.
+- The automation interface answered in two languages: twenty-two of its
+  refusals were Chinese where everything else it says is English, and five of
+  those said only "the same as above" — which is nothing at all when they are
+  delivered one at a time.
+- Asked to close a pane without saying which, it replied `unknown slot "null"`,
+  quoting back a value the caller never sent. Missing and wrong are different
+  answers, and both now name the slots there are.
 
 ### Reopen a closed tab
 
@@ -1231,6 +1238,11 @@ Ctrl+V 会读剪贴板的两种格式，把 HTML 转成 Markdown——所以从�
 - 通过自动化接口存盘、同时给标签页指定文件时，答复说的是存**之前**那个名字，
   不是刚写出去的那个文件名——而这正是两者唯一会不一样的情况，
   也正是调用方最需要答案的那一格。
+- 自动化接口用两种语言作答：22 条拒绝理由是中文，而它说的其余一切都是英文；
+  其中 5 条只写着「同上」——可它们是**一条一条单独送出去**的，等于什么也没说。
+- 让它关一个窗格却没说关哪个时，它回答 `unknown slot "null"`，
+  把调用方从没发过的值引述回去。「没给」和「给错」是两种答复，
+  现在两种都会列出有哪些槽位。
 
 ### 关掉的标签页可以拿回来
 
