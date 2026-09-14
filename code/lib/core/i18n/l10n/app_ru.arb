@@ -382,6 +382,7 @@
   "settingsImageStorageLink": "Ссылаться на исходное место",
   "settingsImageFolder": "Папка изображений",
   "fileCloseTab": "Закрыть вкладку",
+  "fileReopenClosedTab": "Открыть закрытую вкладку",
   "fileClearRecentFiles": "Очистить недавние файлы",
   "viewCommandPalette": "Палитра команд",
   "viewReloadImages": "Перезагрузить изображения",

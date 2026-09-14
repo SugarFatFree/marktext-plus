@@ -989,6 +989,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get fileCloseTab => 'タブを閉じる';
 
   @override
+  String get fileReopenClosedTab => '閉じたタブを開き直す';
+
+  @override
   String get fileClearRecentFiles => '最近のファイルを消去';
 
   @override

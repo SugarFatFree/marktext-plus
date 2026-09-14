@@ -125,7 +125,7 @@ regenerate.
 | **`control`** | Twelve actions: open, close, save and switch tabs, write content, change the view mode, close a pane, run a plugin command, open a plugin's panel, change a setting — **and install a plugin or replace the application with a build from CI** |
 
 The twelve actions, by the names an agent sends:
-`new_tab`, `close_tab`, `save_tab`, `activate_tab`, `set_view_mode`, `set_content`, `close_pane`, `run_plugin_command`, `open_panel`, `install_plugin`, `update_app`, `set_setting`
+`new_tab`, `close_tab`, `reopen_tab`, `save_tab`, `activate_tab`, `set_view_mode`, `set_content`, `close_pane`, `run_plugin_command`, `open_panel`, `install_plugin`, `update_app`, `set_setting`
 
 ## ⚖️ How it compares
 

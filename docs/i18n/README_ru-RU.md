@@ -109,7 +109,7 @@ flutter pub get && flutter run
 | **`control`** | Двенадцать действий: открыть, закрыть, сохранить и переключить вкладку, записать содержимое, сменить режим просмотра, закрыть панель, выполнить команду плагина, открыть панель плагина, изменить настройку — **а также установить плагин или заменить приложение сборкой из CI** |
 
 Двенадцать действий — под теми именами, которые отправляет агент:
-`new_tab`, `close_tab`, `save_tab`, `activate_tab`, `set_view_mode`, `set_content`, `close_pane`, `run_plugin_command`, `open_panel`, `install_plugin`, `update_app`, `set_setting`
+`new_tab`, `close_tab`, `reopen_tab`, `save_tab`, `activate_tab`, `set_view_mode`, `set_content`, `close_pane`, `run_plugin_command`, `open_panel`, `install_plugin`, `update_app`, `set_setting`
 
 ## ⚖️ Сравнение
 

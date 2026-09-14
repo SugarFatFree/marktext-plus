@@ -670,6 +670,49 @@ one side while the numbers moved.
   the executable, booting the engine and reading the snapshot are three
   different problems with three different answers.
 
+### Reopen a closed tab
+
+Ctrl+Alt+R, or File → Reopen Closed Tab, opens the document you just closed —
+back in the position it held, not at the end. Every editor with tabs has this
+and this one did not: the file had to be found again in the sidebar, or in
+Recent Files if it was still there, or typed into the open dialog.
+
+Not Ctrl+Shift+T, which browsers and VS Code use, because that key is the task
+list here and has been since upstream. It is in the command palette and in the
+shortcut list, so it can be rebound to whatever you like.
+
+The path is what is kept, not the text — holding the contents of the last ten
+closed documents would cost more memory than this editor is willing to spend —
+so what comes back is the file as it stands on disk. A tab that was never
+saved has no path and is not offered; closing a modified one asks first, so
+answering "don't save" is a decision rather than a slip.
+
+The automation interface gained `reopen_tab` for the same reason: closing is
+the one thing it could do that destroys something, and it could not take it
+back.
+
+### The editor could not say which editor it was
+
+Asked over the automation interface, every shipped build introduced itself as
+"dev". The version it reported came from a compile-time setting named
+APP_VERSION, which appears exactly once in this repository — in the line that
+reads it. Nothing had ever defined it, so the fallback was the only answer
+there had ever been.
+
+`get_state` now carries the version too. After the editor has replaced itself
+with a newer build and come back, what came back is the thing worth knowing,
+and the handshake is read once at connect time and not offered again.
+
+### A released build can say which build it is
+
+The startup trace prints a line naming the commit it was built from. The
+workflow that builds the binaries nobody ships passed it; the workflow that
+builds the ones on the Releases page did not, on all three platforms — so the
+downloads said "this is not a CI build" about a build CI made. It exists
+because a slow-launch report was once diagnosed against source several commits
+newer than the binary that produced it, which is exactly the report it was
+silent for.
+
 ## 中文
 
 到目前为止三条修复，其实是同一件事的三个侧面：**守卫是照着作者眼前那一个坏掉的
@@ -1181,3 +1224,38 @@ Ctrl+V 会读剪贴板的两种格式，把 HTML 转成 Markdown——所以从�
 - 启动每一步的耗时现在可以通过自动化接口读到。日志里原本只有一个数
   ——「+901 ms before Dart」——而加载可执行文件、启动引擎、读取快照
   是三个不同的问题，答案也不同。
+
+### 关掉的标签页可以拿回来
+
+Ctrl+Alt+R，或者「文件 → 重新打开关闭的标签页」，把刚关掉的文档开回来——
+**回到它原来的位置**，不是追加在最后。有标签页的编辑器都有这个动作，这个没有：
+要么回侧栏里把文件找出来，要么指望它还在「最近文件」里，要么在打开对话框里
+把路径敲一遍。
+
+**不是** Ctrl+Shift+T——浏览器和 VS Code 用的是那个键，但在这里它是任务列表，
+从上游起就是。这个动作在命令面板里，也在快捷键设置里，可以随意改绑。
+
+**记的是路径，不是正文**：留住最近十个已关文档的文本，要花的内存超过这个编辑器
+愿意付的价钱，所以拿回来的是磁盘上此刻的那一份。没存过盘的标签页没有路径，
+不会进这个清单；而关掉一个改过的标签页本来就会先问，所以「不保存」是一个决定，
+不是手滑。
+
+自动化接口也加了 `reopen_tab`，理由是同一个：关闭是它唯一一个会毁掉东西的动作，
+而它收不回来。
+
+### 编辑器说不出自己是哪个编辑器
+
+通过自动化接口问它，**每一个发出去的构建都自称 `dev`**。它报的版本读的是一个叫
+APP_VERSION 的编译期设置，而这个名字在整个仓库里**只出现一次**——就是读它的那一行。
+从来没有人定义过它，所以那个兜底值是它唯一给过的答案。
+
+`get_state` 现在也带上版本号。编辑器把自己换成新构建、再回来之后，
+「回来的是哪个」才是要紧的那件事；而握手只在连接时读一次，之后不再露面。
+
+### 发行版构建能说出自己是哪个构建
+
+启动追踪会打印一行，写明它是从哪个提交构建的。构建「没人会装的那些二进制」的
+workflow 传了这个信息，构建「Releases 页面上那些」的 workflow 三个平台一个都没传
+——于是读者下载到的包，对着一个 CI 构建说「这不是 CI 构建」。
+这个功能之所以存在，是因为曾经有一份「启动很慢」的报告，被对着比它新好几个提交的
+源码分析过——而那正是它哑掉的那一类报告。

@@ -285,6 +285,68 @@ void main() {
     });
   });
 
+  group('taking a close back', () {
+    // Closing is the only action here that destroys something, and until this
+    // existed the interface could do it and not undo it — including the
+    // `discard: true` that throws unsaved work away on purpose.
+    test('reopens the document that was closed, and names it', () async {
+      final container = boot();
+      final path = '${configDir.path}/back.md';
+      File(path).writeAsStringSync('# back');
+      container.read(tabProvider.notifier).addTab(
+            TabInfo(id: 'one', filePath: path, fileName: 'back.md', content: '#'),
+          );
+      await container
+          .read(mcpProvider.notifier)
+          .performAction('close_tab', {'tabId': 'one'});
+
+      final outcome = await container
+          .read(mcpProvider.notifier)
+          .performAction('reopen_tab', const {});
+
+      expect(outcome.ok, isTrue);
+      expect(outcome.said, contains('back.md'),
+          reason: '拿回来的是哪一个，答复里就该有');
+      expect(
+        container.read(tabProvider).tabs.single.content,
+        '# back',
+        reason: '内容是重新读的——关的时候没有留着它',
+      );
+    });
+
+    test('with nothing closed it says so, rather than reporting a reopen',
+        () async {
+      final outcome = await boot()
+          .read(mcpProvider.notifier)
+          .performAction('reopen_tab', const {});
+      expect(outcome.ok, isFalse);
+      expect(outcome.said, contains('nothing has been closed'));
+    });
+
+    test('a document deleted since it was closed is refused by name', () async {
+      // The same shape the two fixed branches had: this must not report a
+      // reopen it did not make.
+      final container = boot();
+      final path = '${configDir.path}/gone.md';
+      File(path).writeAsStringSync('# gone');
+      container.read(tabProvider.notifier).addTab(
+            TabInfo(id: 'one', filePath: path, fileName: 'gone.md', content: '#'),
+          );
+      await container
+          .read(mcpProvider.notifier)
+          .performAction('close_tab', {'tabId': 'one'});
+      File(path).deleteSync();
+
+      final outcome = await container
+          .read(mcpProvider.notifier)
+          .performAction('reopen_tab', const {});
+
+      expect(outcome.ok, isFalse);
+      expect(outcome.said, contains('gone.md'));
+      expect(container.read(tabProvider).tabs, isEmpty);
+    });
+  });
+
   group('closing a tab', () {
     test('closes it, and says so', () async {
       final container = boot();

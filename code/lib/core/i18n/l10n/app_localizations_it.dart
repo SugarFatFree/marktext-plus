@@ -1007,6 +1007,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get fileCloseTab => 'Chiudi scheda';
 
   @override
+  String get fileReopenClosedTab => 'Riapri scheda chiusa';
+
+  @override
   String get fileClearRecentFiles => 'Svuota file recenti';
 
   @override

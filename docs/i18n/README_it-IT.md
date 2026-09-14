@@ -109,7 +109,7 @@ Un server MCP facoltativo, **spento finché non lo accendi**: apre una porta sul
 | **`control`** | Dodici azioni: aprire, chiudere, salvare e cambiare schede, scrivere contenuto, cambiare modalità di visualizzazione, chiudere un pannello, eseguire un comando di un plugin, aprire il pannello di un plugin, cambiare un'impostazione — **e installare un plugin o sostituire l'applicazione con una build della CI** |
 
 Le dodici azioni, con i nomi che un agent invia:
-`new_tab`, `close_tab`, `save_tab`, `activate_tab`, `set_view_mode`, `set_content`, `close_pane`, `run_plugin_command`, `open_panel`, `install_plugin`, `update_app`, `set_setting`
+`new_tab`, `close_tab`, `reopen_tab`, `save_tab`, `activate_tab`, `set_view_mode`, `set_content`, `close_pane`, `run_plugin_command`, `open_panel`, `install_plugin`, `update_app`, `set_setting`
 
 ## ⚖️ A confronto
 

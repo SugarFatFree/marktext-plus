@@ -59,6 +59,10 @@ abstract final class WindowActions {
       final tab = ref.read(activeTabProvider);
       if (tab != null) EditorTabBar.closeTab(context, ref, tab);
     }),
+    WindowAction(
+      'reopenClosedTab',
+      (_, ref) => ref.read(tabProvider.notifier).reopenLastClosedTab(),
+    ),
     WindowAction('commandPalette', (context, _) => CommandPalette.show(context)),
     WindowAction(
       'sourceMode',

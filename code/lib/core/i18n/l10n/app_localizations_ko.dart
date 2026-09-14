@@ -989,6 +989,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get fileCloseTab => '탭 닫기';
 
   @override
+  String get fileReopenClosedTab => '닫은 탭 다시 열기';
+
+  @override
   String get fileClearRecentFiles => '최근 파일 지우기';
 
   @override

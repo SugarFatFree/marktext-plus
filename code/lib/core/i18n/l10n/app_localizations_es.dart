@@ -1007,6 +1007,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get fileCloseTab => 'Cerrar pestaña';
 
   @override
+  String get fileReopenClosedTab => 'Reabrir pestaña cerrada';
+
+  @override
   String get fileClearRecentFiles => 'Borrar archivos recientes';
 
   @override

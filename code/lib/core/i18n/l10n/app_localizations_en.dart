@@ -998,6 +998,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fileCloseTab => 'Close Tab';
 
   @override
+  String get fileReopenClosedTab => 'Reopen Closed Tab';
+
+  @override
   String get fileClearRecentFiles => 'Clear Recent Files';
 
   @override

@@ -388,6 +388,7 @@
   "settingsImageStorageLink": "不复制，直接引用原位置",
   "settingsImageFolder": "图片文件夹",
   "fileCloseTab": "关闭标签页",
+  "fileReopenClosedTab": "重新打开关闭的标签页",
   "fileClearRecentFiles": "清空最近文件",
   "viewCommandPalette": "命令面板",
   "viewReloadImages": "重新加载图片",

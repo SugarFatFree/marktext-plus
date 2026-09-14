@@ -1010,6 +1010,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get fileCloseTab => 'Fermer l\'onglet';
 
   @override
+  String get fileReopenClosedTab => 'Rouvrir l\'onglet fermé';
+
+  @override
   String get fileClearRecentFiles => 'Effacer les fichiers récents';
 
   @override

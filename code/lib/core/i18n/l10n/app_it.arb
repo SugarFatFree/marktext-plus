@@ -382,6 +382,7 @@
   "settingsImageStorageLink": "Collega dove si trovano",
   "settingsImageFolder": "Cartella immagini",
   "fileCloseTab": "Chiudi scheda",
+  "fileReopenClosedTab": "Riapri scheda chiusa",
   "fileClearRecentFiles": "Svuota file recenti",
   "viewCommandPalette": "Riquadro comandi",
   "viewReloadImages": "Ricarica immagini",

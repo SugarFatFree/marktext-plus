@@ -6,8 +6,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/core/config/app_config.dart';
 import 'package:marktext_plus/core/config/config_service.dart';
 import 'package:marktext_plus/core/i18n/l10n/app_localizations.dart';
+import 'package:marktext_plus/models/tab_info.dart';
 import 'package:marktext_plus/providers/editor_provider.dart';
 import 'package:marktext_plus/providers/settings_provider.dart';
+import 'package:marktext_plus/providers/tab_provider.dart';
 import 'package:marktext_plus/ui/widgets/window_actions.dart';
 
 /// Each window action does the thing its name promises.
@@ -55,6 +57,12 @@ void main() {
     WidgetTester tester,
     String name, {
     AppConfig? from,
+    /// Puts the container into the state the action needs before it runs.
+    void Function(ProviderContainer)? before,
+    /// Runs the action on the real event loop. Needed by anything that reads
+    /// a file: `File.readAsBytes` completes on a loop the widget tester has
+    /// stopped, so the `await` after it never returns under the fake clock.
+    bool onTheRealLoop = false,
   }) async {
     final container = ProviderContainer(
       overrides: [
@@ -67,6 +75,7 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
+    before?.call(container);
 
     late BuildContext context;
     late WidgetRef ref;
@@ -89,7 +98,14 @@ void main() {
 
     final action = WindowActions.byName(name);
     expect(action, isNotNull, reason: '$name 不在 WindowActions 里');
-    action!.run(context, ref);
+    if (onTheRealLoop) {
+      await tester.runAsync(() async {
+        action!.run(context, ref);
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+      });
+    } else {
+      action!.run(context, ref);
+    }
     await tester.pumpAndSettle();
     return container;
   }
@@ -113,7 +129,7 @@ void main() {
   const zoomActions = ['zoomIn', 'zoomOut', 'resetZoom'];
   const findBarActions = ['find', 'replace'];
   const stepActions = [('findNext', true), ('findPrevious', false)];
-  const otherActions = ['reloadImages'];
+  const otherActions = ['reloadImages', 'reopenClosedTab'];
 
   final exercised = <String>{
     for (final (name, _) in viewModes) name,
@@ -212,6 +228,38 @@ void main() {
       greaterThan(0),
       reason: 'F5 曾经完全不做事，这一条是那件事的守卫',
     );
+  });
+
+  testWidgets('reopenClosedTab 把刚关掉的文档开回来', (tester) async {
+    // 这一条守的是接线：动作在清单里、能绑定、有标签，却什么都不做，
+    // 正是这个文件存在的理由。行为本身由
+    // a_closed_tab_can_be_opened_again_test 覆盖。
+    final dir = Directory.systemTemp.createTempSync('reopen_action');
+    addTearDown(() {
+      if (dir.existsSync()) dir.deleteSync(recursive: true);
+    });
+    final path = '${dir.path}/back.md';
+    File(path).writeAsStringSync('# back');
+
+    final container = await run(
+      tester,
+      'reopenClosedTab',
+      onTheRealLoop: true,
+      before: (c) {
+        c.read(tabProvider.notifier)
+          ..addTab(
+            TabInfo(id: 'a', filePath: path, fileName: 'back.md', content: '#'),
+          )
+          ..removeTab('a');
+      },
+    );
+
+    expect(
+      container.read(tabProvider).tabs.map((t) => t.filePath),
+      [path],
+      reason: '关掉之后按下这个动作，文档应当回来',
+    );
+    expect(container.read(tabProvider).recentlyClosed, isEmpty);
   });
 
   test('every action is either exercised above or named as unstageable', () {

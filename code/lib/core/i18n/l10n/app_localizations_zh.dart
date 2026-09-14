@@ -988,6 +988,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get fileCloseTab => '关闭标签页';
 
   @override
+  String get fileReopenClosedTab => '重新打开关闭的标签页';
+
+  @override
   String get fileClearRecentFiles => '清空最近文件';
 
   @override

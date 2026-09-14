@@ -998,6 +998,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get fileCloseTab => 'إغلاق علامة التبويب';
 
   @override
+  String get fileReopenClosedTab => 'إعادة فتح علامة التبويب المغلقة';
+
+  @override
   String get fileClearRecentFiles => 'مسح الملفات الأخيرة';
 
   @override

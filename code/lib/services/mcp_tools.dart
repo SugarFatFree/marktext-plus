@@ -15,6 +15,15 @@ enum McpAction {
   newTab('new_tab'),
   closeTab('close_tab'),
 
+  /// Opens the most recently closed document again.
+  ///
+  /// The counterpart to [closeTab] rather than a convenience: closing is the
+  /// one action here that destroys something, and until now the interface
+  /// could do it and not take it back. The editor keeps the path, not the
+  /// text, so this reads the file as it stands — which is also what
+  /// `discard: true` left there.
+  reopenTab('reopen_tab'),
+
   /// Writes a tab to its own file, the way Ctrl+S does.
   ///
   /// Added because [closeTab] refuses a tab with unsaved work — there is no

@@ -382,6 +382,7 @@
   "settingsImageStorageLink": "Lier à leur emplacement",
   "settingsImageFolder": "Dossier d'images",
   "fileCloseTab": "Fermer l'onglet",
+  "fileReopenClosedTab": "Rouvrir l'onglet fermé",
   "fileClearRecentFiles": "Effacer les fichiers récents",
   "viewCommandPalette": "Palette de commandes",
   "viewReloadImages": "Recharger les images",

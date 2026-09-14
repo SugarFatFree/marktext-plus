@@ -48,6 +48,16 @@ class KeybindingService {
     'inlineMath': 'Ctrl+M',
     'mathBlock': 'Ctrl+Shift+M',
     'closeTab': 'Ctrl+W',
+    // Not Ctrl+Shift+T, which every browser and VS Code use for this: that
+    // key is the task list here, inherited from upstream, and the note above
+    // about not changing anybody's habits applies to it too — a markdown
+    // writer's task-list key is not worth taking for a new command.
+    //
+    // Not the close key with a modifier either, which was the first choice:
+    // `Ctrl` is read as Command on macOS, so Ctrl+Alt+W arrives there as
+    // Cmd+Option+W, and that is Close All Windows everywhere else on that
+    // system. Ctrl+Alt+R collides with nothing on any of the three.
+    'reopenClosedTab': 'Ctrl+Alt+R',
     // Upstream uses F3 on Linux and Windows for these.
     'findNext': 'F3',
     'findPrevious': 'Shift+F3',

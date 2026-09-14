@@ -382,6 +382,7 @@
   "settingsImageStorageLink": "元の場所を参照する",
   "settingsImageFolder": "画像フォルダー",
   "fileCloseTab": "タブを閉じる",
+  "fileReopenClosedTab": "閉じたタブを開き直す",
   "fileClearRecentFiles": "最近のファイルを消去",
   "viewCommandPalette": "コマンドパレット",
   "viewReloadImages": "画像を再読み込み",

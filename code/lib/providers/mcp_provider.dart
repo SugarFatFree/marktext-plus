@@ -335,6 +335,21 @@ class McpController extends StateNotifier<McpStatus> {
                 : 'closed tab $id, discarding $lost unsaved characters')
             : mcpRefused('there is no tab $id');
 
+      case McpAction.reopenTab:
+        // Named in the answer rather than left to `get_state`: the point of
+        // taking a close back is knowing which document came back.
+        final closed = _ref.read(tabProvider).recentlyClosed.firstOrNull;
+        if (closed == null) {
+          return mcpRefused('nothing has been closed in this session');
+        }
+        return await _ref.read(tabProvider.notifier).reopenLastClosedTab()
+            ? mcpDid('reopened ${closed.fileName}')
+            : mcpRefused(
+                '"${closed.fileName}" could not be read back from '
+                '${closed.filePath} — it has been moved or deleted since, '
+                'and it is no longer offered',
+              );
+
       case McpAction.setContent:
         final id = text('tabId') ?? _ref.read(tabProvider).activeTabId;
         final content = text('content');

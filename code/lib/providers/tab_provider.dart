@@ -24,6 +24,28 @@ class OpenedFileEntry {
   const OpenedFileEntry({required this.filePath, required this.fileName});
 }
 
+/// A document that was closed, kept so it can be opened again.
+///
+/// The path, not the text. Holding the content of the last ten closed
+/// documents would undo what this editor claims about memory, and the copy on
+/// disk is what reopening should show anyway. A tab that was never saved has
+/// no path and is not kept: closing a modified one asks first, so answering
+/// "don't save" is a decision rather than a slip.
+class ClosedTab {
+  const ClosedTab({
+    required this.filePath,
+    required this.fileName,
+    required this.index,
+  });
+
+  final String filePath;
+  final String fileName;
+
+  /// Where it sat among the open tabs, so it comes back there rather than at
+  /// the end.
+  final int index;
+}
+
 class TabState {
   final List<TabInfo> tabs;
   final String? activeTabId;
@@ -32,21 +54,27 @@ class TabState {
   /// Independent from [tabs] – closing a tab does NOT remove the entry here.
   final List<OpenedFileEntry> openedFiles;
 
+  /// Documents closed during this session, newest first.
+  final List<ClosedTab> recentlyClosed;
+
   const TabState({
     this.tabs = const [],
     this.activeTabId,
     this.openedFiles = const [],
+    this.recentlyClosed = const [],
   });
 
   TabState copyWith({
     List<TabInfo>? tabs,
     String? activeTabId,
     List<OpenedFileEntry>? openedFiles,
+    List<ClosedTab>? recentlyClosed,
   }) {
     return TabState(
       tabs: tabs ?? this.tabs,
       activeTabId: activeTabId ?? this.activeTabId,
       openedFiles: openedFiles ?? this.openedFiles,
+      recentlyClosed: recentlyClosed ?? this.recentlyClosed,
     );
   }
 }
@@ -85,7 +113,37 @@ class TabNotifier extends StateNotifier<TabState> {
     final gone = state.tabs.map((tab) => tab.id).toSet()
       ..removeAll(value.tabs.map((tab) => tab.id));
 
-    super.state = value;
+    // Which documents just disappeared, so closing one by mistake costs
+    // nothing to undo. Recorded here for the same reason as the release
+    // below: six ways of closing a tab, one place all six pass through.
+    final justClosed = [
+      for (var i = 0; i < state.tabs.length; i++)
+        if (gone.contains(state.tabs[i].id) && state.tabs[i].filePath != null)
+          ClosedTab(
+            filePath: state.tabs[i].filePath!,
+            fileName: state.tabs[i].fileName,
+            index: i,
+          ),
+    ];
+    final remembered = justClosed.isEmpty
+        ? value.recentlyClosed
+        : [
+            // Rightmost first when several go at once, which is the order
+            // they would be reopened in.
+            ...justClosed.reversed,
+            // One entry per document: closing the same file twice should not
+            // make the key walk back through it twice.
+            ...value.recentlyClosed.where(
+              (old) => justClosed.every((n) => n.filePath != old.filePath),
+            ),
+          ].take(closedTabsKept).toList();
+
+    // The same object back when nothing closed, rather than a copy of it:
+    // this setter runs on every state change, and most of them are a
+    // keystroke.
+    super.state = identical(remembered, value.recentlyClosed)
+        ? value
+        : value.copyWith(recentlyClosed: remembered);
 
     for (final id in gone) {
       _releaseTab(id);
@@ -306,7 +364,14 @@ class TabNotifier extends StateNotifier<TabState> {
     super.dispose();
   }
 
-  void addTab(TabInfo tab) {
+  /// How many closed documents are remembered.
+  ///
+  /// Bounded because the session is not: each entry is small, which is
+  /// exactly the argument that leaves lists like this unbounded.
+  static const closedTabsKept = 10;
+
+  /// Opens [tab], at [at] among the open tabs when a position is asked for.
+  void addTab(TabInfo tab, {int? at}) {
     // Also register in openedFiles if it has a real file path
     var openedFiles = state.openedFiles;
     var openedFilesChanged = false;
@@ -330,8 +395,10 @@ class TabNotifier extends StateNotifier<TabState> {
       if (openedFilesChanged) _persistOpenedFiles();
       return;
     }
+    final tabs = [...state.tabs];
+    tabs.insert(at == null ? tabs.length : at.clamp(0, tabs.length), tab);
     state = state.copyWith(
-      tabs: [...state.tabs, tab],
+      tabs: tabs,
       activeTabId: tab.id,
       openedFiles: openedFiles,
     );
@@ -354,6 +421,55 @@ class TabNotifier extends StateNotifier<TabState> {
     state = state.copyWith(tabs: tabs, activeTabId: newActiveId);
     _persistSession();
     return true;
+  }
+
+  /// Opens the most recently closed document again, and says whether there
+  /// was one.
+  ///
+  /// Read from disk, because the path is all that was kept — so this shows
+  /// what is on disk now, which is also what "don't save" left there.
+  Future<bool> reopenLastClosedTab() async {
+    final closed = state.recentlyClosed.firstOrNull;
+    if (closed == null) return false;
+
+    // Forgotten whether or not the read works. A document deleted since it
+    // was closed would otherwise answer this key for the rest of the session,
+    // and the one before it could never be reached.
+    state = state.copyWith(recentlyClosed: state.recentlyClosed.sublist(1));
+
+    final existing = state.tabs
+        .where((t) => t.filePath == closed.filePath)
+        .firstOrNull;
+    if (existing != null) {
+      state = state.copyWith(activeTabId: existing.id);
+      return true;
+    }
+
+    try {
+      final opened = await FileService().readFileWithLineEnding(closed.filePath);
+      if (!mounted) return false;
+      addTab(
+        TabInfo(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          filePath: closed.filePath,
+          fileName: p.basename(closed.filePath),
+          content: opened.content,
+          lineEnding: opened.lineEnding,
+          encoding: opened.encoding,
+          isModified: false,
+          // With the content, like every other place that builds a tab from a
+          // read: without it this tab has no baseline, and the check that
+          // stops a save from writing over somebody else's change never fires.
+          diskStamp: opened.stamp,
+        ),
+        at: closed.index,
+      );
+      return true;
+    } catch (_) {
+      // Deleted, moved, or no longer readable. Nothing to say beyond "there
+      // was nothing to reopen"; the entry is already gone.
+      return false;
+    }
   }
 
   /// Remove a file from the sidebar opened-files list.

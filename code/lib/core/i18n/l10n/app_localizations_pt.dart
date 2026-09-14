@@ -1006,6 +1006,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get fileCloseTab => 'Fechar separador';
 
   @override
+  String get fileReopenClosedTab => 'Reabrir separador fechado';
+
+  @override
   String get fileClearRecentFiles => 'Limpar ficheiros recentes';
 
   @override
@@ -2336,6 +2339,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get fileCloseTab => 'Fechar aba';
+
+  @override
+  String get fileReopenClosedTab => 'Reabrir aba fechada';
 
   @override
   String get fileClearRecentFiles => 'Limpar arquivos recentes';

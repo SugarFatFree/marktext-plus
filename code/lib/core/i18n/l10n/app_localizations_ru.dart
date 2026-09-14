@@ -1002,6 +1002,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get fileCloseTab => 'Закрыть вкладку';
 
   @override
+  String get fileReopenClosedTab => 'Открыть закрытую вкладку';
+
+  @override
   String get fileClearRecentFiles => 'Очистить недавние файлы';
 
   @override

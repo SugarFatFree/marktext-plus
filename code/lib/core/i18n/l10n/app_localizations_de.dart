@@ -1002,6 +1002,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get fileCloseTab => 'Tab schließen';
 
   @override
+  String get fileReopenClosedTab => 'Geschlossenen Tab wieder öffnen';
+
+  @override
   String get fileClearRecentFiles => 'Zuletzt verwendete leeren';
 
   @override

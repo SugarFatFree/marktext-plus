@@ -1983,6 +1983,12 @@ abstract class AppLocalizations {
   /// **'Close Tab'**
   String get fileCloseTab;
 
+  /// File menu item that opens the most recently closed document again
+  ///
+  /// In en, this message translates to:
+  /// **'Reopen Closed Tab'**
+  String get fileReopenClosedTab;
+
   /// Menu item that empties the recent files list
   ///
   /// In en, this message translates to:

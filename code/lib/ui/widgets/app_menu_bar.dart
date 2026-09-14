@@ -420,6 +420,9 @@ class AppMenuBar extends ConsumerWidget {
   Widget _buildFileMenu(
       BuildContext context, AppLocalizations l10n, WidgetRef ref) {
     final hasDocument = ref.watch(activeTabProvider) != null;
+    final hasClosed = ref.watch(
+      tabProvider.select((s) => s.recentlyClosed.isNotEmpty),
+    );
     return SubmenuButton(
       menuChildren: [
         MenuItemButton(
@@ -465,6 +468,17 @@ class AppMenuBar extends ConsumerWidget {
           shortcut: _shortcut('closeTab'),
           child: Text(l10n.fileCloseTab),
           onPressed: () => _closeActiveTab(context, ref),
+        ),
+        MenuItemButton(
+          shortcut: _shortcut('reopenClosedTab'),
+          // Greyed out with nothing to reopen, rather than doing nothing
+          // when pressed. Watched through a selector: this menu is rebuilt
+          // by anything it watches, and the tab list changes on every
+          // keystroke.
+          onPressed: hasClosed
+              ? () => ref.read(tabProvider.notifier).reopenLastClosedTab()
+              : null,
+          child: Text(l10n.fileReopenClosedTab),
         ),
         const Divider(height: 1),
         // Greyed out with nothing open. Closing the last tab leaves no

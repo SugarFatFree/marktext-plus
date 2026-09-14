@@ -382,6 +382,7 @@
   "settingsImageStorageLink": "Am Originalort verlinken",
   "settingsImageFolder": "Bilderordner",
   "fileCloseTab": "Tab schließen",
+  "fileReopenClosedTab": "Geschlossenen Tab wieder öffnen",
   "fileClearRecentFiles": "Zuletzt verwendete leeren",
   "viewCommandPalette": "Befehlspalette",
   "viewReloadImages": "Bilder neu laden",

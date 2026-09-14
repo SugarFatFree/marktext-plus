@@ -109,7 +109,7 @@ Lua か JavaScript で書きます。ファイル一つとマニフェスト、�
 | **`control`** | 12 のアクション：タブを開く・閉じる・保存する・切り替える、内容を書き込む、表示モードを変える、ペインを閉じる、プラグインのコマンドを実行する、プラグインのパネルを開く、設定を変える、**さらにプラグインのインストールと、CI のビルドによるアプリ本体の置き換え** |
 
 エージェントが送る名前での 12 のアクション：
-`new_tab`, `close_tab`, `save_tab`, `activate_tab`, `set_view_mode`, `set_content`, `close_pane`, `run_plugin_command`, `open_panel`, `install_plugin`, `update_app`, `set_setting`
+`new_tab`, `close_tab`, `reopen_tab`, `save_tab`, `activate_tab`, `set_view_mode`, `set_content`, `close_pane`, `run_plugin_command`, `open_panel`, `install_plugin`, `update_app`, `set_setting`
 ## ⚖️ 他のエディタとの比較
 
 本プロジェクトが作り直した元のエディタと、この分野で最も知られているエディタとの比較です。MarkText の列はすべて `v0.20.0-dev` のソースから読み取りました。Typora はクローズドソースで同じようには確認できないため、公開されているドキュメントに書かれている内容だけを載せています。

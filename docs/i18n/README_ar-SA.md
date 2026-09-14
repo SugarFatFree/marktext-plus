@@ -109,7 +109,7 @@ flutter pub get && flutter run
 | **`control`** | اثنا عشر إجراءً: فتح التبويبات وإغلاقها وحفظها والتبديل بينها، كتابة المحتوى، تغيير طريقة العرض، إغلاق لوح، تنفيذ أمر إضافة، فتح لوح إضافة، تغيير إعداد — **وكذلك تثبيت إضافة أو استبدال التطبيق نفسه ببناء من CI** |
 
 الإجراءات الاثنا عشر، بالأسماء التي يرسلها الوكيل:
-`new_tab`, `close_tab`, `save_tab`, `activate_tab`, `set_view_mode`, `set_content`, `close_pane`, `run_plugin_command`, `open_panel`, `install_plugin`, `update_app`, `set_setting`
+`new_tab`, `close_tab`, `reopen_tab`, `save_tab`, `activate_tab`, `set_view_mode`, `set_content`, `close_pane`, `run_plugin_command`, `open_panel`, `install_plugin`, `update_app`, `set_setting`
 
 ## ⚖️ المقارنة
 

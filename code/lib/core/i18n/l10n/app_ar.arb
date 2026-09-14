@@ -382,6 +382,7 @@
   "settingsImageStorageLink": "الربط بمكانها الأصلي",
   "settingsImageFolder": "مجلد الصور",
   "fileCloseTab": "إغلاق علامة التبويب",
+  "fileReopenClosedTab": "إعادة فتح علامة التبويب المغلقة",
   "fileClearRecentFiles": "مسح الملفات الأخيرة",
   "viewCommandPalette": "لوحة الأوامر",
   "viewReloadImages": "إعادة تحميل الصور",

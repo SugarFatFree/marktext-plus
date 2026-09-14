@@ -526,6 +526,10 @@
     "description": "Setting for the folder used by the shared-folder image option"
   },
   "fileCloseTab": "Close Tab",
+  "fileReopenClosedTab": "Reopen Closed Tab",
+  "@fileReopenClosedTab": {
+    "description": "File menu item that opens the most recently closed document again"
+  },
   "@fileCloseTab": {
     "description": "File menu item that closes the active tab"
   },

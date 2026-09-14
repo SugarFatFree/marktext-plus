@@ -40,6 +40,7 @@ String actionLabel(String action, AppLocalizations l10n) {
   'duplicateLine' => l10n.keybindingDuplicateLine,
   'highlight' => l10n.keybindingHighlight,
   'closeTab' => l10n.fileCloseTab,
+  'reopenClosedTab' => l10n.fileReopenClosedTab,
   'findNext' => l10n.editFindNext,
   'findPrevious' => l10n.editFindPrevious,
   // These two had been in the map since it gained promote and demote
