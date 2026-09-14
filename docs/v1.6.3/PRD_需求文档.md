@@ -657,6 +657,18 @@ README 有一节「Where the others are ahead」，自认的四条差距里只�
 - `code/test/services/a_setting_can_be_changed_over_the_wire_test.dart`（新增 12 条）
 - `code/test/services/mcp_settings_are_classified_test.dart`（新增 5 条）
 
+### 真机验证：通过（2026-09-14 17:24）
+
+```
+set_setting checkForUpdates=false → checkForUpdates is now false  （随即还原为 true）
+set_setting aiApiKey=x            → 拒绝：凭据，永远不经过这个接口
+set_setting mcpPort=9999          → 拒绝：换端口等于挂断，而挂断之后没人能重连
+set_setting fontSize="large"      → 拒绝：it reads as 16.0 … nothing was written
+```
+
+最后一条正是这个功能里我自己犯过又修掉的那个错——**拒绝时一个字都没写进去**，
+读者的字号没有被这次「被拒绝的」请求改掉。
+
 ### 验收标准
 
 | 变异 | 结果 |
@@ -792,6 +804,23 @@ close_tab {tabId, discard: true}    → 关掉，并说出丢了多少字符
 | 忽略 `discard`（即改动前，永远拒绝） | 红 |
 | 不说丢了多少字符 | 红，「这是它唯一留下的账」 |
 | 把 `discard: false` 也当成同意 | 红 |
+
+### 真机验证：通过（2026-09-14 17:24）
+
+装上含这次改动的构建之后，在读者机器上完整走了一遍，**代理自己建、自己收拾**：
+
+```
+new_tab verify-160.md       → opened tab mcp-…
+set_content "twelve chars"  → wrote 12 characters
+close_tab                   → not while "verify-160.md" has unsaved work —
+                              save_tab writes it first, or pass discard: true
+                              to answer the "Don't save" the reader would be asked
+close_tab {discard: true}   → closed tab mcp-…, discarding 12 unsaved characters
+get_state                   → 只剩读者自己的那份文档
+```
+
+拒绝说出了两条出路，丢弃说出了丢掉多少，**并且它把自己开的草稿收拾干净了**
+——这正是这个功能存在的理由。
 
 ### 一个诚实的限制：它救不了眼前这一次
 
