@@ -59,10 +59,14 @@ void main() {
     AppConfig? from,
     /// Puts the container into the state the action needs before it runs.
     void Function(ProviderContainer)? before,
-    /// Runs the action on the real event loop. Needed by anything that reads
-    /// a file: `File.readAsBytes` completes on a loop the widget tester has
-    /// stopped, so the `await` after it never returns under the fake clock.
-    bool onTheRealLoop = false,
+    /// Runs the action on the real event loop and waits until this says it
+    /// has landed. Needed by anything that reads a file: `File.readAsBytes`
+    /// completes on a loop the widget tester has stopped, so the `await`
+    /// after it never returns under the fake clock.
+    ///
+    /// A condition rather than a sleep — a fixed delay is a guess that is
+    /// either wasted time or a test that fails on a busy machine.
+    bool Function(ProviderContainer)? untilOnTheRealLoop,
   }) async {
     final container = ProviderContainer(
       overrides: [
@@ -98,10 +102,14 @@ void main() {
 
     final action = WindowActions.byName(name);
     expect(action, isNotNull, reason: '$name 不在 WindowActions 里');
-    if (onTheRealLoop) {
+    if (untilOnTheRealLoop != null) {
       await tester.runAsync(() async {
         action!.run(context, ref);
-        await Future<void>.delayed(const Duration(milliseconds: 100));
+        final deadline = DateTime.now().add(const Duration(seconds: 10));
+        while (!untilOnTheRealLoop(container) &&
+            DateTime.now().isBefore(deadline)) {
+          await Future<void>.delayed(const Duration(milliseconds: 5));
+        }
       });
     } else {
       action!.run(context, ref);
@@ -244,7 +252,7 @@ void main() {
     final container = await run(
       tester,
       'reopenClosedTab',
-      onTheRealLoop: true,
+      untilOnTheRealLoop: (c) => c.read(tabProvider).tabs.isNotEmpty,
       before: (c) {
         c.read(tabProvider.notifier)
           ..addTab(
