@@ -104,7 +104,7 @@ Ein optionaler MCP-Server, **aus, bis Sie ihn einschalten**: er öffnet einen Po
 | **`read_logs`** | Das Protokoll des Editors und seiner Plug-ins, nach Plug-in und Schweregrad filterbar |
 | **`screenshot`** | Das Fenster, wie es gerade aussieht |
 | **`record_gif`** | Bis zu fünf Sekunden, um sich eine Animation anzusehen |
-| **`get_state`** | Was offen ist: Tabs, Ansichtsmodus, installierte Plug-ins, gefüllte Bereiche |
+| **`get_state`** | Welche Version läuft — nach `update_app` fragen, um zu sehen, was zurückkam — und was offen ist: Tabs, Ansichtsmodus, installierte Plug-ins, gefüllte Bereiche |
 | **`read_startup_trace`** | Wie lange jeder Schritt des Starts gedauert hat, auch der Teil vor Dart |
 | **`control`** | Zwölf Aktionen: Tabs öffnen, schließen, speichern und wechseln, Inhalt schreiben, Ansichtsmodus ändern, ein Pane schließen, einen Plugin-Befehl ausführen, das Panel eines Plugins öffnen, eine Einstellung ändern — **und ein Plugin installieren oder die Anwendung durch einen CI-Build ersetzen** |
 

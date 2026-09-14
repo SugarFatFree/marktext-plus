@@ -104,7 +104,7 @@ Un server MCP facoltativo, **spento finché non lo accendi**: apre una porta sul
 | **`read_logs`** | Il registro dell’editor e quello delle estensioni, filtrabile per estensione e per gravità |
 | **`screenshot`** | La finestra com’è adesso |
 | **`record_gif`** | Al massimo cinque secondi, per guardare un’animazione |
-| **`get_state`** | Che cosa è aperto: schede, modalità di vista, estensioni installate, riquadri riempiti |
+| **`get_state`** | Quale versione è in esecuzione — da chiedere dopo `update_app` per vedere che cosa è tornato — e che cosa è aperto: schede, modalità di vista, estensioni installate, riquadri riempiti |
 | **`read_startup_trace`** | Quanto è durato ogni passo dell'avvio, compresa la parte prima di Dart |
 | **`control`** | Dodici azioni: aprire, chiudere, salvare e cambiare schede, scrivere contenuto, cambiare modalità di visualizzazione, chiudere un pannello, eseguire un comando di un plugin, aprire il pannello di un plugin, cambiare un'impostazione — **e installare un plugin o sostituire l'applicazione con una build della CI** |
 

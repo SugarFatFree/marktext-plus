@@ -104,7 +104,7 @@ Un servidor MCP opcional, **apagado hasta que lo enciendas**: abre un puerto en 
 | **`read_logs`** | El registro del editor y el de sus complementos, filtrable por complemento y por gravedad |
 | **`screenshot`** | La ventana tal como está |
 | **`record_gif`** | Cinco segundos como mucho, para mirar una animación |
-| **`get_state`** | Qué hay abierto: pestañas, modo de vista, complementos instalados, cuadros llenos |
+| **`get_state`** | Qué versión se está ejecutando —pregúntalo tras `update_app` para ver qué volvió— y qué hay abierto: pestañas, modo de vista, complementos instalados, cuadros llenos |
 | **`read_startup_trace`** | Cuánto tardó cada paso del arranque, incluida la parte anterior a Dart |
 | **`control`** | Doce acciones: abrir, cerrar, guardar y cambiar de pestaña, escribir contenido, cambiar el modo de vista, cerrar un panel, ejecutar un comando de un plugin, abrir el panel de un plugin, cambiar un ajuste — **e instalar un plugin o sustituir la aplicación por una compilación de CI** |
 

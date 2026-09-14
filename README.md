@@ -120,7 +120,7 @@ regenerate.
 | **`read_logs`** | The editor's log and its plugins', filterable by plugin and by severity |
 | **`screenshot`** | The window as it looks right now |
 | **`record_gif`** | Up to five seconds, for looking at an animation |
-| **`get_state`** | What is open: tabs, view mode, installed plugins, the panes they filled |
+| **`get_state`** | Which version is running — ask after `update_app` to see what came back — and what is open: tabs, view mode, installed plugins, the panes they filled |
 | **`read_startup_trace`** | The time each step of starting up took, including the part before Dart runs |
 | **`control`** | Twelve actions: open, close, save and switch tabs, write content, change the view mode, close a pane, run a plugin command, open a plugin's panel, change a setting — **and install a plugin or replace the application with a build from CI** |
 

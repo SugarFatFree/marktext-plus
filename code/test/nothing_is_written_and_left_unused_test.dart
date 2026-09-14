@@ -102,4 +102,44 @@ void main() {
         reason: '定义了却没有任何地方用到；删掉它，'
             '或把 <文件>:<类型名> 写进 allowed 并说明理由');
   });
+
+  test('every compile-time knob the code reads is supplied by some build', () {
+    // The other half of the same shape, one level further out: a
+    // `fromEnvironment` constant is *declared* in Dart and *supplied* in
+    // YAML, by two different kinds of author, and the language cannot
+    // complain — an undefined one silently takes its default.
+    //
+    // `APP_VERSION` was read in exactly one place, defined in none, and so
+    // the handshake introduced every shipped build as "dev" for as long as
+    // the feature existed (BUG-485). The type guard above could not see it:
+    // the constant *was* used, by the thing that reported the wrong answer.
+    final workflows = [
+      File('../.github/workflows/ci.yml'),
+      File('../.github/workflows/release.yml'),
+    ];
+    // Skipped rather than failed: a checkout of `code/` alone is a thing
+    // people do, and a guard that always fails there teaches people to
+    // ignore it.
+    if (!workflows.every((f) => f.existsSync())) return;
+    final supplied = workflows.map((f) => f.readAsStringSync()).join('\n');
+
+    final reads = RegExp(r"fromEnvironment\(\s*'(\w+)'");
+    final names = <String, String>{};
+    for (final file in dartFiles('lib')) {
+      final text = file.readAsStringSync();
+      for (final match in reads.allMatches(text)) {
+        names.putIfAbsent(match.group(1)!, () => file.path);
+      }
+    }
+    expect(names, isNotEmpty, reason: '一个编译期常量都没读到，取法要跟着改');
+
+    final undefined = [
+      for (final entry in names.entries)
+        if (!supplied.contains('--dart-define=${entry.key}='))
+          '${entry.value}  ${entry.key}',
+    ];
+    expect(undefined, isEmpty,
+        reason: '这些编译期常量没有任何构建传过——默认值就是它唯一的值，'
+            '而读它的代码以为自己读到的是真话');
+  });
 }

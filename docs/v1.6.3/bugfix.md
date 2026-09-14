@@ -5134,6 +5134,19 @@ const appVersionForMcp = String.fromEnvironment('APP_VERSION', defaultValue: 'de
 变异验证：改回 `String.fromEnvironment` 后，失败信息正是
 `Expected: '1.6.2' Actual: 'dev'`。
 
+还有一条**更一般**的守卫，钉的是这一类而不是这一处：
+`nothing_is_written_and_left_unused_test`
+「every compile-time knob the code reads is supplied by some build」——
+把 `lib/` 里每一个 `fromEnvironment('X')` 收集起来，
+要求两份 workflow 里至少有一处传过 `--dart-define=X=`。
+
+放在那个文件里是因为它的主题本来就是「写了却没接上」；
+但上面那条只管**类型**，看不见这一类：`APP_VERSION` **是**被用了的——
+被那个报出错误答案的地方用了。
+
+变异验证：把删掉的那个常量原样加回去，它立刻点名
+`lib/services/mcp_server.dart  APP_VERSION`。
+
 ### 涉及文件
 
 - `code/lib/services/mcp_server.dart`

@@ -104,7 +104,7 @@ Um servidor MCP opcional, **desligado até você o ligar**: abre uma porta na su
 | **`read_logs`** | O registo do editor e o das extensões, filtrável por extensão e por gravidade |
 | **`screenshot`** | A janela tal como está |
 | **`record_gif`** | Cinco segundos no máximo, para ver uma animação |
-| **`get_state`** | O que está aberto: separadores, modo de vista, extensões instaladas, quadros preenchidos |
+| **`get_state`** | Que versão está a correr — pergunte depois de `update_app` para ver o que voltou — e o que está aberto: separadores, modo de vista, extensões instaladas, quadros preenchidos |
 | **`read_startup_trace`** | Quanto tempo levou cada passo do arranque, incluindo a parte antes do Dart |
 | **`control`** | Doze ações: abrir, fechar, guardar e mudar de separador, escrever conteúdo, mudar o modo de visualização, fechar um painel, executar um comando de um plugin, abrir o painel de um plugin, mudar uma opção — **e instalar um plugin ou substituir a aplicação por uma compilação da CI** |
 

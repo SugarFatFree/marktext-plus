@@ -104,7 +104,7 @@ Un serveur MCP facultatif, **à l’arrêt tant que vous ne l’allumez pas** : 
 | **`read_logs`** | Le journal de l’éditeur et celui de ses extensions, filtrable par extension et par gravité |
 | **`screenshot`** | La fenêtre telle qu’elle est |
 | **`record_gif`** | Cinq secondes au plus, pour regarder une animation |
-| **`get_state`** | Ce qui est ouvert : onglets, mode d’affichage, extensions installées, volets remplis |
+| **`get_state`** | Quelle version tourne — à demander après `update_app` pour voir ce qui est revenu — et ce qui est ouvert : onglets, mode d’affichage, extensions installées, volets remplis |
 | **`read_startup_trace`** | Le temps pris par chaque étape du démarrage, y compris avant Dart |
 | **`control`** | Douze actions : ouvrir, fermer, enregistrer et changer d'onglet, écrire du contenu, changer de mode d'affichage, fermer un volet, lancer une commande de plugin, ouvrir le panneau d'un plugin, modifier un réglage — **et installer un plugin ou remplacer l'application par une build de la CI** |
 
