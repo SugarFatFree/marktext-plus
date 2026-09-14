@@ -154,6 +154,24 @@ void main() {
     expect(state.recentlyClosed, isEmpty);
   });
 
+  test('a tab that never finished loading was not closed by anybody', () async {
+    // Restoring a session opens every tab empty and marked loading, then
+    // reads them one at a time; one that cannot be read is dropped rather
+    // than left spinning. That drop passes through the same setter as a
+    // close, and without this the editor would offer to reopen a document
+    // the reader never closed — and could not read either, so pressing it
+    // would fail and only then forget it.
+    final path = write('never.md', '# never');
+    final restoring = tabs().restoreSession([path], path);
+    // After the synchronous part of restoreSession, before the read lands.
+    File(path).deleteSync();
+    await restoring;
+
+    expect(container.read(tabProvider).tabs, isEmpty,
+        reason: '读不出来的标签页应当被丢掉，这是前提');
+    expect(container.read(tabProvider).recentlyClosed, isEmpty);
+  });
+
   test('there is nothing to reopen when nothing was closed', () async {
     expect(await tabs().reopenLastClosedTab(), isFalse);
   });

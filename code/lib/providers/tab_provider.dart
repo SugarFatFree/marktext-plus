@@ -118,7 +118,14 @@ class TabNotifier extends StateNotifier<TabState> {
     // below: six ways of closing a tab, one place all six pass through.
     final justClosed = [
       for (var i = 0; i < state.tabs.length; i++)
-        if (gone.contains(state.tabs[i].id) && state.tabs[i].filePath != null)
+        // Not one that never finished loading. Restoring a session opens
+        // every tab empty and marked loading and drops any it cannot read,
+        // and that drop comes through here looking exactly like a close —
+        // so the editor would offer to reopen a document nobody closed and
+        // nothing can read.
+        if (gone.contains(state.tabs[i].id) &&
+            state.tabs[i].filePath != null &&
+            !state.tabs[i].isLoading)
           ClosedTab(
             filePath: state.tabs[i].filePath!,
             fileName: state.tabs[i].fileName,
