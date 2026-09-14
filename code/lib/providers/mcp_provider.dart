@@ -308,14 +308,26 @@ class McpController extends StateNotifier<McpStatus> {
         //
         // A tab with no file behind it counts too: auto-save skips those
         // entirely, so its contents exist nowhere else at all.
-        if (closing.isModified) {
+        //
+        // `discard: true` is the same answer the reader gives that dialog by
+        // pressing "Don't save". Refusing without it and accepting it when
+        // given is the whole of the difference between an interface that
+        // cannot tidy up after itself and one that throws work away silently:
+        // the decision still has to be made, and now it can be made from here
+        // and is recorded in what this answers with.
+        final discard = arguments['discard'] == true;
+        if (closing.isModified && !discard) {
           return mcpRefused(
-            'not while "${closing.fileName}" has unsaved work — closing it '
-            'would throw that away, and nothing here can press Save',
+            'not while "${closing.fileName}" has unsaved work — '
+            'save_tab writes it first, or pass discard: true to answer the '
+            '"Don\'t save" the reader would be asked',
           );
         }
+        final lost = closing.isModified ? closing.content.length : 0;
         return _ref.read(tabProvider.notifier).removeTab(id)
-            ? mcpDid('closed tab $id')
+            ? mcpDid(lost == 0
+                ? 'closed tab $id'
+                : 'closed tab $id, discarding $lost unsaved characters')
             : mcpRefused('there is no tab $id');
 
       case McpAction.setContent:

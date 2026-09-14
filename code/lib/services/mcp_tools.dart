@@ -415,6 +415,15 @@ class McpToolset {
                 'a string, a number or true/false. A value of the wrong kind '
                 'is refused rather than quietly read as the default.',
           },
+          'discard': {
+            'type': 'boolean',
+            'description':
+                'For close_tab: the answer to the question a reader is asked '
+                'when a tab holds unsaved work — true is "Don\'t save". '
+                'Without it a modified tab is refused, because closing one '
+                'takes its undo history with it and nothing is left to take '
+                'the decision back with. save_tab writes the work out instead.',
+          },
           'dryRun': {
             'type': 'boolean',
             'description':

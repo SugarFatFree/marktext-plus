@@ -549,6 +549,20 @@ Typing is unchanged on purpose. Auto-pairing a bracket, closing a list on Enter,
 deleting the other half of a pair — those are keystrokes, and giving each its own
 step would make undo character-by-character.
 
+### An agent can answer the "unsaved changes" question
+
+Closing a tab that holds unsaved work asks one of three things: Cancel, Don't
+save, Save. The automation interface could give two of them — Save by writing
+the file first, Cancel by not asking — and not the third, so it refused
+outright and a scratch tab it had opened itself could only be closed by
+somebody at the keyboard.
+
+`close_tab` now takes `discard: true`, which is that third answer spelt the way
+the dialog spells it. Refusing stays the default, for the reason it always gave:
+closing a modified tab takes its undo history with it, so there is nothing left
+afterwards to take the decision back with. The refusal now names both ways out,
+and a discard says how many characters went with it — the only record it leaves.
+
 ### You can turn off the check for new versions
 
 It was the one thing this editor did on the network without being asked, and the
@@ -1073,6 +1087,17 @@ HTML 与 PDF 早就改成「写临时文件再换过去」了。Word 的写盘�
 
 **打字有意保持不变**：自动配对括号、回车续列表、删掉配对的另一半——那些是按键，
 每个按键一个撤销步会让撤销变成逐字。
+
+### 代理现在能回答「未保存的更改」那个问题
+
+关一个有未保存内容的标签页，会问三件事：取消、不保存、保存。自动化接口能给出其中两个
+——「保存」是先写盘，「取消」是不问——**第三个给不出**，于是它只能直接拒绝，
+而它自己开的草稿标签页只能由坐在键盘前的人来关。
+
+`close_tab` 现在接受 `discard: true`，**就是那个弹窗里「不保存」的那一下**。
+拒绝仍然是默认，理由没变：关掉一个改过的标签页会把它的撤销历史一起带走，
+之后没有东西能把这个决定退回来。拒绝的话现在会把**两条出路都说出来**，
+而真的丢弃时会说出丢了多少字符——**那是它留下的唯一记录**。
 
 ### 可以关掉「自动检查新版本」
 
