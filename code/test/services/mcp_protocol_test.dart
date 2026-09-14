@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:marktext_plus/core/constants.dart';
 import 'package:marktext_plus/services/app_log.dart';
 import 'package:marktext_plus/services/mcp_server.dart';
 import 'package:marktext_plus/services/mcp_tools.dart';
@@ -25,6 +26,26 @@ void main() {
       expect(result['serverInfo']['name'], 'marktext-plus');
       expect((result['capabilities'] as Map).containsKey('tools'), isTrue);
       expect(reply['id'], 1);
+    });
+
+    test('initialize names the version this editor actually is', () async {
+      // The handshake is the only place an agent is told which editor it
+      // reached, and it read a --dart-define named APP_VERSION that nothing
+      // in the repository ever defined — so every shipped build introduced
+      // itself as "dev", measured over the wire on a release install.
+      // The version an agent is told has to be the one the About box shows
+      // and the update check compares against.
+      final reply = await ask(McpServer(), {
+        'jsonrpc': '2.0',
+        'id': 1,
+        'method': 'initialize',
+        'params': {'protocolVersion': '2025-06-18'},
+      });
+      final reported = (reply!['result'] as Map)['serverInfo']['version'];
+      expect(reported, AppConstants.appVersion);
+      // Distinguishes "it reports the constant" from "the constant happens
+      // to be the placeholder too".
+      expect(reported, isNot('dev'));
     });
 
     test('a notification gets no reply', () async {

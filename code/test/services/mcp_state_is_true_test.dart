@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/core/config/app_config.dart';
+import 'package:marktext_plus/core/constants.dart';
 import 'package:marktext_plus/core/config/config_service.dart';
 import 'package:marktext_plus/models/tab_info.dart';
 import 'package:marktext_plus/providers/mcp_provider.dart';
@@ -78,6 +79,24 @@ void main() {
       expect(state['residentMB'], lessThan(100000),
           reason: '十万兆是读错了单位，不是一台机器');
     }
+  });
+
+  test('it says which version of the editor is answering', () async {
+    // An agent can update this editor now, and after the installer has run
+    // and the process has come back it needs a way to ask what came back.
+    // The handshake carries a version, but a client reads that once at
+    // connect time and does not surface it again — so `get_state`, the call
+    // an agent makes to see what is there, has to carry it too.
+    //
+    // Before this, confirming an update meant reading the installer's own
+    // log off the machine's disk, which is not something the protocol
+    // offers.
+    final state = await stateOf(boot());
+    expect(state['version'], AppConstants.appVersion);
+    // Distinguishes "it reports the constant" from "both happen to be the
+    // same placeholder": the handshake reported a --dart-define nobody ever
+    // defined, and called every shipped build "dev".
+    expect(state['version'], isNot('dev'));
   });
 
   test('the view mode reported is the one in force', () async {

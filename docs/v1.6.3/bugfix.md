@@ -67,6 +67,8 @@
 | BUG-482 | 2026-09-14 | 连做两个命令（加粗、标题、缩进、移块……）一次 Ctrl+Z 全退——25 处写入把断步交给了打字防抖 | P2 | 已修复 |
 | BUG-483 | 2026-09-14 | 12 份 README 把自动化接口的能力说小了：5 个工具里列了 4 个，12 个动作里描述了 4 个——而漏掉的包括「装插件」和「替换应用本体」 | P1 | 已修复 |
 | BUG-484 | 2026-09-14 | 自更新装完不会把编辑器带回来——安装脚本的启动指令带着 `skipifsilent`，而自更新正是静默运行它 | P1 | 已修复并真机验证 |
+| BUG-485 | 2026-09-14 | 握手时编辑器自报版本是 `dev`——那个版本号读的是一个全仓库从没人定义过的编译期常量 | P2 | 已修复 |
+| BUG-486 | 2026-09-14 | 发行构建（读者唯一会装的那个）没有打构建标记，启动追踪里写着「这不是 CI 构建」——而只有被丢掉的 CI 产物打了 | P2 | 已修复 |
 
 ---
 
@@ -5074,3 +5076,135 @@ Filename: D:\MarkText Plus\marktext_plus.exe | Deinitializing Setup. | Log close
 
 **这是自更新第一次被完整验证**：解析构建 → 下载 → 校验摘要 → 静默安装 →
 **自己回来** → 重新打开读者原本开着的文档。
+
+---
+
+## BUG-485：问它是谁，它说自己叫 `dev`
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-485 |
+| 日期 | 2026-09-14 |
+| 优先级 | P2 |
+| 状态 | 已修复 |
+
+### 现象（在真机上量到的）
+
+自更新刚刚被证明可用之后，顺手对着读者那台机器上**真正装着的发行版**做了一次握手：
+
+```json
+{"serverInfo":{"name":"marktext-plus","version":"dev"}}
+```
+
+这台机器上跑的是 CI 出的 1.6.2 安装包。**它说自己是 `dev`。**
+
+### 根因：一个从来没人定义过的编译期常量
+
+```dart
+/// Reported in `initialize`, so an agent can tell which editor it reached.
+const appVersionForMcp = String.fromEnvironment('APP_VERSION', defaultValue: 'dev');
+```
+
+`APP_VERSION` 在**整个仓库里只出现一次**——就是上面这行读它的地方。
+没有任何 workflow、脚本、IDE 配置传过 `--dart-define=APP_VERSION=…`。
+于是「默认值」就是**唯一**值：**每一个发出去的构建都自称 `dev`。**
+
+这正是记忆里那条判别信号：**某个名字 grep 全库只出现一两处，且都在「声明」类文件里。**
+
+而版本号在这个代码库里本来是有**唯一来源**的——`AppConstants.appVersion`，
+它被 `app_version_test` 钉死在 `pubspec.yaml` 上，关于对话框、更新检查、
+插件的 `minAppVersion` 比较、下载用的 User-Agent 全都读它。**只有这一份没跟上。**
+
+### 为什么现在才要紧
+
+那行注释说它存在的理由是「so an agent can tell which editor it reached」——
+**而它做不到。** 在自更新落地之前这只是难看；落地之后，
+「我刚把它换掉了，现在跑的是哪个」变成了一个必须能回答的问题。
+
+### 修复
+
+删掉那个常量，握手直接报 `AppConstants.appVersion`。**一个量，一个来源。**
+
+### 守卫
+
+`mcp_protocol_test`「initialize names the version this editor actually is」。
+两条断言分开两种假设：等于那个常量（对不对）、**且不是 `dev`**
+（「它报的是常量」与「常量本身也恰好是那个占位符」是两回事）。
+
+变异验证：改回 `String.fromEnvironment` 后，失败信息正是
+`Expected: '1.6.2' Actual: 'dev'`。
+
+### 涉及文件
+
+- `code/lib/services/mcp_server.dart`
+- `code/test/services/mcp_protocol_test.dart`
+
+---
+
+## BUG-486：只有被丢掉的那些构建知道自己是谁
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-486 |
+| 日期 | 2026-09-14 |
+| 优先级 | P2 |
+| 状态 | 已修复 |
+
+### 现象
+
+`StartupTrace.buildStamp` 会在启动追踪的头部写一行「这是哪个构建」。它的文档注释
+记着它为什么存在——一份真实的误诊：
+
+> 一次「启动很慢」的报告是对着**当时的源码**分析的，而产生那份日志的二进制
+> 其实落后好几个提交；露馅的是一个**已经不存在的阶段名**。
+
+它读三个编译期常量：`BUILD_SHA` / `BUILD_RUN` / `BUILD_SDK`。
+
+`ci.yml` **两处构建都传了**。
+`release.yml` **三处构建一个都没传**（Windows、macOS、Linux）。
+
+于是（两处都真机量过）：
+
+| 构建 | 谁会装它 | 追踪头部写什么 |
+|------|---------|---------------|
+| ci.yml 的产物（按提交命名，`update_app` 自更新装的就是它） | 用自动化接口更新的人 | `build: 59cf75df  (CI run #816)  Flutter 3.47.2` ✅ |
+| release.yml 的产物（**Releases 页面上挂的安装包**） | **绝大多数读者** | `build: local (no BUILD_SHA; this is not a CI build)` ❌ |
+
+**恰好反了。** 走自更新这条小路的人拿到了标记，
+**到官网页面按下载按钮的人拿不到**——而那句话本身还是假的，它就是 CI 构建的。
+这个功能是为「读者报告的那份日志」写的，却偏偏在最常见的那份日志里是哑的。
+
+上面左边那一行是 2026-09-14 在读者机器上通过 `read_startup_trace` 读到的原文，
+右边那一行是 `buildStamp` 在三个常量都为空时的返回值（有测试钉着）。
+
+### 根因
+
+同一类：**声明在 Dart 里，供给在 YAML 里，两种作者，没人对账。**
+与 BUG-485 是同一天、同一种病的两个实例。
+
+### 修复
+
+`release.yml` 三处 `flutter build` 全部补上三个 `--dart-define`。
+`BUILD_SDK` 取的是真实的 `frameworkVersion` 而不是 `FLUTTER_VERSION`
+（那个是 `stable`，是**频道**不是版本，写进去等于没写）。
+
+### 守卫
+
+`a_shipped_build_can_say_which_build_it_is_test`
+「every build in every workflow is stamped with its commit」。
+
+两条经验都写进去了：
+
+1. **不许只看第一个匹配**——`release.yml` 上一次正是这样漏掉的
+   （`ignoreversion`）。这里遍历两份 workflow 的**每一处**构建，
+   并先断言「数到的处数 ≥ 5」，否则一个失效的取法会在空集合上安静通过。
+2. **两种写法都要认**——按行首锚定只找到 5 处里的 2 处，
+   因为 `release.yml` 用的是行内 `run: flutter build …`。
+   这个错在写守卫的过程中真的犯了一次，是断言把它抓出来的。
+
+第二条测试钉住「没有标记时要老实说没有」：跑测试的这个进程本身就是这种构建。
+
+### 涉及文件
+
+- `.github/workflows/release.yml`
+- `code/test/services/a_shipped_build_can_say_which_build_it_is_test.dart`

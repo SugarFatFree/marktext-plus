@@ -305,7 +305,10 @@ class McpToolset {
     McpTool(
       name: 'get_state',
       description:
-          'What the editor has open: tabs, which is active, the view '
+          'What the editor has open: "version", which editor is answering '
+          '— ask it after update_app has run and the editor has come back, '
+          'because that is how you tell what came back — then tabs, which '
+          'is active, the view '
           'mode, the installed plugins and the panes they filled — and '
           '"residentMB", how many megabytes the process is holding, absent '
           'on a platform that will not say. Ask before and after opening '

@@ -120,6 +120,11 @@ class McpController extends StateNotifier<McpStatus> {
     final resident = ResidentMemory.megabytes();
 
     return {
+      // Which editor is answering. An agent can update this one now, and
+      // after the installer has run the only question that matters is what
+      // came back; the handshake carries this too, but a client reads that
+      // once at connect time and never surfaces it again.
+      'version': AppConstants.appVersion,
       'viewMode': config.editMode.name,
       'activeTabId': tabs.activeTabId,
       if (resident != null) 'residentMB': resident,

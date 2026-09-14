@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import '../core/constants.dart';
 import 'app_log.dart';
 import 'mcp_tools.dart';
 
@@ -159,7 +160,7 @@ class McpServer {
             },
             'serverInfo': {
               'name': 'marktext-plus',
-              'version': appVersionForMcp,
+              'version': AppConstants.appVersion,
             },
           });
         case 'notifications/initialized':
@@ -198,9 +199,3 @@ class McpServer {
     'error': {'code': code, 'message': message},
   };
 }
-
-/// Reported in `initialize`, so an agent can tell which editor it reached.
-const appVersionForMcp = String.fromEnvironment(
-  'APP_VERSION',
-  defaultValue: 'dev',
-);

@@ -95,7 +95,16 @@ jobs:
 
       - name: Build Windows
         working-directory: code
-        run: flutter build windows --release
+        run: |
+          # Stamped in so a reader's trace can say which build it is.
+          # This workflow passed none of these, so every binary anybody
+          # installs said "this is not a CI build" about a build CI made,
+          # while the throwaway binaries in ci.yml were stamped properly.
+          $sdk = (flutter --version --machine | ConvertFrom-Json).frameworkVersion
+          flutter build windows --release `
+            --dart-define=BUILD_SHA=$env:GITHUB_SHA `
+            --dart-define=BUILD_RUN=$env:GITHUB_RUN_NUMBER `
+            --dart-define=BUILD_SDK=$sdk
 
       # A build that succeeded is not proof it built the thing we asked for:
       # an arm64 host with an x64 Dart SDK quietly produces an x64 binary. The
@@ -210,7 +219,15 @@ jobs:
 
       - name: Build macOS
         working-directory: code
-        run: flutter build macos --release
+        run: |
+          # Stamped in so a reader's trace can say which build it is.
+          # This workflow passed none of these, so every binary anybody
+          # installs said "this is not a CI build" about a build CI made,
+          # while the throwaway binaries in ci.yml were stamped properly.
+          flutter build macos --release \
+            --dart-define=BUILD_SHA=${GITHUB_SHA} \
+            --dart-define=BUILD_RUN=${GITHUB_RUN_NUMBER} \
+            --dart-define=BUILD_SDK=$(flutter --version --machine | python3 -c 'import json,sys; print(json.load(sys.stdin)["frameworkVersion"])')
 
       - name: Package zip
         run: |
@@ -296,7 +313,15 @@ jobs:
 
       - name: Build Linux
         working-directory: code
-        run: flutter build linux --release
+        run: |
+          # Stamped in so a reader's trace can say which build it is.
+          # This workflow passed none of these, so every binary anybody
+          # installs said "this is not a CI build" about a build CI made,
+          # while the throwaway binaries in ci.yml were stamped properly.
+          flutter build linux --release \
+            --dart-define=BUILD_SHA=${GITHUB_SHA} \
+            --dart-define=BUILD_RUN=${GITHUB_RUN_NUMBER} \
+            --dart-define=BUILD_SDK=$(flutter --version --machine | python3 -c 'import json,sys; print(json.load(sys.stdin)["frameworkVersion"])')
 
       # The same check Windows makes, for the same reason: a build that
       # succeeded is not proof it built the thing that was asked for. Windows
