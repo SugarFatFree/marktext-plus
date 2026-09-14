@@ -689,6 +689,10 @@ one side while the numbers moved.
   those was the one that needed it: the panes are named after quarters of the
   tab rather than edges of it, so "bottom" is the bottom *left* one and
   nothing in the protocol said so.
+- Setting the view mode over the interface had the same fault the pane one had
+  an hour earlier — `unknown mode "null"` for a value nobody sent, and no word
+  on which modes there are. All three places that take a value from a fixed
+  set now answer the same way, and the set is read off the values themselves.
 
 ### Reopen a closed tab
 
@@ -1258,6 +1262,9 @@ Ctrl+V 会读剪贴板的两种格式，把 HTML 转成 Markdown——所以从�
 - 它 17 个参数里有 3 个什么也没说，而其中一个恰恰是最需要说的：
   窗格是按**象限**命名的，不是按边——`bottom` 是左**下**那一格，
   协议里原本没有一处讲过。
+- 通过接口切换视图模式，还留着一小时前刚在窗格那边修掉的同一个毛病：
+  没给值时回答 `unknown mode "null"`，给错值时也不说有哪些模式。
+  三处「取值来自固定集合」的地方现在答法一致，而那个集合是从取值本身读出来的。
 
 ### 关掉的标签页可以拿回来
 

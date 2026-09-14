@@ -208,15 +208,27 @@ class McpController extends StateNotifier<McpStatus> {
       // removing, so the first step is lifting it onto `TabNotifier`. Running
       // a plugin command needs a `BuildContext` — panes, cards and messages
       // all come from one — so the widget layer has to register a handler.
-      return mcpRefused('action "$action" is not available');
+      // Named back with the ones there are. An agent that guessed wrong has
+      // the schema to re-read, but the answer costs nothing to carry and
+      // saves the round trip; every other closed set here does the same.
+      return mcpRefused('action "$action" is not available — '
+          '${McpAction.values.map((a) => a.wireName).join(', ')}');
     }
 
     switch (wanted) {
       case McpAction.setViewMode:
-        final mode = EditMode.values
-            .where((m) => m.name == text('mode'))
-            .firstOrNull;
-        if (mode == null) return mcpRefused('unknown mode "${text('mode')}"');
+        // The same two answers `close_pane` gives, for the same reasons. This
+        // branch was left as it was when that one was fixed an hour earlier,
+        // which is the miss this repository has recorded before: read the
+        // siblings of the branch you touched.
+        final modes = EditMode.values.map((m) => m.name).join(', ');
+        final wantedMode = text('mode');
+        if (wantedMode == null) return mcpRefused('no mode given — $modes');
+        final mode =
+            EditMode.values.where((m) => m.name == wantedMode).firstOrNull;
+        if (mode == null) {
+          return mcpRefused('unknown mode "$wantedMode" — $modes');
+        }
         // Awaited, because the sentence below says it already happened. It
         // was not, so an agent that set the mode and asked for the state in
         // the next breath could be told "view mode is now split" and then
@@ -627,7 +639,8 @@ class McpController extends StateNotifier<McpStatus> {
   }) async {
     final wanted = UpdateSource.byWireName(source);
     if (wanted == null) {
-      return mcpRefused('unknown source "$source" — release or ci');
+      return mcpRefused('unknown source "$source" — '
+          '${UpdateSource.values.map((u) => u.wireName).join(' or ')}');
     }
 
     // Before anything is fetched, and skipped for a dry run: asking what

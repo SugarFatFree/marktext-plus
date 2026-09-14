@@ -293,6 +293,79 @@ void main() {
     });
   });
 
+  group('a value from a closed set', () {
+    // Three of these were written at three different times and answered three
+    // different ways: `update_app` named the two sources it takes, `close_pane`
+    // quoted back a value nobody had sent, and `set_view_mode` named neither
+    // the value nor the alternatives. The first was fixed in its own hour and
+    // its siblings were not read — which is the miss this file has recorded
+    // before.
+    //
+    // Driven from the schema rather than from a list here: every argument that
+    // carries an `enum` is one of these, so a new one cannot arrive unchecked.
+    final cases = <String, (String, Map<String, Object?>)>{
+      // parameter → (the action that reads it, the rest of its arguments)
+      'action': ('nonesuch', {}),
+      'mode': ('set_view_mode', {}),
+      'slot': ('close_pane', {}),
+      'source': ('update_app', {'ref': 'v9.9.9'}),
+
+    };
+
+    test('the schema has no closed set this test does not cover', () {
+      // A case list that silently falls behind the schema would let the
+      // checks below pass by covering nothing.
+      final control =
+          const McpToolset().all.firstWhere((t) => t.name == 'control');
+      final props = control.schema['properties'] as Map<String, dynamic>;
+      final withEnum = props.entries
+          .where((e) => (e.value as Map).containsKey('enum'))
+          .map((e) => e.key)
+          .toSet();
+      expect(withEnum, unorderedEquals(cases.keys));
+    });
+
+    for (final entry in cases.entries) {
+      final parameter = entry.key;
+      final (action, rest) = entry.value;
+
+      test('$parameter: a value it does not take is named back, with the ones '
+          'it does', () async {
+        final args = <String, Object?>{
+          'action': parameter == 'action' ? action : action,
+          ...rest,
+          if (parameter != 'action') parameter: 'nonesuch',
+        };
+        final outcome = await boot()
+            .read(mcpProvider.notifier)
+            .performAction(args.remove('action')! as String, args);
+
+        expect(outcome.ok, isFalse);
+        expect(outcome.said, contains('nonesuch'));
+        final control =
+            const McpToolset().all.firstWhere((t) => t.name == 'control');
+        final props = control.schema['properties'] as Map<String, dynamic>;
+        for (final value in (props[parameter] as Map)['enum'] as List) {
+          expect(outcome.said, contains('$value'),
+              reason: '拒绝里没有列出 $value，调用方只能一个个试');
+        }
+      });
+
+      if (parameter != 'action') {
+        test('$parameter: leaving it out is not the same as getting it wrong',
+            () async {
+          final outcome = await boot()
+              .read(mcpProvider.notifier)
+              .performAction(action, {...rest});
+
+          expect(outcome.ok, isFalse);
+          expect(outcome.said, isNot(contains('null')),
+              reason: '把调用方从没发过的值加引号还给它');
+        });
+      }
+    }
+  });
+
   group('taking a close back', () {
     // Closing is the only action here that destroys something, and until this
     // existed the interface could do it and not undo it — including the

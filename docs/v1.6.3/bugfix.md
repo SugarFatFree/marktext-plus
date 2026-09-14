@@ -74,6 +74,7 @@
 | BUG-489 | 2026-09-14 | 不给 `slot` 调 `close_pane`，它回答 `unknown slot "null"`——把调用方从没发过的值引述回去；`set_setting` 缺参数时是半句话 | P3 | 已修复 |
 | BUG-490 | 2026-09-14 | `control` 工具**自己的描述**只讲了 9 件事，而它有 13 个动作——BUG-483 修的是 README，这一份是代理最先读到的那一段 | P2 | 已修复 |
 | BUG-491 | 2026-09-14 | 17 个参数里有 3 个没有任何说明；其中 `slot` 的取值按**象限**命名——`bottom` 是左**下**那一格，而协议里没有一处说过 | P3 | 已修复 |
+| BUG-492 | 2026-09-14 | `set_view_mode` 还留着 BUG-489 同一个毛病（`unknown mode "null"`），因为修 `close_pane` 的时候没读它的兄弟分支 | P3 | 已修复 |
 
 ---
 
@@ -5538,3 +5539,57 @@ schema（生成的）、handler 的 switch（编译器穷尽检查）、**以及
 
 - `code/lib/services/mcp_tools.dart`
 - `code/test/services/mcp_action_test.dart`
+
+---
+
+## BUG-492：修了一个分支，没读它的兄弟
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-492 |
+| 日期 | 2026-09-14 |
+| 优先级 | P3 |
+| 状态 | 已修复 |
+
+### 现象
+
+接着往下读拒绝消息，把「取值来自一个封闭集合」的三处放在一起看：
+
+| 动作 | 给错时说 | 不给时说 |
+|---|---|---|
+| `update_app` | `unknown source "x" — release or ci` ✅ | — |
+| `close_pane` | `unknown slot "x" — right, bottom, corner` ✅（BUG-489 刚修） | `no slot given — …` ✅ |
+| **`set_view_mode`** | **`unknown mode "x"`**（不说有哪些） | **`unknown mode "null"`** ❌ |
+
+**第三行两格都是错的，而第二行是一小时前刚修好的。**
+
+### 根因：这条教训本仓库已经记过一次
+
+`close_pane` 和 `set_view_mode` 是同一个 switch 里并排的两个分支，
+写法一模一样——`values.where(...).firstOrNull`，然后 `if (x == null)` 一条出口。
+修 BUG-489 时只看了手上那一个。
+
+**「改一个分支就读完它的兄弟」** 这条记忆就是为这种情况写的，
+而这一次它没被想起来。记在这里，因为下一次还会是这个形状。
+
+### 修复
+
+三处统一：**「没给」和「给错」分开答，两种都列出可选值，可选值从枚举生成。**
+`update_app` 那句原本硬编码着 `release or ci`，也改成从 `UpdateSource.values` 生成
+——它当时是对的，但它是第二份清单。
+
+### 守卫：由 schema 驱动，不再是手写的三条
+
+`mcp_control_does_it_test` 新增一组，**遍历 control schema 里每一个带 `enum` 的参数**：
+
+- 给一个它不接受的值 → 拒绝里要有这个值，**并且枚举里每一个取值都要出现**；
+- 不给这个参数 → 拒绝里**不许出现 `null`**。
+
+外加一条先行断言：**schema 里带 `enum` 的参数集合，必须和这组用例覆盖的集合完全相等**。
+少一个就红——否则将来加了第四个封闭取值，上面那两条会在「没覆盖到」的情况下安静通过。
+（变异验证：去掉一条用例，这条先行断言立刻红。）
+
+### 涉及文件
+
+- `code/lib/providers/mcp_provider.dart`
+- `code/test/services/mcp_control_does_it_test.dart`
