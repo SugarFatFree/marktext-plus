@@ -669,6 +669,10 @@ one side while the numbers moved.
   interface. The log carried one number — "+901 ms before Dart" — and loading
   the executable, booting the engine and reading the snapshot are three
   different problems with three different answers.
+- Saving a tab over the automation interface and giving it a file at the same
+  time answered with the name the tab had before, not the name of the file it
+  had just written — the only case where the two differ, and the case the
+  caller most needs answered.
 
 ### Reopen a closed tab
 
@@ -1224,6 +1228,9 @@ Ctrl+V 会读剪贴板的两种格式，把 HTML 转成 Markdown——所以从�
 - 启动每一步的耗时现在可以通过自动化接口读到。日志里原本只有一个数
   ——「+901 ms before Dart」——而加载可执行文件、启动引擎、读取快照
   是三个不同的问题，答案也不同。
+- 通过自动化接口存盘、同时给标签页指定文件时，答复说的是存**之前**那个名字，
+  不是刚写出去的那个文件名——而这正是两者唯一会不一样的情况，
+  也正是调用方最需要答案的那一格。
 
 ### 关掉的标签页可以拿回来
 

@@ -188,6 +188,13 @@ void main() {
           .performAction('save_tab', {'tabId': 'scratch', 'path': to});
 
       expect(outcome.ok, isTrue, reason: outcome.said);
+      // The name it wrote, not the name it had. Measured on a real machine:
+      // this answered "saved Untitled as UTF-8" about a file called
+      // kept.md — and `path` is precisely the case where the name changes,
+      // so it was wrong in the only case it could be wrong in. The line
+      // below it already re-read the tab, for the encoding.
+      expect(outcome.said, contains('kept.md'));
+      expect(outcome.said, isNot(contains('scratch.md')));
       expect(File(to).readAsStringSync(), 'typed\n');
       final tab = container.read(tabProvider).tabs.single;
       expect(tab.filePath, to, reason: '存过之后它应当就是那个文件了');

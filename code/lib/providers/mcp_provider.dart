@@ -248,7 +248,13 @@ class McpController extends StateNotifier<McpStatus> {
           case SaveOutcome.saved:
             final now =
                 _ref.read(tabProvider).tabs.where((t) => t.id == id).firstOrNull;
-            return mcpDid('saved ${saving.fileName}'
+            // The name it wrote, which is not the name it had when `path`
+            // gave a tab its first file — and that is the only case where
+            // the two differ, so the answer was wrong in exactly the case
+            // the caller most needs it: "saved Untitled as UTF-8" about a
+            // file the caller had just named. `now` was already being read,
+            // one line down, for the encoding.
+            return mcpDid('saved ${(now ?? saving).fileName}'
                 '${now == null ? '' : ' as ${now.encoding.label}'}');
           case SaveOutcome.nothingToWrite:
             return mcpDid('${saving.fileName} had nothing unsaved');

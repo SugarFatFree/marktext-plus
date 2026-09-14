@@ -67,8 +67,9 @@
 | BUG-482 | 2026-09-14 | 连做两个命令（加粗、标题、缩进、移块……）一次 Ctrl+Z 全退——25 处写入把断步交给了打字防抖 | P2 | 已修复 |
 | BUG-483 | 2026-09-14 | 12 份 README 把自动化接口的能力说小了：5 个工具里列了 4 个，12 个动作里描述了 4 个——而漏掉的包括「装插件」和「替换应用本体」 | P1 | 已修复 |
 | BUG-484 | 2026-09-14 | 自更新装完不会把编辑器带回来——安装脚本的启动指令带着 `skipifsilent`，而自更新正是静默运行它 | P1 | 已修复并真机验证 |
-| BUG-485 | 2026-09-14 | 握手时编辑器自报版本是 `dev`——那个版本号读的是一个全仓库从没人定义过的编译期常量 | P2 | 已修复 |
+| BUG-485 | 2026-09-14 | 握手时编辑器自报版本是 `dev`——那个版本号读的是一个全仓库从没人定义过的编译期常量 | P2 | 已修复并真机验证 |
 | BUG-486 | 2026-09-14 | 发行构建（读者唯一会装的那个）没有打构建标记，启动追踪里写着「这不是 CI 构建」——而只有被丢掉的 CI 产物打了 | P2 | 已修复 |
+| BUG-487 | 2026-09-14 | `save_tab` 带 `path` 存盘后答复说的是**存之前**那个名字——「saved Untitled as UTF-8」，而写出去的文件叫别的 | P3 | 已修复并真机验证 |
 
 ---
 
@@ -5125,6 +5126,16 @@ const appVersionForMcp = String.fromEnvironment('APP_VERSION', defaultValue: 'de
 
 删掉那个常量，握手直接报 `AppConstants.appVersion`。**一个量，一个来源。**
 
+### 真机验证（2026-09-14 18:59）
+
+| | 更新前 | 更新后 |
+|---|---|---|
+| 握手 `serverInfo.version` | **`dev`** | **`1.6.2`** |
+| `get_state.version` | **没有这个字段** | **`1.6.2`** |
+
+装的是 `266aff6`，18:58:52 安装程序启动、18:59:10 新构建应答，**18 秒自己回来**，
+读者的文档原样重开。
+
 ### 守卫
 
 `mcp_protocol_test`「initialize names the version this editor actually is」。
@@ -5221,3 +5232,60 @@ const appVersionForMcp = String.fromEnvironment('APP_VERSION', defaultValue: 'de
 
 - `.github/workflows/release.yml`
 - `code/test/services/a_shipped_build_can_say_which_build_it_is_test.dart`
+
+---
+
+## BUG-487：它报的是存之前那个名字
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-487 |
+| 日期 | 2026-09-14 |
+| 优先级 | P3 |
+| 状态 | 已修复（缺陷本身在真机上撞到） |
+
+### 怎么发现的
+
+在真机上验证 FEAT-162 时，顺手用 `save_tab` 给一个新标签页指定了路径：
+
+```
+save_tab {"path": "...\\marktext-reopen-check-1.md"}
+→ saved Untitled as UTF-8
+```
+
+**写出去的文件叫 `marktext-reopen-check-1.md`，它说存的是 `Untitled`。**
+
+### 根因：正确答案就在下一行
+
+```dart
+case SaveOutcome.saved:
+  final now = ...tabs.where((t) => t.id == id).firstOrNull;   // ← 重新读了
+  return mcpDid('saved ${saving.fileName}'                    // ← 用的是旧的
+      '${now == null ? '' : ' as ${now.encoding.label}'}');   // ← 编码用的是新的
+```
+
+那一行**已经把存盘后的标签页重新读出来了**，为的是拿真正写盘用的编码；
+名字却还用着存盘**之前**那一份。
+
+### 为什么偏偏错在最要紧的那一格
+
+标签页的名字只有一种情况会变——**`path` 给一个还没有文件的标签页第一次指定文件**
+（FEAT-156）。也就是说，**它只在唯一一种会出错的情况下出错**，
+而那正是自动化这一端「建文件」的路径：调用方刚给出名字，编辑器回答的却是旧名字。
+
+### 修复
+
+```dart
+return mcpDid('saved ${(now ?? saving).fileName}' ...);
+```
+
+### 守卫
+
+`mcp_control_does_it_test`「a tab made over the socket can be given a file」
+增两条断言：答复里要有 `kept.md`，且**不能**有 `scratch.md`。
+改回旧代码后失败信息正是 `Expected: contains 'kept.md' Actual: 'saved scratch.md as UTF-8'`。
+
+### 涉及文件
+
+- `code/lib/providers/mcp_provider.dart`
+- `code/test/services/mcp_control_does_it_test.dart`
