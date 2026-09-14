@@ -66,6 +66,7 @@
 | BUG-481 | 2026-09-13 | 编辑菜单里的「粘贴」丢掉 HTML 结构、也不压还原点——Ctrl+V 和它是两种粘贴 | P2 | 已修复 |
 | BUG-482 | 2026-09-14 | 连做两个命令（加粗、标题、缩进、移块……）一次 Ctrl+Z 全退——25 处写入把断步交给了打字防抖 | P2 | 已修复 |
 | BUG-483 | 2026-09-14 | 12 份 README 把自动化接口的能力说小了：5 个工具里列了 4 个，12 个动作里描述了 4 个——而漏掉的包括「装插件」和「替换应用本体」 | P1 | 已修复 |
+| BUG-484 | 2026-09-14 | 自更新装完不会把编辑器带回来——安装脚本的启动指令带着 `skipifsilent`，而自更新正是静默运行它 | P1 | 已修复 |
 
 ---
 
@@ -4958,3 +4959,98 @@ Build Linux     success  2 分 16 秒
 
 **教训**：一条「分类」守卫天生只守一个方向——它能发现「多出来一个未分类的写入」，
 发现不了「本该留在原地的那个被搬走了」。**两个方向都要有证据。**
+
+## BUG-484：更新装成功了，编辑器再也没起来
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-484 |
+| 日期 | 2026-09-14 |
+| 优先级 | P1 |
+| 状态 | 已修复（待新构建做端到端验证） |
+
+### 怎么发现的：**第一次真的跑了一遍**
+
+读者重启客户端之后，那个卡了一整天的草稿标签页消失了（会话只持久化有文件路径的标签页），
+`update_app` 的前置条件终于满足。于是**这个功能第一次真正执行**：
+
+```
+干跑 → would install windows-x64-setup-51623b8…, 14.2 MB
+真装 → the installer is running against D:\MarkText Plus; this editor will close and come back
+```
+
+**然后它就没有回来。** 十几分钟里对 `10.40.162.25:10100` 的 TCP 探测全部超时，
+读者确认屏幕上既没有 UAC 提示、也没有安装向导，**程序就是没启动**。
+
+### 判定：装成功了，只是没被拉起来
+
+读者手动启动之后，日志里**第一次**出现了这一行：
+
+```
+[update] the installer that ran before this launch said:
+         Need to restart Windows? No | Deinitializing Setup. | Log closed.
+```
+
+Inno 的收尾三行，**没有报错**。但「安装程序跑完了」不等于「现在跑的是新程序」，
+所以用**行为**去判定——问一个**只有新构建才有**的动作，且零副作用：
+
+| 探针 | 旧构建的答复 | 这次的答复 |
+|------|------------|-----------|
+| `set_setting`（FEAT-158） | `action "set_setting" is not available` | **`no setting named`** |
+| `save_tab`（FEAT-155） | 同上 | **`there is no tab nonexistent`** |
+
+**二进制确实被替换了。坏的只有「自动回来」这一步。**
+
+### 根因：两份文件里的两件事，谁都没错，合起来就错了
+
+安装脚本（CI 与 release 两份里各一份）：
+
+```
+[Run]
+Filename: "{app}\marktext_plus.exe"; Description: "Launch MarkText Plus"; Flags: nowait postinstall skipifsilent
+```
+
+而自更新是这样调它的（`SelfUpdateService.installerArguments`）：
+
+```
+/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /DIR=<当前目录>
+```
+
+**`skipifsilent` 的意思正是「静默运行时不要执行这一条」**——而那一条是唯一会把编辑器重新启动的指令。
+于是它被按设计跳过了，剩下的指望只有 `/RESTARTAPPLICATIONS` 走 Restart Manager，
+**而它没有做到**（实测）。
+
+> **两个人各自写对了自己那一半：** 写安装脚本的人想的是「静默安装不该突然弹出一个程序」；
+> 写自更新的人想的是「没人在场，必须静默」。**没有任何东西把这两件事放在一起看过。**
+
+### 修复
+
+两份 workflow 的启动指令都去掉 `skipifsilent`，并把理由写在旁边。
+`/RESTARTAPPLICATIONS` 保留：万一 Restart Manager 这次真做了，多起一次也无害——
+**单实例守卫会把已经开着的窗口提到前面，而不是再开一个**（`installerArguments` 的注释早就写着这一点）。
+
+### 守卫
+
+`a_silent_install_brings_the_editor_back_test`，三条，**把分处两地的两半绑在一起**：
+
+1. 自更新**仍然**用 `/VERYSILENT` 跑安装程序（另一半变了的话，下面那条要求就该重新想）；
+2. **两份** workflow 里都恰好有一条 `postinstall` 启动指令，且**不带** `skipifsilent`；
+3. 那句「this editor will close and come back」的措辞还在——它成立**完全依赖**第 2 条，
+   第 2 条一旦没了，这句话就变成「编辑器说了与事实不符的话」。
+
+### 验证
+
+| 变异 | 结果 |
+|------|------|
+| ci.yml 放回 `skipifsilent`（即今天真实发生的缺陷） | 红，点名 `ci.yml: 启动指令带着 skipifsilent` |
+| release.yml 放回 | 红，点名 `release.yml` |
+| 删掉整条启动指令 | 红，`找到 0 条启动指令` |
+| 自更新不再静默 | 红，「不再静默安装的话，下面那条要求就该重新想一遍」 |
+
+第三个变异第一次**没落地**（我的正则里 `..` 要匹配两个字符，而 `{app}\marktext` 之间只有一个反斜杠），
+一开始显示为绿。**没落地的变异什么也没证明**——重做之后才红。
+
+### 还没做完的一步
+
+这条修复要等 CI 造出**带修复的新安装包**，再在读者机器上跑一次 `update_app`，
+**看它是不是自己回来了**。那将是这个功能第一次被完整验证。

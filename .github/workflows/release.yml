@@ -171,7 +171,16 @@ jobs:
           Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional icons:"
 
           [Run]
-          Filename: "{app}\marktext_plus.exe"; Description: "Launch MarkText Plus"; Flags: nowait postinstall skipifsilent
+          ; No skipifsilent. The editor updates itself by running this
+          ; installer with /VERYSILENT, and that flag is precisely what stops
+          ; this entry — the one thing that starts the editor again — from
+          ; running. /RESTARTAPPLICATIONS was supposed to cover it through the
+          ; Restart Manager and did not: measured on the reader's machine, the
+          ; install completed, the binary was replaced, and nothing came back.
+          ; A second launch when the Restart Manager does do its job is
+          ; harmless, because the single-instance guard raises the window that
+          ; is already open instead of opening another.
+          Filename: "{app}\marktext_plus.exe"; Description: "Launch MarkText Plus"; Flags: nowait postinstall
           "@
           $iss | Out-File -FilePath "setup.iss" -Encoding UTF8
 
