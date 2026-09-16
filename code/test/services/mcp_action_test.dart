@@ -117,27 +117,29 @@ void main() {
   test('control says what it does, and does not promise more', () {
     // This used to pin two phrases out of nine — "view mode" and "plugin
     // command" — and so could not see the four actions the sentence never
-    // mentioned. It named nine behaviours where there were thirteen actions,
-    // leaving out saving a tab, taking a close back, opening a panel and
-    // changing a setting: a third hand-written list beside the schema and the
-    // handler, drifting the way the READMEs did (BUG-483). And this paragraph
-    // is what an agent reads to decide whether this is the tool it wants, so
-    // an action missing from it is an action nobody goes looking for.
+    // mentioned (BUG-490). The description now reads its list off
+    // [McpAction], and this holds it to having done so.
     //
-    // The description now reads its list off [McpAction], and this holds both
-    // directions of that: nothing missing, and nothing promised that is not
-    // there.
+    // The exact joined string rather than each name in turn: three of the
+    // names are single words — `format`, `undo`, `redo` — and an earlier
+    // version of this test looked for underscored tokens, so it counted
+    // fifteen of eighteen and called the description stale when it was not.
+    // A list that was hand-written again would not match this at all.
     final control =
         const McpToolset().all.firstWhere((t) => t.name == 'control');
-    final named = RegExp(r'\b[a-z]+_[a-z_]+\b')
+    expect(
+      control.description,
+      contains(McpAction.values.map((a) => a.wireName).join(', ')),
+      reason: '这一段的动作清单必须是从枚举拼出来的那一份，不能是手写的',
+    );
+    // And nothing that looks like an action but is not one — a stale
+    // `open_file` would read as a promise.
+    final strays = RegExp(r'\b[a-z]+_[a-z_]+\b')
         .allMatches(control.description)
         .map((m) => m.group(0)!)
+        .where((w) => !McpAction.values.any((a) => a.wireName == w))
         .toSet();
-    expect(
-      named,
-      unorderedEquals([for (final a in McpAction.values) a.wireName]),
-      reason: '描述里提到的动作，和枚举里真有的动作，必须是同一批',
-    );
+    expect(strays, isEmpty, reason: '描述里提到了不存在的动作');
   });
 
   group('a refusal is a refusal in the protocol too', () {

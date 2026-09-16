@@ -106,10 +106,10 @@ Lua나 JavaScript로 씁니다. 파일 하나와 매니페스트, 빌드 없음,
 | **`record_gif`** | 최대 5초. 움직임을 보기 위한 것 |
 | **`get_state`** | 실행 중인 버전(`update_app` 뒤에 물어보면 무엇이 돌아왔는지 알 수 있다), 열린 탭, 보기 모드, 설치된 플러그인, 채워진 창 |
 | **`read_startup_trace`** | 시작의 각 단계가 걸린 시간 — Dart가 실행되기 전 구간까지 |
-| **`control`** | 14 가지 동작: 탭 열기·닫기·저장·전환, 내용 쓰기, 보기 모드 변경, 창 닫기, 플러그인 명령 실행, 플러그인 패널 열기, 설정 변경, 닫은 탭 다시 열기, 창 이동과 크기 변경, **그리고 플러그인 설치와 CI 빌드로 앱 자체를 교체하는 것** |
+| **`control`** | 18 가지 동작: 탭 열기·닫기·저장·전환, 내용 쓰기, 보기 모드 변경, 창 닫기, 플러그인 명령 실행, 플러그인 패널 열기, 설정 변경, 닫은 탭 다시 열기, 창 이동과 크기 변경, **그리고 플러그인 설치와 CI 빌드로 앱 자체를 교체하는 것** |
 
 에이전트가 보내는 이름으로 본 열두 가지 동작:
-`new_tab`, `close_tab`, `reopen_tab`, `save_tab`, `activate_tab`, `set_view_mode`, `set_content`, `close_pane`, `run_plugin_command`, `open_panel`, `install_plugin`, `update_app`, `set_window`, `set_setting`
+`new_tab`, `close_tab`, `reopen_tab`, `save_tab`, `activate_tab`, `set_view_mode`, `set_content`, `close_pane`, `run_plugin_command`, `open_panel`, `install_plugin`, `update_app`, `set_window`, `set_setting`, `format`, `undo`, `redo`, `set_clipboard`
 ## ⚖️ 다른 편집기와 비교
 
 이 프로젝트가 다시 만든 원본 편집기, 그리고 이 분야에서 가장 잘 알려진 편집기와 비교했습니다. MarkText 열의 모든 수치는 `v0.20.0-dev` 소스에서 직접 읽은 것입니다. Typora 는 비공개 소스라 같은 방식으로 확인할 수 없어, 공개된 문서에 적힌 내용만 실었습니다.

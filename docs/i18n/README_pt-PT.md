@@ -106,10 +106,10 @@ Um servidor MCP opcional, **desligado até você o ligar**: abre uma porta na su
 | **`record_gif`** | Cinco segundos no máximo, para ver uma animação |
 | **`get_state`** | Que versão está a correr — pergunte depois de `update_app` para ver o que voltou — e o que está aberto: separadores, modo de vista, extensões instaladas, quadros preenchidos |
 | **`read_startup_trace`** | Quanto tempo levou cada passo do arranque, incluindo a parte antes do Dart |
-| **`control`** | 14 ações: abrir, fechar, guardar e mudar de separador, escrever conteúdo, mudar o modo de visualização, fechar um painel, executar um comando de um plugin, abrir o painel de um plugin, mudar uma opção, reabrir um separador fechado, mover e redimensionar a janela — **e instalar um plugin ou substituir a aplicação por uma compilação da CI** |
+| **`control`** | 18 ações: abrir, fechar, guardar e mudar de separador, escrever conteúdo, mudar o modo de visualização, fechar um painel, executar um comando de um plugin, abrir o painel de um plugin, mudar uma opção, reabrir um separador fechado, mover e redimensionar a janela — **e instalar um plugin ou substituir a aplicação por uma compilação da CI** |
 
 As doze ações, com os nomes que um agente envia:
-`new_tab`, `close_tab`, `reopen_tab`, `save_tab`, `activate_tab`, `set_view_mode`, `set_content`, `close_pane`, `run_plugin_command`, `open_panel`, `install_plugin`, `update_app`, `set_window`, `set_setting`
+`new_tab`, `close_tab`, `reopen_tab`, `save_tab`, `activate_tab`, `set_view_mode`, `set_content`, `close_pane`, `run_plugin_command`, `open_panel`, `install_plugin`, `update_app`, `set_window`, `set_setting`, `format`, `undo`, `redo`, `set_clipboard`
 
 ## ⚖️ Comparação
 

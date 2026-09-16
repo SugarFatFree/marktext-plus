@@ -430,6 +430,41 @@ class TabNotifier extends StateNotifier<TabState> {
     return true;
   }
 
+  /// Steps the active tab's history back or forward, and says what it became.
+  ///
+  /// Here rather than in the menu because the menu is no longer the only
+  /// caller: the automation interface steps the same history, and a second
+  /// copy of this would drift the way the two undo paths already did
+  /// (BUG-494).
+  ///
+  /// In preview mode there is no field to restore into, so `undo` answers with
+  /// the text rather than writing it and this writes it to the tab. Without
+  /// that, accepting a plugin's rewrite from the right-hand rail could not be
+  /// taken back: the history was right and the key did nothing at all.
+  ///
+  /// `current` is passed only when there is no field to read instead. The
+  /// tab's copy is written on a 300 ms debounce, so while somebody is typing it
+  /// is behind the field — and `undo` puts whatever it is told is "now" onto
+  /// the redo stack before stepping back, so a stale copy loses the characters
+  /// typed since the last pause off the screen *and* off the redo stack. In
+  /// preview mode the tab is the only copy there is, which is why it is asked
+  /// for at all.
+  String? stepHistory({required bool back}) {
+    final id = state.activeTabId;
+    final tab = state.tabs.where((t) => t.id == id).firstOrNull;
+    final editor = _ref.read(editorProvider.notifier);
+
+    final text = back
+        ? editor.undo(current: editor.hasSourceEditor ? null : tab?.content)
+        : editor.redo();
+    // With a source editor the controller already holds it and its own
+    // listener writes the tab; writing here as well would be the same string
+    // twice.
+    if (text == null || id == null || editor.hasSourceEditor) return text;
+    updateContent(id, text, external: true);
+    return text;
+  }
+
   /// Opens the most recently closed document again, and says whether there
   /// was one.
   ///

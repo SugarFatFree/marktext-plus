@@ -310,6 +310,7 @@ void main() {
       'slot': ('close_pane', {}),
       'source': ('update_app', {'ref': 'v9.9.9'}),
       'state': ('set_window', {}),
+      'format': ('format', {}),
 
     };
 

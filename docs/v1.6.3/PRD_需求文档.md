@@ -18,6 +18,7 @@
 | FEAT-161 | 2026-09-14 | `get_state` 报出编辑器自己的版本——自更新跑完之后，「回来的是哪个」得能在协议里问出来 | P1 | 低 | 已完成并真机验证 |
 | FEAT-162 | 2026-09-14 | 重新打开关闭的标签页（Ctrl+Alt+R / 文件菜单 / 命令面板 / MCP `reopen_tab`）——有标签页的编辑器都有，这个没有 | P2 | 中 | 已完成，MCP 侧真机验证 |
 | FEAT-163 | 2026-09-15 | 自动化接口能驱动窗口了（`set_window`：最大化/最小化/全屏/常态 + 指定尺寸）——这条从一开始就在要求里，一直没做 | P1 | 中 | 已完成 |
+| FEAT-164 | 2026-09-16 | 自动化接口能在文档上动手了：`format`（54 个格式命令）、`undo` / `redo`、`set_clipboard`（带 HTML）——人工测试清单剩下的那几条，机器终于走得通 | P1 | 中 | 已完成 |
 
 ---
 
@@ -1066,4 +1067,80 @@ get_state                   → 只剩读者自己的那份文档
 - `code/lib/services/editor_window.dart`（新增）
 - `code/lib/services/mcp_tools.dart`、`code/lib/providers/mcp_provider.dart`
 - `code/test/providers/the_window_can_be_driven_over_the_wire_test.dart`（新增，10 条）
+- 12 份 README
+
+---
+
+## FEAT-164：机器也能在文档上动手了
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | FEAT-164 |
+| 实现日期 | 2026-09-16 |
+| 优先级 | P1 |
+| 难易度 | 中 |
+| 状态 | 已完成 |
+
+### 需求描述
+
+人工测试清单里剩下的那几条，卡的都不是「看不见」，而是**手伸不进去**：
+
+| 清单上的步骤 | 缺的动作 |
+|---|---|
+| 「Ctrl+B 两次，然后 Ctrl+Z 应当只退掉第二个」（BUG-482） | 跑格式命令、退历史 |
+| 「从浏览器复制带标题和列表的网页，用编辑 → 粘贴」（BUG-481） | 往剪贴板放 **HTML** |
+| 「打一串字后立刻用菜单撤销，重做应当把字拿回来」（BUG-494） | 退历史、重做 |
+
+四个动作补齐这三样：`format`、`undo`、`redo`、`set_clipboard`。
+
+### 实现方案
+
+**`format`**：54 个命令，取值从 `FormatAction.values` 生成。走的是**菜单和键盘
+走的同一条路**（`applyFormat`），不是为自动化另写一条。
+
+这里最要紧的不是「做」，是**「没做就不许说做了」**：
+
+- `applyFormat` 只是**记下一个请求**，由某个窗格在下一帧接手。所以答复前要**等**
+  请求被清掉（条件轮询，不是固定 sleep），清掉了才算做了，并报出文档字数的变化。
+- 纯预览且没有块在编辑时，**没有任何窗格会接**——这时直接拒绝，并说清怎么办
+  （`set_view_mode` 到 source 或 split）。判断向 `FormatTarget` 要，不自己抄一份。
+- 等不到就**把请求丢掉**再拒绝。留在那里的话，它会在读者下次切到源码模式的瞬间
+  自己触发——一次没人要求、时间也没人选的编辑。
+
+**`undo` / `redo`**：走 `TabNotifier.stepHistory`，**和「编辑 → 撤销」同一个方法**
+（这一条是 BUG-494 的结果：那两条路曾经是两份代码，其中一份用了滞后的文本）。
+没得退时说「there is nothing to undo」，不假报成功。
+
+**`set_clipboard`**：`content` 放纯文本，`html` 放浏览器会一并留下的那一份。
+复用已有的 `ClipboardService.copyWithHtml`——**没有新依赖**，走的正是
+「复制为 HTML」用的那条路。而这一份 HTML 正是编辑器粘贴时**先读**的那一份，
+所以「从浏览器复制」这件事终于可以在没有浏览器的情况下造出来。
+
+**它换掉的是读者真实的剪贴板**，所以答复里明写「whatever was on it is gone」，
+参数说明里也写了。
+
+### 验收标准
+
+1. 预览且无块编辑时 `format` 被拒绝，**且不留下将来会自己触发的请求**；
+2. 预览里有块在编辑时**不拒绝**（那一半也要对）；
+3. 被接手时报出文档字数的变化；等不到时**丢掉请求**再拒绝；
+4. `undo` / `redo` 与菜单同路；没得退时明确说没得退；
+5. `set_clipboard` 带 `html` 时走 `copyWithHtml`，不带时走纯文本，两者答复不同；
+6. 12 份 README 的动作清单与数目都跟上（数目现在有守卫）。
+
+### 守卫与变异验证
+
+`the_editor_can_be_typed_at_over_the_wire_test`，11 条。**七处变异逐个验证会红**：
+去掉「没人接就拒绝」、超时后不清请求、不等就报成功、撤销不区分「没得退」、
+忽略 `html`，以及后两条重做过一次——第一次改出的是**编译错误**，
+那不算行为失败（这条纪律本仓库记过）。
+
+### 涉及文件
+
+- `code/lib/services/format_target.dart`（新增；规则从 `SourceEditor` 搬出来，
+  它原地改为转发，原有测试不动）
+- `code/lib/providers/tab_provider.dart`（`stepHistory` 从菜单搬进来）
+- `code/lib/ui/widgets/app_menu_bar.dart`（改为转发）
+- `code/lib/services/mcp_tools.dart`、`code/lib/providers/mcp_provider.dart`
+- `code/test/providers/the_editor_can_be_typed_at_over_the_wire_test.dart`（新增）
 - 12 份 README

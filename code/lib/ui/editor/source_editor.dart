@@ -12,6 +12,7 @@ import '../../core/theme/app_theme.dart';
 import '../../providers/editor_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/tab_provider.dart';
+import '../../services/format_target.dart';
 import '../../services/image_service.dart';
 import '../../services/markdown_parser.dart' as md;
 import 'highlighting_controller.dart';
@@ -77,13 +78,16 @@ class SourceEditor extends ConsumerStatefulWidget {
   ///
   /// In split view both panes are on screen, so it acts — unless the preview
   /// has a block open, in which case the pane being typed in takes it.
+  /// Kept as the name the panes and their tests use; the rule itself moved to
+  /// [FormatTarget], where the automation interface can ask it too.
   static bool actsOnFormat({
     required EditMode mode,
     required bool previewBlockEditing,
-  }) {
-    if (mode == EditMode.preview) return false;
-    return !previewBlockEditing;
-  }
+  }) =>
+      FormatTarget.sourcePane(
+        mode: mode,
+        previewBlockEditing: previewBlockEditing,
+      );
 
   @override
   ConsumerState<SourceEditor> createState() => _SourceEditorState();

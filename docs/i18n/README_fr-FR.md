@@ -106,10 +106,10 @@ Un serveur MCP facultatif, **à l’arrêt tant que vous ne l’allumez pas** : 
 | **`record_gif`** | Cinq secondes au plus, pour regarder une animation |
 | **`get_state`** | Quelle version tourne — à demander après `update_app` pour voir ce qui est revenu — et ce qui est ouvert : onglets, mode d’affichage, extensions installées, volets remplis |
 | **`read_startup_trace`** | Le temps pris par chaque étape du démarrage, y compris avant Dart |
-| **`control`** | 14 actions : ouvrir, fermer, enregistrer et changer d'onglet, écrire du contenu, changer de mode d'affichage, fermer un volet, lancer une commande de plugin, ouvrir le panneau d'un plugin, modifier un réglage, rouvrir un onglet fermé, déplacer et redimensionner la fenêtre — **et installer un plugin ou remplacer l'application par une build de la CI** |
+| **`control`** | 18 actions : ouvrir, fermer, enregistrer et changer d'onglet, écrire du contenu, changer de mode d'affichage, fermer un volet, lancer une commande de plugin, ouvrir le panneau d'un plugin, modifier un réglage, rouvrir un onglet fermé, déplacer et redimensionner la fenêtre — **et installer un plugin ou remplacer l'application par une build de la CI** |
 
 Les douze actions, sous les noms qu'un agent envoie :
-`new_tab`, `close_tab`, `reopen_tab`, `save_tab`, `activate_tab`, `set_view_mode`, `set_content`, `close_pane`, `run_plugin_command`, `open_panel`, `install_plugin`, `update_app`, `set_window`, `set_setting`
+`new_tab`, `close_tab`, `reopen_tab`, `save_tab`, `activate_tab`, `set_view_mode`, `set_content`, `close_pane`, `run_plugin_command`, `open_panel`, `install_plugin`, `update_app`, `set_window`, `set_setting`, `format`, `undo`, `redo`, `set_clipboard`
 
 ## ⚖️ Comparaison
 

@@ -76,6 +76,7 @@
 | BUG-491 | 2026-09-14 | 17 个参数里有 3 个没有任何说明；其中 `slot` 的取值按**象限**命名——`bottom` 是左**下**那一格，而协议里没有一处说过 | P3 | 已修复 |
 | BUG-492 | 2026-09-14 | `set_view_mode` 还留着 BUG-489 同一个毛病（`unknown mode "null"`），因为修 `close_pane` 的时候没读它的兄弟分支 | P3 | 已修复 |
 | BUG-493 | 2026-09-15 | 12 份 README 都写着「十二个动作」，而昨天加 `reopen_tab` 时已经是十三个——十二种语言写着十二种「十二」，没人能对账 | P3 | 已修复 |
+| BUG-494 | 2026-09-16 | 「编辑 → 撤销」用的是滞后 300ms 的那一份文本，刚打的字既从屏幕上消失、又不在 redo 栈上——Ctrl+Z 从来没有这个毛病 | P2 | 已修复 |
 
 ---
 
@@ -5649,3 +5650,74 @@ Dodici azioni / 12 のアクション / 열두 가지 동작 / Doze ações / Д
 
 - 12 份 README
 - `code/test/services/the_readmes_name_every_automation_tool_test.dart`
+
+---
+
+## BUG-494：从菜单撤销，会把刚打的字弄丢
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-494 |
+| 日期 | 2026-09-16 |
+| 优先级 | P2 |
+| 状态 | 已修复 |
+
+### 怎么发现的
+
+在给自动化接口设计 `run_action`（让 MCP 能跑「按键能跑的那些命令」）时，
+顺手查了一下「撤销」是怎么被驱动的——**发现它有两条路，而且不是同一段代码**：
+
+| 入口 | 走的是 |
+|------|--------|
+| Ctrl+Z | `SourceEditor._handleBoundShortcut` → `editor.undo()`，**让它自己去读输入框** |
+| 编辑 → 撤销 | `AppMenuBar.stepHistory` → `editor.undo(current: tab?.content)`，**把标签页那一份递进去** |
+
+### 根因：递进去的那一份是滞后的
+
+标签页里的文本是**在 300ms 防抖里**才写回去的（`_onTextChanged` 的
+`_debounce` 里 `widget.onChanged?.call(...)`）。也就是说，**人正在打字的时候，
+标签页那一份落后于屏幕上那一份**，最多落后 300ms——
+而一篇大文档正在补画、定时器被挤后时，落后得更久。
+
+`undo` 会把「调用方说的现在」先压进 redo 栈，再往前退一步。
+递给它一份滞后的文本，后果是：
+
+- 屏幕上退到的是**更早**的状态，刚打的那几个字消失了；
+- 而它们**也不在 redo 栈上**——redo 只能拿回那份滞后的文本。
+
+**打的字两头都不见了，再也拿不回来。**
+
+Ctrl+Z 从来没有这个毛病，因为它让 `undo` 自己去读 `_controller.text`
+——那是屏幕上的那一份。
+
+### 为什么 `stepHistory` 当初要递那一份
+
+它是为**预览模式**写的：在预览里勾一个复选框只改标签页，**没有输入框可读**，
+所以只有调用方知道「现在」是什么。`undo` 的注释也写着这件事。
+
+问题不在递，在**无条件地递**——有输入框的时候，它把更准的那一份盖掉了。
+
+### 修复
+
+```dart
+final text = back
+    ? editor.undo(current: editor.hasSourceEditor ? null : tab?.content)
+    : editor.redo();
+```
+
+有输入框时与 Ctrl+Z 完全一致；没有输入框时行为不变。
+
+### 守卫
+
+`undo_from_the_menu_uses_what_is_on_screen_test`，两条，正好是两种情形：
+
+1. 输入框里是 `abc`、标签页里还是 `ab`（防抖没到），从菜单撤销之后
+   **`redo()` 必须返回 `abc`**——修复前它返回 `ab`，失败信息是
+   「missing the following trailing characters: c」；
+2. 没有输入框时仍然从标签页读，并把结果写回标签页（这是它本来就对的那一半，
+   钉住以免修坏）。
+
+### 涉及文件
+
+- `code/lib/ui/widgets/app_menu_bar.dart`
+- `code/test/ui/undo_from_the_menu_uses_what_is_on_screen_test.dart`（新增）

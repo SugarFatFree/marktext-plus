@@ -106,10 +106,10 @@ Lua か JavaScript で書きます。ファイル一つとマニフェスト、�
 | **`record_gif`** | 最長五秒。動きを見るためのもの |
 | **`get_state`** | 動いているのはどのバージョンか（`update_app` のあとに聞けば、戻ってきたものが分かる）、開いているタブ、表示モード、入っているプラグイン、埋まっているペイン |
 | **`read_startup_trace`** | 起動の各段階にかかった時間（Dart が動き出す前の分も含む） |
-| **`control`** | 14 のアクション：タブを開く・閉じる・保存する・切り替える、内容を書き込む、表示モードを変える、ペインを閉じる、プラグインのコマンドを実行する、プラグインのパネルを開く、設定を変える、閉じたタブを開き直す、ウィンドウを動かして大きさを変える、**さらにプラグインのインストールと、CI のビルドによるアプリ本体の置き換え** |
+| **`control`** | 18 のアクション：タブを開く・閉じる・保存する・切り替える、内容を書き込む、表示モードを変える、ペインを閉じる、プラグインのコマンドを実行する、プラグインのパネルを開く、設定を変える、閉じたタブを開き直す、ウィンドウを動かして大きさを変える、**さらにプラグインのインストールと、CI のビルドによるアプリ本体の置き換え** |
 
 エージェントが送る名前での 12 のアクション：
-`new_tab`, `close_tab`, `reopen_tab`, `save_tab`, `activate_tab`, `set_view_mode`, `set_content`, `close_pane`, `run_plugin_command`, `open_panel`, `install_plugin`, `update_app`, `set_window`, `set_setting`
+`new_tab`, `close_tab`, `reopen_tab`, `save_tab`, `activate_tab`, `set_view_mode`, `set_content`, `close_pane`, `run_plugin_command`, `open_panel`, `install_plugin`, `update_app`, `set_window`, `set_setting`, `format`, `undo`, `redo`, `set_clipboard`
 ## ⚖️ 他のエディタとの比較
 
 本プロジェクトが作り直した元のエディタと、この分野で最も知られているエディタとの比較です。MarkText の列はすべて `v0.20.0-dev` のソースから読み取りました。Typora はクローズドソースで同じようには確認できないため、公開されているドキュメントに書かれている内容だけを載せています。

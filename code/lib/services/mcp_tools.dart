@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'app_log.dart';
+import '../providers/editor_provider.dart' show FormatAction;
 import 'editor_window.dart';
 import '../core/diagnostics/startup_trace.dart';
 
@@ -65,6 +66,29 @@ enum McpAction {
   /// here at all. A defect lived in it — an answer shown with no way to take
   /// it — precisely because everything automated went the other way.
   openPanel('open_panel'),
+
+  /// Runs one of the editor's own formatting commands on the document.
+  ///
+  /// The same command the Format menu and the keyboard run, so the automation
+  /// interface exercises the path a reader takes rather than a second one
+  /// written for it. Refused when nothing would carry it out — the preview
+  /// with no block open — because the request would otherwise sit in the state
+  /// and fire the moment a pane appears.
+  format('format'),
+
+  /// Steps the active tab's history back, the way Ctrl+Z and Edit ▸ Undo do.
+  undo('undo'),
+
+  /// Steps it forward again.
+  redo('redo'),
+
+  /// Puts text, and optionally HTML, on the reader's clipboard.
+  ///
+  /// Their real clipboard: whatever was on it is gone. It is here because the
+  /// paste this editor does is the interesting one — it reads the HTML a
+  /// browser leaves beside the plain text and turns it into Markdown — and
+  /// there was no way to exercise that without a person and a browser.
+  setClipboard('set_clipboard'),
 
   /// Puts the editor's window into a state, or gives it a size.
   ///
@@ -388,7 +412,8 @@ class McpToolset {
           },
           'content': {
             'type': 'string',
-            'description': 'The text a tab should hold.',
+            'description': 'The text a tab should hold — or, for '
+                'set_clipboard, the plain text to put on the clipboard.',
           },
           'pluginId': {
             'type': 'string',
@@ -401,6 +426,19 @@ class McpToolset {
             'description':
                 'Which of its commands, from the plugin\'s command list in '
                 'get_state.',
+          },
+          'format': {
+            'type': 'string',
+            'description': 'For format: which command, the same one the '
+                'Format menu runs. Refused in preview mode with no block '
+                'open, because nothing there would carry it out.',
+            'enum': [for (final f in FormatAction.values) f.name],
+          },
+          'html': {
+            'type': 'string',
+            'description': 'For set_clipboard: the HTML to put beside the '
+                'plain text, as a browser would. This is what the editor\'s '
+                'own paste reads to make Markdown out of.',
           },
           'state': {
             'type': 'string',

@@ -1177,27 +1177,13 @@ class AppMenuBar extends ConsumerWidget {
   static void showTableOfContents(WidgetRef ref) =>
       _showSideBarTab(ref, SideBarTab.toc);
 
-  /// Undo or redo, and put the result where the document actually lives.
+  /// Edit ▸ Undo and Edit ▸ Redo.
   ///
-  /// In preview mode there is no source editor to restore into, so the notifier
-  /// answers with the text rather than writing it — and this writes it to the
-  /// tab. Without that, accepting a plugin's rewrite from the right-hand rail
-  /// could not be undone: the history was right and the key did nothing at all.
-  ///
-  /// The tab's own text is handed in because it is the newest one and the
-  /// notifier cannot read it while nothing is holding it.
-  static void stepHistory(WidgetRef ref, {required bool back}) {
-    final tabs = ref.read(tabProvider);
-    final id = tabs.activeTabId;
-    final tab = tabs.tabs.where((t) => t.id == id).firstOrNull;
-    final editor = ref.read(editorProvider.notifier);
-
-    final text = back ? editor.undo(current: tab?.content) : editor.redo();
-    // With a source editor the controller already holds it and its own listener
-    // writes the tab; writing here as well would be the same string twice.
-    if (text == null || id == null || editor.hasSourceEditor) return;
-    ref.read(tabProvider.notifier).updateContent(id, text, external: true);
-  }
+  /// The step itself belongs to `TabNotifier`, which the automation interface
+  /// also reaches: two copies of it drifted once already, and the copy here
+  /// was the one that went stale (BUG-494).
+  static void stepHistory(WidgetRef ref, {required bool back}) =>
+      ref.read(tabProvider.notifier).stepHistory(back: back);
 
   /// The About box, which says which version this is.
   ///

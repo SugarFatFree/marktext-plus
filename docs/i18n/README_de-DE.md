@@ -106,10 +106,10 @@ Ein optionaler MCP-Server, **aus, bis Sie ihn einschalten**: er öffnet einen Po
 | **`record_gif`** | Bis zu fünf Sekunden, um sich eine Animation anzusehen |
 | **`get_state`** | Welche Version läuft — nach `update_app` fragen, um zu sehen, was zurückkam — und was offen ist: Tabs, Ansichtsmodus, installierte Plug-ins, gefüllte Bereiche |
 | **`read_startup_trace`** | Wie lange jeder Schritt des Starts gedauert hat, auch der Teil vor Dart |
-| **`control`** | 14 Aktionen: Tabs öffnen, schließen, speichern und wechseln, Inhalt schreiben, Ansichtsmodus ändern, ein Pane schließen, einen Plugin-Befehl ausführen, das Panel eines Plugins öffnen, eine Einstellung ändern, einen geschlossenen Tab wieder öffnen, das Fenster bewegen und in der Größe ändern — **und ein Plugin installieren oder die Anwendung durch einen CI-Build ersetzen** |
+| **`control`** | 18 Aktionen: Tabs öffnen, schließen, speichern und wechseln, Inhalt schreiben, Ansichtsmodus ändern, ein Pane schließen, einen Plugin-Befehl ausführen, das Panel eines Plugins öffnen, eine Einstellung ändern, einen geschlossenen Tab wieder öffnen, das Fenster bewegen und in der Größe ändern — **und ein Plugin installieren oder die Anwendung durch einen CI-Build ersetzen** |
 
 Die zwölf Aktionen, mit den Namen, die ein Agent sendet:
-`new_tab`, `close_tab`, `reopen_tab`, `save_tab`, `activate_tab`, `set_view_mode`, `set_content`, `close_pane`, `run_plugin_command`, `open_panel`, `install_plugin`, `update_app`, `set_window`, `set_setting`
+`new_tab`, `close_tab`, `reopen_tab`, `save_tab`, `activate_tab`, `set_view_mode`, `set_content`, `close_pane`, `run_plugin_command`, `open_panel`, `install_plugin`, `update_app`, `set_window`, `set_setting`, `format`, `undo`, `redo`, `set_clipboard`
 
 ## ⚖️ Im Vergleich
 

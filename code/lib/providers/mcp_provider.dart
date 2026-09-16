@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:ui' show Size;
+
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'dart:io';
 import '../core/diagnostics/resident_memory.dart';
 import 'dart:math';
@@ -18,7 +20,10 @@ import '../services/plugin_manager.dart';
 import '../services/plugin_catalog_service.dart';
 import '../services/mcp_server.dart';
 import '../services/mcp_tools.dart';
+import 'editor_provider.dart';
+import '../services/clipboard_service.dart';
 import '../services/editor_window.dart';
+import '../services/format_target.dart';
 import '../services/window_capture.dart';
 import '../services/window_placement.dart';
 import 'plugin_provider.dart';
@@ -53,8 +58,11 @@ String newMcpToken() {
 }
 
 class McpController extends StateNotifier<McpStatus> {
-  McpController(this._ref, {this.window = const PlatformEditorWindow()})
-      : super(const McpStatus());
+  McpController(
+    this._ref, {
+    this.window = const PlatformEditorWindow(),
+    this.formatPatience = const Duration(seconds: 3),
+  }) : super(const McpStatus());
 
   final Ref _ref;
 
@@ -62,6 +70,14 @@ class McpController extends StateNotifier<McpStatus> {
   /// speaks to the platform over a channel and there is no platform under
   /// `flutter test`.
   final EditorWindow window;
+
+  /// How long to wait for a pane to take a formatting command.
+  ///
+  /// A pane clears the request on its next frame, which is milliseconds when
+  /// the editor is idle and much longer while a large document is being
+  /// redrawn. Three seconds is generous for the second case and irrelevant to
+  /// the first; a test with no pane at all shortens it rather than waiting.
+  final Duration formatPatience;
   final _server = McpServer();
 
   /// Brings the server into line with the settings.
@@ -458,12 +474,129 @@ class McpController extends StateNotifier<McpStatus> {
             ? mcpDid('closed the ${slot.name} pane')
             : mcpRefused('no ${slot.name} pane was open');
 
+      case McpAction.format:
+        return _format(text('format'));
+
+      case McpAction.undo:
+      case McpAction.redo:
+        final back = wanted == McpAction.undo;
+        final was = _ref.read(tabProvider).activeTabId;
+        if (was == null) return mcpRefused('no tab to step');
+        // The same method Edit ▸ Undo goes through, so the two cannot drift
+        // the way they did before it was one method (BUG-494).
+        final text = _ref.read(tabProvider.notifier).stepHistory(back: back);
+        return text == null
+            ? mcpRefused('there is nothing to ${back ? 'undo' : 'redo'}')
+            : mcpDid('stepped ${back ? 'back' : 'forward'} to '
+                '${text.length} characters');
+
+      case McpAction.setClipboard:
+        final plain = text('content');
+        final html = text('html');
+        if (plain == null) {
+          return mcpRefused('no content given — the plain text to put on the '
+              'clipboard, with "html" beside it when a browser would leave '
+              'some');
+        }
+        // The reader's real clipboard, so say so rather than only in the
+        // schema: whatever they had copied is gone after this.
+        if (html == null || html.isEmpty) {
+          await Clipboard.setData(ClipboardData(text: plain));
+          return mcpDid('the clipboard holds ${plain.length} characters of '
+              'plain text; whatever was on it is gone');
+        }
+        await ClipboardService.copyWithHtml(plain, html);
+        return mcpDid('the clipboard holds ${plain.length} characters of plain '
+            'text and ${html.length} of HTML, the way a browser leaves both; '
+            'whatever was on it is gone');
+
       case McpAction.setWindow:
         return _setWindow(text('state'), arguments['width'], arguments['height']);
 
       case McpAction.setSetting:
         return _setSetting(text('setting'), arguments['value']);
     }
+  }
+
+  /// Runs one formatting command, and says whether anything carried it out.
+  ///
+  /// The refusal matters more than the doing. `applyFormat` only records a
+  /// request; a pane picks it up on the next frame. In preview mode with no
+  /// block open there is no pane to pick it up, so the request would sit in
+  /// the state and fire the moment one appeared — an edit nobody asked for, at
+  /// a time nobody chose. [FormatTarget] already knows which pane takes a
+  /// command, and is asked here rather than copied.
+  Future<McpOutcome> _format(String? name) async {
+    final named = FormatAction.values.map((f) => f.name).join(', ');
+    if (name == null) return mcpRefused('no format given — $named');
+    final action = FormatAction.values.where((f) => f.name == name).firstOrNull;
+    if (action == null) return mcpRefused('unknown format "$name" — $named');
+
+    final mode = _ref.read(settingsProvider).editMode;
+    final editing = _ref.read(editorProvider).previewBlockEditing;
+    if (!FormatTarget.anything(mode: mode, previewBlockEditing: editing)) {
+      return mcpRefused(
+        'nothing would carry out $name: the reader is in preview mode with no '
+        'block open, so there is no field to act in — set_view_mode to source '
+        'or split first',
+      );
+    }
+
+    final id = _ref.read(tabProvider).activeTabId;
+    if (id == null) return mcpRefused('no tab to format');
+    final before = _ref
+            .read(tabProvider)
+            .tabs
+            .where((t) => t.id == id)
+            .firstOrNull
+            ?.content
+            .length ??
+        0;
+
+    final editor = _ref.read(editorProvider.notifier);
+    editor.applyFormat(action);
+
+    // Waited for rather than assumed. A pane clears the request when it has
+    // acted, so this is the one observable that says it happened; without it
+    // this would answer "applied bold" about a request still sitting in the
+    // state.
+    final gone = await _settled(
+      () => _ref.read(editorProvider).pendingFormat == null,
+    );
+    if (!gone) {
+      // Left there, it fires whenever a pane next appears. Clearing it is the
+      // only honest end to a command nobody carried out.
+      editor.clearFormat();
+      return mcpRefused('$name was not carried out — no pane took it, and the '
+          'request has been dropped rather than left to fire later');
+    }
+
+    final after = _ref
+            .read(tabProvider)
+            .tabs
+            .where((t) => t.id == id)
+            .firstOrNull
+            ?.content
+            .length ??
+        0;
+    return mcpDid(after == before
+        ? 'ran $name; the document is the same length'
+        : 'ran $name; the document went from $before to $after characters');
+  }
+
+  /// Polls [done] until it is true, or gives up. Says which happened.
+  ///
+  /// A condition rather than a sleep: a frame is a few milliseconds when the
+  /// editor is idle and much longer while a large document is being redrawn,
+  /// and a fixed wait is either wasted time or a wrong answer.
+  Future<bool> _settled(bool Function() done) async {
+    for (var waited = Duration.zero;
+        waited < formatPatience;
+        waited += const Duration(milliseconds: 20)) {
+      if (done()) return true;
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+    }
+    return done();
   }
 
   /// Puts the window into a state, or gives it a size, and says what it became.

@@ -694,6 +694,37 @@ one side while the numbers moved.
   on which modes there are. All three places that take a value from a fixed
   set now answer the same way, and the set is read off the values themselves.
 
+### Edit → Undo no longer loses what you just typed
+
+Ctrl+Z and the Edit menu's Undo went through different code. The keystroke let
+undo read the text field; the menu handed it the tab's copy instead — and that
+copy is written on a 300 ms debounce, so while you are typing it is behind the
+field, and further behind while a large document is being redrawn.
+
+Undo puts whatever it is told is "now" onto the redo stack before stepping
+back. Given the stale copy, the characters typed since the last pause went off
+the screen and onto nothing: redo could not bring them back. Type a few letters
+and reach straight for the menu and they were gone.
+
+The tab's copy is still what preview mode uses, because there is no field
+there. It is simply no longer used when there is one.
+
+### The automation interface can work on the document
+
+`format` runs any of the editor's own formatting commands — the same path the
+Format menu and the keyboard take. `undo` and `redo` step the same history the
+Edit menu steps. `set_clipboard` puts text on the clipboard, and HTML beside it
+the way a browser does, which is the flavour this editor's paste reads first.
+
+The refusals matter more than the commands. A format command is a request that
+a pane picks up on its next frame, so this waits until one has, and says what
+it did to the document. In the preview with no block open nothing would pick it
+up, so it is refused with what to do instead — and the request is dropped
+rather than left to fire the moment a pane appears, which would be an edit
+nobody asked for at a time nobody chose.
+
+`set_clipboard` replaces what is on the reader's clipboard. It says so.
+
 ### The window can be driven from outside
 
 `set_window` maximises, minimises, goes full screen, returns to normal, and
@@ -1278,6 +1309,32 @@ Ctrl+V 会读剪贴板的两种格式，把 HTML 转成 Markdown——所以从�
 - 通过接口切换视图模式，还留着一小时前刚在窗格那边修掉的同一个毛病：
   没给值时回答 `unknown mode "null"`，给错值时也不说有哪些模式。
   三处「取值来自固定集合」的地方现在答法一致，而那个集合是从取值本身读出来的。
+
+### 「编辑 → 撤销」不再把刚打的字弄丢
+
+Ctrl+Z 和菜单里的「撤销」走的不是同一段代码。按键让撤销自己去读输入框；
+菜单则把**标签页那一份**递给它——而那一份是在 300ms 防抖里才写回去的，
+所以你正在打字的时候它落后于屏幕，一篇大文档正在补画时落后得更久。
+
+撤销会把「调用方说的现在」先压进重做栈再往前退。递给它一份滞后的文本，
+刚打的那几个字就从屏幕上消失、而且**不在重做栈上**——再也拿不回来。
+打几个字然后直接去点菜单，它们就没了。
+
+预览模式仍然用标签页那一份，因为那里没有输入框。只是**有输入框的时候不再用它**。
+
+### 自动化接口可以在文档上动手了
+
+`format` 能跑编辑器自己的任意格式命令——**和格式菜单、键盘走的是同一条路**。
+`undo` / `redo` 退的是「编辑」菜单退的那一段历史。`set_clipboard` 往剪贴板放文本，
+并且能像浏览器那样在旁边放一份 HTML——**那正是这个编辑器粘贴时先读的那一份**。
+
+拒绝比执行更要紧。格式命令只是一个请求，由某个窗格在下一帧接手，
+所以它会**等到真被接手**才回答，并说出文档字数的变化。纯预览且没有块在编辑时
+没有任何窗格会接，于是直接拒绝并告诉你该先做什么——**而那个请求会被丢掉**，
+不会留在那里等读者下次切到源码模式的瞬间自己触发：那会是一次没人要求、
+时间也没人选的编辑。
+
+`set_clipboard` 会换掉读者剪贴板里原有的东西。它在答复里说明这一点。
 
 ### 窗口可以从外面驱动了
 
