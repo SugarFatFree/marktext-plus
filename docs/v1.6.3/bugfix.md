@@ -75,6 +75,7 @@
 | BUG-490 | 2026-09-14 | `control` 工具**自己的描述**只讲了 9 件事，而它有 13 个动作——BUG-483 修的是 README，这一份是代理最先读到的那一段 | P2 | 已修复 |
 | BUG-491 | 2026-09-14 | 17 个参数里有 3 个没有任何说明；其中 `slot` 的取值按**象限**命名——`bottom` 是左**下**那一格，而协议里没有一处说过 | P3 | 已修复 |
 | BUG-492 | 2026-09-14 | `set_view_mode` 还留着 BUG-489 同一个毛病（`unknown mode "null"`），因为修 `close_pane` 的时候没读它的兄弟分支 | P3 | 已修复 |
+| BUG-493 | 2026-09-15 | 12 份 README 都写着「十二个动作」，而昨天加 `reopen_tab` 时已经是十三个——十二种语言写着十二种「十二」，没人能对账 | P3 | 已修复 |
 
 ---
 
@@ -5593,3 +5594,58 @@ schema（生成的）、handler 的 switch（编译器穷尽检查）、**以及
 
 - `code/lib/providers/mcp_provider.dart`
 - `code/test/services/mcp_control_does_it_test.dart`
+
+---
+
+## BUG-493：十二种语言写着十二种「十二」
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-493 |
+| 日期 | 2026-09-15 |
+| 优先级 | P3 |
+| 状态 | 已修复 |
+
+### 现象
+
+12 份 README 里 `control` 那一行都以一个数目开头：
+
+```
+Twelve actions / اثنا عشر إجراءً / Zwölf Aktionen / Doce acciones / Douze actions
+Dodici azioni / 12 のアクション / 열두 가지 동작 / Doze ações / Двенадцать действий / 十二个动作
+```
+
+**而昨天加上 `reopen_tab` 之后已经是十三个**，今天加上 `set_window` 是十四个。
+名字清单我昨天更新了，**这个数目没有**。
+
+### 根因：这个事实的第三份副本，而且没人能对账
+
+`the_readmes_name_every_automation_tool_test` 一直在核对**名字**——
+因为名字是标识符，十二种语言里拼法相同。但**数目不是**：
+要守住它就得为每种语言、每个未来的数目准备一张数词表
+（`Zwölf`→`Dreizehn`→`Vierzehn`，十二种语言各一套）。**这是不可维护的。**
+
+所以它没有守卫，也就必然会漂。
+
+### 修复：把数词换成阿拉伯数字
+
+阿拉伯数字在这十二种语言里读起来都正常（日语本来就写的是 `12`），
+而且**它在十二种语言里是同一个字符串**——于是可以对账。
+
+十二行统一成 `14 actions` / `14 个动作` / `14 のアクション` / `14 가지 동작` …
+
+顺带把那一行的散文也补齐：加上「重新打开关闭的标签页」和「移动、调整窗口大小」
+——后者是读者决定「要不要开这个端口」时该知道的事（它能把你的窗口最小化）。
+
+### 守卫
+
+`the_readmes_name_every_automation_tool_test` 新增
+「the count each README states is the number of actions there are」：
+取每份 README 里 `control` 那一行的**第一个整数**，要求等于 `McpAction.values.length`。
+
+修复前它点名 12 份全部「写着 没有数字」（因为当时全是数词）。
+
+### 涉及文件
+
+- 12 份 README
+- `code/test/services/the_readmes_name_every_automation_tool_test.dart`

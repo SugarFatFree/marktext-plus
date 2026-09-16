@@ -40,6 +40,36 @@ void main() {
       .map((m) => m.group(1)!)
       .toSet();
 
+  test('the count each README states is the number of actions there are', () {
+    if (!present()) return;
+    // The row said "Twelve actions" in twelve languages, and twelve different
+    // spellings of twelve: Zwölf, Douze, Doce, Двенадцать, اثنا عشر, 열두 가지,
+    // 十二个. `reopen_tab` made it thirteen and no number moved, because a
+    // guard over number *words* in twelve languages would need a table of
+    // every numeral in every one of them for every future count.
+    //
+    // So the number is an Arabic numeral everywhere — which reads normally in
+    // all twelve and, unlike the words, is the same string in all twelve — and
+    // this holds it to the actions.
+    final expected = McpAction.values.length;
+    final wrong = <String>[];
+    for (final file in readmes()) {
+      final row = RegExp(r'^\|\s*\*\*`control`\*\*\s*\|.*$', multiLine: true)
+          .firstMatch(file.readAsStringSync())
+          ?.group(0);
+      if (row == null) {
+        wrong.add('${file.path.split('/').last}: 找不到 control 那一行');
+        continue;
+      }
+      final stated = RegExp(r'\d+').firstMatch(row)?.group(0);
+      if (stated != '$expected') {
+        wrong.add('${file.path.split('/').last}: 写着 ${stated ?? '没有数字'}');
+      }
+    }
+    expect(wrong, isEmpty,
+        reason: '动作有 $expected 个；这些 README 说的是别的数目');
+  });
+
   test('the server publishes the tools this test thinks it does', () {
     // The list is read out of the source, so it can go wrong in one direction:
     // the regular expression stops matching and the checks below pass on an

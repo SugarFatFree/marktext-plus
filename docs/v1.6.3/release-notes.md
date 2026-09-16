@@ -694,6 +694,19 @@ one side while the numbers moved.
   on which modes there are. All three places that take a value from a fixed
   set now answer the same way, and the set is read off the values themselves.
 
+### The window can be driven from outside
+
+`set_window` maximises, minimises, goes full screen, returns to normal, and
+sets a size. The answer reports what the window *became* rather than what was
+asked for: a window manager clamps a size to the work area and to the window's
+own minimum, so those are two different numbers. It will not make the window
+smaller than a window whose title bar can still be grabbed.
+
+This was asked for from the beginning and never built, and it is what stood
+between a machine and the rest of the checks: two of them are "drag the window
+from 1200 to 700 to 400 and look for stripes". Taking the screenshot was
+already possible; moving the window was not.
+
 ### Reopen a closed tab
 
 Ctrl+Alt+R, or File → Reopen Closed Tab, opens the document you just closed —
@@ -1265,6 +1278,16 @@ Ctrl+V 会读剪贴板的两种格式，把 HTML 转成 Markdown——所以从�
 - 通过接口切换视图模式，还留着一小时前刚在窗格那边修掉的同一个毛病：
   没给值时回答 `unknown mode "null"`，给错值时也不说有哪些模式。
   三处「取值来自固定集合」的地方现在答法一致，而那个集合是从取值本身读出来的。
+
+### 窗口可以从外面驱动了
+
+`set_window` 能最大化、最小化、全屏、回到常态，也能指定尺寸。**答复报的是窗口
+变成了什么，而不是你要求了什么**——窗口管理器会把尺寸夹到工作区和窗口自身的下限，
+这是两个数。它也不会把窗口缩到标题栏抓不住的程度。
+
+这一条从一开始就在要求里，一直没做；而它正是「机器」和「剩下那些检查」之间的那道坎
+——其中两条是「把窗口从 1200 拖到 700 再拖到 400，看有没有条纹」。
+截图一直是能做的，动窗口不能。
 
 ### 关掉的标签页可以拿回来
 

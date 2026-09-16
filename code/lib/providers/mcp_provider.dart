@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui' show Size;
 import 'dart:io';
 import '../core/diagnostics/resident_memory.dart';
 import 'dart:math';
@@ -17,7 +18,9 @@ import '../services/plugin_manager.dart';
 import '../services/plugin_catalog_service.dart';
 import '../services/mcp_server.dart';
 import '../services/mcp_tools.dart';
+import '../services/editor_window.dart';
 import '../services/window_capture.dart';
+import '../services/window_placement.dart';
 import 'plugin_provider.dart';
 import 'settings_provider.dart';
 import 'tab_provider.dart';
@@ -50,9 +53,15 @@ String newMcpToken() {
 }
 
 class McpController extends StateNotifier<McpStatus> {
-  McpController(this._ref) : super(const McpStatus());
+  McpController(this._ref, {this.window = const PlatformEditorWindow()})
+      : super(const McpStatus());
 
   final Ref _ref;
+
+  /// The window this editor is drawn in. Injectable because `window_manager`
+  /// speaks to the platform over a channel and there is no platform under
+  /// `flutter test`.
+  final EditorWindow window;
   final _server = McpServer();
 
   /// Brings the server into line with the settings.
@@ -449,9 +458,68 @@ class McpController extends StateNotifier<McpStatus> {
             ? mcpDid('closed the ${slot.name} pane')
             : mcpRefused('no ${slot.name} pane was open');
 
+      case McpAction.setWindow:
+        return _setWindow(text('state'), arguments['width'], arguments['height']);
+
       case McpAction.setSetting:
         return _setSetting(text('setting'), arguments['value']);
     }
+  }
+
+  /// Puts the window into a state, or gives it a size, and says what it became.
+  ///
+  /// The answer is read back off the window rather than repeated from the
+  /// request: a window manager clamps a size to the work area and to the
+  /// window's own minimum, so what was asked for and what happened are
+  /// different numbers. Saying the first would be this editor describing a
+  /// window that does not exist.
+  Future<McpOutcome> _setWindow(
+    String? state,
+    Object? width,
+    Object? height,
+  ) async {
+    final states = WindowState.values.map((s) => s.name).join(', ');
+
+    WindowState? wanted;
+    if (state != null) {
+      wanted = WindowState.values.where((s) => s.name == state).firstOrNull;
+      if (wanted == null) {
+        return mcpRefused('unknown state "$state" — $states');
+      }
+    }
+
+    // Both or neither: half a size is not a size, and guessing the other half
+    // would resize the reader's window to something nobody asked for.
+    final w = width is num ? width.toDouble() : null;
+    final h = height is num ? height.toDouble() : null;
+    if ((w == null) != (h == null)) {
+      return mcpRefused('a size needs both "width" and "height"');
+    }
+    if (wanted == null && w == null) {
+      return mcpRefused('nothing to do — pass "state" ($states), '
+          'or "width" and "height"');
+    }
+
+    if (w != null) {
+      // The floor session restore uses, for the reason written beside it:
+      // below this the title bar is not reliably grabbable, and a reader
+      // handed a window they cannot grab has no way back to a usable one.
+      final least = WindowPlacement.minimumSize;
+      if (w < least.width || h! < least.height) {
+        return mcpRefused(
+          'a window smaller than ${least.width.round()}×${least.height.round()} '
+          'cannot reliably be grabbed by its title bar, and nothing here can '
+          'give it back',
+        );
+      }
+    }
+
+    // The state first, then the size: a maximised window ignores a resize, so
+    // whichever is asked for last has to be the one that lands.
+    if (wanted != null) await window.apply(wanted);
+    if (w != null) await window.resize(Size(w, h!));
+
+    return mcpDid('the window is ${await window.read()}');
   }
 
   /// Writes one setting, and says what it actually became.

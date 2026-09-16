@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'app_log.dart';
+import 'editor_window.dart';
 import '../core/diagnostics/startup_trace.dart';
 
 /// Everything `control` can be asked to do.
@@ -64,6 +65,14 @@ enum McpAction {
   /// here at all. A defect lived in it — an answer shown with no way to take
   /// it — precisely because everything automated went the other way.
   openPanel('open_panel'),
+
+  /// Puts the editor's window into a state, or gives it a size.
+  ///
+  /// The one part of this editor a reader looks at all day was the one part
+  /// automation could not touch. It is also what a machine needs to run the
+  /// checks that say "drag the window from 1200 to 700 to 400 and look":
+  /// `screenshot` was already the eye, and this is the hand.
+  setWindow('set_window'),
 
   /// Changes one of the reader's settings.
   ///
@@ -392,6 +401,23 @@ class McpToolset {
             'description':
                 'Which of its commands, from the plugin\'s command list in '
                 'get_state.',
+          },
+          'state': {
+            'type': 'string',
+            'description': 'For set_window: how to show the window. '
+                '"minimized" draws nothing, so a screenshot taken after it '
+                'is of nothing; any other state brings it back.',
+            'enum': [for (final s in WindowState.values) s.name],
+          },
+          'width': {
+            'type': 'integer',
+            'description': 'For set_window: how wide, in logical pixels. '
+                'Pass "height" with it.',
+          },
+          'height': {
+            'type': 'integer',
+            'description': 'For set_window: how tall, in logical pixels. '
+                'Pass "width" with it.',
           },
           'slot': {
             'type': 'string',

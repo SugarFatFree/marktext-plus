@@ -106,10 +106,10 @@ Um servidor MCP opcional, **desligado até você o ligar**: abre uma porta na su
 | **`record_gif`** | Cinco segundos no máximo, para ver uma animação |
 | **`get_state`** | Qual versão está rodando — pergunte depois de `update_app` para ver o que voltou — e o que está aberto: abas, modo de vista, extensões instaladas, quadros preenchidos |
 | **`read_startup_trace`** | Quanto tempo levou cada passo da inicialização, incluindo a parte antes do Dart |
-| **`control`** | Doze ações: abrir, fechar, salvar e trocar de aba, escrever conteúdo, mudar o modo de visualização, fechar um painel, executar um comando de um plugin, abrir o painel de um plugin, mudar uma configuração — **e instalar um plugin ou substituir o aplicativo por uma compilação da CI** |
+| **`control`** | 14 ações: abrir, fechar, salvar e trocar de aba, escrever conteúdo, mudar o modo de visualização, fechar um painel, executar um comando de um plugin, abrir o painel de um plugin, mudar uma configuração, reabrir uma aba fechada, mover e redimensionar a janela — **e instalar um plugin ou substituir o aplicativo por uma compilação da CI** |
 
 As doze ações, com os nomes que um agente envia:
-`new_tab`, `close_tab`, `reopen_tab`, `save_tab`, `activate_tab`, `set_view_mode`, `set_content`, `close_pane`, `run_plugin_command`, `open_panel`, `install_plugin`, `update_app`, `set_setting`
+`new_tab`, `close_tab`, `reopen_tab`, `save_tab`, `activate_tab`, `set_view_mode`, `set_content`, `close_pane`, `run_plugin_command`, `open_panel`, `install_plugin`, `update_app`, `set_window`, `set_setting`
 
 ## ⚖️ Comparação
 
