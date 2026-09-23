@@ -81,6 +81,7 @@
 | BUG-496 | 2026-09-23 | **侧栏的文件记录被打开新文件冲掉**：启动时先开文件、后读列表，写回去的那一下把磁盘上的旧列表覆盖了 | **P1** | 已修复 |
 | BUG-497 | 2026-09-23 | **切模式/切标签页把整棵文档树丢掉重建，且两棵树同时淡入淡出**——「打开第二个文件卡顿」「关窗口卡顿」是同一个根因 | **P1** | 已修复 |
 | BUG-498 | 2026-09-23 | 双击打开一个文件时，**如果编辑器已经在运行**，这个文件不会进「最近文件」——四条打开路径里只有这一条漏了 | P2 | 已修复 |
+| BUG-499 | 2026-09-23 | 新建文档「另存为」之后**不进侧栏文件列表**——每条「打开」都登记，唯独「装上一个新路径」这条没有 | P2 | 已修复（真机撞到） |
 
 ---
 
@@ -5968,3 +5969,69 @@ return AnimatedSwitcher(
 
 - `code/lib/providers/tab_provider.dart`
 - `code/test/providers/second_instance_test.dart`
+
+---
+
+## BUG-499：另存为之后，侧栏看不见它
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-499 |
+| 日期 | 2026-09-23 |
+| 优先级 | P2 |
+| 状态 | 已修复 |
+
+### 怎么发现的
+
+在真机上验 BUG-496 的时候撞到的——**验证工具刚做好就把另一个缺陷照出来了**：
+
+```
+save_tab {path: …\mt-sidebar-check.md}  → saved mt-sidebar-check.md as UTF-8
+get_state.sideBarFiles                   → ['设计目标.md']        ← 新文件不在里面
+open_file {path: 同一个路径}             → opened mt-sidebar-check.md
+get_state.sideBarFiles                   → ['设计目标.md', 'mt-sidebar-check.md']  ← 现在在了
+```
+
+**「打开」会登记，「另存为」不会。** 读者的表现是：新建一个文档、存成文件，
+它在左侧文件栏里看不到，直到你再打开它一次。
+
+### 根因
+
+`updateTabPath` 是「标签页的路径变了」的唯一入口，界面的「另存为」和
+`save_tab` 都走它。它对侧栏列表做的是**映射**：
+
+```dart
+final openedFiles = state.openedFiles.map(
+  (entry) => entry.filePath == oldPath ? OpenedFileEntry(newPath, newName) : entry,
+).toList();
+```
+
+改名时 `oldPath` 能匹配上，所以那一条被搬过去了。而**装上第一个路径时
+`oldPath` 是 null，什么都匹配不上，于是什么都没被加进去**。
+
+与 BUG-498 同一家族：**一份清单，N 个登记点，其中一个没登记。**
+
+### 修复
+
+在同一处补上「原本没有路径 → 加一条」。放这里而不是放两个调用点，
+是因为这里是那个窄口。
+
+### 为什么条件是 `oldPath == null` 而不是无条件加
+
+变异验证第一次把它改成 `true`，**全部测试通过**——它是个**等价变异**：
+下面那句去重检查已经挡住了改名重复，两个条件在那条路上重叠。
+
+它们在另一条路上不重叠，而那条路是每次重启后的常态：`restoreSession`
+把标签页放回来时**不碰侧栏列表**（两份清单本就独立设计）。于是会出现
+「标签页有路径、侧栏不列它」的状态——这时改个名，**不该把它悄悄请进那份清单**。
+补了这条测试之后，`true` 那个变异立刻红。
+
+### 守卫
+
+`the_sidebar_list_survives_opening_a_file_test` 现在 8 条，新增三条：
+另存为要进清单并写回配置、改名只搬不加、**会话恢复出来的未列标签页改名后仍不列**。
+
+### 涉及文件
+
+- `code/lib/providers/tab_provider.dart`
+- `code/test/providers/the_sidebar_list_survives_opening_a_file_test.dart`

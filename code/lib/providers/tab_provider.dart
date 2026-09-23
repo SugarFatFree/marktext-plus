@@ -1112,6 +1112,17 @@ class TabNotifier extends StateNotifier<TabState> {
         )
         .toList();
 
+    // A tab that had no file has just been given one — Save As in the menu, or
+    // `save_tab` with a path. The map above is the rename case; with no old
+    // path nothing matched and nothing was added, so a document saved under a
+    // new name was missing from the side bar's list until it was opened again,
+    // while every *opened* document was there. The same shape as BUG-498: one
+    // of the ways a document comes to have a file did not register it.
+    if (oldPath == null &&
+        !openedFiles.any((entry) => entry.filePath == newPath)) {
+      openedFiles.add(OpenedFileEntry(filePath: newPath, fileName: newName));
+    }
+
     state = state.copyWith(tabs: tabs, openedFiles: openedFiles);
     if (oldPath != newPath) _persistOpenedFiles();
   }

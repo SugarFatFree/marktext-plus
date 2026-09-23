@@ -142,6 +142,77 @@ void main() {
     expect(b, a.toSet(), reason: '两种顺序都必须两个文件都在');
   });
 
+  test('a document saved under a new name joins the list', () async {
+    // Found while verifying the fix above on a real machine: `save_tab` with a
+    // path created the file, and the side bar did not list it — while every
+    // *opened* document was listed. Same shape as BUG-498: one of the ways a
+    // document comes to have a file did not register it.
+    //
+    // `updateTabPath` is where a tab's path changes, for Save As in the menu
+    // and for `save_tab` over the wire. It mapped existing entries, which is
+    // the rename case; with no old path nothing matched and nothing was added.
+    final c = boot(const []);
+    c.read(tabProvider.notifier)
+      ..restoreOpenedFiles(const [])
+      ..addTab(TabInfo(id: 'draft', fileName: 'Untitled', content: 'x'));
+    expect(c.read(tabProvider).openedFiles, isEmpty,
+        reason: '还没有文件的草稿本来就不该在侧栏里');
+
+    final saved = write('saved-as.md');
+    c.read(tabProvider.notifier).updateTabPath('draft', saved, 'saved-as.md');
+
+    expect(c.read(tabProvider).openedFiles.map((f) => f.filePath), [saved]);
+    expect(c.read(settingsProvider).sideBarOpenedFiles, [saved],
+        reason: '而且要写回配置，否则下次启动就没了');
+  });
+
+  test('renaming a document moves its entry rather than adding a second',
+      () async {
+    // The case `updateTabPath` was written for, pinned so the addition above
+    // does not turn a rename into two entries.
+    final before = write('before.md');
+    final after = '${dir.path}/after.md';
+    final c = boot([before]);
+    c.read(tabProvider.notifier)
+      ..restoreOpenedFiles([before])
+      ..addTab(TabInfo(
+        id: 't',
+        filePath: before,
+        fileName: 'before.md',
+        content: 'x',
+      ))
+      ..updateTabPath('t', after, 'after.md');
+
+    expect(c.read(tabProvider).openedFiles.map((f) => f.filePath), [after]);
+  });
+
+  test('a restored tab that the side bar does not list stays unlisted when '
+      'renamed', () async {
+    // Why the addition above is confined to "had no path". Mutating that
+    // condition to `true` passed every other test here, because the duplicate
+    // check already stops a rename adding a second entry — the two conditions
+    // overlap and the mutant was an equivalent one. They stop overlapping in
+    // this state, which is the ordinary one after a restart: `restoreSession`
+    // puts tabs back without touching the side bar's list, because the two are
+    // deliberately independent. A rename must not quietly enrol the document
+    // in a list it was not in.
+    final before = write('restored.md');
+    final after = '${dir.path}/restored-2.md';
+    final c = boot(const []);
+    c.read(tabProvider.notifier).restoreOpenedFiles(const []);
+    await c.read(tabProvider.notifier).restoreSession([before], before);
+
+    final tab = c.read(tabProvider).tabs.single;
+    expect(tab.filePath, before);
+    expect(c.read(tabProvider).openedFiles, isEmpty,
+        reason: '会话恢复不登记侧栏，这是两份清单独立的既有设计');
+
+    c.read(tabProvider.notifier).updateTabPath(tab.id, after, 'restored-2.md');
+
+    expect(c.read(tabProvider).openedFiles, isEmpty,
+        reason: '它本来不在这份清单里，改个名不该把它请进来');
+  });
+
   test('a file that has since been deleted is not put back', () async {
     // The existing behaviour, pinned so the change above does not lose it.
     final gone = '${dir.path}/gone.md';
