@@ -10,6 +10,7 @@ import 'package:marktext_plus/providers/mcp_provider.dart';
 import 'package:marktext_plus/providers/plugin_provider.dart';
 import 'package:marktext_plus/providers/settings_provider.dart';
 import 'package:marktext_plus/providers/tab_provider.dart';
+import 'package:marktext_plus/services/editor_window.dart';
 import 'package:marktext_plus/services/plugin_manifest.dart';
 import 'package:marktext_plus/services/plugin_script_runtime.dart';
 
@@ -97,6 +98,24 @@ void main() {
     // same placeholder": the handshake reported a --dart-define nobody ever
     // defined, and called every shipped build "dev".
     expect(state['version'], isNot('dev'));
+  });
+
+  test('it says how the window is being shown, so it can be put back', () async {
+    // Learned by moving one without having read it: `set_window` maximised a
+    // reader's window and there was nothing anywhere that remembered it had
+    // been maximised. `set_window` will not answer without changing
+    // something, and should not, so the reading belongs here.
+    //
+    // Absent under the tests, where there is no platform to ask — the same
+    // shape `residentMB` has, and for the same reason: an invented figure is
+    // worse than none.
+    final state = await stateOf(boot());
+    if (state.containsKey('window')) {
+      final window = state['window'] as Map;
+      expect(WindowState.values.map((s) => s.name), contains(window['state']));
+      expect(window['width'], isA<int>());
+      expect(window['height'], isA<int>());
+    }
   });
 
   test('the view mode reported is the one in force', () async {

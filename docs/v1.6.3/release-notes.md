@@ -694,6 +694,35 @@ one side while the numbers moved.
   on which modes there are. All three places that take a value from a fixed
   set now answer the same way, and the set is read off the values themselves.
 
+### The side bar remembers your files again
+
+Open a document, close the window, then open a different one, and the side bar
+had forgotten the first. The list was not failing to come back — it was being
+written over before it was read. A launch that carries a document opened that
+document first, and registering it saved the side bar's list as "just this one
+file", so the restore a moment later read exactly what it had destroyed.
+
+It now reads the list before anything can write it, refuses to write it before
+it has been read, and merges rather than replaces — so the order of those two
+cannot be got wrong again.
+
+### Switching documents and panes got much faster
+
+Opening a second file stuttered, and so did closing the window. Measured with a
+117 KB document open beside a small one: every switch redrew the whole document
+from scratch, 190-260 ms each time, and two of those redraws ran in the same
+frame — both documents painting at once. One switch took 3.3 seconds.
+
+Two causes, one line apart. The stack that holds the source, preview and split
+panes was keyed on the mode as well as the document, so changing mode threw all
+three panes away and rebuilt them — the exact thing the stack was there to
+avoid. And it sat inside a 150 ms cross-fade, which is why two documents were
+painting at once, at the moment you are waiting for the switch to finish.
+
+The window closing slowly was the same fault seen from another side: closing
+itself takes 20-35 ms, but the click has to reach a thread that was busy
+rebuilding a document.
+
 ### Edit → Undo no longer loses what you just typed
 
 Ctrl+Z and the Edit menu's Undo went through different code. The keystroke let
@@ -1309,6 +1338,30 @@ Ctrl+V 会读剪贴板的两种格式，把 HTML 转成 Markdown——所以从�
 - 通过接口切换视图模式，还留着一小时前刚在窗格那边修掉的同一个毛病：
   没给值时回答 `unknown mode "null"`，给错值时也不说有哪些模式。
   三处「取值来自固定集合」的地方现在答法一致，而那个集合是从取值本身读出来的。
+
+### 左侧文件栏重新记得你的文件了
+
+打开一个文档、关掉窗口、再打开另一个，左侧文件栏就把前一个忘了。它不是没恢复
+——**是在被读到之前就被覆盖了**。带着文档启动时，程序先把那个文档打开，
+而登记它的那一下就把侧栏列表存成了「只有这一个文件」，
+片刻之后的恢复读到的正是它自己刚毁掉的那一份。
+
+现在它在任何写入之前先读，**读到之前拒绝写**，而且是合并而不是替换
+——于是这两步的顺序再也不可能弄错。
+
+### 切文档、切窗格快了很多
+
+打开第二个文件会卡，关窗口也卡。用一篇 117 KB 的文档和一篇小文档实测：
+**每次切换都把整篇文档从头重画**，一次 190–260 ms；其中两次重画发生在**同一帧**
+——两篇文档同时在画；有一次切换花了 **3.3 秒**。
+
+两个原因，相隔一行。装着源码/预览/分屏三个窗格的那个 stack，key 里除了文档还带着
+**模式**，于是切一次模式就把三个窗格全丢掉重建——而那个 stack 存在的理由恰恰是
+避免这件事。它外面还套着 150 ms 的交叉淡入淡出，这就是「两篇文档同时在画」的来处，
+而且正发生在你等着切换结束的那一刻。
+
+「关窗口卡」是同一个毛病的另一面：关闭本身只要 20–35 ms，
+但那一下点击要送到一个正忙着重建文档的线程上。
 
 ### 「编辑 → 撤销」不再把刚打的字弄丢
 

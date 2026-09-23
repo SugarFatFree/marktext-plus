@@ -297,8 +297,22 @@ class TabNotifier extends StateNotifier<TabState> {
     }
   }
 
+  /// Whether the side bar's list has been read back from the config yet.
+  ///
+  /// Until it has, writing the list would write over what is saved with
+  /// whatever this session happens to hold — which is how a launch that
+  /// carried a document came to destroy the list it was about to restore. The
+  /// order of the two was the immediate cause and has been corrected; this
+  /// makes it impossible rather than merely unlikely, because order is a
+  /// fragile thing to rely on and nothing would have said it had changed.
+  bool _openedFilesRestored = false;
+
   void restoreOpenedFiles(List<String> filePaths) {
     StartupTrace.mark('restoring ${filePaths.length} sidebar entries');
+    // Set even when the list is empty — a first run has nothing to put back,
+    // and leaving the gate shut then would stop the list ever being saved
+    // again for the life of the process.
+    _openedFilesRestored = true;
     final entries = <OpenedFileEntry>[];
     for (final path in filePaths) {
       if (File(path).existsSync()) {
@@ -306,6 +320,14 @@ class TabNotifier extends StateNotifier<TabState> {
           OpenedFileEntry(filePath: path, fileName: p.basename(path)),
         );
       }
+    }
+    // Merged with whatever is already registered, not put in its place. A
+    // document opened before this ran — one that came in on the command line —
+    // is in the list already, and replacing the list would drop it. Together
+    // with the gate above this makes the order of the two irrelevant, which is
+    // the only way to stop it being got wrong again.
+    for (final open in state.openedFiles) {
+      if (!entries.any((e) => e.filePath == open.filePath)) entries.add(open);
     }
     if (entries.isNotEmpty) {
       state = state.copyWith(openedFiles: entries);
@@ -333,6 +355,8 @@ class TabNotifier extends StateNotifier<TabState> {
   }
 
   void _persistOpenedFiles() {
+    // Nothing before the list has been read: see [_openedFilesRestored].
+    if (!_openedFilesRestored) return;
     final paths = state.openedFiles.map((f) => f.filePath).toList();
     _ref
         .read(settingsProvider.notifier)

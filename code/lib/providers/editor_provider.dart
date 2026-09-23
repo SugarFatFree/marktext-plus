@@ -513,6 +513,17 @@ class EditorNotifier extends StateNotifier<EditorState> {
   /// not, and the caller has to write the result to the tab instead.
   bool get hasSourceEditor => _controller != null;
 
+  /// The document as it stands this instant, when a field is holding it.
+  ///
+  /// The tab's copy is written on a 300 ms debounce, so anything that reads
+  /// that straight after an edit reads the text from before. Twice now that
+  /// has been the whole of a defect: undo from the menu threw away the
+  /// characters typed since the last pause (BUG-494), and the automation
+  /// interface reported "the document is the same length" about a document
+  /// that had just grown by four (BUG-495). Null when nothing is holding it —
+  /// preview mode — where the tab is the only copy there is.
+  String? get textOnScreen => _controller?.text;
+
   /// Steps back one snapshot and answers with the text the document should
   /// hold, or null when there was nowhere to go.
   ///

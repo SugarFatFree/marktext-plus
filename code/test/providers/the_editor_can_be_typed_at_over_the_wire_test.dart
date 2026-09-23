@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -125,6 +126,37 @@ void main() {
       expect(outcome.said, contains('5'));
       expect(outcome.said, contains('9'));
       expect(container.read(editorProvider).pendingFormat, isNull);
+    });
+
+    test('the length it reports is the one on screen, not the copy that lags',
+        () async {
+      // Measured on a real machine before this was right: two bold commands
+      // in a row each answered "the document is the same length" while the
+      // document grew by four characters each time. Both ends were read off
+      // the tab, whose copy is written on a 300 ms debounce — so a command
+      // that finishes in one frame was measured against two copies of the
+      // text from before it (BUG-495).
+      final container = boot();
+      openATab(container, 'alpha');
+      final controller = TextEditingController(text: 'alpha');
+      addTearDown(controller.dispose);
+      container.read(editorProvider.notifier).setController(controller);
+      container.listen<EditorState>(editorProvider, (_, next) {
+        if (next.pendingFormat == null) return;
+        // What a pane does: it writes the field. The tab catches up later.
+        controller.text = '**alpha**';
+        container.read(editorProvider.notifier).clearFormat();
+      });
+
+      final outcome = await ask(container, 'format', {'format': 'bold'});
+
+      expect(outcome.ok, isTrue, reason: outcome.said);
+      expect(outcome.said, contains('5'));
+      expect(outcome.said, contains('9'));
+      expect(outcome.said, isNot(contains('same length')),
+          reason: '标签页那一份还没跟上，量它等于量了两遍改之前的文本');
+      expect(container.read(tabProvider).tabs.single.content, 'alpha',
+          reason: '这一条的前提就是标签页还没跟上');
     });
 
     test('one nothing takes in time is dropped rather than left to fire',

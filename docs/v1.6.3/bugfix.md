@@ -77,6 +77,9 @@
 | BUG-492 | 2026-09-14 | `set_view_mode` 还留着 BUG-489 同一个毛病（`unknown mode "null"`），因为修 `close_pane` 的时候没读它的兄弟分支 | P3 | 已修复 |
 | BUG-493 | 2026-09-15 | 12 份 README 都写着「十二个动作」，而昨天加 `reopen_tab` 时已经是十三个——十二种语言写着十二种「十二」，没人能对账 | P3 | 已修复 |
 | BUG-494 | 2026-09-16 | 「编辑 → 撤销」用的是滞后 300ms 的那一份文本，刚打的字既从屏幕上消失、又不在 redo 栈上——Ctrl+Z 从来没有这个毛病 | P2 | 已修复 |
+| BUG-495 | 2026-09-16 | `format` 答「文档长度没变」，而它刚长了四个字符——量的是滞后 300ms 的标签页副本 | P3 | 已修复 |
+| BUG-496 | 2026-09-23 | **侧栏的文件记录被打开新文件冲掉**：启动时先开文件、后读列表，写回去的那一下把磁盘上的旧列表覆盖了 | **P1** | 已修复 |
+| BUG-497 | 2026-09-23 | **切模式/切标签页把整棵文档树丢掉重建，且两棵树同时淡入淡出**——「打开第二个文件卡顿」「关窗口卡顿」是同一个根因 | **P1** | 已修复 |
 
 ---
 
@@ -5721,3 +5724,197 @@ final text = back
 
 - `code/lib/ui/widgets/app_menu_bar.dart`
 - `code/test/ui/undo_from_the_menu_uses_what_is_on_screen_test.dart`（新增）
+
+---
+
+## BUG-495：它说「文档长度没变」，而文档刚长了四个字符
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-495 |
+| 日期 | 2026-09-16 |
+| 优先级 | P3 |
+| 状态 | 已修复（真机撞到） |
+
+### 现象
+
+`format bold` 在真机上连做两次，两次都答：
+
+```
+ran bold; the document is the same length
+```
+
+而紧接着的 `undo` 答的是 `stepped back to 9 characters` —— 文档明明
+从 5 变成 9 再变成 13。
+
+### 根因：量错了副本，和 BUG-494 同一个
+
+`_format` 在命令前后各量一次文档长度，量的是**标签页那一份**。
+而标签页的文本是在 300 ms 防抖里才写回去的，一个在一帧内完成的命令，
+**前后两次量到的都是「改之前」**。
+
+这是同一条规则第三次被需要（BUG-494 是第二次），所以它被收成一个访问器：
+`EditorNotifier.textOnScreen` —— 有输入框时就是屏幕上那一份，预览模式返回
+null 让调用方回落到标签页。两次前科都写在它的文档注释里。
+
+### 守卫
+
+`the_editor_can_be_typed_at_over_the_wire_test`
+「the length it reports is the one on screen, not the copy that lags」：
+造一个「输入框已经变、标签页还没跟上」的局面，答复必须报 5→9 而**不能**说
+same length；变异回「量标签页」立刻红。
+
+### 涉及文件
+
+- `code/lib/providers/editor_provider.dart`、`code/lib/providers/mcp_provider.dart`
+- `code/test/providers/the_editor_can_be_typed_at_over_the_wire_test.dart`
+
+---
+
+## BUG-496：侧栏的文件记录，在被读到之前就被覆盖了
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-496 |
+| 日期 | 2026-09-23 |
+| 优先级 | **P1** |
+| 状态 | 已修复 |
+
+### 现象（读者报的）
+
+> 打开文件后，关闭窗口，再打开另一个文件，左侧文件栏没有之前的文件记录了，
+> 不是说过要保留之前打开的文件记录吗？！！
+
+### 根因：先写后读
+
+启动时那一串副作用是这个顺序：
+
+```dart
+_openStartupFiles();      // ① 把命令行带进来的文档开出来
+_checkForUpdates();
+_restoreSideBarDirectory(); // ② 才去读侧栏列表
+```
+
+而 ① 里的 `addTab` 会把这个文件登记进 `openedFiles` 并调用
+`_persistOpenedFiles()` —— **那一刻列表里只有刚打开的这一个**，于是
+`config.sideBarOpenedFiles` 被写成 `[新文件]`，**磁盘上的旧列表就此消失**。
+
+② 随后去读 `config.sideBarOpenedFiles`，读到的已经是它自己刚刚毁掉的那一份。
+
+**列表不是没恢复，是在被读到之前就被覆盖了。** 这正是
+[[eager-setup-before-an-early-return]] 那一类：拒绝/读取之前，已经把要拒绝/要读的东西做掉了。
+
+### 修复：三处，让它不仅「这次对」而且「以后改不坏」
+
+1. **顺序**：`_restoreSideBarDirectory()` 移到 `_openStartupFiles()` 之前；
+2. **闸门**：`TabNotifier` 在列表被读回来之前**拒绝写入**（`_openedFilesRestored`）。
+   顺序是脆弱的依赖——改回去不会有任何东西提醒你，所以让覆盖**不可能**而不是**不太可能**；
+3. **合并而非替换**：`restoreOpenedFiles` 把读回来的与已在册的合并。
+   于是**两种顺序的结果相同**，顺序彻底不再是正确性的前提。
+
+闸门有个陷阱，也钉住了：**空列表也必须算「读过」**——否则首次运行没有东西可恢复，
+闸门永不打开，这个进程此后再也不会保存侧栏列表。
+
+### 守卫
+
+`the_sidebar_list_survives_opening_a_file_test`，5 条：
+读之前写不许生效、读之后正常追加、空列表也开闸、两种顺序结果相同、
+已被删除的文件不放回来（原有行为，钉住免得改坏）。
+
+三处变异逐条验证（**去掉闸门 / 恢复改回替换 / 空列表不算读过**），各自红一条。
+
+### 一条纪律的反例，记在这里
+
+第一次做变异验证时备份目录不存在，`cp` 静默失败，**三次变异叠加在了一起**。
+[[mutation-backup-taken-after-the-fix]] 说的「只用 cp 还原并 grep 确认」，
+漏掉了前一步：**先确认备份真的存在**。后来改成把原文件 base64 存进同一次 bash
+调用的 shell 变量里，不再依赖任何目录。
+
+### 涉及文件
+
+- `code/lib/ui/screens/home_screen.dart`、`code/lib/providers/tab_provider.dart`
+- `code/test/providers/the_sidebar_list_survives_opening_a_file_test.dart`（新增）
+
+---
+
+## BUG-497：切一次标签页，整篇文档重画一遍；而且是两篇一起画
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | BUG-497 |
+| 日期 | 2026-09-23 |
+| 优先级 | **P1** |
+| 状态 | 已修复（真机量过，待换构建后复测） |
+
+### 现象（读者报的）
+
+> 打开第一个文件很快，但是打开第二个文件会有严重卡顿，关闭应用窗口也是严重卡顿。
+
+### 在真机上量到的
+
+一篇 117 KB（800 块）的文档与一篇 6 KB（85 块）的并排，来回切：
+
+| 观察 | 数字 |
+|---|---|
+| 每次切换都**从头重画整篇** | `800 blocks in 255 ms` → `218 ms` → `192 ms` |
+| 其中一次切换 | **3321 ms**（邻近几次 75–144 ms） |
+| 两条预览日志**共用同一个时间戳** | `17:09:42.487286`：`85 blocks in 41 ms` **和** `800 blocks in 255 ms` |
+| resident | 163 → 280 MB，六次切换内不回落 |
+
+最后那一条是关键：**同一帧里两篇文档都在画。**
+
+### 根因：相隔一行的两件事
+
+```dart
+// Use IndexedStack to keep all editor states, avoiding rebuild on mode switch
+return AnimatedSwitcher(
+  duration: const Duration(milliseconds: 150),
+  child: IndexedStack(
+    key: ValueKey('editors_${activeTab.id}_$currentIndex'),   // ← key 里含模式
+```
+
+1. **key 里带着模式**，于是切模式就是换了一个 widget：IndexedStack 连同三个窗格
+   （以及每个窗格里那面「已经建过了」的旗子）全部被丢掉重建。
+   它头顶那句注释说它存在就是为了避免这件事——**一次也没避免过**。
+   `DeferredEditorBuilder` 的文档同样说「三个窗格同时在树上，所以切换是瞬间的」、
+   「`_ready` 一旦为真就不再显示转圈」——整个 stack 被丢掉时，`_ready` 也跟着丢了。
+   **两处注释都在说与事实不符的话，而根因是同一个 `$currentIndex`。**
+2. **外面套着 `AnimatedSwitcher`**，于是每一次这样的更换都会把走的那棵树与来的那棵树
+   交叉淡入淡出 150 ms——那就是「同一帧两篇文档」，而且恰好发生在读者正在等的那一刻。
+
+### 第三个症状不是第三个缺陷
+
+读者还报了「关闭应用窗口也是严重卡顿」。启动追踪里三次关闭的实际耗时是
+**19 ms / 36 ms / 29 ms**（`close requested` → `window destroyed`）——编辑器自己的收尾很快。
+卡的是**点下 × 的那一刻 UI 线程正忙着重建文档树**，窗口来不及响应。
+**一个根因，三个症状。**
+
+### 修复
+
+- key 里去掉模式，并把它提成 `HomeScreen.editorStackKey(tabId)`
+  ——一个**签名上就只收文档**的函数，于是「与模式无关」由编译器保证，不靠人记；
+- 去掉编辑区外面的 `AnimatedSwitcher`：换文档不需要淡入淡出，它需要的是快点结束。
+
+### 守卫
+
+`switching_panes_does_not_rebuild_them_test`，3 条：key 随文档变、
+调用点的 key 必须来自那个函数且不含模式（并且全文件只许拼这个 key 一次）、
+编辑区不许有 `AnimatedSwitcher(`。两处变异各自红一条。
+
+三个过程中的自我纠正，都记着：
+- 第一版的行为断言是**永真式**（遍历三种模式调用一个只收 tabId 的函数），已换掉；
+- 源码守卫第一版命中了**我自己那句「不该有 AnimatedSwitcher」的注释**——
+  先剥掉注释再查；
+- 「不许手拼这个 key」第一版命中了**它正当的定义处**——改成计数，只许有一处。
+
+### 还没解决的那一半（诚实记录）
+
+去掉淡入淡出把峰值砍掉一半，但**切标签页仍然要重画整篇**（800 块约 190–260 ms），
+因为渲染器的块缓存挂在它自己的 State 上，而换标签页会换掉那个 State。
+把每个标签页的树都留住能让切换变成瞬间，代价是内存随标签页数增长——
+那与「占用低」是同一笔账的两项，要先量再决定，不在这一轮里做。
+
+### 涉及文件
+
+- `code/lib/ui/screens/home_screen.dart`
+- `code/test/ui/screens/switching_panes_does_not_rebuild_them_test.dart`（新增）

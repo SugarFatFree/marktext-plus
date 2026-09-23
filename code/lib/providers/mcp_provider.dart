@@ -144,6 +144,25 @@ class McpController extends StateNotifier<McpStatus> {
     // reads as a measurement, and the absence of a measurement is not one.
     final resident = ResidentMemory.megabytes();
 
+    // What the window looks like, so an agent that moves it can put it back.
+    //
+    // Found by doing exactly that: `set_window` was used on a real machine
+    // before anything had read what was there, and there was nothing to read
+    // it with — the editor was left 1200 wide when it had been maximised, and
+    // only the startup trace remembered that. `set_window` cannot answer
+    // without changing something, and should not: "nothing to do" is the right
+    // reply to a request that asks for nothing.
+    //
+    // Omitted rather than faked when the platform will not answer, for the
+    // reason [resident] is omitted: the absence of a measurement is not one.
+    WindowReading? windowNow;
+    try {
+      windowNow = await window.read();
+    } catch (_) {
+      // No platform under the tests, and an older runner may not answer
+      // either. Everything else here is still worth having.
+    }
+
     return {
       // Which editor is answering. An agent can update this one now, and
       // after the installer has run the only question that matters is what
@@ -153,6 +172,12 @@ class McpController extends StateNotifier<McpStatus> {
       'viewMode': config.editMode.name,
       'activeTabId': tabs.activeTabId,
       if (resident != null) 'residentMB': resident,
+      if (windowNow != null)
+        'window': {
+          'state': windowNow.state.name,
+          'width': windowNow.size.width.round(),
+          'height': windowNow.size.height.round(),
+        },
       'tabs': [
         for (final tab in tabs.tabs)
           {
@@ -544,16 +569,24 @@ class McpController extends StateNotifier<McpStatus> {
 
     final id = _ref.read(tabProvider).activeTabId;
     if (id == null) return mcpRefused('no tab to format');
-    final before = _ref
+    final editor = _ref.read(editorProvider.notifier);
+
+    // The field, not the tab. The tab's copy is written on a 300 ms debounce,
+    // so measuring it either side of a command that finishes in one frame
+    // compares two copies of the text from *before* — which is how this came
+    // to answer "the document is the same length" about a document that had
+    // just grown by four characters, measured on a real machine (BUG-495).
+    int? measure() =>
+        editor.textOnScreen?.length ??
+        _ref
             .read(tabProvider)
             .tabs
             .where((t) => t.id == id)
             .firstOrNull
             ?.content
-            .length ??
-        0;
+            .length;
+    final before = measure() ?? 0;
 
-    final editor = _ref.read(editorProvider.notifier);
     editor.applyFormat(action);
 
     // Waited for rather than assumed. A pane clears the request when it has
@@ -571,14 +604,7 @@ class McpController extends StateNotifier<McpStatus> {
           'request has been dropped rather than left to fire later');
     }
 
-    final after = _ref
-            .read(tabProvider)
-            .tabs
-            .where((t) => t.id == id)
-            .firstOrNull
-            ?.content
-            .length ??
-        0;
+    final after = measure() ?? 0;
     return mcpDid(after == before
         ? 'ran $name; the document is the same length'
         : 'ran $name; the document went from $before to $after characters');

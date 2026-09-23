@@ -63,6 +63,22 @@ class HomeScreen extends ConsumerStatefulWidget {
   /// there, and counting it here told the reader the file "was not opened" in
   /// the same moment its link appeared in their document.
   @visibleForTesting
+  /// The key for the stack that holds the three panes of one document.
+  ///
+  /// The document, and **not** the mode. It used to carry the mode too, which
+  /// made every change of mode a different widget: the stack and all three
+  /// panes were thrown away and rebuilt, while the comment above it said it
+  /// was there to avoid exactly that and `DeferredEditorBuilder` said
+  /// switching was instant. Measured with a 117 KB document open, every switch
+  /// redrew all 800 blocks.
+  ///
+  /// A named value rather than a string built at the call site, so a test can
+  /// hold the decision — the shape [dropIsUnhandled] is in, for the same
+  /// reason.
+  @visibleForTesting
+  static ValueKey<String> editorStackKey(String tabId) =>
+      ValueKey('editors_$tabId');
+
   static bool dropIsUnhandled(String path, {required bool editorPresent}) {
     final ext = p.extension(path).toLowerCase();
     if (FileUtils.markdownExtensionsWithDot.contains(ext)) return false;
@@ -103,9 +119,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       StartupTrace.mark('first frame painted');
       if (!mounted) return;
+      // Before the startup files, not after. Opening a document registers it
+      // in the side bar's list and writes that list to the config, so doing
+      // it first wrote over the saved list with the one file just opened —
+      // and the restore below then read what it had just destroyed.
+      _restoreSideBarDirectory();
       _openStartupFiles();
       _checkForUpdates();
-      _restoreSideBarDirectory();
       // Only if the reader turned it on; `apply` stops it otherwise, which is
       // also what it does on the way out.
       ref.read(mcpProvider.notifier).apply(ref.read(settingsProvider));
@@ -265,11 +285,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
         ref.read(fileProvider.notifier).loadDirectory(config.sideBarDirectory);
       }
     }
-    if (config.sideBarOpenedFiles.isNotEmpty) {
-      ref
-          .read(tabProvider.notifier)
-          .restoreOpenedFiles(config.sideBarOpenedFiles);
-    }
+    // Unconditionally, including with nothing saved: the notifier will not
+    // write the list until it has been read back, and a first run has to open
+    // that gate too.
+    ref
+        .read(tabProvider.notifier)
+        .restoreOpenedFiles(config.sideBarOpenedFiles);
 
     // Reopen what was on screen last time, unless this launch was a
     // double-click on a document: someone who opened one file meant to see
@@ -1141,17 +1162,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
       ref.read(tabProvider.notifier).updateContent(activeTab.id, newContent);
     }
 
-    // Use IndexedStack to keep all editor states, avoiding rebuild on mode switch
+    // All three panes stay in this stack so that changing mode only changes
+    // which one is shown. That is what it was for, and for a long time it did
+    // not happen: the key carried the mode as well as the document, so every
+    // change of mode was a different widget and the stack — with all three
+    // panes and the "already built" flag inside each of them — was thrown
+    // away. Measured on a real machine with a 117 KB document: every switch
+    // redrew all 800 blocks, 190-260 ms each time.
+    //
+    // No AnimatedSwitcher around it either. It cross-faded the outgoing tree
+    // against the incoming one, so for 150 ms both documents were built and
+    // painting — two preview lines in the log with the same timestamp to the
+    // microsecond — at precisely the moment the reader is waiting for the
+    // switch to be over.
     final currentIndex = editMode.index;
 
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 150),
-      switchInCurve: Curves.easeOut,
-      child: IndexedStack(
-        key: ValueKey('editors_${activeTab.id}_$currentIndex'),
-        index: currentIndex,
-        sizing: StackFit.expand,
-        children: [
+    return IndexedStack(
+      key: HomeScreen.editorStackKey(activeTab.id),
+      index: currentIndex,
+      sizing: StackFit.expand,
+      children: [
           // EditMode.source (index 0)
           DeferredEditorBuilder(
             key: ValueKey('source_${activeTab.id}'),
@@ -1204,8 +1234,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
               onChanged: onContentChanged,
             ),
           ),
-        ],
-      ),
+      ],
     );
   }
 }
