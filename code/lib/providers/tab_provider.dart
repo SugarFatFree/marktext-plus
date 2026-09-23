@@ -1152,12 +1152,33 @@ class TabNotifier extends StateNotifier<TabState> {
   /// Returns whether they were opened in *this* window; false means the
   /// reader's preference sent them to a new one, and this window should be
   /// left exactly where it was.
-  Future<bool> openFilesFromSecondInstance(List<String> filePaths) async {
+  /// Opens [filePaths] in this window, honouring where the reader wants files
+  /// to open.
+  ///
+  /// Reached by a second launch — a double-click while the editor is already
+  /// running — and by the automation interface, which has no picker to open one
+  /// with. It is not the only implementation of "open this path": the side bar,
+  /// the File menu and the command line each have their own, and they disagree
+  /// about small things. This one was the only one that did not record the
+  /// document in Recent Files, so the same double-click remembered it or not
+  /// depending on whether the editor happened to be open (BUG-498). The four
+  /// are worth converging; until then the differences are written down in
+  /// bugfix.md rather than left to be found again.
+  Future<bool> openFilesFromSecondInstance(
+    List<String> filePaths, {
+    /// Opens here even when the reader would rather have a new window.
+    ///
+    /// For the automation interface: a document in another window is in
+    /// another process, which the port this request arrived on cannot reach,
+    /// so "opened" would be true and useless.
+    bool forceThisWindow = false,
+  }) async {
     // The single-instance layer always routes a second launch here, so this is
     // where the preference has to be honoured: choosing "open in a new window"
     // previously changed nothing, because nothing read the setting.
-    if (_ref.read(settingsProvider).fileOpenBehavior ==
-        FileOpenBehavior.newWindow) {
+    if (!forceThisWindow &&
+        _ref.read(settingsProvider).fileOpenBehavior ==
+            FileOpenBehavior.newWindow) {
       for (final path in filePaths) {
         await PlatformUtils.launchNewWindow(filePath: path);
       }
@@ -1192,6 +1213,10 @@ class TabNotifier extends StateNotifier<TabState> {
           diskStamp: opened.stamp,
         );
         addTab(tab);
+        // Recorded like every other way of opening a document. Not awaited:
+        // the file is open either way, and the list is read at the next launch
+        // rather than now.
+        unawaited(_ref.read(settingsProvider.notifier).addRecentFile(path));
       } catch (_) {
         // One unreadable file — deleted since it was last opened, or with no
         // read permission — must not stop the rest of the session from being

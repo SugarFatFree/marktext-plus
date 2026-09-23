@@ -67,6 +67,14 @@ enum McpAction {
   /// it — precisely because everything automated went the other way.
   openPanel('open_panel'),
 
+  /// Opens a document that is already on disk.
+  ///
+  /// The interface could make a document, write one, save one under a new name
+  /// and close one, and it could not open one — so it could never check its own
+  /// work on a file, and a whole class of defect could only be confirmed by
+  /// asking the reader to double-click something.
+  openFile('open_file'),
+
   /// Runs one of the editor's own formatting commands on the document.
   ///
   /// The same command the Format menu and the keyboard run, so the automation
@@ -351,7 +359,9 @@ class McpToolset {
           '— ask it after update_app has run and the editor has come back, '
           'because that is how you tell what came back — then tabs, which '
           'is active, the view '
-          'mode, the installed plugins and the panes they filled — and '
+          'mode, the installed plugins and the panes they filled, '
+          '"sideBarFiles" — the documents the side bar lists, which is not the '
+          'same list as the open tabs and outlives closing them — and '
           '"residentMB", how many megabytes the process is holding, and '
           '"window", how the window is being shown and how big it is — both '
           'absent on a platform that will not say. Ask for residentMB before '
@@ -397,10 +407,12 @@ class McpToolset {
           'path': {
             'type': 'string',
             'description':
-                'What to call a new tab. This names the tab; it does not '
-                'read the file, so pass the text as "content". For save_tab '
-                'it is where to keep a tab that has no file yet — a whole '
-                'path, and nothing there already.',
+                'For open_file, the document to open — a whole path, and it '
+                'has to be there already. '
+                'For new_tab, what to call a new tab: it names the tab and '
+                'does not read anything, so pass the text as "content". For '
+                'save_tab it is where to keep a tab that has no file yet — a '
+                'whole path, and nothing there already.',
           },
           'tabId': {
             'type': 'string',

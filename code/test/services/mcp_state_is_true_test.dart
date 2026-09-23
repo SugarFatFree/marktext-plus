@@ -118,6 +118,23 @@ void main() {
     }
   });
 
+  test('it says which files the side bar is listing', () async {
+    // Not the same list as the open tabs: closing a tab leaves its entry in the
+    // side bar. Nothing could see this list, so the defect that wiped it
+    // (BUG-496) could only be confirmed by asking the reader to look at their
+    // own screen.
+    final container = boot();
+    final file = File('${configDir.path}/listed.md')
+      ..writeAsStringSync('# listed');
+    container.read(tabProvider.notifier).restoreOpenedFiles([file.path]);
+
+    final state = await stateOf(container);
+
+    expect(state['sideBarFiles'], hasLength(1));
+    expect((state['sideBarFiles'] as List).single['name'], 'listed.md');
+    expect((state['sideBarFiles'] as List).single['path'], file.path);
+  });
+
   test('the view mode reported is the one in force', () async {
     for (final mode in EditMode.values) {
       final state = await stateOf(boot(mode: mode));

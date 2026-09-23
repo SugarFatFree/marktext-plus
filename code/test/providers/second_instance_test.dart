@@ -44,6 +44,25 @@ void main() {
   File write(String name, String text) =>
       File('${root.path}/$name')..writeAsStringSync(text);
 
+  test('a file opened this way is remembered in Recent Files', () async {
+    // Every other way of opening a document records it: the side bar, the File
+    // menu, and a launch that carries one on the command line. This path — a
+    // double-click while the editor is already running — was the only one that
+    // did not, so whether the same gesture remembered the document depended on
+    // whether the editor happened to be open already.
+    final file = write('remembered.md', '# remembered');
+
+    await container
+        .read(tabProvider.notifier)
+        .openFilesFromSecondInstance([file.path]);
+
+    expect(
+      container.read(settingsProvider).recentFiles,
+      contains(file.path),
+      reason: '同一个双击动作，记不记得住不该取决于编辑器当时开着没开着',
+    );
+  });
+
   test('a file opens here, and says so', () async {
     final note = write('note.md', 'hello');
     final notifier = container.read(tabProvider.notifier);

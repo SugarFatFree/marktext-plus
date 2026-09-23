@@ -35,12 +35,19 @@ void main() {
   });
 
   test('a name nothing implements resolves to nothing', () {
-    // `open_file` is still not implemented and so is still not offered.
-    // `run_plugin_command` was in the same position until the widget layer
-    // registered a handler for it, which is what it needed all along.
-    expect(McpAction.byWireName('open_file'), isNull);
+    // A camelCase name is a Dart identifier, not something sent over the wire.
     expect(McpAction.byWireName('setViewMode'), isNull);
+    expect(McpAction.byWireName('openFile'), isNull);
     expect(McpAction.byWireName(null), isNull);
+  });
+
+  test('opening a document is offered now that it exists', () {
+    // This line used to say the opposite, beside a note that
+    // `run_plugin_command` had been in the same position until the widget layer
+    // gave it a handler. It was a placeholder for work not done, not a decision
+    // that it should never be done — and the interface could write a document
+    // and never open one, so it could not check its own work on a file.
+    expect(McpAction.byWireName('open_file'), McpAction.openFile);
   });
 
   test('running a plugin command is offered again, now that it exists', () {

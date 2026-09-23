@@ -19,6 +19,7 @@
 | FEAT-162 | 2026-09-14 | 重新打开关闭的标签页（Ctrl+Alt+R / 文件菜单 / 命令面板 / MCP `reopen_tab`）——有标签页的编辑器都有，这个没有 | P2 | 中 | 已完成，MCP 侧真机验证 |
 | FEAT-163 | 2026-09-15 | 自动化接口能驱动窗口了（`set_window`：最大化/最小化/全屏/常态 + 指定尺寸）——这条从一开始就在要求里，一直没做 | P1 | 中 | 已完成 |
 | FEAT-164 | 2026-09-16 | 自动化接口能在文档上动手了：`format`（54 个格式命令）、`undo` / `redo`、`set_clipboard`（带 HTML）——人工测试清单剩下的那几条，机器终于走得通 | P1 | 中 | 已完成 |
+| FEAT-165 | 2026-09-23 | 自动化接口能**打开**已存在的文件了（`open_file`），`get_state` 也报出侧栏列出的文件——在此之前它能写文档却读不回、能改侧栏却看不见 | P1 | 低 | 已完成 |
 
 ---
 
@@ -1143,4 +1144,81 @@ get_state                   → 只剩读者自己的那份文档
 - `code/lib/ui/widgets/app_menu_bar.dart`（改为转发）
 - `code/lib/services/mcp_tools.dart`、`code/lib/providers/mcp_provider.dart`
 - `code/test/providers/the_editor_can_be_typed_at_over_the_wire_test.dart`（新增）
+- 12 份 README
+
+---
+
+## FEAT-165：它终于能打开一个文件，也终于看得见侧栏
+
+| 字段 | 内容 |
+|------|------|
+| 编号 | FEAT-165 |
+| 实现日期 | 2026-09-23 |
+| 优先级 | P1 |
+| 难易度 | 低 |
+| 状态 | 已完成 |
+
+### 需求描述
+
+读者报了 BUG-496（侧栏文件记录被冲掉）。修完之后我**验不了**——因为这个接口：
+
+- 能新建文档、能写、能另存、能关，**唯独不能打开一个已经在磁盘上的文件**；
+- 报标签页、插件、窗格、窗口、内存，**唯独不报侧栏列出的文件**。
+
+也就是说，它做过的事有一整类自己确认不了，只能请读者去双击一下、再用眼睛看左栏。
+
+### 实现方案
+
+**`open_file`**：走 `openFilesFromSecondInstance`（第二次启动转发文件那条路），
+**不写第五份**（那条路本身的四份重复见 BUG-498）。
+
+先检查、再动手，这样拒绝能说出理由：
+
+| 情况 | 答复 |
+|---|---|
+| 不给 `path` | 说明要的是一个完整路径 |
+| 相对路径 | 拒绝——这一端看不见编辑器的工作目录（与 `save_tab` 一致） |
+| 那儿没有东西 | `there is nothing at "…"` |
+| 在但读不出来 | `could not be read` —— **和上一条必须分得开**，一个是路径打错，一个是权限/被占用 |
+| 已经开着 | 把它带到前面来，并说明「已经开着」 |
+| 成功 | 说出文件名与**读到的字符数** |
+
+多带一个 `forceThisWindow`：读者可以把「双击在新窗口打开」设为偏好，而
+**新窗口是另一个进程，这个端口看不进去**，那样答「已打开」为真但无用。
+所以这里把该偏好放在一边，**并在答复里说明放在一边了**。
+
+**`get_state.sideBarFiles`**：侧栏列出的文档（名字 + 路径）。
+它与「开着的标签页」不是同一份清单——关掉标签页，侧栏里那一条还在。
+
+### 验收标准
+
+1. 六种情况各自的答复如上，且「那儿没有」与「读不出来」**分得开**；
+2. 打开的文件进「最近文件」（与其他三条路径一致，见 BUG-498）；
+3. 已经开着的不会被打开第二次，而是被带到前面；
+4. `get_state` 报出侧栏列表；
+5. 12 份 README 的动作清单与数目都跟上（19 个）。
+
+### 守卫与变异验证
+
+`a_document_can_be_opened_over_the_wire_test`（7 条）、
+`second_instance_test` 新增 1 条、`mcp_state_is_true_test` 新增 1 条。
+**五处变异**：去掉记最近文件、去掉存在性检查、去掉相对路径检查、
+不强制开在本窗口、`get_state` 不报侧栏列表。
+
+其中「去掉存在性检查」第一次**全过**——因为我那条断言只查了文件名，
+而两种拒绝都含文件名，**分不清假设**。断言改成同时要求
+「含 `nothing at`」且「不含 `could not be read`」之后，变异立刻红。
+
+两条占位测试顺势毕业：`a name nothing implements resolves to nothing` 里
+`open_file` 被换成真不存在的名字，`an action nothing implements is refused`
+改用 `sing_a_song` —— 否则它们会在有人实现了它们碰巧点名的那个动作时
+**悄悄停止测试它们存在的理由**。
+
+### 涉及文件
+
+- `code/lib/services/mcp_tools.dart`、`code/lib/providers/mcp_provider.dart`
+- `code/lib/providers/tab_provider.dart`
+- `code/test/providers/a_document_can_be_opened_over_the_wire_test.dart`（新增）
+- `code/test/providers/second_instance_test.dart`、`code/test/services/mcp_state_is_true_test.dart`
+- `code/test/services/mcp_action_test.dart`、`code/test/services/mcp_control_does_it_test.dart`
 - 12 份 README

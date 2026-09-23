@@ -709,13 +709,19 @@ void main() {
       expect(outcome.said, isNot(contains('notes.md')));
     });
 
-    test('an action nothing implements is refused', () async {
+    test('an action nothing implements is refused, and named back', () async {
+      // This used to send `open_file`, which nothing implemented. It does now,
+      // so the check needs a name that really is not there — otherwise it
+      // would quietly stop testing the thing it is for the moment somebody
+      // implemented whatever it happened to name.
       final container = boot();
       final outcome = await container
           .read(mcpProvider.notifier)
-          .performAction('open_file', {'path': '/tmp/x.md'});
+          .performAction('sing_a_song', const {});
       expect(outcome.ok, isFalse);
-      expect(outcome.said, contains('open_file'));
+      expect(outcome.said, contains('sing_a_song'));
+      expect(outcome.said, contains('open_file'),
+          reason: '拒绝里要列出真有的动作，好让调用方知道该发什么');
     });
   });
 }

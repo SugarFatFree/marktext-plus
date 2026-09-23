@@ -106,10 +106,10 @@ Un server MCP facoltativo, **spento finché non lo accendi**: apre una porta sul
 | **`record_gif`** | Al massimo cinque secondi, per guardare un’animazione |
 | **`get_state`** | Quale versione è in esecuzione — da chiedere dopo `update_app` per vedere che cosa è tornato — e che cosa è aperto: schede, modalità di vista, estensioni installate, riquadri riempiti |
 | **`read_startup_trace`** | Quanto è durato ogni passo dell'avvio, compresa la parte prima di Dart |
-| **`control`** | 18 azioni: aprire, chiudere, salvare e cambiare schede, scrivere contenuto, cambiare modalità di visualizzazione, chiudere un pannello, eseguire un comando di un plugin, aprire il pannello di un plugin, cambiare un'impostazione, riaprire una scheda chiusa, spostare e ridimensionare la finestra — **e installare un plugin o sostituire l'applicazione con una build della CI** |
+| **`control`** | 19 azioni: aprire, chiudere, salvare e cambiare schede, scrivere contenuto, cambiare modalità di visualizzazione, chiudere un pannello, eseguire un comando di un plugin, aprire il pannello di un plugin, cambiare un'impostazione, riaprire una scheda chiusa, spostare e ridimensionare la finestra — **e installare un plugin o sostituire l'applicazione con una build della CI** |
 
 Le dodici azioni, con i nomi che un agent invia:
-`new_tab`, `close_tab`, `reopen_tab`, `save_tab`, `activate_tab`, `set_view_mode`, `set_content`, `close_pane`, `run_plugin_command`, `open_panel`, `install_plugin`, `update_app`, `set_window`, `set_setting`, `format`, `undo`, `redo`, `set_clipboard`
+`new_tab`, `close_tab`, `reopen_tab`, `save_tab`, `activate_tab`, `set_view_mode`, `set_content`, `close_pane`, `run_plugin_command`, `open_panel`, `open_file`, `install_plugin`, `update_app`, `set_window`, `set_setting`, `format`, `undo`, `redo`, `set_clipboard`
 
 ## ⚖️ A confronto
 

@@ -8,6 +8,7 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../core/config/app_config.dart';
@@ -170,6 +171,14 @@ class McpController extends StateNotifier<McpStatus> {
       // once at connect time and never surfaces it again.
       'version': AppConstants.appVersion,
       'viewMode': config.editMode.name,
+      // The side bar's own list, which is not the list of open tabs: closing a
+      // tab leaves its entry here. Reported because nothing could see it, and
+      // the defect that lost it (BUG-496) could only be confirmed by asking
+      // the reader to look at their screen.
+      'sideBarFiles': [
+        for (final file in tabs.openedFiles)
+          {'name': file.fileName, 'path': file.filePath},
+      ],
       'activeTabId': tabs.activeTabId,
       if (resident != null) 'residentMB': resident,
       if (windowNow != null)
@@ -499,6 +508,9 @@ class McpController extends StateNotifier<McpStatus> {
             ? mcpDid('closed the ${slot.name} pane')
             : mcpRefused('no ${slot.name} pane was open');
 
+      case McpAction.openFile:
+        return _openFile(text('path'));
+
       case McpAction.format:
         return _format(text('format'));
 
@@ -541,6 +553,64 @@ class McpController extends StateNotifier<McpStatus> {
       case McpAction.setSetting:
         return _setSetting(text('setting'), arguments['value']);
     }
+  }
+
+  /// Opens a document that is already on disk, and says what happened.
+  ///
+  /// Through the method a second launch uses rather than as a fifth way to open
+  /// a path — the side bar, the File menu and the command line each have their
+  /// own, and they already disagree about small things (see its doc comment).
+  ///
+  /// Checked before it is asked for, so the answer can name the reason: a
+  /// relative path has nothing to be relative to out here, and a path with
+  /// nothing at it is a typo worth saying so about rather than an empty tab.
+  Future<McpOutcome> _openFile(String? path) async {
+    if (path == null) {
+      return mcpRefused('no path given — the whole path to a document that is '
+          'already on disk');
+    }
+    if (!p.isAbsolute(path)) {
+      return mcpRefused(
+        '"$path" is relative, and the editor\'s working directory is not '
+        'something you can see from there — give a whole path',
+      );
+    }
+    if (!File(path).existsSync()) {
+      return mcpRefused('there is nothing at "$path"');
+    }
+
+    final before = _ref
+        .read(tabProvider)
+        .tabs
+        .where((t) => t.filePath == path)
+        .firstOrNull;
+
+    // The reader's preference about new windows is set aside here, and said so
+    // below when it differed: a document in another window is in another
+    // process, and the port this request arrived on cannot see into it, so
+    // "opened" would be true and useless.
+    final elsewhere = _ref.read(settingsProvider).fileOpenBehavior ==
+        FileOpenBehavior.newWindow;
+    await _ref
+        .read(tabProvider.notifier)
+        .openFilesFromSecondInstance([path], forceThisWindow: true);
+
+    final now = _ref
+        .read(tabProvider)
+        .tabs
+        .where((t) => t.filePath == path)
+        .firstOrNull;
+    if (now == null) {
+      return mcpRefused('"$path" could not be read — it is there, and this '
+          'editor could not make a document out of it');
+    }
+    final aside = elsewhere
+        ? ' (the reader would rather files opened in a new window; this one '
+            'opened here, because a new window is not reachable from this port)'
+        : '';
+    return mcpDid(before != null
+        ? '"${now.fileName}" was already open; it is now the active tab$aside'
+        : 'opened ${now.fileName}, ${now.content.length} characters$aside');
   }
 
   /// Runs one formatting command, and says whether anything carried it out.
