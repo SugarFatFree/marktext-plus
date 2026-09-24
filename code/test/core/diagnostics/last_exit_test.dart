@@ -21,13 +21,13 @@ void main() {
     // The point of the line. Asking a reader to close their window costs them
     // an interaction, so one of these has to be able to name the half to fix.
     final said = LastExit.describe(
-        'queued-ms=4 close-asked-ms=52457926 destroyed-ms=52457954 '
+        'queued-ms=4 close-asked-ms=52457926 gone-ms=52457954 '
         'exiting-ms=52457961\n');
     expect(said, isNotNull);
     expect(said, contains('4 ms for the button to be heard'));
-    expect(said, contains('28 ms inside the editor'),
+    expect(said, contains('28 ms before the window went'),
         reason: '52457954 - 52457926');
-    expect(said, contains('7 ms to leave'), reason: '52457961 - 52457954');
+    expect(said, contains('7 ms to leave after that'), reason: '52457961 - 52457954');
     // Not the numbers themselves: two figures of milliseconds since the
     // process started are not something anybody should subtract in their head.
     expect(said, isNot(contains('52457')));
@@ -37,21 +37,22 @@ void main() {
     // Not reported as zero. "Nothing waited" and "not known" are different
     // findings, and this is the stretch the line exists to expose.
     final said = LastExit.describe(
-        'queued-ms=-1 close-asked-ms=1000 destroyed-ms=1020 exiting-ms=1023\n');
+        'queued-ms=-1 close-asked-ms=1000 gone-ms=1020 exiting-ms=1023\n');
     expect(said, isNotNull);
     expect(said, isNot(contains('to be heard')));
-    expect(said, contains('20 ms inside the editor'));
+    expect(said, contains('20 ms before the window went'));
   });
 
-  test('a run that left without destroying the window is not split apart', () {
-    // Guessing where the boundary was would put time in one stretch that
-    // belongs to the other, which is the one thing this line must not do.
+  test('a run whose window never left the screen says exactly that', () {
+    // Not a gap to paper over: this is what a reader's machine reported the
+    // first time, and it was the finding — the window stood in front of them
+    // through everything Windows does to end a process.
     final said = LastExit.describe(
-        'queued-ms=2 close-asked-ms=1000 destroyed-ms=-1 exiting-ms=1500\n');
+        'queued-ms=2 close-asked-ms=1000 gone-ms=-1 exiting-ms=1500\n');
     expect(said, isNotNull);
     expect(said, contains('500 ms'));
-    expect(said, isNot(contains('inside the editor')));
-    expect(said, isNot(contains('to leave')));
+    expect(said, contains('never taken off the screen'));
+    expect(said, isNot(contains('before the window went')));
   });
 
   test('a close that was never asked for is said plainly', () {
@@ -93,9 +94,9 @@ void main() {
       // only the sentence was covered, and the sentence is not the part that
       // can look in the wrong place or under the wrong name.
       theFile().writeAsStringSync(
-          'queued-ms=3 close-asked-ms=100 destroyed-ms=130 exiting-ms=134\n');
+          'queued-ms=3 close-asked-ms=100 gone-ms=130 exiting-ms=134\n');
       expect(LastExit.readAndForget(beside: directory.path),
-          contains('30 ms inside the editor'));
+          contains('30 ms before the window went'));
     });
 
     test('it takes the account away once it has been read', () {

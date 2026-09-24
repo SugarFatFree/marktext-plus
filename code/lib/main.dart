@@ -280,7 +280,14 @@ void main(List<String> args) async {
   } catch (_) {
     StartupTrace.mark('screens could not be read; window left as stored');
   }
-  StartupTrace.mark('window placement decided');
+  StartupTrace.mark(
+    'window placement decided: stored '
+    '${config.windowWidth.round()}x${config.windowHeight.round()} at '
+    '${config.windowX.round()},${config.windowY.round()}'
+    '${config.isMaximized ? ' (maximized)' : ''} → opening '
+    '${placement.size.width.round()}x${placement.size.height.round()} at '
+    '${placement.position.dx.round()},${placement.position.dy.round()}',
+  );
 
   final windowOptions = WindowOptions(
     size: placement.size,

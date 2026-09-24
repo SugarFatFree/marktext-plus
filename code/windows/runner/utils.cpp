@@ -109,7 +109,7 @@ namespace {
 // the way out, both on the same thread.
 long long close_asked_at_ms = -1;
 long long close_queued_for_ms = -1;
-long long window_destroyed_at_ms = -1;
+long long window_gone_at_ms = -1;
 
 // How long the message being handled waited in the queue.
 //
@@ -158,10 +158,10 @@ long long CloseAskedAtMs() { return close_asked_at_ms; }
 
 long long CloseQueuedForMs() { return close_queued_for_ms; }
 
-void RecordWindowDestroyed() {
-  if (window_destroyed_at_ms < 0) {
-    window_destroyed_at_ms = MillisecondsSinceProcessStart();
+void RecordWindowGone() {
+  if (window_gone_at_ms < 0) {
+    window_gone_at_ms = MillisecondsSinceProcessStart();
   }
 }
 
-long long WindowDestroyedAtMs() { return window_destroyed_at_ms; }
+long long WindowGoneAtMs() { return window_gone_at_ms; }

@@ -46,7 +46,7 @@ void main() {
 
   test('the last instruction the process runs is recorded', () {
     final code = codeOf('windows/runner/main.cpp');
-    final lastExit = code.lastIndexOf('::ExitProcess');
+    final lastExit = code.lastIndexOf('::TerminateProcess');
     expect(lastExit, greaterThan(-1));
     final before = code.substring(0, lastExit);
     expect(before, contains('WriteLastExit('),
@@ -127,13 +127,33 @@ void main() {
             'nothing writes');
   });
 
-  test('both ends of the editor\'s own share are recorded', () {
-    // With only the first and last, a slow close says only "slow somewhere".
-    // The destroy is the boundary between the editor doing something and the
-    // process merely leaving, and those have different fixes.
-    final code = codeOf('windows/runner/flutter_window.cpp');
-    expect(code, contains('WM_DESTROY'));
-    expect(code, contains('RecordWindowDestroyed()'));
+  test('the window is taken off the screen before the process winds down', () {
+    // Closing does not destroy this window — window_manager's destroy() is a
+    // bare PostQuitMessage — so it stands in front of the reader until the
+    // process dies. Hiding it is what makes the close look like a close.
+    final code = codeOf('windows/runner/main.cpp');
+    final hide = code.indexOf('SW_HIDE');
+    expect(hide, greaterThan(-1),
+        reason: 'the window is left on screen for the whole of the teardown');
+    expect(hide, lessThan(code.lastIndexOf('::TerminateProcess')),
+        reason: 'hiding it after the process has gone helps nobody');
+    // And the moment is recorded, because it is the moment the reader waits
+    // for and the one that was reported as never happening.
+    expect(code, contains('RecordWindowGone()'));
+  });
+
+  test('the run ends at once rather than being wound down', () {
+    // Looking closed is not being closed, and the difference is not cosmetic.
+    // ExitProcess runs DLL_PROCESS_DETACH for everything this 51 MB install
+    // loaded, which is the seconds a reader was waiting through; and while it
+    // does, the process still holds the single-instance mutex and its named
+    // pipe with nothing alive to read them — so a document opened in that
+    // window is handed to a dead listener and silently never appears.
+    final code = codeOf('windows/runner/main.cpp');
+    expect(code, isNot(contains('::ExitProcess')),
+        reason: 'an exit that winds the process down leaves the reader '
+            'waiting and leaves a listener that cannot listen');
+    expect(code, contains('::TerminateProcess(::GetCurrentProcess()'));
   });
 
   test('the queue wait is taken inside what the window procedure calls', () {

@@ -77,6 +77,22 @@ void main() {
     });
   });
 
+  test('a window parked where Windows parks minimized ones comes back', () {
+    // What a reader actually hit. Closing while minimized stored what the
+    // platform reports for a minimized window — the corner Windows parks them
+    // in, and a size of a few dozen pixels — so the next launch opened
+    // somewhere off every screen at a size too small to see, with nothing to
+    // drag back. The storing side no longer writes that; this is the other
+    // half, because a configuration written by the version that did is still
+    // sitting on those machines.
+    final result = fit(const Offset(-32000, -32000), const Size(158, 26));
+    expect(result.size, WindowPlacement.minimumSize,
+        reason: 'a window this size cannot be seen, let alone grabbed');
+    expect(laptop.contains(result.position), isTrue,
+        reason: 'reopened at ${result.position}, which is on no screen — the '
+            'reader has an application running that they cannot find');
+  });
+
   test('with no screens reported, nothing is moved', () {
     // A headless session, or a plugin that answered nothing. Moving the
     // window on a guess would be worse than leaving it.

@@ -96,7 +96,7 @@ std::string JsonArrayOf(const std::vector<std::string>& arguments) {
 // its two copies, so it is known to be writable. One line, overwritten each
 // time; the next launch reads it, says so, and deletes it.
 void WriteLastExit(long long queued_ms, long long close_asked_ms,
-                   long long destroyed_ms, long long exiting_ms) {
+                   long long gone_ms, long long exiting_ms) {
   wchar_t path[MAX_PATH] = {};
   const DWORD length = ::GetModuleFileNameW(nullptr, path, MAX_PATH);
   if (length == 0 || length >= MAX_PATH) {
@@ -121,7 +121,7 @@ void WriteLastExit(long long queued_ms, long long close_asked_ms,
   }
   std::string line = FormatTraceArgument("queued-ms=", queued_ms);
   line += FormatTraceArgument(" close-asked-ms=", close_asked_ms);
-  line += FormatTraceArgument(" destroyed-ms=", destroyed_ms);
+  line += FormatTraceArgument(" gone-ms=", gone_ms);
   line += FormatTraceArgument(" exiting-ms=", exiting_ms);
   line += "\n";
   DWORD written = 0;
@@ -212,7 +212,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
     // and was never asked to close one; writing the file from here would put a
     // launch that merely forwarded a path where the next launch looks for the
     // close it is meant to report, and overwrite the real one.
-    ::ExitProcess(EXIT_SUCCESS);
+    //
+    // Ended the same way as the run below, for the same reason: the path has
+    // been written and closed, nothing else here has anything to flush, and
+    // the detach handlers of everything the loader already mapped are work on
+    // behalf of a process with no future.
+    ::TerminateProcess(::GetCurrentProcess(), EXIT_SUCCESS);
   }
 
   // Renderer choice. Read MARKTEXT_IMPELLER here; applied to the project
@@ -302,30 +307,64 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
     ::DispatchMessage(&msg);
   }
 
-  // Leave immediately rather than returning.
+  // Take the window off the screen before anything else.
   //
-  // Returning from wWinMain hands control to the C runtime, which unwinds and
-  // waits on every thread the process still has. Something in that set does not
-  // come back: the window disappears and the process stays, sometimes for
-  // seconds. The Dart side cannot fix it — a watchdog armed before
-  // `destroy()` never got to log a single line, which says the isolate had
-  // already stopped while the process was still alive, so whatever is holding
-  // on is native and out of Dart's reach.
+  // This is the whole of what a reader means by the close being slow, and it
+  // was invisible to every measurement until the runner took one. Closing the
+  // window does not destroy it: `window_manager`'s destroy() is a bare
+  // PostQuitMessage, so the loop above ends while the window is still standing
+  // there, and it goes only when the process itself finally dies — through all
+  // of Windows unmapping a 51 MB install and running every DLL's detach hook.
+  // Measured on a reader's machine: 0 ms for the click to be heard, 128 ms to
+  // here, and seconds of a window sitting in front of them doing nothing.
   //
-  // Everything that had to reach disk — the document, the window geometry, the
-  // settings — was written and flushed before the window was destroyed, so
-  // there is nothing left to lose by not waiting.
+  // Hidden rather than destroyed, deliberately. DestroyWindow tears down the
+  // Flutter view, which is more of the work this is trying to get out of the
+  // reader's way; hiding is immediate and everything that had to reach disk
+  // was written before the loop ended.
+  if (HWND handle = window.GetHandle()) {
+    ::ShowWindow(handle, SW_HIDE);
+    RecordWindowGone();
+  }
+
+  // End the process now, rather than asking Windows to wind it down.
   //
-  // Before CoUninitialize, not after. Uninitialising COM on an apartment
-  // thread waits for the objects that apartment still has outstanding, and
-  // that wait is itself a place the process can sit for seconds. Nothing here
-  // needs COM to be shut down tidily on the way out of a process that is
-  // about to stop existing.
+  // This is the second half of the close; hiding the window above was only the
+  // first. Hiding makes the close *look* immediate, this makes it be over, and
+  // three things turn on the difference.
+  //
+  // A window that is gone while the program is not is the kind of untruth this
+  // project keeps finding, and this one ends badly. A reader who closes the
+  // editor and immediately double-clicks a document lands in the seconds when
+  // the old process still holds the single-instance mutex and its named pipe
+  // while nothing is left alive to read them: the new launch hands its path to
+  // a dead listener and quits, and the document silently never opens. Ending
+  // now takes both objects with it, so the next launch finds nobody and starts
+  // normally.
+  //
+  // Everything slower than this is Windows undoing work that only matters to a
+  // process with a future. ExitProcess still runs DLL_PROCESS_DETACH for each
+  // of the 57 files and 51 MB this install loads — measured on a reader's
+  // machine as 128 ms to the last instruction and seconds of window standing
+  // there afterwards. Returning from wWinMain would be worse again: it hands
+  // control to the C runtime, which waits on every thread the process has, and
+  // one of them does not come back. CoUninitialize is skipped for the same
+  // reason — an apartment waits for its outstanding objects.
+  //
+  // What had to be kept was kept before the loop ended: the document, the
+  // window geometry, the settings and the trace all went through the file
+  // system, which outlives the process that wrote them.
+  //
+  // This is what a reader means by other applications closing immediately, and
+  // it is what several of them do. The cost is real and accepted: a library
+  // that would have flushed something in its detach handler does not get to.
+  // Nothing here has anything left to flush.
+
   // The last instruction this process runs, which is what makes the number
   // beside it worth having: it is the far end of what a reader waits through
   // after pressing the button, and the near end was recorded when WM_CLOSE
-  // arrived. Nothing after this point can be measured from anywhere.
-  WriteLastExit(CloseQueuedForMs(), CloseAskedAtMs(), WindowDestroyedAtMs(),
+  // arrived. After the line below there is no "after this point".
+  WriteLastExit(CloseQueuedForMs(), CloseAskedAtMs(), WindowGoneAtMs(),
                 MillisecondsSinceProcessStart());
-  ::ExitProcess(EXIT_SUCCESS);
+  ::TerminateProcess(::GetCurrentProcess(), EXIT_SUCCESS);
 }

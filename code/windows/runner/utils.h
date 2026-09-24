@@ -35,11 +35,17 @@ long long CloseAskedAtMs();
 // starts counting.
 long long CloseQueuedForMs();
 
-// Records that the window has been destroyed, the first time it is.
-void RecordWindowDestroyed();
+// Records that the window has left the screen, the first time it does.
+//
+// "Left the screen" rather than "was destroyed", because measuring found that
+// this window is never destroyed at all: `window_manager`'s destroy() is
+// PostQuitMessage and nothing else, so the window stands there in front of the
+// reader until the process itself dies. What matters to somebody waiting is
+// when it stopped being visible.
+void RecordWindowGone();
 
-// When the window was destroyed, or -1 if it never was.
-long long WindowDestroyedAtMs();
+// When the window left the screen, or -1 if it never did.
+long long WindowGoneAtMs();
 
 // Takes a null-terminated wchar_t* encoded in UTF-16 and returns a std::string
 // encoded in UTF-8. Returns an empty std::string on failure.

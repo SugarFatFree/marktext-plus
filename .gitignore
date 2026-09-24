@@ -60,3 +60,4 @@ docs/功能规划路线图.md
 
 # MCP 配置里带着连接本机应用的 bearer token，不进版本库
 .mcp.json
+.runlogs/

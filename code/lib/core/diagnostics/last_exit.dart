@@ -76,17 +76,21 @@ abstract final class LastExit {
     if (queued != null && queued >= 0) {
       parts.add('$queued ms for the button to be heard');
     }
-    // When the window was destroyed splits the rest in two: before it is
-    // everything the editor does, after it is only the process leaving. Absent
-    // — a run that left without the window being destroyed — the two are
-    // reported together rather than guessed apart.
-    final destroyed = _numberAfter(contents, 'destroyed-ms=');
-    if (destroyed != null && destroyed >= asked && destroyed <= exiting) {
-      parts.add('${destroyed - asked} ms inside the editor');
-      parts.add('${exiting - destroyed} ms to leave');
+    // When the window left the screen splits the rest in two, and that is the
+    // moment a reader is actually waiting for. Before it, the editor is doing
+    // something; after it, the reader can get on with their day whatever the
+    // process is still doing.
+    //
+    // This is what the first measurement on a reader's machine reported as -1,
+    // and the -1 was the finding: the window was never taken off the screen at
+    // all, so it stood there through everything Windows does to end a process.
+    final gone = _numberAfter(contents, 'gone-ms=');
+    if (gone != null && gone >= asked && gone <= exiting) {
+      parts.add('${gone - asked} ms before the window went');
+      parts.add('${exiting - gone} ms to leave after that');
     } else {
       parts.add('${exiting - asked} ms from being heard to the last '
-          'instruction this process ran');
+          'instruction, with the window never taken off the screen');
     }
     return 'the previous close: ${parts.join(', ')}';
   }

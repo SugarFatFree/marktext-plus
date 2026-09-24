@@ -218,12 +218,32 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WindowListener {
       // Together rather than one after another: three independent reads over
       // the platform channel, each a round trip to the Windows thread, and
       // they were being waited on in sequence while the window sat there.
-      final (maximized, size, position) = await (
+      final (minimized, maximized, size, position) = await (
+        windowManager.isMinimized(),
         windowManager.isMaximized(),
         windowManager.getSize(),
         windowManager.getPosition(),
       ).wait;
-      StartupTrace.mark('window bounds read');
+      StartupTrace.mark('window bounds read: '
+          '${size.width.round()}x${size.height.round()} at '
+          '${position.dx.round()},${position.dy.round()}'
+          '${minimized ? ' (minimized)' : ''}'
+          '${maximized ? ' (maximized)' : ''}');
+
+      // A minimized window is not anywhere. Windows parks one at -32000,-32000
+      // with a size of a few dozen pixels, and reading that back as "where the
+      // window is" stored a position on no screen and a size below anything
+      // usable — so the next launch opened somewhere the reader could not find
+      // and could not drag back. It happened to a reader, on a close that the
+      // updater performed while the window was minimized.
+      //
+      // Keeping what was already stored is right rather than merely safe: it
+      // is where the window was when it was last somewhere, which is exactly
+      // what this is for.
+      if (minimized) {
+        StartupTrace.mark('window was minimized; keeping the stored geometry');
+        return;
+      }
 
       await ref
           .read(settingsProvider.notifier)

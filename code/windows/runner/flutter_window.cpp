@@ -61,12 +61,12 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
   if (message == WM_CLOSE) {
     RecordCloseAsked();
   }
-  // The other end of the editor's own share of the close. Between these two is
-  // everything Dart does — asking about unsaved work, saving the geometry,
-  // destroying the window — and after it is only the message loop draining.
-  // Splitting them is what makes one line able to say which part was slow.
+  // Kept although this window is never destroyed — measured, not assumed: the
+  // close reported -1 here on a real machine, which is how the whole thing
+  // below was found. If some later version of the plugin does destroy it, this
+  // is the moment it left the screen and the runner should say so.
   if (message == WM_DESTROY) {
-    RecordWindowDestroyed();
+    RecordWindowGone();
   }
 
   // Give Flutter, including plugins, an opportunity to handle window messages.
