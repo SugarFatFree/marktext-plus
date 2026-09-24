@@ -141,4 +141,18 @@ void main() {
     expect(settings, 2,
         reason: 'expected the declaration and one assignment, found $settings');
   });
+
+  test('the close reported is the one that ended the process', () {
+    // Not the first close asked for. A close can be refused — unsaved work, a
+    // prompt, the reader says cancel — and if they close again five minutes
+    // later, measuring from the first click files those five minutes of
+    // somebody thinking under "inside the editor". Whoever reads that goes
+    // looking for five minutes of work in a handler that does none.
+    final utils = codeOf('windows/runner/utils.cpp');
+    final opens = utils.indexOf('void RecordCloseAsked()');
+    final body = utils.substring(opens, utils.indexOf('\n}', opens));
+    expect(body, isNot(contains('close_asked_at_ms <')),
+        reason: 'the recording is skipped once something has been recorded, '
+            'so a refused close is what gets reported');
+  });
 }

@@ -17,6 +17,12 @@ import 'package:path/path.dart' as p;
 /// divide the close into the three stretches that can hold the wait: the
 /// message sitting in the queue before anything noticed it, the editor's own
 /// work, and the process leaving once the window has gone.
+///
+/// One caveat, for whoever reads a startling number here: when a close prompts
+/// about unsaved work, the reader's own deliberation happens inside the
+/// editor's stretch, and nothing on this side can tell it from work. The trace
+/// from the same run can — it marks the geometry save differently after a
+/// prompt — so check that before chasing minutes that belong to a dialog.
 abstract final class LastExit {
   /// Reads what the runner left beside the executable, and takes it away.
   ///

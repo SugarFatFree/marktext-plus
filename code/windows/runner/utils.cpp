@@ -136,13 +136,22 @@ long long QueuedForMs() {
 }  // namespace
 
 void RecordCloseAsked() {
-  // The first one only. A close that is refused — unsaved work, and the reader
-  // says cancel — is followed by another later, and the interesting one is the
-  // first, because that is when the reader pressed the button.
-  if (close_asked_at_ms < 0) {
-    close_queued_for_ms = QueuedForMs();
-    close_asked_at_ms = MillisecondsSinceProcessStart();
-  }
+  // Every time, so what is reported is the last one — the close that actually
+  // ended the process.
+  //
+  // Keeping the first instead looks defensible and is not. A close can be
+  // refused: unsaved work, a prompt, and the reader says cancel. If they close
+  // again five minutes later, measuring from the first click puts those five
+  // minutes of somebody thinking into "inside the editor", and whoever reads
+  // that line goes looking for five minutes of work in a handler that does
+  // none.
+  //
+  // The case keeping the first would have served — a reader clicking twice
+  // because nothing happened — is still served: both clicks sat in the queue
+  // through the same freeze, so the queue wait reported for the second one
+  // shows it just as well.
+  close_queued_for_ms = QueuedForMs();
+  close_asked_at_ms = MillisecondsSinceProcessStart();
 }
 
 long long CloseAskedAtMs() { return close_asked_at_ms; }
