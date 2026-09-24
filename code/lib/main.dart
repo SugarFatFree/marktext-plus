@@ -17,8 +17,9 @@ import 'core/diagnostics/startup_trace.dart';
 import 'core/net/system_proxy.dart';
 import 'providers/locale_provider.dart';
 import 'services/plugin_manager.dart';
-import 'dart:ui' show FramePhase;
+import 'dart:ui' show FramePhase, PlatformDispatcher;
 import 'package:flutter/scheduler.dart';
+import 'core/diagnostics/faults.dart';
 import 'core/diagnostics/last_exit.dart';
 import 'core/diagnostics/slow_frames.dart';
 import 'services/app_log.dart';
@@ -124,6 +125,40 @@ void main(List<String> args) async {
   HttpOverrides.global = SystemProxyHttpOverrides();
   WidgetsFlutterBinding.ensureInitialized();
   StartupTrace.mark('flutter binding ready');
+
+  // Faults reach the log. Until this, the editor reported no failure it had
+  // not gone looking for: a throw while a widget builds paints a grey
+  // rectangle in a release build and writes nothing, and a throw from a future
+  // nobody awaited goes to a console a windowed program does not have. Both
+  // are invisible in the log a reader opens and in the log somebody
+  // diagnosing their machine reads — so every account of a problem was
+  // missing the one class of failure nobody had written code for.
+  //
+  // Installed before anything else can throw. Both handlers still let the
+  // framework do what it did before; this only adds the line.
+  final faults = Faults();
+  final startedAt = Stopwatch()..start();
+  void report(Object error, StackTrace? stack, String doing) {
+    final line = faults.consider(
+      error: error,
+      stack: stack,
+      at: startedAt.elapsed,
+      while_: doing,
+    );
+    if (line != null) AppLog.instance.error(line, source: 'fault');
+  }
+
+  FlutterError.onError = (details) {
+    report(details.exception, details.stack,
+        details.context?.toDescription() ?? 'drawing the window');
+    FlutterError.presentError(details);
+  };
+  PlatformDispatcher.instance.onError = (error, stack) {
+    report(error, stack, 'working in the background');
+    // Not handled here: this adds an account of the fault, it does not decide
+    // what the framework should do about it.
+    return false;
+  };
 
   // A stutter is the one thing this editor never measured. Everything here
   // times its own work — the parse, the preview draw, each startup phase — so
