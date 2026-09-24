@@ -2,6 +2,7 @@
 #include <flutter/flutter_view_controller.h>
 #include <windows.h>
 #include <string>
+#include <vector>
 
 #include "flutter_window.h"
 #include "utils.h"
@@ -77,6 +78,102 @@ std::string FormatTraceArgument(const char *name, long long value) {
   return text;
 }
 
+
+// The arguments as the JSON array the running instance expects, or an empty
+// string when this cannot be sure of the encoding.
+//
+// Hand-written rather than pulled in from a library, for the reason at the top
+// of this file: nothing here can be compiled or tested on the machine it is
+// written on, so it uses as little as it can get away with — and it gives up
+// rather than guess. A backslash and a quote are all a path normally needs
+// escaping, and those two are done here; anything JSON would want escaped
+// beyond them makes this return nothing, and the launch takes the slow path
+// where Dart's own encoder does the work.
+//
+// That is the whole of the safety argument. The far end parses what it is sent
+// and swallows the error if it cannot, so a payload this got wrong would mean
+// a document that silently never opens. A launch that is merely as slow as it
+// used to be is a much better failure than that.
+std::string JsonArrayOf(const std::vector<std::string>& arguments) {
+  std::string json = "[";
+  for (size_t i = 0; i < arguments.size(); i++) {
+    if (i > 0) {
+      json += ",";
+    }
+    json += "\"";
+    for (size_t c = 0; c < arguments[i].size(); c++) {
+      const unsigned char ch = static_cast<unsigned char>(arguments[i][c]);
+      if (ch == '\\') {
+        json += "\\\\";
+      } else if (ch == '"') {
+        json += "\\\"";
+      } else if (ch < 0x20) {
+        return std::string();
+      } else {
+        // Everything else, bytes above 0x7F included: the arguments are
+        // already UTF-8 and JSON carries UTF-8 as it stands, so a Chinese
+        // file name needs nothing done to it.
+        json += static_cast<char>(ch);
+      }
+    }
+    json += "\"";
+  }
+  json += "]";
+  return json;
+}
+
+// Gives [arguments] to the copy of the editor already running, if there is one.
+//
+// A second launch — double-clicking a document while the editor is open — is
+// routed to the running window by `windows_single_instance`. That check is in
+// Dart, and Dart does not run until the engine has: measured on a reader's
+// machine, 462 ms for Windows to map the executable and its libraries and
+// another ~600 ms for the engine and the AOT snapshot. So opening a document
+// that way cost a second or more of a whole second copy of the editor starting
+// up, in order to forward one path and quit. That is what a reader means by
+// "opening the second file is slow", and none of it is rendering.
+//
+// The protocol is the package's own: a named mutex says somebody is there, and
+// the arguments go down a named pipe as a JSON array. Nothing here *creates*
+// the mutex — creating it would make the Dart check later in this same process
+// believe it was the second instance and quit the only copy running.
+//
+// Every failure falls through to starting normally, which is what happened
+// before this existed: the editor still opens, and the Dart check still
+// forwards the arguments the way it always did. This can only make a launch
+// faster, never break one.
+bool HandedOffToRunningInstance(const std::vector<std::string>& arguments) {
+  HANDLE running = ::OpenMutexW(SYNCHRONIZE, FALSE,
+                                L"marktext_plus_instance.win.mutex");
+  if (running == nullptr) {
+    return false;
+  }
+  ::CloseHandle(running);
+
+  HANDLE pipe = ::CreateFileW(L"\\\\.\\pipe\\marktext_plus_instance",
+                              GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0,
+                              nullptr);
+  if (pipe == INVALID_HANDLE_VALUE) {
+    // A window is there but its pipe is not listening yet — it is still
+    // starting up, and its own check has not run either. Starting normally is
+    // the right answer: one of the two will win the mutex and the other will
+    // forward from Dart.
+    return false;
+  }
+
+  const std::string json = JsonArrayOf(arguments);
+  if (json.empty()) {
+    ::CloseHandle(pipe);
+    return false;
+  }
+  DWORD written = 0;
+  const BOOL wrote = ::WriteFile(pipe, json.c_str(),
+                                 static_cast<DWORD>(json.size()), &written,
+                                 nullptr);
+  ::CloseHandle(pipe);
+  return wrote != FALSE && written == json.size();
+}
+
 }  // namespace
 
 // Timings the runner can only take after the entrypoint arguments are fixed.
@@ -98,6 +195,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   // Before anything else this function does: everything up to here is the
   // operating system loading the executable and its libraries.
   const long long runner_entry_ms = MillisecondsSinceProcessStart();
+
+  // Before the console, before COM, before the engine: if the editor is
+  // already running, this launch has nothing to do but hand over what it was
+  // given. See [HandedOffToRunningInstance] for what that was costing.
+  if (HandedOffToRunningInstance(GetCommandLineArguments())) {
+    ::ExitProcess(EXIT_SUCCESS);
+  }
 
   // Renderer choice. Read MARKTEXT_IMPELLER here; applied to the project
   // below, because only the project can carry it.
