@@ -193,6 +193,16 @@ void main(List<String> args) async {
   final lastExit = LastExit.readAndForget();
   if (lastExit != null) {
     AppLog.instance.info(lastExit, source: 'close');
+  } else if (Platform.isWindows) {
+    // Said out loud, because otherwise a missing line is three findings at
+    // once: the runner did not write it, Dart did not find it, or the last run
+    // did not end by closing the window. This separates the first from the
+    // others — and it is not hypothetical, since the installer allows a
+    // machine-wide install into a directory the running program cannot write.
+    AppLog.instance.debug(
+      'the previous run left no account of how it closed',
+      source: 'close',
+    );
   }
 
   // Plugin processes an earlier run left behind. A child is not killed when

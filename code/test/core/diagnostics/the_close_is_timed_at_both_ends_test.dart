@@ -86,6 +86,22 @@ void main() {
         reason: 'main.cpp defines a second copy of the clock');
   });
 
+  test('the runner and Dart agree on what the file is called', () {
+    // One name, written in C++ and read in Dart, with nothing between them
+    // that can notice they have drifted apart. Renaming one alone is a line
+    // that simply never appears again — the quietest way this could fail, and
+    // indistinguishable from a close that was fast.
+    final written = RegExp(r'L"([\w.-]+\.log)"')
+        .firstMatch(codeOf('windows/runner/main.cpp'))
+        ?.group(1);
+    final read = RegExp(r"fileName = '([\w.-]+\.log)'")
+        .firstMatch(codeOf('lib/core/diagnostics/last_exit.dart'))
+        ?.group(1);
+    expect(written, isNotNull, reason: 'the runner writes no file at all');
+    expect(read, isNotNull, reason: 'Dart names no file to read');
+    expect(read, written);
+  });
+
   test('what the runner writes is what Dart reads', () {
     // The two ends of one line, in two languages, with nothing between them
     // that can check they agree — a runner label nobody parses is a

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:marktext_plus/core/diagnostics/last_exit.dart';
 
@@ -75,5 +77,47 @@ void main() {
     // The clock comes from the process, not the wall, but a number that says
     // the process left before the button was pressed is not one to report.
     expect(LastExit.describe('close-asked-ms=900 exiting-ms=800'), isNull);
+  });
+
+  group('reading what the runner left', () {
+    late Directory directory;
+
+    setUp(() => directory = Directory.systemTemp.createTempSync('mt-exit'));
+    tearDown(() => directory.deleteSync(recursive: true));
+
+    File theFile() =>
+        File('${directory.path}${Platform.pathSeparator}${LastExit.fileName}');
+
+    test('it reads the file the runner leaves beside the executable', () {
+      // The reader half of a measurement taken in another language. Until now
+      // only the sentence was covered, and the sentence is not the part that
+      // can look in the wrong place or under the wrong name.
+      theFile().writeAsStringSync(
+          'queued-ms=3 close-asked-ms=100 destroyed-ms=130 exiting-ms=134\n');
+      expect(LastExit.readAndForget(beside: directory.path),
+          contains('30 ms inside the editor'));
+    });
+
+    test('it takes the account away once it has been read', () {
+      // Left in place, every launch from then on reports the same close as
+      // though it had just happened — and the one after a genuinely slow close
+      // would look identical to the one after a fast one.
+      theFile().writeAsStringSync('close-asked-ms=100 exiting-ms=134\n');
+      expect(LastExit.readAndForget(beside: directory.path), isNotNull);
+      expect(theFile().existsSync(), isFalse);
+      expect(LastExit.readAndForget(beside: directory.path), isNull);
+    });
+
+    test('an account it cannot make sense of is taken away too', () {
+      // Otherwise a file that can never be understood is read and skipped on
+      // every launch for the life of the installation.
+      theFile().writeAsStringSync('half a line');
+      expect(LastExit.readAndForget(beside: directory.path), isNull);
+      expect(theFile().existsSync(), isFalse);
+    });
+
+    test('nothing left behind is nothing said', () {
+      expect(LastExit.readAndForget(beside: directory.path), isNull);
+    });
   });
 }

@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
 /// What the previous run's exit looked like, measured where Dart could not.
@@ -28,12 +29,17 @@ abstract final class LastExit {
   ///
   /// Taken away because it is about one exit: left in place, every launch from
   /// then on would report the same close as though it had just happened.
-  static String? readAndForget() {
+  /// The name the runner writes. Kept in one place on this side, and checked
+  /// against the runner's own spelling by `the_close_is_timed_at_both_ends`:
+  /// the two are in different languages with nothing between them, so a rename
+  /// on one side alone is a line that never appears again and says nothing
+  /// about why.
+  static const fileName = 'last-exit.log';
+
+  static String? readAndForget({@visibleForTesting String? beside}) {
     try {
-      final file = File(
-        '${p.dirname(Platform.resolvedExecutable)}${Platform.pathSeparator}'
-        'last-exit.log',
-      );
+      final directory = beside ?? p.dirname(Platform.resolvedExecutable);
+      final file = File('$directory${Platform.pathSeparator}$fileName');
       if (!file.existsSync()) return null;
       final said = describe(file.readAsStringSync());
       file.deleteSync();
