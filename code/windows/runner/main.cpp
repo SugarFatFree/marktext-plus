@@ -217,7 +217,15 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
     // been written and closed, nothing else here has anything to flush, and
     // the detach handlers of everything the loader already mapped are work on
     // behalf of a process with no future.
+    //
+    // Followed by a return, which is not a formality. ExitProcess is declared
+    // DECLSPEC_NORETURN and this is not: TerminateProcess returns BOOL and is
+    // documented as asynchronous — it starts the termination and comes back.
+    // Without the return, the rest of this function runs in the moments before
+    // the process dies, which here means booting the engine for a launch whose
+    // only job was to hand a path over and go.
     ::TerminateProcess(::GetCurrentProcess(), EXIT_SUCCESS);
+    return EXIT_SUCCESS;
   }
 
   // Renderer choice. Read MARKTEXT_IMPELLER here; applied to the project
@@ -373,4 +381,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   WriteLastExit(CloseQueuedForMs(), CloseAskedAtMs(), WindowGoneAtMs(),
                 MillisecondsSinceProcessStart());
   ::TerminateProcess(::GetCurrentProcess(), EXIT_SUCCESS);
+  // Reached only in the moments between asking to be terminated and being
+  // terminated, because TerminateProcess is asynchronous and, unlike
+  // ExitProcess, is not declared as never returning. The compiler requires
+  // this line — /W4 /WX makes C4715 an error — and so does the reader: what
+  // lies after it is the C runtime unwinding every thread, which is what this
+  // whole exit path exists to avoid.
+  return EXIT_SUCCESS;
 }

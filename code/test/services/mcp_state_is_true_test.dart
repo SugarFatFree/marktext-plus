@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui' show Offset, Size;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -33,6 +34,7 @@ void main() {
   ProviderContainer boot({
     EditMode mode = EditMode.source,
     List<PluginManifest> plugins = const [],
+    EditorWindow? window,
   }) {
     final container = ProviderContainer(
       overrides: [
@@ -43,6 +45,8 @@ void main() {
           ),
         ),
         installedPluginManifestsProvider.overrideWith((ref) async => plugins),
+        if (window != null)
+          mcpProvider.overrideWith((ref) => McpController(ref, window: window)),
       ],
     );
     addTearDown(container.dispose);
@@ -109,13 +113,22 @@ void main() {
     // Absent under the tests, where there is no platform to ask — the same
     // shape `residentMB` has, and for the same reason: an invented figure is
     // worse than none.
-    final state = await stateOf(boot());
-    if (state.containsKey('window')) {
-      final window = state['window'] as Map;
-      expect(WindowState.values.map((s) => s.name), contains(window['state']));
-      expect(window['width'], isA<int>());
-      expect(window['height'], isA<int>());
-    }
+    // With a window to ask. Left conditional, these assertions never ran at
+    // all: under `flutter test` there is no platform, the reading is absent
+    // for the reason residentMB is, and the body of the `if` was a check
+    // nobody had ever executed.
+    final state = await stateOf(boot(window: _StillWindow()));
+    final window = state['window'] as Map;
+    expect(WindowState.values.map((s) => s.name), contains(window['state']));
+    expect(window['width'], 1200);
+    expect(window['height'], 800);
+    // Where it is, not only how big. A reader reported a window they could
+    // not find; this could say its size and not its whereabouts, which is the
+    // half that would have answered them.
+    expect(window['x'], -32000,
+        reason: 'a window parked off every screen is exactly the case this '
+            'is for, and the numbers have to survive being unhelpful');
+    expect(window['y'], -32000);
   });
 
   test('it says which files the side bar is listing', () async {
@@ -302,4 +315,21 @@ void main() {
       reason: '关掉的窗格还报着，agent 会以为它还开着',
     );
   });
+}
+
+/// A window that reports and does not move.
+class _StillWindow implements EditorWindow {
+  @override
+  Future<void> apply(WindowState state) async {}
+
+  @override
+  Future<void> resize(Size size) async {}
+
+  @override
+  Future<WindowReading> read() async => const WindowReading(
+        state: WindowState.normal,
+        size: Size(1200, 800),
+        // Where Windows parks a minimized window: the reading this is for.
+        position: Offset(-32000, -32000),
+      );
 }

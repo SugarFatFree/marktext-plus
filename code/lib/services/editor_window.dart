@@ -22,14 +22,28 @@ enum WindowState {
 
 /// What the window looks like, measured rather than remembered.
 class WindowReading {
-  const WindowReading({required this.state, required this.size});
+  const WindowReading({
+    required this.state,
+    required this.size,
+    required this.position,
+  });
 
   final WindowState state;
   final Size size;
 
+  /// Where the window's top left corner is.
+  ///
+  /// Reported as the platform reports it, including when that is nowhere: a
+  /// minimized window on Windows sits in the corner it parks them in, far off
+  /// any screen. That is worth saying rather than hiding, because "the window
+  /// has gone somewhere I cannot find it" is a thing readers report and this
+  /// is the only answer to it. [state] says whether to believe the numbers.
+  final Offset position;
+
   @override
-  String toString() =>
-      '${state.name}, ${size.width.round()}×${size.height.round()}';
+  String toString() => '${state.name}, '
+      '${size.width.round()}×${size.height.round()} at '
+      '${position.dx.round()},${position.dy.round()}';
 }
 
 /// The editor's own window, as much of it as can be driven from outside.
@@ -104,6 +118,10 @@ class PlatformEditorWindow implements EditorWindow {
             : await windowManager.isMaximized()
                 ? WindowState.maximized
                 : WindowState.normal;
-    return WindowReading(state: state, size: await windowManager.getSize());
+    final (size, position) = await (
+      windowManager.getSize(),
+      windowManager.getPosition(),
+    ).wait;
+    return WindowReading(state: state, size: size, position: position);
   }
 }

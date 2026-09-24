@@ -6258,6 +6258,30 @@ void WindowManager::Destroy() {
 文档、窗口几何、设置、追踪都经文件系统写出，而文件系统比写它的进程活得久。
 这也正是「别的应用点 × 就真的关掉了」的做法。
 
+### 一个代价高的细节：`TerminateProcess` 不是 `ExitProcess` 的同义替换
+
+第一次推上去 CI 直接编译失败：
+
+```
+main.cpp: warning C4715: 'wWinMain': not all control paths return a value
+```
+
+| | 返回 | 声明 | 之后的代码 |
+|---|---|---|---|
+| `ExitProcess` | 不返回 | `DECLSPEC_NORETURN` | 编译器知道走不到 |
+| `TerminateProcess` | `BOOL` | 普通函数 | **会跑**（文档：发起终止即返回） |
+
+编译失败只是表象。**真正的危险在转发那条分支**：原先 `ExitProcess` 之后是死路，
+换成 `TerminateProcess` 之后控制流会继续往下走去**启动整个 Flutter 引擎**——
+一个只为转发一个路径而存在的进程，会在临死的几毫秒里开始做 BUG-500 刚刚省掉的事。
+
+两处调用后面都补了 `return`，并写成守卫：
+`nothing runs on after asking to be terminated` 遍历**每一个** `TerminateProcess`，
+要求它的下一条语句是 `return`。
+
+**这次是编译器替我抓到的，那是运气**——同样的错误发生在编译器能证明有出口的函数里
+（例如 void 函数）就会直接发出去，而本机编译不了这个文件。
+
 ### 残留
 
 进程结束不是瞬时的，理论上仍有一个毫秒级的窗口可能撞上同一个竞态。

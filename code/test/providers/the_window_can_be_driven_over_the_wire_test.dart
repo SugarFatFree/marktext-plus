@@ -168,5 +168,7 @@ class _FakeWindow implements EditorWindow {
 
   @override
   Future<WindowReading> read() async =>
-      WindowReading(state: _state, size: _size);
+      WindowReading(state: _state, size: _size, position: position);
+
+  Offset position = Offset.zero;
 }

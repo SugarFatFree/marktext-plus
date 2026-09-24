@@ -142,6 +142,28 @@ void main() {
     expect(code, contains('RecordWindowGone()'));
   });
 
+  test('nothing runs on after asking to be terminated', () {
+    // TerminateProcess is not ExitProcess. ExitProcess is declared
+    // DECLSPEC_NORETURN; this returns BOOL and is documented as asynchronous,
+    // so without something stopping it the following statements run in the
+    // moments before the process dies. On the hand-off path that means booting
+    // the engine for a launch whose only job was to pass a path along, and at
+    // the end of wWinMain it means returning into the C runtime — the exact
+    // thing this exit path exists to avoid.
+    //
+    // CI found this as a compiler error the first time (C4715 under /W4 /WX),
+    // which is luck: the same mistake on a path the compiler could prove ends
+    // would have shipped.
+    final code = codeOf('windows/runner/main.cpp');
+    for (var at = code.indexOf('::TerminateProcess');
+        at != -1;
+        at = code.indexOf('::TerminateProcess', at + 1)) {
+      final after = code.substring(at).split('\n').skip(1).join('\n').trimLeft();
+      expect(after, startsWith('return'),
+          reason: 'something follows a request to terminate, and it runs');
+    }
+  });
+
   test('the run ends at once rather than being wound down', () {
     // Looking closed is not being closed, and the difference is not cosmetic.
     // ExitProcess runs DLL_PROCESS_DETACH for everything this 51 MB install

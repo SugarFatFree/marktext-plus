@@ -186,6 +186,12 @@ class McpController extends StateNotifier<McpStatus> {
           'state': windowNow.state.name,
           'width': windowNow.size.width.round(),
           'height': windowNow.size.height.round(),
+          // Where it is, not only how big it is. A reader reported a window
+          // they could not find, and this could say how large it was and not
+          // where it had gone, which is the half that would have answered
+          // them.
+          'x': windowNow.position.dx.round(),
+          'y': windowNow.position.dy.round(),
         },
       'tabs': [
         for (final tab in tabs.tabs)
