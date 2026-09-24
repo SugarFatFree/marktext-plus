@@ -358,7 +358,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   // This is what a reader means by other applications closing immediately, and
   // it is what several of them do. The cost is real and accepted: a library
   // that would have flushed something in its detach handler does not get to.
-  // Nothing here has anything left to flush.
+  //
+  // Nothing here has anything left to flush, and that was checked rather than
+  // asserted: no writer in this program holds a user-space buffer. There is no
+  // openWrite or IOSink anywhere in lib/ — every one of them uses
+  // writeAsString or writeAsBytes, which reach the operating system before
+  // they return, and the log a reader reads is five hundred lines in memory
+  // that no exit of any kind would have saved.
 
   // The last instruction this process runs, which is what makes the number
   // beside it worth having: it is the far end of what a reader waits through
