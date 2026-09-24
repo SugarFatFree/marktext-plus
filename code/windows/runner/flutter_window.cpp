@@ -1,4 +1,5 @@
 #include "flutter_window.h"
+#include "utils.h"
 
 #include <optional>
 
@@ -51,6 +52,23 @@ LRESULT
 FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
                               WPARAM const wparam,
                               LPARAM const lparam) noexcept {
+  // Before Flutter sees it. `window_manager` answers WM_CLOSE by telling Dart
+  // and refusing the close, so by the time anything Dart-side is timed the
+  // message has already been in flight — and how long it was in flight is the
+  // one number nobody had. A reader reports that closing the window is slow
+  // while every recorded close runs 17-35 ms from Dart hearing about it to the
+  // window going; the wait is somewhere neither end was watching.
+  if (message == WM_CLOSE) {
+    RecordCloseAsked();
+  }
+  // The other end of the editor's own share of the close. Between these two is
+  // everything Dart does — asking about unsaved work, saving the geometry,
+  // destroying the window — and after it is only the message loop draining.
+  // Splitting them is what makes one line able to say which part was slow.
+  if (message == WM_DESTROY) {
+    RecordWindowDestroyed();
+  }
+
   // Give Flutter, including plugins, an opportunity to handle window messages.
   if (flutter_controller_) {
     std::optional<LRESULT> result =

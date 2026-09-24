@@ -19,6 +19,7 @@ import 'providers/locale_provider.dart';
 import 'services/plugin_manager.dart';
 import 'dart:ui' show FramePhase;
 import 'package:flutter/scheduler.dart';
+import 'core/diagnostics/last_exit.dart';
 import 'core/diagnostics/slow_frames.dart';
 import 'services/app_log.dart';
 import 'services/self_update_service.dart';
@@ -183,6 +184,15 @@ void main(List<String> args) async {
   if (installed != null) {
     AppLog.instance.info('the installer that ran before this launch said: '
         '$installed', source: 'update');
+  }
+
+  // How the previous run ended, measured where Dart could not: the runner
+  // records WM_CLOSE arriving and the last instruction it runs, beside the
+  // executable. Read once and deleted, so the next launch reports its own exit
+  // rather than this one again.
+  final lastExit = LastExit.readAndForget();
+  if (lastExit != null) {
+    AppLog.instance.info(lastExit, source: 'close');
   }
 
   // Plugin processes an earlier run left behind. A child is not killed when

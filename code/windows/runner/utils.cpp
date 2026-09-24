@@ -63,3 +63,96 @@ std::string Utf8FromUtf16(const wchar_t* utf16_string) {
   }
   return utf8_string;
 }
+
+// Milliseconds between this process being created and right now.
+//
+// The Dart side can only start counting once Dart is running, which leaves out
+// everything the person actually waits through first: the shell starting the
+// process, Windows mapping the executable and its DLLs, the Flutter engine
+// coming up and loading the AOT snapshot. On a launch that felt like two
+// seconds, the Dart side accounted for 191 ms of it — so the missing time is
+// all in here, and it has to be measured from in here.
+//
+// Deliberately written with nothing but windows.h and plain arithmetic: this
+// file cannot be compiled or tested on the machine it was written on, so it
+// avoids every library call it does not strictly need, the integer formatting
+// included.
+long long MillisecondsSinceProcessStart() {
+  // Initialised even though every one of them is an out parameter: this
+  // project builds the runner with /W4 /WX, where a warning is a failed build,
+  // and "potentially uninitialised" is the one warning class this function
+  // could plausibly trip.
+  FILETIME created = {}, exited = {}, kernel = {}, user = {};
+  if (!::GetProcessTimes(::GetCurrentProcess(), &created, &exited, &kernel,
+                         &user)) {
+    return -1;
+  }
+  ULARGE_INTEGER start = {};
+  start.LowPart = created.dwLowDateTime;
+  start.HighPart = created.dwHighDateTime;
+
+  FILETIME now_file_time = {};
+  ::GetSystemTimeAsFileTime(&now_file_time);
+  ULARGE_INTEGER now = {};
+  now.LowPart = now_file_time.dwLowDateTime;
+  now.HighPart = now_file_time.dwHighDateTime;
+
+  if (now.QuadPart < start.QuadPart) {
+    return -1;
+  }
+  // FILETIME counts 100ns intervals.
+  return (long long)((now.QuadPart - start.QuadPart) / 10000ULL);
+}
+
+namespace {
+// -1 until each thing happens. Written from the window procedure and read on
+// the way out, both on the same thread.
+long long close_asked_at_ms = -1;
+long long close_queued_for_ms = -1;
+long long window_destroyed_at_ms = -1;
+
+// How long the message being handled waited in the queue.
+//
+// GetMessageTime gives the moment the message was posted, in the same ticks
+// GetTickCount counts, so the difference is how long it sat there. For WM_CLOSE
+// sent by the frame in response to a click, the last message collected is that
+// click, which is the moment worth having: the reader's own.
+//
+// Returns -1 rather than a number it cannot vouch for. The tick counter wraps
+// roughly every 49 days; unsigned arithmetic carries that correctly, but a
+// result beyond any plausible wait means the two values did not belong
+// together, and a wrong number here would send somebody looking in the wrong
+// half of the close.
+long long QueuedForMs() {
+  const DWORD posted = (DWORD)::GetMessageTime();
+  const DWORD now = ::GetTickCount();
+  const DWORD waited = now - posted;
+  // A day. Nothing a reader waits through comes near it.
+  if (waited > 86400000UL) {
+    return -1;
+  }
+  return (long long)waited;
+}
+}  // namespace
+
+void RecordCloseAsked() {
+  // The first one only. A close that is refused — unsaved work, and the reader
+  // says cancel — is followed by another later, and the interesting one is the
+  // first, because that is when the reader pressed the button.
+  if (close_asked_at_ms < 0) {
+    close_queued_for_ms = QueuedForMs();
+    close_asked_at_ms = MillisecondsSinceProcessStart();
+  }
+}
+
+long long CloseAskedAtMs() { return close_asked_at_ms; }
+
+long long CloseQueuedForMs() { return close_queued_for_ms; }
+
+void RecordWindowDestroyed() {
+  if (window_destroyed_at_ms < 0) {
+    window_destroyed_at_ms = MillisecondsSinceProcessStart();
+  }
+}
+
+long long WindowDestroyedAtMs() { return window_destroyed_at_ms; }

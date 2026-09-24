@@ -9,45 +9,6 @@
 
 namespace {
 
-// Milliseconds between this process being created and right now.
-//
-// The Dart side can only start counting once Dart is running, which leaves out
-// everything the person actually waits through first: the shell starting the
-// process, Windows mapping the executable and its DLLs, the Flutter engine
-// coming up and loading the AOT snapshot. On a launch that felt like two
-// seconds, the Dart side accounted for 191 ms of it — so the missing time is
-// all in here, and it has to be measured from in here.
-//
-// Deliberately written with nothing but windows.h and plain arithmetic: this
-// file cannot be compiled or tested on the machine it was written on, so it
-// avoids every library call it does not strictly need, the integer formatting
-// included.
-long long MillisecondsSinceProcessStart() {
-  // Initialised even though every one of them is an out parameter: this
-  // project builds the runner with /W4 /WX, where a warning is a failed build,
-  // and "potentially uninitialised" is the one warning class this function
-  // could plausibly trip.
-  FILETIME created = {}, exited = {}, kernel = {}, user = {};
-  if (!::GetProcessTimes(::GetCurrentProcess(), &created, &exited, &kernel,
-                         &user)) {
-    return -1;
-  }
-  ULARGE_INTEGER start = {};
-  start.LowPart = created.dwLowDateTime;
-  start.HighPart = created.dwHighDateTime;
-
-  FILETIME now_file_time = {};
-  ::GetSystemTimeAsFileTime(&now_file_time);
-  ULARGE_INTEGER now = {};
-  now.LowPart = now_file_time.dwLowDateTime;
-  now.HighPart = now_file_time.dwHighDateTime;
-
-  if (now.QuadPart < start.QuadPart) {
-    return -1;
-  }
-  // FILETIME counts 100ns intervals.
-  return (long long)((now.QuadPart - start.QuadPart) / 10000ULL);
-}
 
 // Formats an elapsed time as a Dart entrypoint argument.
 //
@@ -120,6 +81,53 @@ std::string JsonArrayOf(const std::vector<std::string>& arguments) {
   }
   json += "]";
   return json;
+}
+
+// Leaves the two numbers nobody had behind for the next launch to report.
+//
+// Dart times the close from the moment it is told about it, and every recorded
+// close runs 17-35 ms from there to the window going — while a reader reports
+// waiting seconds. So the wait is outside that: either before the message
+// reaches Dart, or after the window has gone and the process has not. This
+// records both ends of the whole thing, from the click to the last instruction
+// this process runs.
+//
+// Beside the executable, which is where the startup trace already keeps one of
+// its two copies, so it is known to be writable. One line, overwritten each
+// time; the next launch reads it, says so, and deletes it.
+void WriteLastExit(long long queued_ms, long long close_asked_ms,
+                   long long destroyed_ms, long long exiting_ms) {
+  wchar_t path[MAX_PATH] = {};
+  const DWORD length = ::GetModuleFileNameW(nullptr, path, MAX_PATH);
+  if (length == 0 || length >= MAX_PATH) {
+    return;
+  }
+  // Cut the file name off, leaving the trailing separator.
+  DWORD end = length;
+  while (end > 0 && path[end - 1] != L'\\') {
+    end--;
+  }
+  if (end == 0) {
+    return;
+  }
+  path[end] = L'\0';
+
+  std::wstring file(path);
+  file += L"last-exit.log";
+  HANDLE handle = ::CreateFileW(file.c_str(), GENERIC_WRITE, 0, nullptr,
+                                CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+  if (handle == INVALID_HANDLE_VALUE) {
+    return;
+  }
+  std::string line = FormatTraceArgument("queued-ms=", queued_ms);
+  line += FormatTraceArgument(" close-asked-ms=", close_asked_ms);
+  line += FormatTraceArgument(" destroyed-ms=", destroyed_ms);
+  line += FormatTraceArgument(" exiting-ms=", exiting_ms);
+  line += "\n";
+  DWORD written = 0;
+  ::WriteFile(handle, line.c_str(), static_cast<DWORD>(line.size()), &written,
+              nullptr);
+  ::CloseHandle(handle);
 }
 
 // Gives [arguments] to the copy of the editor already running, if there is one.
@@ -200,6 +208,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   // already running, this launch has nothing to do but hand over what it was
   // given. See [HandedOffToRunningInstance] for what that was costing.
   if (HandedOffToRunningInstance(GetCommandLineArguments())) {
+    // Deliberately not recording an exit here. This process never had a window
+    // and was never asked to close one; writing the file from here would put a
+    // launch that merely forwarded a path where the next launch looks for the
+    // close it is meant to report, and overwrite the real one.
     ::ExitProcess(EXIT_SUCCESS);
   }
 
@@ -309,5 +321,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   // that wait is itself a place the process can sit for seconds. Nothing here
   // needs COM to be shut down tidily on the way out of a process that is
   // about to stop existing.
+  // The last instruction this process runs, which is what makes the number
+  // beside it worth having: it is the far end of what a reader waits through
+  // after pressing the button, and the near end was recorded when WM_CLOSE
+  // arrived. Nothing after this point can be measured from anywhere.
+  WriteLastExit(CloseQueuedForMs(), CloseAskedAtMs(), WindowDestroyedAtMs(),
+                MillisecondsSinceProcessStart());
   ::ExitProcess(EXIT_SUCCESS);
 }
