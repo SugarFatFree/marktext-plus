@@ -113,7 +113,7 @@ flutter pub get && flutter run
 | **`read_startup_trace`** | 启动每一步花了多久，包括 Dart 还没跑起来的那一段 |
 | **`control`** | 19 个动作：开关标签、保存、切换标签、写入内容、切换视图模式、关闭窗格、运行插件命令、打开插件面板、修改设置、重新打开关闭的标签页、移动和调整窗口大小，**以及安装插件、用 CI 的构建替换应用本体** |
 
-这十二个动作，按 agent 实际发送的名字：
+这 19 个动作，按 agent 实际发送的名字：
 `new_tab`, `close_tab`, `reopen_tab`, `save_tab`, `activate_tab`, `set_view_mode`, `set_content`, `close_pane`, `run_plugin_command`, `open_panel`, `open_file`, `install_plugin`, `update_app`, `set_window`, `set_setting`, `format`, `undo`, `redo`, `set_clipboard`
 
 ## ⚖️ 横向对比

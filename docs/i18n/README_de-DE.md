@@ -108,7 +108,7 @@ Ein optionaler MCP-Server, **aus, bis Sie ihn einschalten**: er öffnet einen Po
 | **`read_startup_trace`** | Wie lange jeder Schritt des Starts gedauert hat, auch der Teil vor Dart |
 | **`control`** | 19 Aktionen: Tabs öffnen, schließen, speichern und wechseln, Inhalt schreiben, Ansichtsmodus ändern, ein Pane schließen, einen Plugin-Befehl ausführen, das Panel eines Plugins öffnen, eine Einstellung ändern, einen geschlossenen Tab wieder öffnen, das Fenster bewegen und in der Größe ändern — **und ein Plugin installieren oder die Anwendung durch einen CI-Build ersetzen** |
 
-Die zwölf Aktionen, mit den Namen, die ein Agent sendet:
+Die 19 Aktionen, mit den Namen, die ein Agent sendet:
 `new_tab`, `close_tab`, `reopen_tab`, `save_tab`, `activate_tab`, `set_view_mode`, `set_content`, `close_pane`, `run_plugin_command`, `open_panel`, `open_file`, `install_plugin`, `update_app`, `set_window`, `set_setting`, `format`, `undo`, `redo`, `set_clipboard`
 
 ## ⚖️ Im Vergleich

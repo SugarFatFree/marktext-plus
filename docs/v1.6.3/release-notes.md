@@ -1,15 +1,14 @@
 # MarkText Plus v1.6.3
 
 > Release notes. English is the default language; the Chinese section follows.
->
-> **This version is still being written.** What follows covers the changes made
-> so far and will grow until the release is cut.
 
 ## English
 
-Three fixes so far, and they are all one thing seen from different angles: a
-guard that was written to catch the shape of the one failure its author had in
-front of them, rather than the rule that failure broke.
+A long version, and its two ends are worth reading together. It opens with a
+run of guards that each caught the shape of one failure rather than the rule
+that failure broke — and it closes with three things nobody was measuring at
+all: why closing the window felt slow, why opening a second document did, and
+what happens when something throws where no code was watching.
 
 ### The version number the editor sends out was frozen at 1.6.0
 
@@ -810,6 +809,93 @@ because a slow-launch report was once diagnosed against source several commits
 newer than the binary that produced it, which is exactly the report it was
 silent for.
 
+### Closing the window now closes the window
+
+A reader reported for the third time that closing the editor was slow, and
+every measurement the editor could take said it was fast: seventeen to
+thirty-five milliseconds from being told about the close to the window going,
+in every recorded run, and a watchdog around the shutdown that had never
+written a line.
+
+The measurements were of the wrong stretch, and nothing measured the right one.
+So the runner took its own: the click arriving, the window leaving the screen,
+and the last instruction the process runs. On a reader's machine the click was
+heard in 0 ms and the last instruction came 128 ms later — and the window had
+never left the screen at all. That was not a failed measurement. It was the
+answer:
+
+    void WindowManager::Destroy() { PostQuitMessage(0); }
+
+Closing does not destroy this window. It asks the message loop to stop, and the
+window stands in front of the reader until the process itself dies — through
+everything Windows does to unmap a fifty-megabyte install, running the detach
+handler of every library it loaded. Meanwhile the editor's own trace said
+"window destroyed", because that line was written after the call returned.
+
+The window is now taken off the screen at once, and the process ends at once
+rather than being wound down. That second half is not decoration. A reader
+asked what happens if they close the editor and immediately open a document,
+and the answer was: nothing, silently. For those seconds the dying process
+still holds the single-instance lock and the pipe a second launch hands its
+path to, while nothing is left alive to read them — so the document was passed
+to a dead listener and the launch quit. Making the window vanish is precisely
+what would have invited them to try.
+
+### The window came back somewhere you could not find it
+
+Closing the editor while it was minimized stored where the window was. A
+minimized window is not anywhere: Windows reports the corner it parks them in,
+far off every screen, at a size of a few dozen pixels, and that was written
+down as the window's place. The next launch opened there.
+
+It was an update that did the closing, with the window minimized at the time.
+The geometry of a window that is nowhere is now left alone — what was stored is
+where the window last was, which is what the record is for — and the startup
+trace prints both what it read and what it decided, because working out which
+of those had gone wrong cost a round trip through the reader.
+
+### Opening a second document no longer starts a second editor
+
+Double-clicking a document while the editor was open took a second or more
+before anything happened, and none of it was the document. The check for "am I
+already running" lives in Dart, and Dart does not run until the engine has:
+measured on a reader's machine, 462 ms for Windows to map the program and its
+libraries, and some 600 ms more for the engine and its snapshot. A whole second
+copy of the editor started up in order to pass one path along and quit.
+
+The runner now asks that question before any of it, in the first instruction it
+runs. Every way this can fail falls through to starting normally, which is what
+happened before it existed.
+
+### The editor says when something breaks, and when a frame was slow
+
+Nothing here reported a failure that somebody had not gone looking for. The
+parser times itself, the preview times itself, startup times each of its
+phases — and a throw while a widget builds painted a grey rectangle in a
+release build and wrote nothing at all, while a throw from a future nobody
+awaited went to a console a windowed program does not have. Both were invisible
+in the log a reader can open, which is the log a slow or broken session is
+diagnosed from.
+
+Faults now reach it. Saying them is easy; not drowning the log in them is the
+work, because a build that throws throws again on every frame afterwards. The
+same fault is said once and then counted, and "the same" is deliberately the
+kind of fault rather than its message — a message carrying an index or a path
+differs every frame while the fault does not.
+
+A stutter is the other thing that was never measured, for the same reason: it
+is by definition the part nobody timed. The editor now notices frames slow
+enough to be seen and says how long they took, once per run of them.
+
+### Uninstalling takes the folder with it
+
+The program writes diagnostics beside its own executable while it runs. The
+installer did not put them there, so the uninstaller did not know about them,
+and one unfamiliar file is enough for the installation folder to be left
+standing. Somebody who removes an editor and finds its folder still there is
+entitled to wonder what else it left.
+
+
 ## 中文
 
 到目前为止三条修复，其实是同一件事的三个侧面：**守卫是照着作者眼前那一个坏掉的
@@ -1433,3 +1519,67 @@ workflow 传了这个信息，构建「Releases 页面上那些」的 workflow �
 ——于是读者下载到的包，对着一个 CI 构建说「这不是 CI 构建」。
 这个功能之所以存在，是因为曾经有一份「启动很慢」的报告，被对着比它新好几个提交的
 源码分析过——而那正是它哑掉的那一类报告。
+
+### 关窗口，现在是真的把窗口关掉
+
+读者第三次说关闭很慢，而编辑器能做的每一项测量都说它很快：从被告知关闭到窗口消失，
+每一次记录都是 17 到 35 毫秒，关闭看门狗一行都没写过。
+
+问题在于**被测量的是另一段，而该测的那段没人测**。于是 runner 自己量了三个时刻：
+点击到达、窗口离开屏幕、进程执行最后一条指令。读者机器上的真实数据是：点击 0 毫秒
+被收到，最后一条指令在 128 毫秒后——而**窗口从来没有离开过屏幕**。这不是测量失败，
+这就是答案：
+
+    void WindowManager::Destroy() { PostQuitMessage(0); }
+
+关闭并不销毁这个窗口。它只是请消息循环停下来，而窗口就一直站在读者面前，直到进程
+自己死掉——中间是 Windows 卸载一个五十兆安装包的全过程，逐个执行它加载过的每个库的
+卸载钩子。与此同时，编辑器自己的追踪写着「窗口已销毁」，因为那一行是在调用返回之后
+记下的。
+
+现在窗口立刻从屏幕上撤掉，进程也立刻结束，而不是慢慢收摊。后半句不是修辞。读者问过
+一个问题：关掉编辑器之后马上打开一个文档会怎样？答案是——什么也不会发生，而且一声不响。
+在那几秒里，正在死去的进程仍然握着单实例锁和那条管道（第二次启动正是把路径交给它的），
+却已经没有活着的东西在读了；于是文档被交给一个死掉的接收者，那次启动随即退出。
+而让窗口瞬间消失，恰恰就是在邀请读者去这样做。
+
+### 窗口回来的地方，你找不到
+
+在最小化状态下关闭编辑器，会把「窗口在哪」记下来。而**最小化的窗口不在任何地方**：
+Windows 报的是它停放窗口的那个角落，远在所有屏幕之外，尺寸只有几十像素——这被当作
+窗口的位置写了下来。下次启动就开在那里。
+
+执行那次关闭的正是一次更新，而当时窗口是最小化的。现在，一个不在任何地方的窗口，
+它的几何**不会**覆盖已有记录——已存的那个，是窗口最后一次确实在某处时的位置，
+而这正是这份记录存在的意义。启动追踪同时打出「读到了什么」和「决定开在哪」，
+因为搞清这两者是哪一个出了错，曾经要通过读者往返一趟。
+
+### 打开第二个文档，不会再启动第二个编辑器
+
+编辑器开着的时候双击一个文档，要等一秒多才有反应，而这一秒里没有一点是花在文档上的。
+「我是不是已经在运行了」这个判断住在 Dart 里，而 Dart 要等引擎起来才会运行：读者机器上
+实测，Windows 映射程序和它的库要 462 毫秒，引擎与快照还要六百多毫秒。**一个完整的第二份
+编辑器被启动起来，只为了转交一个路径然后退出。**
+
+现在 runner 在它执行的第一条指令里就问这个问题。这条路上任何一种失败都会退回到正常启动，
+也就是它存在之前的样子。
+
+### 编辑器会说出「出错了」和「这一帧卡了」
+
+这里从来只报告有人特意写代码去找的失败。解析器给自己计时、预览给自己计时、启动给每个
+阶段计时——而 widget 构建时抛出的异常，在发行版里就是一个灰方块、不留一个字；
+没人 await 的 future 抛出的异常，打到一个窗口程序根本没有的控制台。两者在读者能打开的
+日志里都是**完全沉默的**，而那正是诊断「慢」或「坏」要读的日志。
+
+现在它们进日志了。说出来容易，**不把日志淹掉才是真正的工作**——构建抛异常的那一帧，
+之后每一帧都会再抛。同一个故障只说一次，然后计数；而「同一个」刻意按故障的**种类**
+算，不按消息算——带着下标或路径的消息每帧都不一样，故障却是同一个。
+
+卡顿是另一件从没被测量过的事，原因一样：它按定义就是没人计时的那一段。现在编辑器会
+注意到肉眼可见地慢的帧并说出它有多慢，一串卡顿只说一次。
+
+### 卸载会把文件夹一起带走
+
+程序运行时会在自己的可执行文件旁边写诊断文件。安装器没有放过它们，所以卸载器也不认识
+它们，而一个陌生文件就足以让整个安装目录留在原处。删掉一个编辑器却发现它的文件夹还在，
+有理由让人怀疑它还留下了些别的什么。

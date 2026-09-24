@@ -108,7 +108,7 @@ Um servidor MCP opcional, **desligado até você o ligar**: abre uma porta na su
 | **`read_startup_trace`** | Quanto tempo levou cada passo da inicialização, incluindo a parte antes do Dart |
 | **`control`** | 19 ações: abrir, fechar, salvar e trocar de aba, escrever conteúdo, mudar o modo de visualização, fechar um painel, executar um comando de um plugin, abrir o painel de um plugin, mudar uma configuração, reabrir uma aba fechada, mover e redimensionar a janela — **e instalar um plugin ou substituir o aplicativo por uma compilação da CI** |
 
-As doze ações, com os nomes que um agente envia:
+As 19 ações, com os nomes que um agente envia:
 `new_tab`, `close_tab`, `reopen_tab`, `save_tab`, `activate_tab`, `set_view_mode`, `set_content`, `close_pane`, `run_plugin_command`, `open_panel`, `open_file`, `install_plugin`, `update_app`, `set_window`, `set_setting`, `format`, `undo`, `redo`, `set_clipboard`
 
 ## ⚖️ Comparação

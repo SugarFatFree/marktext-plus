@@ -108,7 +108,7 @@ Un server MCP facoltativo, **spento finché non lo accendi**: apre una porta sul
 | **`read_startup_trace`** | Quanto è durato ogni passo dell'avvio, compresa la parte prima di Dart |
 | **`control`** | 19 azioni: aprire, chiudere, salvare e cambiare schede, scrivere contenuto, cambiare modalità di visualizzazione, chiudere un pannello, eseguire un comando di un plugin, aprire il pannello di un plugin, cambiare un'impostazione, riaprire una scheda chiusa, spostare e ridimensionare la finestra — **e installare un plugin o sostituire l'applicazione con una build della CI** |
 
-Le dodici azioni, con i nomi che un agent invia:
+Le 19 azioni, con i nomi che un agent invia:
 `new_tab`, `close_tab`, `reopen_tab`, `save_tab`, `activate_tab`, `set_view_mode`, `set_content`, `close_pane`, `run_plugin_command`, `open_panel`, `open_file`, `install_plugin`, `update_app`, `set_window`, `set_setting`, `format`, `undo`, `redo`, `set_clipboard`
 
 ## ⚖️ A confronto

@@ -124,7 +124,7 @@ regenerate.
 | **`read_startup_trace`** | The time each step of starting up took, including the part before Dart runs |
 | **`control`** | 19 actions: open, close, save and switch tabs, write content, change the view mode, close a pane, run a plugin command, open a plugin's panel, change a setting, reopen a tab you closed, move and resize the window — **and install a plugin or replace the application with a build from CI** |
 
-The twelve actions, by the names an agent sends:
+The 19 actions, by the names an agent sends:
 `new_tab`, `close_tab`, `reopen_tab`, `save_tab`, `activate_tab`, `set_view_mode`, `set_content`, `close_pane`, `run_plugin_command`, `open_panel`, `open_file`, `install_plugin`, `update_app`, `set_window`, `set_setting`, `format`, `undo`, `redo`, `set_clipboard`
 
 ## ⚖️ How it compares

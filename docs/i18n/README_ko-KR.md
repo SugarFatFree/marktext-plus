@@ -108,7 +108,7 @@ Lua나 JavaScript로 씁니다. 파일 하나와 매니페스트, 빌드 없음,
 | **`read_startup_trace`** | 시작의 각 단계가 걸린 시간 — Dart가 실행되기 전 구간까지 |
 | **`control`** | 19 가지 동작: 탭 열기·닫기·저장·전환, 내용 쓰기, 보기 모드 변경, 창 닫기, 플러그인 명령 실행, 플러그인 패널 열기, 설정 변경, 닫은 탭 다시 열기, 창 이동과 크기 변경, **그리고 플러그인 설치와 CI 빌드로 앱 자체를 교체하는 것** |
 
-에이전트가 보내는 이름으로 본 열두 가지 동작:
+에이전트가 보내는 이름으로 본 19가지 동작:
 `new_tab`, `close_tab`, `reopen_tab`, `save_tab`, `activate_tab`, `set_view_mode`, `set_content`, `close_pane`, `run_plugin_command`, `open_panel`, `open_file`, `install_plugin`, `update_app`, `set_window`, `set_setting`, `format`, `undo`, `redo`, `set_clipboard`
 ## ⚖️ 다른 편집기와 비교
 

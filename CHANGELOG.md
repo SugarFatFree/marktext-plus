@@ -5,6 +5,71 @@ All notable changes to MarkText Plus will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.6.3] - 2026-09-24
+
+A long version. Its full account, grouped by theme and readable in one sitting,
+is in `docs/v1.6.3/release-notes.md`; 81 fixes and 21 features are recorded
+individually in `docs/v1.6.3/bugfix.md` and `docs/v1.6.3/PRD_需求文档.md`.
+
+### Added
+
+- **Closing, opening and stuttering now report their own cost.** A reader
+  reported three times that the editor was slow, and every measured thing
+  looked fine each time — because the editor only reported failures somebody
+  had gone looking for. The runner now times the close from the click arriving
+  to the last instruction the process runs, in three stretches, and says which
+  one held the wait; the engine is asked how long each frame took, and a frame
+  slow enough to be seen is reported once per run of them
+- **A fault reaches the log instead of painting a grey rectangle.** There was no
+  handler for a throw during a build or from an unawaited future, so one painted
+  a grey box in a release build and the other went to a console a windowed
+  program does not have. Both are now in the log a reader can open, said once
+  per kind of fault and then counted, because a build that throws throws again
+  on every frame afterwards and the history is the part that explains it
+- **The automation interface can open a document, type in it, and drive the
+  window.** `open_file`, `format`, `undo`, `redo`, `set_clipboard` and
+  `set_window`, with `get_state` now reporting the version, the window's state,
+  size and position, and the files the side bar is listing
+- **A closed tab can be reopened**, the way every other editor does it
+- **A released build can say which build it is.** The startup trace names the
+  commit it was built from; the workflow that builds what people download had
+  never been told, so those builds said they were not CI builds
+
+### Fixed
+
+- **Closing the window now closes the window.** `window_manager`'s `destroy()`
+  is a bare `PostQuitMessage`: the window was never destroyed and stood in
+  front of the reader until the process died, through everything Windows does
+  to unmap a fifty-megabyte install — while the editor's own trace claimed the
+  window had been destroyed, because that line was written after the call
+  returned. The window now goes at once and the process ends at once, which
+  also closes a race a reader asked about: for those seconds the dying process
+  still held the single-instance lock and the pipe a second launch hands its
+  path to, so a document opened right after closing was passed to a dead
+  listener and silently never appeared
+- **The window no longer comes back somewhere you cannot find it.** Closing
+  while minimized stored what Windows reports for a minimized window — the
+  corner it parks them in, far off every screen, at a few dozen pixels — as
+  the window's place
+- **Opening a second document no longer starts a second editor.** The
+  "am I already running" check lives in Dart, and Dart does not run until the
+  engine has: a whole second copy of the editor booted in order to pass one
+  path along and quit. The runner now asks in its first instruction
+- **The side bar remembers your files again**, and switching documents or panes
+  no longer throws away the document tree and builds it afresh
+- **Uninstalling takes the installation folder with it.** The diagnostics the
+  program writes beside itself were not installed, so the uninstaller left
+  them, and one unfamiliar file keeps the folder standing
+- **Edit → Undo no longer loses what you just typed**, and the interface no
+  longer reports a document length that is one debounce out of date
+
+### Changed
+
+- The process now ends outright rather than being wound down. Everything that
+  had to be kept is written through the file system before the message loop
+  ends, and no writer in this program holds a buffer of its own — which is
+  checked by a test rather than asserted in a comment
+
 ## [v1.6.2] - 2026-09-11
 
 ### Added
