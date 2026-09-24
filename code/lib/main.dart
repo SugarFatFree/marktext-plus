@@ -17,6 +17,9 @@ import 'core/diagnostics/startup_trace.dart';
 import 'core/net/system_proxy.dart';
 import 'providers/locale_provider.dart';
 import 'services/plugin_manager.dart';
+import 'dart:ui' show FramePhase;
+import 'package:flutter/scheduler.dart';
+import 'core/diagnostics/slow_frames.dart';
 import 'services/app_log.dart';
 import 'services/self_update_service.dart';
 import 'providers/settings_provider.dart';
@@ -120,6 +123,25 @@ void main(List<String> args) async {
   HttpOverrides.global = SystemProxyHttpOverrides();
   WidgetsFlutterBinding.ensureInitialized();
   StartupTrace.mark('flutter binding ready');
+
+  // A stutter is the one thing this editor never measured. Everything here
+  // times its own work — the parse, the preview draw, each startup phase — so
+  // a reader saying "it stutters" ran into a log in which every measured thing
+  // looked fine. The engine knows how long each frame took; this asks it, and
+  // says so only when a frame was slow enough to be seen.
+  final slowFrames = SlowFrames();
+  SchedulerBinding.instance.addTimingsCallback((timings) {
+    for (final timing in timings) {
+      final line = slowFrames.consider(
+        build: timing.buildDuration,
+        raster: timing.rasterDuration,
+        at: Duration(
+          microseconds: timing.timestampInMicroseconds(FramePhase.rasterFinish),
+        ),
+      );
+      if (line != null) AppLog.instance.debug(line, source: 'frames');
+    }
+  });
 
   // Initialize single instance on Windows
   if (Platform.isWindows) {
