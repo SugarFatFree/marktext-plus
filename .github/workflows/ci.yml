@@ -329,6 +329,15 @@ jobs:
           ; machine that reported the fault.
           Source: "${{ github.workspace }}\code\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
 
+
+          [UninstallDelete]
+          ; What the program writes beside itself while it runs. The installer
+          ; did not put these here, so the uninstaller does not know about them
+          ; — and one unknown file is enough for the installation folder to be
+          ; left behind after somebody has uninstalled the program.
+          Type: files; Name: "{app}\startup-trace.log"
+          Type: files; Name: "{app}\last-exit.log"
+
           [Icons]
           Name: "{group}\MarkText Plus"; Filename: "{app}\marktext_plus.exe"
           Name: "{autodesktop}\MarkText Plus"; Filename: "{app}\marktext_plus.exe"; Tasks: desktopicon
