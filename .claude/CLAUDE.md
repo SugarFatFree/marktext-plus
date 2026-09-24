@@ -235,6 +235,41 @@ flutter clean
 ## 已知问题和限制
 
 ### Windows 平台
+
+#### 关闭窗口：`destroy()` 不销毁窗口，退出走 `TerminateProcess`（定死，别改回去）
+
+`window_manager` 0.4.3 的 `WindowManager::Destroy()` **整个函数体就是 `PostQuitMessage(0)`**。
+所以 `await windowManager.destroy()` 返回**不等于**窗口没了——追踪里那句
+`window destroyed` 曾经就是这么说谎的，而它正好盖住了读者抱怨的那件事。
+
+真机实测（v1.6.3 前）：点击 0 ms 被收到、到进程最后一条指令 128 ms，
+而**窗口从头到尾没离开过屏幕**，一直站到 Windows 把进程拆完。于是退出路径定为两步：
+
+1. 消息循环一结束 `ShowWindow(handle, SW_HIDE)`——藏起来，不是 `DestroyWindow`
+   （后者要拆 Flutter 视图，正是要挪走的那部分活）；
+2. `TerminateProcess(GetCurrentProcess(), 0)`——**不是 `ExitProcess`**，后者仍会
+   逐个执行 51 MB 安装里每个 DLL 的卸载钩子。
+
+**第 2 步不只是快**：拆进程的那几秒里，旧进程仍握着单实例互斥量和命名管道，
+而已经没有活着的东西在读——此时双击一个文档，新启动会把路径交给死掉的接收者然后退出，
+**文件一声不响地不打开**。读者问出来的。
+
+两条必须一起记住：
+
+- **`TerminateProcess` 不是 `ExitProcess` 的同义替换**：前者返回 `BOOL`、文档明说异步，
+  后者是 `DECLSPEC_NORETURN`。每个调用后面**必须**跟 `return`，否则后面的代码真的会跑
+  （转发分支上就是「开始启动整个引擎」）。CI 的 C4715 抓到过一次，那是运气。
+- 它安全的前提是**没有用户态缓冲的写入**，这一点是查过的、并且有守卫
+  （`nothing_buffers_what_it_writes_test`：全库不许出现 `openWrite`/`IOSink`）。
+
+守卫在 `the_close_is_timed_at_both_ends_test`。
+
+#### 最小化的窗口不在任何地方
+
+`GetWindowRect` 对最小化窗口返回**停放矩形**（约 -32000,-32000，几十像素）。
+把它当「窗口在哪」存下来，下次启动窗口就在读者找不到的地方。
+关闭时若 `isMinimized()`，**保留已存的几何**——那才是窗口最后一次确实在某处的位置。
+
 - **Windows on ARM**: **已经能出包了**（v1.6.1 起随发行版一起发）。
   这里曾长期写着「做不了」，理由是 Flutter 不发布 arm64 的 Windows SDK
   ——releases 清单 732 条全是 x64，这一点至今仍然成立。
